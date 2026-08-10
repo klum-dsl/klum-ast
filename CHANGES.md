@@ -43,6 +43,11 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Template root creation now lives below `Foo.Create.Template.With` and `From`; `Foo.Template.With` and `WithAll` are
+  reserved for scoped application. The conflicting `Foo.Create.Template(...)` and `TemplateFrom(...)` methods are
+  removed. The documented `Foo.Template.Create(...)` and `CreateFrom(...)` calls remain deprecated forwarding aliases
+  throughout 4.x. The Builder-first migration helper provides only direct, type-qualified starting rewrites; review its
+  diff and complete the migration checklist ([#710](https://github.com/klum-dsl/klum-ast/issues/710)).
 - Fixed cross-source `@Owner(root = true)` public Builder accessors to expose the target model's
   `Root_DSL.Builder<Root>` contract instead of the hidden `Root$Builder` implementation. Generated
   AnnoDocimal source mirrors now preserve that same public type ([#702](https://github.com/klum-dsl/klum-ast/issues/702)).

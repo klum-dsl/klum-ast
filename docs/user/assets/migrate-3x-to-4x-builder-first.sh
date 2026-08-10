@@ -22,6 +22,74 @@ done
   exit 1
 }
 
+# Template creation has moved below Create. Restrict this to direct, type-qualified
+# calls and leave comments and quoted/script content untouched. The scanner is
+# deliberately conservative: an unfamiliar slash expression is treated as opaque.
+rewrite_template_entrypoints() {
+  perl -0pi -e '
+    sub rewrite_code {
+      my ($code) = @_;
+      $code =~ s{(?<![\w\$\.])([A-Z]\w*(?:\.[A-Z]\w*)*)\.Create\.TemplateFrom(\s*\()}{${1}.Create.Template.From$2}g;
+      $code =~ s{(?<![\w\$\.])([A-Z]\w*(?:\.[A-Z]\w*)*)\.Create\.Template(\s*[\(\{])}{${1}.Create.Template.With$2}g;
+      $code =~ s{(?<![\w\$\.])([A-Z]\w*(?:\.[A-Z]\w*)*)\.Template\.CreateFrom(\s*\()}{${1}.Create.Template.From$2}g;
+      $code =~ s{(?<![\w\$\.])([A-Z]\w*(?:\.[A-Z]\w*)*)\.Template\.Create(\s*[\(\{])}{${1}.Create.Template.With$2}g;
+      return $code;
+    }
+
+    sub quoted_end {
+      my ($text, $start, $quote) = @_;
+      my $length = length $text;
+      my $index = $start + 1;
+      while ($index < $length) {
+        return $index + 1 if substr($text, $index, 1) eq $quote;
+        $index += substr($text, $index, 1) eq q{\\} ? 2 : 1;
+      }
+      return $length;
+    }
+
+    my $text = $_;
+    my $triple_single = chr(39) x 3;
+    my $triple_double = chr(34) x 3;
+    my ($out, $code) = (q{}, q{});
+    my ($index, $length) = (0, length $text);
+    while ($index < $length) {
+      my $tail = substr($text, $index);
+      my ($delimiter, $end);
+      if ($tail =~ m{\A//}) {
+        $delimiter = "\n";
+        $end = index($text, $delimiter, $index + 2);
+        $end = $length if $end < 0;
+        $end++ if $end < $length;
+      } elsif ($tail =~ m{\A/\*}) {
+        $end = index($text, "*/", $index + 2);
+        $end = $length if $end < 0;
+        $end += 2 if $end < $length;
+      } elsif ($tail =~ m{\A\$/}) {
+        $end = index($text, "/\$", $index + 2);
+        $end = $length if $end < 0;
+        $end += 2 if $end < $length;
+      } elsif (substr($text, $index, 3) eq $triple_single || substr($text, $index, 3) eq $triple_double) {
+        $delimiter = substr($text, $index, 3);
+        $end = index($text, $delimiter, $index + 3);
+        $end = $length if $end < 0;
+        $end += 3 if $end < $length;
+      } elsif ($tail =~ m{\A[\x27\x22\x60]}) {
+        $end = quoted_end($text, $index, substr($text, $index, 1));
+      } elsif ($tail =~ m{\A/}) {
+        $end = quoted_end($text, $index, "/");
+      } else {
+        $code .= substr($text, $index, 1);
+        $index++;
+        next;
+      }
+      $out .= rewrite_code($code) . substr($text, $index, $end - $index);
+      $code = q{};
+      $index = $end;
+    }
+    $_ = $out . rewrite_code($code);
+  ' "$1"
+}
+
 # Known public annotation moves, exception imports, and canonical deprecated annotation spelling.
 while IFS= read -r -d '' file; do
   perl -0pi -e '
@@ -33,6 +101,12 @@ while IFS= read -r -d '' file; do
     s{^(\s*import\s+)(com\.blackbuild\.klum\.ast\.runtime\.KlumValidationException\b)}{$1com.blackbuild.klum.ast.runtime.validation.KlumValidationException}mg;
     s{\bDelegatesToRW\b}{DelegatesToBuilder}g;
   ' "$file"
+done < <(find "${roots[@]}" -type f \( -name '*.groovy' -o -name '*.java' \) -print0)
+
+# Known Template creation entrypoints. This leaves scoped Template.With/WithAll,
+# variables, dynamic calls, method references, comments, and script text alone.
+while IFS= read -r -d '' file; do
+  rewrite_template_entrypoints "$file"
 done < <(find "${roots[@]}" -type f \( -name '*.groovy' -o -name '*.java' \) -print0)
 
 # Current-target Groovy Validator calls only. Explicit-target calls, ValidatorBase,

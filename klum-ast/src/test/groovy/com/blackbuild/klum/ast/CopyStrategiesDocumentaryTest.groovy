@@ -53,7 +53,7 @@ class CopyStrategiesDocumentaryTest extends AbstractDSLSpec {
             }
         '''
         def serviceType = getClass('pk.Service')
-        def baseline = serviceType.Template.Create {
+        def baseline = serviceType.Create.Template.With {
             endpoint {
                 host 'catalog.example.test'
             }
@@ -88,7 +88,7 @@ class CopyStrategiesDocumentaryTest extends AbstractDSLSpec {
                 List<String> roles
             }
         '''
-        def baseline = clazz.Template.Create {
+        def baseline = clazz.Create.Template.With {
             roles 'observer'
         }
 
@@ -126,7 +126,7 @@ class CopyStrategiesDocumentaryTest extends AbstractDSLSpec {
             }
         '''
         def deploymentType = getClass('pk.Deployment')
-        def baseline = deploymentType.Template.Create {
+        def baseline = deploymentType.Create.Template.With {
             environment('production') {
                 region 'eu-central'
             }
@@ -170,7 +170,7 @@ class CopyStrategiesDocumentaryTest extends AbstractDSLSpec {
             }
         '''
         def deploymentType = getClass('pk.Deployment')
-        def baseline = deploymentType.Template.Create {
+        def baseline = deploymentType.Create.Template.With {
             image 'catalog:2.0'
             arguments = []
             service('web') {

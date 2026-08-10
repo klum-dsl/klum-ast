@@ -148,10 +148,12 @@ Cannot schedule applyLater for phase 'instantiate' (40): deferred Builder action
 This guard is the materialization boundary. It does not add the broader past/current-phase checks tracked separately.
 This is especially useful for test cases, where the model needs specific, non-trivial values to be set (e.g., for validation), but these values are irrelevant for the actual test.
 
+(See: `TemplatesDocumentaryTest#'creates an unkeyed reusable template without lifecycle callbacks'`.)
+
 ```groovy
 class PersonText extends Specification {
 
-    def template = Person.Create.Template {
+    def template = Person.Create.Template.With {
         applyLater {
             // this closure will be executed for all objects created from this template
             street "Main Street " + name

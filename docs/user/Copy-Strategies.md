@@ -69,7 +69,7 @@ class Service {
 }
 
 when: // Model
-def baseline = Service.Template.Create {
+def baseline = Service.Create.Template.With {
     endpoint { host 'catalog.example.test' }
 }
 def service = Service.Create.With {
@@ -129,7 +129,7 @@ class Service {
 }
 
 when: // Model
-def baseline = Service.Template.Create {
+def baseline = Service.Create.Template.With {
     roles 'observer'
 }
 def service = Service.Create.With {
@@ -197,7 +197,7 @@ class Deployment {
 }
 
 when: // Model
-def baseline = Deployment.Template.Create {
+def baseline = Deployment.Create.Template.With {
     environment('production') { region 'eu-central' }
 }
 def deployment = Deployment.Create.With {
@@ -266,7 +266,7 @@ class Deployment {
 }
 
 when: // Model
-def baseline = Deployment.Template.Create {
+def baseline = Deployment.Create.Template.With {
     image 'catalog:2.0'
     arguments = []
     service('web') { port '8443' }
