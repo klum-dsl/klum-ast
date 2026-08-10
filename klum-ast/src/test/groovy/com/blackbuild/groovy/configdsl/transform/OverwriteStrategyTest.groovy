@@ -374,7 +374,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def template = Outer.Create.Template {
+        def template = Outer.Create.Template.With {
             inner {
                 foo 1
             }
@@ -414,7 +414,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def template = Outer.Create.Template {
+        def template = Outer.Create.Template.With {
             inner {
                 foo 1
             }
@@ -455,7 +455,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def template = Outer.Create.Template {
+        def template = Outer.Create.Template.With {
             inner("a") {
                 foo 1
             }

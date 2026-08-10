@@ -275,7 +275,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        def template = clazz.Create.Template {
+        def template = clazz.Create.Template.With {
             another "template"
         }
 

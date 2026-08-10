@@ -89,7 +89,7 @@ class TemplatesSpec extends AbstractDSLSpec {
             }
         ''')
         when:
-        def template = clazz.Create.Template {
+        def template = clazz.Create.Template.With {
             name "Welt"
             value null
         }
@@ -217,7 +217,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = Foo.Create.Template {
+        def template = Foo.Create.Template.With {
             names "a", "b"
         }
 
@@ -671,7 +671,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         Child.Create.One().names == ["default"]
 
         when:
-        def template = getClass("pk.Parent").Create.Template {
+        def template = getClass("pk.Parent").Create.Template.With {
             names "parent"
         }
 
@@ -726,14 +726,14 @@ class TemplatesSpec extends AbstractDSLSpec {
         def Child = getClass("pk.Child")
         def Parent = getClass("pk.Parent")
 
-        def template = Parent.Create.Template {
+        def template = Parent.Create.Template.With {
             names "parent"
         }
 
         when:
         def childTemplate
         Parent.Template.With(template) {
-            childTemplate = Child.Create.Template {
+            childTemplate = Child.Create.Template.With {
                 names = ["child"]
             }
         }
@@ -1208,14 +1208,14 @@ class TemplatesSpec extends AbstractDSLSpec {
             name "Default"
             value "DefaultValue"
         '''
-        def template = clazz.Create.TemplateFrom(scriptFile)
+        def template = clazz.Create.Template.From(scriptFile)
 
         then:
         template.name == "Default"
         template.value == "DefaultValue"
 
         when:
-        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+        template = clazz.Create.Template.From(scriptFile.toURI().toURL())
 
         then:
         template.name == "Default"
@@ -1242,7 +1242,7 @@ class TemplatesSpec extends AbstractDSLSpec {
             name "Default"
             value "DefaultValue"
         '''
-        def template = clazz.Create.TemplateFrom(scriptFile)
+        def template = clazz.Create.Template.From(scriptFile)
 
         then:
         template.key == null
@@ -1250,7 +1250,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         template.value == "DefaultValue"
 
         when:
-        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+        template = clazz.Create.Template.From(scriptFile.toURI().toURL())
 
         then:
         template.key == null
@@ -1277,14 +1277,14 @@ class TemplatesSpec extends AbstractDSLSpec {
             name "Default"
             value "DefaultValue"
         '''
-        def template = clazz.Create.TemplateFrom(scriptFile)
+        def template = clazz.Create.Template.From(scriptFile)
 
         then:
         template.name == "Default"
         template.value == "DefaultValue"
 
         when:
-        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+        template = clazz.Create.Template.From(scriptFile.toURI().toURL())
 
         then:
         template.name == "Default"
@@ -1311,7 +1311,7 @@ class TemplatesSpec extends AbstractDSLSpec {
             name "Default"
             value "DefaultValue"
         '''
-        def template = clazz.Create.TemplateFrom(scriptFile)
+        def template = clazz.Create.Template.From(scriptFile)
 
         then:
         template.key == null
@@ -1319,7 +1319,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         template.value == "DefaultValue"
 
         when:
-        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+        template = clazz.Create.Template.From(scriptFile.toURI().toURL())
 
         then:
         template.key == null
@@ -1349,7 +1349,7 @@ import com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy
         ''')
 
         when:
-        def template = clazz.Create.Template {
+        def template = clazz.Create.Template.With {
             name "Default"
         }
 
@@ -1403,7 +1403,7 @@ import com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy
             }
         ''')
         when:
-        def template = Foo.Create.Template {
+        def template = Foo.Create.Template.With {
             applyLater {
                 fullName name.toUpperCase()
             }

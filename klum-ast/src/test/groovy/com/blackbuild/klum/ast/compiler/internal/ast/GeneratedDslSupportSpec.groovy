@@ -39,6 +39,7 @@ import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport
 import com.blackbuild.klum.ast.runtime.generated.GeneratedOmittedProjectionSupport
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
+import com.blackbuild.klum.ast.runtime.internal.TemplateManager
 import groovy.lang.DelegatesTo
 import groovy.transform.CompileStatic
 import org.intellij.lang.annotations.Language
@@ -301,17 +302,78 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         classFileConstants(adapter).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedTemplateSupport')
     }
 
+    @Issue('710')
+    def "Factory owns the public Template creation property without exposing a Factory method"() {
+        given:
+        Class<?> foo = getClass('sample.Foo')
+        Class<?> factory = getClass('sample.Foo_DSL$Factory')
+        Class<?> templateFactory = getClass('sample.Foo_DSL$Factory$Template')
+        Class<?> adapter = getClass('sample.Foo$_TemplateFactory')
+
+        expect: 'the model and public Factory descriptors name the generated nested Factory contract'
+        foo.getField('Create').type == factory
+        factory.getField('Template').with {
+            type == templateFactory
+            Modifier.isPublic(modifiers)
+            Modifier.isStatic(modifiers)
+            Modifier.isFinal(modifiers)
+        }
+        templateFactory.interface && Modifier.isPublic(templateFactory.modifiers)
+        templateFactory.isAssignableFrom(adapter)
+
+        and: 'Template root creation is separate from inherited Factory methods'
+        !factory.methods*.name.contains('Template')
+        !factory.methods*.name.contains('TemplateFrom')
+        !factory.methods*.name.contains('getTemplate')
+        templateFactory.getMethod('With')
+        closureDelegate(templateFactory.getMethod('With', Closure)) == getClass('sample.Foo_DSL$Builder')
+        closureDelegate(templateFactory.getMethod('With', Map, Closure)) == getClass('sample.Foo_DSL$Builder')
+        templateFactory.getMethod('From', File)
+        templateFactory.getMethod('From', File, ClassLoader)
+        templateFactory.getMethod('From', URL)
+        templateFactory.getMethod('From', URL, ClassLoader)
+
+        and: 'public Factory descriptors and their adapter name only the reviewed generated-runtime bridge'
+        [factory, templateFactory, adapter].every { type ->
+            classFileConstants(type).every { !it.contains('com/blackbuild/klum/ast/runtime/internal') }
+        }
+        classFileConstants(adapter).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedTemplateFactorySupport')
+
+        when:
+        def template = foo.Create.Template.With {
+            label 'template'
+        }
+
+        then:
+        template.label == 'template'
+        TemplateManager.isTemplate(template)
+    }
+
+    @Issue('710')
     def "Java and statically compiled Groovy consume only the public namespace"() {
         when:
         compileJavaConsumer('''
             package sample;
 
             import groovy.lang.Closure;
+            import java.io.File;
             import java.util.Map;
 
             public final class JavaDslConsumer {
                 public static Foo_DSL.Factory factory() {
                     return Foo.Create;
+                }
+
+                public static Foo_DSL.Factory.Template templateFactory() {
+                    return Foo.Create.Template;
+                }
+
+                public static Foo template() {
+                    return Foo.Create.Template.With(Map.of("label", "java template"));
+                }
+
+                public static Foo templateFrom(File source) {
+                    return Foo.Create.Template.From(source);
                 }
 
                 public static Child_DSL.Builder<Child> addChild(
@@ -350,12 +412,37 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                         }
                     }
                 }
+
+                static Foo template() {
+                    Foo.Create.Template.With {
+                        label 'template'
+                    }
+                }
+
+                static Foo templateFrom(File source) {
+                    Foo.Create.Template.From(source)
+                }
             }
         ''', 'sample/StaticDslConsumer.groovy')
+        File templateSource = new File(tempFolder.root, 'template.groovy')
+        templateSource.text = 'label "file template"'
+
+        def javaTemplate
+        def javaTemplateFrom
+        new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], loader).withCloseable {
+            Class<?> javaConsumer = it.loadClass('sample.JavaDslConsumer')
+            javaTemplate = javaConsumer.template()
+            javaTemplateFrom = javaConsumer.templateFrom(templateSource)
+        }
+        def staticTemplate = consumer.template()
+        def staticTemplateFrom = consumer.templateFrom(templateSource)
 
         then:
         consumer.create().kids*.name == ['list child']
         consumer.create().primary.name == 'cluster child'
+        [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom]*.label ==
+                ['java template', 'file template', 'template', 'file template']
+        [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom].every { TemplateManager.isTemplate(it) }
     }
 
     def "AsBuilder projects the concrete public Builder return and closure delegate types"() {

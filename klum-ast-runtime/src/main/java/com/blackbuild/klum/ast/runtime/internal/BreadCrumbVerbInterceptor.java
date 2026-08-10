@@ -40,7 +40,9 @@ public class BreadCrumbVerbInterceptor implements Interceptor {
     public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
         if (IGNORED_METHODS.contains(methodName)) return null;
 
-        if (object.getClass().getName().endsWith("$_Factory")) {
+        if (object.getClass().getName().endsWith("$_TemplateFactory")) {
+            BreadcrumbCollector.getInstance().setVerb(DslHelper.shortNameFor(object.getClass().getDeclaringClass()) + ".Template");
+        } else if (object.getClass().getName().endsWith("$_Factory")) {
             BreadcrumbCollector.getInstance().setVerb(DslHelper.shortNameFor(object.getClass().getDeclaringClass()) + "." + methodName);
         } else {
             BreadcrumbCollector.getInstance().setVerb(methodName);

@@ -330,7 +330,7 @@ import com.blackbuild.klum.ast.layer3.AutoCreate
         Class Container = getClass("tmp.Container")
 
         when:
-        def template = Child.Create.Template(name: "fromTemplate")
+        def template = Child.Create.Template.With(name: "fromTemplate")
         // need to use a virtual container, since templates create around the root object WOULD apply to auto-created fields as well
         instance = Container.Create.With {
             Child.Template.With(template) {

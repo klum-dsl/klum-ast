@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import spock.lang.Issue
 
 class ModelPathTest extends AbstractDSLSpec {
 
@@ -104,7 +105,7 @@ class ModelPathTest extends AbstractDSLSpec {
         def KeyedValue = getClass('KeyedValue')
 
         when:
-        def recipe = Level2.Create.Template {
+        def recipe = Level2.Create.Template.With {
                 level3 ()
                 level3Element()
                 level3Element()
@@ -131,6 +132,7 @@ class ModelPathTest extends AbstractDSLSpec {
         KlumObjectSupport.of(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
+    @Issue('710')
     def "completed converter results cannot become nested composition"() {
         given:
         createClass '''import java.util.logging.Level
@@ -145,7 +147,7 @@ class ModelPathTest extends AbstractDSLSpec {
     Map<String, KeyedValue> keyedMapValue
     
     static Level2 fromString(String ignored) {
-        return Level2.Create.Template {
+        return Level2.Create.Template.With {
             level3 ()
             level3Element()
             level3Element()
@@ -179,7 +181,7 @@ class ModelPathTest extends AbstractDSLSpec {
         then:
         KlumModelException error = thrown()
         error.message.contains("Cannot use omitted Builder-producing projection level2(java.lang.String)")
-        error.message.contains("producer body contains an opaque materializing call")
+        error.message.contains("producer body has no active-session Builder-producing path")
         error.message.contains("active-session Create.AsBuilder recipe")
     }
 
@@ -211,7 +213,7 @@ class ModelPathTest extends AbstractDSLSpec {
     Map<String, KeyedValue> keyedMapValue
     
     static Level2 fromString(String ignored) {
-        return Level2.Create.Template {
+        return Level2.Create.Template.With {
             level3 ()
             level3Element()
             level3Element()

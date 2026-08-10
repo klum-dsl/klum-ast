@@ -80,6 +80,7 @@ public final class GeneratedDslSupport {
     private final ClassNode model;
     private final ClassNode namespace;
     private final InnerClassNode factoryInterface;
+    private final InnerClassNode templateFactoryInterface;
     private final InnerClassNode builderInterface;
     private final InnerClassNode templateInterface;
     private final GenericsType selfModelParameter;
@@ -98,6 +99,8 @@ public final class GeneratedDslSupport {
         model.getModule().addClass(namespace);
 
         factoryInterface = createNestedInterface(namespace, "Factory", "The public factory contract for " + model.getName() + ".");
+        templateFactoryInterface = createNestedInterface(factoryInterface, "Template",
+                "The public Template creation contract for " + model.getName() + ".");
         builderInterface = createNestedInterface(namespace, "Builder", "The public Builder contract for " + model.getName() + ".");
         templateInterface = createNestedInterface(namespace, "Template", "The public Template contract for " + model.getName() + ".");
         ClassNode builderPlaceholder = model.redirect().getNodeMetaData(BUILDER_PLACEHOLDER_METADATA_KEY);
@@ -131,6 +134,10 @@ public final class GeneratedDslSupport {
 
     public ClassNode getBuilderInterface() {
         return builderInterfaceFor(model, parameterizedForModel(model, model));
+    }
+
+    public ClassNode getTemplateFactoryInterface() {
+        return templateFactoryInterface;
     }
 
     public ClassNode getTemplateInterface() {
