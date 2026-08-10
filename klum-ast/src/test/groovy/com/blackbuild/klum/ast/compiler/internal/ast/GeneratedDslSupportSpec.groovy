@@ -44,6 +44,7 @@ import groovy.lang.DelegatesTo
 import groovy.transform.CompileStatic
 import org.intellij.lang.annotations.Language
 import org.codehaus.groovy.control.CompilationUnit
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -480,6 +481,27 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom].every { TemplateManager.isTemplate(it) }
     }
 
+    @Issue('710')
+    def "statically compiled Groovy rejects the removed Factory Template methods"() {
+        when:
+        createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class RemovedFactoryTemplateConsumer {
+                static Foo createTemplate() {
+                    Foo.Create.Template { label 'obsolete Factory method' }
+                }
+            }
+        ''', 'sample/RemovedFactoryTemplateConsumer.groovy')
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains('Cannot find matching method sample.Foo_DSL$Factory#Template')
+    }
+
     def "AsBuilder projects the concrete public Builder return and closure delegate types"() {
         when:
         compileJavaConsumer('''
@@ -671,7 +693,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         !dynamicEndpointMethod.isAnnotationPresent(Deprecated)
     }
 
-    def "AnnoDocimal source mirror matches the bytecode namespace and nested documentation"() {
+    @Issue('710')
+    def "AnnoDocimal source mirror matches the bytecode namespace and nested Template Factory contract"() {
         given:
         File mirrorRoot = new File(tempFolder.root, 'mirrors')
         File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
@@ -681,8 +704,25 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         String mirror = new File(mirrorRoot, 'sample/Foo_DSL.java').text
 
         then:
+        int factoryStart = mirror.indexOf('interface Factory')
+        int factoryTemplateStart = mirror.indexOf('interface Template')
+        int scopedTemplateStart = mirror.lastIndexOf('interface Template')
+        String factoryMirror = mirror.substring(factoryStart, scopedTemplateStart)
+        String templateFactoryMirror = mirror.substring(factoryTemplateStart, scopedTemplateStart)
+        String scopedTemplateMirror = mirror.substring(scopedTemplateStart)
+
         mirror.contains('interface Foo_DSL')
         mirror.contains('interface Factory')
+        mirror.count('interface Template') == 2
+        factoryMirror.contains('Template Template = null;')
+        templateFactoryMirror.contains('Foo With(')
+        templateFactoryMirror.contains('Foo From(')
+        !templateFactoryMirror.contains('Foo Template(')
+        !templateFactoryMirror.contains('Foo TemplateFrom(')
+        scopedTemplateMirror.contains('<C> C With(')
+        scopedTemplateMirror.contains('<C> C WithAll(')
+        scopedTemplateMirror.contains('Foo Create(')
+        scopedTemplateMirror.contains('Foo CreateFrom(')
         mirror.contains('interface Builder')
         mirror.contains('interface CollectionFactory_kids')
         mirror.contains('interface ClusterFactory_services')

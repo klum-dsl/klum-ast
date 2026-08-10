@@ -26,7 +26,7 @@ At freeze candidate `57ea5b2`, the generated TSV contains 371 added exact record
 | `KlumJacksonImporter.using(ObjectMapper)`, `using(ObjectReader)`, `readRoot`, `readTemplate`, `readBuilder`, `applyToBuilder`; `KlumJacksonInput.parser/tree/map/named` | Client entrypoint; #463 | Export the Jackson API package; source and binary compatible throughout 4.x. |
 | `new KlumAstModule()` and `KlumAstModule.MODULE_NAME` | Client entrypoint; Jackson integration | Export the module type. The public nested serializer/deserializer modifiers are implementation linkage, not extension points. |
 | `PhaseAction`, `BuilderVisitingPhaseAction`, `ModelVisitingPhaseAction`, `InstanceValidator`, and callable public members | Extension seam; #305 / ADR 0008 | Export runtime/validation SPI packages. `BuilderVisitingPhaseAction` has a deliberate qualified linkage to `InternalKlumBuilder` for its protected visitor descriptor; it does not make `util.layer3.ModelVisitor` generally exportable. Direct `ServiceLoader<PhaseAction>` providers keep the ADR 0008 bounded transition; no general SPI follows. |
-| Generated `Foo_DSL.Factory extends BuilderFactoryProvider<Foo, Foo_DSL.Builder<Foo>>`, `Foo_DSL.Builder`, collection/cluster factory interfaces; `Foo.Create`, `Foo.Template`, Java `Foo.Create.getAsBuilder()` / Groovy `Foo.Create.AsBuilder`, and typed polymorphic relationship overloads | Generated hook; #394, #431, #474, #620 | Export runtime types referenced by generated descriptors. Generated interfaces may be named in signatures, never implemented or subclassed. The #620 overloads preserve the dynamic Class selector and expose the exact selected public Builder without starting a root lifecycle. |
+| Generated `Foo_DSL.Factory extends BuilderFactoryProvider<Foo, Foo_DSL.Builder<Foo>>`, nested `Foo_DSL.Factory.Template`, `Foo_DSL.Template`, `Foo_DSL.Builder`, collection/cluster factory interfaces; `Foo.Create`, `Foo.Create.Template`, `Foo.Template`, Java `Foo.Create.getAsBuilder()` / Groovy `Foo.Create.AsBuilder`, and typed polymorphic relationship overloads | Generated hook; #394, #431, #474, #620, #710 | Export runtime types referenced by generated descriptors. Generated interfaces may be named in signatures, never implemented or subclassed. `Foo.Create.Template` is the static final root-Template factory property; `Foo.Template` remains the scoped-application handler and its deprecated creation aliases are compatibility members. The #620 overloads preserve the dynamic Class selector and expose the exact selected public Builder without starting a root lifecycle. |
 | `KlumBuilder<T>`; `KlumFactory.getModelType()`; `KlumFactory.BuilderFactoryProvider<T, B>` with `getModelType()` / `getAsBuilder()`; `BuilderFactory.getModelType()`; and the remaining `KlumFactory` Builder-factory descriptors | Generated hook; #394 / #431 / #620 | Runtime API export required for emitted bytecode; compatible in 4.x after intentional 3.x-to-4.0 recompilation. The provider exposes the selected model type and existing active-session `getAsBuilder()` view; its second abstract capability prevents Groovy from treating an ordinary relationship closure as a provider SAM. |
 | `FieldType.OPTIONAL_LINK` and generated relationship descriptors | Generated hook; #474 | Annotation/runtime linkage required by emitted bytecode; compatible in 4.x after recompilation. |
 | `BreadcrumbCollector`, `FactoryHelper`, `PhaseDriver`, `InternalKlumBuilder`, `InternalKlumObjectSupport`, raw companions/proxies, traversal helpers, lifecycle phases, `TemplateManager.isTemplate`, and Jackson helper/modifier types | Implementation; #468 inventory, owning behavior issue where applicable | Internalize where #391 can do so. Otherwise record generated or shipped-adapter linkage as a qualified export only; none is a third-party client/extension contract. |
@@ -35,12 +35,21 @@ At freeze candidate `57ea5b2`, the generated TSV contains 371 added exact record
 ## Generated-bytecode and language evidence
 
 `GeneratedDslSupportSpec` compiles Java and static-Groovy consumers against emitted classes, proving Java
-`getAsBuilder()`, static-Groovy `AsBuilder`, factory/collection/cluster interfaces, self-typed Builders, hidden
+`getAsBuilder()`, static-Groovy `AsBuilder`, the static final `Foo.Create.Template` property and nested public
+`Foo_DSL.Factory.Template` interface, factory/collection/cluster interfaces, self-typed Builders, hidden
 implementations, and #620's exact typed relationship Factory-provider signatures. `JpmsPackageBoundaryTest` additionally
 links the parameterized provider from named Java and compiles `child(ConcreteChild.Create) { ... }` from named static
 Groovy without portability flags. `KlumObjectSupportSpec` compiles Java and `@CompileStatic` Groovy root/subtree
 consumers. `KlumJacksonImporterSpec` and `JacksonImporterConsumerTest` compile Java and `@CompileStatic` Groovy consumers
 for every importer descriptor.
+
+The #710 mirror assertion projects the emitted `Foo_DSL` bytecode and verifies both distinct Template contracts: the
+static `Factory.Template` creation field with `With`/`From`, and the model `Template` scoped handler with `With`/`WithAll`
+plus its compatibility creation aliases. It also rejects the removed Factory `Template*` methods and checks generated
+class constants for runtime-internal descriptor leakage. IntelliJ source-property contribution remains owned by #703:
+its GDSL contributor resolves only `Foo.Create` to the public `Foo_DSL.Factory`, after which the bytecode/mirror-sourced
+nested `Factory.Template` contract supplies the creation chain. #710 must integrate that contributor rather than add a
+second GDSL implementation.
 
 These Groovy sources compile separately in Groovy 3, 4, and 5 lanes. No AnnoDocimal mirror is a production or downstream compiler input.
 
