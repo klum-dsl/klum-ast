@@ -138,9 +138,10 @@ environment; do not add them to repository scope or as caller inputs. If the pro
 check reports an empty value, first verify that the unified caller retains `secrets: inherit`, then
 distinguish a transient failure from a workflow correction. GitHub's **Re-run failed jobs** reuses
 the original reusable-workflow revision, so it cannot test a changed caller or called workflow. If
-the correction is merged *before any public exact tree, promotion record, tag, or release exists*,
-dispatch **REL-2: Verify public release** once again from `master` with the same stage/version/SHA. It
-creates a new proof identity internally; never copy the old proof identity into a dispatch.
+the correction is merged before any public exact tree or promotion record exists, dispatch
+**REL-2: Verify public release** once again from `master` with the same stage/version/SHA. Its required
+tag and GitHub release may already exist because REL-2 validates them before its public proof; the new
+dispatch creates a new proof identity internally. Never copy the old proof identity into a dispatch.
 
 The Pages job writes the rendered static HTML, local assets, exact Javadocs, `site-manifest.json`,
 and a small handoff below the protected `gh-pages` branch. It refuses an existing pending path,
@@ -225,9 +226,9 @@ version tree.
 For a transient documentation failure, use **Re-run failed jobs** on the same parent run only when GitHub
 retains the already successful `resolve` job and its proof artifact. GitHub pins a failed-job retry's
 reusable workflow to its original revision; if a caller or called-workflow correction is required, merge
-it first and start a new input-only **REL-2: Verify public release** dispatch only while no public exact tree,
-promotion record, tag, or release exists. That new proof has its own identity; it never repairs an earlier
-partial promotion.
+it first and start a new input-only **REL-2: Verify public release** dispatch only while no public exact tree or
+promotion record exists. Its required tag and release may already exist; the new proof has its own identity and
+never repairs an earlier partial promotion.
 
 If the previous finalizer failed after promotion (as for RC.14), manually create the exact annotated tag
 and matching GitHub release first, then use **REC-1: Recover incomplete public release record** with the original
@@ -263,7 +264,7 @@ new release channel.
 | Maven Central succeeds but Plugin Portal fails | Stop. Do not delete, overwrite, or republish Maven coordinates. Record the partial RC as failed/superseded. | Correct the cause and issue `rc.N+1`; do not repair a different registry under the old version. |
 | Plugin Portal proof fails or Maven Central polling expires | Stop and record the immutable RC or final incident; do not create a tag, release, exact public documentation, or alias. | For an RC, correct the cause and use `rc.N+1`; do not repair the old version in place. |
 | Manual tag or GitHub release validation fails | Stop before dispatching, correct it only if no public artifact identity has been misrepresented, and revalidate the exact annotated tag, SHA, and stage flag. | Never substitute a lightweight tag, a branch name, or a mismatched release record. |
-| Documentation promotion is interrupted | For a transient failure, use GitHub's retry for the same **REL-2: Verify public release** run only when it retains the same successful proof identity and exact stage/version/SHA. | Never replace or repair a mismatched promotion record. A new proof is a different immutable identity and may start only an unrecorded promotion. |
+| Documentation promotion is interrupted | For a transient failure, use GitHub's retry for the same **REL-2: Verify public release** run only when it retains the same successful proof identity and exact stage/version/SHA. For a merged workflow correction before any public exact tree or promotion record exists, dispatch a fresh REL-2 run with that same identity even when its required tag/release record already exists. | Never replace or repair a mismatched promotion record. A fresh proof is a different immutable identity and may start only an unrecorded promotion. |
 | Versioned documentation/Javadoc destination is unavailable or its pending stage rejects a valid identity | Do not authorize artifact publication. Retain the sanitized `pending-rejected` evidence when the protected stage reached an accepted identity. | Correct the cause and follow the immutable next-version rule; never overwrite a pending or rejected Pages path. |
 | RC consumer resolve-back fails | Mark that RC rejected/superseded and preserve the evidence. | Any substantive change requires `rc.N+1`. |
 | Final remote verification fails | Treat the final as an incident; it is not an RC retry. | Do not remove published artifacts. A tag may be deleted only by explicit human decision when no artifact was ever published. |
