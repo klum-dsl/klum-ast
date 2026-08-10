@@ -355,11 +355,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         Class<?> foo = getClass('sample.Foo')
         Class<?> template = getClass('sample.Foo_DSL$Template')
 
-        expect: 'scope application stays on the Template handler while every legacy creator is explicitly deprecated'
-        template.getMethod('With', getClass('sample.Base'), Closure)
-        template.getMethod('WithAll', Map, Closure)
-        template.getMethod('WithAll', List, Closure)
-        [
+        when: 'the documented compatibility spelling is used'
+        def creationAliases = [
                 template.getMethod('Create'),
                 template.getMethod('Create', Map, Closure),
                 template.getMethod('Create', Closure),
@@ -368,12 +365,16 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 template.getMethod('CreateFrom', File, ClassLoader),
                 template.getMethod('CreateFrom', URL),
                 template.getMethod('CreateFrom', URL, ClassLoader)
-        ].every { it.getAnnotation(Deprecated)?.since() == '4.0' }
-
-        when: 'the documented compatibility spelling is used'
+        ]
         def legacyTemplate = foo.Template.Create(label: 'legacy')
 
-        then: 'it still creates the same marked root Template as the canonical Factory property'
+        then: 'scope application stays on the Template handler while every legacy creator is explicitly deprecated'
+        template.getMethod('With', getClass('sample.Base'), Closure)
+        template.getMethod('WithAll', Map, Closure)
+        template.getMethod('WithAll', List, Closure)
+        creationAliases.every { it.getAnnotation(Deprecated)?.since() == '4.0' }
+
+        and: 'it still creates the same marked root Template as the canonical Factory property'
         legacyTemplate.label == 'legacy'
         TemplateManager.isTemplate(legacyTemplate)
     }
