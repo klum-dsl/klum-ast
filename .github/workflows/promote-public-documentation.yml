@@ -177,19 +177,6 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
           git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
           test -z "$(git status --porcelain=v1)"
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          path: landing-writer
-          persist-credentials: false
-      - name: Prove the current landing writer is trusted
-        env:
-          EXPECTED_HELPER_COMMIT: ${{ github.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git -C landing-writer rev-parse HEAD)" = "$EXPECTED_HELPER_COMMIT"
-          test "$(git status --porcelain=v1)" = '?? landing-writer/'
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -215,6 +202,19 @@ jobs:
             '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json' \
             '-PdocumentationObjectDirectory=.' \
             '-PdocumentationOutputDirectory=build/public-documentation'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          path: landing-writer
+          persist-credentials: false
+      - name: Prove the current landing writer is trusted
+        env:
+          EXPECTED_HELPER_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C landing-writer rev-parse HEAD)" = "$EXPECTED_HELPER_COMMIT"
+          test "$(git status --porcelain=v1)" = '?? landing-writer/'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: gh-pages

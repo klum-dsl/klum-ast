@@ -658,13 +658,16 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         int releaseSourceCheckout = promotionWorkflow.indexOf('          ref: ${{ needs.validate-proof.outputs.commit }}\n')
         int landingWriterCheckout = promotionWorkflow.indexOf('          path: landing-writer\n')
         int cleanSourceCheck = promotionWorkflow.indexOf('          test -z "$(git status --porcelain=v1)"\n')
-        assertTrue(releaseSourceCheckout >= 0 && cleanSourceCheck > releaseSourceCheckout && landingWriterCheckout > cleanSourceCheck,
-                'promotion must cleanly check out and verify the exact release source before the current landing writer')
+        int publicRenderStart = promotionWorkflow.indexOf('      - name: Render and verify the public exact-version tree\n')
+        int trustedLandingWriterCheck = promotionWorkflow.indexOf('      - name: Prove the current landing writer is trusted\n')
+        int landingScriptInvocation = promotionWorkflow.indexOf('bash landing-writer/.github/scripts/write-documentation-landing.sh pages')
+        assertTrue(releaseSourceCheckout >= 0 && cleanSourceCheck > releaseSourceCheckout && publicRenderStart > cleanSourceCheck &&
+                landingWriterCheckout > publicRenderStart && trustedLandingWriterCheck > landingWriterCheckout && landingScriptInvocation > trustedLandingWriterCheck,
+                'promotion must render the clean exact source before checking out the landing writer and verify that helper before use')
         assertContains(promotionWorkflow, 'test "$(git -C landing-writer rev-parse HEAD)" = "$EXPECTED_HELPER_COMMIT"',
                 'promotion must verify that the helper comes from the current trusted workflow revision')
         assertContains(promotionWorkflow, 'test "$(git status --porcelain=v1)" = \'?? landing-writer/\'',
                 'the helper checkout must be the only source-worktree change allowed after source verification')
-        int publicRenderStart = promotionWorkflow.indexOf('      - name: Render and verify the public exact-version tree\n')
         int pagesCheckout = promotionWorkflow.indexOf('          ref: gh-pages\n')
         int pendingEvidenceStart = promotionWorkflow.indexOf('      - name: Verify the immutable pending-stage evidence\n')
         assertTrue(publicRenderStart >= 0 && pagesCheckout > publicRenderStart && pendingEvidenceStart > pagesCheckout,
