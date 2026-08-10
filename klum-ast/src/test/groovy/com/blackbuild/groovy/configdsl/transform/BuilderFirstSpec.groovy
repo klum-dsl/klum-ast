@@ -78,7 +78,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         }
 
         then:
-        rwClazz.superclass == GeneratedKlumBuilder
+        builderClass.superclass == GeneratedKlumBuilder
         instance.value == "configured:builder-only"
         clazz.initializerCalls == 1
         clazz.declaredFields*.name.contains("scratch") == false
@@ -98,13 +98,13 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         expect: "the generated public Builder contract carries the public capability"
-        KlumBuilder.isAssignableFrom(rwClazz)
+        KlumBuilder.isAssignableFrom(builderClass)
         getClass('pk.CompatibilitySurface_DSL$Builder').interfaces.contains(KlumBuilder)
         KlumBuilder.declaredMethods.length == 0
 
         and: "Builders do not carry legacy RW identity aliases"
-        !rwClazz.methods*.name.contains("getDSLInstance")
-        !rwClazz.methods*.name.contains("getRwInstance")
+        !builderClass.methods*.name.contains("getDSLInstance")
+        !builderClass.methods*.name.contains("getRwInstance")
 
         and: "runtime operations stay on the internal support base"
         !InternalKlumBuilder.declaredMethods*.name.contains("invokeRwMethod")
@@ -154,12 +154,12 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         expect:
-        rwClazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
+        builderClass.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
         !Modifier.isPublic(InternalKlumBuilder.getDeclaredMethod("materializeGraph", InternalKlumBuilder).modifiers)
 
         when: "same-package or subclass code tries to invoke the internal model constructor"
         def builder = FactoryHelper.createBuilder(clazz, null)
-        def constructor = clazz.getDeclaredConstructor(rwClazz, GeneratedMaterializationToken)
+        def constructor = clazz.getDeclaredConstructor(builderClass, GeneratedMaterializationToken)
         constructor.accessible = true
         constructor.newInstance(builder, null)
 
@@ -565,7 +565,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
             }
         '''
         def parentClass = clazz
-        def parentBuilderClass = rwClazz
+        def parentBuilderClass = builderClass
 
         and:
         def childClass = createSecondaryClass '''
@@ -595,7 +595,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         }
 
         then:
-        getRwClass(childClass.name).superclass == parentBuilderClass
+        getBuilderClass(childClass.name).superclass == parentBuilderClass
         instance.parentValue == "configured-parent:finished-parent"
         instance.childValue == "configured-child:finished-child"
         parentClass.initializerCalls == 1

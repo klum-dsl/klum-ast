@@ -1125,7 +1125,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        rwClazz.getDeclaredMethod("inners")
+        builderClass.getDeclaredMethod("inners")
 
         then:
         thrown(NoSuchMethodException)

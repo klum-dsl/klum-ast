@@ -52,7 +52,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
- * Helper class to move mutating methods to RW class.
+ * Helper class to move mutating methods to Builder class.
  */
 public class WriteAccessMethodsMover {
 
@@ -68,16 +68,16 @@ public class WriteAccessMethodsMover {
         method.setModifiers(modifiers);
     }
 
-    static void moveMethodFromModelToRWClass(MethodNode method) {
+    static void moveMethodFromModelToBuilderClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
-        ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        ClassNode builderClass = declaringClass.getNodeMetaData(DSLASTTransformation.BUILDER_CLASS_METADATA_KEY);
         BuilderMethodProjection.projectQualifiedStaticCallsInBuilderMethod(method);
         retargetOwnerParameters(method);
         retargetVirtualFieldParameter(method);
-        retargetFieldVariables(method, rwClass);
+        retargetFieldVariables(method, builderClass);
         declaringClass.removeMethod(method);
         // if method is public, it will already have been added by delegateTo, replace it again
-        CommonAstHelper.replaceMethod(rwClass, method);
+        CommonAstHelper.replaceMethod(builderClass, method);
     }
 
     private static void retargetOwnerParameters(MethodNode method) {
@@ -85,7 +85,7 @@ public class WriteAccessMethodsMover {
             return;
         for (Parameter parameter : method.getParameters()) {
             if (DslAstHelper.isDSLObject(parameter.getType()))
-                parameter.setType(DslAstHelper.getRwClassOf(parameter.getType()).getPlainNodeReference());
+                parameter.setType(DslAstHelper.getBuilderClassOf(parameter.getType()).getPlainNodeReference());
         }
     }
 
@@ -105,15 +105,15 @@ public class WriteAccessMethodsMover {
                     parameter.getType()
             );
         if (DslAstHelper.isDSLObject(effectiveType))
-            parameter.setType(DslAstHelper.getRwClassOf(effectiveType).getPlainNodeReference());
+            parameter.setType(DslAstHelper.getBuilderClassOf(effectiveType).getPlainNodeReference());
     }
 
-    private static void retargetFieldVariables(MethodNode method, ClassNode rwClass) {
+    private static void retargetFieldVariables(MethodNode method, ClassNode builderClass) {
         method.getCode().visit(new CodeVisitorSupport() {
             @Override
             public void visitVariableExpression(VariableExpression expression) {
                 Variable accessedVariable = expression.getAccessedVariable();
-                FieldNode builderField = rwClass.getField(expression.getName());
+                FieldNode builderField = builderClass.getField(expression.getName());
                 if (builderField != null && (accessedVariable instanceof FieldNode || accessedVariable instanceof DynamicVariable)) {
                     expression.setAccessedVariable(builderField);
                     expression.setType(builderField.getType());
@@ -124,17 +124,17 @@ public class WriteAccessMethodsMover {
     }
 
     public void invoke() {
-        moveAllDeclaredMutatorMethodsToRWClass();
+        moveAllDeclaredMutatorMethodsToBuilderClass();
         //createSyntheticDelegatorsForAllProtectedMethodsOfModel();
     }
 
-    private void moveAllDeclaredMutatorMethodsToRWClass() {
+    private void moveAllDeclaredMutatorMethodsToBuilderClass() {
         // create copy of the list since we modify it on the go
         new ArrayList<>(annotatedClass.getMethods())
-                .forEach(this::ifMutatorMoveToRWClass);
+                .forEach(this::ifMutatorMoveToBuilderClass);
     }
 
-    private void ifMutatorMoveToRWClass(MethodNode method) {
+    private void ifMutatorMoveToBuilderClass(MethodNode method) {
         if (isExcluded(method)) return;
 
         Optional<WriteAccess.Type> writeType = WriteAccessHelper.getWriteAccessTypeForMethodOrField(method);
@@ -144,7 +144,7 @@ public class WriteAccessMethodsMover {
         if (writeType.get() == WriteAccess.Type.LIFECYCLE)
             downgradeToProtected(method);
 
-        moveMethodFromModelToRWClass(method);
+        moveMethodFromModelToBuilderClass(method);
     }
 
     private boolean isExcluded(MethodNode method) {

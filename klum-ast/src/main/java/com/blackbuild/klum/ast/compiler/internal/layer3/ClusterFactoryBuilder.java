@@ -118,12 +118,12 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
                         .title(format("Handles the creation/setting of named instances of %s.", fieldName))
                         .param(closureVarName, closureVarDescription)
                 )
-                .addTo(rwClass);
+                .addTo(builderClass);
     }
 
 
     private void addMethodsForField(FieldNode fieldNode) {
-        rwClass.getAllDeclaredMethods().stream()
+        builderClass.getAllDeclaredMethods().stream()
                 .filter(methodNode -> methodNode.getName().equals(fieldNode.getName()))
                 .forEach(this::handleMethod);
     }

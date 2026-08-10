@@ -35,11 +35,11 @@ import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
-import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getBuilderClassOf;
 
 /**
  * Helper transformation for static type checking. Sets the DelegationMetadata (via reflection, since package local) for
- * the closure to the rw-class of the annotated field.
+ * the closure to the Builder of the annotated field.
  */
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class ApplyDefaultTransformation extends AbstractASTTransformation {
@@ -53,7 +53,7 @@ public class ApplyDefaultTransformation extends AbstractASTTransformation {
         applyDefaultAnnotation = (AnnotationNode) nodes[0];
         FieldNode annotatedField = (FieldNode) nodes[1];
 
-        ClassNode delegateType = getRwClassOf(annotatedField.getType());
+        ClassNode delegateType = getBuilderClassOf(annotatedField.getType());
 
         Object dmd = createDelegationMetadata(
                 delegateType,

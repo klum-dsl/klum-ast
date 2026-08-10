@@ -66,19 +66,19 @@ public class MutationDetectingTypeCheckingExtension extends AbstractTypeChecking
         if (!verificationVisitor.isInMutatorMethod())
             return Collections.emptyList();
 
-        ClassNode rwClass = DslAstHelper.getRwClassOf(receiver);
-        if (rwClass != null)
-            return delegateCallToRwClass(name, argumentTypes, call, rwClass);
+        ClassNode builderClass = DslAstHelper.getBuilderClassOf(receiver);
+        if (builderClass != null)
+            return delegateCallToBuilderClass(name, argumentTypes, call, builderClass);
         return Collections.emptyList();
     }
 
-    private List<MethodNode> delegateCallToRwClass(String name, ClassNode[] argumentTypes, MethodCall call, ClassNode rwClass) {
-        List<MethodNode> rwMethods = verificationVisitor.findMethod(rwClass, name, argumentTypes);
+    private List<MethodNode> delegateCallToBuilderClass(String name, ClassNode[] argumentTypes, MethodCall call, ClassNode builderClass) {
+        List<MethodNode> builderMethods = verificationVisitor.findMethod(builderClass, name, argumentTypes);
 
-        if (!rwMethods.isEmpty() && (call instanceof MethodCallExpression)) {
+        if (!builderMethods.isEmpty() && (call instanceof MethodCallExpression)) {
             redirectMethodCallToProperty((MethodCallExpression) call, NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         }
-        return rwMethods;
+        return builderMethods;
     }
 
     private void redirectMethodCallToProperty(MethodCallExpression call, String propertyName) {

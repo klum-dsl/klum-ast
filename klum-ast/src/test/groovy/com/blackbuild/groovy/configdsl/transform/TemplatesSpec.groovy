@@ -50,8 +50,8 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        rwClazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
-        rwClazz.metaClass.getMetaMethod("copyFrom", Map) != null
+        builderClass.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
+        builderClass.metaClass.getMetaMethod("copyFrom", Map) != null
 
         when:
         def template = clazz.Create.With {
@@ -1160,7 +1160,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        rwClazz.getDeclaredMethod("inners")
+        builderClass.getDeclaredMethod("inners")
 
         then:
         thrown(NoSuchMethodException)

@@ -83,7 +83,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (DslAstHelper.isDSLObject(inferredReturnType))
             expression.putNodeMetaData(
                     StaticTypesMarker.INFERRED_RETURN_TYPE,
-                    DslAstHelper.getRwClassOf(inferredReturnType).getPlainNodeReference()
+                    DslAstHelper.getBuilderClassOf(inferredReturnType).getPlainNodeReference()
             );
     }
 
@@ -102,7 +102,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     }
 
     private void visitPrefixOrPostfixExpression(Expression inner) {
-        if (inRwClass())
+        if (inBuilderClass())
             return;
 
         assertTargetIsNoModelField(inner);
@@ -159,7 +159,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     }
 
     private boolean isBuilderPhaseCode() {
-        return inRwClass() || builderAnnotationClosureDepth > 0;
+        return inBuilderClass() || builderAnnotationClosureDepth > 0;
     }
 
     private boolean isInStaticMethod() {
@@ -172,8 +172,8 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     }
 
     private void checkForIllegalAssignment(BinaryExpression expression) {
-        if (inRwClass())
-            return; // don't validate RW class methods
+        if (inBuilderClass())
+            return; // don't validate Builder class methods
 
         MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
 
@@ -196,8 +196,8 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         }
     }
 
-    private boolean inRwClass() {
-        return typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX);
+    private boolean inBuilderClass() {
+        return typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.BUILDER_CLASS_SUFFIX);
     }
 
     private void assertTargetIsNoModelField(Expression target) {

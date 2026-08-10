@@ -59,9 +59,9 @@ class TransformSpec extends AbstractDSLSpec {
         clazz.metaClass.getMetaMethod("apply", Map, Closure) == null
         clazz.metaClass.getMetaMethod("apply", Map) == null
         clazz.metaClass.getMetaMethod("apply", Closure) == null
-        rwClazz.metaClass.getMetaMethod("apply", Map, Closure) != null
-        rwClazz.metaClass.getMetaMethod("apply", Map) != null
-        rwClazz.metaClass.getMetaMethod("apply", Closure) != null
+        builderClass.metaClass.getMetaMethod("apply", Map, Closure) != null
+        builderClass.metaClass.getMetaMethod("apply", Map) != null
+        builderClass.metaClass.getMetaMethod("apply", Closure) != null
     }
 
     def "apply method allows named parameters"() {
@@ -382,8 +382,8 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        rwClazz.getDeclaredMethod("value", String).getModifiers() & ACC_PROTECTED
-        rwClazz.getDeclaredMethod("setValue", String).getModifiers() & ACC_PROTECTED
+        builderClass.getDeclaredMethod("value", String).getModifiers() & ACC_PROTECTED
+        builderClass.getDeclaredMethod("setValue", String).getModifiers() & ACC_PROTECTED
 
         when:
         instance = clazz.Create.With {
@@ -1720,7 +1720,7 @@ import org.codehaus.groovy.control.CompilePhase
     }
 
     @Issue("35")
-    def "RW classes are serializable as well"() {
+    def "Builder classes are serializable as well"() {
         when:
         createClass('''
             package pk
@@ -1732,7 +1732,7 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         then:
-        Serializable.isAssignableFrom(rwClazz)
+        Serializable.isAssignableFrom(builderClass)
     }
 
     @Issue("35")
@@ -1770,22 +1770,22 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        def polymorphicMethodParams = rwClazz.getMethod(methodName, Class, Closure).parameterAnnotations
+        def polymorphicMethodParams = builderClass.getMethod(methodName, Class, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodParams[0])
         delegatesToPointsToDelegateTarget(polymorphicMethodParams[1])
 
         when:
-        def polymorphicMethodWithNamesParams = rwClazz.getMethod(methodName, Map, Class, Closure).parameterAnnotations
+        def polymorphicMethodWithNamesParams = builderClass.getMethod(methodName, Map, Class, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodWithNamesParams[1])
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[2])
 
         and:
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner.Builder')
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
 
         where:
         methodName << ["inner", "listInner"]
@@ -1810,22 +1810,22 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        def polymorphicMethodParams = rwClazz.getMethod(methodName, Class, String, Closure).parameterAnnotations
+        def polymorphicMethodParams = builderClass.getMethod(methodName, Class, String, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodParams[0])
         delegatesToPointsToDelegateTarget(polymorphicMethodParams[2])
 
         when:
-        def polymorphicMethodWithNamesParams = rwClazz.getMethod(methodName, Map, Class, String, Closure).parameterAnnotations
+        def polymorphicMethodWithNamesParams = builderClass.getMethod(methodName, Map, Class, String, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodWithNamesParams[1])
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[3])
 
         and:
-        delegatesToPointsTo(rwClazz.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner.Builder')
 
         where:
         methodName << ["inner", "listInner", "mapInner"]
@@ -1992,10 +1992,10 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         then:
-        rwClazz.metaClass.getMetaMethod("foo", Class, Closure) != null
+        builderClass.metaClass.getMetaMethod("foo", Class, Closure) != null
 
         and: "interface fields must get a Class argument"
-        rwClazz.metaClass.getMetaMethod("foo", Closure) == null
+        builderClass.metaClass.getMetaMethod("foo", Closure) == null
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/611')
@@ -2047,7 +2047,7 @@ import org.codehaus.groovy.control.CompilePhase
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/126')
-    def "no methods are generated for ignored fields, but setters are part of rw class"() {
+    def "no methods are generated for ignored fields, but setters are part of Builder class"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -2064,12 +2064,12 @@ import org.codehaus.groovy.control.CompilePhase
         clazz.metaClass.getMetaMethod("hint", Closure) == null
 
         and:
-        rwClazz.metaClass.getMetaMethod("hints", Closure) == null
-        rwClazz.metaClass.getMetaMethod("hint", Closure) == null
+        builderClass.metaClass.getMetaMethod("hints", Closure) == null
+        builderClass.metaClass.getMetaMethod("hint", Closure) == null
 
         and:
         clazz.metaClass.getMetaMethod("setHints", Map) == null
-        rwClazz.metaClass.getMetaMethod("setHints", Map) != null
+        builderClass.metaClass.getMetaMethod("setHints", Map) != null
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/126')
@@ -2127,43 +2127,43 @@ import org.codehaus.groovy.control.CompilePhase
         '''
 
         then:
-        rwClassHasNoMethod("singleBar", Map, Closure)
-        rwClassHasNoMethod("singleBar", Closure)
-        rwClassHasNoMethod("singleBar", Map)
-        rwClassHasNoMethod("singleBar")
+        builderClassHasNoMethod("singleBar", Map, Closure)
+        builderClassHasNoMethod("singleBar", Closure)
+        builderClassHasNoMethod("singleBar", Map)
+        builderClassHasNoMethod("singleBar")
 
         and:
-        rwClassHasMethod("singleBar", getClass("Bar"))
+        builderClassHasMethod("singleBar", getClass("Bar"))
 
         then:
-        rwClassHasNoMethod("bar", Map, Closure)
-        rwClassHasNoMethod("bar", Closure)
-        rwClassHasNoMethod("bar", Map)
-        rwClassHasNoMethod("bar")
+        builderClassHasNoMethod("bar", Map, Closure)
+        builderClassHasNoMethod("bar", Closure)
+        builderClassHasNoMethod("bar", Map)
+        builderClassHasNoMethod("bar")
 
         and:
-        rwClassHasNoMethod("bar", Map, Class, Closure)
-        rwClassHasNoMethod("bar", Class, Closure)
-        rwClassHasNoMethod("bar", Map, Class)
-        rwClassHasNoMethod("bar", Class)
+        builderClassHasNoMethod("bar", Map, Class, Closure)
+        builderClassHasNoMethod("bar", Class, Closure)
+        builderClassHasNoMethod("bar", Map, Class)
+        builderClassHasNoMethod("bar", Class)
 
         and:
-        rwClassHasMethod("bar", getClass("Bar"))
+        builderClassHasMethod("bar", getClass("Bar"))
 
         then:
-        rwClassHasNoMethod("keyBar", Map, String, Closure)
-        rwClassHasNoMethod("keyBar", String, Closure)
-        rwClassHasNoMethod("keyBar", Map, String)
-        rwClassHasNoMethod("keyBar", String)
+        builderClassHasNoMethod("keyBar", Map, String, Closure)
+        builderClassHasNoMethod("keyBar", String, Closure)
+        builderClassHasNoMethod("keyBar", Map, String)
+        builderClassHasNoMethod("keyBar", String)
 
         and:
-        rwClassHasNoMethod("keyBar", Map, Class, String, Closure)
-        rwClassHasNoMethod("keyBar", Class, String, Closure)
-        rwClassHasNoMethod("keyBar", Map, Class, String)
-        rwClassHasNoMethod("keyBar", Class, String)
+        builderClassHasNoMethod("keyBar", Map, Class, String, Closure)
+        builderClassHasNoMethod("keyBar", Class, String, Closure)
+        builderClassHasNoMethod("keyBar", Map, Class, String)
+        builderClassHasNoMethod("keyBar", Class, String)
 
         and:
-        rwClassHasMethod("keyBar", getClass("KeyBar"))
+        builderClassHasMethod("keyBar", getClass("KeyBar"))
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/127')
@@ -2280,7 +2280,7 @@ import org.codehaus.groovy.control.CompilePhase
         '''
 
         then:
-        rwClassHasMethod("value", String)
+        builderClassHasMethod("value", String)
 
         when:
         instance = clazz.Create.With {
@@ -2308,9 +2308,9 @@ import org.codehaus.groovy.control.CompilePhase
         '''
 
         then:
-        rwClassHasNoMethod("values", Map)
-        rwClassHasMethod("values", Collection)
-        rwClassHasMethod("values", String[])
+        builderClassHasNoMethod("values", Map)
+        builderClassHasMethod("values", Collection)
+        builderClassHasMethod("values", String[])
 
         when:
         instance = clazz.Create.With {
@@ -2485,7 +2485,7 @@ import org.codehaus.groovy.control.CompilePhase
             '''
 
         when:
-        def annotations = rwClazz.getMethod("converter", Closure).getParameterAnnotations()[0]
+        def annotations = builderClass.getMethod("converter", Closure).getParameterAnnotations()[0]
         DelegatesTo delegatesTo = annotations.find { it instanceof DelegatesTo }
 
         then:
@@ -2506,7 +2506,7 @@ import org.codehaus.groovy.control.CompilePhase
             '''
 
         when:
-        def annotations = rwClazz.getMethod("converter", Closure).getParameterAnnotations()[0]
+        def annotations = builderClass.getMethod("converter", Closure).getParameterAnnotations()[0]
         ClosureParams closureParams = annotations.find { it instanceof ClosureParams }
 
         then:
@@ -2528,8 +2528,8 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         then:
-        rwClazz.getDeclaredMethod("value", String).getModifiers() & ACC_PUBLIC
-        rwClazz.getDeclaredMethod("value2", String).getModifiers() & ACC_PUBLIC
+        builderClass.getDeclaredMethod("value", String).getModifiers() & ACC_PUBLIC
+        builderClass.getDeclaredMethod("value2", String).getModifiers() & ACC_PUBLIC
         !clazz.declaredFields*.name.contains("value")
         !clazz.declaredFields*.name.contains("value2")
         clazz.metaClass.hasProperty(null, "value") == null

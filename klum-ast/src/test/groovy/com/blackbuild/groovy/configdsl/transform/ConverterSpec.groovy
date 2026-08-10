@@ -49,8 +49,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("closure", Closure)
-        rwClazz.getMethod("closure", String)
+        builderClass.getMethod("closure", Closure)
+        builderClass.getMethod("closure", String)
     }
 
     def "generated converter for simple field"() {
@@ -70,10 +70,10 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("date", Date)
-        rwClazz.getMethod("date", long)
-        rwClazz.getMethod("date", int, int, int)
-        rwClazz.getMethod("date")
+        builderClass.getMethod("date", Date)
+        builderClass.getMethod("date", long)
+        builderClass.getMethod("date", int, int, int)
+        builderClass.getMethod("date")
 
         when:
         instance = clazz.Create.With {
@@ -120,8 +120,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", long)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", long)
 
         when:
         instance = clazz.Create.With {
@@ -148,8 +148,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", String, long)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", String, long)
 
         when:
         instance = clazz.Create.With {
@@ -175,8 +175,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("closure", String, Closure)
-        rwClazz.getMethod("closure", String, String)
+        builderClass.getMethod("closure", String, Closure)
+        builderClass.getMethod("closure", String, String)
     }
 
     def "generated converter for list fields"() {
@@ -189,8 +189,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("date", Date)
-        rwClazz.getMethod("date", long)
+        builderClass.getMethod("date", Date)
+        builderClass.getMethod("date", long)
 
         when:
         instance = clazz.Create.With {
@@ -211,8 +211,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("date", String, Date)
-        rwClazz.getMethod("date", String, long)
+        builderClass.getMethod("date", String, Date)
+        builderClass.getMethod("date", String, long)
 
         when:
         instance = clazz.Create.With {
@@ -240,8 +240,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", long)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", long)
 
         when:
         instance = clazz.Create.With {
@@ -270,9 +270,9 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", long)
-        rwClazz.getMethod("bar", long, String)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", long)
+        builderClass.getMethod("bar", long, String)
 
         when:
         instance = clazz.Create.With {
@@ -310,8 +310,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", String, long)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", String, long)
 
         when:
         instance = clazz.Create.With {
@@ -340,8 +340,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getRwClass("Bar"))
-        rwClazz.getMethod("bar", String, long)
+        builderClass.getMethod("bar", getBuilderClass("Bar"))
+        builderClass.getMethod("bar", String, long)
 
         when:
         instance = clazz.Create.With {
@@ -370,8 +370,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getRwClass("Bar"))
-        rwClazz.getMethod("bar", String, long)
+        builderClass.getMethod("bar", getBuilderClass("Bar"))
+        builderClass.getMethod("bar", String, long)
 
         when:
         instance = clazz.Create.With {
@@ -402,8 +402,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", long)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", long)
 
         when:
         instance = clazz.Create.With {
@@ -423,8 +423,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", URI)
-        rwClazz.getMethod("bar", String)
+        builderClass.getMethod("bar", URI)
+        builderClass.getMethod("bar", String)
     }
 
     def "Constructor converters"() {
@@ -437,8 +437,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", URI)
-        rwClazz.getMethod("bar", String, String, String, String)
+        builderClass.getMethod("bar", URI)
+        builderClass.getMethod("bar", String, String, String, String)
     }
 
     def "convention named factories are automatically included"() {
@@ -456,8 +456,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", String)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", String)
     }
 
     def "Custom named factories are automatically included if annotated with Converter"() {
@@ -476,8 +476,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
-        rwClazz.getMethod("bar", String)
+        builderClass.getMethod("bar", getClass("Bar"))
+        builderClass.getMethod("bar", String)
     }
 
     def "Converter parameters are prepended with key parameter for simple type maps"() {
@@ -495,8 +495,8 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", String, getClass("Bar"))
-        rwClazz.getMethod("bar", String, String)
+        builderClass.getMethod("bar", String, getClass("Bar"))
+        builderClass.getMethod("bar", String, String)
     }
 
     def "Converters on sublass of target"() {
@@ -555,13 +555,13 @@ class Other<E> {
 }
 '''
         when:
-        rwClazz.getMethod("value", String, String)
+        builderClass.getMethod("value", String, String)
 
         then:
         thrown(NoSuchMethodException)
 
         expect:
-        rwClazz.getMethod("value", String, Object)
+        builderClass.getMethod("value", String, Object)
 
         when:
         create("Outer")
@@ -599,7 +599,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getRwClass('Bar'))
+        hasMethod(barsFactory, 'bar', getBuilderClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', Duration)
         hasMethod(barsFactory, 'WithAges', Duration[])
@@ -658,7 +658,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getRwClass('Bar'))
+        hasMethod(barsFactory, 'bar', getBuilderClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', String, Duration)
         hasMethod(barsFactory, 'WithAges', Map)

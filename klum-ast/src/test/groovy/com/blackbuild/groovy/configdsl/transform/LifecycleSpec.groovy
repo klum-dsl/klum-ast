@@ -460,7 +460,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         exception.cause.message == 'expected checked lifecycle failure'
     }
 
-    def "lifecycle methods are moved to RW class and made protected"() {
+    def "lifecycle methods are moved to Builder class and made protected"() {
         given:
         createClass '''
             package pk
@@ -476,8 +476,8 @@ class LifecycleSpec extends AbstractDSLSpec {
             }
 '''
         when:
-        def postCreate = rwClazz.getDeclaredMethod("postCreate")
-        def postApply = rwClazz.getDeclaredMethod("postApply")
+        def postCreate = builderClass.getDeclaredMethod("postCreate")
+        def postApply = builderClass.getDeclaredMethod("postApply")
 
         then:
         noExceptionThrown()
@@ -628,7 +628,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         then: // dsl methods are created
-        hasMethod(rwClazz, "autoCreate", Closure)
+        hasMethod(builderClass, "autoCreate", Closure)
 
         when:
         instance = clazz.Create.With {
@@ -656,7 +656,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         then:
         instance.name == "bli"
         executedPhase == DefaultKlumPhase.AUTO_CREATE
-        objType == rwClazz
+        objType == builderClass
     }
 
     def "AutoCreate annotated closures not are not 'autoCreated'"() {

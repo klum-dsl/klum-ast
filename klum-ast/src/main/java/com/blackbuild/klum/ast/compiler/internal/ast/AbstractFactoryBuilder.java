@@ -32,19 +32,19 @@ import org.codehaus.groovy.ast.Parameter;
 import java.util.Arrays;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
-import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getBuilderClassOf;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 public abstract class AbstractFactoryBuilder {
-    protected final ClassNode rwClass;
+    protected final ClassNode builderClass;
     protected final ClassNode targetClass;
     protected InnerClassNode collectionFactory;
 
     protected AbstractFactoryBuilder(ClassNode targetClass) {
         this.targetClass = targetClass;
-        this.rwClass = getRwClassOf(targetClass);
+        this.builderClass = getBuilderClassOf(targetClass);
     }
 
     protected void createDelegateMethods(MethodNode targetMethod) {
@@ -55,7 +55,7 @@ public abstract class AbstractFactoryBuilder {
         // cause the wrong method to be called.
         do {
             new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
-                    .targetType(rwClass)
+                    .targetType(builderClass)
                     .linkToMethod(targetMethod)
                     .optional()
                     .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
@@ -81,7 +81,7 @@ public abstract class AbstractFactoryBuilder {
 
     private void createInnerClass(String name) {
         collectionFactory = new InnerClassNode(targetClass, targetClass.getName() + "$_" + name, ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
-        ClassNode builderType = rwClass.getPlainNodeReference();
+        ClassNode builderType = builderClass.getPlainNodeReference();
         collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, builderType, null);
         collectionFactory.addConstructor(ACC_PUBLIC,
                 params(param(builderType, "rw")),

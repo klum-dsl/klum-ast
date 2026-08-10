@@ -55,7 +55,7 @@ import java.util.Objects;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
-import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getBuilderClassOf;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_INTERFACE;
@@ -272,7 +272,7 @@ public final class GeneratedDslSupport {
     }
 
     private void addParentBuilderInterface(ClassNode parent) {
-        ClassNode parentBuilder = publicType(getRwClassOf(parent.redirect())).redirect();
+        ClassNode parentBuilder = publicType(getBuilderClassOf(parent.redirect())).redirect();
         builderInterface.setUsingGenerics(true);
         builderInterface.setInterfaces(new ClassNode[] { builderInterfaceFor(parentBuilder, parent, selfModelParameter.getType()) });
     }
@@ -304,7 +304,7 @@ public final class GeneratedDslSupport {
             return implementationSelfModel;
         }
 
-        ClassNode parentImplementation = getRwClassOf(parent.redirect()).redirect();
+        ClassNode parentImplementation = getBuilderClassOf(parent.redirect()).redirect();
         builderImplementation.setSuperClass(builderInterfaceFor(parentImplementation, parent, implementationSelfModel));
         return implementationSelfModel;
     }
