@@ -34,7 +34,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
 
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
-    @Issue("491")
+    @Issue("710")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#creating-templates")
     def "creates an unkeyed reusable template without lifecycle callbacks"() {
         given:
@@ -61,7 +61,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
 
         when:
-        def template = clazz.Template.Create {
+        def template = clazz.Create.Template.With {
             region 'eu-central'
         }
 
@@ -72,7 +72,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         !template.postCreateCalled
     }
 
-    @Issue("322")
+    @Issue("710")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#creating-templates")
     def "creates a template from a DelegatingScript file"() {
         given:
@@ -92,14 +92,14 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
 
         when:
-        def template = clazz.Template.CreateFrom(templateFile)
+        def template = clazz.Create.Template.From(templateFile)
 
         then:
         template.url == 'https://config.example.test'
         template.region == 'eu-central'
     }
 
-    @Issue("491")
+    @Issue("710")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#copyfrom")
     def "copies a template into one completed service configuration"() {
         given:
@@ -112,7 +112,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
                 List<String> roles
             }
         '''
-        def template = clazz.Template.Create {
+        def template = clazz.Create.Template.With {
             url 'https://config.example.test'
             roles 'developer', 'guest'
         }
@@ -128,7 +128,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         service.roles == ['developer', 'guest']
     }
 
-    @Issue("376")
+    @Issue("710")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#templatewith")
     def "applies one scoped template to multiple service configurations"() {
         given:
@@ -143,7 +143,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
 
         and:
-        def template = clazz.Template.Create {
+        def template = clazz.Create.Template.With {
             url 'https://config.example.test'
             roles 'developer', 'guest'
         }
@@ -251,8 +251,8 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
         def serviceType = getClass('pk.Service')
         def databaseType = getClass('pk.Database')
-        def serviceTemplate = serviceType.Template.Create { tier 'application' }
-        def databaseTemplate = databaseType.Template.Create { engine 'postgresql' }
+        def serviceTemplate = serviceType.Create.Template.With { tier 'application' }
+        def databaseTemplate = databaseType.Create.Template.With { engine 'postgresql' }
 
         when:
         def deployment
@@ -284,7 +284,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
 
         when:
-        def template = clazz.Template.Create {
+        def template = clazz.Create.Template.With {
             name 'resilient'
         }
 
@@ -311,8 +311,8 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
         def parentType = getClass('pk.ParentConfiguration')
         def serviceType = getClass('pk.ServiceConfiguration')
-        def parentTemplate = parentType.Template.Create { environment 'shared' }
-        def serviceTemplate = serviceType.Template.Create { environment 'production' }
+        def parentTemplate = parentType.Create.Template.With { environment 'shared' }
+        def serviceTemplate = serviceType.Create.Template.With { environment 'production' }
 
         when:
         def fromTemplates
@@ -347,8 +347,8 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         '''
         def parentType = getClass('pk.ParentConfiguration')
         def serviceType = getClass('pk.ServiceConfiguration')
-        def parentTemplate = parentType.Template.Create { regions 'shared' }
-        def serviceTemplate = serviceType.Template.Create { regions 'production' }
+        def parentTemplate = parentType.Create.Template.With { regions 'shared' }
+        def serviceTemplate = serviceType.Create.Template.With { regions 'production' }
 
         when:
         def explicit
@@ -375,7 +375,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
                 String identifier
             }
         '''
-        def template = clazz.Template.Create {
+        def template = clazz.Create.Template.With {
             applyLater {
                 identifier name.toUpperCase()
             }

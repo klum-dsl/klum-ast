@@ -4,7 +4,7 @@ Templates are completed DSL Objects marked as reusable construction recipes. App
 non-empty values into a fresh Builder graph. Nested DSL Objects are rehydrated recursively, Collections are copied, and
 Simple Values are retained. A Template is never adopted directly as owned composition.
 
-Template identity is persistent and graph-wide. Every owned node created by `Template.Create` is marked as a Template and
+Template identity is persistent and graph-wide. Every owned node created by `Create.Template.With` is marked as a Template and
 keeps its breadcrumb and model path; a completed object supplied to a `FieldType.LINK` field remains the same ordinary
 model. Templates cannot be assigned directly to any relationship, including `LINK`: apply them through `Template.With`,
 `copyFrom`, or another Template/copy API so KlumAST can build a fresh owned graph.
@@ -14,11 +14,12 @@ closures are detached and their captured graph is checked when the Template mate
 non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
 Construction sessions, active Template scopes, and mutable recipe collections are not serialized.
 
-## Creating templates
+## Creating Templates
 
- Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
- templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
- with the following differences:
+Ignorable fields of the template (key, owner, transient, or marked as `FieldType.Ignore`) are never copied over. Root
+creation lives below `Create`: use `Create.Template.With` for a map and/or configuration closure, and
+`Create.Template.From` for a DelegatingScript file or URL. The result behaves like a normal factory result with these
+differences:
  
  - the result is always unkeyed (setting the key to null in case of a keyed class)
  - Lifecycle methods (`@PostApply`, `@PostCreate`) are not called
@@ -34,7 +35,7 @@ class ServiceConfiguration {
     String region
 }
 
-def template = ServiceConfiguration.Template.Create {
+def template = ServiceConfiguration.Create.Template.With {
     region 'eu-central'
 }
 
@@ -45,16 +46,15 @@ Templates are also correctly applied when using inheritance: a template defined 
 creating child-class instances, and child template values can override parent templates. The focused regression coverage
 is in `BoundTemplatesSpec.groovy`.
 
-Template specific methods are pooled in the `Template` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
-
-As with normal factory methods, templates can be created using the `Template.Create` method by applying a map and/or configuration
-closure, or by using the `Template.CreateFrom` method, which takes a file or URL that is parsed as a DelegatingScript,
-similar to the `Create.From` methods.
+`Template` is the scoped-application handler. It does not create a retained recipe: `Template.With` and `Template.WithAll`
+apply one or more recipes while the supplied body creates ordinary models. The deprecated 4.x compatibility aliases
+`Template.Create` and `Template.CreateFrom` still forward to the canonical creation operations, but new code must use
+`Create.Template.With` and `Create.Template.From`.
 
 (See: `TemplatesDocumentaryTest#'creates a template from a DelegatingScript file'`.)
 
 ```groovy
-def template = ServiceConfiguration.Template.CreateFrom(new File('service-template.groovy'))
+def template = ServiceConfiguration.Create.Template.From(new File('service-template.groovy'))
 ```
 
 There are currently four options to apply templates; all examples use the following class and template:
@@ -66,7 +66,7 @@ class Config {
     List<String> roles
 }
 
-def template = Config.Template.Create {
+def template = Config.Create.Template.With {
     url "http://x.y"
     roles "developer", "guest"
 }
@@ -104,7 +104,7 @@ Usage:
 (See: `TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`.)
 
 ```groovy
-def template = Config.Template.Create {
+def template = Config.Create.Template.With {
     url "http://x.y"
     roles "developer", "guest"
 }
@@ -128,7 +128,7 @@ assert d.roles == [ "developer", "guest", "scrummaster" ]
 `Template.With` can also be called using only named parameters, creating a temporary, anonymous template:
 
 ```groovy
-Config.Template.With(Config.Template.Create(url: "http://x.y")) {
+Config.Template.With(Config.Create.Template.With(url: "http://x.y")) {
     c = Config.Create.With {
         roles "productowner"
     }
@@ -246,7 +246,7 @@ abstract class RetryPolicy {
     abstract int retries()
 }
 
-def template = RetryPolicy.Template.Create {
+def template = RetryPolicy.Create.Template.With {
     name 'resilient'
 }
 ```
@@ -277,11 +277,11 @@ class Parent {
 class Child extends Parent {
 }
 
-def parentTemplate = Parent.Template.Create {
+def parentTemplate = Parent.Create.Template.With {
     name "parent-template" // overrides default value
 }
 
-def childTemplate = Child.Template.Create {
+def childTemplate = Child.Create.Template.With {
     name "child-template" // overrides parent template value
 }
 
@@ -315,11 +315,11 @@ class Parent {
 class Child extends Parent {
 }
 
-def parentTemplate = Parent.Template.Create {
+def parentTemplate = Parent.Create.Template.With {
     names "parent" // replaces default value
 }
 
-def childTemplate = Child.Template.Create {
+def childTemplate = Child.Create.Template.With {
     names = ["child"] // replaces parent template values
 }
 
@@ -342,7 +342,7 @@ must be serializable so the Template recipe remains serializable with its compan
 (See: `TemplatesDocumentaryTest#'replays a template applyLater recipe for each completed configuration'`.)
 
 ```groovy
-def template = ServiceConfiguration.Template.Create {
+def template = ServiceConfiguration.Create.Template.With {
     applyLater {
         identifier name.toUpperCase()
     }

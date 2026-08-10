@@ -13,6 +13,28 @@ Validation callers must import and catch
 `com.blackbuild.klum.ast.runtime.KlumValidationException` type has been removed; this is an intentional 4.0 source and
 binary compatibility break.
 
+### Template creation and scoped application
+
+Create a reusable Template below `Create`, then apply it below `Template`:
+
+(See: `TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`.)
+
+```groovy
+def baseline = ServiceConfiguration.Create.Template.With(region: 'eu-central')
+
+ServiceConfiguration.Template.With(baseline) {
+    ServiceConfiguration.Create.With { }
+}
+```
+
+`Foo.Create.Template(...)` and `Foo.Create.TemplateFrom(...)` have been removed so `Foo.Create.Template` can be the
+unambiguous generated Factory property. Migrate them to `Foo.Create.Template.With(...)` and
+`Foo.Create.Template.From(...)`. The older documented `Foo.Template.Create(...)` and `CreateFrom(...)` spellings remain
+deprecated 4.x aliases; move new code to the canonical `Create.Template` chain. The best-effort
+[Builder First migration helper](Builder-First-Migration.md#optional-mechanical-starting-point) recognizes only direct
+type-qualified occurrences. Run it in a clean, version-controlled schema-module worktree, inspect its diff, then compile
+and finish the checklist.
+
 For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
 and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)

@@ -193,10 +193,30 @@ checklist below. Run it only from the **schema module directory**—the Gradle s
 **clean, disposable Git worktree**. Review its diff immediately, then compile, run a representative model, and fix the
 remaining compiler errors with this guide.
 
+Use this order: update the schema module to the target KlumAST version, run the script, inspect the diff, then commit it
+as a deliberate migration starting point or revert it. Continue with the [Template migration guidance](Migration.md#template-creation-and-scoped-application), this checklist, and compilation. The
+canonical creation/application example is executable in
+[`TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`](../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TemplatesDocumentaryTest.groovy).
+
 It rewrites public schema-annotation imports, changes the deprecated `@DelegatesToRW` spelling to
 `@DelegatesToBuilder`, migrates Layer 3 annotation imports such as `@AutoCreate`, copy annotations such as `@Overwrite`,
-and `KlumModelException`/`KlumValidationException` imports. It also converts only current-target Groovy `Validator` reporting/suppression calls. It
-intentionally does **not** rewrite internal packages, `ValidatorBase`, validation result readers, explicit-target
+and `KlumModelException`/`KlumValidationException` imports. It also converts only current-target Groovy `Validator`
+reporting/suppression calls and direct type-qualified Template creation calls:
+
+| Established spelling | Mechanical starting point |
+| --- | --- |
+| `Foo.Create.Template(...)` | `Foo.Create.Template.With(...)` |
+| `Foo.Create.TemplateFrom(source)` | `Foo.Create.Template.From(source)` |
+| `Foo.Template.Create(...)` | `Foo.Create.Template.With(...)` |
+| `Foo.Template.CreateFrom(source)` | `Foo.Create.Template.From(source)` |
+
+The Template rewrites are intentionally narrow. The script leaves `Foo.Template.With` and `WithAll` scoped application,
+variables such as `type.Template.Create`, dynamic/custom calls such as `holder.Service.Template.Create`, method
+references, comments, and quoted/script content unchanged. It recognizes imported direct model names (and direct nested
+model names), not fully qualified types or expression/property chains. It preserves the argument text of a recognized
+direct call, but does not promise that the result compiles.
+
+It intentionally does **not** rewrite internal packages, `ValidatorBase`, validation result readers, explicit-target
 `Validator` calls, fully qualified type references, Builders, factories, relationships, lifecycle structure, or any other
 semantic migration.
 
