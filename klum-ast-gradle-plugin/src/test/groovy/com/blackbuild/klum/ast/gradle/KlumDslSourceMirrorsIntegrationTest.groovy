@@ -285,8 +285,12 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         generated.task(':materializeKlumDslGdsl').outcome == TaskOutcome.SUCCESS
         generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         generated.task(':api:createKlumDslSourceMirrors') == null
-        new File(gdslRoot, 'com/blackbuild/klum/ast/gdsl/CreateProperties.gdsl').text.contains(
-                'property name: propertyName, type: contract.qualifiedName, isStatic: true')
+        File createProperties = new File(gdslRoot, 'com/blackbuild/klum/ast/gdsl/CreateProperties.gdsl')
+        createProperties.text.contains('import com.intellij.psi.JavaPsiFacade')
+        createProperties.text.contains('JavaPsiFacade.getElementFactory(project).createFieldFromText(')
+        createProperties.text.contains('"public static ${contract.qualifiedName} ${propertyName}"')
+        createProperties.text.contains('add(field)')
+        !createProperties.text.contains('property name:')
         new File(gdslRoot, 'com/blackbuild/klum/ast/gdsl/PolymorphicMethods.gdsl').file
 
         when: 'the aggregate refreshes both external Schema modules'

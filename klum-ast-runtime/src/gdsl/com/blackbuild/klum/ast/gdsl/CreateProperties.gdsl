@@ -23,9 +23,16 @@
  */
 package com.blackbuild.klum.ast.gdsl
 
+import com.intellij.psi.JavaPsiFacade
+
 /**
  * Contributes the AST-generated static construction properties that source PSI cannot
  * otherwise see. The generated Foo_DSL contracts remain their public types.
+ *
+ * IntelliJ's documented {@code property} helper turns capitalized names into JavaBean
+ * accessors, which Groovy then resolves as lowercase properties. {@code add(PsiMember)}
+ * is an undocumented, version-sensitive GDSL hook used only as a 4.0 compatibility
+ * bridge for the literal {@code Create} and {@code Template} member names (#703).
  */
 def dslAnnotation = 'com.blackbuild.klum.ast.DSL'
 
@@ -40,6 +47,8 @@ contributor(context([:])) {
         def contract = findClass("${qualifiedName}_DSL.${contractName}")
         if (!contract) return
 
-        property name: propertyName, type: contract.qualifiedName, isStatic: true
+        def field = JavaPsiFacade.getElementFactory(project).createFieldFromText(
+                "public static ${contract.qualifiedName} ${propertyName}", model)
+        add(field)
     }
 }
