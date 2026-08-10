@@ -43,7 +43,7 @@ class AbstractDSLSpec extends Specification {
     GroovyClassLoader loader
     def instance
     Class<?> clazz
-    Class<?> rwClazz
+    Class<?> builderClass
     CompilerConfiguration compilerConfiguration
     Map<String, Class<?>> classPool = [:]
 
@@ -104,7 +104,7 @@ class AbstractDSLSpec extends Specification {
 
     Class<?> createClass(@Language("groovy") String code) {
         this.clazz = parseClass(code)
-        rwClazz = getRwClass(this.clazz.name)
+        builderClass = getBuilderClass(this.clazz.name)
         return this.clazz
     }
 
@@ -168,16 +168,16 @@ class AbstractDSLSpec extends Specification {
         this.clazz.methods.findAll { it.name == name }
     }
 
-    Class getRwClass(String name) {
+    Class getBuilderClass(String name) {
         getClass(name + '$Builder')
     }
 
-    boolean rwClassHasMethod(String methodName, Class... parameterTypes) {
-        hasMethod(rwClazz, methodName, parameterTypes)
+    boolean builderClassHasMethod(String methodName, Class... parameterTypes) {
+        hasMethod(builderClass, methodName, parameterTypes)
     }
 
-    boolean rwClassHasNoMethod(String methodName, Class... parameterTypes) {
-        hasNoMethod(rwClazz, methodName, parameterTypes)
+    boolean builderClassHasNoMethod(String methodName, Class... parameterTypes) {
+        hasNoMethod(builderClass, methodName, parameterTypes)
     }
 
     boolean hasNoMethod(Class type, String methodName, Class... parameterTypes) {

@@ -87,7 +87,7 @@ public class DslAstHelper {
         return getHierarchyOfDSLObjectAncestors(target).stream().flatMap(classNode -> classNode.getFields().stream());
     }
 
-    public static ClassNode getRwClassOf(ClassNode classNode) {
+    public static ClassNode getBuilderClassOf(ClassNode classNode) {
         if (!isDSLObject(classNode))
             return null;
 
@@ -99,7 +99,7 @@ public class DslAstHelper {
                     new GenericsType(classNode.getPlainNodeReference())
             );
 
-        ClassNode result = classNode.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        ClassNode result = classNode.redirect().getNodeMetaData(DSLASTTransformation.BUILDER_CLASS_METADATA_KEY);
 
         if (result != null) {
             return result;
@@ -112,7 +112,7 @@ public class DslAstHelper {
             try {
                 Class<?> modelType = classNode.getTypeClass();
                 Class<?> builderType = modelType.getClassLoader().loadClass(
-                        modelType.getName() + DSLASTTransformation.RW_CLASS_SUFFIX
+                        modelType.getName() + DSLASTTransformation.BUILDER_CLASS_SUFFIX
                 );
                 result = ClassHelper.make(builderType).getPlainNodeReference();
             } catch (ClassNotFoundException e) {
@@ -120,10 +120,10 @@ public class DslAstHelper {
             }
         } else {
             // parent has not yet been compiled. We create an unresolved parent class
-            result = ClassHelper.makeWithoutCaching(classNode.getName() + DSLASTTransformation.RW_CLASS_SUFFIX);
+            result = ClassHelper.makeWithoutCaching(classNode.getName() + DSLASTTransformation.BUILDER_CLASS_SUFFIX);
             classNode.getCompileUnit().addClassNodeToCompile(result, classNode.getModule().getContext());
         }
-        classNode.redirect().setNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY, result);
+        classNode.redirect().setNodeMetaData(DSLASTTransformation.BUILDER_CLASS_METADATA_KEY, result);
         return result;
     }
 
@@ -132,8 +132,8 @@ public class DslAstHelper {
      * Cross-source unresolved placeholders have no {@linkplain ClassNode#getOuterClass() outer class}, so retain
      * their model identity explicitly for {@link GeneratedDslSupport#publicType(ClassNode)}.
      */
-    public static ClassNode getRwClassOf(ClassNode classNode, ClassNode projectionConsumer) {
-        ClassNode result = getRwClassOf(classNode);
+    public static ClassNode getBuilderClassOf(ClassNode classNode, ClassNode projectionConsumer) {
+        ClassNode result = getBuilderClassOf(classNode);
         if (result != null && !classNode.isResolved() && classNode.getModule() != projectionConsumer.getModule()
                 && result.redirect().getNodeMetaData(MODEL_CLASS_METADATA_KEY) == null)
             result.redirect().setNodeMetaData(MODEL_CLASS_METADATA_KEY, classNode.redirect());
@@ -141,7 +141,7 @@ public class DslAstHelper {
     }
 
     public static ClassNode getModelClassFor(ClassNode classNode) {
-        if (!classNode.getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX))
+        if (!classNode.getName().endsWith(DSLASTTransformation.BUILDER_CLASS_SUFFIX))
             return null;
 
         ClassNode modelClass = classNode.redirect().getNodeMetaData(MODEL_CLASS_METADATA_KEY);
@@ -153,7 +153,7 @@ public class DslAstHelper {
         if (outerClass == null)
             return null;
 
-        if (Objects.equals(getRwClassOf(outerClass), classNode))
+        if (Objects.equals(getBuilderClassOf(outerClass), classNode))
             return outerClass;
 
         return null;

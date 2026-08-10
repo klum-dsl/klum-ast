@@ -33,9 +33,9 @@ import spock.lang.Issue
 import static com.blackbuild.klum.ast.TestHelper.delegatesToPointsTo
 
 @SuppressWarnings("GroovyAssignabilityCheck")
-class RWClassSpec extends AbstractDSLSpec {
+class BuilderClassSpec extends AbstractDSLSpec {
 
-    def "RW class is created"() {
+    def "Builder class is created"() {
         when:
         createClass('''
             package pk
@@ -47,10 +47,10 @@ class RWClassSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
-        rwClazz != null
+        builderClass != null
     }
 
-    def "RW class inherits parent RW class"() {
+    def "Builder class inherits parent Builder class"() {
         given:
         createClass('''
             package pk
@@ -66,13 +66,13 @@ class RWClassSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        Class rwClass = getRwClass('pk.Child')
+        Class builderClass = getBuilderClass('pk.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$Builder'
+        builderClass.superclass.name == 'pk.Parent$Builder'
     }
 
-    def "RW class inherits parent RW class in different package"() {
+    def "Builder class inherits parent Builder class in different package"() {
         given:
         createClass('''
             package pk
@@ -90,10 +90,10 @@ class RWClassSpec extends AbstractDSLSpec {
 ''')
 
         when:
-        Class rwClass = getRwClass('pk2.Child')
+        Class builderClass = getBuilderClass('pk2.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$Builder'
+        builderClass.superclass.name == 'pk.Parent$Builder'
 
         when:
         getClass("pk2.Child").Create.With()
@@ -102,7 +102,7 @@ class RWClassSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "RW class inherits parent RW class in compilation runs"() {
+    def "Builder class inherits parent Builder class in compilation runs"() {
         given:
         createClass('''
             package pk
@@ -120,10 +120,10 @@ class RWClassSpec extends AbstractDSLSpec {
 ''')
 
         when:
-        Class rwClass = getRwClass('pk.Child')
+        Class builderClass = getBuilderClass('pk.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$Builder'
+        builderClass.superclass.name == 'pk.Parent$Builder'
 
         when:
         getClass("pk.Child").Create.With()
@@ -132,7 +132,7 @@ class RWClassSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "BUG: RW class should inherit parent RW class regardless of order"() {
+    def "BUG: Builder class should inherit parent Builder class regardless of order"() {
         given:
         createClass('''
             package pk
@@ -147,10 +147,10 @@ class RWClassSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        Class rwClass = getRwClass('pk.Child')
+        Class builderClass = getBuilderClass('pk.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$Builder'
+        builderClass.superclass.name == 'pk.Parent$Builder'
 
         when:
         getClass('pk.Child').Create.With()
@@ -192,7 +192,7 @@ class RWClassSpec extends AbstractDSLSpec {
         builder.completedModel.is(instance)
     }
 
-    def "RW class does have public setters for model, model does not"() {
+    def "Builder class does have public setters for model, model does not"() {
         given:
         createInstance('''
             package pk
@@ -204,10 +204,10 @@ class RWClassSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def rwSetNameMethod = rwClazz.getMethod("setName", String)
+        def builderSetNameMethod = builderClass.getMethod("setName", String)
 
         then:
-        rwSetNameMethod.modifiers & Opcodes.ACC_PUBLIC
+        builderSetNameMethod.modifiers & Opcodes.ACC_PUBLIC
 
         when:
         clazz.getMethod("setName", String)
@@ -254,7 +254,7 @@ class RWClassSpec extends AbstractDSLSpec {
             class Model {
             }
 ''')
-        def Model$RW = getRwClass('pk.Model')
+        def modelBuilderClass = getBuilderClass('pk.Model')
 
         when:
         def factoryDelegate
@@ -263,7 +263,7 @@ class RWClassSpec extends AbstractDSLSpec {
         }
 
         then:
-        Model$RW.isInstance(factoryDelegate)
+        modelBuilderClass.isInstance(factoryDelegate)
         instance.metaClass.getMetaMethod("apply", Closure) == null
     }
 
@@ -401,7 +401,7 @@ class RWClassSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def method = rwClazz.getMethod("aBar", Closure)
+        def method = builderClass.getMethod("aBar", Closure)
 
         then:
         delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Bar.Builder')

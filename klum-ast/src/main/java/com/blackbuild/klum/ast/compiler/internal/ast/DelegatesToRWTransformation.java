@@ -36,7 +36,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.List;
 
-import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getBuilderClassOf;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 
@@ -57,7 +57,7 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
         visitor = new Visitor();
         visitor.visitClass(model);
-        visitor.visitClass(getRwClassOf(model));
+        visitor.visitClass(getBuilderClassOf(model));
         // model.getInnerClasses().forEachRemaining(this::visitInnerClass);
     }
 
@@ -107,7 +107,7 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
     static void addDelegatesToAnnotation(ClassNode modelClass, AnnotatedNode node) {
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_TYPE);
-        delegatesTo.addMember("value", new ClassExpression(getRwClassOf(modelClass)));
+        delegatesTo.addMember("value", new ClassExpression(getBuilderClassOf(modelClass)));
         delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
         node.addAnnotation(delegatesTo);
     }

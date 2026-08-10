@@ -62,11 +62,11 @@ class TemplateMethods {
     private InnerClassNode templateAdapter;
     private InnerClassNode templateFactoryAdapter;
     private final ClassNode dslAncestor;
-    private final InnerClassNode rwClass;
+    private final InnerClassNode builderClass;
 
     public TemplateMethods(DSLASTTransformation transformation) {
         annotatedClass = transformation.annotatedClass;
-        rwClass = transformation.rwClass;
+        builderClass = transformation.builderClass;
         dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 
@@ -270,18 +270,18 @@ class TemplateMethods {
                 .mod(ACC_PUBLIC)
                 .documentationTitle("Copies all non-null/non-empty recipe values from an active Builder of the same model.")
                 .param(GeneratedDslSupport.builderTypeFor(annotatedClass), "source", "the active Builder source to copy")
-                .addTo(rwClass);
+                .addTo(builderClass);
         createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
                 .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
                 .param(newClass(dslAncestor), "template", "the recipe to apply")
-                .addTo(rwClass);
+                .addTo(builderClass);
         ClassNode mapOfStringsAndObjects = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
         createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
                 .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
                 .param(mapOfStringsAndObjects, "template", "the recipe to apply")
-                .addTo(rwClass);
+                .addTo(builderClass);
      }
 
     private void createTemplateClass() {
@@ -294,7 +294,7 @@ class TemplateMethods {
         templateClass.addConstructor(
                 ACC_SYNTHETIC | ACC_PROTECTED,
                 params(
-                        param(rwClass.getPlainNodeReference(), "builder"),
+                        param(builderClass.getPlainNodeReference(), "builder"),
                         param(DSLASTTransformation.MATERIALIZATION_TOKEN, "materializationToken")
                 ),
                 CommonAstHelper.NO_EXCEPTIONS,

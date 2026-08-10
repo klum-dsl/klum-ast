@@ -246,7 +246,7 @@ class Outer {
     }
 
     @Issue("340")
-    def "BUG: Overrides annotation should not be copied to rw class delegate methods"() {
+    def "BUG: Overrides annotation should not be copied to Builder class delegate methods"() {
         when:
         createClass '''import org.jetbrains.annotations.NotNull
 

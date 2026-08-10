@@ -308,7 +308,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         then:
         notThrown(MultipleCompilationErrorsException)
         hasNoMethod(clazz, "aDefaultMethod")
-        hasNoMethod(rwClazz, "aDefaultMethod")
+        hasNoMethod(builderClass, "aDefaultMethod")
 
         when:
         def foo = create("pk.Foo")

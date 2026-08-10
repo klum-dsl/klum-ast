@@ -67,7 +67,7 @@ class ConverterBuilder {
     private final boolean withKey;
     private final DSLASTTransformation transformation;
     private final FieldNode fieldNode;
-    private final ClassNode rwClass;
+    private final ClassNode builderClass;
     private final ClassNode elementType;
 
     private List<String> includes;
@@ -79,7 +79,7 @@ class ConverterBuilder {
         this.fieldNode = fieldNode;
         this.methodName = methodName;
         this.withKey = withKey;
-        rwClass = targetClass;
+        builderClass = targetClass;
         elementType = getElementType(fieldNode);
 
         convertersAnnotation = getAnnotation(fieldNode, CONVERTERS_ANNOTATION);
@@ -109,7 +109,7 @@ class ConverterBuilder {
     }
 
     void execute() {
-        convertClosureListToConverterClass(getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters", rwClass.getModule().getContext()));
+        convertClosureListToConverterClass(getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters", builderClass.getModule().getContext()));
 
         if (convertersAnnotation != null) {
             List<ClassNode> classList = Groovy3To4MigrationHelper.getMemberClassList(convertersAnnotation, "value", transformation.annotatedClass.getModule().getContext());
@@ -253,12 +253,12 @@ class ConverterBuilder {
                 docBuilder.see(AstDocumentation.referenceTo(sourceMethod));
             }
         });
-        method.addTo(rwClass);
+        method.addTo(builderClass);
     }
 
     private ProxyMethodBuilder createRuntimeProxyMethod() {
-        ClassNode modelBuilder = getRwClassOf(transformation.annotatedClass);
-        if (rwClass.equals(modelBuilder))
+        ClassNode modelBuilder = getBuilderClassOf(transformation.annotatedClass);
+        if (builderClass.equals(modelBuilder))
             return createProxyMethod(methodName, getProxyMethodName());
         return new ProxyMethodBuilder(org.codehaus.groovy.ast.tools.GeneralUtils.varX("rw"), methodName, getProxyMethodName())
                 .targetType(modelBuilder);
@@ -286,7 +286,7 @@ class ConverterBuilder {
             if (builderProducer != null)
                 createBuilderConverterMethod(converterMethod, builderProducer);
             else
-                OmittedProjectionCatalog.omit(rwClass, methodName, converterMethod,
+                OmittedProjectionCatalog.omit(builderClass, methodName, converterMethod,
                         BuilderMethodProjection.omissionReasonFor(converterMethod));
             return;
         }
@@ -313,8 +313,8 @@ class ConverterBuilder {
         );
         producerCall.setMethodTarget(builderProducer);
 
-        ClassNode modelBuilder = getRwClassOf(transformation.annotatedClass);
-        Expression target = rwClass.equals(modelBuilder) ? varX("this") : varX("rw");
+        ClassNode modelBuilder = getBuilderClassOf(transformation.annotatedClass);
+        Expression target = builderClass.equals(modelBuilder) ? varX("this") : varX("rw");
         MethodCallExpression attachCall;
         if (isCollection(fieldNode.getType()))
             attachCall = callX(target, "addElementToCollection", args(constX(fieldNode.getName()), producerCall));
@@ -330,7 +330,7 @@ class ConverterBuilder {
                 .sourceLinkTo(sourceMethod)
                 .doReturn(attachCall);
         BuilderMethodProjection.documentComposition(method, sourceMethod, builderProducer.getReturnType());
-        method.addTo(rwClass);
+        method.addTo(builderClass);
     }
 
     private void createConverterConstructorCall(ConstructorNode constructor) {

@@ -46,7 +46,7 @@ class AnnoDocTest extends AbstractDSLSpec {
 
     File srcDir
     ClassNode classNode
-    ClassNode rwClassNode
+    ClassNode builderClassNode
     Class<?> factoryClazz
     ClassNode factoryClassNode
 
@@ -61,10 +61,10 @@ class AnnoDocTest extends AbstractDSLSpec {
         file.parentFile.mkdirs()
         file.text = code
         clazz = loader.parseClass(file)
-        rwClazz = getRwClass(clazz.name)
+        builderClass = getBuilderClass(clazz.name)
         factoryClazz = getClass(clazz.name + '$_Factory')
         classNode = ClassHelper.make(clazz)
-        rwClassNode = ClassHelper.make(rwClazz)
+        builderClassNode = ClassHelper.make(builderClass)
         factoryClassNode = ClassHelper.make(factoryClazz)
     }
 
@@ -73,8 +73,8 @@ class AnnoDocTest extends AbstractDSLSpec {
         return AstDocumentation.extractExact(methodNode).get().render()
     }
 
-    String rwMethodDoc(String methodName, Class... params) {
-        return rwClazz.getMethod(methodName, params).getAnnotation(AnnoDoc)?.value()
+    String builderImplementationMethodDoc(String methodName, Class... params) {
+        return builderClass.getMethod(methodName, params).getAnnotation(AnnoDoc)?.value()
     }
 
     String builderMethodDoc(String methodName, Class... params) {
@@ -104,8 +104,8 @@ class AnnoDocTest extends AbstractDSLSpec {
         return AstDocumentation.extractExact(classNode).get().render()
     }
 
-    String rwClassDoc() {
-        return AstDocumentation.extractExact(rwClassNode).get().render()
+    String builderClassDoc() {
+        return AstDocumentation.extractExact(builderClassNode).get().render()
     }
 
     def "javadoc reflects the model and Builder API split"() {
@@ -123,10 +123,10 @@ import com.blackbuild.klum.ast.DSL
 
         then:
         classDoc() == '''This is a class'''
-        rwClassDoc() == "The generated Builder for dummy.Foo."
+        builderClassDoc() == "The generated Builder for dummy.Foo."
         !clazz.declaredMethods*.name.contains("apply")
-        rwClazz.getMethod("apply", Map).declaringClass == InternalKlumBuilder
-        rwMethodDoc("copyFrom", clazz) == """Copies all non-null/non-empty recipe values from the template to this Builder.
+        builderClass.getMethod("apply", Map).declaringClass == InternalKlumBuilder
+        builderImplementationMethodDoc("copyFrom", clazz) == """Copies all non-null/non-empty recipe values from the template to this Builder.
 
 @param template the recipe to apply"""
 
@@ -163,13 +163,13 @@ import com.blackbuild.klum.ast.DSL
         methodDoc("getLegacyName") == "legacy name.\n\n@deprecated Use name instead."
 
         and: "Builder implementation getters and setters retain the property wording"
-        rwMethodDoc("getName") == "display name."
-        rwMethodDoc("getActive") == "active flag."
-        rwMethodDoc("isActive") == "active flag."
-        rwMethodDoc("getLegacyName") == "legacy name.\n\n@deprecated Use name instead."
-        rwMethodDoc("setName", String) == "display name."
-        rwMethodDoc("setActive", boolean) == "active flag."
-        rwMethodDoc("setLegacyName", String) == "legacy name.\n\n@deprecated Use name instead."
+        builderImplementationMethodDoc("getName") == "display name."
+        builderImplementationMethodDoc("getActive") == "active flag."
+        builderImplementationMethodDoc("isActive") == "active flag."
+        builderImplementationMethodDoc("getLegacyName") == "legacy name.\n\n@deprecated Use name instead."
+        builderImplementationMethodDoc("setName", String) == "display name."
+        builderImplementationMethodDoc("setActive", boolean) == "active flag."
+        builderImplementationMethodDoc("setLegacyName", String) == "legacy name.\n\n@deprecated Use name instead."
 
         and: "public Builder contracts expose the same generated-Javadoc evidence"
         builderMethodDoc("getName") == "display name."
@@ -204,8 +204,8 @@ import com.blackbuild.klum.ast.Mutator
 
         then:
         methodDoc("getBanner") == "Reads the banner from the configured model."
-        rwMethodDoc("getBanner") == "Reads the banner from the configured model."
-        rwMethodDoc("setBanner", String) == "Replaces the banner in the configured model."
+        builderImplementationMethodDoc("getBanner") == "Reads the banner from the configured model."
+        builderImplementationMethodDoc("setBanner", String) == "Replaces the banner in the configured model."
         builderMethodDoc("getBanner") == "Reads the banner from the configured model."
         builderMethodDoc("setBanner", String) == "Replaces the banner in the configured model."
     }
@@ -284,23 +284,23 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
             }''')
 
         then:
-        rwMethodDoc("bar", Closure) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
+        builderImplementationMethodDoc("bar", Closure) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
 
 <p>The newly created Builder is configured by the optional values and closure.</p>
 
 @param closure the closure to configure the new element
 @return the newly created Builder"""
-        rwMethodDoc("bar", Map) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
+        builderImplementationMethodDoc("bar", Map) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
 
 <p>The newly created Builder is configured by the optional values and closure.</p>
 
 @param values the optional parameters
 @param closure the closure to configure the new element
 @return the newly created Builder""" // closures has a default value, so during ast it is a single method
-        rwMethodDoc("bars", getArrayClass("dummy.Bar\$Builder")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
+        builderImplementationMethodDoc("bars", getArrayClass("dummy.Bar\$Builder")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 
 @param values the elements to add"""
-        rwMethodDoc("bars", Iterable) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
+        builderImplementationMethodDoc("bars", Iterable) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 
 @param values the elements to add"""
 
@@ -328,7 +328,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
             ''')
 
         then:
-        rwMethodDoc("bar", long) == """Creates an unsealed Builder in the active construction session and attaches it to this relationship.
+        builderImplementationMethodDoc("bar", long) == """Creates an unsealed Builder in the active construction session and attaches it to this relationship.
 
 <p>The returned Builder remains attached to the current construction session; it cannot be independently materialized or validated.</p>
 
@@ -351,7 +351,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
             ''')
 
         then:
-        rwMethodDoc("berry", Closure) == """Creates a new 'berry' Builder and adds it to the Builder's 'berries' collection.
+        builderImplementationMethodDoc("berry", Closure) == """Creates a new 'berry' Builder and adds it to the Builder's 'berries' collection.
 
 <p>The newly created Builder is configured by the optional values and closure.</p>
 
@@ -378,7 +378,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
             ''')
 
         then:
-        rwMethodDoc("berry", Closure) == """Creates a new 'Yummy Berry' Builder and adds it to the Builder's 'Yummy Berries' collection.
+        builderImplementationMethodDoc("berry", Closure) == """Creates a new 'Yummy Berry' Builder and adds it to the Builder's 'Yummy Berries' collection.
 
 <p>The newly created Builder is configured by the optional values and closure.</p>
 

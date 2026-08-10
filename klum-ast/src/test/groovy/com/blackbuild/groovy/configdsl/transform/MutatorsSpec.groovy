@@ -29,7 +29,7 @@ import spock.lang.Ignore
 @SuppressWarnings("GroovyAssignabilityCheck")
 class MutatorsSpec extends AbstractDSLSpec {
 
-    def "Mutator methods are moved into RW class"() {
+    def "Mutator methods are moved into Builder class"() {
         given:
         createClass('''
             package pk
@@ -46,7 +46,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        rwClazz.getDeclaredMethod("setNameCaseInsensitive", String)
+        builderClass.getDeclaredMethod("setNameCaseInsensitive", String)
 
         then:
         notThrown(NoSuchMethodException)

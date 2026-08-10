@@ -48,24 +48,24 @@ class FixedKeySpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        rwClassHasMethod("singleBar")
-        rwClassHasMethod("singleBar", Closure)
-        rwClassHasMethod("singleBar", Map)
-        rwClassHasMethod("singleBar", Map, Closure)
-        rwClassHasMethod("singleBar", Class)
-        rwClassHasMethod("singleBar", Class, Closure)
-        rwClassHasMethod("singleBar", Map, Class)
-        rwClassHasMethod("singleBar", Map, Class, Closure)
+        builderClassHasMethod("singleBar")
+        builderClassHasMethod("singleBar", Closure)
+        builderClassHasMethod("singleBar", Map)
+        builderClassHasMethod("singleBar", Map, Closure)
+        builderClassHasMethod("singleBar", Class)
+        builderClassHasMethod("singleBar", Class, Closure)
+        builderClassHasMethod("singleBar", Map, Class)
+        builderClassHasMethod("singleBar", Map, Class, Closure)
 
         and:
-        rwClassHasNoMethod("singleBar", String)
-        rwClassHasNoMethod("singleBar", String, Closure)
-        rwClassHasNoMethod("singleBar", Map, String)
-        rwClassHasNoMethod("singleBar", Map, String, Closure)
-        rwClassHasNoMethod("singleBar", Class, String)
-        rwClassHasNoMethod("singleBar", Class, String, Closure)
-        rwClassHasNoMethod("singleBar", Map, Class, String)
-        rwClassHasNoMethod("singleBar", Map, Class, String, Closure)
+        builderClassHasNoMethod("singleBar", String)
+        builderClassHasNoMethod("singleBar", String, Closure)
+        builderClassHasNoMethod("singleBar", Map, String)
+        builderClassHasNoMethod("singleBar", Map, String, Closure)
+        builderClassHasNoMethod("singleBar", Class, String)
+        builderClassHasNoMethod("singleBar", Class, String, Closure)
+        builderClassHasNoMethod("singleBar", Map, Class, String)
+        builderClassHasNoMethod("singleBar", Map, Class, String, Closure)
 
         when:
         instance = create("pk.Foo") {

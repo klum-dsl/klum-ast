@@ -593,13 +593,13 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        rwClazz.getMethod("foo", Closure)
+        builderClass.getMethod("foo", Closure)
 
         then:
         thrown(NoSuchMethodException)
 
         when:
-        rwClazz.getMethod("foo", Class, Closure)
+        builderClass.getMethod("foo", Class, Closure)
 
         then:
         noExceptionThrown()

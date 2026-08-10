@@ -73,7 +73,7 @@ class PropertyAccessors {
                 .linkToField(modelField)
                 .withDocumentation(documentation -> documentAccessor(documentation, modelField, getGetterName(fieldName)))
                 .doReturn(attrX(varX("this"), constX(fieldName)))
-                .addTo(transformation.rwClass);
+                .addTo(transformation.builderClass);
 
         if (ClassHelper.boolean_TYPE.equals(builderField.getType()) || ClassHelper.Boolean_TYPE.equals(builderField.getType()))
             createMethod(getBooleanGetterName(fieldName))
@@ -82,7 +82,7 @@ class PropertyAccessors {
                 .linkToField(modelField)
                 .withDocumentation(documentation -> documentAccessor(documentation, modelField, getBooleanGetterName(fieldName)))
                     .doReturn(attrX(varX("this"), constX(fieldName)))
-                    .addTo(transformation.rwClass);
+                    .addTo(transformation.builderClass);
 
         createMethod(DslAstHelper.getSetterName(fieldName))
                 .mod(visibility)
@@ -90,7 +90,7 @@ class PropertyAccessors {
                 .param(builderField.getType(), VALUE_PARAMETER)
                 .withDocumentation(documentation -> documentAccessor(documentation, modelField, DslAstHelper.getSetterName(fieldName)))
                 .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
-                .addTo(transformation.rwClass);
+                .addTo(transformation.builderClass);
 
         // Existing completed values enter through KlumBuilder, which seals LINK targets.
         if (!builderField.getType().equals(modelField.getType()))
@@ -100,7 +100,7 @@ class PropertyAccessors {
                 .param(modelField.getType(), VALUE_PARAMETER)
                 .withDocumentation(documentation -> documentAccessor(documentation, modelField, DslAstHelper.getSetterName(fieldName)))
                 .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
-                .addTo(transformation.rwClass);
+                .addTo(transformation.builderClass);
     }
 
     private void makeModelPropertyReadOnly(PropertyNode property) {

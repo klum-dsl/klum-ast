@@ -355,7 +355,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         '''
 
         expect:
-        rwClazz.getMethod('child', String).returnType == getClass('Child_DSL$Builder')
+        builderClass.getMethod('child', String).returnType == getClass('Child_DSL$Builder')
         getClass('Root_DSL$Builder').getMethod('child', String).returnType == getClass('Child_DSL$Builder')
 
         when:
@@ -528,7 +528,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         def childPaths = instance.children.collect(DslHelper.&getBreadcrumbPath)
 
         then:
-        rwClazz.getMethod('getChildren').returnType == List
+        builderClass.getMethod('getChildren').returnType == List
         projectedList instanceof LinkedList
         instance.children*.value == ['A', 'B']
         instance.children.every { it.owner.is(instance) }
@@ -610,7 +610,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         '''
 
         expect: 'the static and IDE-visible surfaces do not advertise the opaque projection'
-        !rwClazz.methods.any { it.name == 'child' && it.parameterTypes.toList() == [String] }
+        !builderClass.methods.any { it.name == 'child' && it.parameterTypes.toList() == [String] }
         !getClass('Root_DSL$Builder').methods.any { it.name == 'child' && it.parameterTypes.toList() == [String] }
 
         and: 'the unchanged direct root producer still materializes normally'

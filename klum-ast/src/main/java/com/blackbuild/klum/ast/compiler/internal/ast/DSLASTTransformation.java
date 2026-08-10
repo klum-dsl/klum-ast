@@ -135,8 +135,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode GENERATED_MODEL_SUPPORT = make(GeneratedModelSupport.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String RW_CLASS_SUFFIX = "$Builder";
-    public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
+    public static final String BUILDER_CLASS_SUFFIX = "$Builder";
+    public static final String BUILDER_CLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".builderClass";
     public static final String BUILDER_ANNOTATION_CLOSURE_METADATA_KEY =
             DSLASTTransformation.class.getName() + ".builderAnnotationClosure";
     public static final String MODEL_RESULT_ANNOTATION_CLOSURE_METADATA_KEY =
@@ -155,7 +155,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     FieldNode keyField;
     List<FieldNode> ownerFields;
     AnnotationNode dslAnnotation;
-    InnerClassNode rwClass;
+    InnerClassNode builderClass;
     ClassNode modelImplementationClass;
     final Map<FieldNode, FieldNode> builderFields = new LinkedHashMap<>();
 
@@ -183,7 +183,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         rejectNonDslSubclasses();
         warnIfAFieldIsNamedOwner();
 
-        createRWClass();
+        createBuilderClass();
         moveSourceStateToBuilder();
         createFieldDSLMethods();
         diagnoseNonSetterConfiguratorOverrides();
@@ -193,7 +193,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryField();
         createClusterFactories();
         convertValidationClosures();
-        moveMutatorsToRWClass();
+        moveMutatorsToBuilderClass();
         createOwnerClosureMethods();
         retargetBuilderAnnotationClosures();
 
@@ -204,11 +204,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
 
         runDelayedActions(annotatedClass);
-        OmittedProjectionCatalog.complete(rwClass);
+        OmittedProjectionCatalog.complete(builderClass);
         GeneratedDslSupport.complete(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
-        new VariableScopeVisitor(sourceUnit, true).visitClass(rwClass);
+        new VariableScopeVisitor(sourceUnit, true).visitClass(builderClass);
     }
 
     private void implementMarkerInterfaces() {
@@ -286,7 +286,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
     }
 
-    private void moveMutatorsToRWClass() {
+    private void moveMutatorsToBuilderClass() {
         new WriteAccessMethodsMover(annotatedClass).invoke();
     }
 
@@ -294,37 +294,37 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new PropertyAccessors(this).invoke();
     }
 
-    private void createRWClass() {
-        ClassNode parentRW = getRwClassOfDslParent();
+    private void createBuilderClass() {
+        ClassNode parentBuilder = getBuilderClassOfDslParent();
         ClassNode builderBase;
-        if (parentRW != null) {
-            builderBase = parentRW.getPlainNodeReference();
+        if (parentBuilder != null) {
+            builderBase = parentBuilder.getPlainNodeReference();
         } else {
             builderBase = GENERATED_KLUM_BUILDER;
         }
 
-        rwClass = new InnerClassNode(
+        builderClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + RW_CLASS_SUFFIX,
+                annotatedClass.getName() + BUILDER_CLASS_SUFFIX,
                 ACC_PUBLIC | ACC_STATIC,
                 builderBase,
                 new ClassNode[] { make(Serializable.class) },
                 MixinNode.EMPTY_ARRAY);
-        AstDocumentation.attachText(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
+        AstDocumentation.attachText(builderClass, "The generated Builder for " + annotatedClass.getName() + ".");
 
-        DslAstHelper.registerAsVerbProvider(rwClass);
-        annotatedClass.getModule().addClass(rwClass);
+        DslAstHelper.registerAsVerbProvider(builderClass);
+        annotatedClass.getModule().addClass(builderClass);
         if (dslParent == null)
             annotatedClass.addField("$state", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, GENERATED_OBJECT_STATE, null);
 
-        ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
+        ClassNode parentProxy = annotatedClass.getNodeMetaData(BUILDER_CLASS_METADATA_KEY);
         if (parentProxy == null)
-            annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
+            annotatedClass.setNodeMetaData(BUILDER_CLASS_METADATA_KEY, builderClass);
         else
-            parentProxy.setRedirect(rwClass);
+            parentProxy.setRedirect(builderClass);
 
-        rwClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
-        GeneratedDslSupport.create(annotatedClass, rwClass);
+        builderClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        GeneratedDslSupport.create(annotatedClass, builderClass);
     }
 
     private static final Set<String> SUPPORTED_COLLECTION_TYPES = Set.of(
@@ -352,7 +352,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         CodeVisitorSupport visitor = new CodeVisitorSupport() {
             @Override
             public void visitVariableExpression(VariableExpression expression) {
-                FieldNode target = rwClass.getField(expression.getName());
+                FieldNode target = builderClass.getField(expression.getName());
                 Variable accessed = expression.getAccessedVariable();
                 if (target != null && (accessed instanceof FieldNode || accessed instanceof DynamicVariable)) {
                     expression.setAccessedVariable(target);
@@ -377,17 +377,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             public void visitClosureExpression(ClosureExpression expression) {
                 for (Parameter parameter : expression.getParameters()) {
                     if (isDSLObject(parameter.getType()))
-                        parameter.setType(getRwClassOf(parameter.getType()).getPlainNodeReference());
+                        parameter.setType(getBuilderClassOf(parameter.getType()).getPlainNodeReference());
                 }
                 super.visitClosureExpression(expression);
             }
         };
 
-        rwClass.getFields().stream()
+        builderClass.getFields().stream()
                 .flatMap(field -> field.getAnnotations().stream())
                 .flatMap(annotation -> annotation.getMembers().values().stream())
                 .forEach(expression -> retargetAnnotationExpression(expression, visitor));
-        rwClass.getMethods().stream()
+        builderClass.getMethods().stream()
                 .flatMap(method -> method.getAnnotations().stream())
                 .flatMap(annotation -> annotation.getMembers().values().stream())
                 .forEach(expression -> retargetAnnotationExpression(expression, visitor));
@@ -409,7 +409,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (isDSLObject(inferredReturnType))
             closure.putNodeMetaData(
                     StaticTypesMarker.INFERRED_RETURN_TYPE,
-                    getRwClassOf(inferredReturnType).getPlainNodeReference()
+                    getBuilderClassOf(inferredReturnType).getPlainNodeReference()
             );
     }
 
@@ -417,7 +417,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         CodeVisitorSupport visitor = new CodeVisitorSupport() {
             @Override
             public void visitVariableExpression(VariableExpression expression) {
-                FieldNode target = rwClass.getField(expression.getName());
+                FieldNode target = builderClass.getField(expression.getName());
                 Variable accessed = expression.getAccessedVariable();
                 if (target != null && (accessed instanceof FieldNode || accessed instanceof DynamicVariable)) {
                     expression.setAccessedVariable(target);
@@ -454,14 +454,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 modelField.getName(),
                 modelField.getModifiers() & ~ACC_FINAL,
                 getBuilderFieldType(modelField),
-                rwClass,
+                builderClass,
                 modelField.getInitialExpression()
         );
         builderField.addAnnotations(modelField.getAnnotations().stream()
                 .filter(AnnotationCopyExceptions::shouldCopy)
                 .toList());
         builderField.setSourcePosition(modelField);
-        rwClass.addField(builderField);
+        builderClass.addField(builderField);
         builderFields.put(modelField, builderField);
 
         // Source code is evaluated exactly once, as part of Builder construction.
@@ -482,14 +482,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode type = field.getType();
         ClassNode storageValueType = getBuilderStorageValueType(field);
         if (!isCollection(type) && !isMap(type) && isDSLObject(storageValueType))
-            return getRwClassOf(storageValueType, field.getOwner()).getPlainNodeReference();
+            return getBuilderClassOf(storageValueType, field.getOwner()).getPlainNodeReference();
         if (isCollection(type) && isDSLObject(storageValueType))
-            return makeClassSafeWithGenerics(type, new GenericsType(getRwClassOf(storageValueType, field.getOwner()).getPlainNodeReference()));
+            return makeClassSafeWithGenerics(type, new GenericsType(getBuilderClassOf(storageValueType, field.getOwner()).getPlainNodeReference()));
         if (isMap(type) && isDSLObject(storageValueType))
                 return makeClassSafeWithGenerics(
                         type,
                         new GenericsType(getKeyTypeForMap(type)),
-                        new GenericsType(getRwClassOf(storageValueType, field.getOwner()).getPlainNodeReference())
+                        new GenericsType(getBuilderClassOf(storageValueType, field.getOwner()).getPlainNodeReference())
                 );
         return type;
     }
@@ -553,14 +553,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (keyField != null && keyField.getOwner().equals(annotatedClass))
             internalBody.addStatement(assignS(attrX(varX("this"), constX(keyField.getName())), varX("key")));
 
-        rwClass.addConstructor(
+        builderClass.addConstructor(
                 ACC_PROTECTED,
                 params(param(makeClassSafe(Class.class), MODEL_TYPE_PARAMETER), param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 internalBody
         );
 
-        rwClass.addConstructor(
+        builderClass.addConstructor(
                 ACC_PROTECTED,
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
@@ -603,7 +603,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addConstructor(
                 ACC_PROTECTED | ACC_SYNTHETIC,
                 params(
-                        param(rwClass.getPlainNodeReference(), BUILDER_PARAMETER),
+                        param(builderClass.getPlainNodeReference(), BUILDER_PARAMETER),
                         param(MATERIALIZATION_TOKEN, MATERIALIZATION_TOKEN_PARAMETER)
                 ),
                 NO_EXCEPTIONS,
@@ -615,7 +615,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodBuilder method = createProtectedMethod("$modelImplementationType")
                 .returning(makeClassSafe(Class.class))
                 .doReturn(classX(modelImplementationClass));
-        method.addTo(rwClass);
+        method.addTo(builderClass);
     }
 
     private void createRelationshipAssignmentHook() {
@@ -624,7 +624,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (dslParent != null) {
             MethodCallExpression parentAssignment = callSuperX("$assignRelationships");
             parentAssignment.setMethodTarget(MethodAstHelper.findMatchingMethod(
-                    getRwClassOfDslParent(), "$assignRelationships", List.of()));
+                    getBuilderClassOfDslParent(), "$assignRelationships", List.of()));
             method.statement(stmt(parentAssignment));
         }
 
@@ -640,11 +640,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     GENERATED_KLUM_BUILDER, "$assignMaterializedRelationship", List.of(STRING_TYPE)));
             method.statement(stmt(relationshipAssignment));
         });
-        method.addTo(rwClass);
+        method.addTo(builderClass);
     }
 
-    private ClassNode getRwClassOfDslParent() {
-        return DslAstHelper.getRwClassOf(dslParent);
+    private ClassNode getBuilderClassOfDslParent() {
+        return DslAstHelper.getBuilderClassOf(dslParent);
     }
 
     private void makeClassSerializable() {
@@ -938,7 +938,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(DocUtil.getSetterText(fieldNode))
                 .constantParam(fieldName)
                 .decoratedParam(fieldNode, "value", "the value to set")
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         if (isDSLObject(fieldNode.getType())) {
             createProxyMethod(fieldName, SET_SINGLE_FIELD)
@@ -948,7 +948,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .constantParam(fieldName)
                     .param(makeClassSafeWithGenerics(KlumBuilder.class, fieldNode.getType()), "value", "the Builder value to set")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
@@ -960,7 +960,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .documentationTitle(DocUtil.getFlagSetterText(fieldNode))
                     .constantParam(fieldName)
                     .constantPrimitveParam(true)
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         createConverterMethods(fieldNode, fieldName, false);
@@ -968,7 +968,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
         if (getFieldType(fieldNode) != FieldType.LINK)
-            new ConverterBuilder(this, fieldNode, methodName, withKey, getRwClassOf(this.annotatedClass)).execute();
+            new ConverterBuilder(this, fieldNode, methodName, withKey, getBuilderClassOf(this.annotatedClass)).execute();
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
@@ -997,7 +997,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(DocUtil.getCollectionMultiAdderText(fieldNode))
                 .constantParam(fieldName)
                 .arrayParam(elementType, "values", "The values to add")
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
@@ -1006,7 +1006,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(DocUtil.getCollectionMultiAdderText(fieldNode))
                 .constantParam(fieldName)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values", "The values to add")
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createProxyMethod(elementName, ADD_ELEMENT_TO_COLLECTION)
                 .optional()
@@ -1016,7 +1016,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(DocUtil.getCollectionAdderText(fieldNode))
                 .constantParam(fieldName)
                 .param(elementType, "value", "The value to add")
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createConverterMethods(fieldNode, elementName, false);
     }
@@ -1025,11 +1025,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
         ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
-        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
+        ClassNode elementBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl).getPlainNodeReference();
         FieldType relationshipType = getFieldType(fieldNode);
         boolean linkField = relationshipType == FieldType.LINK;
         boolean optionalLinkField = relationshipType == FieldType.OPTIONAL_LINK;
-        ClassNode storedElementType = linkField ? elementType : elementRwType;
+        ClassNode storedElementType = linkField ? elementType : elementBuilderType;
         String storedElementDescription = linkField
                 ? "completed '{{singleElementName}}' LINK targets"
                 : "'{{singleElementName}}' Builders";
@@ -1049,7 +1049,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                        .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + COLLECTION_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1060,8 +1060,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
                         .optionalStringParam(fieldKeyName, fieldKey != null, null)
-                        .delegatingClosureParam(elementRwType, null)
-                        .addTo(rwClass);
+                        .delegatingClosureParam(elementBuilderType, null)
+                        .addTo(builderClass);
             }
 
             if (!isFinal(elementType)) {
@@ -1069,7 +1069,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                        .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + COLLECTION_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1082,7 +1082,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .constantPrimitveParam(true)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
-                        .addTo(rwClass);
+                        .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
                         fieldNode, dslBaseType, fieldName, fieldKeyName, COLLECTION_DOCUMENTATION_SUFFIX);
@@ -1095,7 +1095,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         createProxyMethod(fieldName, "addElementsToCollection")
@@ -1105,7 +1105,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .arrayParam(storedElementType, "values", ELEMENTS_TO_ADD_DOCUMENTATION)
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
@@ -1114,7 +1114,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, storedElementType), "values", ELEMENTS_TO_ADD_DOCUMENTATION)
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createProxyMethod(methodName, ADD_ELEMENT_TO_COLLECTION)
                 .optional()
@@ -1124,7 +1124,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle("Adds one " + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .param(storedElementType, "value")
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         if (optionalLinkField) {
             createProxyMethod(methodName, ADD_ELEMENT_TO_COLLECTION)
@@ -1135,7 +1135,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .documentationTitle("Adds one completed '{{singleElementName}}' as an aggregation LINK target.")
                     .constantParam(fieldName)
                     .param(elementType, "value")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         createAlternativesClassFor(fieldNode);
@@ -1187,7 +1187,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .constantParam(methodName)
                     .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         } else {
             createProxyMethod(methodName, "addElementsToMap")
                     .optional()
@@ -1195,14 +1195,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .constantParam(methodName)
                     .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(valueType)), "values")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
             createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .constantParam(methodName)
                     .arrayParam(valueType, "values")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         createProxyMethod(singleElementMethod, ADD_ELEMENT_TO_MAP)
@@ -1213,7 +1213,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .constantParam(methodName)
                 .optionalParam(keyType, "key", keyMappingClosure == null)
                 .param(valueType, "value")
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createConverterMethods(fieldNode, singleElementMethod, true);
     }
@@ -1238,11 +1238,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         String fieldName = fieldNode.getName();
 
-        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
+        ClassNode elementBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl).getPlainNodeReference();
         FieldType relationshipType = getFieldType(fieldNode);
         boolean linkField = relationshipType == FieldType.LINK;
         boolean optionalLinkField = relationshipType == FieldType.OPTIONAL_LINK;
-        ClassNode storedElementType = linkField ? elementType : elementRwType;
+        ClassNode storedElementType = linkField ? elementType : elementBuilderType;
         String storedElementDescription = linkField
                 ? "completed '{{singleElementName}}' LINK targets"
                 : "'{{singleElementName}}' Builders";
@@ -1254,7 +1254,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                        .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + MAP_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1265,8 +1265,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
                         .optionalStringParam("key", elementKeyField != null)
-                        .delegatingClosureParam(elementRwType)
-                        .addTo(rwClass);
+                        .delegatingClosureParam(elementBuilderType)
+                        .addTo(builderClass);
             }
 
             if (!isFinal(elementType)) {
@@ -1274,7 +1274,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                        .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + MAP_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1287,7 +1287,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .constantPrimitveParam(true)
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam()
-                        .addTo(rwClass);
+                        .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP,
                         fieldNode, dslBaseType, fieldName, elementKeyField != null ? "key" : null,
@@ -1301,7 +1301,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         createProxyMethod(fieldName, "addElementsToMap")
@@ -1311,7 +1311,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + MAP_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(storedElementType)), "values", ELEMENTS_TO_ADD_DOCUMENTATION)
-                .addTo(rwClass);
+                .addTo(builderClass);
         createProxyMethod(fieldName, "addElementsToMap")
                 .optional()
                 .mod(visibility)
@@ -1319,7 +1319,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + MAP_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .arrayParam(storedElementType, "values", ELEMENTS_TO_ADD_DOCUMENTATION)
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         createProxyMethod(methodName, ADD_ELEMENT_TO_MAP)
                 .optional()
@@ -1330,7 +1330,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .constantParam(fieldName)
                 .constantParam(null)
                 .param(storedElementType, elementToAddVarName)
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         if (optionalLinkField) {
             createProxyMethod(methodName, ADD_ELEMENT_TO_MAP)
@@ -1342,7 +1342,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .constantParam(fieldName)
                     .constantParam(null)
                     .param(elementType, elementToAddVarName)
-                    .addTo(rwClass);
+                    .addTo(builderClass);
         }
 
         createAlternativesClassFor(fieldNode);
@@ -1377,7 +1377,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         FieldNode targetTypeKeyField = getKeyField(dslBaseType);
         String targetKeyFieldName = targetTypeKeyField != null ? targetTypeKeyField.getName() : null;
-        ClassNode targetRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
+        ClassNode targetBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl).getPlainNodeReference();
 
         Expression keyProvider = getStaticKeyExpression(fieldNode);
         boolean needKeyParameter = targetTypeKeyField != null && keyProvider == null;
@@ -1389,14 +1389,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .returning(targetRwType)
+                    .returning(targetBuilderType)
                     .namedParams("values")
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
                     .constantPrimitveParam(false)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam(targetRwType)
-                    .addTo(rwClass);
+                    .delegatingClosureParam(targetBuilderType)
+                    .addTo(builderClass);
         }
 
         if (!isFinal(targetFieldType)) {
@@ -1404,7 +1404,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .returning(targetRwType)
+                    .returning(targetBuilderType)
                     .withDocumentation(doc -> doc
                             .title("Creates a new '{{singleElementName}}' Builder to this Builder.")
                             .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1418,7 +1418,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .constantPrimitveParam(true)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
-                    .addTo(rwClass);
+                    .addTo(builderClass);
 
             createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType, fieldName,
                     targetKeyFieldName, " to this Builder.");
@@ -1450,7 +1450,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegationTargetParam(types.providerType(), FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
                 .optionalStringParam(keyName, keyName != null)
                 .delegatingClosureParam(FACTORY_NAME, 1, CONFIGURATION_CLOSURE_DOCUMENTATION)
-                .addTo(rwClass);
+                .addTo(builderClass);
     }
 
     private GenericFactoryMethodTypes genericFactoryMethodTypes(ClassNode dslBaseType) {
@@ -1576,7 +1576,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     keyProviderClosure,
                     varX("this"),
                     varX("this")
-            ).addTo(rwClass);
+            ).addTo(builderClass);
 
             return callX(varX("this"), keyGetterName);
         }
@@ -1592,20 +1592,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createApplyMethods() {
         createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
-                .delegatingClosureParam(rwClass, null, null)
-                .addTo(rwClass);
+                .delegatingClosureParam(builderClass, null, null)
+                .addTo(builderClass);
 
         createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(Integer_TYPE, "phase")
-                .delegatingClosureParam(rwClass, null, null)
-                .addTo(rwClass);
+                .delegatingClosureParam(builderClass, null, null)
+                .addTo(builderClass);
 
         createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(make(DefaultKlumPhase.class), "phase")
-                .delegatingClosureParam(rwClass, null, null)
-                .addTo(rwClass);
+                .delegatingClosureParam(builderClass, null, null)
+                .addTo(builderClass);
     }
 
     private void createFactoryField() {

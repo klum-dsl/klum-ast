@@ -40,22 +40,22 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 // Heavily copied from DelegateASTTransformation
-class DelegateFromRwToModel {
+class DelegateFromBuilderToModel {
 
-    private static final List<String> IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION =
+    private static final List<String> IGNORED_FIELDS_FOR_BUILDER_TO_MODEL_DELEGATION =
             Arrays.asList("canEqual", "methodMissing", "propertyMissing");
 
-    private static final List<ClassNode> IGNORED_ANNOTATIONS_FOR_RW_TO_MODEL_DELEGATION =
+    private static final List<ClassNode> IGNORED_ANNOTATIONS_FOR_BUILDER_TO_MODEL_DELEGATION =
             List.of(
                     ClassHelper.make(Override.class),
                     DslAstHelper.KLUM_GENERATED_CLASSNODE);
 
     private final ClassNode annotatedClass;
-    private final ClassNode rwClass;
+    private final ClassNode builderClass;
 
-    DelegateFromRwToModel(ClassNode annotatedClass) {
+    DelegateFromBuilderToModel(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
-        this.rwClass = DslAstHelper.getRwClassOf(annotatedClass);
+        this.builderClass = DslAstHelper.getBuilderClassOf(annotatedClass);
     }
 
     void invoke() {
@@ -63,16 +63,16 @@ class DelegateFromRwToModel {
                 .filter(method -> !method.isStatic())
                 .filter(method -> (method.getModifiers() & Opcodes.ACC_SYNTHETIC) == 0)
                 .filter(method -> !method.getName().contains("$"))
-                .filter(method -> !IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION.contains(method.getName()))
+                .filter(method -> !IGNORED_FIELDS_FOR_BUILDER_TO_MODEL_DELEGATION.contains(method.getName()))
                 .filter(method -> !method.isPrivate())
-                .forEach(this::delegateMethodToRw);
+                .forEach(this::delegateMethodToBuilder);
         annotatedClass.getProperties().stream()
                 .filter(field -> DslAstHelper.getFieldType(field.getField()) == FieldType.TRANSIENT)
                 .forEach(this::mapGettersAndSettersForIgnoredFields);
     }
 
-    private void delegateMethodToRw(MethodNode candidate) {
-        Map<String, ClassNode> genericsSpec = createGenericsSpec(rwClass);
+    private void delegateMethodToBuilder(MethodNode candidate) {
+        Map<String, ClassNode> genericsSpec = createGenericsSpec(builderClass);
         genericsSpec = addMethodGenerics(candidate, genericsSpec);
         extractSuperClassGenerics(annotatedClass, candidate.getDeclaringClass(), genericsSpec);
 
@@ -101,16 +101,16 @@ class DelegateFromRwToModel {
                 .mod(candidate.getModifiers() & ~Opcodes.ACC_ABSTRACT & ~Opcodes.ACC_NATIVE)
                 .returning(correctToGenericsSpecRecurse(genericsSpec, candidate.getReturnType(), currentMethodGenPlaceholders))
                 .params(newParams)
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         if (newMethod != null) {
-            DslAstHelper.copyAnnotationsFromSourceToTarget(candidate, newMethod, IGNORED_ANNOTATIONS_FOR_RW_TO_MODEL_DELEGATION);
+            DslAstHelper.copyAnnotationsFromSourceToTarget(candidate, newMethod, IGNORED_ANNOTATIONS_FOR_BUILDER_TO_MODEL_DELEGATION);
         }
     }
 
     private boolean matchingMethodAlreadyExists(MethodNode candidate) {
         String candidateTypeDescriptor = candidate.getTypeDescriptor();
-        return getAllMethods(rwClass)
+        return getAllMethods(builderClass)
                 .stream()
                 .map(MethodNode::getTypeDescriptor)
                 .anyMatch(candidateTypeDescriptor::equals);
@@ -136,7 +136,7 @@ class DelegateFromRwToModel {
                 ClassNode.EMPTY_ARRAY,
                 null
         );
-        delegateMethodToRw(virtualGetter);
+        delegateMethodToBuilder(virtualGetter);
         MethodNode virtualSetter = new MethodNode(
                 "set" + Verifier.capitalize(propertyNode.getName()),
                 propertyNode.getModifiers(),
@@ -145,7 +145,7 @@ class DelegateFromRwToModel {
                 ClassNode.EMPTY_ARRAY,
                 null
         );
-        delegateMethodToRw(virtualSetter);
+        delegateMethodToBuilder(virtualSetter);
     }
 
 

@@ -167,7 +167,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        rwClazz.metaClass.getMetaMethod("owner", clazz) == null
+        builderClass.metaClass.getMetaMethod("owner", clazz) == null
     }
 
     def "two different owners in hierarchy are allowed"() {

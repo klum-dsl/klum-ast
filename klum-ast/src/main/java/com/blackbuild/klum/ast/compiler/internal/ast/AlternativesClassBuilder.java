@@ -162,7 +162,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         .param(closureVarName, closureVarDescription)
 
                 )
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         String templateMapVarName = "templateMap";
         createOptionalPublicMethod(factoryMethod)
@@ -184,7 +184,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         .param(templateMapVarName, "The anonymous template to use for the creation/setting of the instances.")
                         .param(closureVarName, closureVarDescription)
                 )
-                .addTo(rwClass);
+                .addTo(builderClass);
 
         String templateVarName = "template";
         createOptionalPublicMethod(factoryMethod)
@@ -206,7 +206,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         .param(templateVarName, "The anonymous template to use for the creation/setting of the instances.")
                         .param(closureVarName, closureVarDescription)
                 )
-                .addTo(rwClass);
+                .addTo(builderClass);
     }
 
     private boolean fieldNodeIsNoLink() {
@@ -227,9 +227,9 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
     }
 
     private void delegateDefaultCreationMethodsToOuterInstance() {
-        for (MethodNode methodNode : rwClass.getMethods(memberName))
+        for (MethodNode methodNode : builderClass.getMethods(memberName))
             createDelegateMethods(methodNode);
-        for (MethodNode methodNode : rwClass.getMethods(fieldNode.getName()))
+        for (MethodNode methodNode : builderClass.getMethods(fieldNode.getName()))
             createDelegateMethods(methodNode);
     }
 
@@ -254,20 +254,20 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
             return;
 
         String methodName = getShortNameFor(subclass);
-        ClassNode subRwClass = getRwClassOf(subclass);
+        ClassNode subclassBuilder = getBuilderClassOf(subclass);
         ClassNode subClassSafe = newClass(subclass);
-        ClassNode subRwSafe = subRwClass.getPlainNodeReference();
+        ClassNode subclassBuilderSafe = subclassBuilder.getPlainNodeReference();
 
         new ProxyMethodBuilder(varX("rw"), methodName, memberName)
                 .optional()
-                .targetType(rwClass)
+                .targetType(builderClass)
                 .linkToField(fieldNode)
                 .mod(ACC_PUBLIC)
-                .returning(subRwSafe)
+                .returning(subclassBuilderSafe)
                 .namedParams("values", null)
                 .constantClassParam(subClassSafe)
                 .conditionalParam(STRING_TYPE, "key", keyType != null, null)
-                .delegatingClosureParam(subRwClass, null)
+                .delegatingClosureParam(subclassBuilder, null)
                 .documentationTitle("Creates a new instance of " + subclass.getName() + " and adds it to " + fieldNode.getName() + ".")
                 .addTo(collectionFactory);
 
@@ -365,7 +365,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         );
         builderCall.setMethodTarget(builderFactoryMethod);
         MethodBuilder method = MethodBuilder.createPublicMethod(methodNode.getName())
-                .returning(GeneratedDslSupport.publicType(getRwClassOf(returnType)))
+                .returning(GeneratedDslSupport.publicType(getBuilderClassOf(returnType)))
                 .optional()
                 .cloneParamsFrom(methodNode)
                 .callThis(memberName, builderCall);
