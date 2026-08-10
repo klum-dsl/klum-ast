@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Builder-First Construction Migration — KlumAST 4.0.0-rc.15</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.15 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="./">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="./">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="builder-first-construction-migration">Builder-First Construction Migration</h1>
+<p>KlumAST 4.0 changes how model creation works internally: it configures Builders first and then materializes one completed,
+structurally immutable model graph. Most schemas and model scripts that already use generated factories should continue to
+work without changes:</p>
+<pre><code class="language-groovy">def config = Config.Create.With {
+    project(&quot;api&quot;) {
+        url &quot;https://example.invalid/api&quot;
+    }
+}
+</code></pre>
+<p>Do not rewrite working schemas preemptively. Compile the schema, run a representative model, and follow the targeted
+diagnostics if KlumAST finds a construct that crosses the new Builder lifecycle boundary.</p>
+<h2 id="migration-checklist">Migration Checklist</h2>
+<h3 id="1-compile-the-schema">1. Compile the Schema</h3>
+<p>Run the build or compilation task that normally compiles your <code>@DSL</code> classes. Fix ordinary compilation errors first, then
+use this guide for Builder-first diagnostics:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>What it means</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A DSL Object is constructed directly</td>
+<td>Completed model instances are now created by the generated lifecycle.</td>
+<td>Replace constructors and direct allocation with <code>Foo.Create.With</code>, <code>One</code>, <code>FromMap</code>, or another generated root factory.</td>
+</tr>
+<tr>
+<td>A client-facing signature refers to <code>$_RW</code>, <code>KlumRwObject</code>, or an RW delegate</td>
+<td>Those types are generated implementation details.</td>
+<td>Use the generated <code>Foo_DSL.Builder</code> interface and <code>@DelegatesToBuilder</code>, or let the generated relationship method supply the delegate type.</td>
+</tr>
+<tr>
+<td>A model collection declaration is rejected</td>
+<td>Completed collections are read-only snapshots and require a supported declaration.</td>
+<td>Declare <code>List</code>, <code>Set</code>, <code>SortedSet</code>/<code>NavigableSet</code>, <code>Map</code>, <code>SortedMap</code>/<code>NavigableMap</code>, or <code>EnumSet</code>; remove unsupported concrete/custom declarations.</td>
+</tr>
+<tr>
+<td>A <code>KlumBuilder</code> result is raw, wildcarded, or unresolved</td>
+<td>KlumAST cannot determine which public Builder interface to expose.</td>
+<td>Declare the concrete model type, for example <code>KlumBuilder&lt;Child&gt;</code> or <code>List&lt;KlumBuilder&lt;Child&gt;&gt;</code>.</td>
+</tr>
+<tr>
+<td>A manual configurator shadows a field in a factory map</td>
+<td>Map keys intentionally call the same-named Builder method before considering storage. A non-void override can be mistaken for an ordinary helper.</td>
+<td>A <code>void</code> <code>@Mutator</code> remains silent. A return of the field value or its Builder receives a warning; rename the helper if that is not intended. Use <code>setX</code> in the map for direct field assignment. An incompatible non-void return is a compilation error.</td>
+</tr>
+<tr>
+<td>A statically checked Builder lifecycle method sees an ordinary collection or map value as <code>Object</code></td>
+<td>An earlier 4.0 release candidate emitted a raw Builder accessor for simple collection and map fields.</td>
+<td>Recompile the Schema with the correction. Declared element and map value types are preserved, so a compensating local generic cast is no longer needed.</td>
+</tr>
+<tr>
+<td>A polymorphic relationship closure cannot see members of the selected subtype under static compilation</td>
+<td>A dynamic <code>ChildType</code> Class selector retains the declared base Builder delegate.</td>
+<td>Pass the generated factory, for example <code>child(ConcreteChild.Create) { concreteProperty 'value' }</code>, to select the exact public <code>ConcreteChild_DSL.Builder&lt;ConcreteChild&gt;</code> delegate.</td>
+</tr>
+<tr>
+<td><code>instanceof SomeDslModel</code> is rejected in a Builder-phase callback</td>
+<td>The relationship value is a Builder before materialization, not the completed DSL Object. The diagnostic names the inferred Builder type when available.</td>
+<td>Do not use a completed-model type check in a mutator, mutating lifecycle method, or Builder-retargeted annotation closure. Move a completed-model invariant to <code>@Validate</code>; ordinary checks and operands known only as <code>Object</code> remain valid.</td>
+</tr>
+<tr>
+<td><code>Child.Create.With</code>, <code>One</code>, or <code>From</code> is rejected in Builder-phase code</td>
+<td>That call starts an independent root lifecycle and returns a completed model, which cannot become owned composition in the active Builder graph.</td>
+<td>Use <code>Child.Create.AsBuilder.With</code>, <code>One</code>, or <code>From</code>, then attach the returned Builder to an owned relationship. Root factories remain valid in <code>@Validate</code> and ordinary static source factory methods.</td>
+</tr>
+<tr>
+<td>A public static method declared on a custom <code>Factory</code> is rejected</td>
+<td>Public <code>Factory</code> methods become root operations on <code>Create</code>, which delegates to a Factory instance.</td>
+<td>Remove <code>static</code>. Move model-level static converters out of <code>Factory</code>; they remain model methods. Non-public static Factory helpers remain valid.</td>
+</tr>
+<tr>
+<td>A member beginning with <code>$klum$</code> is rejected</td>
+<td>The namespace is reserved for generated implementation members.</td>
+<td>Rename the source member.</td>
+</tr>
+<tr>
+<td>A custom creator or converter is absent from <code>Foo_DSL</code> or its IDE mirror</td>
+<td>Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected.</td>
+<td>Use the generated child method, return an explicit <code>KlumBuilder&lt;Foo&gt;</code>, or compile the producer source together with the schema.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="public-builder-contracts">Public Builder Contracts</h3>
+<p>Generated accessors always expose <code>Foo_DSL.Builder&lt;Foo&gt;</code>, never the hidden <code>Foo$Builder</code> implementation. This also
+applies when two source files compile together and an <code>@Owner(root = true)</code> target has not yet been resolved. (See:
+<code>GeneratedDslSupportSpec#'projects an unresolved cross-source owner Builder into the public namespace'</code>.)</p>
+<p>For same-project IntelliJ source completion, refresh the IDEA-only <code>Foo_DSL</code> mirrors through the Schema plugin and reload
+the Gradle project. The packaged contributor then supplies source-level <code>Foo.Create</code> as its truthful read-only
+<code>Foo_DSL.Factory</code> type and <code>Foo.Template</code> as its truthful read-only <code>Foo_DSL.Template</code> type, without exposing hidden
+implementation classes. This is IDE metadata only: the mirrors do not
+become compiler, package, or downstream inputs. See <a rel="nofollow" href="../Gradle-Onboarding/#intellij-and-generated-dsl-support">Gradle Onboarding</a>.</p>
+<pre><code class="language-groovy">// Child.groovy
+@DSL
+class Child {
+    @Owner(root = true) Root root
+}
+
+// Root.groovy
+@DSL
+class Root {}
+</code></pre>
+<p>In generated signatures and IDE source mirrors, <code>Child_DSL.Builder</code> uses <code>Root_DSL.Builder&lt;Root&gt;</code> for <code>root</code>.</p>
+<h3 id="builder-phase-type-checks">Builder-phase Type Checks</h3>
+<p>Relationships are Builders until the graph materializes. A completed-model <code>instanceof</code> check therefore belongs in a
+completed-model validation callback rather than in construction-time code. (See:
+<code>BuilderFirstMigrationDocumentaryTest#'keeps completed-model type checks in validation'</code>.)</p>
+<pre><code class="language-groovy">@Validate
+void validateCompletedService() {
+    assert service instanceof Service
+}
+</code></pre>
+<h3 id="builder-phase-factories">Builder-phase Factories</h3>
+<p><code>Create.With</code>, <code>Create.One</code>, and <code>Create.From</code> are root factories: they return a completed model and own a complete
+Construction session. In a mutator, mutating lifecycle method, or Builder-retargeted annotation closure, create the
+owned child in the active session instead:</p>
+<pre><code class="language-groovy">@Mutator
+void supplySource() {
+    source = ProductSource.Create.AsBuilder.With(name: 'default source')
+}
+</code></pre>
+<p>The returned Builder must be attached to an owned relationship. Do not use <code>Create.AsBuilder</code> for an independent root
+model; use the ordinary root factory outside Builder-phase code instead.</p>
+<h3 id="factory-methods-exposed-through-create">Factory Methods Exposed Through <code>Create</code></h3>
+<p>Public methods declared on a custom <code>Factory</code> are exposed through <code>Create</code>, so they must be instance methods. Keep
+<code>Factory</code> itself <code>static</code>; this rule applies only to its public methods. Private, protected, and package-private static
+helpers remain internal to the Factory. Model-level static converters remain outside the Factory contract.</p>
+<p>(See: <code>BuilderFirstMigrationDocumentaryTest#'exposes an instance Factory method through Create'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class ServicePlan {
+    String name
+
+    static class Factory extends KlumFactory.Unkeyed&lt;ServicePlan&gt; {
+        protected Factory() { super(ServicePlan) }
+
+        ServicePlan standard(String name) {
+            Create.With(name: name)
+        }
+    }
+}
+
+assert ServicePlan.Create.standard('catalog').name == 'catalog'
+</code></pre>
+<h3 id="map-configurator-overrides">Map Configurator Overrides</h3>
+<p>Factory maps preserve method-first configuration. When a Builder has both a writable <code>outboxUrl</code> field and an explicit
+<code>outboxUrl(String)</code> mutator, <code>Create.With(outboxUrl: value)</code> calls the mutator. This makes intentional overrides work
+consistently across <code>Create.With</code>, <code>Create.AsBuilder.With</code>, Templates, and automatic creation.</p>
+<pre><code class="language-groovy">@DSL
+class Mailbox {
+    String outboxUrl
+
+    @Mutator
+    String outboxUrl(String value) {
+        // Normalize, validate, or coordinate related Builder state.
+        value
+    }
+}
+
+Mailbox.Create.With(outboxUrl: 'https://example.invalid')
+Mailbox.Create.With(setOutboxUrl: 'https://example.invalid') // explicit direct field assignment
+</code></pre>
+<p>KlumAST warns when this exact one-argument <code>@Mutator</code> override returns the field value or its Builder, because map
+configuration will choose the method. A <code>void</code> mutator is unambiguous and remains silent. A non-void return unrelated
+to the field or its Builder is rejected at the mutator declaration; rename it or make it setter-like. Methods without a
+same-named writable field retain their existing map-method fallback without a diagnostic.</p>
+<h3 id="2-compile-and-run-a-representative-model">2. Compile and Run a Representative Model</h3>
+<p>Compile and execute at least one real root configuration. A unit test that calls <code>Config.Create.With</code> is usually the
+simplest repeatable migration check; an existing root script is equally suitable. A project-less script can also obtain
+KlumAST with <code>@Grab</code>, but the complete standalone-script setup will be documented separately.</p>
+<p>Build owned children through the generated method on that root Builder, so the entire configuration shares one lifecycle.
+(See: <code>BuilderFirstMigrationDocumentaryTest#'builds a representative deployment through one Builder lifecycle'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With {
+    environment 'production'
+    service {
+        image 'catalog:1.0'
+    }
+}
+
+assert deployment.service.image == 'catalog:1.0'
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Runtime failure</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>An independent factory cannot start while construction is active</td>
+<td>A nested <code>Child.Create.With</code> would start a second lifecycle, which is forbidden. Call the generated child method on the parent Builder. Framework extensions can use <code>Child.Create.AsBuilder</code> and attach the result in the same session.</td>
+</tr>
+<tr>
+<td>A completed DSL Object cannot be adopted as composition</td>
+<td>Build a fresh child through the owning Builder. Pass an existing completed object only to a <code>FieldType.LINK</code> relationship.</td>
+</tr>
+<tr>
+<td><code>Create.AsBuilder</code> reports no active session, a different session, or a completed session</td>
+<td>Use it only inside the active root construction and attach the returned Builder before that construction finishes.</td>
+</tr>
+<tr>
+<td>An omitted Builder-producing projection is reported</td>
+<td>Replace the call with the generated relationship method, return an explicit <code>KlumBuilder&lt;Foo&gt;</code>, or make the recognizable factory path source-visible to schema compilation.</td>
+</tr>
+<tr>
+<td><code>Create.AsBuilder.From</code> rejects a regular <code>Script</code></td>
+<td>Use a <code>DelegatingScript</code> as the nested configuration recipe, or run the materializing Script as a root with <code>Create.From</code>.</td>
+</tr>
+<tr>
+<td>A Template is rejected as a relationship value</td>
+<td>Do not assign a marked Template, including to <code>LINK</code>. Rehydrate it through <code>Template.With</code>, <code>copyFrom</code>, or another Template/copy API.</td>
+</tr>
+<tr>
+<td><code>copyFrom</code> rejects a sealed or cross-session Builder</td>
+<td>Use a completed model for a value-only copy, a marked Template for value-plus-recipe replay, or an unsealed <code>Create.AsBuilder</code> result from the same active Construction session.</td>
+</tr>
+<tr>
+<td><code>applyLater</code> rejects phase 40 or later</td>
+<td>Schedule Builder mutation below <code>INSTANTIATE</code>, or move completed-model work into a <code>ModelVisitingPhaseAction</code>.</td>
+</tr>
+<tr>
+<td>Jackson rejects a marked Template</td>
+<td>Materialize a fresh ordinary model through a Template/copy API and serialize that model. JSON cannot preserve Template recipe actions.</td>
+</tr>
+<tr>
+<td>Jackson rejects a <code>LINK</code> value or inline object</td>
+<td>For import, configure identity/reference handling, a converter, or lifecycle resolution; inline input never becomes owned composition. For export, choose an explicit id, omission, scalar, custom, or deliberate inline projection.</td>
+</tr>
+<tr>
+<td>A generated <code>apply</code> method is missing on a completed model</td>
+<td>Move the changes into the original <code>Create.With</code> callback, a Template, or another factory input.</td>
+</tr>
+<tr>
+<td>Completed-model proxy access fails</td>
+<td>Stop calling <code>KlumInstanceProxy.getProxyFor(model)</code>; use <code>KlumObjectSupport.of(model)</code> and its supported completed-object utilities. Use <code>getConstructionPath()</code> for the Builder/factory invocation path and <code>getModelPath()</code> for the object's structural location.</td>
+</tr>
+</tbody>
+</table>
+<p>The generated <code>Foo_DSL.Builder&lt;Foo&gt;</code> interface now types <code>copyFrom</code> for an active Builder of the same model. In a
+<code>@Default</code>, <code>@AutoCreate</code>, or <code>Create.AsBuilder.With</code> callback, use that public Builder type instead of suppressing
+static checking. Runtime still rejects sealed and cross-session Builder sources.</p>
+<h3 id="3-run-the-full-model-test-suite">3. Run the Full Model Test Suite</h3>
+<p>Pay particular attention to lifecycle callbacks, validation, ownership and construction paths, sorted collection comparators,
+Templates, serialization, and Jackson inputs. These areas intentionally distinguish between the construction-time Builder
+graph and the completed model graph.</p>
+<h2 id="optional-mechanical-starting-point">Optional Mechanical Starting Point</h2>
+<p>The <a rel="nofollow" href="../assets/migrate-3x-to-4x-builder-first.sh"><strong>best-effort convenience script</strong></a> performs only a small set of mechanical
+3.x-to-4.0 edits. It is not a
+KlumAST migration tool: it does not promise a compiling project, understand application semantics, or replace the
+checklist below. Run it only from the <strong>schema module directory</strong>—the Gradle subproject containing the Schema's
+<code>src/main</code> and <code>src/test</code> sources—not from a multi-module project's top-level directory. That module must be in a
+<strong>clean, disposable Git worktree</strong>. Review its diff immediately, then compile, run a representative model, and fix the
+remaining compiler errors with this guide.</p>
+<p>Use this order: update the schema module to the target KlumAST version, run the script, inspect the diff, then commit it
+as a deliberate migration starting point or revert it. Continue with the <a rel="nofollow" href="../Migration/#template-creation-and-scoped-application">Template migration guidance</a>, this checklist, and compilation. The
+canonical creation/application example is executable in
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/ba4124675d531ccceebf649feb198f37f2eac912/klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TemplatesDocumentaryTest.groovy"><code>TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'</code></a>.</p>
+<p>It rewrites public schema-annotation imports, changes the deprecated <code>@DelegatesToRW</code> spelling to
+<code>@DelegatesToBuilder</code>, migrates Layer 3 annotation imports such as <code>@AutoCreate</code>, copy annotations such as <code>@Overwrite</code>,
+and <code>KlumModelException</code>/<code>KlumValidationException</code> imports. It also converts only current-target Groovy <code>Validator</code>
+reporting/suppression calls and direct type-qualified Template creation calls:</p>
+<table>
+<thead>
+<tr>
+<th>Established spelling</th>
+<th>Mechanical starting point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Foo.Create.Template(...)</code></td>
+<td><code>Foo.Create.Template.With(...)</code></td>
+</tr>
+<tr>
+<td><code>Foo.Create.TemplateFrom(source)</code></td>
+<td><code>Foo.Create.Template.From(source)</code></td>
+</tr>
+<tr>
+<td><code>Foo.Template.Create(...)</code></td>
+<td><code>Foo.Create.Template.With(...)</code></td>
+</tr>
+<tr>
+<td><code>Foo.Template.CreateFrom(source)</code></td>
+<td><code>Foo.Create.Template.From(source)</code></td>
+</tr>
+</tbody>
+</table>
+<p>The Template rewrites are intentionally narrow. The script leaves <code>Foo.Template.With</code> and <code>WithAll</code> scoped application,
+variables such as <code>type.Template.Create</code>, dynamic/custom calls such as <code>holder.Service.Template.Create</code>, method
+references, comments, and quoted/script content unchanged. It recognizes imported direct model names (and direct nested
+model names), not fully qualified types or expression/property chains. It preserves the argument text of a recognized
+direct call, but does not promise that the result compiles.</p>
+<p>It intentionally does <strong>not</strong> rewrite internal packages, <code>ValidatorBase</code>, validation result readers, explicit-target
+<code>Validator</code> calls, fully qualified type references, Builders, factories, relationships, lifecycle structure, or any other
+semantic migration.</p>
+<p>Do not broaden this script by guessing package destinations or rewriting unresolved compiler errors. The compilation and
+model checks are the handoff from mechanical edits to the actual migration.</p>
+<h2 id="builder-lifecycle-field-types">Builder Lifecycle Field Types</h2>
+<p>Builder lifecycle code preserves ordinary declared collection and map element types. A statically checked <code>@Default</code> or
+<code>@AutoCreate</code> method can use the inferred type directly; no source-side cast is required:</p>
+<p>(See: <code>ModelPhasesDocumentaryTest#'preserves simple collection types in Builder lifecycle code'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class CustomerRoster {
+    List&lt;String&gt; customers = ['central:primary']
+    String primaryCustomer
+
+    @Default
+    @CompileStatic
+    void selectPrimaryCustomer() {
+        customers.each { String customer -&gt;
+            primaryCustomer = customer.split(':', 2)[0]
+        }
+    }
+}
+</code></pre>
+<h2 id="detailed-migration-rules">Detailed Migration Rules</h2>
+<ul>
+<li>Replace direct construction with generated factories. Completed DSL Objects are not client-constructed.</li>
+<li>Move post-construction <code>model.apply { ... }</code> calls into the original <code>Create.With { ... }</code> callback, a Template, or another
+factory input. Completed models expose no generated <code>apply</code> method.</li>
+<li>Stop calling <code>KlumInstanceProxy.getProxyFor(model)</code>. The deprecated compatibility adapter accepts Builders only. Completed
+model technical state belongs to the Model companion and supported public utilities.</li>
+<li><code>KlumRwObject</code> and <code>$_RW</code> are removed in 4.0. Name generated <code>Foo_DSL.Builder&lt;Foo&gt;</code> interfaces and use
+<code>@DelegatesToBuilder</code>; an inherited <code>Child_DSL.Builder&lt;Child&gt;</code> remains a <code>Parent_DSL.Builder&lt;Child&gt;</code> and has the one
+<code>KlumBuilder&lt;Child&gt;</code> capability required by Builder-producing APIs. The legacy <code>@DelegatesToRW</code> annotation remains a
+deprecated source alias. Builders do not expose
+the former <code>getDSLInstance()</code> or <code>getRwInstance()</code> identity aliases.</li>
+<li>Build all owned children through the parent Builder lifecycle. Do not call <code>Child.Create.With</code> directly from inside a
+parent construction callback: that would start a second lifecycle, which is forbidden. Use the generated child method on
+the parent Builder. For polymorphic relationships, <code>child(ConcreteChild)</code> remains the dynamic Class-selection form;
+<code>child(ConcreteChild.Create)</code> provides an exact static Builder delegate. Passing <code>Create</code> here is contextual selection in
+the current session, not a root factory invocation.</li>
+<li>Pass an existing completed DSL Object only to a <code>FieldType.LINK</code> relationship. Completed objects cannot become newly owned
+composition. Use a Template when an existing object is intended as a reusable recipe; applying it rehydrates fresh
+Builders.</li>
+<li>Treat copy sources by identity: ordinary models and Maps are value-only, marked Templates add immutable recipe replay,
+and only same-session unsealed Builders add an ephemeral snapshot of pending actions. Never use a sealed or cross-session
+Builder as a live recipe.</li>
+<li>Keep deferred Builder actions below phase 40. <code>applyLater</code> and <code>scheduleApplyLater</code> now fail immediately at
+<code>INSTANTIATE</code> or later, including during Template replay.</li>
+</ul>
+<h2 id="implementation-details">Implementation Details</h2>
+<p>The migration checklist above is sufficient for ordinary Schema and Model work. For the Builder/materialization boundary,
+generated producer projection, lifecycle state, and the public-versus-synthetic generated API, see
+<a rel="nofollow" href="../Behind-the-Curtain/#builder-first-materialization">Behind the Curtain#builder-first-materialization</a>.</p>
+<h2 id="templates-serialization-and-jackson">Templates, Serialization, and Jackson</h2>
+<p>Templates remain client-facing DSL Object recipes. Every owned node created in Template mode has persistent Template
+identity, while pre-existing ordinary <code>LINK</code> targets retain their identity. Every application copies the recipe into a
+fresh ordinary Builder graph, so ownership, paths, lifecycle callbacks, and validation belong to the recipient construction.</p>
+<p>A Template <code>applyLater</code> recipe must address the fresh Builder through its closure delegate. Capturing a Builder in a local
+variable or holder is rejected because a completed recipe must not retain construction state. The complete graph of other
+captured recipe values must be serializable so the detached recipe remains serializable. Java serialization preserves the
+Template companion and immutable recipe state, but never Builders, Construction sessions, scopes, or mutable recipe
+collections. Ordinary completed models retain no deferred actions.</p>
+<p>The internal generated <code>$proxy</code> field uses a sealed common Model/Template companion solely for cross-package generated
+linkage. It is not client API. Use <code>KlumObjectSupport.of(object)</code> for supported completed-object paths, structure, and
+stored validation; do not build integrations on companion classes or raw metadata. The supported construction-string
+getter is <code>getConstructionPath()</code>; see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/390">#390</a> and
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md">ADR 0006</a>.</p>
+<p><code>getValidation().getSubtreeResults()</code> returns the target's result and every stored result in its owned subtree, including
+clean results without issues.
+Use <code>KlumObjectSupport.getValidation()</code> directly; the preliminary <code>Validator</code> result readers are removed in 4.0 rather
+than retained as deprecated adapters.</p>
+<p>Jackson import now binds externally owned data to public Builder configuration through resolved property metadata. Missing input preserves source
+initializers and later defaults; present values, <code>null</code>, and containers replace current Builder state authoritatively between
+<code>PostCreate</code> and <code>PostApply</code>. Derived output can be exposed as Jackson read-only output and is recomputed by the single
+normal lifecycle rather than rebound.</p>
+<p>Rename migrated JSON with <code>@JsonAlias</code> while keeping the new <code>@JsonProperty</code> name canonical. Configured naming strategies,
+mixins, ignore/access rules, and unknown-property policy are resolved by Jackson. Ambient Templates, <code>@Overwrite</code>, and
+<code>copyFrom</code> no longer affect JSON input. See <a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a> and
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md">ADR 0009</a>.</p>
+<p><code>LINK</code> import requires an explicit reference schema, property conversion, or lifecycle resolution. Put
+<code>@JsonIdentityInfo</code> on the target type and <code>@JsonIdentityReference(alwaysAsId = true)</code> on each <code>LINK</code> for standard Jackson
+identity handling. Backward and forward ids resolve against completed targets or Builders allocated in the same import
+session. Inline objects are not accepted as <code>LINK</code> input. Output must choose its own explicit representation and may use a
+custom deliberate inline serializer when the external format requires it.</p>
+<p>Marked Templates are rejected as JSON values so recipe actions cannot be silently lost; rehydrate a fresh ordinary model
+before serialization. Jackson views, formats, inclusion, Simple Value codecs, mixins, and polymorphic owned types remain
+supported, but creator, model-setter, foreign Jackson Builder, owned completed-model deserializer, and managed/back-reference
+annotations cannot replace the Klum Builder lifecycle.</p>
+<p>Do not treat JSON/YAML output as a Klum persistence or round-trip format. Completed models serialize through ordinary
+Jackson APIs, KlumAST adds no wire metadata, and external version properties remain Schema-controlled data.
+Each importer operation accepts one input and owns one lifecycle; YAML documents and exported projections never establish
+Jackson-owned composition or cross-input overwrite semantics.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
