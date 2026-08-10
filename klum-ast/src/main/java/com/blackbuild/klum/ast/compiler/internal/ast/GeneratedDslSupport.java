@@ -68,9 +68,11 @@ public final class GeneratedDslSupport {
 
     public static final String SUPPORT_METADATA_KEY = GeneratedDslSupport.class.getName() + ".support";
     public static final String PUBLIC_INTERFACE_METADATA_KEY = GeneratedDslSupport.class.getName() + ".publicInterface";
+    static final String RELATIONSHIP_CREATOR_METADATA_KEY = GeneratedDslSupport.class.getName() + ".relationshipCreator";
     private static final String BUILDER_PLACEHOLDER_METADATA_KEY = GeneratedDslSupport.class.getName() + ".builderPlaceholder";
     private static final String API_METHOD_METADATA_KEY = GeneratedDslSupport.class.getName() + ".apiMethod";
     public static final String API_TAG = "dsl-support-api";
+    public static final String RELATIONSHIP_CREATOR_TAG = "dsl-support-relationship-creator";
     public static final String INTERFACE_LINK_TAG = "dsl-support-interface:";
 
     private static final ClassNode KLUM_GENERATED = ClassHelper.make(KlumGenerated.class);
@@ -193,6 +195,11 @@ public final class GeneratedDslSupport {
     public static void complete(ClassNode model) {
         GeneratedDslSupport support = of(model);
         support.implementations.forEach(support::projectImplementation);
+    }
+
+    static void markRelationshipCreator(MethodNode method) {
+        if (method != null)
+            method.setNodeMetaData(RELATIONSHIP_CREATOR_METADATA_KEY, Boolean.TRUE);
     }
 
     /** Resolves the public API type through an explicit generated {@code implements} link. */
@@ -371,16 +378,17 @@ public final class GeneratedDslSupport {
         copyAnnotationsFromSourceToTarget(implementationMethod, apiMethod, Collections.emptyList());
         publicInterface.addMethod(apiMethod);
         implementationMethod.setNodeMetaData(API_METHOD_METADATA_KEY, apiMethod);
-        addProjectedRelationshipClosureOmission(publicInterface, apiMethod);
+        addProjectedRelationshipClosureOmission(publicInterface, apiMethod, hasGeneratedRelationshipCreatorTag(implementationMethod));
     }
 
     /**
      * Groovy synthesizes this overload on the hidden Builder implementation only after this public contract is projected.
      * Declare the same supported omission explicitly so static clients and AnnoDocimal see the actual relationship API.
      */
-    private void addProjectedRelationshipClosureOmission(ClassNode publicInterface, MethodNode projectedMethod) {
+    private void addProjectedRelationshipClosureOmission(ClassNode publicInterface, MethodNode projectedMethod,
+                                                         boolean generatedRelationshipCreator) {
         Parameter[] projectedParameters = projectedMethod.getParameters();
-        if (!isBuilderRelationshipContract(publicInterface) || projectedParameters.length == 0) return;
+        if (!generatedRelationshipCreator || projectedParameters.length == 0) return;
 
         Parameter closure = projectedParameters[projectedParameters.length - 1];
         if (!closure.getOriginType().equals(ClassHelper.CLOSURE_TYPE) || !closure.hasInitialExpression()) return;
@@ -399,12 +407,6 @@ public final class GeneratedDslSupport {
         apiMethod.setGenericsTypes(projectedMethod.getGenericsTypes());
         copyAnnotationsFromSourceToTarget(projectedMethod, apiMethod, Collections.emptyList());
         publicInterface.addMethod(apiMethod);
-    }
-
-    private boolean isBuilderRelationshipContract(ClassNode publicInterface) {
-        String builderName = builderInterface.getName();
-        String interfaceName = publicInterface.getName();
-        return interfaceName.equals(builderName) || interfaceName.startsWith(builderName + "$");
     }
 
     private static void projectMethodSignature(MethodNode method) {
@@ -557,6 +559,14 @@ public final class GeneratedDslSupport {
     }
 
     private static boolean hasGeneratedApiTag(ClassNode candidate) {
+        return hasGeneratedTag(candidate, API_TAG);
+    }
+
+    private static boolean hasGeneratedRelationshipCreatorTag(MethodNode method) {
+        return Boolean.TRUE.equals(method.getNodeMetaData(RELATIONSHIP_CREATOR_METADATA_KEY));
+    }
+
+    private static boolean hasGeneratedTag(AnnotatedNode candidate, String tag) {
         AnnotationNode generated = getAnnotation(candidate, KLUM_GENERATED);
         if (generated == null) return false;
         Expression tags = generated.getMember("tags");
@@ -565,8 +575,8 @@ public final class GeneratedDslSupport {
                     .filter(ConstantExpression.class::isInstance)
                     .map(ConstantExpression.class::cast)
                     .map(ConstantExpression::getText)
-                    .anyMatch(API_TAG::equals);
-        return tags instanceof ConstantExpression && Objects.equals(((ConstantExpression) tags).getText(), API_TAG);
+                    .anyMatch(tag::equals);
+        return tags instanceof ConstantExpression && Objects.equals(((ConstantExpression) tags).getText(), tag);
     }
 
     private static String generatedLink(ClassNode implementation) {

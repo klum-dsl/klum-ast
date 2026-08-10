@@ -284,10 +284,14 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     @Override
     public MethodNode addTo(ClassNode target) {
         MethodNode result = super.addTo(target);
+        if (tags.contains(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG))
+            GeneratedDslSupport.markRelationshipCreator(result);
 
         if (namedParameterIndex != -1) {
             params.set(namedParameterIndex, new FixedExpressionArgument(new MapExpression()));
-            doAddTo(target);
+            MethodNode namedParameterOverload = doAddTo(target);
+            if (tags.contains(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG))
+                GeneratedDslSupport.markRelationshipCreator(namedParameterOverload);
         }
         return result;
     }
