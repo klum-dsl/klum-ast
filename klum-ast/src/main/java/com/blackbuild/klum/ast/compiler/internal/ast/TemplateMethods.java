@@ -196,11 +196,15 @@ class TemplateMethods {
         MethodNode publicMethod = correctToGenericsSpec(Collections.singletonMap("T", bridgeModelType), bridgeMethod);
         publicMethod.setModifiers(ACC_PUBLIC | ACC_ABSTRACT);
         publicMethod.setCode(EmptyStatement.INSTANCE);
+        if (name.startsWith("Create"))
+            markAsDeprecatedTemplateCreationAlias(publicMethod, name);
         for (int index = 0; index < parameters.length; index++)
             copyAnnotationsFromSourceToTarget(parameters[index], publicMethod.getParameters()[index], Collections.emptyList());
         GeneratedDslSupport.of(annotatedClass).getTemplateInterface().addMethod(publicMethod);
         MethodNode adapterMethod = correctToGenericsSpec(Collections.singletonMap("T", bridgeModelType), bridgeMethod);
         adapterMethod.setModifiers(ACC_PUBLIC);
+        if (name.startsWith("Create"))
+            markAsDeprecatedTemplateCreationAlias(adapterMethod, name);
         Expression[] arguments = Arrays.stream(adapterMethod.getParameters())
                 .map(parameter -> (Expression) varX(parameter))
                 .toArray(Expression[]::new);
@@ -208,6 +212,14 @@ class TemplateMethods {
         bridgeCall.setMethodTarget(bridgeMethod);
         adapterMethod.setCode(returnS(bridgeCall));
         templateAdapter.addMethod(adapterMethod);
+    }
+
+    private static void markAsDeprecatedTemplateCreationAlias(MethodNode method, String name) {
+        AnnotationNode deprecated = new AnnotationNode(make(Deprecated.class));
+        deprecated.setMember("since", constX("4.0"));
+        method.addAnnotation(deprecated);
+        String replacement = name.equals("Create") ? "Foo.Create.Template.With" : "Foo.Create.Template.From";
+        AstDocumentation.attachText(method, "Deprecated Template creation alias.\n\n@deprecated Use {@code " + replacement + "(...)} instead.");
     }
 
     private void addTemplateFactoryMethod(String name, Parameter[] parameters, FieldNode support) {

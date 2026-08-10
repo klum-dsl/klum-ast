@@ -42,57 +42,91 @@ import java.util.Map;
 @SuppressWarnings("java:S100")
 public class GeneratedTemplateSupport<T> {
 
-    private final BoundTemplateHandler<T> delegate;
+    private final BoundTemplateHandler<T> templateHandler;
+    private final GeneratedTemplateFactorySupport<T> templateFactory;
 
     public GeneratedTemplateSupport(Class<T> type) {
-        delegate = new BoundTemplateHandler<>(type);
+        templateHandler = new BoundTemplateHandler<>(type);
+        templateFactory = new GeneratedTemplateFactorySupport<>(type);
     }
 
     public <C> C With(T template, Closure<C> body) {
-        return delegate.With(template, body);
+        return templateHandler.With(template, body);
     }
 
     public <C> C With(Map<String, ?> template, Closure<C> body) {
-        return delegate.With(template, body);
+        return templateHandler.With(template, body);
     }
 
     public <C> C WithAll(Map<Class<?>, Map<String, ?>> newTemplates, Closure<C> body) {
-        return delegate.WithAll(newTemplates, body);
+        return templateHandler.WithAll(newTemplates, body);
     }
 
     public <C> C WithAll(List<Object> newTemplates, Closure<C> body) {
-        return delegate.WithAll(newTemplates, body);
+        return templateHandler.WithAll(newTemplates, body);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.With()} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T Create() {
-        return delegate.Create();
+        return templateFactory.With();
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.With(configMap, configuration)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T Create(Map<String, ?> configMap, Closure<?> configuration) {
-        return delegate.Create(configMap, configuration);
+        return templateFactory.With(configMap, configuration);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.With(configuration)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T Create(Closure<?> configuration) {
-        return delegate.Create(configuration);
+        return templateFactory.With(configuration);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.With(configMap)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T Create(Map<String, ?> configMap) {
-        return delegate.Create(configMap);
+        return templateFactory.With(configMap);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.From(scriptFile)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T CreateFrom(File scriptFile) {
-        return delegate.CreateFrom(scriptFile);
+        return templateFactory.From(scriptFile);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.From(scriptFile, loader)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T CreateFrom(File scriptFile, ClassLoader loader) {
-        return delegate.CreateFrom(scriptFile, loader);
+        return templateFactory.From(scriptFile, loader);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.From(scriptUrl)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T CreateFrom(URL scriptUrl) {
-        return delegate.CreateFrom(scriptUrl);
+        return templateFactory.From(scriptUrl);
     }
 
+    /**
+     * @deprecated Use {@code Foo.Create.Template.From(scriptUrl, loader)} for the matching DSL model type.
+     */
+    @Deprecated(since = "4.0")
     public T CreateFrom(URL scriptUrl, ClassLoader loader) {
-        return delegate.CreateFrom(scriptUrl, loader);
+        return templateFactory.From(scriptUrl, loader);
     }
 }
