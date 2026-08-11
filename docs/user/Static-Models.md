@@ -8,7 +8,7 @@ A static data model is a group of classes with these characteristics:
 
 - Completed instances are structurally immutable: they expose no generated mutation path after creation.
 - Methods are side-effect free and mainly consist of getters, quasi-getters, and converters.
-- Classes are usually tightly coupled, so relationships can be traversed in both directions.
+- Classes are usually tightly coupled, so relationships can be traversed in both directions. See [Relationship graph](#relationship-graph).
 - Put consumer-specific behavior in adapters or decorators rather than reopening a completed model for mutation.
 - Models should be strongly typed.
 
@@ -26,6 +26,13 @@ KlumAST supports this style with the following techniques:
 - All non-relationship, non-transient fields are final in the completed model. Internal graph materialization assigns
   relationship fields so cyclic links remain possible.
 - Supported Collections are published as independent read-only snapshots; `EnumSet` is exposed through defensive copies.
+
+## Relationship graph
+
+Owned DSL Object relationships are a single-rooted composition tree. One or more `@Owner` fields may provide
+framework-managed backlinks for upward navigation; they do not create additional ownership. `LINK` fields can add side
+connections to existing completed DSL Objects without re-owning a target or changing the composition root. See
+[Ownership and `@Owner`](Basics.md#ownership-and-owner) for the Builder-phase timing of those backlinks.
 
 ## Transient fields
 
