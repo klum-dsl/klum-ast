@@ -31,7 +31,7 @@ import spock.lang.Tag
 class OwnerRelationshipDocumentaryTest extends AbstractDSLSpec {
 
     @Issue("171")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Basics.md#the-owner-annotation")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Basics.md#ownership-and-owner")
     def "assigns each matching owner field for an owned service"() {
         given:
         createClass '''

@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.Normalizer
+import java.util.Locale
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -148,6 +149,10 @@ img { max-width: 100%; height: auto; }
         String cssLink = relativeUrl(outputPath, 'assets/site.css')
         String logoPath = inputs.logoPath?.toString()
         String logo = logoPath ? "<img src=\"${escapeAttribute(relativeUrl(outputPath, logoPath))}\" alt=\"${escapeAttribute(inputs.logoAltText?.toString() ?: 'KlumAST')}\">" : ''
+        String faviconPath = inputs.faviconPath?.toString()
+        String favicon = faviconPath
+                ? "\n  <link rel=\"icon\" type=\"${escapeAttribute(faviconMediaType(faviconPath))}\" href=\"${escapeAttribute(relativeUrl(outputPath, faviconPath))}\">"
+                : ''
         String sidebarContent = (navigation ?: "<p><a href=\"${escapeAttribute(homeLink)}\">Documentation</a></p>") +
                 "<p><a href=\"${escapeAttribute(apiLink)}\">API reference</a></p>"
 
@@ -157,7 +162,7 @@ img { max-width: 100%; height: auto; }
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(title)} — KlumAST ${escapeHtml(version)}</title>
-  <link rel="stylesheet" href="${escapeAttribute(cssLink)}">
+  <link rel="stylesheet" href="${escapeAttribute(cssLink)}">${favicon}
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -182,6 +187,12 @@ img { max-width: 100%; height: auto; }
 </body>
 </html>
 """
+    }
+
+    static String faviconMediaType(String path) {
+        if (path.toLowerCase(Locale.ROOT).endsWith('.svg')) return 'image/svg+xml'
+        if (path.toLowerCase(Locale.ROOT).endsWith('.png')) return 'image/png'
+        'image/x-icon'
     }
 
     static String pageOutputPath(String sourcePath, String landingSourcePath) {

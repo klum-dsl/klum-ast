@@ -5,6 +5,10 @@ Season 4 lockups. The corresponding SVGs under `docs/user/img/season-4/` are the
 published assets. They use outline paths for every fixed lettering element and must
 remain font-independent.
 
+`klumast-season-4-favicon.svg` is a square, self-contained portal-and-catwalk derivative
+for browser icon surfaces. Its published asset and SHA-256 are recorded alongside the
+header lockup in `docs/branding/season-4-klumast.json`.
+
 Do not publish an editable master directly. Browser-specific Avenir Next metrics,
 side bearings, and `textLength` support caused visible drift between Safari, Edge,
 and librsvg during the Season 4 work.
@@ -82,7 +86,7 @@ This transform preserves the approved portal-to-wordmark relationship.
    rg '<text|font-family|textLength' docs/user/img/season-4
    ```
 
-4. If the header asset changes, update its SHA-256 in
+4. If the header lockup or favicon changes, update its corresponding SHA-256 in
    `docs/branding/season-4-klumast.json`.
 5. Run `./gradlew renderLocalDocumentation --console=plain`, then inspect the
    generated site in Safari and Edge at the stated widths.

@@ -186,6 +186,7 @@ class VersionedDocumentationRenderer {
 
         Map<String, ?> branding = [mode: 'not-applicable']
         String logoTarget
+        String faviconTarget
         String logoAltText = 'KlumAST'
         if (status != 'archived') {
             if (!brandingManifestPath)
@@ -200,8 +201,18 @@ class VersionedDocumentationRenderer {
             if (logoDigest != branding.sha256)
                 fail("Branding manifest digest does not match $logoPath")
             write(exactDirectory, logoTarget, logo)
+            String faviconPath = requiredRelativePath(branding.favicon?.toString(), 'branding favicon')
+            faviconTarget = "assets/branding/${faviconPath.tokenize('/').last()}"
+            if (!outputPaths.add(faviconTarget))
+                fail("Branding favicon collides with an authored output path: $faviconTarget")
+            byte[] favicon = gitBytes(objectDirectory, ['show', "${revision}:${faviconPath}"])
+            String faviconDigest = sha256(favicon)
+            if (faviconDigest != branding.faviconSha256)
+                fail("Branding manifest digest does not match $faviconPath")
+            write(exactDirectory, faviconTarget, favicon)
             branding = [manifest: brandingManifestPath, season: branding.season, altText: branding.altText,
-                        approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest]
+                        approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest,
+                        favicon: [sourceAsset: faviconPath, outputAsset: faviconTarget, sha256: faviconDigest]]
             logoAltText = branding.altText
             if (status == 'pending' && releaseStage == 'final')
                 branding.finalApproval = readFinalBrandingApproval(objectDirectory, revision, finalBrandingApprovalPath, brandingManifestPath)
@@ -229,6 +240,7 @@ class VersionedDocumentationRenderer {
                     notice            : presentation.notice,
                     logoPath          : logoTarget,
                     logoAltText       : logoAltText,
+                    faviconPath       : faviconTarget,
                     repositoryRevision: revision,
                     repositorySourcePath: sourcePath == 'Changelog.md' ? 'CHANGES.md' : "$sourceRoot/$sourcePath",
                     authoringRoot      : sourceRoot)
@@ -237,19 +249,19 @@ class VersionedDocumentationRenderer {
         routeAliases.each { String aliasSource, String targetSource ->
             writeGeneratedPage(exactDirectory, aliasOutputs[aliasSource], aliasSource,
                     routeAliasPage(targetSource), version, status, pageOutputs, wikiPages,
-                    sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText)
+                    sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText, faviconTarget)
         }
 
         javadocInputChecksums.putAll(copyModuleJavadocs(exactDirectory, moduleJavadocs))
         if (!moduleJavadocs.isEmpty() || apiIndexMarkdown) {
             outputPaths.add('api/index.html')
             writeGeneratedPage(exactDirectory, 'api/index.html', 'api-index.md', apiIndexMarkdown ?: apiIndex(version), version, status,
-                    pageOutputs, wikiPages, sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText)
+                    pageOutputs, wikiPages, sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText, faviconTarget)
         }
 
         outputPaths.add('status/index.html')
         writeGeneratedPage(exactDirectory, 'status/index.html', 'status.md', statusRecord(version, status), version, status,
-                pageOutputs, wikiPages, sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText)
+                pageOutputs, wikiPages, sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText, faviconTarget)
         additionalFiles.each { String additionalPath, File additionalFile ->
             requireRelativePath(additionalPath, 'additional file path')
             if (!outputPaths.add(additionalPath))
@@ -261,10 +273,11 @@ class VersionedDocumentationRenderer {
                 archivedVersions << version
             if (!archivedVersions.isEmpty()) {
                 write(outputDirectory, 'archive/index.html', selectorPage('Archived KlumAST documentation',
-                        archiveIndex(archivedVersions.unique().sort()), "../$version/assets/site.css").getBytes(StandardCharsets.UTF_8))
+                        archiveIndex(archivedVersions.unique().sort()), "../$version/assets/site.css",
+                        faviconTarget ? "../$version/$faviconTarget" : null).getBytes(StandardCharsets.UTF_8))
             }
             write(outputDirectory, 'index.html', selectorPage('KlumAST documentation snapshot', rootIndex(version, status),
-                    "$version/assets/site.css").getBytes(StandardCharsets.UTF_8))
+                    "$version/assets/site.css", faviconTarget ? "$version/$faviconTarget" : null).getBytes(StandardCharsets.UTF_8))
         }
 
         Map<String, String> outputHashes = outputHashes(exactDirectory)
@@ -296,12 +309,14 @@ class VersionedDocumentationRenderer {
         if (!(parsed instanceof Map))
             fail("Branding manifest must be an object: $path")
         Map<String, ?> branding = parsed as Map<String, ?>
-        ['season', 'logo', 'altText', 'sha256', 'approval'].each { String field ->
+        ['season', 'logo', 'altText', 'sha256', 'favicon', 'faviconSha256', 'approval'].each { String field ->
             if (!(branding[field] instanceof String) || branding[field].trim().empty)
                 fail("Branding manifest $path requires a non-empty $field")
         }
-        if (!(branding.sha256 ==~ /[0-9a-f]{64}/))
-            fail("Branding manifest $path has an invalid sha256")
+        ['sha256', 'faviconSha256'].each { String field ->
+            if (!(branding[field] ==~ /[0-9a-f]{64}/))
+                fail("Branding manifest $path has an invalid $field")
+        }
         branding
     }
 
@@ -463,7 +478,7 @@ class VersionedDocumentationRenderer {
     private static void writeGeneratedPage(File exactDirectory, String outputPath, String sourcePath, String markdown,
                                            String version, String status, Map<String, String> pageOutputs,
                                            Map<String, String> wikiPages, String navigationMarkdown, String footerMarkdown,
-                                           Map<String, String> presentation, String logoPath, String logoAltText) {
+                                           Map<String, String> presentation, String logoPath, String logoAltText, String faviconPath) {
         String html = StaticDocumentationPageRenderer.render(
                 markdown          : markdown,
                 sourcePath        : sourcePath,
@@ -477,7 +492,8 @@ class VersionedDocumentationRenderer {
                 statusLabel       : presentation.label,
                 notice            : presentation.notice,
                 logoPath          : logoPath,
-                logoAltText       : logoAltText)
+                logoAltText       : logoAltText,
+                faviconPath       : faviconPath)
         write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
     }
 
@@ -513,10 +529,11 @@ class VersionedDocumentationRenderer {
                 '\n\n[Documentation landing](../)\n'
     }
 
-    private static String selectorPage(String title, String body, String cssPath) {
+    private static String selectorPage(String title, String body, String cssPath, String faviconPath) {
+        String favicon = faviconPath ? "<link rel=\"icon\" type=\"${StaticDocumentationPageRenderer.faviconMediaType(faviconPath)}\" href=\"$faviconPath\">" : ''
         """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>$title</title><link rel="stylesheet" href="$cssPath"></head>
+<title>$title</title><link rel="stylesheet" href="$cssPath">$favicon</head>
 <body><main class="content" style="width:min(70rem,calc(100% - 2rem));margin:2rem auto"><h1>$title</h1>$body</main></body></html>
 """
     }

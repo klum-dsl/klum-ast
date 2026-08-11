@@ -4,10 +4,11 @@ KlumAST consists of a number of Annotations:
 
 - `@DSL` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
 - `@Key` annotates the optional key field of a dsl object (see below).
-- `@Owner` annotates the optional owner field of a dsl object.
+- `@Owner` annotates one or more framework-managed owner fields of a DSL Object. They provide backlinks for navigation; they are not ordinary configuration values.
 - `@Field` is an optional field to further configure the handling of specific fields (esp. naming).
-- `@Validation` and `@Validate` provide automatic validation of model values.
-- `@PostCreate` and `@PostApply` can be used to designate lifecycle methods.
+- `@Validate` provides automatic validation of model values.
+- The optional `klum-ast-bean-validation` module is the currently available pluggable validation provider; it adds Jakarta Bean Validation checks during the validation phase.
+- `@PostCreate` and `@PostApply` are examples of lifecycle annotations. [Model Phases](Model-Phases.md) defines the complete lifecycle contract.
 
 ## `@DSL`
 DSL is used to designate a DSL/Model object, which is enriched using the AST transformation.
@@ -99,16 +100,17 @@ def deployment = Deployment.Create.With('catalog') {
 }
 ```
 
-`deployment` is the completed DSL Object. The same example is executable in
-`FactoryConstructionTest.groovy`, feature `builds a completed deployment configuration with Create.With`.
+`deployment` is the completed DSL Object.
+
+(See: `FactoryConstructionTest#'builds a completed deployment configuration with Create.With'`.)
 
 There are also a couple of [Convenience Factories](Convenience-Factories.md) to load a model into client code.
 
 ## Lifecycle Methods
 
-Lifecycle methods can are methods annotated with [Lifecycle](Model-Phases.md) annotations like `@PostCreate` and `@PostApply`.
-These methods will be called automatically
-after Builder creation (**after templates have been applied**) and after explicit Builder configuration, respectively.
+Lifecycle methods are methods annotated with lifecycle annotations. For example, `@PostCreate` runs after Builder
+creation (**after templates have been applied**) and `@PostApply` runs after explicit Builder configuration. See
+[Model Phases](Model-Phases.md) for the complete lifecycle contract.
 
 Other lifecycle methods will be executed in the corresponding phase.
 
@@ -609,12 +611,16 @@ following consequences:
 - factory methods get an additional key parameter
 - only keyed classes are allowed as values in a Map
 
-## The `@Owner` annotation
+## Ownership and `@Owner`
 
-DSL-Objects can have an owners field, decorated with the `@Owner` annotation.
+Owned DSL Object relationships form one single-rooted composition tree. `@Owner` may annotate multiple fields or
+methods on an object; matching owner fields are framework-managed backlinks for navigating upward through that tree,
+not values configured by a Model Writer. `LINK` relationships add side connections to existing completed objects without
+changing composition ownership or its root. See [Static Models](Static-Models.md#relationship-graph) for the same graph
+boundary in the static-model overview.
 
-When the inner object is added to another dsl-object, either directly or into a collection,
-all of its owner fields are automatically set to the outer object if they follow two conditions (decided for each field individually):
+For each owned child Builder, the Owner phase establishes every matching owner field when both of these conditions hold
+(independently for each field):
 
 - The field is unset, i.e. has the value null
 - The field can legally hold the owner object
@@ -642,8 +648,9 @@ then: // Assertions
 assert c.bar.outer === c
 ```
 
-The owner field is set during the Owner phase, so it is not available during the inner Builder's initial configuration
-closure.
+Owned relationships are constructed as Builders, not completed DSL Objects. The framework establishes their Owner
+relationships during the Owner phase before materialization; an owner relationship is therefore not an immediate side
+effect of calling a relationship method and is unavailable during the inner Builder's initial configuration closure.
 
 If configuration needs the owner, move that code to an Owner or later Builder lifecycle method or closure. Owner methods
 and closures run after owner fields have been assigned.
