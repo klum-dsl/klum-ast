@@ -44,7 +44,7 @@ For DSL element maps and collections, there is also a convenience method for cre
 from a couple of scripts, each element in a single script. The generated method has the form
 `<fieldName>(Class<? extends Script>...)` for both maps and collections.
 
-`Element.Create.AsBuilder.From(MyDelegatingScript)` now applies a `DelegatingScript` recipe to an unsealed Builder in the
+`Element.Create.AsBuilder().From(MyDelegatingScript)` now applies a `DelegatingScript` recipe to an unsealed Builder in the
 active root Construction session. It is intended for owning relationship machinery and does not start or complete a nested
 lifecycle. A regular Script that returns a completed model is an opaque materializing program and remains top-level-only.
 
@@ -190,7 +190,7 @@ package. The type can also use the stripped name defined by `@DSL.stripSuffix()`
 `@Owner` and `@Role` fields are not set during creation. Because `FromMap` is a regular creator method, objects created
 by it undergo the regular lifecycle phases, including owner, role, and default-value handling.
 
-Builder-producing extension paths can use `Create.AsBuilder.FromMap(map)` during an active root Construction session. The
+Builder-producing extension paths can use `Create.AsBuilder().FromMap(map)` during an active root Construction session. The
 result must be attached to an owned relationship in that same session; the outer graph performs ownership, materialization,
 and validation.
 

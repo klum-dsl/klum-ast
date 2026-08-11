@@ -356,10 +356,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
     private void createBuiltInBuilderFactoryMethod(MethodNode methodNode, ClassNode returnType,
                                                    MethodNode builderFactoryMethod) {
         MethodCallExpression builderCall = callX(
-                propX(
-                        propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
-                        "AsBuilder"
-                ),
+                callX(propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME), "AsBuilder"),
                 builderFactoryMethod.getName(),
                 args(cloneParamsWithAdjustedNames(methodNode))
         );

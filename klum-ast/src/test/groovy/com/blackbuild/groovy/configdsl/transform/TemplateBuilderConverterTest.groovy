@@ -91,6 +91,7 @@ class TemplateBuilderConverterTest extends AbstractDSLSpec {
         !second.child.is(first.child)
     }
 
+    @Issue(["731", "729"])
     def "Template definition takes precedence over an active Construction session and restores it afterwards"() {
         given:
         createClass '''
@@ -135,7 +136,7 @@ class TemplateBuilderConverterTest extends AbstractDSLSpec {
         !TemplateManager.isTemplate(registry.child)
 
         when: 'the Template definition scope has exited'
-        getClass('pk.Child').Create.AsBuilder.One()
+        getClass('pk.Child').Create.AsBuilder().One()
 
         then:
         thrown(KlumModelException)
@@ -176,6 +177,7 @@ class TemplateBuilderConverterTest extends AbstractDSLSpec {
         }
     }
 
+    @Issue(["731", "729"])
     def "nested and failed Template definitions restore their composition scope"() {
         given:
         createClass '''
@@ -211,7 +213,7 @@ class TemplateBuilderConverterTest extends AbstractDSLSpec {
 
         when: 'scoped Template application is not Template-definition composition'
         Parent.Template.With(outer) {
-            Child.Create.AsBuilder.One()
+            Child.Create.AsBuilder().One()
         }
 
         then:
@@ -227,7 +229,7 @@ class TemplateBuilderConverterTest extends AbstractDSLSpec {
         thrown(IllegalStateException)
 
         when:
-        Child.Create.AsBuilder.One()
+        Child.Create.AsBuilder().One()
 
         then:
         thrown(KlumModelException)

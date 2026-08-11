@@ -93,8 +93,8 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.i
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 /** Generates and links source-visible Builder-producing method twins for ADR 0004. */
@@ -792,7 +792,7 @@ public final class BuilderMethodProjection {
                 Expression factory = rootCall.explicitFactory
                         ? transform(source.getObjectExpression())
                         : varX("this");
-                result.setObjectExpression(propX(factory, "AsBuilder"));
+                result.setObjectExpression(asBuilderCall(factory, rootCall.model));
                 result.setImplicitThis(false);
                 result.setMethodTarget(builderMethod);
                 CastExpression cast = new CastExpression(GeneratedDslSupport.builderTypeFor(rootCall.model), result);
@@ -803,6 +803,18 @@ public final class BuilderMethodProjection {
             MethodNode target = source.getMethodTarget();
             if (target != null && projectType(target.getReturnType(), state.model) != null)
                 candidate.opaque = true;
+            return result;
+        }
+
+        private static MethodCallExpression asBuilderCall(Expression factory, ClassNode model) {
+            boolean keyedModel = getKeyField(model) != null;
+            ClassNode runtimeFactory = !keyedModel
+                    ? DSLASTTransformation.UNKEYED_FACTORY : DSLASTTransformation.KEYED_FACTORY;
+            ClassNode builderFactory = !keyedModel
+                    ? DSLASTTransformation.UNKEYED_BUILDER_FACTORY : DSLASTTransformation.KEYED_BUILDER_FACTORY;
+            MethodCallExpression result = callX(factory, "AsBuilder");
+            result.setMethodTarget(runtimeFactory.getDeclaredMethod("AsBuilder", Parameter.EMPTY_ARRAY));
+            result.setType(builderFactory);
             return result;
         }
 

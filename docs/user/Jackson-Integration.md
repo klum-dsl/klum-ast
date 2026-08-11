@@ -90,11 +90,11 @@ operation:
 KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
 Order order = importer.readRoot(Order.class, KlumJacksonInput.parser(parser));
 Order recipe = importer.readTemplate(Order.class, KlumJacksonInput.tree(tree));
-Child_DSL.Builder child = importer.readBuilder(Child.Create.getAsBuilder(), KlumJacksonInput.map(values));
+Child_DSL.Builder child = importer.readBuilder(Child.Create.AsBuilder(), KlumJacksonInput.map(values));
 Child_DSL.Builder sameChild = importer.applyToBuilder(child, KlumJacksonInput.map(overrides));
 ```
 
-Groovy may use `Child.Create.AsBuilder`. The four operations are explicit:
+Groovy uses the same `Child.Create.AsBuilder()` operation. The four operations are explicit:
 
 1. read a root and run one complete lifecycle;
 2. read a value-only Template without running lifecycle processing;

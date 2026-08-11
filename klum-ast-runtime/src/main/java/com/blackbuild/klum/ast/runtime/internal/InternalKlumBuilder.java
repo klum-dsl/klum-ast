@@ -535,7 +535,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     private static KlumModelException crossSessionAdoptionError() {
         return new KlumModelException("Cannot adopt a Builder from a different Construction session. "
-                + "Call Create.AsBuilder inside the owning root Builder lifecycle and attach that Builder there; "
+                + "Call Create.AsBuilder() inside the owning root Builder lifecycle and attach that Builder there; "
                 + "Builders cannot cross root lifecycles.");
     }
 
@@ -589,7 +589,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     private void assertConstructionSessionActive() {
         if (constructionSession != null && !constructionSessionActive)
             throw new KlumModelException("Cannot use a Builder after its Construction session has completed. "
-                    + "Create and attach a fresh child with Create.AsBuilder inside the owning root Builder lifecycle.");
+                    + "Create and attach a fresh child with Create.AsBuilder() inside the owning root Builder lifecycle.");
     }
 
     private void applyClosure(Closure<?> body) {
@@ -628,7 +628,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                 || constructionSession != sourceBuilder.constructionSession
                 || !sourceBuilder.constructionSessionActive)
             throw new KlumModelException("Cannot copy from a Builder outside this active Construction session. "
-                    + "Create the source with Create.AsBuilder inside the same root Builder lifecycle.");
+                    + "Create the source with Create.AsBuilder() inside the same root Builder lifecycle.");
     }
 
     /** Internal target used by generated typed copyFrom overloads. */
@@ -709,7 +709,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private static Class<?> selectedModelType(BuilderFactoryProvider<?, ?> factory) {
-        return factory.getAsBuilder().getModelType();
+        return factory.AsBuilder().getModelType();
     }
 
     private ChildTarget resolveSingleChildTarget(String fieldOrMethodName, Class<?> type) {
@@ -1007,14 +1007,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
-        Object builderFactory = InvokerHelper.getProperty(DslHelper.getFactoryOf(elementType), "AsBuilder");
+        Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(builderFactory, "From", script)));
     }
 
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
-        Object builderFactory = InvokerHelper.getProperty(DslHelper.getFactoryOf(elementType), "AsBuilder");
+        Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(builderFactory, "From", script)));
     }
 

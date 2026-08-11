@@ -18,3 +18,10 @@ that are not currently enforced by formatting tools.
 
 Code review treats an unnecessary fully qualified name as a documented style violation, not merely an optional readability
 suggestion. Replace it with an import unless one of the exceptions above applies.
+
+## Generated IDE properties
+
+Contribute a literal IDE property only when an AST-generated field is absent from source PSI, such as `Foo.Create` or
+`Foo.Template`. Do not use GDSL to emulate uppercase JavaBean/Groovy-property syntax: IntelliJ normalizes that syntax and
+cannot represent the runtime spelling faithfully. Use an explicit operation instead, and verify its Java, Groovy, and
+IntelliJ JavaBean behavior together.

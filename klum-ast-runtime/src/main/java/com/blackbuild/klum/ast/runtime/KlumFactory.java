@@ -61,7 +61,7 @@ public class KlumFactory<T> {
     }
 
     /** Returns the active-session factory used to create owned child Builders. */
-    public BuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
+    public BuilderFactory<T, KlumBuilder<T>> AsBuilder() {
         return new BuilderFactory<T, KlumBuilder<T>>(type);
     }
 
@@ -69,7 +69,7 @@ public class KlumFactory<T> {
      * Public factory capability used by generated polymorphic relationship methods.
      *
      * <p>Passing a generated {@code Foo.Create} to such a method selects {@code Foo} while the
-     * method creates and attaches the child through this factory's {@link #getAsBuilder()} view in
+     * method creates and attaches the child through this factory's {@link #AsBuilder()} operation in
      * the owning Construction session. It never starts a root factory lifecycle.</p>
      *
      * @param <T> the selected DSL Object type
@@ -86,7 +86,7 @@ public class KlumFactory<T> {
         Class<T> getModelType();
 
         /** Returns the active-session Builder factory for the selected DSL Object type. */
-        BuilderFactory<T, B> getAsBuilder();
+        BuilderFactory<T, B> AsBuilder();
     }
 
     /** Active-session Builder-producing operations shared by keyed and unkeyed factories. */
@@ -282,7 +282,7 @@ public class KlumFactory<T> {
         }
 
         @Override
-        public KeyedBuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
+        public KeyedBuilderFactory<T, KlumBuilder<T>> AsBuilder() {
             return new KeyedBuilderFactory<T, KlumBuilder<T>>(type);
         }
 
@@ -380,7 +380,7 @@ public class KlumFactory<T> {
         }
 
         @Override
-        public UnkeyedBuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
+        public UnkeyedBuilderFactory<T, KlumBuilder<T>> AsBuilder() {
             return new UnkeyedBuilderFactory<T, KlumBuilder<T>>(type);
         }
 

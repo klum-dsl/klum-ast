@@ -106,6 +106,17 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [builder, collectionFactory, clusterFactory].every { publicSignatures(it).every { !it.contains('\$_') } }
     }
 
+    @Issue('729')
+    def "Factory exposes only the explicit typed AsBuilder() operation"() {
+        given:
+        Class<?> factory = getClass('sample.Foo_DSL$Factory')
+
+        expect:
+        factory.getMethod('AsBuilder').genericReturnType.typeName ==
+                'com.blackbuild.klum.ast.runtime.KlumFactory$UnkeyedBuilderFactory<sample.Foo, sample.Foo_DSL$Builder<sample.Foo>>'
+        !factory.methods*.name.contains('getAsBuilder')
+    }
+
     @Issue('391')
     def "preserves inherited Builder self-model typing"() {
         given:
@@ -248,7 +259,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         and: 'the unsupported-projection diagnostic remains unchanged'
         error.message.contains('omitted Builder-producing projection opaqueChild(java.lang.String)')
-        error.message.contains('active-session Create.AsBuilder')
+        error.message.contains('active-session Create.AsBuilder()')
     }
 
     @Issue('391')
@@ -427,7 +438,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 }
 
                 public static Foo_DSL.Builder<Foo> inheritedBuilder() {
-                    return Foo.Create.getAsBuilder().With(Map.of("label", "inherited"));
+                    return Foo.Create.AsBuilder().With(Map.of("label", "inherited"));
                 }
             }
         ''')
@@ -504,7 +515,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         error.message.contains('Cannot find matching method sample.Foo_DSL$Factory#Template')
     }
 
-    def "AsBuilder projects the concrete public Builder return and closure delegate types"() {
+    @Issue('729')
+    def "AsBuilder() projects the concrete public Builder return and closure delegate types"() {
         when:
         compileJavaConsumer('''
             package sample;
@@ -515,7 +527,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
             public final class JavaDslConsumer {
                 public static Child_DSL.Builder<Child> childBuilder() {
-                    return Child.Create.getAsBuilder().With(Map.of("name", "java child"));
+                    return Child.Create.AsBuilder().With(Map.of("name", "java child"));
                 }
 
                 public static <B extends KlumBuilder<Child>> B builderFrom(
@@ -534,7 +546,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             class StaticAsBuilderConsumer {
                 static void compileAsBuilderClosure() {
                     Foo.Create.With {
-                        Child_DSL.Builder<Child> child = Child.Create.AsBuilder.With {
+                        Child_DSL.Builder<Child> child = Child.Create.AsBuilder().With {
                             name 'groovy child'
                         }
                     }
@@ -791,7 +803,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         (deploymentMirror =~ /(?s)B keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory,*\s+String key\);/).find()
     }
 
-    @Issue('710')
+    @Issue('729')
     def "AnnoDocimal source mirror matches the bytecode namespace and nested Template Factory contract"() {
         given:
         File mirrorRoot = new File(tempFolder.root, 'mirrors')
@@ -811,6 +823,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         mirror.contains('interface Foo_DSL')
         mirror.contains('interface Factory')
+        factoryMirror.contains('AsBuilder()')
+        !factoryMirror.contains('getAsBuilder')
         mirror.count('interface Template') == 2
         factoryMirror.contains('Template Template = null;')
         templateFactoryMirror.contains('Foo With(')

@@ -311,7 +311,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return (T) result;
     }
 
-    private static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
+    private static <T> T createFromDelegatingScript(Class<T> type, @Nullable String key, DelegatingScript script) {
         Consumer<InternalKlumBuilder<T>> apply = builder -> {
             script.setDelegate(builder);
             script.run();
@@ -323,7 +323,8 @@ public class FactoryHelper extends GroovyObjectSupport {
             return doCreate(null, () -> createBuilder(type, null), apply);
     }
 
-    private static <T> T doCreate(String key, Supplier<? extends InternalKlumBuilder<T>> createBuilder, Consumer<InternalKlumBuilder<T>> apply) {
+    private static <T> T doCreate(@Nullable String key, Supplier<? extends InternalKlumBuilder<T>> createBuilder,
+                                  Consumer<InternalKlumBuilder<T>> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
                 () -> PhaseDriver.withBuilderLifecycle(createBuilder, builder -> prepareBuilder(builder, false, apply))
         );
@@ -344,16 +345,18 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>    The type to create
      * @return The created instance
      */
-    public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
+    public static <T> T create(Class<T> type, @Nullable Map<String, ?> values, @Nullable String key,
+                                @Nullable Closure<?> body) {
         return doCreate(key, () -> createBuilder(type, key), builder -> builder.applyOnly(values, body));
     }
 
-    public static <T> InternalKlumBuilder<T> createAsBuilder(Class<T> type, Map<String, ?> values, String key, Closure<?> body,
-                                                     String operation) {
+    public static <T> InternalKlumBuilder<T> createAsBuilder(Class<T> type, @Nullable Map<String, ?> values,
+                                                             @Nullable String key, @Nullable Closure<?> body,
+                                                             String operation) {
         boolean template = TemplateManager.isDefiningTemplate();
         if (!template)
             PhaseDriver.requireActiveConstructionSession();
-        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder." + operation, null, key,
+        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder()." + operation, null, key,
                 () -> prepareNestedBuilder(type, key, template, builder -> builder.applyOnly(values, body)));
     }
 
@@ -366,7 +369,8 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, URL src, Function<URL, String> keyProvider, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, URL src, @Nullable Function<URL, String> keyProvider,
+                                   @Nullable ClassLoader loader) {
         BreadcrumbCollector.getInstance().setType("url").setQualifier(src.toString());
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromUrl;
@@ -387,19 +391,19 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, @Nullable String name, String text, @Nullable ClassLoader loader) {
 
         return BreadcrumbCollector.withBreadcrumb(null, "text", name, () -> doCreateFromText(type, name, text, loader));
     }
 
-    private static <T> T doCreateFromText(Class<T> type, String name, String text, ClassLoader loader) {
+    private static <T> T doCreateFromText(Class<T> type, @Nullable String name, String text, @Nullable ClassLoader loader) {
         GroovyShell shell = createGroovyShell(loader);
         Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
         return createFromDelegatingScript(type, name, (DelegatingScript) parse);
     }
 
     @NotNull
-    private static GroovyShell createGroovyShell(ClassLoader loader) {
+    private static GroovyShell createGroovyShell(@Nullable ClassLoader loader) {
         GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
         compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
@@ -419,7 +423,8 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, File file, Function<File, String> keyProvider, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, File file, @Nullable Function<File, String> keyProvider,
+                                   @Nullable ClassLoader loader) {
         BreadcrumbCollector.getInstance().setType("file").setQualifier(file.getPath());
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromFile;
@@ -547,7 +552,7 @@ public class FactoryHelper extends GroovyObjectSupport {
             PhaseDriver.requireActiveConstructionSession();
         Class<T> effectiveType = deduceClass(type, (String) configMap.get(TYPE_HINT));
         String key = keyFromMap(effectiveType, configMap);
-        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder.FromMap", null, key,
+        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder().FromMap", null, key,
                 () -> prepareNestedBuilder(effectiveType, key, template, builder -> builder.copyFrom(configMap)));
     }
 
@@ -556,14 +561,14 @@ public class FactoryHelper extends GroovyObjectSupport {
         if (!template)
             PhaseDriver.requireActiveConstructionSession();
         if (!DelegatingScript.class.isAssignableFrom(scriptType))
-            throw new KlumModelException("Create.AsBuilder.From only accepts DelegatingScript configuration recipes. "
+            throw new KlumModelException("Create.AsBuilder().From only accepts DelegatingScript configuration recipes. "
                     + "A regular Script may materialize a completed DSL Object and cannot join owned composition; "
-                    + "use a DelegatingScript, Create.AsBuilder.With/FromMap, or run the Script as a root with Create.From.");
+                    + "use a DelegatingScript, Create.AsBuilder().With/FromMap, or run the Script as a root with Create.From.");
 
         String key = DslHelper.isKeyed(type) ? scriptType.getSimpleName() : null;
         String scriptName = DslHelper.shortNameFor(scriptType);
         return BreadcrumbCollector.withBreadcrumb(
-                DslHelper.shortNameFor(type) + ".AsBuilder.From", "script", scriptName,
+                DslHelper.shortNameFor(type) + ".AsBuilder().From", "script", scriptName,
                 () -> prepareNestedBuilder(type, key, template, builder -> {
                     DelegatingScript script = (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null);
                     script.setDelegate(builder);

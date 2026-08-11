@@ -67,16 +67,16 @@ There are no public constructors, checked exceptions, mode enum, request type, t
 overloads for strings, readers, streams, files, URLs, arbitrary objects, or multiple inputs.
 
 The public call shapes are Java-first. Root and Template calls infer completed `T` directly. In an active session,
-`readBuilder(Child.Create.getAsBuilder(), input)` infers the generated `Child_DSL.Builder`; Groovy may use the equivalent
-`Child.Create.AsBuilder`. `applyToBuilder` returns the same Builder identity with its precise type. Issue #467 owns final
-framework factory/accessor naming without changing these importer descriptors.
+`readBuilder(Child.Create.AsBuilder(), input)` infers the generated `Child_DSL.Builder`; Java and Groovy use the same
+explicit operation. `applyToBuilder` returns the same Builder identity with its precise type. Issue #729 owns the final
+factory operation spelling without changing these importer descriptors.
 
 ### Generated Builder capability prerequisite
 
 The descriptors above remain fixed. Their `B extends KlumBuilder<T>` bound required #394 DSL-2 to make
 `KlumBuilder<T>` a zero-operation public interface and to make each generated `Foo_DSL.Builder<SELF extends Foo>` extend
 that interface. Inherited public and hidden Builder hierarchies thread the leaf `SELF`, so
-`Child.Create.getAsBuilder()` exposes `Child_DSL.Builder<Child>` as the exact `B`. Runtime implementation moves behind an
+`Child.Create.AsBuilder()` exposes `Child_DSL.Builder<Child>` as the exact `B`. Runtime implementation moves behind an
 internal base. This preserves precise Java and static-Groovy Builder inference
 without exposing hidden implementations or widening the importer to erased, reflective, or `Object`-typed alternatives.
 

@@ -34,6 +34,7 @@ class JacksonImporterConsumerTest extends Specification {
     @TempDir
     File projectDir
 
+    @Issue(['463', '729'])
     def "an external Java 17 consumer compiles every importer mode against Jackson 2.14"() {
         given:
         writeBuild('2.14.2', 'java')
@@ -53,7 +54,7 @@ class JacksonImporterConsumerTest extends Specification {
                     ExternalValue root = importer.readRoot(ExternalValue.class, KlumJacksonInput.map(Map.of()));
                     ExternalValue template = importer.readTemplate(ExternalValue.class, KlumJacksonInput.map(Map.of()));
                     ExternalValue_DSL.Builder builder = importer.readBuilder(
-                            ExternalValue.Create.getAsBuilder(), KlumJacksonInput.map(Map.of()));
+                            ExternalValue.Create.AsBuilder(), KlumJacksonInput.map(Map.of()));
                     ExternalValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(Map.of()));
                     return root;
                 }
@@ -64,6 +65,7 @@ class JacksonImporterConsumerTest extends Specification {
         build()
     }
 
+    @Issue(['463', '729'])
     def "an external static Groovy consumer compiles every importer mode against Jackson 2.21"() {
         given:
         writeBuild('2.21.0', 'groovy')
@@ -83,7 +85,7 @@ class JacksonImporterConsumerTest extends Specification {
                     ExternalValue root = importer.readRoot(ExternalValue, KlumJacksonInput.map([:]))
                     ExternalValue template = importer.readTemplate(ExternalValue, KlumJacksonInput.map([:]))
                     ExternalValue_DSL.Builder builder = importer.readBuilder(
-                            ExternalValue.Create.AsBuilder, KlumJacksonInput.map([:]))
+                            ExternalValue.Create.AsBuilder(), KlumJacksonInput.map([:]))
                     ExternalValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map([:]))
                     root
                 }

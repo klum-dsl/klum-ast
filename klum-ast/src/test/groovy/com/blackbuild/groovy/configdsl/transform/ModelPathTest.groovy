@@ -132,7 +132,7 @@ class ModelPathTest extends AbstractDSLSpec {
         KlumObjectSupport.of(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
-    @Issue('710')
+    @Issue(['710', '729'])
     def "completed converter results cannot become nested composition"() {
         given:
         createClass '''import java.util.logging.Level
@@ -182,7 +182,7 @@ class ModelPathTest extends AbstractDSLSpec {
         KlumModelException error = thrown()
         error.message.contains("Cannot use omitted Builder-producing projection level2(java.lang.String)")
         error.message.contains("producer body has no active-session Builder-producing path")
-        error.message.contains("active-session Create.AsBuilder recipe")
+        error.message.contains("active-session Create.AsBuilder() recipe")
     }
 
     def "model path is set correctly when using nested Create.With in Factory"() {

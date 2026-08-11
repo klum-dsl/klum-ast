@@ -14,7 +14,7 @@ The donor's identity determines whether deferred recipe actions are replayed:
 - an unsealed Builder in the same active Construction session contributes current values plus an ephemeral, dehydrated
   snapshot of actions that have not run yet. Copying does not mark or convert the source Builder or either completed model
   into a Template. The generated `Foo_DSL.Builder<Foo>` contract accepts that same-model Builder source directly, so
-  `copyFrom source` remains statically checked in Builder lifecycle code and `Create.AsBuilder.With` callbacks. Because
+  `copyFrom source` remains statically checked in Builder lifecycle code and `Create.AsBuilder().With` callbacks. Because
   this snapshot never leaves the active session, captured values do not need to be serializable;
 - a sealed Builder or a Builder from another Construction session is rejected. Use the sealed Builder's completed model
   for a value-only copy, or a marked Template when actions must replay;

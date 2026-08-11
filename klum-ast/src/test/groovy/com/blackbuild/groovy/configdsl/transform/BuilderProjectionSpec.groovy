@@ -336,6 +336,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         instance.singleCustomer.source == 'url:/url.yaml'
     }
 
+    @Issue('729')
     def "declared KlumBuilder generic projects to the concrete public Builder interface"() {
         given:
         createClass '''
@@ -349,7 +350,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
                 String value
 
                 static KlumBuilder<Child> fromString(String value) {
-                    return (KlumBuilder<Child>) Child.Create.AsBuilder.With(value: value)
+                    return (KlumBuilder<Child>) Child.Create.AsBuilder().With(value: value)
                 }
             }
         '''
@@ -482,6 +483,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         !mirror.contains('$klum$asBuilder$')
     }
 
+    @Issue('729')
     def "Collection and Map KlumBuilder values retain their declared outer types and map keys"() {
         given:
         createClass '''
@@ -503,14 +505,14 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
 
                     LinkedList<KlumBuilder<Child>> fromValues(List<String> values) {
                         return new LinkedList<>(values.collect { value ->
-                            (KlumBuilder<Child>) (Object) AsBuilder.With(value, value: value.toUpperCase())
+                            (KlumBuilder<Child>) (Object) AsBuilder().With(value, value: value.toUpperCase())
                         })
                     }
 
                     TreeMap<String, KlumBuilder<Child>> fromNamed(Map<String, String> values) {
                         TreeMap<String, KlumBuilder<Child>> result = new TreeMap<>(Comparator.reverseOrder())
                         values.each { key, value ->
-                            result[key] = (KlumBuilder<Child>) (Object) AsBuilder.With(key, value: value)
+                            result[key] = (KlumBuilder<Child>) (Object) AsBuilder().With(key, value: value)
                         }
                         return result
                     }
@@ -589,6 +591,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         instance.children.values().every { it.owner.is(instance) }
     }
 
+    @Issue('729')
     def "opaque source producer is omitted and a matching dynamic call gets migration guidance"() {
         given:
         createClass '''
@@ -622,10 +625,10 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         then:
         def error = thrown(KlumModelException)
         error.message.contains('omitted Builder-producing projection child(java.lang.String)')
-        error.message.contains('active-session Create.AsBuilder')
+        error.message.contains('active-session Create.AsBuilder()')
     }
 
-    @Issue("662")
+    @Issue(["662", "729"])
     def "qualified opaque converter calls in Builder methods retain the root factory rejection"() {
         given:
         createClass '''
@@ -664,7 +667,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         error.message.contains('Cannot start an independent DSL Object factory while a Builder lifecycle is active')
     }
 
-    @Issue("662")
+    @Issue(["662", "729"])
     def "qualified precompiled converter calls in Builder methods retain the root factory rejection"() {
         given: 'the converter type is already compiled and has no active-session AST twin'
         createSecondaryClass '''

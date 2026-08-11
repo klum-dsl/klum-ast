@@ -57,8 +57,9 @@ owned by #474 and must not broaden DSL-2.
 
 This shares the intentional 4.0 recompilation boundary already required by package migration. `$_RW` and
 `KlumRwObject` have no retained source or binary compatibility; `@DelegatesToRW` is the sole deprecated source alias.
-After the 4.0 API is delivered, the `KlumBuilder<T>` bound, generated `Foo_DSL` interfaces, and Java
-`Create.getAsBuilder()` / static-Groovy `Create.AsBuilder` shapes are 4.x source and binary contracts. Hidden generated
+After the 4.0 API is delivered, the `KlumBuilder<T>` bound, generated `Foo_DSL` interfaces, and
+`Create.AsBuilder()` Java/static-Groovy shape are 4.x source contracts. This deliberate RC-era source correction
+replaces the prior JavaBean accessor before the API freeze. Hidden generated
 implementations remain non-contractual.
 
 Model-declared generic support remains #180 work; DSL-2 does not widen that scope.
@@ -89,7 +90,7 @@ For polymorphic single, collection, and map relationship creation, add generic F
 to the exact public `Foo_DSL.Builder<Foo>` under Java and static Groovy compilation, including named-parameter and keyed
 forms.
 
-The provider exposes the existing `AsBuilder` view. Runtime dispatch reuses the current-session child creation paths with
+The provider exposes the explicit `AsBuilder()` operation. Runtime dispatch reuses the current-session child creation paths with
 an explicit selected type; it never invokes a root factory lifecycle. The established dynamic `child(Foo) { ... }` Class
 selector remains unchanged and is not deprecated. Exact concrete/default-implementation closure-only shapes remain
 unchanged. The generated method placeholders deliberately retain source-shaped `T` and `B` bounds so Groovy 3, 4, and 5

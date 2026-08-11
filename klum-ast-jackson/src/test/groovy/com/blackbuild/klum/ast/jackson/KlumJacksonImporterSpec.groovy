@@ -347,6 +347,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         exception.cause instanceof IllegalStateException
     }
 
+    @Issue(['463', '729'])
     def "Builder modes stay in the active Construction session and preserve Builder identity"() {
         given:
         createClass('''
@@ -370,7 +371,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         PhaseDriver.withBuilderLifecycle(
                 { FactoryHelper.createBuilder(parentType, null) },
                 { parentBuilder ->
-                    def child = importer.readBuilder(childType.Create.AsBuilder, KlumJacksonInput.map([value: "first"]))
+                    def child = importer.readBuilder(childType.Create.AsBuilder(), KlumJacksonInput.map([value: "first"]))
                     def applied = importer.applyToBuilder(child, KlumJacksonInput.map([value: "second"]))
                     assert applied.is(child)
                     assert child.value == "second"
@@ -381,6 +382,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue(['463', '729'])
     def "readBuilder rejects calls outside an active Construction session"() {
         given:
         createClass('''
@@ -392,7 +394,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
 
         when:
-        importer.readBuilder(clazz.Create.AsBuilder, KlumJacksonInput.map([value: "Ada"]))
+        importer.readBuilder(clazz.Create.AsBuilder(), KlumJacksonInput.map([value: "Ada"]))
 
         then:
         def exception = thrown(RuntimeException)
@@ -476,6 +478,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         exception.message.contains("belongs to no active Construction session")
     }
 
+    @Issue(['463', '729'])
     def "Java consumers compile against every importer descriptor"() {
         given:
         createClass('''
@@ -503,13 +506,14 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
                     JavaImportedValue root = importer.readRoot(JavaImportedValue.class, KlumJacksonInput.map(Map.of()));
                     JavaImportedValue template = importer.readTemplate(JavaImportedValue.class, KlumJacksonInput.map(Map.of()));
                     JavaImportedValue_DSL.Builder builder = importer.readBuilder(
-                            JavaImportedValue.Create.getAsBuilder(), KlumJacksonInput.map(Map.of()));
+                            JavaImportedValue.Create.AsBuilder(), KlumJacksonInput.map(Map.of()));
                     JavaImportedValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(Map.of()));
                 }
             }
         ''')
     }
 
+    @Issue(['463', '729'])
     def "statically compiled Groovy consumers infer every importer type"() {
         given:
         createClass('''
@@ -541,7 +545,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
                 static StaticImportedValue_DSL.Builder builder(ObjectMapper mapper) {
                     KlumJacksonImporter importer = KlumJacksonImporter.using(mapper)
                     StaticImportedValue_DSL.Builder builder = importer.readBuilder(
-                            StaticImportedValue.Create.AsBuilder, KlumJacksonInput.map([value: "builder"]))
+                            StaticImportedValue.Create.AsBuilder(), KlumJacksonInput.map([value: "builder"]))
                     importer.applyToBuilder(builder, KlumJacksonInput.map([value: "applied"]))
                 }
             }

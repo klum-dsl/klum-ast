@@ -33,7 +33,7 @@ between deferred Builder actions and materialization.
 ### Separate root creation from active-session composition
 
 `Create.With`, `Create.One`, and `Create.From` own a complete Construction session and return completed DSL Objects.
-`Create.AsBuilder` instead creates an unsealed child Builder in the currently active session. It is invalid without an
+`Create.AsBuilder()` instead creates an unsealed child Builder in the currently active session. It is invalid without an
 active session, never starts a `PhaseDriver`, and never materializes or validates independently.
 
 The runtime return type is the narrow `KlumBuilder<T>` capability. Generated factories covariantly return the concrete

@@ -347,7 +347,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626", "693"])
+    @Issue(["620", "622", "626", "693", "729"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -799,7 +799,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station_DSL.Factory factory = Station.Create;
                     BuilderFactoryProvider<HttpEndpoint, HttpEndpoint_DSL.Builder<HttpEndpoint>> endpointFactory =
                             HttpEndpoint.Create;
-                    if (endpointFactory.getAsBuilder().getModelType() != HttpEndpoint.class)
+                    if (endpointFactory.AsBuilder().getModelType() != HttpEndpoint.class)
                         throw new AssertionError("Generated typed relationship provider did not link through JPMS");
                     Station station = factory.With(Map.of("name", "Java"));
                     if (!"Java".equals(station.getName()))

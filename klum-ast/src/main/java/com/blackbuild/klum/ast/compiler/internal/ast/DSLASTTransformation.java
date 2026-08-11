@@ -96,6 +96,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String SET_SINGLE_FIELD = "setSingleField";
     private static final String CREATE_SINGLE_CHILD = "createSingleChild";
     private static final String FACTORY_NAME = "factory";
+    private static final String AS_BUILDER = "AsBuilder";
     private static final String STATIC_FACTORY_METHOD_MESSAGE = "Public methods declared on a DSL Factory are exposed through Create and must be instance methods. Remove static, or move a model-level static converter out of Factory.";
     private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
     private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
@@ -1641,7 +1642,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             factoryClass.addConstructor(ACC_PUBLIC, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, block());
 
         overrideFactoryMethods(factoryClass, defaultImpl);
-        createAsBuilderFactoryAccessor(defaultImpl);
+        createAsBuilderFactoryOperation(factoryClass, defaultImpl);
 
         annotatedClass.getModule().addClass(factoryClass);
 
@@ -1707,7 +1708,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(method -> !method.isFinal())
                     .filter(method -> !method.isSynthetic())
                     .filter(method -> !method.getName().startsWith(RESERVED_KLUM_NAMESPACE))
-                    .filter(method -> !method.getName().equals("getAsBuilder"))
+                    .filter(method -> !method.getName().equals(AS_BUILDER))
                     .map(method -> correctFactoryMethod(currentSpec, method))
                     .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
             currentLevel = currentLevel.getUnresolvedSuperClass();
@@ -1753,12 +1754,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         factoryClass.addMethod(override);
     }
 
-    private void createAsBuilderFactoryAccessor(ClassNode defaultImpl) {
+    private void createAsBuilderFactoryOperation(InnerClassNode factoryClass, ClassNode defaultImpl) {
         ClassNode factoryType;
-        if (!isInstantiable(defaultImpl))
-            factoryType = BUILDER_FACTORY;
+        if (isAssignableTo(factoryClass, KEYED_FACTORY))
+            factoryType = KEYED_BUILDER_FACTORY;
+        else if (isAssignableTo(factoryClass, UNKEYED_FACTORY))
+            factoryType = UNKEYED_BUILDER_FACTORY;
         else
-            factoryType = keyField == null ? UNKEYED_BUILDER_FACTORY : KEYED_BUILDER_FACTORY;
+            factoryType = BUILDER_FACTORY;
 
         ClassNode specialized = factoryType.getPlainNodeReference();
         specialized.setUsingGenerics(true);
@@ -1767,17 +1770,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new GenericsType(GeneratedDslSupport.of(annotatedClass).getBuilderInterface())
         });
 
-        MethodNode accessor = new MethodNode(
-                "getAsBuilder",
+        MethodNode operation = new MethodNode(
+                AS_BUILDER,
                 ACC_PUBLIC | ACC_ABSTRACT,
                 specialized,
                 Parameter.EMPTY_ARRAY,
                 ClassNode.EMPTY_ARRAY,
                 EmptyStatement.INSTANCE
         );
-        AstDocumentation.attachText(accessor,
+        AstDocumentation.attachText(operation,
                 "Returns the active-session factory for creating owned " + annotatedClass.getName() + " Builders.");
-        GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addMethod(accessor);
+        GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addMethod(operation);
+
+        factoryClass.addMethod(new MethodNode(
+                AS_BUILDER,
+                ACC_PUBLIC,
+                specialized,
+                Parameter.EMPTY_ARRAY,
+                ClassNode.EMPTY_ARRAY,
+                returnS(castX(specialized, callSuperX(AS_BUILDER)))
+        ));
     }
 
     private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
