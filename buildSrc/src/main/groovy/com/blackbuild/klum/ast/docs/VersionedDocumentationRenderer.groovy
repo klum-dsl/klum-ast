@@ -186,6 +186,7 @@ class VersionedDocumentationRenderer {
 
         Map<String, ?> branding = [mode: 'not-applicable']
         String logoTarget
+        String faviconTarget
         String logoAltText = 'KlumAST'
         if (status != 'archived') {
             if (!brandingManifestPath)
@@ -200,8 +201,10 @@ class VersionedDocumentationRenderer {
             if (logoDigest != branding.sha256)
                 fail("Branding manifest digest does not match $logoPath")
             write(exactDirectory, logoTarget, logo)
+            faviconTarget = logoTarget
             branding = [manifest: brandingManifestPath, season: branding.season, altText: branding.altText,
-                        approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest]
+                        approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest,
+                        favicon: [sourceAsset: logoPath, outputAsset: faviconTarget, sha256: logoDigest]]
             logoAltText = branding.altText
             if (status == 'pending' && releaseStage == 'final')
                 branding.finalApproval = readFinalBrandingApproval(objectDirectory, revision, finalBrandingApprovalPath, brandingManifestPath)
@@ -229,6 +232,7 @@ class VersionedDocumentationRenderer {
                     notice            : presentation.notice,
                     logoPath          : logoTarget,
                     logoAltText       : logoAltText,
+                    faviconPath       : faviconTarget,
                     repositoryRevision: revision,
                     repositorySourcePath: sourcePath == 'Changelog.md' ? 'CHANGES.md' : "$sourceRoot/$sourcePath",
                     authoringRoot      : sourceRoot)
@@ -477,7 +481,8 @@ class VersionedDocumentationRenderer {
                 statusLabel       : presentation.label,
                 notice            : presentation.notice,
                 logoPath          : logoPath,
-                logoAltText       : logoAltText)
+                logoAltText       : logoAltText,
+                faviconPath       : logoPath)
         write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
     }
 

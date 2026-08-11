@@ -77,6 +77,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'authored labelled Markdown links must resolve to directory URLs')
         assertContains(exactLanding.text, 'href="Gradle-Onboarding/">Gradle Onboarding</a>',
                 'current navigation must use the canonical Gradle Onboarding route and visible label')
+        assertContains(exactLanding.text, 'href="Changelog/">Changelog</a>',
+                'current navigation must expose the rendered Changelog route')
         assertContains(exactLanding.text, 'href="#same-heading"', 'same-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
         assertContains(nestedPage.text, 'href="../../#same-heading">Current documentation</a>',
@@ -95,6 +97,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'authoring-root escapes must become immutable repository-source links')
         assertContains(changelog.text, 'href="../Builder-First-Migration/"',
                 'repository-root changelog links into the authoring tree must become site links')
+        assertTrue(changelog.file, 'the exact tree must render the repository Changelog at its public route')
         assertContains(exactLanding.text, 'id="same-heading-1"', 'duplicate GitHub-compatible heading ids')
         assertContains(exactLanding.text, 'id="überblick"', 'Unicode heading ids')
         assertContains(exactLanding.text, '&lt;unsafe-card&gt;', 'authored raw HTML must be escaped')
@@ -120,7 +123,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, 'commonmark-java-static-html-v1', 'pinned static HTML renderer contract')
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, 'img/klumlogo.png', 'authored assets must be manifest-covered')
         assertTrue(!containsFileEnding(new File(currentOne, '4.0.0-rc.1'), '.md'), 'authored Markdown must not be deployed')
-        assertTrue(new File(currentOne, '4.0.0-rc.1/assets/branding/klumlogo.png').file, 'logo must be local to the exact tree')
+        assertTrue(new File(currentOne, '4.0.0-rc.1/assets/branding/klumlogo.svg').file, 'logo must be local to the exact tree')
+        assertContains(exactLanding.text, '<link rel="icon" type="image/svg+xml" href="assets/branding/klumlogo.svg">',
+                'the manifest-approved local branding asset must be the exact-tree favicon')
+        assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, '"favicon"',
+                'site manifest must record the exact favicon asset')
         assertTrue(new File(currentOne, '4.0.0-rc.1/img/klumlogo.png').file, 'authored local assets must be copied')
         String apiLanding = new File(currentOne, '4.0.0-rc.1/api/index.html').text
         assertContains(apiLanding, 'distinct Javadoc base', 'API landing policy')
@@ -770,6 +777,8 @@ dependencies {
         new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes. See [migration](docs/user/Builder-First-Migration.md).\n'
         byte[] logo = 'fixture-logo'.getBytes(StandardCharsets.UTF_8)
         new File(repository, 'docs/user/img/klumlogo.png').bytes = logo
+        byte[] svgLogo = '<svg xmlns="http://www.w3.org/2000/svg"/>'.getBytes(StandardCharsets.UTF_8)
+        new File(repository, 'docs/user/img/klumlogo.svg').bytes = svgLogo
         new File(repository, 'docs/user/assets/migrate-3x-to-4x-builder-first.sh').with {
             parentFile.mkdirs()
             text = '#!/usr/bin/env bash\n# fixture migration starter\n'
@@ -781,9 +790,9 @@ dependencies {
         new File(repository, 'wiki/_Sidebar.md').text = '* [[Home]]\n* [[Legacy]]\n* [[Changelog]]\n'
         new File(repository, 'docs/branding/season-4-klumast.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
                 season  : 'Season 4: The Makeover',
-                logo    : 'docs/user/img/klumlogo.png',
+                logo    : 'docs/user/img/klumlogo.svg',
                 altText : 'KlumAST logo for Season 4: The Makeover',
-                sha256  : sha256(logo),
+                sha256  : sha256(svgLogo),
                 approval: 'candidate'
         ])) + '\n'
         git(repository, ['add', '.'])
