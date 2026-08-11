@@ -35,6 +35,11 @@ deprecated 4.x aliases; move new code to the canonical `Create.Template` chain. 
 type-qualified occurrences. Run it in a clean, version-controlled schema-module worktree, inspect its diff, then compile
 and finish the checklist.
 
+Code that explicitly named the generated scoped-application type must now use `Foo_DSL.TemplateScope` rather than
+`Foo_DSL.Template`. This intentional 4.0 RC source and binary compatibility break has no alias: recompile schemas and
+typed Java or static Groovy clients after changing the name. `Foo_DSL.Factory.Template` remains the distinct type for
+the literal `Foo.Create.Template` root-creation field.
+
 For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
 and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)

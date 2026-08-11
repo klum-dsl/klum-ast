@@ -43,7 +43,7 @@ contributor(context([:])) {
     String qualifiedName = model.qualifiedName
     if (!qualifiedName) return
 
-    [Create: 'Factory', Template: 'Template'].each { propertyName, contractName ->
+    [Create: 'Factory', Template: 'TemplateScope'].each { propertyName, contractName ->
         def contract = findClass("${qualifiedName}_DSL.${contractName}")
         if (!contract) return
 

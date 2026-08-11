@@ -64,9 +64,13 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   removed. The documented `Foo.Template.Create(...)` and `CreateFrom(...)` calls remain deprecated forwarding aliases
   throughout 4.x. The Builder-first migration helper provides only direct, type-qualified starting rewrites; review its
   diff and complete the migration checklist ([#710](https://github.com/klum-dsl/klum-ast/issues/710)).
+- The scoped Template-application generated type is now `Foo_DSL.TemplateScope`; `Foo.Template` carries that descriptor.
+  `Foo_DSL.Factory.Template` remains the distinct type for the `Foo.Create.Template` root-creation field. Explicitly typed
+  RC clients must rename and recompile; the intentionally removed `Foo_DSL.Template` has no compatibility alias
+  ([#737](https://github.com/klum-dsl/klum-ast/issues/737)).
 - IntelliJ support now materializes the packaged GDSL contributors once in a root-owned, IDE-only directory and registers
   that single physical resource root with every Schema module. After a mirror refresh, it contributes static `Foo.Create`
-  and `Foo.Template` properties as the public `Foo_DSL.Factory` and `Foo_DSL.Template` contracts. Because IntelliJ's
+  and `Foo.Template` properties as the public `Foo_DSL.Factory` and `Foo_DSL.TemplateScope` contracts. Because IntelliJ's
   documented GDSL property helper normalizes those names to lowercase JavaBean properties, 4.0 uses a temporary,
   version-sensitive internal raw-member hook, validated with IntelliJ IDEA 2026.2; [IDEA-392559](https://youtrack.jetbrains.com/issue/IDEA-392559/GDSL-property-cannot-contribute-a-literal-uppercase-static-property-name)
   tracks the supported IntelliJ API needed to replace it. The bridge changes neither bytecode nor read-only runtime

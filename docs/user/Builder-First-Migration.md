@@ -47,7 +47,7 @@ models share a source file or compile from separate source files. (See:
 For same-project IntelliJ source completion, refresh the IDEA-only `Foo_DSL` mirrors through the Schema plugin and reload
 the Gradle project. The refresh materializes one root-owned GDSL resource directory and registers it with every Schema
 module; the packaged contributor then supplies source-level static `Foo.Create` as `Foo_DSL.Factory` and `Foo.Template`
-as `Foo_DSL.Template`, without exposing hidden implementation classes. The capitalized members use the version-sensitive
+as `Foo_DSL.TemplateScope`, without exposing hidden implementation classes. The capitalized members use the version-sensitive
 internal GDSL bridge described in [Gradle Onboarding](Gradle-Onboarding.md#intellij-and-generated-dsl-support); it does
 not add bytecode or independent read-only semantics. This is IDE metadata only: neither the GDSL root nor mirrors become
 compiler, package, or downstream inputs.

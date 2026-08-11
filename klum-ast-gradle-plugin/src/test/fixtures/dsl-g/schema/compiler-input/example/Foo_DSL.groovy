@@ -11,10 +11,16 @@ interface Recipient {
 interface Foo_DSL {
     interface Factory {
         Recipient With(Map<String, ?> values)
+
+        interface Template {
+            Recipient With(Map<String, ?> values)
+        }
+
+        Template Template = null
     }
 
-    interface Template {
-        Recipient Create(Map<String, ?> values)
+    interface TemplateScope {
+        Recipient With(Recipient template, Closure<?> body)
     }
 
     @AnnoDoc('Documentation for Builder')
@@ -27,5 +33,5 @@ interface Foo_DSL {
 
 class Foo {
     public static final Foo_DSL.Factory Create = null
-    public static final Foo_DSL.Template Template = null
+    public static final Foo_DSL.TemplateScope Template = null
 }

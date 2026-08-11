@@ -35,7 +35,7 @@ import java.util.Map;
  * Generated-code linkage for the model-package Template adapters emitted by the DSL transformation.
  *
  * <p>This is not a supported handwritten client API or general extension SPI. Generated schema classes
- * may link this type; their model-package {@code Foo_DSL.Template} contract remains the public API.</p>
+ * may link this type; their model-package {@code Foo_DSL.TemplateScope} contract remains the public API.</p>
  *
  * @param <T> the generated model type
  */

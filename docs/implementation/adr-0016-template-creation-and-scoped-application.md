@@ -1,10 +1,10 @@
 # ADR 0016 implementation plan: Template creation and scoped application
 
-This plan implements proposed [ADR 0016](../adr/0016-template-creation-and-scoped-application.md) for
-[#710](https://github.com/klum-dsl/klum-ast/issues/710). It is a public 4.0 generated-contract change, not a change to
+This plan implements accepted [ADR 0016](../adr/0016-template-creation-and-scoped-application.md) for
+[#710](https://github.com/klum-dsl/klum-ast/issues/710) and its final naming correction [#737](https://github.com/klum-dsl/klum-ast/issues/737). It is a public 4.0 generated-contract change, not a change to
 the Template recipe/materialization protocol in ADR 0004.
 
-## Confirmed current surface and failure path
+## Confirmed #710 starting surface and failure path
 
 | Receiver | Current public members | Current role | Problem |
 | --- | --- | --- | --- |
@@ -17,6 +17,10 @@ creates the namespace/interface and projects factory implementation members to `
 the inherited `Template*` methods, while `BoundTemplateHandler`, `GeneratedTemplateSupport`, and `FactoryHelper` execute
 the current Template creation/application paths. `FactoryHelper.createAsTemplate` is the semantic authority for marked
 Template root construction.
+
+Issue #737 changes only the delivered scoped-application type name: `Foo.Template` is now typed as
+`Foo_DSL.TemplateScope`, and `Foo_DSL.Template` is absent. It does not revisit the #710 root-creation or scoped-behavior
+decisions captured below.
 
 The user documentation mostly teaches `Foo.Template.Create` and `CreateFrom`, but `Model-Phases.md`, `Migration.md`,
 and historical changelog material still contain `Foo.Create.Template` or older spellings. Existing focused behavior is
@@ -48,9 +52,9 @@ ServiceConfiguration_DSL.Factory.Template          : public static final Service
 ServiceConfiguration.Create.Template                : same generated field, selected through the Factory contract
 ServiceConfiguration_DSL.Factory.Template.With(...) : ServiceConfiguration
 ServiceConfiguration_DSL.Factory.Template.From(...) : ServiceConfiguration
-ServiceConfiguration.Template                      : ServiceConfiguration_DSL.Template
-ServiceConfiguration_DSL.Template.With/WithAll     : body result
-ServiceConfiguration_DSL.Template.Create/CreateFrom: deprecated compatibility aliases
+Service.Template                                   : Service_DSL.TemplateScope
+Service_DSL.TemplateScope.With/WithAll             : body result
+Service_DSL.TemplateScope.Create/CreateFrom        : deprecated compatibility aliases
 ```
 
 The Template-creation `With` closure carries `@DelegatesTo(ServiceConfiguration_DSL.Builder)` and
@@ -109,7 +113,7 @@ guidance and the new Template documentary example.
 | Root creation | `klum-ast-runtime`: `KlumFactory`, `FactoryHelper` | Remove public `Template*` root methods from `KlumFactory`; retain the internal/root `createAsTemplate` mechanics. Add or extract a narrow generated-only Template-creation adapter rather than exposing `FactoryHelper`. |
 | Scoped application and aliases | `klum-ast-runtime`: `BoundTemplateHandler`, `GeneratedTemplateSupport` | Keep `With`/`WithAll`; make `Create`/`CreateFrom` deprecated forwarders to the one root creation implementation. Keep no raw `TemplateManager` public seam. |
 | Generated Factory property | `klum-ast`: `TemplateMethods`, factory-generation seam, `GeneratedDslSupport` | Generate a model-specific public static final `Template` field on `Foo_DSL.Factory`, initialized through a generated-only bridge and typed as new nested public `Foo_DSL.Factory.Template`. Do not add a JavaBean getter or hide the field on the implementation. |
-| Existing Template handler | `klum-ast`: `TemplateMethods` | Keep the static `Foo.Template` field and `Foo_DSL.Template` scope methods; retain creation members only as explicitly deprecated aliases. |
+| Existing Template handler | `klum-ast`: `TemplateMethods` | Keep the static `Foo.Template` field and `Foo_DSL.TemplateScope` scope methods; retain creation members only as explicitly deprecated aliases. |
 | Generated linkage | `runtime.generated` under ADR 0015 | If a runtime bridge is needed, keep it generated-only and descriptor-minimal. No schema descriptor names `BoundTemplateHandler`, `FactoryHelper`, or `TemplateManager`. |
 | IDE surfaces | source-mirror task, AnnoDocimal projection, #703 GDSL work | Mirrors must include the static `Factory.Template` field plus `With` and `From` with the real nested type; GDSL must expose the property consistently with bytecode. Do not duplicate the mirror into compilation. |
 | Contract inventory | #468 public inventory | Refresh the generated factory/template row and artifact comparison; classify nested `Factory.Template` as generated hook and aliases as deprecated compatibility members. |
@@ -133,7 +137,7 @@ commit. Do not move scope behavior or unrelated Template semantics in this slice
 
 ### TC-2 — Preserve scoped application and introduce deprecated aliases
 
-Narrow `Foo_DSL.Template` to its application contract in new documentation while retaining `Create` and `CreateFrom` as
+Name the scoped application contract `Foo_DSL.TemplateScope` in new documentation while retaining `Create` and `CreateFrom` as
 deprecated forwarding methods. Ensure the generated adapter, generated-runtime bridge, and abstract-Template path all
 delegate to the same Template root creation mechanism.
 
@@ -185,7 +189,7 @@ retrofit unrelated Template examples beyond the entrypoint spelling.
 | Generated/IDE surface | source-mirror and GDSL tests | source mirror emits both nested public interfaces and correct property; completion does not offer removed Factory methods |
 | Public release surface | #468 inventory fixture | new generated hook classified and no internal generated descriptor leak |
 
-New executable tests carry `@Issue("710")`; the canonical user-facing happy path is marked `@Tag("documentary")` and
+New executable tests carry `@Issue("710")` or `@Issue("737")` according to their contract; the canonical user-facing happy path is marked `@Tag("documentary")` and
 links back to the final Templates page as required by `docs/agents/testing.md`.
 
 ## Risks, rollback, and open choices
@@ -193,12 +197,12 @@ links back to the final Templates page as required by `docs/agents/testing.md`.
 | Risk or question | Control |
 | --- | --- |
 | A Factory method survives through inheritance and shadows the property. | Remove the `KlumFactory.Template*` family before generating the property; assert absence by reflection and negative static compilation. |
-| A nested type or static field collides with `Foo_DSL.Template`. | Use the distinct binary names `Foo_DSL$Factory$Template` and `Foo_DSL$Template`; assert both fields/types in bytecode and mirrors. |
+| A nested type or static field collides with `Foo_DSL.TemplateScope`. | Use the distinct binary names `Foo_DSL$Factory$Template` and `Foo_DSL$TemplateScope`; assert both fields/types in bytecode and mirrors. |
 | Aliases become a permanent second documented route. | Deprecate every creation alias, keep `Foo.Template` application-only in user docs, and prohibit new creation methods on the handler in review. |
 | Moving adapters changes recipe/materialization behavior. | Delegate every route to existing `FactoryHelper.createAsTemplate`; retain ADR 0004 behavioral suite before refactoring implementation. |
 | Generated bridge expands into a handwritten runtime API. | Use only generated-runtime linkage permitted by ADR 0015 and inspect public descriptors/inventory. |
 | GDSL work has not landed when the core contract is ready. | Land bytecode/mirror truth first; coordinate the additive GDSL completion change with #703 rather than creating a parallel completion contract. |
 | A release-candidate adopter depends on `Foo.Create.Template(...)`. | The explicit migration row and compile failure give a mechanical replacement. If release timing makes this unacceptable, defer #710 rather than retaining property/method ambiguity. |
 
-The only maintainer decision still required is whether to accept ADR 0016 for 4.0. With that acceptance, TC-1 through TC-4
-are implementation-authorized in order; no additional product choice is required.
+ADR 0016 was accepted for 4.0, and #710 delivered TC-1 through TC-4. Issue #737 completes the final scoped-application
+type-name correction; no additional product choice is required.
