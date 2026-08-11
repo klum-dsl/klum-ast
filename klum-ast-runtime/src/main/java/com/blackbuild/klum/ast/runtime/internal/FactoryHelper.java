@@ -344,7 +344,8 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>    The type to create
      * @return The created instance
      */
-    public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
+    public static <T> T create(Class<T> type, @Nullable Map<String, ?> values, @Nullable String key,
+                                @Nullable Closure<?> body) {
         return doCreate(key, () -> createBuilder(type, key), builder -> builder.applyOnly(values, body));
     }
 
@@ -367,7 +368,8 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, URL src, Function<URL, String> keyProvider, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, URL src, @Nullable Function<URL, String> keyProvider,
+                                   @Nullable ClassLoader loader) {
         BreadcrumbCollector.getInstance().setType("url").setQualifier(src.toString());
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromUrl;
@@ -388,7 +390,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, @Nullable String name, String text, @Nullable ClassLoader loader) {
 
         return BreadcrumbCollector.withBreadcrumb(null, "text", name, () -> doCreateFromText(type, name, text, loader));
     }
@@ -420,7 +422,8 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, File file, Function<File, String> keyProvider, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, File file, @Nullable Function<File, String> keyProvider,
+                                   @Nullable ClassLoader loader) {
         BreadcrumbCollector.getInstance().setType("file").setQualifier(file.getPath());
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromFile;
