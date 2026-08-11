@@ -348,8 +348,9 @@ public class FactoryHelper extends GroovyObjectSupport {
         return doCreate(key, () -> createBuilder(type, key), builder -> builder.applyOnly(values, body));
     }
 
-    public static <T> InternalKlumBuilder<T> createAsBuilder(Class<T> type, Map<String, ?> values, String key, Closure<?> body,
-                                                     String operation) {
+    public static <T> InternalKlumBuilder<T> createAsBuilder(Class<T> type, @Nullable Map<String, ?> values,
+                                                             @Nullable String key, @Nullable Closure<?> body,
+                                                             String operation) {
         boolean template = TemplateManager.isDefiningTemplate();
         if (!template)
             PhaseDriver.requireActiveConstructionSession();
