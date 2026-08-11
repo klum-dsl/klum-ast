@@ -311,7 +311,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return (T) result;
     }
 
-    private static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
+    private static <T> T createFromDelegatingScript(Class<T> type, @Nullable String key, DelegatingScript script) {
         Consumer<InternalKlumBuilder<T>> apply = builder -> {
             script.setDelegate(builder);
             script.run();
@@ -403,7 +403,7 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     @NotNull
-    private static GroovyShell createGroovyShell(ClassLoader loader) {
+    private static GroovyShell createGroovyShell(@Nullable ClassLoader loader) {
         GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
         compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
