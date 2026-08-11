@@ -72,6 +72,43 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         !template.postCreateCalled
     }
 
+    @Issue("731")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#nested-builder-composition")
+    def "defines a Template through a fluent child converter"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+            }
+
+            @DSL
+            class Child {
+                String value
+
+                static Child fromString(String value) {
+                    Child.Create.With(value: value)
+                }
+            }
+        '''
+
+        when:
+        def template = clazz.Create.Template.With {
+            child 'template-child'
+        }
+        def registry
+        clazz.Template.With(template) {
+            registry = clazz.Create.One()
+        }
+
+        then:
+        template.child.value == 'template-child'
+        registry.child.value == 'template-child'
+        !registry.child.is(template.child)
+    }
+
     @Issue("710")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#creating-templates")
     def "creates a template from a DelegatingScript file"() {

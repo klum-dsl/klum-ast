@@ -44,6 +44,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Template definition now forms a separate nested Builder-composition scope. Generated converter twins create
+  Template-owned children while defining `Create.Template.With` or `From`, including inside an active root Construction
+  session; no nested lifecycle or session attachment occurs, and ordinary `Create.AsBuilder` behavior resumes when the
+  Template scope exits ([#731](https://github.com/klum-dsl/klum-ast/issues/731)).
 - Public `Foo_DSL.Builder` contracts and their IDEA-only AnnoDocimal mirrors now explicitly expose supported generated
   relationship-creator overloads that omit the optional trailing configuration closure. This is an additive 4.0 API
   correction; existing lifecycle, relationship, Factory, and source-DSL behavior is unchanged ([#719](https://github.com/klum-dsl/klum-ast/issues/719)).

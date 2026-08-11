@@ -50,6 +50,19 @@ as composition at one relationship entry, while an already claimed Builder or co
 Aggregation-only `LINK` rejects fresh Builders. The distinction is per single value, collection element, or map value;
 an optional collection or map may therefore mix owned and aggregation targets.
 
+### Give Template definition a separate composition scope
+
+`Create.Template.With` and `Create.Template.From` establish a lexical Template-definition scope while they configure and
+materialize their Template graph. Within that scope, `Create.AsBuilder` creates a Template-mode owned child Builder;
+it does not attach to a Construction session, register with `PhaseDriver`, or run `PostCreate`, `PostApply`, graph
+phases, Materialization, or validation independently. Every such child carries Template identity when its graph is
+materialized.
+
+Template definition has precedence over an active Construction session. After the lexical scope exits, including by an
+exception, the original session remains current and normal `Create.AsBuilder` behavior resumes. Nested definition scopes
+are stack-safe. Scoped recipe application through `Template.With` or `Template.WithAll` does not establish this
+composition scope. Outside both scopes, `Create.AsBuilder` keeps its existing rejection.
+
 ### Project adaptable factory methods into Builder-producing methods
 
 Collection and Cluster factories call Builder-producing implementations and return the created Builder. Factory methods
@@ -133,6 +146,8 @@ boundary, not the general past/current-phase guard tracked by #281.
 - Root factories retain completed-model signatures and behavior.
 - Public generated APIs advertise only adaptable composition methods.
 - Source converters retain direct-call behavior while generated twins provide truthful Builder results.
+- Template definition can use those generated twins without creating a nested lifecycle or contaminating the enclosing
+  Construction session.
 - Template recipes have persistent identity without contaminating ordinary completed models.
 - Existing use of completed models as value-only copy sources remains valid.
 - Opaque nested materializing programs and late `applyLater` scheduling are explicit compatibility breaks.

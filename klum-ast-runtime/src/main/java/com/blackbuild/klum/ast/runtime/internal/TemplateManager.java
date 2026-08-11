@@ -29,6 +29,7 @@ import groovy.lang.Closure;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
@@ -44,6 +45,7 @@ import static java.util.stream.Collectors.toMap;
 public class TemplateManager {
 
     private static final ThreadLocal<TemplateManager> INSTANCE = new ThreadLocal<>();
+    private static final ThreadLocal<Integer> TEMPLATE_DEFINITION_DEPTH = new ThreadLocal<>();
 
     /**
      * Returns the current instance of the TemplateManager.
@@ -59,6 +61,28 @@ public class TemplateManager {
 
     private TemplateManager() {
         // Thread local singleton
+    }
+
+    /**
+     * Executes Template creation while allowing nested Builder-producing composition to create Template Builders.
+     * Template definition is intentionally separate from scoped Template application and Construction sessions.
+     */
+    static <T> T withTemplateDefinition(Supplier<T> action) {
+        Integer depth = TEMPLATE_DEFINITION_DEPTH.get();
+        TEMPLATE_DEFINITION_DEPTH.set(depth == null ? 1 : depth + 1);
+        try {
+            return action.get();
+        } finally {
+            if (depth == null)
+                TEMPLATE_DEFINITION_DEPTH.remove();
+            else
+                TEMPLATE_DEFINITION_DEPTH.set(depth);
+        }
+    }
+
+    /** Returns whether the current thread is defining a Template graph. */
+    static boolean isDefiningTemplate() {
+        return TEMPLATE_DEFINITION_DEPTH.get() != null;
     }
 
     /**
