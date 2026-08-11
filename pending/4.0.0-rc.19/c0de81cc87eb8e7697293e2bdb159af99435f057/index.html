@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KlumAST — KlumAST 4.0.0-rc.19</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="./"><img src="assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.19 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="./">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="Basics/">Basics</a></li>
+<li><a rel="nofollow" href="Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="Usage/">Usage</a></li>
+<li><a rel="nofollow" href="Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="Templates/">Templates</a></li>
+<li><a rel="nofollow" href="Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="Validation/">Validation</a></li>
+<li><a rel="nofollow" href="Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="Converters/">Converters</a></li>
+<li><a rel="nofollow" href="Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="Migration/">Migration</a></li>
+<li><a rel="nofollow" href="Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="./">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="Basics/">Basics</a></li>
+<li><a rel="nofollow" href="Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="Usage/">Usage</a></li>
+<li><a rel="nofollow" href="Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="Templates/">Templates</a></li>
+<li><a rel="nofollow" href="Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="Validation/">Validation</a></li>
+<li><a rel="nofollow" href="Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="Converters/">Converters</a></li>
+<li><a rel="nofollow" href="Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="Migration/">Migration</a></li>
+<li><a rel="nofollow" href="Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="status/">Version status</a>.</aside>
+      <h1 id="klumast">KlumAST</h1>
+<picture class="season-lockup">
+  <source media="(max-width: 1000px)" srcset="img/season-4/klumast-season-4-documentation-compact.svg">
+  <img src="img/season-4/klumast-season-4-documentation.svg" alt="KlumAST visual lockup: a stylised fashion figure steps through a luminous portal onto a diagonal catwalk, beside the KlumAST wordmark and 4.0 release identity.">
+</picture>
+<h2 id="what-is-klumast">What is KlumAST?</h2>
+<p>KlumAST turns annotated model classes into concise, statically checked Groovy DSLs. It is designed for a
+Schema Developer to describe a model once, a Model Writer to configure it through a readable DSL, and client code to
+consume the completed model without generated mutation methods.</p>
+<p>The <a rel="nofollow" href="Terms/">Terms and role guide</a> defines the core terms — especially Schema and Model — along with these responsibilities
+and the value kinds used throughout the documentation.</p>
+<h2 id="why-models-as-code">Why models as code?</h2>
+<p>A useful model-as-code approach should be easy to author, clear to change, and safe to verify:</p>
+<ul>
+<li><strong>Automate model construction.</strong> Generated Builders, factories, and DSL mutators remove repetitive implementation work
+while retaining statically checked Groovy source.</li>
+<li><strong>Support the authoring experience.</strong> Generated Builder documentation and IDE mirrors make the model's construction
+surface discoverable without hand-maintained DSL stubs.</li>
+<li><strong>Validate and test the actual model.</strong> A Schema can declare its own constraints, and each generated root factory runs
+validation as it materializes a completed model. Model-specific scenarios are ordinary unit tests: construct the model,
+assert its completed state or validation result, and run the same tests locally and in a pull-request build. They
+complement, rather than replace, integration tests against the eventual target.</li>
+</ul>
+<p>Typical validation output names the rule that emitted it:</p>
+<pre><code class="language-text">- ERROR #ConnectivityChecks.portMustBeInRange(): port must be between 1 and 65535
+</code></pre>
+<p>Construction paths retain the source context, which is especially useful when a model is split across scripts. For
+example, an illustrative failure from <code>models/production.groovy</code> could read:</p>
+<pre><code class="language-text">&lt;root&gt;.service($/Deployment.From:file(models/production.groovy)/service):
+- ERROR #port: Field 'port' must be set
+</code></pre>
+<p>Generated factories configure a mutable Builder graph and return completed, structurally immutable DSL Objects. Lifecycle
+work through <code>POST_TREE</code> runs on Builders; materialization happens before validation. See <a rel="nofollow" href="Basics/">Basics</a>, <a rel="nofollow" href="Model-Phases/">Model Phases</a>, and
+the <a rel="nofollow" href="Builder-First-Migration/">Builder First Migration</a> guide. <a rel="nofollow" href="Exception-Handling/">Construction paths</a> describe model-source locations in detail.</p>
+<p>These capabilities make KlumAST especially useful for GitOps and other <em>*aC</em> (anything-as-code) workflows. Git can record a
+configuration's structure, but a checked-in structure is not necessarily a verified model. Read
+<a rel="nofollow" href="Why-aC-is-not-enough/">why <em>*aC</em> needs model-level tests</a> before treating configuration in Git as the end of the story.</p>
+<h2 id="example">Example</h2>
+<p>Given the following config classes:</p>
+<pre><code class="language-groovy">@DSL
+class Config {
+    Map&lt;String, Project&gt; projects
+    boolean debugMode
+    List&lt;String&gt; options
+}
+
+@DSL
+class Project {
+    @Key String name
+    String url
+    MavenConfig mvn
+}
+
+@DSL
+class MavenConfig {
+    List&lt;String&gt; goals
+    List&lt;String&gt; profiles
+    List&lt;String&gt; cliOptions
+}
+</code></pre>
+<p>A config object can be created with the following dsl:</p>
+<pre><code class="language-groovy">def github = &quot;http://github.com&quot;
+
+
+def config = Config.Create.With {
+
+    debugMode true
+    
+    options &quot;demo&quot;, &quot;fast&quot;
+    option &quot;another&quot;
+    
+    projects {
+        project(&quot;demo&quot;) {
+            url &quot;$github/x/y&quot;
+            
+            mvn {
+                goals &quot;clean&quot;, &quot;compile&quot;
+                profile &quot;ci&quot;
+                profile &quot;!developer&quot;
+                
+                cliOptions &quot;-X -pl :abc&quot;.split(&quot; &quot;)
+            }
+        }
+        project(&quot;demo2&quot;) {
+            url &quot;$github/a/b&quot;
+            
+            mvn {
+                goals &quot;compile&quot;
+                profile &quot;ci&quot;
+            }
+        }
+    }
+}
+</code></pre>
+<p>The <code>projects</code> closure is optional syntactic sugar; <code>project</code> entries can also appear directly in the <code>Config</code> callback.</p>
+<p>Since complete objects are created, using the configuration is simple:</p>
+<pre><code class="language-groovy">if (config.debugMode) println &quot;Debug mode is active!&quot;
+
+config.projects.each { name, project -&gt;
+    println &quot;Running $name with '${project.mvn.goals.join(' ')}'&quot;
+}
+
+def projectsWithoutClean = config.projects.findAll { !it.value.mvn.goals.contains(&quot;clean&quot;)}.values()
+
+if (projectsWithoutClean) {
+    println &quot;WARNING: The following projects do not clean before build:&quot;
+    projectsWithoutClean.each {
+        println it    
+    }
+}
+</code></pre>
+<p>For the recommended 4.0 Gradle setup and generated-source-mirror workflow, start with <a rel="nofollow" href="Gradle-Onboarding/">Gradle Onboarding</a>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
