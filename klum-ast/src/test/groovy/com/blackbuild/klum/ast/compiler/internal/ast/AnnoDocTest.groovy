@@ -271,6 +271,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 @return The instantiated object."""
     }
 
+    @Issue(['197', '728'])
     def "annodoc for collection methods"() {
         when:
         createClass("dummy/Foo.groovy", '''
@@ -297,7 +298,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 @param values the optional parameters
 @param closure the closure to configure the new element
 @return the newly created Builder""" // closures has a default value, so during ast it is a single method
-        builderImplementationMethodDoc("bars", getArrayClass("dummy.Bar\$Builder")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
+        builderImplementationMethodDoc("bars", getArrayClass("dummy.Bar_DSL\$Builder")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 
 @param values the elements to add"""
         builderImplementationMethodDoc("bars", Iterable) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.

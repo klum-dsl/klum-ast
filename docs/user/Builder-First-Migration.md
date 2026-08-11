@@ -39,9 +39,10 @@ use this guide for Builder-first diagnostics:
 
 ### Public Builder Contracts
 
-Generated accessors always expose `Foo_DSL.Builder<Foo>`, never the hidden `Foo$Builder` implementation. This also
-applies when two source files compile together and an `@Owner(root = true)` target has not yet been resolved. (See:
-`GeneratedDslSupportSpec#'projects an unresolved cross-source owner Builder into the public namespace'`.)
+Generated accessors and relationship creators always expose `Foo_DSL.Builder<Foo>`, never the hidden `Foo$Builder`
+implementation. This also applies when a forward relationship target is unresolved during transformation, whether the
+models share a source file or compile from separate source files. (See:
+`GeneratedDslSupportSpec#'projects same-source forward relationship Builders into the public namespace'`.)
 
 For same-project IntelliJ source completion, refresh the IDEA-only `Foo_DSL` mirrors through the Schema plugin and reload
 the Gradle project. The refresh materializes one root-owned GDSL resource directory and registers it with every Schema
@@ -52,18 +53,17 @@ not add bytecode or independent read-only semantics. This is IDE metadata only: 
 compiler, package, or downstream inputs.
 
 ```groovy
-// Child.groovy
+// Schema.groovy
 @DSL
-class Child {
-    @Owner(root = true) Root root
+class Parent {
+    Child child
 }
 
-// Root.groovy
 @DSL
-class Root {}
+class Child {}
 ```
 
-In generated signatures and IDE source mirrors, `Child_DSL.Builder` uses `Root_DSL.Builder<Root>` for `root`.
+In generated signatures and IDE source mirrors, `Parent_DSL.Builder` uses `Child_DSL.Builder<Child>` for `child`.
 
 #### Relationship creator overloads
 

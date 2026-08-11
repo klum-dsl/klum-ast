@@ -78,7 +78,8 @@ class BuilderFieldGenericTypeTest extends AbstractDSLSpec {
         getClass('pk.Subscription$Builder').getMethod('getCustomers').genericReturnType.typeName == 'java.util.List<java.lang.String>'
     }
 
-    def "relationship collection getters retain generated Builder element types"() {
+    @Issue(['646', '728'])
+    def "relationship collection getters retain generated public Builder element types"() {
         given:
         createClass '''
             package pk
@@ -96,6 +97,6 @@ class BuilderFieldGenericTypeTest extends AbstractDSLSpec {
 
         expect:
         getClass('pk.Order_DSL$Builder').getMethod('getItems').genericReturnType.typeName ==
-                'java.util.List<pk.LineItem$Builder>'
+                'java.util.List<pk.LineItem_DSL$Builder<pk.LineItem>>'
     }
 }

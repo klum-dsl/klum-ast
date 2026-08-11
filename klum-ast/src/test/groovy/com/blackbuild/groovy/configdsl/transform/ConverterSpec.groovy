@@ -322,6 +322,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
+    @Issue(['148', '728'])
     def "converter factory for keyed dsl list"() {
         when:
         createClass '''
@@ -340,7 +341,7 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        builderClass.getMethod("bar", getBuilderClass("Bar"))
+        builderClass.getMethod("bar", getClass("Bar_DSL\$Builder"))
         builderClass.getMethod("bar", String, long)
 
         when:
@@ -352,6 +353,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bars.first().birthday.time == 123L
     }
 
+    @Issue(['148', '728'])
     def "converter factory for keyed dsl map"() {
         when:
         createClass '''
@@ -370,7 +372,7 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        builderClass.getMethod("bar", getBuilderClass("Bar"))
+        builderClass.getMethod("bar", getClass("Bar_DSL\$Builder"))
         builderClass.getMethod("bar", String, long)
 
         when:
@@ -570,7 +572,7 @@ class Other<E> {
         noExceptionThrown()
     }
 
-    @Issue(["300", "319"])
+    @Issue(["300", "319", "728"])
     def "methods of the factory are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.runtime.KlumFactory
@@ -599,7 +601,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getBuilderClass('Bar'))
+        hasMethod(barsFactory, 'bar', getClass('Bar_DSL$Builder'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', Duration)
         hasMethod(barsFactory, 'WithAges', Duration[])
@@ -628,7 +630,7 @@ import java.time.Duration
         instance.bars.size() == 2
     }
 
-    @Issue(["300", "319"])
+    @Issue(["300", "319", "728"])
     def "methods of the factory are included in collection factories for maps"() {
         when:
         createClass '''import com.blackbuild.klum.ast.runtime.KlumFactory
@@ -658,7 +660,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getBuilderClass('Bar'))
+        hasMethod(barsFactory, 'bar', getClass('Bar_DSL$Builder'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', String, Duration)
         hasMethod(barsFactory, 'WithAges', Map)

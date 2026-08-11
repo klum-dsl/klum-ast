@@ -128,13 +128,13 @@ public class DslAstHelper {
     }
 
     /**
-     * Returns a Builder type for a field that may be projected into another source's public contract.
-     * Cross-source unresolved placeholders have no {@linkplain ClassNode#getOuterClass() outer class}, so retain
-     * their model identity explicitly for {@link GeneratedDslSupport#publicType(ClassNode)}.
+     * Returns a Builder type for a field whose owner contributes to a public contract projection.
+     * Unresolved placeholders have no {@linkplain ClassNode#getOuterClass() outer class}, so retain their model
+     * identity explicitly for {@link GeneratedDslSupport#publicType(ClassNode)}.
      */
     public static ClassNode getBuilderClassOf(ClassNode classNode, ClassNode projectionConsumer) {
         ClassNode result = getBuilderClassOf(classNode);
-        if (result != null && !classNode.isResolved() && classNode.getModule() != projectionConsumer.getModule()
+        if (projectionConsumer != null && result != null && !classNode.isResolved()
                 && result.redirect().getNodeMetaData(MODEL_CLASS_METADATA_KEY) == null)
             result.redirect().setNodeMetaData(MODEL_CLASS_METADATA_KEY, classNode.redirect());
         return result;
