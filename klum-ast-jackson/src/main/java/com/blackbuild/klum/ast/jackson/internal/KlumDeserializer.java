@@ -205,7 +205,7 @@ public final class KlumDeserializer extends StdDeserializer<Object> implements C
     private Object replay(ObjectNode configuration, JsonParser source, DeserializationContext context) {
         ResolvedProperties properties = resolveProperties(modelType, context);
         String key = resolveKey(modelType, configuration, null, properties);
-        ReplaySession replaySession = new ReplaySession(source, context);
+        ReplaySession replaySession = new ReplaySession(source, context, false);
         return PhaseDriver.withBuilderLifecycle(
                 () -> FactoryHelper.createBuilder(modelType, key),
                 builder -> replaySession.replay(builder, configuration, properties, true)
@@ -213,8 +213,10 @@ public final class KlumDeserializer extends StdDeserializer<Object> implements C
     }
 
     private Object replayTemplate(ObjectNode configuration, JsonParser source, DeserializationContext context) {
-        InternalKlumBuilder<?> builder = internalBuilder(FactoryHelper.createTemplateBuilderForImport(modelType));
-        return replayInto(builder, configuration, source, context, true);
+        return FactoryHelper.withTemplateDefinition(() -> {
+            InternalKlumBuilder<?> builder = internalBuilder(FactoryHelper.createTemplateBuilderForImport(modelType));
+            return replayInto(builder, configuration, source, context, true);
+        });
     }
 
     private Object replayInto(InternalKlumBuilder<?> builder, ObjectNode configuration, JsonParser source,
@@ -227,7 +229,7 @@ public final class KlumDeserializer extends StdDeserializer<Object> implements C
         if (builder == null)
             throw new KlumModelException("Managed Jackson import did not receive a Builder target");
         ResolvedProperties properties = resolveProperties(modelType, context);
-        ReplaySession replaySession = new ReplaySession(source, context);
+        ReplaySession replaySession = new ReplaySession(source, context, template);
         replaySession.replay(builder, configuration, properties, !template);
         return template ? InternalKlumBuilder.materializeTemplateForImport(builder) : builder;
     }
@@ -447,12 +449,14 @@ public final class KlumDeserializer extends StdDeserializer<Object> implements C
     private final class ReplaySession {
         private final JsonParser source;
         private final DeserializationContext context;
+        private final boolean template;
         private final List<PendingBuilder> pendingBuilders = new ArrayList<>();
         private final Map<ObjectNode, PendingBuilder> buildersByConfiguration = new IdentityHashMap<>();
 
-        private ReplaySession(JsonParser source, DeserializationContext context) {
+        private ReplaySession(JsonParser source, DeserializationContext context, boolean template) {
             this.source = source;
             this.context = context;
+            this.template = template;
         }
 
         private void replay(InternalKlumBuilder<?> root, ObjectNode configuration, ResolvedProperties properties,
@@ -593,7 +597,9 @@ public final class KlumDeserializer extends StdDeserializer<Object> implements C
                 throws IOException {
             ResolvedProperties properties = resolveProperties(childType, context);
             String key = resolveKey(childType, object, keyHint, properties);
-            InternalKlumBuilder<?> child = FactoryHelper.createBuilder(childType, key);
+            InternalKlumBuilder<?> child = internalBuilder(template
+                    ? FactoryHelper.createTemplateBuilderForImport(childType, key)
+                    : FactoryHelper.createBuilder(childType, key));
             addBuilder(child, object, properties);
             return child;
         }

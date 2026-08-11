@@ -58,6 +58,42 @@ and `Template.CreateFrom` still forward to the canonical creation operations, bu
 def template = ServiceConfiguration.Create.Template.From(new File('service-template.groovy'))
 ```
 
+## Nested Builder composition
+
+Defining a Template is its own nested composition scope. A source-visible converter may therefore use a normal
+`Child.Create.With(...)` implementation while the generated Builder converter twin creates a Template-owned child.
+Those children carry Template identity and run no lifecycle or validation until the Template is rehydrated into an
+ordinary root creation. This scope takes precedence when a Template is defined inside an active Construction session;
+after it exits, ordinary `Create.AsBuilder` calls continue in that original session. `Template.With` and
+`Template.WithAll` only apply recipes and do not open Template-definition composition.
+
+(See: `TemplatesDocumentaryTest#'defines a Template through a fluent child converter'`.)
+
+```groovy
+@DSL
+class Parent {
+    Child child
+}
+
+@DSL
+class Child {
+    String value
+
+    static Child fromString(String value) {
+        Child.Create.With(value: value)
+    }
+}
+
+def template = Parent.Create.Template.With {
+    child 'template-child'
+}
+
+Parent.Template.With(template) {
+    def registry = Parent.Create.One()
+    assert registry.child.value == 'template-child'
+}
+```
+
 There are currently four options to apply templates; all examples use the following class and template:
 
 ```groovy

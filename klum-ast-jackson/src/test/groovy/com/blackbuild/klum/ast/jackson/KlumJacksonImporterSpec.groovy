@@ -95,6 +95,34 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         TemplateManager.isTemplate(imported)
     }
 
+    @Issue("731")
+    def "readTemplate imports nested values as Template-owned children"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+            }
+
+            @DSL
+            class Child {
+                String value
+            }
+        ''')
+        def mapper = new ObjectMapper().findAndRegisterModules()
+
+        when:
+        def template = KlumJacksonImporter.using(mapper).readTemplate(clazz,
+                KlumJacksonInput.map([child: [value: 'imported-child']]))
+
+        then:
+        template.child.value == 'imported-child'
+        TemplateManager.isTemplate(template)
+        TemplateManager.isTemplate(template.child)
+    }
+
     def "the importer requires a caller-configured Klum module without mutating the mapper"() {
         given:
         createClass('''
