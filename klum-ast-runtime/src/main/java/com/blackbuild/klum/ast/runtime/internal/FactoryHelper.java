@@ -323,7 +323,8 @@ public class FactoryHelper extends GroovyObjectSupport {
             return doCreate(null, () -> createBuilder(type, null), apply);
     }
 
-    private static <T> T doCreate(String key, Supplier<? extends InternalKlumBuilder<T>> createBuilder, Consumer<InternalKlumBuilder<T>> apply) {
+    private static <T> T doCreate(@Nullable String key, Supplier<? extends InternalKlumBuilder<T>> createBuilder,
+                                  Consumer<InternalKlumBuilder<T>> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
                 () -> PhaseDriver.withBuilderLifecycle(createBuilder, builder -> prepareBuilder(builder, false, apply))
         );
@@ -395,7 +396,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return BreadcrumbCollector.withBreadcrumb(null, "text", name, () -> doCreateFromText(type, name, text, loader));
     }
 
-    private static <T> T doCreateFromText(Class<T> type, String name, String text, ClassLoader loader) {
+    private static <T> T doCreateFromText(Class<T> type, @Nullable String name, String text, @Nullable ClassLoader loader) {
         GroovyShell shell = createGroovyShell(loader);
         Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
         return createFromDelegatingScript(type, name, (DelegatingScript) parse);
