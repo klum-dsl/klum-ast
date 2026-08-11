@@ -38,6 +38,7 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,7 +83,8 @@ public class FactoryHelper extends GroovyObjectSupport {
         return createBuilder(type, key, breadcrumbPathExtension, false);
     }
 
-    private static <T> InternalKlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension, boolean template) {
+    private static <T> InternalKlumBuilder<T> createBuilder(Class<T> type, String key,
+                                                            @Nullable String breadcrumbPathExtension, boolean template) {
         if (!template && !DslHelper.isInstantiable(type))
             throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         try {
@@ -461,8 +463,8 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
-        return BreadcrumbCollector.withBreadcrumb(() -> {
-            return withTemplateDefinition(() -> {
+        return BreadcrumbCollector.withBreadcrumb(() ->
+            withTemplateDefinition(() -> {
                 InternalKlumBuilder<T> builder = createTemplateBuilder(type);
                 builder.copyFromTemplate();
 
@@ -470,8 +472,8 @@ public class FactoryHelper extends GroovyObjectSupport {
                 script.setDelegate(builder);
                 script.run();
                 return (T) InternalKlumBuilder.materializeGraph(builder);
-            });
-        });
+            })
+        );
     }
 
     /**
@@ -504,19 +506,19 @@ public class FactoryHelper extends GroovyObjectSupport {
      *
      * @param type    The type to create
      * @param values  The value map to apply
-     * @param closure The config closure to apply
+     * @param closure The optional config closure to apply
      * @param <T>     The type to create
      * @return The created instance
      */
-    public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, Closure<?> closure) {
-        return BreadcrumbCollector.withBreadcrumb(() -> {
-            return withTemplateDefinition(() -> {
+    public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, @Nullable Closure<?> closure) {
+        return BreadcrumbCollector.withBreadcrumb(() ->
+            withTemplateDefinition(() -> {
                 InternalKlumBuilder<T> builder = createTemplateBuilder(type);
                 builder.copyFromTemplate();
                 builder.applyOnly(values, closure);
                 return (T) InternalKlumBuilder.materializeGraph(builder);
-            });
-        });
+            })
+        );
     }
 
     private static String extractKeyFromUrl(URL url) {
