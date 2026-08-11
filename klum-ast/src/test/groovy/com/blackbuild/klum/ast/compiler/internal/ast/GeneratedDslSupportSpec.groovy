@@ -807,13 +807,17 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         dynamicWithoutClosure.returnType == dynamicWithClosure.returnType
         factoryWithoutClosure.genericReturnType.typeName == 'B'
         factoryWithoutClosure.typeParameters*.bounds*.typeName == factoryWithClosure.typeParameters*.bounds*.typeName
-        factoryWithoutClosure.getAnnotation(AnnoDoc).value() == factoryWithClosure.getAnnotation(AnnoDoc).value()
+        factoryWithoutClosure.getAnnotation(AnnoDoc).value().contains('@param factory')
+        !factoryWithoutClosure.getAnnotation(AnnoDoc).value().contains('@param closure')
+        factoryWithClosure.getAnnotation(AnnoDoc).value().contains('@param closure')
         factoryWithoutClosure.parameters[1].isAnnotationPresent(DelegatesTo.Target)
         Modifier.isPublic(factoryWithoutClosure.modifiers)
         !factoryWithoutClosure.isAnnotationPresent(Deprecated)
         deprecatedWithoutClosure.isAnnotationPresent(Deprecated)
         deprecatedWithClosure.isAnnotationPresent(Deprecated)
-        deprecatedWithoutClosure.getAnnotation(AnnoDoc).value() == deprecatedWithClosure.getAnnotation(AnnoDoc).value()
+        deprecatedWithoutClosure.getAnnotation(AnnoDoc).value().contains('@deprecated')
+        !deprecatedWithoutClosure.getAnnotation(AnnoDoc).value().contains('@param closure')
+        deprecatedWithClosure.getAnnotation(AnnoDoc).value().contains('@param closure')
         keyedNoClosureMethods.any { it.parameterTypes.contains(String) }
         keyedNoClosureMethods.any { it.parameterTypes.contains(Class) }
         keyedNoClosureMethods.any { it.parameterTypes.contains(BuilderFactoryProvider) && it.genericReturnType.typeName == 'B' }
@@ -912,6 +916,88 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         mirror.contains('The generated DSL support namespace for sample.Foo.')
         mirror.contains('Creates a new')
         getClass('sample.Foo_DSL$Builder').getAnnotation(AnnoDoc).value().contains('public Builder contract')
+    }
+
+    @Issue('736')
+    def "generated public methods and their source mirror retain meaningful AnnoDoc"() {
+        given: 'a neutral product schema exercises direct and simple collection operations'
+        createSecondaryClass('''
+            package documentation
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+
+            @DSL class Product {
+                Child primaryChild
+                List<Child> children
+                Map<String, Child> childrenByName
+                List<String> labels
+                Map<String, String> metadata
+            }
+
+            @DSL class Child {
+                @Key String name
+            }
+        ''', 'documentation/Product.groovy')
+        Class<?> product = getClass('documentation.Product')
+        Class<?> builder = getClass('documentation.Product_DSL$Builder')
+        Class<?> factoryTemplate = getClass('documentation.Product_DSL$Factory$Template')
+        Class<?> scopedTemplate = getClass('documentation.Product_DSL$Template')
+
+        when: 'representative bytecode contract methods are inspected'
+        List<Method> directRelationshipCreators = [
+                builder.getMethod('primaryChild', Map, String, Closure),
+                builder.getMethod('primaryChild', Map, String),
+                builder.getMethod('children', Map, String, Closure),
+                builder.getMethod('children', Map, String),
+                builder.getMethod('childrenByName', Map, String, Closure),
+                builder.getMethod('childrenByName', Map, String)
+        ]
+        List<Method> templateCreation = [
+                factoryTemplate.getMethod('With', Map, Closure),
+                factoryTemplate.getMethod('From', File, ClassLoader)
+        ]
+        List<Method> scopedApplication = [
+                scopedTemplate.getMethod('With', product, Closure),
+                scopedTemplate.getMethod('WithAll', Map, Closure),
+                scopedTemplate.getMethod('WithAll', List, Closure)
+        ]
+        List<Method> applyLater = builder.declaredMethods.findAll { it.name == 'applyLater' }
+        List<Method> simpleMapAdders = [
+                builder.getMethod('metadata', Map),
+                builder.getMethod('metadata', String, String)
+        ]
+        List<Method> simpleCollectionAdders = [
+                builder.getMethod('label', String)
+        ]
+        List<Method> documentedMethods = directRelationshipCreators + templateCreation + scopedApplication + applyLater + simpleCollectionAdders + simpleMapAdders
+
+        then: 'every supported generated public method carries an informative contract with parameter documentation'
+        List<Method> insufficientDocumentation = (documentedMethods - simpleCollectionAdders).findAll { Method method ->
+            AnnoDoc documentation = method.getAnnotation(AnnoDoc)
+            documentation == null || !documentation.value().contains('@param') || documentation.value().size() <= 80
+        }
+        assert insufficientDocumentation.empty
+        directRelationshipCreators.every { it.getAnnotation(AnnoDoc).value().contains('Creates a new') }
+        templateCreation.every { it.getAnnotation(AnnoDoc).value().contains('Template') }
+        scopedApplication.every { it.getAnnotation(AnnoDoc).value().contains('Template') }
+        applyLater.size() == 3
+        applyLater.every { it.getAnnotation(AnnoDoc).value().contains('Schedules') }
+        applyLater.find { it.parameterCount == 2 }.getAnnotation(AnnoDoc).value().contains('@param phase')
+        simpleCollectionAdders.every { it.getAnnotation(AnnoDoc).value().with {
+            contains('Adds') && contains('@param value') && contains('@return the added value')
+        } }
+        simpleMapAdders.every { it.getAnnotation(AnnoDoc).value().contains('Adds') }
+
+        and: 'AnnoDocimal exposes the same public documentation in the IDE-only source mirror'
+        File mirrorRoot = new File(tempFolder.root, 'issue-736-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'documentation/Product_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        String mirror = new File(mirrorRoot, 'documentation/Product_DSL.java').text
+
+        documentedMethods.collect { it.getAnnotation(AnnoDoc).value().split('\\n\\n').first() }.toSet().every { mirror.contains(it) }
+        mirror.contains('@param value The value to add')
+        mirror.contains('@return the added value')
     }
 
     @Issue('702')

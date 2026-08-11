@@ -259,8 +259,9 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 if (!deprecatedAnnotations.isEmpty())
                     method.addAnnotation(deprecatedAnnotations.get(0));
             }
+            if (documentation.isEmpty())
+                copyDocWithReMappingFrom(targetMethod);
             addParameterJavaDocs(documentation);
-            copyDocWithReMappingFrom(targetMethod);
             AstDocumentation.attach(method, documentation.rendered());
         } else {
             AstDocumentation.attach(method, addParameterJavaDocs(documentation.copy()).rendered());
@@ -390,7 +391,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param doAdd If this parameter is null, the method does nothing
      */
     public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd) {
-        return optionalStringParam(name, doAdd, null);
+        return optionalStringParam(name, doAdd, "the key for the new element");
     }
 
     /**

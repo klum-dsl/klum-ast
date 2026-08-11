@@ -197,6 +197,7 @@ class TemplateMethods {
         MethodNode publicMethod = correctToGenericsSpec(Collections.singletonMap("T", bridgeModelType), bridgeMethod);
         publicMethod.setModifiers(ACC_PUBLIC | ACC_ABSTRACT);
         publicMethod.setCode(EmptyStatement.INSTANCE);
+        documentScopedTemplateMethod(publicMethod, name);
         if (name.startsWith("Create"))
             markAsDeprecatedTemplateCreationAlias(publicMethod, name);
         for (int index = 0; index < parameters.length; index++)
@@ -236,6 +237,7 @@ class TemplateMethods {
         MethodNode publicMethod = correctToGenericsSpec(Collections.singletonMap("T", annotatedClass), bridgeMethod);
         publicMethod.setModifiers(ACC_PUBLIC | ACC_ABSTRACT);
         publicMethod.setCode(EmptyStatement.INSTANCE);
+        documentTemplateFactoryMethod(publicMethod, name);
         for (int index = 0; index < parameters.length; index++)
             copyAnnotationsFromSourceToTarget(parameters[index], publicMethod.getParameters()[index], Collections.emptyList());
         GeneratedDslSupport.of(annotatedClass).getTemplateFactoryInterface().addMethod(publicMethod);
@@ -248,6 +250,51 @@ class TemplateMethods {
         bridgeCall.setMethodTarget(bridgeMethod);
         adapterMethod.setCode(returnS(bridgeCall));
         templateFactoryAdapter.addMethod(adapterMethod);
+    }
+
+    private void documentScopedTemplateMethod(MethodNode method, String name) {
+        if (name.startsWith("Create")) return;
+
+        KlumDocumentation documentation = new KlumDocumentation()
+                .title("Applies Template recipes while executing a scoped configuration body.")
+                .p("The previous Template scope is restored after the body completes.")
+                .returnType("the value returned by the scoped body");
+        if (name.equals("With")) {
+            boolean mapRecipe = CommonAstHelper.isMap(method.getParameters()[0].getType());
+            documentation.param(method.getParameters()[0].getName(), mapRecipe
+                    ? "the inline Template values to apply for this scope"
+                    : "the Template recipe to apply for this scope");
+        } else {
+            boolean mapRecipes = CommonAstHelper.isMap(method.getParameters()[0].getType());
+            documentation.param(method.getParameters()[0].getName(), mapRecipes
+                    ? "the Template values grouped by model type"
+                    : "the Template recipes to apply in order");
+        }
+        documentation.param("body", "the configuration body that runs with the Template scope");
+        AstDocumentation.attach(method, documentation.rendered());
+    }
+
+    private void documentTemplateFactoryMethod(MethodNode method, String name) {
+        KlumDocumentation documentation = new KlumDocumentation()
+                .returnType("the created marked Template model");
+        if (name.equals("With")) {
+            documentation.title("Creates a reusable Template model from optional values and configuration.");
+            for (Parameter parameter : method.getParameters()) {
+                if (parameter.getName().equals("configMap"))
+                    documentation.param(parameter.getName(), "the property values for the Template");
+                else if (parameter.getName().equals("configuration"))
+                    documentation.param(parameter.getName(), "the Builder configuration for the Template");
+            }
+        } else {
+            documentation.title("Creates a reusable Template model from a script source.");
+            for (Parameter parameter : method.getParameters()) {
+                if (parameter.getName().equals("loader"))
+                    documentation.param(parameter.getName(), "the class loader used to evaluate the source");
+                else
+                    documentation.param(parameter.getName(), "the script source that defines the Template");
+            }
+        }
+        AstDocumentation.attach(method, documentation.rendered());
     }
 
     private static boolean hasSameBridgeArguments(MethodNode candidate, Parameter[] arguments) {
