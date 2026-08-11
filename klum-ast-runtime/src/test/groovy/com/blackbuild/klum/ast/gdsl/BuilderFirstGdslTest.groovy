@@ -28,7 +28,7 @@ import groovy.lang.GroovyShell
 import spock.lang.Issue
 import spock.lang.Specification
 
-@Issue('737')
+@Issue(['703', '737'])
 class BuilderFirstGdslTest extends Specification {
 
     def "static model completion uses an uppercase raw field when GDSL properties normalize JavaBean names"() {

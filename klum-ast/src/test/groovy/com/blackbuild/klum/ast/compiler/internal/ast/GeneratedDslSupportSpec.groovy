@@ -476,9 +476,13 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 }
 
                 static Foo template() {
-                    Foo.Create.Template.With {
+                    templateFactory().With {
                         label 'template'
                     }
+                }
+
+                static Foo_DSL.Factory.Template templateFactory() {
+                    Foo.Create.Template
                 }
 
                 static Foo templateFrom(File source) {

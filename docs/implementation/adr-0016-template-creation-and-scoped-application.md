@@ -189,7 +189,7 @@ retrofit unrelated Template examples beyond the entrypoint spelling.
 | Generated/IDE surface | source-mirror and GDSL tests | source mirror emits both nested public interfaces and correct property; completion does not offer removed Factory methods |
 | Public release surface | #468 inventory fixture | new generated hook classified and no internal generated descriptor leak |
 
-New executable tests carry `@Issue("710")`; the canonical user-facing happy path is marked `@Tag("documentary")` and
+New executable tests carry `@Issue("710")` or `@Issue("737")` according to their contract; the canonical user-facing happy path is marked `@Tag("documentary")` and
 links back to the final Templates page as required by `docs/agents/testing.md`.
 
 ## Risks, rollback, and open choices
@@ -204,5 +204,5 @@ links back to the final Templates page as required by `docs/agents/testing.md`.
 | GDSL work has not landed when the core contract is ready. | Land bytecode/mirror truth first; coordinate the additive GDSL completion change with #703 rather than creating a parallel completion contract. |
 | A release-candidate adopter depends on `Foo.Create.Template(...)`. | The explicit migration row and compile failure give a mechanical replacement. If release timing makes this unacceptable, defer #710 rather than retaining property/method ambiguity. |
 
-The only maintainer decision still required is whether to accept ADR 0016 for 4.0. With that acceptance, TC-1 through TC-4
-are implementation-authorized in order; no additional product choice is required.
+ADR 0016 was accepted for 4.0, and #710 delivered TC-1 through TC-4. Issue #737 completes the final scoped-application
+type-name correction; no additional product choice is required.
