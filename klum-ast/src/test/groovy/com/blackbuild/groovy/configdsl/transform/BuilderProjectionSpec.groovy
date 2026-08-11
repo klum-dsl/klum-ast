@@ -482,6 +482,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         !mirror.contains('$klum$asBuilder$')
     }
 
+    @Issue('729')
     def "Collection and Map KlumBuilder values retain their declared outer types and map keys"() {
         given:
         createClass '''
@@ -503,14 +504,14 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
 
                     LinkedList<KlumBuilder<Child>> fromValues(List<String> values) {
                         return new LinkedList<>(values.collect { value ->
-                            (KlumBuilder<Child>) (Object) AsBuilder.With(value, value: value.toUpperCase())
+                            (KlumBuilder<Child>) (Object) AsBuilder().With(value, value: value.toUpperCase())
                         })
                     }
 
                     TreeMap<String, KlumBuilder<Child>> fromNamed(Map<String, String> values) {
                         TreeMap<String, KlumBuilder<Child>> result = new TreeMap<>(Comparator.reverseOrder())
                         values.each { key, value ->
-                            result[key] = (KlumBuilder<Child>) (Object) AsBuilder.With(key, value: value)
+                            result[key] = (KlumBuilder<Child>) (Object) AsBuilder().With(key, value: value)
                         }
                         return result
                     }

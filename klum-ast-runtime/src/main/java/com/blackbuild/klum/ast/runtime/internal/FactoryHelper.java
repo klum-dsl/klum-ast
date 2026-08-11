@@ -353,7 +353,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         boolean template = TemplateManager.isDefiningTemplate();
         if (!template)
             PhaseDriver.requireActiveConstructionSession();
-        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder." + operation, null, key,
+        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder()." + operation, null, key,
                 () -> prepareNestedBuilder(type, key, template, builder -> builder.applyOnly(values, body)));
     }
 
@@ -547,7 +547,7 @@ public class FactoryHelper extends GroovyObjectSupport {
             PhaseDriver.requireActiveConstructionSession();
         Class<T> effectiveType = deduceClass(type, (String) configMap.get(TYPE_HINT));
         String key = keyFromMap(effectiveType, configMap);
-        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder.FromMap", null, key,
+        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder().FromMap", null, key,
                 () -> prepareNestedBuilder(effectiveType, key, template, builder -> builder.copyFrom(configMap)));
     }
 
@@ -563,7 +563,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         String key = DslHelper.isKeyed(type) ? scriptType.getSimpleName() : null;
         String scriptName = DslHelper.shortNameFor(scriptType);
         return BreadcrumbCollector.withBreadcrumb(
-                DslHelper.shortNameFor(type) + ".AsBuilder.From", "script", scriptName,
+                DslHelper.shortNameFor(type) + ".AsBuilder().From", "script", scriptName,
                 () -> prepareNestedBuilder(type, key, template, builder -> {
                     DelegatingScript script = (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null);
                     script.setDelegate(builder);

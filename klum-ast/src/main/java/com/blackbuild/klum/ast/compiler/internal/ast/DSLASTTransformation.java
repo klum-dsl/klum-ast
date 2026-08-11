@@ -1641,7 +1641,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             factoryClass.addConstructor(ACC_PUBLIC, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, block());
 
         overrideFactoryMethods(factoryClass, defaultImpl);
-        createAsBuilderFactoryAccessor(defaultImpl);
+        createAsBuilderFactoryOperation(factoryClass, defaultImpl);
 
         annotatedClass.getModule().addClass(factoryClass);
 
@@ -1753,12 +1753,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         factoryClass.addMethod(override);
     }
 
-    private void createAsBuilderFactoryAccessor(ClassNode defaultImpl) {
+    private void createAsBuilderFactoryOperation(InnerClassNode factoryClass, ClassNode defaultImpl) {
         ClassNode factoryType;
-        if (!isInstantiable(defaultImpl))
-            factoryType = BUILDER_FACTORY;
+        if (isAssignableTo(factoryClass, KEYED_FACTORY))
+            factoryType = KEYED_BUILDER_FACTORY;
+        else if (isAssignableTo(factoryClass, UNKEYED_FACTORY))
+            factoryType = UNKEYED_BUILDER_FACTORY;
         else
-            factoryType = keyField == null ? UNKEYED_BUILDER_FACTORY : KEYED_BUILDER_FACTORY;
+            factoryType = BUILDER_FACTORY;
 
         ClassNode specialized = factoryType.getPlainNodeReference();
         specialized.setUsingGenerics(true);
@@ -1767,7 +1769,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new GenericsType(GeneratedDslSupport.of(annotatedClass).getBuilderInterface())
         });
 
-        MethodNode accessor = new MethodNode(
+        MethodNode operation = new MethodNode(
                 "AsBuilder",
                 ACC_PUBLIC | ACC_ABSTRACT,
                 specialized,
@@ -1775,9 +1777,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ClassNode.EMPTY_ARRAY,
                 EmptyStatement.INSTANCE
         );
-        AstDocumentation.attachText(accessor,
+        AstDocumentation.attachText(operation,
                 "Returns the active-session factory for creating owned " + annotatedClass.getName() + " Builders.");
-        GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addMethod(accessor);
+        GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addMethod(operation);
+
+        factoryClass.addMethod(new MethodNode(
+                "AsBuilder",
+                ACC_PUBLIC,
+                specialized,
+                Parameter.EMPTY_ARRAY,
+                ClassNode.EMPTY_ARRAY,
+                returnS(castX(specialized, callSuperX("AsBuilder")))
+        ));
     }
 
     private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {

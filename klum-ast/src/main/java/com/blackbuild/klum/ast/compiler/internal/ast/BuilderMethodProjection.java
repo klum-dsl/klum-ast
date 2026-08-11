@@ -93,6 +93,7 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.i
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
@@ -792,7 +793,7 @@ public final class BuilderMethodProjection {
                 Expression factory = rootCall.explicitFactory
                         ? transform(source.getObjectExpression())
                         : varX("this");
-                result.setObjectExpression(propX(factory, "AsBuilder"));
+                result.setObjectExpression(callX(factory, "AsBuilder"));
                 result.setImplicitThis(false);
                 result.setMethodTarget(builderMethod);
                 CastExpression cast = new CastExpression(GeneratedDslSupport.builderTypeFor(rootCall.model), result);

@@ -34,6 +34,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import spock.lang.Issue
 
 class AsBuilderSpec extends AbstractDSLSpec {
 
@@ -66,7 +67,8 @@ class AsBuilderSpec extends AbstractDSLSpec {
         childBuilder.completedModel.is(instance.child)
     }
 
-    def "AsBuilder prepares an owned child exactly once in the active Template scope"() {
+    @Issue('729')
+    def "AsBuilder() prepares an owned child exactly once in the active Template scope"() {
         given:
         createClass '''
             package pk
@@ -133,7 +135,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         Child.validationCalls == 1
         instance.child.owner.is(instance)
         KlumObjectSupport.of(instance.child).modelPath == '<root>.child'
-        DslHelper.getBreadcrumbPath(instance.child) == '$/p.Root.With/p.Child.AsBuilder.With'
+        DslHelper.getBreadcrumbPath(instance.child) == '$/p.Root.With/p.Child.AsBuilder().With'
     }
 
     def "AsBuilder rejects calls outside a Construction session"() {

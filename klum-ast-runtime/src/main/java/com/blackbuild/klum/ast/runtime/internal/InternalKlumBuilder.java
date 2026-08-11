@@ -1007,14 +1007,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
-        Object builderFactory = InvokerHelper.getProperty(DslHelper.getFactoryOf(elementType), "AsBuilder");
+        Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(builderFactory, "From", script)));
     }
 
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
-        Object builderFactory = InvokerHelper.getProperty(DslHelper.getFactoryOf(elementType), "AsBuilder");
+        Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(builderFactory, "From", script)));
     }
 
