@@ -2,9 +2,9 @@
 
 Date: 2026-08-09
 
-Status: Proposed
+Status: Accepted
 
-Tracking issue: [#710 — Separate Template creation from scoped Template application](https://github.com/klum-dsl/klum-ast/issues/710)
+Tracking issues: [#710 — Separate Template creation from scoped Template application](https://github.com/klum-dsl/klum-ast/issues/710) and [#737 — Give generated Template creation and scoped-application interfaces distinct names](https://github.com/klum-dsl/klum-ast/issues/737)
 
 Implementation plan: [ADR 0016 implementation plan](../implementation/adr-0016-template-creation-and-scoped-application.md)
 
@@ -28,7 +28,7 @@ Service.Template.With(template) { /* create models */ } // scoped application
 ```
 
 `Service.Create` is a `Service_DSL.Factory`, but its generated contract mirrors the inherited `KlumFactory.Template(...)`
-and `TemplateFrom(...)` methods. `Service.Template` is a final field of type `Service_DSL.Template`; that interface exposes
+and `TemplateFrom(...)` methods. `Service.Template` was a final field of type `Service_DSL.Template`; that interface exposed
 both `With`/`WithAll` application and `Create`/`CreateFrom` creation methods. The user guide teaches the latter creation
 route, while migration and phase guidance still show the former. There is no `Service.Template.From` method: the existing
 source-input spelling is `CreateFrom`.
@@ -93,8 +93,8 @@ Builder and does not require an active `ConstructionSession`.
 
 ### `Template` owns scoped application
 
-`ServiceConfiguration.Template.With` and `WithAll` retain their existing scope, nesting, thread-local restoration, and
-return-value contracts. Their public generated type remains `ServiceConfiguration_DSL.Template`. The map overload of
+`Service.Template.With` and `WithAll` retain their existing scope, nesting, thread-local restoration, and
+return-value contracts. Their public generated type is `Service_DSL.TemplateScope`. The map overload of
 `With` remains an anonymous *scoped application* convenience: it creates an implementation-local temporary recipe and
 returns the body result, not a Template creation entrypoint for callers to retain.
 
@@ -110,7 +110,7 @@ the public static final `Template` field, initialized by a generated-only bridge
 generated; source and binary compatibility for those methods cannot be retained without reintroducing the ambiguity this
 decision removes.
 
-`Foo.Template.Create(...)` and `CreateFrom(...)` remain on `Foo_DSL.Template` and its generated adapter as deprecated,
+`Foo.Template.Create(...)` and `CreateFrom(...)` remain on `Foo_DSL.TemplateScope` and its generated adapter as deprecated,
 forwarding 4.x aliases. They retain all current overloads and semantics, and their deprecation text names the matching
 `Foo.Create.Template.With(...)` or `From(...)` route. They are compatibility bridges, not a second canonical interface;
 new generated documentation, source mirrors, GDSL, examples, and migration guidance use only `Create.Template` for
@@ -133,7 +133,7 @@ Jackson rejection, or scoped restoration from ADR 0004. The new Factory adapter 
 path; it never exposes `TemplateManager`, Builder state, `FactoryHelper`, or other runtime internals.
 
 The generated implementation may link a narrow `runtime.generated` bridge under ADR 0015, but all schema/client
-descriptors must name only `Foo_DSL.Factory.Template`, `Foo_DSL.Template`, ordinary public runtime types, and model types.
+descriptors must name only `Foo_DSL.Factory.Template`, `Foo_DSL.TemplateScope`, ordinary public runtime types, and model types.
 `Foo_DSL.Factory.Template` is a supported generated hook: callers may name it as a receiver/parameter/return type but
 must not implement or subclass it.
 
@@ -168,7 +168,7 @@ aliases concentrates compatibility in one small adapter while new callers learn 
   closure delegate remains a concrete public Builder.
 - 4.0 RC users of `Foo.Create.Template(...)` migrate to `Foo.Create.Template.With(...)`; users of the documented
   `Foo.Template.Create(...)` spelling receive a deprecation path rather than an immediate rewrite requirement.
-- `Foo_DSL.Template` remains a supported generated type but has a deliberately narrow canonical role. Its deprecated
+- `Foo_DSL.TemplateScope` remains a supported generated type but has a deliberately narrow canonical role. Its deprecated
   aliases are compatibility members, not an invitation to add future creation operations there.
 - The Factory template adapter is a deep module: the public nested interface expresses creation inputs while the
   existing root lifecycle, Template companion, recipe, and serialization mechanics remain behind its seam.
@@ -178,7 +178,7 @@ aliases concentrates compatibility in one small adapter while new callers learn 
 
 ## Acceptance boundary
 
-This proposed decision is ready to implement only after explicit maintainer acceptance. The implementation must prove
+The implementation must prove
 the descriptors, Java and static Groovy 3/4/5 consumption, recipe/ownership/serialization preservation, deprecated alias
 behavior, absence of the former Factory methods, mirror/GDSL parity, and the documentation/migration/public-inventory
 updates listed in the implementation plan.
