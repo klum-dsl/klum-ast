@@ -51,9 +51,9 @@ vocabulary; they are neither client nor extension entrypoints. #390 replaces the
 ### Root and Builder results
 
 A root creation operation owns one complete Construction session and returns a completed DSL Object. Builder production is
-explicit and is valid only inside an active session. The accepted generated spelling is Java
-`Create.getAsBuilder()` and Groovy `Create.AsBuilder`; its returned Builder remains unsealed until the owning root
-lifecycle completes. This terminology review changes neither the generated member set nor its descriptors.
+explicit and is valid only inside an active session. The accepted generated Java and Groovy spelling is
+`Create.AsBuilder()`; its returned Builder remains unsealed until the owning root lifecycle completes. This deliberate
+RC-era source correction replaces the JavaBean accessor so IntelliJ, Java, and Groovy share one representable contract.
 
 The dynamic `KlumBuilder.link(fieldName, target)` capability supplied by #474 is a narrow supported
 construction-time framework capability, not a generated relationship DSL. Its exact parameters, return shape,
@@ -85,7 +85,7 @@ The convention was checked against the Java-first and static-Groovy fixture shap
 | Entry shape | Java evidence | `@CompileStatic` Groovy evidence | Delivery owner |
 | --- | --- | --- | --- |
 | `KlumObjectSupport.of` facade | `KlumObjectSupportSpec` compiles a Java root/subtree consumer. | The facade's generic return is directly nameable; #390 OS-3 changes that fixture to `getConstructionPath()`. | #390 |
-| `Create.getAsBuilder()` / `Create.AsBuilder` | `GeneratedDslSupportSpec` compiles the Java Builder result. | `StaticAsBuilderConsumer` compiles the Groovy property spelling and concrete `Foo_DSL.Builder` result. | #394, #431 |
+| `Create.AsBuilder()` | `GeneratedDslSupportSpec` compiles the Java Builder result. | `StaticAsBuilderConsumer` compiles the same explicit Groovy operation and concrete `Foo_DSL.Builder` result. | #729 |
 | `KlumJacksonImporter.using` | ADR 0009 records the reviewed Java 17 descriptors. | The same exact descriptors are accepted for static Groovy; JSON-3 must add the executable fixtures. | #463 |
 | `new KlumAstModule()` | The existing public no-argument constructor is the standard Jackson-module shape. | Normal constructor invocation is statically typed; Jackson integration remains responsible for module behavior. | Jackson module |
 

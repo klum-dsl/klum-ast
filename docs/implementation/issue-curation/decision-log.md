@@ -376,7 +376,7 @@ deferral, and completed #411 because no separate public context-path type is req
 ADR 0010 resolves #467 without changing a feature implementation. Framework types use UpperCamelCase and lower-camel
 methods; `of` wraps a known completed value, `using` configures an adapter from caller-owned infrastructure, and a public
 constructor is reserved for conventional direct construction such as `new KlumAstModule()`. Root operations return completed
-DSL Objects while explicit `Create.AsBuilder` produces an active-session Builder. The record classifies the narrow dynamic
+DSL Objects while explicit `Create.AsBuilder()` produces an active-session Builder. The record classifies the narrow dynamic
 `KlumBuilder.link(fieldName, target)` capability as framework-owned construction support only; #474 retains its shape and
 behavior. `KlumObjectSupport.getConstructionPath()` is the sole future public construction-string getter, while
 `BreadcrumbCollector` remains implementation vocabulary. #390, #394/#431, #463, and #474 retain their delivery work, and

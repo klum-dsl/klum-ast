@@ -88,7 +88,7 @@ interface ServiceConfiguration_DSL {
 ```
 
 The closure overloads retain `@DelegatesTo(ServiceConfiguration_DSL.Builder)` and `DELEGATE_ONLY`. A return value is the
-same completed, marked Template model as today. This is a root lifecycle, not `Create.AsBuilder`: it creates no unsealed
+same completed, marked Template model as today. This is a root lifecycle, not `Create.AsBuilder()`: it creates no unsealed
 Builder and does not require an active `ConstructionSession`.
 
 ### `Template` owns scoped application

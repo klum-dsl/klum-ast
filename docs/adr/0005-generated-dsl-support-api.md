@@ -68,6 +68,11 @@ Developers run that task explicitly after schema changes; it compiles the real c
 The detailed task/model contract and evidence are recorded in the implementation plan. A reproducible IDE-only path is an
 adoption requirement for ADR 0005, while automatic generation during a clean IDE import is not.
 
+GDSL contributes literal generated properties only when the source PSI cannot contain the real generated field, such as
+`Foo.Create` or `Foo.Template`. It must not emulate an uppercase JavaBean/Groovy-property spelling: such a spelling is
+not faithfully representable by IntelliJ's JavaBean normalization. Generated operations use their explicit Java and
+Groovy method form instead.
+
 Canonical vocabulary uses Builder throughout. `$_RW`, `KlumRwObject`, and redundant compatibility-marker declarations are
 removed before the 4.0 API is finalized.
 

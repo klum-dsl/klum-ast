@@ -32,7 +32,7 @@ use this guide for Builder-first diagnostics:
 | A statically checked Builder lifecycle method sees an ordinary collection or map value as `Object` | An earlier 4.0 release candidate emitted a raw Builder accessor for simple collection and map fields. | Recompile the Schema with the correction. Declared element and map value types are preserved, so a compensating local generic cast is no longer needed. |
 | A polymorphic relationship closure cannot see members of the selected subtype under static compilation | A dynamic `ChildType` Class selector retains the declared base Builder delegate. | Pass the generated factory, for example `child(ConcreteChild.Create) { concreteProperty 'value' }`, to select the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` delegate. |
 | `instanceof SomeDslModel` is rejected in a Builder-phase callback | The relationship value is a Builder before materialization, not the completed DSL Object. The diagnostic names the inferred Builder type when available. | Do not use a completed-model type check in a mutator, mutating lifecycle method, or Builder-retargeted annotation closure. Move a completed-model invariant to `@Validate`; ordinary checks and operands known only as `Object` remain valid. |
-| `Child.Create.With`, `One`, or `From` is rejected in Builder-phase code | That call starts an independent root lifecycle and returns a completed model, which cannot become owned composition in the active Builder graph. | Use `Child.Create.AsBuilder.With`, `One`, or `From`, then attach the returned Builder to an owned relationship. Root factories remain valid in `@Validate` and ordinary static source factory methods. |
+| `Child.Create.With`, `One`, or `From` is rejected in Builder-phase code | That call starts an independent root lifecycle and returns a completed model, which cannot become owned composition in the active Builder graph. | Use `Child.Create.AsBuilder().With`, `One`, or `From`, then attach the returned Builder to an owned relationship. Root factories remain valid in `@Validate` and ordinary static source factory methods. |
 | A public static method declared on a custom `Factory` is rejected | Public `Factory` methods become root operations on `Create`, which delegates to a Factory instance. | Remove `static`. Move model-level static converters out of `Factory`; they remain model methods. Non-public static Factory helpers remain valid. |
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
 | A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
@@ -106,11 +106,11 @@ owned child in the active session instead:
 ```groovy
 @Mutator
 void supplySource() {
-    source = ProductSource.Create.AsBuilder.With(name: 'default source')
+    source = ProductSource.Create.AsBuilder().With(name: 'default source')
 }
 ```
 
-The returned Builder must be attached to an owned relationship. Do not use `Create.AsBuilder` for an independent root
+The returned Builder must be attached to an owned relationship. Do not use `Create.AsBuilder()` for an independent root
 model; use the ordinary root factory outside Builder-phase code instead.
 
 ### Factory Methods Exposed Through `Create`
@@ -142,7 +142,7 @@ assert ServicePlan.Create.standard('catalog').name == 'catalog'
 
 Factory maps preserve method-first configuration. When a Builder has both a writable `outboxUrl` field and an explicit
 `outboxUrl(String)` mutator, `Create.With(outboxUrl: value)` calls the mutator. This makes intentional overrides work
-consistently across `Create.With`, `Create.AsBuilder.With`, Templates, and automatic creation.
+consistently across `Create.With`, `Create.AsBuilder().With`, Templates, and automatic creation.
 
 ```groovy
 @DSL
@@ -187,13 +187,13 @@ assert deployment.service.image == 'catalog:1.0'
 
 | Runtime failure | What to do |
 | --- | --- |
-| An independent factory cannot start while construction is active | A nested `Child.Create.With` would start a second lifecycle, which is forbidden. Call the generated child method on the parent Builder. Framework extensions can use `Child.Create.AsBuilder` and attach the result in the same session. |
+| An independent factory cannot start while construction is active | A nested `Child.Create.With` would start a second lifecycle, which is forbidden. Call the generated child method on the parent Builder. Framework extensions can use `Child.Create.AsBuilder()` and attach the result in the same session. |
 | A completed DSL Object cannot be adopted as composition | Build a fresh child through the owning Builder. Pass an existing completed object only to a `FieldType.LINK` relationship. |
-| `Create.AsBuilder` reports no active session, a different session, or a completed session | Use it only inside the active root construction and attach the returned Builder before that construction finishes. |
+| `Create.AsBuilder()` reports no active session, a different session, or a completed session | Use it only inside the active root construction and attach the returned Builder before that construction finishes. |
 | An omitted Builder-producing projection is reported | Replace the call with the generated relationship method, return an explicit `KlumBuilder<Foo>`, or make the recognizable factory path source-visible to schema compilation. |
-| `Create.AsBuilder.From` rejects a regular `Script` | Use a `DelegatingScript` as the nested configuration recipe, or run the materializing Script as a root with `Create.From`. |
+| `Create.AsBuilder().From` rejects a regular `Script` | Use a `DelegatingScript` as the nested configuration recipe, or run the materializing Script as a root with `Create.From`. |
 | A Template is rejected as a relationship value | Do not assign a marked Template, including to `LINK`. Rehydrate it through `Template.With`, `copyFrom`, or another Template/copy API. |
-| `copyFrom` rejects a sealed or cross-session Builder | Use a completed model for a value-only copy, a marked Template for value-plus-recipe replay, or an unsealed `Create.AsBuilder` result from the same active Construction session. |
+| `copyFrom` rejects a sealed or cross-session Builder | Use a completed model for a value-only copy, a marked Template for value-plus-recipe replay, or an unsealed `Create.AsBuilder()` result from the same active Construction session. |
 | `applyLater` rejects phase 40 or later | Schedule Builder mutation below `INSTANTIATE`, or move completed-model work into a `ModelVisitingPhaseAction`. |
 | Jackson rejects a marked Template | Materialize a fresh ordinary model through a Template/copy API and serialize that model. JSON cannot preserve Template recipe actions. |
 | Jackson rejects a `LINK` value or inline object | For import, configure identity/reference handling, a converter, or lifecycle resolution; inline input never becomes owned composition. For export, choose an explicit id, omission, scalar, custom, or deliberate inline projection. |
@@ -201,7 +201,7 @@ assert deployment.service.image == 'catalog:1.0'
 | Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. Use `getConstructionPath()` for the Builder/factory invocation path and `getModelPath()` for the object's structural location. |
 
 The generated `Foo_DSL.Builder<Foo>` interface now types `copyFrom` for an active Builder of the same model. In a
-`@Default`, `@AutoCreate`, or `Create.AsBuilder.With` callback, use that public Builder type instead of suppressing
+`@Default`, `@AutoCreate`, or `Create.AsBuilder().With` callback, use that public Builder type instead of suppressing
 static checking. Runtime still rejects sealed and cross-session Builder sources.
 
 ### 3. Run the Full Model Test Suite

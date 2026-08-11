@@ -82,8 +82,9 @@ The methods declare no checked exceptions. `readRoot` runs one lifecycle and ret
 `T` marked internally as a value-only Template and runs no lifecycle; `readBuilder` requires the active Construction
 session and preserves the precise generated `Foo_DSL.Builder` return through `B`; `applyToBuilder` requires an unsealed
 Builder in that session and returns the identical `B`. Hidden Builder implementation types and `ConstructionSession` are
-not exposed. The current generated Java accessor spelling is `Create.getAsBuilder()` and Groovy property syntax is
-`Create.AsBuilder`; final generated factory naming is coordinated by #467 without changing the importer signature.
+not exposed. The canonical generated Java and Groovy operation spelling is `Create.AsBuilder()`; it is intentionally
+not a JavaBean accessor or a Groovy property. This preserves one IntelliJ-representable contract without changing the
+importer signature.
 
 `using(mapper)` snapshots `mapper.reader()` once and never mutates the mapper or registers `KlumAstModule` automatically.
 `using(reader)` preserves the reader's views, attributes, injectable values, features, root configuration, and other

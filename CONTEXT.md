@@ -176,7 +176,7 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
 - Builder-producing factory
 
-  A Builder-producing factory creates an unsealed child Builder inside an active Construction session. `Create.AsBuilder`
+  A Builder-producing factory creates an unsealed child Builder inside an active Construction session. `Create.AsBuilder()`
   is the explicit composition protocol, while standalone root factories return completed DSL Objects.
 
 - Jackson import

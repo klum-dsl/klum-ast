@@ -48,6 +48,11 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   Template-owned children while defining `Create.Template.With` or `From`, including inside an active root Construction
   session; no nested lifecycle or session attachment occurs, and ordinary `Create.AsBuilder` behavior resumes when the
   Template scope exits ([#731](https://github.com/klum-dsl/klum-ast/issues/731)).
+
+- Replaced the active-session JavaBean accessor and Groovy-property spelling with the one explicit Java/Groovy operation
+  `Foo.Create.AsBuilder()`. Update nested Builder creation, importer calls, and static consumers to call the operation;
+  `getAsBuilder()` and `Create.AsBuilder` are intentionally not retained. The change corrects IntelliJ completion before
+  the 4.0 API freeze without changing construction-session or lifecycle behavior ([#729](https://github.com/klum-dsl/klum-ast/issues/729)).
 - Public `Foo_DSL.Builder` contracts and their IDEA-only AnnoDocimal mirrors now explicitly expose supported generated
   relationship-creator overloads that omit the optional trailing configuration closure. This is an additive 4.0 API
   correction; existing lifecycle, relationship, Factory, and source-DSL behavior is unchanged ([#719](https://github.com/klum-dsl/klum-ast/issues/719)).
@@ -90,7 +95,7 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   assignment to `setX`, and rejects other non-void return types as likely helper-method collisions. `void` overrides and
   no-field map-method fallback remain valid ([#661](https://github.com/klum-dsl/klum-ast/issues/661)).
 - Statically checked Builder-phase code now identifies source-visible `Child.Create.With`, `One`, and `From` root
-  factories, explains that they return a completed model, and directs nested composition to `Child.Create.AsBuilder.*`
+  factories, explains that they return a completed model, and directs nested composition to `Child.Create.AsBuilder().*`
   attached to an owned relationship. Completed-model validation, ordinary static source factories, non-DSL `Create`, and
   valid Builder composition remain valid ([#656](https://github.com/klum-dsl/klum-ast/issues/656)).
 - Statically checked Builder-phase code now rejects `instanceof SomeDslModel` when a relationship value is known to be a
@@ -128,7 +133,7 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 - Generated completed-model and Builder getters now carry field-derived AnnoDoc documentation, including deprecation
   reasons ([#383](https://github.com/klum-dsl/klum-ast/issues/383)).
 - Provisional Builder validation issues transfer to the completed-model companion, and each `InstanceValidator` is memoized once per completed model.
-- Added active-session `Create.AsBuilder.With`, `One`, `FromMap`, and `From(DelegatingScript)` operations. They create an
+- Added active-session `Create.AsBuilder().With`, `One`, `FromMap`, and `From(DelegatingScript)` operations. They create an
   unsealed owned Builder in the current root Construction session, apply active Templates, and run `PostCreate`, explicit
   configuration, and `PostApply` once without starting a nested lifecycle. Calls outside the session, across root sessions,
   or after lifecycle completion fail with migration guidance; ordinary materializing Scripts remain root-only

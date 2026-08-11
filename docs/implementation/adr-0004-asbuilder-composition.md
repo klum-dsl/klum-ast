@@ -119,7 +119,7 @@ Keep the root guard. Add an explicit active-session child-production path.
 | Call context | Operation | Result | Lifecycle ownership |
 |---|---|---|---|
 | Standalone `Bar.Create.With/One/From` | Root creation | completed `Bar` | starts and completes one root lifecycle |
-| `Bar.Create.AsBuilder` in active construction | Child production | unsealed `KlumBuilder<Bar>` / generated covariant Builder | joins current construction session |
+| `Bar.Create.AsBuilder()` in active construction | Child production | unsealed `KlumBuilder<Bar>` / generated covariant Builder | joins current construction session |
 | `bars { From(delegatingScript) }` | Collection projection | unsealed child Builder, then stored by owner | joins current construction session |
 | `bars(delegatingScript)` | Direct collection recipe | one unsealed child Builder per script | joins current construction session |
 | `bars { From(regularMaterializingScript) }` | Opaque nested materialization | rejected with migration guidance | none |
@@ -176,7 +176,7 @@ Each slice should start by removing `@PendingFeature` from only the focused targ
 ### [AB-1 — Active-session `AsBuilder` vertical slice](https://github.com/klum-dsl/klum-ast/issues/436)
 
 Extract one child-preparation path shared by closure creation and `FactoryHelper`, introduce the opaque
-`ConstructionSession` token, and make `Create.AsBuilder` work for `With`, `One`, `FromMap`, and `DelegatingScript` in one
+`ConstructionSession` token, and make `Create.AsBuilder()` work for `With`, `One`, `FromMap`, and `DelegatingScript` in one
 owned relationship. The slice is complete when the child joins the root lifecycle, `PostCreate`/configuration/`PostApply`
 run once, root factories still return completed models, and outside-session or cross-session calls fail clearly.
 
