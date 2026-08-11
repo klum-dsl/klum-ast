@@ -1012,7 +1012,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(elementName, ADD_ELEMENT_TO_COLLECTION)
                 .optional()
                 .mod(visibility)
-                .returning(elementType)
+                .returning(elementType, "the added value")
                 .linkToField(fieldNode)
                 .documentationTitle(DocUtil.getCollectionAdderText(fieldNode))
                 .constantParam(fieldName)

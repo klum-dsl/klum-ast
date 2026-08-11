@@ -931,6 +931,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 Child primaryChild
                 List<Child> children
                 Map<String, Child> childrenByName
+                List<String> labels
                 Map<String, String> metadata
             }
 
@@ -966,10 +967,13 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 builder.getMethod('metadata', Map),
                 builder.getMethod('metadata', String, String)
         ]
-        List<Method> documentedMethods = directRelationshipCreators + templateCreation + scopedApplication + applyLater + simpleMapAdders
+        List<Method> simpleCollectionAdders = [
+                builder.getMethod('label', String)
+        ]
+        List<Method> documentedMethods = directRelationshipCreators + templateCreation + scopedApplication + applyLater + simpleCollectionAdders + simpleMapAdders
 
         then: 'every supported generated public method carries an informative contract with parameter documentation'
-        List<Method> insufficientDocumentation = documentedMethods.findAll { Method method ->
+        List<Method> insufficientDocumentation = (documentedMethods - simpleCollectionAdders).findAll { Method method ->
             AnnoDoc documentation = method.getAnnotation(AnnoDoc)
             documentation == null || !documentation.value().contains('@param') || documentation.value().size() <= 80
         }
@@ -980,6 +984,9 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         applyLater.size() == 3
         applyLater.every { it.getAnnotation(AnnoDoc).value().contains('Schedules') }
         applyLater.find { it.parameterCount == 2 }.getAnnotation(AnnoDoc).value().contains('@param phase')
+        simpleCollectionAdders.every { it.getAnnotation(AnnoDoc).value().with {
+            contains('Adds') && contains('@param value') && contains('@return the added value')
+        } }
         simpleMapAdders.every { it.getAnnotation(AnnoDoc).value().contains('Adds') }
 
         and: 'AnnoDocimal exposes the same public documentation in the IDE-only source mirror'
@@ -989,6 +996,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         String mirror = new File(mirrorRoot, 'documentation/Product_DSL.java').text
 
         documentedMethods.collect { it.getAnnotation(AnnoDoc).value().split('\\n\\n').first() }.toSet().every { mirror.contains(it) }
+        mirror.contains('@param value The value to add')
+        mirror.contains('@return the added value')
     }
 
     @Issue('702')
