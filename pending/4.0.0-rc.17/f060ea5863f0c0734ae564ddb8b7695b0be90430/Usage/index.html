@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usage — KlumAST 4.0.0-rc.17</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.17 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="./">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="./">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="usage">Usage</h1>
+<p>KlumAST enhances quasi-static models with DSL methods at Groovy compile time. Annotate Schema classes with <code>@DSL</code> and
+the transformation is picked up during compilation. For a new 4.0 project, use the Gradle plugin setup below; it supplies
+the compatible KlumAST, Groovy, and test dependencies. <a rel="nofollow" href="../Terms/">Terms</a> defines the Schema, Model, and Consumer responsibilities
+used in the project shapes below.</p>
+<h2 id="gradle-setup-supported">Gradle setup (supported)</h2>
+<p>Apply the schema plugin to a Schema project. It imports the matching KlumAST BOM and configures the compiler/runtime
+dependencies and Groovy convention:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema' version '4.0.0-rc.17'
+}
+
+klumSchema {
+    groovyVersion = 3
+}
+</code></pre>
+<p>For a new project, Groovy 3 is the baseline. Keep an existing supported Groovy line instead. See <a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a> for
+the complete first Schema and test, <a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a> for plugin details, and the model plugin when a separate configured
+Model artifact is required.</p>
+<h2 id="project-setup">Project setup</h2>
+<p>In a typical scenario, you will have two or three disjunct projects.</p>
+<h3 id="schema-model-consumer">Schema - Model - Consumer</h3>
+<p>This is a typical scenario for Unifying DevOps Models. In this scenario, three distinct projects are created:</p>
+<h4 id="schema">Schema</h4>
+<p>The schema contains the 'Schema' of the model (comparable to an XSD file), i.e. all the classes annotated with <code>@DSL</code>.
+Usually, this model will also contain unit tests. It will end by uploading the complete schema as a jar file into some
+kind of artifact repository.</p>
+<p>It is possible to split a Schema into multiple projects. Some advanced features require source-level dependencies: if
+<code>MainSchema</code> needs classes from <code>AuxSchema</code>, compile the relevant Schema sources together rather than depending on
+<code>AuxSchema.jar</code>. Until plugin support exists, this is an advanced manual build arrangement, for example by supplying the
+Auxiliary Schema's source JAR to the joint compilation. <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/548">#548</a> tracks a
+supported Gradle workflow for this case.</p>
+<h4 id="model">Model</h4>
+<p>The schema usually consists of one or more script files containing either a <code>Model.Create.With</code> statement or, even more
+convenient, only the content of the <code>Create.With</code> closure (see <a rel="nofollow" href="../Convenience-Factories/#delegating-scripts">Convenience Factories#delegating-scripts</a>).</p>
+<p>The model is than packed into a jar file (for convenience a shadowed jar containing the schema as well), which can
+be used as the single dependency for all consumers.</p>
+<p>If the model has single entry points, i.e. instances of classes that are only present once in the
+model (which is usually the case), the model can make use of the new <code>Create.FromClasspath</code> feature, see
+<a rel="nofollow" href="../Convenience-Factories/#classpath">Convenience Factories#classpath</a> for details.</p>
+<p>(See: <code>UsageDocumentaryTest#'loads a configured model through its classpath entry point'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.FromClasspath()
+</code></pre>
+<h4 id="consumer">Consumer</h4>
+<p>The consuming projects (Docalot, Jenkins Pipeline, etc.) in itself have a dependency on the model jar. The can instantiate
+the main model by using <code>&lt;MainSchemaClass&gt;.Create.FromClasspath()</code> or one of the <code>&lt;MainSchemaClass&gt;.Create.From(...)</code>
+variants for a script class, URL, text or classloader-backed source.</p>
+<h3 id="schema-consumer">Schema - Consumer</h3>
+<p>This scenario is similar to the above scenario, however, schema and consumer are in the same project.</p>
+<p>A typical usage of this scenario is configuration files. For example, Docalot consists of a configuration schema as well
+as action classes using a given model.</p>
+<p>A document generation project itself consists of a model (the configuration file), which makes use of the the schema.</p>
+<h3 id="all-in-one">All-in-One</h3>
+<p>In the all-in-one scenario, Schema, configured Model, and Consumer live in one Gradle project. This is a valid approach
+when the project benefits from a single build and does not need separately published Schema or Model artifacts. For an
+IntelliJ project, apply the Schema plugin and keep the Schema and consumer sources in the usual Gradle source roots:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema' version '4.0.0-rc.17'
+}
+
+klumSchema {
+    groovyVersion = 3
+}
+</code></pre>
+<p>After changing a Schema, refresh the generated <code>Foo_DSL</code> source mirrors and reload the Gradle project:</p>
+<pre><code class="language-shell">./gradlew createKlumDslSourceMirrors
+</code></pre>
+<p>For a multi-project build, use <code>./gradlew generateAllKlumDslSourceMirrors</code> to refresh every Schema project's mirror, including Layer 3 <code>api</code> and <code>schema</code> projects. The root task coordinates only; mirrors remain owned by their Schema projects. The refresh also materializes one root-owned GDSL resource directory and registers that same directory with every Schema module so IntelliJ discovers the static <code>Create</code> contributor without duplicate module artifacts. GDSL and mirrors provide completion metadata and are not build or publication inputs. <a rel="nofollow" href="https://github.com/blackbuild/annodoc-intellij">AnnoDoc Support for IntelliJ IDEA</a>
+provides the complementary Quick Documentation view for compiled declarations; install it according to its current
+release instructions when you choose to use it. Mirror refresh uses the Schema's declared compile classpath to resolve
+public generated-interface references without adding mirror sources to compilation. This 4.0 onboarding route remains a preview until a real-project field
+test after the first RC confirms it; <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/469">#469</a> owns that evaluation.</p>
+<h3 id="schema-model-decoratorconsumer">Schema - Model - Decorator/Consumer</h3>
+<p>This approach keeps the model nice and generic. The basic idea is that the consumer does not use the model directly,
+but instead a decorated version of it providing consumer specific functionality (and thus embracing the <em>Interface
+Segregation Principle</em>). In this setup, decorator and consumer are usually in the same project.</p>
+<p>Decorators in Groovy can be implemented using the <code>@Delegate</code> annotation, which unfortunately does not provide proper
+support for decorated collections. To allow nicer delegates is the goal of the Klum-Wrap project.</p>
+<h3 id="layer3-structure-api-schema-model">Layer3 structure: API - Schema - Model</h3>
+<p>This approach is similar to the above approach, but adds an additional layer of abstraction. The API layer contains a generic API that is directly consumed, while the Schema makes the modelling easier. See <a rel="nofollow" href="../Layer3/">Layer3</a> for details.</p>
+<h2 id="manual-dependencies">Manual dependencies</h2>
+<p>Use direct dependencies only when the Gradle plugins cannot be used, for example while maintaining an existing custom
+build. <code>klum-ast</code> is needed at compile time for the transformation; the completed model needs <code>klum-ast-runtime</code> at
+runtime. This is an advanced setup path, not a second onboarding route.</p>
+<h3 id="gradle">Gradle</h3>
+<pre><code class="language-groovy">dependencies {
+  compileOnly 'org.apache.groovy:groovy:&lt;groovy-version&gt;'
+  compileOnly 'com.blackbuild.klum.ast:klum-ast:4.0.0-rc.17'
+  api 'com.blackbuild.klum.ast:klum-ast-runtime:4.0.0-rc.17'
+}
+</code></pre>
+<p>This needs the Java Library plugin (or an equivalent public <code>api</code> configuration) so schema consumers receive the runtime
+types. Groovy 3 uses <code>org.codehaus.groovy</code> coordinates; Groovy 4 and 5 use <code>org.apache.groovy</code>. Prefer the schema plugin
+above because it selects matching KlumAST, Groovy, and Spock dependencies through the BOM.</p>
+<h3 id="maven-auxiliary">Maven (auxiliary)</h3>
+<pre><code class="language-xml">&lt;dependencies&gt;
+ &lt;dependency&gt;
+  &lt;groupId&gt;com.blackbuild.klum.ast&lt;/groupId&gt;
+  &lt;artifactId&gt;klum-ast&lt;/artifactId&gt;
+  &lt;version&gt;...&lt;/version&gt;
+  &lt;optional&gt;true&lt;/optional&gt;
+ &lt;/dependency&gt;
+ &lt;dependency&gt;
+  &lt;groupId&gt;com.blackbuild.klum.ast&lt;/groupId&gt;
+  &lt;artifactId&gt;klum-ast-runtime&lt;/artifactId&gt;
+  &lt;version&gt;...&lt;/version&gt;
+  &lt;scope&gt;runtime&lt;/scope&gt;
+ &lt;/dependency&gt;
+ ...
+&lt;/dependencies&gt;
+</code></pre>
+<p>Maven builds also need Groovy compilation and a matching Groovy dependency, for example through GMavenPlus. Consult the
+example projects for the complete custom-build setup.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
