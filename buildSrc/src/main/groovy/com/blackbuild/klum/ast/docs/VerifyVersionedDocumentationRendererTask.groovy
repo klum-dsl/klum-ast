@@ -124,7 +124,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, 'img/klumlogo.png', 'authored assets must be manifest-covered')
         assertTrue(!containsFileEnding(new File(currentOne, '4.0.0-rc.1'), '.md'), 'authored Markdown must not be deployed')
         assertTrue(new File(currentOne, '4.0.0-rc.1/assets/branding/klumlogo.svg').file, 'logo must be local to the exact tree')
-        assertContains(exactLanding.text, '<link rel="icon" type="image/svg+xml" href="assets/branding/klumlogo.svg">',
+        assertTrue(new File(currentOne, '4.0.0-rc.1/assets/branding/klumfavicon.svg').file, 'favicon must be local to the exact tree')
+        assertContains(exactLanding.text, '<link rel="icon" type="image/svg+xml" href="assets/branding/klumfavicon.svg">',
                 'the manifest-approved local branding asset must be the exact-tree favicon')
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, '"favicon"',
                 'site manifest must record the exact favicon asset')
@@ -132,6 +133,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         String apiLanding = new File(currentOne, '4.0.0-rc.1/api/index.html').text
         assertContains(apiLanding, 'distinct Javadoc base', 'API landing policy')
         assertContains(apiLanding, 'href="../"', 'API landing must link back to the exact documentation landing')
+        assertContains(apiLanding, '<link rel="icon" type="image/svg+xml" href="../assets/branding/klumfavicon.svg">',
+                'generated API pages must use the manifest-approved exact-tree favicon')
         VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String representativeType ->
             File moduleOutput = new File(currentOne, "4.0.0-rc.1/api/$module")
             VerifyVersionedDocumentationRendererTask.assertTrue(new File(moduleOutput, representativeType).file, "representative public type must be reachable for $module")
@@ -779,6 +782,8 @@ dependencies {
         new File(repository, 'docs/user/img/klumlogo.png').bytes = logo
         byte[] svgLogo = '<svg xmlns="http://www.w3.org/2000/svg"/>'.getBytes(StandardCharsets.UTF_8)
         new File(repository, 'docs/user/img/klumlogo.svg').bytes = svgLogo
+        byte[] svgFavicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"/>'.getBytes(StandardCharsets.UTF_8)
+        new File(repository, 'docs/user/img/klumfavicon.svg').bytes = svgFavicon
         new File(repository, 'docs/user/assets/migrate-3x-to-4x-builder-first.sh').with {
             parentFile.mkdirs()
             text = '#!/usr/bin/env bash\n# fixture migration starter\n'
@@ -793,6 +798,8 @@ dependencies {
                 logo    : 'docs/user/img/klumlogo.svg',
                 altText : 'KlumAST logo for Season 4: The Makeover',
                 sha256  : sha256(svgLogo),
+                favicon       : 'docs/user/img/klumfavicon.svg',
+                faviconSha256: sha256(svgFavicon),
                 approval: 'candidate'
         ])) + '\n'
         git(repository, ['add', '.'])

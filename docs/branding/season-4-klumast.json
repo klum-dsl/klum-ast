@@ -3,5 +3,7 @@
   "logo": "docs/user/img/season-4/klumast-season-4-header.svg",
   "altText": "KlumAST Season 4.0: The Makeover",
   "sha256": "43f4299d2f67f49f2db0f320ec856b2c67342cb285808b73741141dd722967c2",
+  "favicon": "docs/user/img/season-4/klumast-season-4-favicon.svg",
+  "faviconSha256": "093fd09874a229ac285401b36b95f0da25001c827f8000844de529cc943a6fbd",
   "approval": "candidate"
 }
