@@ -1707,7 +1707,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(method -> !method.isFinal())
                     .filter(method -> !method.isSynthetic())
                     .filter(method -> !method.getName().startsWith(RESERVED_KLUM_NAMESPACE))
-                    .filter(method -> !method.getName().equals("getAsBuilder"))
+                    .filter(method -> !method.getName().equals("AsBuilder"))
                     .map(method -> correctFactoryMethod(currentSpec, method))
                     .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
             currentLevel = currentLevel.getUnresolvedSuperClass();
@@ -1768,7 +1768,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         });
 
         MethodNode accessor = new MethodNode(
-                "getAsBuilder",
+                "AsBuilder",
                 ACC_PUBLIC | ACC_ABSTRACT,
                 specialized,
                 Parameter.EMPTY_ARRAY,

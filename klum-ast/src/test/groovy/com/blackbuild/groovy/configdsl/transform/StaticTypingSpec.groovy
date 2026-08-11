@@ -232,7 +232,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         then:
         MultipleCompilationErrorsException error = thrown()
         error.message.contains('Child.Create.With starts a completed-model root factory')
-        error.message.contains('Child.Create.AsBuilder.With')
+        error.message.contains('Child.Create.AsBuilder().With')
         error.message.contains('attach the returned Builder to an owned relationship')
     }
 
@@ -302,7 +302,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         then:
         MultipleCompilationErrorsException error = thrown()
         error.message.contains('Child.Create.From starts a completed-model root factory')
-        error.message.contains('Child.Create.AsBuilder.From')
+        error.message.contains('Child.Create.AsBuilder().From')
     }
 
     @Issue('656')
@@ -335,7 +335,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
 
                 @Mutator
                 void configureChild() {
-                    child = Child.Create.AsBuilder.With(name: 'child')
+                    child = Child.Create.AsBuilder().With(name: 'child')
                     assert External.Create.One() == 'external'
                 }
 
@@ -377,8 +377,8 @@ class StaticTypingSpec extends AbstractDSLSpec {
             class ProductCatalog {
                 @Default
                 void mergeDefaultSource() {
-                    ProductSource_DSL.Builder<ProductSource> source = ProductSource.Create.AsBuilder.With(name: 'default source')
-                    ProductSource.Create.AsBuilder.With {
+                    ProductSource_DSL.Builder<ProductSource> source = ProductSource.Create.AsBuilder().With(name: 'default source')
+                    ProductSource.Create.AsBuilder().With {
                         copyFrom source
                         name 'default recipient'
                     }
@@ -386,8 +386,8 @@ class StaticTypingSpec extends AbstractDSLSpec {
 
                 @AutoCreate
                 void mergeAutoCreatedSource() {
-                    ProductSource_DSL.Builder<ProductSource> source = ProductSource.Create.AsBuilder.With(name: 'auto-created source')
-                    ProductSource.Create.AsBuilder.With {
+                    ProductSource_DSL.Builder<ProductSource> source = ProductSource.Create.AsBuilder().With(name: 'auto-created source')
+                    ProductSource.Create.AsBuilder().With {
                         copyFrom source
                         name 'auto-created recipient'
                     }
@@ -433,8 +433,8 @@ class StaticTypingSpec extends AbstractDSLSpec {
             class ProductCatalog {
                 @AutoCreate
                 void attemptsCrossModelCopy() {
-                    ProductSource_DSL.Builder<ProductSource> target = ProductSource.Create.AsBuilder.One()
-                    OtherSource_DSL.Builder<OtherSource> source = OtherSource.Create.AsBuilder.One()
+                    ProductSource_DSL.Builder<ProductSource> target = ProductSource.Create.AsBuilder().One()
+                    OtherSource_DSL.Builder<OtherSource> source = OtherSource.Create.AsBuilder().One()
                     target.copyFrom(source)
                 }
             }

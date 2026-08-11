@@ -370,7 +370,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         PhaseDriver.withBuilderLifecycle(
                 { FactoryHelper.createBuilder(parentType, null) },
                 { parentBuilder ->
-                    def child = importer.readBuilder(childType.Create.AsBuilder, KlumJacksonInput.map([value: "first"]))
+                    def child = importer.readBuilder(childType.Create.AsBuilder(), KlumJacksonInput.map([value: "first"]))
                     def applied = importer.applyToBuilder(child, KlumJacksonInput.map([value: "second"]))
                     assert applied.is(child)
                     assert child.value == "second"
@@ -392,7 +392,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
 
         when:
-        importer.readBuilder(clazz.Create.AsBuilder, KlumJacksonInput.map([value: "Ada"]))
+        importer.readBuilder(clazz.Create.AsBuilder(), KlumJacksonInput.map([value: "Ada"]))
 
         then:
         def exception = thrown(RuntimeException)
@@ -503,7 +503,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
                     JavaImportedValue root = importer.readRoot(JavaImportedValue.class, KlumJacksonInput.map(Map.of()));
                     JavaImportedValue template = importer.readTemplate(JavaImportedValue.class, KlumJacksonInput.map(Map.of()));
                     JavaImportedValue_DSL.Builder builder = importer.readBuilder(
-                            JavaImportedValue.Create.getAsBuilder(), KlumJacksonInput.map(Map.of()));
+                            JavaImportedValue.Create.AsBuilder(), KlumJacksonInput.map(Map.of()));
                     JavaImportedValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(Map.of()));
                 }
             }
@@ -541,7 +541,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
                 static StaticImportedValue_DSL.Builder builder(ObjectMapper mapper) {
                     KlumJacksonImporter importer = KlumJacksonImporter.using(mapper)
                     StaticImportedValue_DSL.Builder builder = importer.readBuilder(
-                            StaticImportedValue.Create.AsBuilder, KlumJacksonInput.map([value: "builder"]))
+                            StaticImportedValue.Create.AsBuilder(), KlumJacksonInput.map([value: "builder"]))
                     importer.applyToBuilder(builder, KlumJacksonInput.map([value: "applied"]))
                 }
             }

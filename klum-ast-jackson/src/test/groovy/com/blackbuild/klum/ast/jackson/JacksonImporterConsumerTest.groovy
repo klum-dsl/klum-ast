@@ -53,7 +53,7 @@ class JacksonImporterConsumerTest extends Specification {
                     ExternalValue root = importer.readRoot(ExternalValue.class, KlumJacksonInput.map(Map.of()));
                     ExternalValue template = importer.readTemplate(ExternalValue.class, KlumJacksonInput.map(Map.of()));
                     ExternalValue_DSL.Builder builder = importer.readBuilder(
-                            ExternalValue.Create.getAsBuilder(), KlumJacksonInput.map(Map.of()));
+                            ExternalValue.Create.AsBuilder(), KlumJacksonInput.map(Map.of()));
                     ExternalValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(Map.of()));
                     return root;
                 }
@@ -83,7 +83,7 @@ class JacksonImporterConsumerTest extends Specification {
                     ExternalValue root = importer.readRoot(ExternalValue, KlumJacksonInput.map([:]))
                     ExternalValue template = importer.readTemplate(ExternalValue, KlumJacksonInput.map([:]))
                     ExternalValue_DSL.Builder builder = importer.readBuilder(
-                            ExternalValue.Create.AsBuilder, KlumJacksonInput.map([:]))
+                            ExternalValue.Create.AsBuilder(), KlumJacksonInput.map([:]))
                     ExternalValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map([:]))
                     root
                 }

@@ -96,7 +96,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             InternalKlumBuilder rootBuilder = delegate
-            sourceBuilder = Node.Create.AsBuilder.With {
+            sourceBuilder = Node.Create.AsBuilder().With {
                 name "source"
                 events "configured"
                 applyLater(25) {
@@ -108,7 +108,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
             }
             rootBuilder.setSingleField("source", sourceBuilder)
 
-            recipientBuilder = Node.Create.AsBuilder.With {
+            recipientBuilder = Node.Create.AsBuilder().With {
                 copyFrom sourceBuilder
                 name "recipient"
             }
@@ -142,7 +142,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             InternalKlumBuilder rootBuilder = delegate
-            InternalKlumBuilder sourceBuilder = Node.Create.AsBuilder.With {
+            InternalKlumBuilder sourceBuilder = Node.Create.AsBuilder().With {
                 name "source"
                 applyLater(25) {
                     events captured.value
@@ -150,7 +150,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
             }
             rootBuilder.setSingleField("source", sourceBuilder)
 
-            InternalKlumBuilder recipientBuilder = Node.Create.AsBuilder.With {
+            InternalKlumBuilder recipientBuilder = Node.Create.AsBuilder().With {
                 copyFrom sourceBuilder
                 name "recipient"
             }
@@ -169,7 +169,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         InternalKlumBuilder sealedSource
         clazz.Create.With {
             InternalKlumBuilder rootBuilder = delegate
-            sealedSource = Node.Create.AsBuilder.With(name: "source")
+            sealedSource = Node.Create.AsBuilder().With(name: "source")
             rootBuilder.setSingleField("source", sealedSource)
         }
 
@@ -197,7 +197,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
             try {
                 clazz.Create.With {
                     InternalKlumBuilder rootBuilder = delegate
-                    InternalKlumBuilder source = Node.Create.AsBuilder.With(name: "source")
+                    InternalKlumBuilder source = Node.Create.AsBuilder().With(name: "source")
                     rootBuilder.setSingleField("source", source)
                     sourceBuilder.set(source)
                     sourceReady.countDown()
@@ -218,7 +218,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         then:
         KlumModelException error = thrown()
         error.message.contains("outside this active Construction session")
-        error.message.contains("Create.AsBuilder inside the same root Builder lifecycle")
+        error.message.contains("Create.AsBuilder() inside the same root Builder lifecycle")
 
         cleanup:
         releaseSource.countDown()
@@ -239,7 +239,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             InternalKlumBuilder rootBuilder = delegate
-            sourceBuilder = Node.Create.AsBuilder.With {
+            sourceBuilder = Node.Create.AsBuilder().With {
                 name "source"
                 applyLater(1) {
                     events "executed:$name"
@@ -250,7 +250,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
             }
             rootBuilder.setSingleField("source", sourceBuilder)
 
-            recipientBuilder = Node.Create.AsBuilder.One()
+            recipientBuilder = Node.Create.AsBuilder().One()
             rootBuilder.setSingleField("recipient", recipientBuilder)
             rootBuilder.applyLater(10) {
                 recipientBuilder.copyFrom(sourceBuilder)
@@ -275,10 +275,10 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             InternalKlumBuilder rootBuilder = delegate
-            sourceBuilder = Node.Create.AsBuilder.With(name: "source")
+            sourceBuilder = Node.Create.AsBuilder().With(name: "source")
             rootBuilder.setSingleField("source", sourceBuilder)
 
-            recipientBuilder = Node.Create.AsBuilder.With(name: "recipient")
+            recipientBuilder = Node.Create.AsBuilder().With(name: "recipient")
             rootBuilder.setSingleField("recipient", recipientBuilder)
 
             sourceBuilder.applyLater(10) {

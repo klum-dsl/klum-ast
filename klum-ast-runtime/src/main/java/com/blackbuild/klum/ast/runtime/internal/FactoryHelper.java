@@ -556,9 +556,9 @@ public class FactoryHelper extends GroovyObjectSupport {
         if (!template)
             PhaseDriver.requireActiveConstructionSession();
         if (!DelegatingScript.class.isAssignableFrom(scriptType))
-            throw new KlumModelException("Create.AsBuilder.From only accepts DelegatingScript configuration recipes. "
+            throw new KlumModelException("Create.AsBuilder().From only accepts DelegatingScript configuration recipes. "
                     + "A regular Script may materialize a completed DSL Object and cannot join owned composition; "
-                    + "use a DelegatingScript, Create.AsBuilder.With/FromMap, or run the Script as a root with Create.From.");
+                    + "use a DelegatingScript, Create.AsBuilder().With/FromMap, or run the Script as a root with Create.From.");
 
         String key = DslHelper.isKeyed(type) ? scriptType.getSimpleName() : null;
         String scriptName = DslHelper.shortNameFor(scriptType);

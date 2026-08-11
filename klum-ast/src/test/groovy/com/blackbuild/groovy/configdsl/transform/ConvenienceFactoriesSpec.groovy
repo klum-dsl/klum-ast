@@ -689,7 +689,7 @@ Element.Create.With("b", name: "second-from-script")
     }
 
     private static boolean opaqueScriptGuidance(KlumModelException error) {
-        assert error.message.contains("Create.AsBuilder.From only accepts DelegatingScript configuration recipes")
+        assert error.message.contains("Create.AsBuilder().From only accepts DelegatingScript configuration recipes")
         assert error.message.contains("A regular Script may materialize a completed DSL Object")
         assert error.message.contains("run the Script as a root with Create.From")
         return true

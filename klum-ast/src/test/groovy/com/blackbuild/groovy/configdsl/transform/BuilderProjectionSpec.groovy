@@ -349,7 +349,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
                 String value
 
                 static KlumBuilder<Child> fromString(String value) {
-                    return (KlumBuilder<Child>) Child.Create.AsBuilder.With(value: value)
+                    return (KlumBuilder<Child>) Child.Create.AsBuilder().With(value: value)
                 }
             }
         '''
@@ -622,7 +622,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         then:
         def error = thrown(KlumModelException)
         error.message.contains('omitted Builder-producing projection child(java.lang.String)')
-        error.message.contains('active-session Create.AsBuilder')
+        error.message.contains('active-session Create.AsBuilder()')
     }
 
     @Issue("662")

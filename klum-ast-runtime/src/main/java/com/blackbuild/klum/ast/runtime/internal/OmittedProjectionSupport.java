@@ -177,7 +177,7 @@ public final class OmittedProjectionSupport {
 
         private KlumModelException toException() {
             return new KlumModelException("Cannot use omitted Builder-producing projection " + signature + ": " + reason
-                    + ". Use an active-session Create.AsBuilder recipe or move the producer into source visible to the schema compiler.");
+                    + ". Use an active-session Create.AsBuilder() recipe or move the producer into source visible to the schema compiler.");
         }
     }
 }

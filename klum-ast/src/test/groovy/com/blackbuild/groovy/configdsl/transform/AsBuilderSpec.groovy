@@ -57,7 +57,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With {
-            childBuilder = Child.Create.AsBuilder.With(name: 'owned')
+            childBuilder = Child.Create.AsBuilder().With(name: 'owned')
             ((KlumBuilder) delegate).setSingleField('child', childBuilder)
         }
 
@@ -115,7 +115,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         when:
         Child.Template.With(template) {
             instance = clazz.Create.With {
-                KlumBuilder child = Child.Create.AsBuilder.With {
+                KlumBuilder child = Child.Create.AsBuilder().With {
                     configurationCalls.incrementAndGet()
                     configured 'explicit'
                 }
@@ -148,7 +148,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         '''
 
         when:
-        clazz.Create.AsBuilder.One()
+        clazz.Create.AsBuilder().One()
 
         then:
         KlumModelException error = thrown()
@@ -176,7 +176,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder child = Child.Create.AsBuilder.FromMap(name: 'mapped')
+            KlumBuilder child = Child.Create.AsBuilder().FromMap(name: 'mapped')
             ((KlumBuilder) delegate).setSingleField('child', child)
         }
 
@@ -205,8 +205,8 @@ class AsBuilderSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder configuredChild = Child.Create.AsBuilder.With([name: 'configured'], 'configured-id')
-            KlumBuilder emptyChild = Child.Create.AsBuilder.One('empty-id')
+            KlumBuilder configuredChild = Child.Create.AsBuilder().With([name: 'configured'], 'configured-id')
+            KlumBuilder emptyChild = Child.Create.AsBuilder().One('empty-id')
             ((KlumBuilder) delegate).setSingleField('configured', configuredChild)
             ((KlumBuilder) delegate).setSingleField('empty', emptyChild)
         }
@@ -244,7 +244,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder child = Child.Create.AsBuilder.From(configurationScript)
+            KlumBuilder child = Child.Create.AsBuilder().From(configurationScript)
             ((KlumBuilder) delegate).setSingleField('child', child)
         }
 
@@ -271,7 +271,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
 
         and:
         clazz.Create.With {
-            child = Child.Create.AsBuilder.One()
+            child = Child.Create.AsBuilder().One()
         }
 
         when:
@@ -280,7 +280,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         then:
         KlumModelException error = thrown()
         error.message.contains('after its Construction session has completed')
-        error.message.contains('Create.AsBuilder inside the owning root Builder lifecycle')
+        error.message.contains('Create.AsBuilder() inside the owning root Builder lifecycle')
     }
 
     def "owned Builders cannot cross Construction sessions"() {
@@ -306,7 +306,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         Thread firstSession = Thread.start {
             try {
                 clazz.Create.With {
-                    childFromOtherSession.set(Child.Create.AsBuilder.One())
+                    childFromOtherSession.set(Child.Create.AsBuilder().One())
                     firstSessionReady.countDown()
                     releaseFirstSession.await(10, TimeUnit.SECONDS)
                 }
@@ -363,7 +363,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
 
         when:
         clazz.Create.With {
-            Child.Create.AsBuilder.From(MaterializingChildScript)
+            Child.Create.AsBuilder().From(MaterializingChildScript)
         }
 
         then:

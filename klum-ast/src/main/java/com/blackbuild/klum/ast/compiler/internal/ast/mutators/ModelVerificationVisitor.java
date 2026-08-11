@@ -135,7 +135,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
 
         String modelName = modelExpression.getType().getNameWithoutPackage();
         addError(String.format(
-                "%1$s.Create.%2$s starts a completed-model root factory. In Builder-phase code use %1$s.Create.AsBuilder.%2$s and attach the returned Builder to an owned relationship.",
+                "%1$s.Create.%2$s starts a completed-model root factory. In Builder-phase code use %1$s.Create.AsBuilder().%2$s and attach the returned Builder to an owned relationship.",
                 modelName,
                 factoryMethod), expression);
     }

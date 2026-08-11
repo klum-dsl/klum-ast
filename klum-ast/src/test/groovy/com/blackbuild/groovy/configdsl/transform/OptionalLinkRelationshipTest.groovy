@@ -89,7 +89,7 @@ class OptionalLinkRelationshipTest extends AbstractDSLSpec {
 
         when:
         clazz.Create.With {
-            linked = nodeType.Create.AsBuilder.With { name 'fresh' }
+            linked = nodeType.Create.AsBuilder().With { name 'fresh' }
         }
 
         then:
