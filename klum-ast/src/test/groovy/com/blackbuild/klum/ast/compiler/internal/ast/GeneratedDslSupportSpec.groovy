@@ -558,6 +558,76 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue('729')
+    def "AsBuilder() keeps a defaulted abstract keyed model's public contract coherent"() {
+        given: 'the declared abstract model selects an implementation at runtime'
+        createSecondaryClass('''
+            package defaulted
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+
+            @DSL(defaultImpl = Impl)
+            abstract class Base {
+                @Key String name
+            }
+
+            @DSL
+            class Impl extends Base {
+            }
+
+            @DSL
+            class Concrete {
+                @Key String name
+            }
+
+            @DSL
+            abstract class AbstractKeyed {
+                @Key String name
+            }
+        ''', 'defaulted/DefaultedKeyedSchema.groovy')
+        Class<?> baseFactory = getClass('defaulted.Base_DSL$Factory')
+        Class<?> concreteFactory = getClass('defaulted.Concrete_DSL$Factory')
+        Class<?> abstractFactory = getClass('defaulted.AbstractKeyed_DSL$Factory')
+
+        when: 'the public source mirror is generated from the same bytecode contract'
+        File mirrorRoot = new File(tempFolder.root, 'defaulted-keyed-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'defaulted/Base_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        File mirror = new File(mirrorRoot, 'defaulted/Base_DSL.java')
+
+        and: 'a Java client names the provider return advertised by the declared model'
+        compileJavaConsumer('''
+            package defaulted;
+
+            import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactory;
+
+            public final class JavaDslConsumer {
+                public static BuilderFactory<Base, Base_DSL.Builder<Base>> factory() {
+                    return Base.Create.AsBuilder();
+                }
+            }
+        ''', 'defaulted/JavaDslConsumer.java')
+
+        then: 'the bytecode signature agrees with the provider contract and Java source mirror'
+        baseFactory.genericInterfaces*.typeName == [
+                'com.blackbuild.klum.ast.runtime.KlumFactory$BuilderFactoryProvider<defaulted.Base, defaulted.Base_DSL$Builder<defaulted.Base>>'
+        ]
+        baseFactory.getMethod('AsBuilder').genericReturnType.typeName ==
+                'com.blackbuild.klum.ast.runtime.KlumFactory$KeyedBuilderFactory<defaulted.Base, defaulted.Base_DSL$Builder<defaulted.Base>>'
+        mirror.text.contains('KeyedBuilderFactory<Base, Builder<Base>> AsBuilder()')
+        compileJavaSource(mirror)
+
+        and: 'defaultImpl still selects the runtime factory implementation'
+        getClass('defaulted.Base').getField('Create').get(null).modelType == getClass('defaulted.Impl')
+
+        and: 'valid keyed specialization and abstract-without-default behavior remain unchanged'
+        concreteFactory.getMethod('AsBuilder').genericReturnType.typeName ==
+                'com.blackbuild.klum.ast.runtime.KlumFactory$KeyedBuilderFactory<defaulted.Concrete, defaulted.Concrete_DSL$Builder<defaulted.Concrete>>'
+        abstractFactory.getMethod('AsBuilder').genericReturnType.typeName ==
+                'com.blackbuild.klum.ast.runtime.KlumFactory$BuilderFactory<defaulted.AbstractKeyed, defaulted.AbstractKeyed_DSL$Builder<defaulted.AbstractKeyed>>'
+    }
+
     @Issue('644')
     def "public Builder contracts expose typed same-model copy sources"() {
         given:
@@ -1162,10 +1232,14 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         }
     }
 
-    private void compileJavaConsumer(@Language('JAVA') String source) {
-        File sourceFile = new File(tempFolder.root, 'sample/JavaDslConsumer.java')
+    private void compileJavaConsumer(@Language('JAVA') String source, String filename = 'sample/JavaDslConsumer.java') {
+        File sourceFile = new File(tempFolder.root, filename)
         sourceFile.parentFile.mkdirs()
         sourceFile.text = source.stripIndent()
+        compileJavaSource(sourceFile)
+    }
+
+    private void compileJavaSource(File sourceFile) {
         String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
                 .join(File.pathSeparator)
         int result = ToolProvider.systemJavaCompiler.run(

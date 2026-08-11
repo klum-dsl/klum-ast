@@ -1642,7 +1642,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             factoryClass.addConstructor(ACC_PUBLIC, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, block());
 
         overrideFactoryMethods(factoryClass, defaultImpl);
-        createAsBuilderFactoryOperation(factoryClass, defaultImpl);
+        createAsBuilderFactoryOperation(factoryClass);
 
         annotatedClass.getModule().addClass(factoryClass);
 
@@ -1754,7 +1754,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         factoryClass.addMethod(override);
     }
 
-    private void createAsBuilderFactoryOperation(InnerClassNode factoryClass, ClassNode defaultImpl) {
+    private void createAsBuilderFactoryOperation(InnerClassNode factoryClass) {
         ClassNode factoryType;
         if (isAssignableTo(factoryClass, KEYED_FACTORY))
             factoryType = KEYED_BUILDER_FACTORY;
@@ -1766,7 +1766,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode specialized = factoryType.getPlainNodeReference();
         specialized.setUsingGenerics(true);
         specialized.setGenericsTypes(new GenericsType[] {
-                new GenericsType(defaultImpl.getPlainNodeReference()),
+                new GenericsType(annotatedClass.getPlainNodeReference()),
                 new GenericsType(GeneratedDslSupport.of(annotatedClass).getBuilderInterface())
         });
 
