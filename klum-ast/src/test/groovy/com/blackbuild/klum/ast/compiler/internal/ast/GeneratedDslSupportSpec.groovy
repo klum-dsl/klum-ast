@@ -948,7 +948,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         getClass('sample.Foo_DSL$Builder').getAnnotation(AnnoDoc).value().contains('public Builder contract')
     }
 
-    @Issue('736')
+    @Issue(['736', '737'])
     def "generated public methods and their source mirror retain meaningful AnnoDoc"() {
         given: 'a neutral product schema exercises direct and simple collection operations'
         createSecondaryClass('''
@@ -972,7 +972,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         Class<?> product = getClass('documentation.Product')
         Class<?> builder = getClass('documentation.Product_DSL$Builder')
         Class<?> factoryTemplate = getClass('documentation.Product_DSL$Factory$Template')
-        Class<?> scopedTemplate = getClass('documentation.Product_DSL$Template')
+        Class<?> scopedTemplate = getClass('documentation.Product_DSL$TemplateScope')
 
         when: 'representative bytecode contract methods are inspected'
         List<Method> directRelationshipCreators = [
