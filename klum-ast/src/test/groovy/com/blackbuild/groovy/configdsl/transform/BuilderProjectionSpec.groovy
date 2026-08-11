@@ -336,6 +336,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         instance.singleCustomer.source == 'url:/url.yaml'
     }
 
+    @Issue('729')
     def "declared KlumBuilder generic projects to the concrete public Builder interface"() {
         given:
         createClass '''
@@ -590,6 +591,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         instance.children.values().every { it.owner.is(instance) }
     }
 
+    @Issue('729')
     def "opaque source producer is omitted and a matching dynamic call gets migration guidance"() {
         given:
         createClass '''
@@ -626,7 +628,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         error.message.contains('active-session Create.AsBuilder()')
     }
 
-    @Issue("662")
+    @Issue(["662", "729"])
     def "qualified opaque converter calls in Builder methods retain the root factory rejection"() {
         given:
         createClass '''
@@ -665,7 +667,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         error.message.contains('Cannot start an independent DSL Object factory while a Builder lifecycle is active')
     }
 
-    @Issue("662")
+    @Issue(["662", "729"])
     def "qualified precompiled converter calls in Builder methods retain the root factory rejection"() {
         given: 'the converter type is already compiled and has no active-session AST twin'
         createSecondaryClass '''

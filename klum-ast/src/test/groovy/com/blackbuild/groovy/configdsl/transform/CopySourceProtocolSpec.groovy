@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.runtime.internal.TemplateManager
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import spock.lang.Issue
 
 class CopySourceProtocolSpec extends AbstractDSLSpec {
 
@@ -83,6 +84,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         !instance.is(template)
     }
 
+    @Issue('729')
     def "a same-session unsealed Builder copies values and a dehydrated action snapshot without identity conversion"() {
         given:
         createCopySchema()
@@ -133,6 +135,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         copiedActionDehydrated
     }
 
+    @Issue('729')
     def "a same-session Builder snapshot remains ephemeral when an action captures a non-serializable value"() {
         given:
         createCopySchema()
@@ -162,6 +165,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         instance.recipient.events == ["captured"]
     }
 
+    @Issue('729')
     def "a sealed Builder is rejected as a copy source"() {
         given:
         createCopySchema()
@@ -185,6 +189,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         error.message.contains("marked Template to replay recipe actions")
     }
 
+    @Issue('729')
     def "a Builder from another Construction session is rejected as a copy source"() {
         given:
         createCopySchema()
@@ -227,6 +232,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         assert sourceFailure.get() == null
     }
 
+    @Issue('729')
     def "a live Builder snapshot contains only actions that have not executed yet"() {
         given:
         createCopySchema()
@@ -265,6 +271,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         (actionsField.get(recipientBuilder) as Map).isEmpty()
     }
 
+    @Issue('729')
     def "a live Builder snapshot includes later unexecuted actions in the current phase"() {
         given:
         createCopySchema()

@@ -38,6 +38,7 @@ import spock.lang.Issue
 
 class AsBuilderSpec extends AbstractDSLSpec {
 
+    @Issue('729')
     def "AsBuilder child joins the owning root graph"() {
         given:
         createClass '''
@@ -138,6 +139,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         DslHelper.getBreadcrumbPath(instance.child) == '$/p.Root.With/p.Child.AsBuilder().With'
     }
 
+    @Issue('729')
     def "AsBuilder rejects calls outside a Construction session"() {
         given:
         createClass '''
@@ -159,6 +161,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         error.message.contains('Create.With, Create.One, or Create.From')
     }
 
+    @Issue('729')
     def "AsBuilder FromMap creates an owned child without a nested lifecycle"() {
         given:
         createClass '''
@@ -186,6 +189,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         instance.child.name == 'mapped'
     }
 
+    @Issue('729')
     def "AsBuilder With and One preserve keyed child configuration"() {
         given:
         createClass '''
@@ -219,6 +223,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         instance.empty.id == 'empty-id'
     }
 
+    @Issue('729')
     def "AsBuilder From applies a DelegatingScript to an owned child"() {
         given:
         createClass '''
@@ -254,6 +259,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         instance.child.name == 'scripted'
     }
 
+    @Issue('729')
     def "AsBuilder result is invalid after its root lifecycle completes"() {
         given:
         createClass '''
@@ -285,6 +291,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         error.message.contains('Create.AsBuilder() inside the owning root Builder lifecycle')
     }
 
+    @Issue('729')
     def "owned Builders cannot cross Construction sessions"() {
         given:
         createClass '''
@@ -336,6 +343,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         assert firstSessionFailure.get() == null
     }
 
+    @Issue('729')
     def "AsBuilder rejects ordinary materializing Scripts without running them"() {
         given:
         createClass '''

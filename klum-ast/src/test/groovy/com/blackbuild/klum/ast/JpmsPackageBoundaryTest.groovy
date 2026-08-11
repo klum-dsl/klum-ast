@@ -347,7 +347,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626", "693"])
+    @Issue(["620", "622", "626", "693", "729"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')

@@ -34,6 +34,7 @@ class JacksonImporterConsumerTest extends Specification {
     @TempDir
     File projectDir
 
+    @Issue(['463', '729'])
     def "an external Java 17 consumer compiles every importer mode against Jackson 2.14"() {
         given:
         writeBuild('2.14.2', 'java')
@@ -64,6 +65,7 @@ class JacksonImporterConsumerTest extends Specification {
         build()
     }
 
+    @Issue(['463', '729'])
     def "an external static Groovy consumer compiles every importer mode against Jackson 2.21"() {
         given:
         writeBuild('2.21.0', 'groovy')

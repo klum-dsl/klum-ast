@@ -209,7 +209,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    @Issue('656')
+    @Issue(['656', '729'])
     def "static type checking identifies nested root factories in Builder-phase methods"() {
         when:
         createClass('''
@@ -279,7 +279,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         annotationError.message.contains('Child.Create.With starts a completed-model root factory')
     }
 
-    @Issue('656')
+    @Issue(['656', '729'])
     def "static type checking identifies nested From root factories in Builder-phase code"() {
         when:
         createClass('''
@@ -305,7 +305,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         error.message.contains('Child.Create.AsBuilder().From')
     }
 
-    @Issue('656')
+    @Issue(['656', '729'])
     def "static type checking permits Builder composition, validation root factories, static factories, and non-DSL Create"() {
         when:
         createSecondaryClass('''
@@ -355,7 +355,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    @Issue('644')
+    @Issue(['644', '729'])
     def "static type checking accepts same-session Builder copies in Builder lifecycle code"() {
         when:
         createClass('''
@@ -405,7 +405,7 @@ class StaticTypingSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    @Issue('644')
+    @Issue(['644', '729'])
     def "static type checking rejects a Builder from another model as a copy source"() {
         when:
         createClass('''

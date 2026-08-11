@@ -132,7 +132,7 @@ class ModelPathTest extends AbstractDSLSpec {
         KlumObjectSupport.of(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
-    @Issue('710')
+    @Issue(['710', '729'])
     def "completed converter results cannot become nested composition"() {
         given:
         createClass '''import java.util.logging.Level

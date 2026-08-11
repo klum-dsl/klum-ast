@@ -72,6 +72,7 @@ class OptionalLinkRelationshipTest extends AbstractDSLSpec {
         instance.linked.is(instance.owned)
     }
 
+    @Issue(['474', '729'])
     def "LINK rejects an unclaimed Builder and Auto-Link fallback never overwrites a configured relationship"() {
         given:
         createClass '''

@@ -347,6 +347,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         exception.cause instanceof IllegalStateException
     }
 
+    @Issue(['463', '729'])
     def "Builder modes stay in the active Construction session and preserve Builder identity"() {
         given:
         createClass('''
@@ -381,6 +382,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue(['463', '729'])
     def "readBuilder rejects calls outside an active Construction session"() {
         given:
         createClass('''
@@ -476,6 +478,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         exception.message.contains("belongs to no active Construction session")
     }
 
+    @Issue(['463', '729'])
     def "Java consumers compile against every importer descriptor"() {
         given:
         createClass('''
@@ -510,6 +513,7 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         ''')
     }
 
+    @Issue(['463', '729'])
     def "statically compiled Groovy consumers infer every importer type"() {
         given:
         createClass('''
