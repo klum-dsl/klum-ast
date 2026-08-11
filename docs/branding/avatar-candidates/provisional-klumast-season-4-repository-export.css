@@ -1,0 +1,7 @@
+/* Keep the approved artwork's non-icon lockup paths out of the avatar crop. */
+#full-wordmark,
+#full-tagline,
+#full-season,
+#full-builders {
+  display: none;
+}
