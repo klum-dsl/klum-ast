@@ -52,7 +52,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 - Replaced the active-session JavaBean accessor and Groovy-property spelling with the one explicit Java/Groovy operation
   `Foo.Create.AsBuilder()`. Update nested Builder creation, importer calls, and static consumers to call the operation;
   `getAsBuilder()` and `Create.AsBuilder` are intentionally not retained. The change corrects IntelliJ completion before
-  the 4.0 API freeze without changing construction-session or lifecycle behavior ([#729](https://github.com/klum-dsl/klum-ast/issues/729)).
+  the 4.0 API freeze without changing construction-session or lifecycle behavior. Its generated public factory contract
+  consistently names the declared model and Builder even when `@DSL(defaultImpl = ...)` selects the runtime implementation
+  ([#729](https://github.com/klum-dsl/klum-ast/issues/729)).
 - Public `Foo_DSL.Builder` contracts and their IDEA-only AnnoDocimal mirrors now explicitly expose supported generated
   relationship-creator overloads that omit the optional trailing configuration closure. This is an additive 4.0 API
   correction; existing lifecycle, relationship, Factory, and source-DSL behavior is unchanged ([#719](https://github.com/klum-dsl/klum-ast/issues/719)).
