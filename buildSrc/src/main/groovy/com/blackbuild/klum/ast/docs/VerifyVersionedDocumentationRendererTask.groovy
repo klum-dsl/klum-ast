@@ -117,7 +117,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         File legacyOnboarding = new File(currentOne, '4.0.0-rc.1/Getting-Started/index.html')
         assertTrue(legacyOnboarding.file, 'legacy onboarding route must remain available in the exact tree')
         assertContains(legacyOnboarding.text, 'href="../Gradle-Onboarding/"', 'legacy onboarding route must point to the canonical route')
-        assertContains(new File(currentOne, 'index.html').text, 'href="4.0.0-rc.1/"', 'root landing must use a site-relative exact-version link')
+        String rootLanding = new File(currentOne, 'index.html').text
+        assertContains(rootLanding, 'href="4.0.0-rc.1/"', 'root landing must use a site-relative exact-version link')
+        assertContains(rootLanding, '<link rel="icon" type="image/svg+xml" href="4.0.0-rc.1/assets/branding/klumfavicon.svg">',
+                'root landing must use the manifest-approved exact-tree favicon')
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Legacy').exists(), '4.x render must not select wiki/')
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, 'Season 4: The Makeover', 'branding manifest capture')
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, 'commonmark-java-static-html-v1', 'pinned static HTML renderer contract')

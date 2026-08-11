@@ -7,7 +7,7 @@ KlumAST consists of a number of Annotations:
 - `@Owner` annotates one or more framework-managed owner fields of a DSL Object. They provide backlinks for navigation; they are not ordinary configuration values.
 - `@Field` is an optional field to further configure the handling of specific fields (esp. naming).
 - `@Validate` provides automatic validation of model values.
-- Other pluggable validation providers, currently Jakarta Bean Validation, can add checks during the validation phase.
+- The optional `klum-ast-bean-validation` module is the currently available pluggable validation provider; it adds Jakarta Bean Validation checks during the validation phase.
 - `@PostCreate` and `@PostApply` are examples of lifecycle annotations. [Model Phases](Model-Phases.md) defines the complete lifecycle contract.
 
 ## `@DSL`

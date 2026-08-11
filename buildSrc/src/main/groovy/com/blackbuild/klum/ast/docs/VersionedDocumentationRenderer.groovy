@@ -273,10 +273,11 @@ class VersionedDocumentationRenderer {
                 archivedVersions << version
             if (!archivedVersions.isEmpty()) {
                 write(outputDirectory, 'archive/index.html', selectorPage('Archived KlumAST documentation',
-                        archiveIndex(archivedVersions.unique().sort()), "../$version/assets/site.css").getBytes(StandardCharsets.UTF_8))
+                        archiveIndex(archivedVersions.unique().sort()), "../$version/assets/site.css",
+                        faviconTarget ? "../$version/$faviconTarget" : null).getBytes(StandardCharsets.UTF_8))
             }
             write(outputDirectory, 'index.html', selectorPage('KlumAST documentation snapshot', rootIndex(version, status),
-                    "$version/assets/site.css").getBytes(StandardCharsets.UTF_8))
+                    "$version/assets/site.css", faviconTarget ? "$version/$faviconTarget" : null).getBytes(StandardCharsets.UTF_8))
         }
 
         Map<String, String> outputHashes = outputHashes(exactDirectory)
@@ -528,10 +529,11 @@ class VersionedDocumentationRenderer {
                 '\n\n[Documentation landing](../)\n'
     }
 
-    private static String selectorPage(String title, String body, String cssPath) {
+    private static String selectorPage(String title, String body, String cssPath, String faviconPath) {
+        String favicon = faviconPath ? "<link rel=\"icon\" type=\"${StaticDocumentationPageRenderer.faviconMediaType(faviconPath)}\" href=\"$faviconPath\">" : ''
         """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>$title</title><link rel="stylesheet" href="$cssPath"></head>
+<title>$title</title><link rel="stylesheet" href="$cssPath">$favicon</head>
 <body><main class="content" style="width:min(70rem,calc(100% - 2rem));margin:2rem auto"><h1>$title</h1>$body</main></body></html>
 """
     }

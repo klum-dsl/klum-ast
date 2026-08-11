@@ -189,7 +189,7 @@ img { max-width: 100%; height: auto; }
 """
     }
 
-    private static String faviconMediaType(String path) {
+    static String faviconMediaType(String path) {
         if (path.toLowerCase(Locale.ROOT).endsWith('.svg')) return 'image/svg+xml'
         if (path.toLowerCase(Locale.ROOT).endsWith('.png')) return 'image/png'
         'image/x-icon'
