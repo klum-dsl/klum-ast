@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast
 
+import org.codehaus.groovy.ast.ClassHelper
+import spock.lang.Issue
 import spock.lang.Specification
 
 class UtilityTest extends Specification {
@@ -37,5 +39,12 @@ class UtilityTest extends Specification {
         'small'   || -1
         'Big'     || 0
         'enD'     || 2
+    }
+
+    @Issue('728')
+    def "Builder lookup tolerates absent public-projection inputs"() {
+        expect:
+        DslAstHelper.getBuilderClassOf(null, null) == null
+        DslAstHelper.getBuilderClassOf(ClassHelper.STRING_TYPE, ClassHelper.OBJECT_TYPE) == null
     }
 }
