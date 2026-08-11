@@ -31,8 +31,13 @@ class CreateFactoryClientTest {
         return Foo.Create.With(Map.of()) == null ? factory : Foo.Create;
     }
 
-    Foo_DSL.Template beginPublicTemplateChain() {
-        Foo_DSL.Template template = Foo.Template;
-        return Foo.Template.Create(Map.of()) == null ? template : Foo.Template;
+    Foo_DSL.Factory.Template beginPublicTemplateCreationChain() {
+        Foo_DSL.Factory.Template templateFactory = Foo.Create.Template;
+        return Foo.Create.Template.With(Map.of()) == null ? templateFactory : Foo.Create.Template;
+    }
+
+    Foo_DSL.TemplateScope beginPublicTemplateChain() {
+        Foo_DSL.TemplateScope template = Foo.Template;
+        return Foo.Template.With(null, null) == null ? template : Foo.Template;
     }
 }

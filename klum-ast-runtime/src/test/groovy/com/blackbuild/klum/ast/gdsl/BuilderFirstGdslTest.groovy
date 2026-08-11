@@ -28,7 +28,7 @@ import groovy.lang.GroovyShell
 import spock.lang.Issue
 import spock.lang.Specification
 
-@Issue('703')
+@Issue('737')
 class BuilderFirstGdslTest extends Specification {
 
     def "static model completion uses an uppercase raw field when GDSL properties normalize JavaBean names"() {
@@ -37,7 +37,7 @@ class BuilderFirstGdslTest extends Specification {
 
         then: 'it preserves the literal property spelling and public support types'
         createProperties.contains('import com.intellij.psi.JavaPsiFacade')
-        createProperties.contains("[Create: 'Factory', Template: 'Template']")
+        createProperties.contains("[Create: 'Factory', Template: 'TemplateScope']")
         createProperties.contains('JavaPsiFacade.getElementFactory(project).createFieldFromText(')
         createProperties.contains('"public static ${contract.qualifiedName} ${propertyName}"')
         createProperties.contains('add(field)')
@@ -61,7 +61,7 @@ class BuilderFirstGdslTest extends Specification {
 
         then: 'the raw IntelliJ hook is never reached'
         ordinary.findClassCalls.empty
-        withoutMirror.findClassCalls == ['fixture.Missing_DSL.Factory', 'fixture.Missing_DSL.Template']
+        withoutMirror.findClassCalls == ['fixture.Missing_DSL.Factory', 'fixture.Missing_DSL.TemplateScope']
     }
 
     def "static model completion contributes literal uppercase static fields through the GDSL raw-member hook"() {
@@ -69,7 +69,7 @@ class BuilderFirstGdslTest extends Specification {
         GdslClass model = dslClass('fixture.Foo')
         GdslDelegate delegate = new GdslDelegate(model, [
                 'fixture.Foo_DSL.Factory' : new GdslClass('fixture.Foo_DSL.Factory'),
-                'fixture.Foo_DSL.Template': new GdslClass('fixture.Foo_DSL.Template')
+                'fixture.Foo_DSL.TemplateScope': new GdslClass('fixture.Foo_DSL.TemplateScope')
         ])
         List<Object> fieldFactoryProjects = []
 
@@ -79,7 +79,7 @@ class BuilderFirstGdslTest extends Specification {
         then: 'it contributes uppercase static fields of the public support types through add(field)'
         delegate.fields*.declaration == [
                 'public static fixture.Foo_DSL.Factory Create',
-                'public static fixture.Foo_DSL.Template Template'
+                'public static fixture.Foo_DSL.TemplateScope Template'
         ]
         delegate.fields*.context == [model, model]
         fieldFactoryProjects == [delegate.project, delegate.project]
@@ -91,7 +91,7 @@ class BuilderFirstGdslTest extends Specification {
         contributor('PolymorphicMethods.gdsl')
 
         and: 'static property completion has no closure-delegate inference, so the closure resource retains a distinct use case'
-        gdsl('CreateProperties.gdsl').contains("[Create: 'Factory', Template: 'Template']")
+        gdsl('CreateProperties.gdsl').contains("[Create: 'Factory', Template: 'TemplateScope']")
         !gdsl('CreateProperties.gdsl').contains('delegatesTo')
 
         and: 'the retained contributor remains closure-scoped and names no legacy RW implementation type'

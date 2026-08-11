@@ -284,16 +284,17 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.runtime.KlumBuilder<SELF>')
     }
 
-    @Issue('391')
-    def "Template uses the model-package contract and generated runtime bridge without internal leakage"() {
+    @Issue(['391', '737'])
+    def "Template uses the model-package TemplateScope contract and generated runtime bridge without internal leakage"() {
         given:
         Class<?> base = getClass('sample.Base')
         Class<?> foo = getClass('sample.Foo')
-        Class<?> template = getClass('sample.Foo_DSL$Template')
+        Class<?> template = getClass('sample.Foo_DSL$TemplateScope')
         Class<?> adapter = getClass('sample.Foo$_Template')
 
-        expect: 'the public model descriptor names only the model-package Template contract'
+        expect: 'the public model descriptor names only the model-package TemplateScope contract'
         foo.getField('Template').type == template
+        !new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL$Template.class').isFile()
         template.interface && Modifier.isPublic(template.modifiers)
         template.isAssignableFrom(adapter)
         Modifier.isPublic(adapter.modifiers)
@@ -316,7 +317,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         classFileConstants(adapter).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedTemplateSupport')
     }
 
-    @Issue('710')
+    @Issue(['710', '737'])
     def "Factory owns the public Template creation property without exposing a Factory method"() {
         given:
         Class<?> foo = getClass('sample.Foo')
@@ -363,11 +364,11 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         TemplateManager.isTemplate(template)
     }
 
-    @Issue('710')
-    def "Template handler retains deprecated creation aliases that forward to the Factory property"() {
+    @Issue(['710', '737'])
+    def "TemplateScope retains deprecated creation aliases that forward to the Factory property"() {
         given:
         Class<?> foo = getClass('sample.Foo')
-        Class<?> template = getClass('sample.Foo_DSL$Template')
+        Class<?> template = getClass('sample.Foo_DSL$TemplateScope')
 
         when: 'the documented compatibility spelling is used'
         def creationAliases = [
@@ -382,7 +383,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         ]
         def legacyTemplate = foo.Template.Create(label: 'legacy')
 
-        then: 'scope application stays on the Template handler while every legacy creator is explicitly deprecated'
+        then: 'scope application stays on TemplateScope while every legacy creator is explicitly deprecated'
         template.getMethod('With', getClass('sample.Base'), Closure)
         template.getMethod('WithAll', Map, Closure)
         template.getMethod('WithAll', List, Closure)
@@ -398,8 +399,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         TemplateManager.isTemplate(legacyTemplate)
     }
 
-    @Issue('710')
-    def "Java and statically compiled Groovy consume only the public namespace"() {
+    @Issue(['710', '737'])
+    def "Java and statically compiled Groovy consume distinct public Template contracts"() {
         when:
         compileJavaConsumer('''
             package sample;
@@ -417,12 +418,24 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                     return Foo.Create.Template;
                 }
 
+                public static Foo_DSL.TemplateScope templateScope() {
+                    return Foo.Template;
+                }
+
                 public static Foo template() {
                     return Foo.Create.Template.With(Map.of("label", "java template"));
                 }
 
                 public static Foo templateFrom(File source) {
                     return Foo.Create.Template.From(source);
+                }
+
+                public static Foo scopedTemplate(Foo template) {
+                    return Foo.Template.With(template, new Closure<Foo>(null) {
+                        public Foo doCall() {
+                            return Foo.Create.With(Map.of("label", "scoped"));
+                        }
+                    });
                 }
 
                 public static Child_DSL.Builder<Child> addChild(
@@ -471,6 +484,13 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 static Foo templateFrom(File source) {
                     Foo.Create.Template.From(source)
                 }
+
+                static Child scopedTemplate(Child template) {
+                    Child_DSL.TemplateScope scope = Child.Template
+                    scope.With(template) {
+                        Child.Create.With { name 'scoped' }
+                    }
+                }
             }
         ''', 'sample/StaticDslConsumer.groovy')
         File templateSource = new File(tempFolder.root, 'template.groovy')
@@ -478,13 +498,16 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         def javaTemplate
         def javaTemplateFrom
+        def javaScopedTemplate
         new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], loader).withCloseable {
             Class<?> javaConsumer = it.loadClass('sample.JavaDslConsumer')
             javaTemplate = javaConsumer.template()
             javaTemplateFrom = javaConsumer.templateFrom(templateSource)
+            javaScopedTemplate = javaConsumer.scopedTemplate(javaTemplate)
         }
         def staticTemplate = consumer.template()
         def staticTemplateFrom = consumer.templateFrom(templateSource)
+        def staticScopedTemplate = consumer.scopedTemplate(Child.Create.Template.With { name 'template child' })
 
         then:
         consumer.create().kids*.name == ['list child']
@@ -492,9 +515,11 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom]*.label ==
                 ['java template', 'file template', 'template', 'file template']
         [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom].every { TemplateManager.isTemplate(it) }
+        javaScopedTemplate.label == 'scoped'
+        staticScopedTemplate.name == 'scoped'
     }
 
-    @Issue('710')
+    @Issue(['710', '737'])
     def "statically compiled Groovy rejects the removed Factory Template methods"() {
         when:
         createSecondaryClass('''
@@ -877,8 +902,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         (deploymentMirror =~ /(?s)B keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory,*\s+String key\);/).find()
     }
 
-    @Issue('729')
-    def "AnnoDocimal source mirror matches the bytecode namespace and nested Template Factory contract"() {
+    @Issue(['729', '737'])
+    def "AnnoDocimal source mirror matches the distinct TemplateScope and Template Factory contracts"() {
         given:
         File mirrorRoot = new File(tempFolder.root, 'mirrors')
         File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
@@ -889,8 +914,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         then:
         int factoryStart = mirror.indexOf('interface Factory')
-        int factoryTemplateStart = mirror.indexOf('interface Template')
-        int scopedTemplateStart = mirror.lastIndexOf('interface Template')
+        int factoryTemplateStart = mirror.indexOf('interface Template {')
+        int scopedTemplateStart = mirror.indexOf('interface TemplateScope {')
         String factoryMirror = mirror.substring(factoryStart, scopedTemplateStart)
         String templateFactoryMirror = mirror.substring(factoryTemplateStart, scopedTemplateStart)
         String scopedTemplateMirror = mirror.substring(scopedTemplateStart)
@@ -899,7 +924,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         mirror.contains('interface Factory')
         factoryMirror.contains('AsBuilder()')
         !factoryMirror.contains('getAsBuilder')
-        mirror.count('interface Template') == 2
+        mirror.count('interface Template {') == 1
+        mirror.count('interface TemplateScope {') == 1
         factoryMirror.contains('Template Template = null;')
         templateFactoryMirror.contains('Foo With(')
         templateFactoryMirror.contains('Foo From(')
