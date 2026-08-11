@@ -22,9 +22,10 @@
  * SOFTWARE.
  */
 package com.blackbuild.klum.ast.runtime.internal;
-import com.blackbuild.klum.ast.runtime.KlumSchemaException;
-import com.blackbuild.klum.ast.runtime.KlumModelException;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.KlumModelException;
+import com.blackbuild.klum.ast.runtime.KlumSchemaException;
 
 import com.blackbuild.klum.ast.DSL;
 import com.blackbuild.klum.ast.FieldType;
@@ -318,7 +319,7 @@ public class DslHelper {
     private static boolean virtualSetterAccepts(Class<?> parameterType, Class<?> modelType) {
         if (parameterType.isAssignableFrom(modelType))
             return true;
-        return InternalKlumBuilder.class.isAssignableFrom(parameterType)
+        return KlumBuilder.class.isAssignableFrom(parameterType)
                 && parameterType.isAssignableFrom(GeneratedBuilderSupport.builderTypeFor(modelType));
     }
 

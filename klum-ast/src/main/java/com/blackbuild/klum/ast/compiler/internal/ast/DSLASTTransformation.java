@@ -1025,7 +1025,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
         ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
-        ClassNode elementBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl).getPlainNodeReference();
+        ClassNode elementBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl, fieldNode.getOwner()).getPlainNodeReference();
         FieldType relationshipType = getFieldType(fieldNode);
         boolean linkField = relationshipType == FieldType.LINK;
         boolean optionalLinkField = relationshipType == FieldType.OPTIONAL_LINK;
@@ -1240,7 +1240,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         String fieldName = fieldNode.getName();
 
-        ClassNode elementBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl).getPlainNodeReference();
+        ClassNode elementBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl, fieldNode.getOwner()).getPlainNodeReference();
         FieldType relationshipType = getFieldType(fieldNode);
         boolean linkField = relationshipType == FieldType.LINK;
         boolean optionalLinkField = relationshipType == FieldType.OPTIONAL_LINK;
@@ -1381,7 +1381,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         FieldNode targetTypeKeyField = getKeyField(dslBaseType);
         String targetKeyFieldName = targetTypeKeyField != null ? targetTypeKeyField.getName() : null;
-        ClassNode targetBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl).getPlainNodeReference();
+        ClassNode targetBuilderType = DslAstHelper.getBuilderClassOf(defaultImpl, fieldNode.getOwner()).getPlainNodeReference();
 
         Expression keyProvider = getStaticKeyExpression(fieldNode);
         boolean needKeyParameter = targetTypeKeyField != null && keyProvider == null;

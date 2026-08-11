@@ -1752,6 +1752,7 @@ import org.codehaus.groovy.control.CompilePhase
         Serializable.isAssignableFrom(clazz)
     }
 
+    @Issue('728')
     def "DelegatesTo annotations for unkeyed inner models are created"() {
         given:
         createClass('''
@@ -1784,13 +1785,14 @@ import org.codehaus.groovy.control.CompilePhase
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[2])
 
         and:
-        delegatesToPointsTo(builderClass.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner.Builder')
-        delegatesToPointsTo(builderClass.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner_DSL.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner_DSL.Builder')
 
         where:
         methodName << ["inner", "listInner"]
     }
 
+    @Issue('728')
     def "DelegatesTo annotations for keyed inner models are created"() {
         given:
         createClass('''
@@ -1824,8 +1826,8 @@ import org.codehaus.groovy.control.CompilePhase
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[3])
 
         and:
-        delegatesToPointsTo(builderClass.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
-        delegatesToPointsTo(builderClass.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner_DSL.Builder')
+        delegatesToPointsTo(builderClass.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner_DSL.Builder')
 
         where:
         methodName << ["inner", "listInner", "mapInner"]

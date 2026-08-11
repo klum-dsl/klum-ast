@@ -65,6 +65,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 - Fixed cross-source `@Owner(root = true)` public Builder accessors to expose the target model's
   `Root_DSL.Builder<Root>` contract instead of the hidden `Root$Builder` implementation. Generated
   AnnoDocimal source mirrors now preserve that same public type ([#702](https://github.com/klum-dsl/klum-ast/issues/702)).
+- Fixed same-source forward relationship declarations so public Builder accessors, creators, and AnnoDocimal source
+  mirrors use the target's `Child_DSL.Builder<Child>` contract rather than the hidden `Child$Builder`
+  implementation ([#728](https://github.com/klum-dsl/klum-ast/issues/728)).
 - Public static methods declared on custom `Factory` classes now fail compilation instead of being silently omitted from
   `Create`. Make these public factory operations instance methods; private, protected, and package-private static helpers
   and model-level static converters remain supported ([#706](https://github.com/klum-dsl/klum-ast/issues/706)).

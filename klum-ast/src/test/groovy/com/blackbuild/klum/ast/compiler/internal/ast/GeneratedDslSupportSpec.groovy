@@ -45,6 +45,7 @@ import groovy.transform.CompileStatic
 import org.intellij.lang.annotations.Language
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.ast.ClassHelper
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -54,6 +55,7 @@ import java.io.DataInputStream
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.net.URLClassLoader
+import java.util.stream.Stream
 
 class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
@@ -693,7 +695,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         !dynamicEndpointMethod.isAnnotationPresent(Deprecated)
     }
 
-    @Issue('719')
+    @Issue(['719', '728'])
     def "public Builder contracts and source mirrors declare relationship creators without their optional closure"() {
         given:
         Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
@@ -783,9 +785,9 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         mirror.contains('Child_DSL.Builder<Child> primary(Map<String, ?> values)')
         mirror.contains('Child_DSL.Builder<Child> kid(Map<String, ?> values)')
         mirror.readLines().any { it.contains(' primary(Map<String, ?> values)') && !it.contains('Closure') }
-        (deploymentMirror =~ /(?s)Endpoint\.Builder endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends Endpoint> typeToCreate\);/).find()
+        (deploymentMirror =~ /(?s)Endpoint_DSL\.Builder<Endpoint> endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends Endpoint> typeToCreate\);/).find()
         (deploymentMirror =~ /(?s)B endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory\);/).find()
-        (deploymentMirror =~ /(?s)KeyedEndpoint\.Builder keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends KeyedEndpoint> typeToCreate,?\s+String key\);/).find()
+        (deploymentMirror =~ /(?s)KeyedEndpoint_DSL\.Builder<KeyedEndpoint> keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends KeyedEndpoint> typeToCreate,?\s+String key\);/).find()
         (deploymentMirror =~ /(?s)B keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory,*\s+String key\);/).find()
     }
 
@@ -875,6 +877,135 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         and: 'the IDE-only source mirror names the same public Builder contract'
         mirror.contains('Root_DSL.Builder<Root>')
         !mirror.contains('Root.Builder')
+    }
+
+    @Issue('728')
+    def "projects same-source forward relationship Builders into the public namespace"() {
+        given: 'Parent is transformed before its relationship target is resolved from the same Schema source'
+        def unit = new CompilationUnit(compilerConfiguration, null, loader)
+        unit.addSource('SameSourceSchema.groovy', '''
+            package samesource
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+
+            @DSL class Parent {
+                Child primaryChild
+                List<Child> children
+                Map<String, Child> childrenByName
+            }
+
+            @DSL class Child {
+                @Key String name
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def sameSourceLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], loader)
+        Class<?> parentBuilder = sameSourceLoader.loadClass('samesource.Parent_DSL$Builder')
+        Class<?> childBuilder = sameSourceLoader.loadClass('samesource.Child_DSL$Builder')
+        Class<?> collectionFactory = sameSourceLoader.loadClass('samesource.Parent_DSL$Builder$CollectionFactory_children')
+
+        and: 'a static Groovy extension relies on the generated public contracts only'
+        Class<?> consumer = new GroovyClassLoader(sameSourceLoader, compilerConfiguration).parseClass('''
+            package samesource
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class SameSourcePublicBuilderConsumer {
+                static Child_DSL.Builder<Child> primary(Parent_DSL.Builder<Parent> parent) {
+                    parent.primaryChild
+                }
+            }
+        ''', 'samesource/SameSourcePublicBuilderConsumer.groovy')
+
+        and: 'AnnoDocimal mirrors the generated namespace rather than an implementation descriptor'
+        File mirrorRoot = new File(tempFolder.root, 'same-source-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'samesource/Parent_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        String mirror = new File(mirrorRoot, 'samesource/Parent_DSL.java').text
+
+        then: 'accessors and every relationship-creator path use the public Child Builder contract'
+        parentBuilder.getMethod('getPrimaryChild').returnType == childBuilder
+        parentBuilder.getMethod('setPrimaryChild', childBuilder)
+        parentBuilder.getMethod('getChildren').genericReturnType.typeName ==
+                'java.util.List<samesource.Child_DSL$Builder<samesource.Child>>'
+        parentBuilder.getMethod('setChildren', List).genericParameterTypes[0].typeName ==
+                'java.util.List<samesource.Child_DSL$Builder<samesource.Child>>'
+        parentBuilder.getMethod('getChildrenByName').genericReturnType.typeName ==
+                'java.util.Map<java.lang.String, samesource.Child_DSL$Builder<samesource.Child>>'
+        parentBuilder.getMethod('setChildrenByName', Map).genericParameterTypes[0].typeName ==
+                'java.util.Map<java.lang.String, samesource.Child_DSL$Builder<samesource.Child>>'
+        closureDelegate(parentBuilder.declaredMethods.find {
+            it.name == 'primaryChild' && it.returnType == childBuilder &&
+                    !it.parameterTypes.toList().contains(Class) && !it.parameterTypes.toList().contains(BuilderFactoryProvider) &&
+                    it.parameterTypes.last() == Closure
+        }) == childBuilder
+        closureDelegate(collectionFactory.declaredMethods.find {
+            it.returnType == childBuilder && !it.parameterTypes.toList().contains(Class) &&
+                    !it.parameterTypes.toList().contains(BuilderFactoryProvider) && it.parameterTypes.last() == Closure
+        }) == childBuilder
+        closureDelegate(parentBuilder.declaredMethods.find {
+            it.name == 'childrenByName' && it.returnType == childBuilder &&
+                    !it.parameterTypes.toList().contains(Class) && !it.parameterTypes.toList().contains(BuilderFactoryProvider) &&
+                    it.parameterTypes.last() == Closure
+        }) == childBuilder
+        parentBuilder.declaredMethods.findAll { it.name in ['primaryChild', 'childrenByName'] }.every { method ->
+            !method.toGenericString().contains('Child$Builder')
+        }
+        collectionFactory.declaredMethods.findAll { it.name == 'child' }.every { method ->
+            !method.toGenericString().contains('Child$Builder')
+        }
+
+        and: 'dynamic Class and typed Factory creator paths retain their public generic contract for every relationship shape'
+        List<Method> dynamicCreators = [
+                parentBuilder.declaredMethods.find { it.name == 'primaryChild' && it.parameterTypes.toList().contains(Class) && it.parameterTypes.last() == Closure },
+                collectionFactory.declaredMethods.find { it.name == 'children' && it.parameterTypes.toList().contains(Class) && it.parameterTypes.last() == Closure },
+                parentBuilder.declaredMethods.find { it.name == 'childrenByName' && it.parameterTypes.toList().contains(Class) && it.parameterTypes.last() == Closure }
+        ]
+        List<Method> factoryCreators = [
+                parentBuilder.declaredMethods.find { it.name == 'primaryChild' && it.parameterTypes.toList().contains(BuilderFactoryProvider) && it.parameterTypes.last() == Closure },
+                collectionFactory.declaredMethods.find { it.name == 'children' && it.parameterTypes.toList().contains(BuilderFactoryProvider) && it.parameterTypes.last() == Closure },
+                parentBuilder.declaredMethods.find { it.name == 'childrenByName' && it.parameterTypes.toList().contains(BuilderFactoryProvider) && it.parameterTypes.last() == Closure }
+        ]
+        dynamicCreators*.returnType == [childBuilder, childBuilder, childBuilder]
+        dynamicCreators.every { creator ->
+            creator.genericParameterTypes.find { it.typeName.startsWith('java.lang.Class') }.typeName ==
+                    'java.lang.Class<? extends samesource.Child>'
+            creator.parameters.last().getAnnotation(DelegatesTo).with {
+                genericTypeIndex() == 0 && strategy() == Closure.DELEGATE_ONLY
+            }
+        }
+        factoryCreators.every { creator ->
+            creator.genericReturnType.typeName == 'B'
+            creator.genericParameterTypes.find { it.typeName.contains('BuilderFactoryProvider') }.typeName ==
+                    'com.blackbuild.klum.ast.runtime.KlumFactory$BuilderFactoryProvider<T, B>'
+            creator.parameters.last().getAnnotation(DelegatesTo).with {
+                target() == 'factory' && genericTypeIndex() == 1 && strategy() == Closure.DELEGATE_ONLY
+            }
+        }
+
+        and: 'the source mirror is as truthful as bytecode and the public static consumer compiles'
+        mirror.contains('Child_DSL.Builder<Child> getPrimaryChild()')
+        mirror.contains('void setPrimaryChild(Child_DSL.Builder<Child>')
+        mirror.contains('List<Child_DSL.Builder<Child>> getChildren()')
+        mirror.contains('void setChildren(List<Child_DSL.Builder<Child>>')
+        mirror.contains('Map<String, Child_DSL.Builder<Child>> getChildrenByName()')
+        mirror.contains('void setChildrenByName(Map<String, Child_DSL.Builder<Child>>')
+        mirror.contains('Child_DSL.Builder<Child> primaryChild(')
+        mirror.contains('Child_DSL.Builder<Child> child(')
+        mirror.contains('Child_DSL.Builder<Child> childrenByName(')
+        !mirror.contains('Child.Builder')
+        !mirror.contains('Child$Builder')
+        consumer.getMethod('primary', parentBuilder).returnType == childBuilder
+    }
+
+    @Issue('728')
+    def "does not project an ordinary Java nested Builder type"() {
+        expect:
+        GeneratedDslSupport.publicType(ClassHelper.make(Stream.Builder)).name == Stream.Builder.name
     }
 
     private void createRepresentativeSchema() {
