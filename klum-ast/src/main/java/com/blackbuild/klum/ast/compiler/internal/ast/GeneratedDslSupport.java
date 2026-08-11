@@ -361,6 +361,7 @@ public final class GeneratedDslSupport {
         Parameter[] parameters = cloneParameters(implementationMethod.getParameters());
         MethodNode existing = publicInterface.getDeclaredMethod(implementationMethod.getName(), parameters);
         if (existing != null) {
+            copyProjectedDocumentation(implementationMethod, existing);
             implementationMethod.setNodeMetaData(API_METHOD_METADATA_KEY, existing);
             return;
         }
@@ -375,6 +376,7 @@ public final class GeneratedDslSupport {
         );
         apiMethod.setGenericsTypes(projectGenericsTypes(implementationMethod.getGenericsTypes()));
         copyAnnotationsFromSourceToTarget(implementationMethod, apiMethod, Collections.emptyList());
+        copyProjectedDocumentation(implementationMethod, apiMethod);
         publicInterface.addMethod(apiMethod);
         implementationMethod.setNodeMetaData(API_METHOD_METADATA_KEY, apiMethod);
         addProjectedRelationshipClosureOmission(publicInterface, apiMethod, hasGeneratedRelationshipCreatorTag(implementationMethod));
@@ -405,7 +407,16 @@ public final class GeneratedDslSupport {
         );
         apiMethod.setGenericsTypes(projectedMethod.getGenericsTypes());
         copyAnnotationsFromSourceToTarget(projectedMethod, apiMethod, Collections.emptyList());
+        copyProjectedDocumentation(projectedMethod, apiMethod);
         publicInterface.addMethod(apiMethod);
+    }
+
+    private static void copyProjectedDocumentation(MethodNode source, MethodNode target) {
+        AstDocumentation.extractExact(source).ifPresent(documentation -> {
+            KlumDocumentation projected = new KlumDocumentation().replace(documentation);
+            projected.filterParameters(Arrays.stream(target.getParameters()).map(Parameter::getName).toList());
+            AstDocumentation.attach(target, projected.rendered());
+        });
     }
 
     private static void projectMethodSignature(MethodNode method) {

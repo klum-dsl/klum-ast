@@ -1123,10 +1123,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .returning(storedElementType)
+                .returning(storedElementType, "the added element")
                 .documentationTitle("Adds one " + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
-                .param(storedElementType, "value")
+                .param(storedElementType, "value", "the element to add")
                 .addTo(builderClass);
 
         if (optionalLinkField) {
@@ -1188,34 +1188,40 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .documentationTitle("Adds one or more values to the Builder's '{{fieldName}}' map.")
                     .constantParam(methodName)
-                    .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
+                    .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values",
+                            "the map entries to add")
                     .addTo(builderClass);
         } else {
             createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .documentationTitle("Adds one or more values to the Builder's '{{fieldName}}' map.")
                     .constantParam(methodName)
-                    .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(valueType)), "values")
+                    .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(valueType)), "values",
+                            "the values to add")
                     .addTo(builderClass);
             createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .documentationTitle("Adds one or more values to the Builder's '{{fieldName}}' map.")
                     .constantParam(methodName)
-                    .arrayParam(valueType, "values")
+                    .arrayParam(valueType, "values", "the values to add")
                     .addTo(builderClass);
         }
 
         createProxyMethod(singleElementMethod, ADD_ELEMENT_TO_MAP)
                 .optional()
                 .mod(visibility)
-                .returning(valueType)
+                .returning(valueType, "the added value")
                 .linkToField(fieldNode)
+                .documentationTitle("Adds one value to the Builder's '{{fieldName}}' map.")
                 .constantParam(methodName)
-                .optionalParam(keyType, "key", keyMappingClosure == null)
-                .param(valueType, "value")
+                .optionalParam(keyType, "key", keyMappingClosure == null, "the map key for the value")
+                .param(valueType, "value", "the value to add")
                 .addTo(builderClass);
 
         createConverterMethods(fieldNode, singleElementMethod, true);
@@ -1329,12 +1335,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(methodName, ADD_ELEMENT_TO_MAP)
                 .optional()
                 .mod(visibility)
-                .returning(storedElementType)
+                .returning(storedElementType, "the added value")
                 .linkToField(fieldNode)
                 .documentationTitle("Adds one " + storedElementDescription + MAP_DOCUMENTATION_SUFFIX)
+                .withDocumentation(documentation -> documentation.param("key", "the map key for the value"))
                 .constantParam(fieldName)
                 .constantParam(null)
-                .param(storedElementType, elementToAddVarName)
+                .param(storedElementType, elementToAddVarName, "the value to add")
                 .addTo(builderClass);
 
         if (optionalLinkField) {
@@ -1395,7 +1402,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .returning(targetBuilderType)
+                    .returning(targetBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                    .withDocumentation(doc -> doc
+                            .title("Creates a new '{{singleElementName}}' Builder to this Builder.")
+                            .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
+                            .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
+                            .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                     .namedParams("values")
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
@@ -1600,19 +1612,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createApplyMethods() {
         createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
-                .delegatingClosureParam(builderClass, null, null)
+                .documentationTitle("Schedules a Builder configuration closure for the default apply-later phase.")
+                .documentationParagraph("The closure runs while this Builder is still active, before materialization and validation.")
+                .delegatingClosureParam(builderClass, null, "the Builder configuration to schedule")
                 .addTo(builderClass);
 
         createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
-                .param(Integer_TYPE, "phase")
-                .delegatingClosureParam(builderClass, null, null)
+                .documentationTitle("Schedules a Builder configuration closure for a numeric apply-later phase.")
+                .documentationParagraph("The closure runs while this Builder is still active, before materialization and validation.")
+                .param(Integer_TYPE, "phase", "the numeric phase at which to run the configuration")
+                .delegatingClosureParam(builderClass, null, "the Builder configuration to schedule")
                 .addTo(builderClass);
 
         createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
-                .param(make(DefaultKlumPhase.class), "phase")
-                .delegatingClosureParam(builderClass, null, null)
+                .documentationTitle("Schedules a Builder configuration closure for a named apply-later phase.")
+                .documentationParagraph("The closure runs while this Builder is still active, before materialization and validation.")
+                .param(make(DefaultKlumPhase.class), "phase", "the named phase at which to run the configuration")
+                .delegatingClosureParam(builderClass, null, "the Builder configuration to schedule")
                 .addTo(builderClass);
     }
 
