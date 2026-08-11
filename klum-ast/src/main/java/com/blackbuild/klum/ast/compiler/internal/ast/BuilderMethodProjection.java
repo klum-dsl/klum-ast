@@ -793,7 +793,16 @@ public final class BuilderMethodProjection {
                 Expression factory = rootCall.explicitFactory
                         ? transform(source.getObjectExpression())
                         : varX("this");
-                result.setObjectExpression(callX(factory, "AsBuilder"));
+                boolean keyedModel = getKeyField(rootCall.model) != null;
+                ClassNode runtimeFactory = !keyedModel
+                        ? DSLASTTransformation.UNKEYED_FACTORY : DSLASTTransformation.KEYED_FACTORY;
+                ClassNode builderFactory = !keyedModel
+                        ? DSLASTTransformation.UNKEYED_BUILDER_FACTORY : DSLASTTransformation.KEYED_BUILDER_FACTORY;
+                MethodNode asBuilderOperation = runtimeFactory.getDeclaredMethod("AsBuilder", Parameter.EMPTY_ARRAY);
+                MethodCallExpression asBuilderCall = callX(factory, "AsBuilder");
+                asBuilderCall.setMethodTarget(asBuilderOperation);
+                asBuilderCall.setType(builderFactory);
+                result.setObjectExpression(asBuilderCall);
                 result.setImplicitThis(false);
                 result.setMethodTarget(builderMethod);
                 CastExpression cast = new CastExpression(GeneratedDslSupport.builderTypeFor(rootCall.model), result);
