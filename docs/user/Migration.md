@@ -96,9 +96,10 @@ methods, lifecycle closures, and validation classes, replace their shortcuts wit
 object. It retains that object's construction path and does not alter lifecycle ordering. The separate #406 compiler
 restriction remains a later placement check; it is not a migration fallback.
 
-## KlumCast 0.4 RC dependencies
+## KlumCast 0.4 final dependencies
 
-KlumAST 4.0 uses the immutable KlumCast `0.4.0-rc.2` artifact set: `klum-cast-annotations`, `klum-cast-spi`, and
+KlumAST 4.0 uses the immutable [KlumCast `0.4.0` artifact set](https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0):
+`klum-cast-annotations`, `klum-cast-spi`, and
 `klum-cast-compile`. Its stable automatic module names are `com.blackbuild.klum.cast.annotations`,
 `com.blackbuild.klum.cast.spi`, and `com.blackbuild.klum.cast.compiler`; do not substitute filename-derived names or use
 local module-path flags to compensate for an invalid dependency graph.
