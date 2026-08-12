@@ -32,16 +32,16 @@ import java.lang.module.ModuleFinder
 import java.nio.file.Path
 import java.util.jar.JarFile
 
-@Issue("459")
-class KlumCastRcIntegrationTest extends Specification {
+@Issue(["459", "524"])
+class KlumCastFinalIntegrationTest extends Specification {
 
-    private static final String RC_VERSION = "0.4.0-rc.2"
+    private static final String FINAL_VERSION = "0.4.0"
     private static final String AST_TRANSFORMATION_SERVICE = "META-INF/services/org.codehaus.groovy.transform.ASTTransformation"
 
-    def "uses the published KlumCast RC artifacts with their stable module names"() {
+    def "uses the published final KlumCast artifacts with their stable module names"() {
         expect:
         moduleName(jar) == expectedModuleName
-        moduleVersion(jar) == RC_VERSION
+        moduleVersion(jar) == FINAL_VERSION
 
         where:
         jar                       | expectedModuleName
@@ -50,7 +50,7 @@ class KlumCastRcIntegrationTest extends Specification {
         compilerJar()             | "com.blackbuild.klum.cast.compiler"
     }
 
-    def "KlumCast RC artifacts have exclusive package ownership"() {
+    def "final KlumCast artifacts have exclusive package ownership"() {
         given:
         def packageSets = [jarOf(KlumCastValidated), jarOf(KlumCastCheck), compilerJar()]
                 .collect { packagesIn(it) }
@@ -66,7 +66,7 @@ class KlumCastRcIntegrationTest extends Specification {
     }
 
     private static Path compilerJar() {
-        def service = KlumCastRcIntegrationTest.classLoader.getResources(AST_TRANSFORMATION_SERVICE)
+        def service = KlumCastFinalIntegrationTest.classLoader.getResources(AST_TRANSFORMATION_SERVICE)
                 .toList()
                 .find { it.toExternalForm().contains("klum-cast-compile") }
 

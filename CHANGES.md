@@ -14,15 +14,19 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Dependency compatibility
 
-- Migrated to released [AnnoDocimal 1.0.0-rc.8](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.0-rc.8)
-  (`a01ef0a7a507a5800401886b63e9106f351997cd`). KlumAST now uses its supported documentation-authoring and source-projection
+- Promoted to final [AnnoDocimal 1.0.0](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.0), released from
+  [`2780ab1b4e919d40ec19476eac1e3288378fda0b`](https://github.com/blackbuild/anno-docimal/commit/2780ab1b4e919d40ec19476eac1e3288378fda0b).
+  KlumAST uses its supported documentation-authoring and source-projection
   APIs. The schema plugin retains its IDEA-only mirror policy while using the configuration-cache-safe projection task;
   property documentation is projected verbatim to generated Model and Builder accessors unless an accessor supplies its
   own documentation ([#461](https://github.com/klum-dsl/klum-ast/issues/461)). Source-mirror projection now resolves
   public generated-interface references from the Schema compile classpath without making mirrors compilation inputs
-  ([#700](https://github.com/klum-dsl/klum-ast/issues/700)). Final AnnoDocimal 1.0 remains a KlumAST
-  final-release prerequisite; this change validates the immutable RC train only.
-- Upgraded to the immutable [KlumCast 0.4.0-rc.2](https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0-rc.2) artifact set: `klum-cast-annotations`, `klum-cast-spi`, and `klum-cast-compile`. The artifacts have stable automatic module names (`com.blackbuild.klum.cast.annotations`, `.spi`, and `.compiler`) and no split KlumCast packages. Recompile schemas and custom checks for 4.0.
+  ([#700](https://github.com/klum-dsl/klum-ast/issues/700), [#523](https://github.com/klum-dsl/klum-ast/issues/523)).
+- Promoted to final [KlumCast 0.4.0](https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0), released from
+  [`770b1ad2d6b4c109b4e5131b294fa2dafdef09b4`](https://github.com/klum-dsl/klum-cast/commit/770b1ad2d6b4c109b4e5131b294fa2dafdef09b4):
+  `klum-cast-annotations`, `klum-cast-spi`, and `klum-cast-compile`. The artifacts have stable automatic module names
+  (`com.blackbuild.klum.cast.annotations`, `.spi`, and `.compiler`) and no split KlumCast packages. Recompile schemas
+  and custom checks for 4.0 ([#524](https://github.com/klum-dsl/klum-ast/issues/524)).
 - Migrated KlumAST's eight name-bound compiler checks to KlumCast's stateless `Check` SPI. Their expected violations now emit source-positioned structured diagnostics; diagnostic codes are the check implementation names, while unexpected failures remain technical errors with their causes. Invalid `@Overwrite.Single(MERGE)` strategies on non-DSL fields are rejected during compilation ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
 
 ## Java modules

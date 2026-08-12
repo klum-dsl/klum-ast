@@ -14,10 +14,11 @@ or named-schema fixture boundaries.
   its executable sequence is the [ADR 0014 plan](../adr-0014-groovy4-jpms-boundary.md).
 - The upstream consumer-adoption gates are closed: [#459](https://github.com/klum-dsl/klum-ast/issues/459)
   (2026-07-20) and [#461](https://github.com/klum-dsl/klum-ast/issues/461)
-  (2026-07-27). Their immutable RC coordinates are present in
-  `settings.gradle`. Final-coordinate release promotion remains separately
-  owned by [#524](https://github.com/klum-dsl/klum-ast/issues/524), not by this
-  audit or a reopened #391.
+  (2026-07-27). Their historical RC coordinates established this audit's
+  baseline. The separately owned final-coordinate promotion is now complete in
+  [#523](https://github.com/klum-dsl/klum-ast/issues/523) and
+  [#524](https://github.com/klum-dsl/klum-ast/issues/524), which pin final
+  AnnoDocimal 1.0.0 and KlumCast 0.4.0 without reopening #391.
 - PR #608 merged `8d1b8414`, `21369682`, and `ced0c195` on 2026-07-29. Its
   build, JUnit report, SonarCloud, and SonarCloud analysis checks succeeded.
   The audit additionally reran its acceptance test locally rather than treating
@@ -32,7 +33,7 @@ or named-schema fixture boundaries.
 | Criterion | Current-master evidence | Status | Owner | Exact next action |
 | --- | --- | --- | --- | --- |
 | Accepted module/package decision and implementation sequence | ADR 0014, its plan, and `issue-391-jp2c-package-migration.md` record the five fixed artifacts, Groovy 4/5 named boundary, classpath Groovy 3 boundary, and complete old-to-new map. | met | #391 | Retain as closure evidence. |
-| #459/#461 dependency inputs are synchronized without local substitutions | Closed live issues; `settings.gradle` pins KlumCast `0.4.0-rc.2` and AnnoDocimal `1.0.0-rc.7`; PR #608 fixture resolves their module identities. Final coordinates are #523/#524 scope. | met | #459/#461; #523/#524 for release promotion | Do not reopen the closed adoption gates; consume the final-coordinate work when its owners deliver it. |
+| #459/#461 dependency inputs are synchronized without local substitutions | Closed live issues established the historical RC proof; `settings.gradle` now pins final [KlumCast 0.4.0](https://github.com/klum-dsl/klum-cast/commit/770b1ad2d6b4c109b4e5131b294fa2dafdef09b4) and [AnnoDocimal 1.0.0](https://github.com/blackbuild/anno-docimal/commit/2780ab1b4e919d40ec19476eac1e3288378fda0b) through #523/#524. PR #608 fixture resolves their module identities. | met | #459/#461; #523/#524 completed promotion | Retain the historical adoption gates; hand the final-coordinate source revision to #525 without reopening #391. |
 | Five explicit canonical descriptors and package ownership | The five `src/main/module-info/module-info.java` files define the ADR names. `JpmsPackageBoundaryTest` inspects their built JAR descriptors, singleton package ownership, no legacy package in the artifacts, exact exports, qualified compiler opens, and service declarations. | met | #391 | Retain the descriptor test; no descriptor redesign. |
 | Generated-schema ABI and named-module linkage | JP-ABI records plus `JpmsPackageBoundaryTest` scan generated named-schema class files for runtime-internal references and prove generated factory/template and protected lifecycle shapes. | met | #391 | Do not reopen ABI bridge work without a new failing descriptor or fixture. |
 | Real Groovy 4/5 named schema and Groovy 3 classpath boundary | On this baseline, all three focused commands passed: `:klum-ast:test`, `:klum-ast:groovy4Tests`, and `:klum-ast:groovy5Tests`, each filtered to `com.blackbuild.klum.ast.JpmsPackageBoundaryTest`. The test compiles a user-owned schema descriptor, runs Java and `@CompileStatic` Groovy consumers, exercises lifecycle, services, Jackson, Bean Validation, and rejects portability flags. | met | #391 | Retain the three-lane test evidence as the JP-1b closure proof. |
