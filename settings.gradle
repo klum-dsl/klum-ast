@@ -34,7 +34,7 @@ dependencyResolutionManagement {
 
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 
-            version("klum-cast", "0.4.0-rc.2")
+            version("klum-cast", "0.4.0")
             library("klum-cast-compile", "com.blackbuild.klum.cast", "klum-cast-compile").versionRef("klum-cast")
             library("klum-cast-annotations", "com.blackbuild.klum.cast", "klum-cast-annotations").versionRef("klum-cast")
             library("klum-cast-spi", "com.blackbuild.klum.cast", "klum-cast-spi").versionRef("klum-cast")
@@ -63,7 +63,7 @@ dependencyResolutionManagement {
 
             bundle "spockRuntime", ["bytebuddy", "objenesis"]
 
-            version("annodocimal", "1.0.0-rc.8")
+            version("annodocimal", "1.0.0")
             library("annodocimal-annotations", "com.blackbuild.annodocimal", "anno-docimal-annotations").versionRef("annodocimal")
             library("annodocimal-global-ast", "com.blackbuild.annodocimal", "anno-docimal-global-ast").versionRef("annodocimal")
             library("annodocimal-gradle-plugin", "com.blackbuild.annodocimal", "anno-docimal-gradle-plugin").versionRef("annodocimal")
