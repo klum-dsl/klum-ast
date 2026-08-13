@@ -249,9 +249,11 @@ trial.
    model/tool configuration, full-prompt artifact/revision/SHA-256, shared-facts-set
    identity, and run type in the mission brief. For a controlled repeat, retain the same
    facts and record every prompt or restriction change.
-3. Give each competitor in one round the same exact full prompt and mission brief. Run one
-   competitor at a time; do not start another competitor's build or test activity until
-   the current one has finished or is explicitly stopped. Append `competitor-finished` or
+3. Give each competitor in one round the same exact full shared prompt. Supply the mission
+   brief alongside it, changing only per-competitor record metadata such as the competitor
+   identifier; do not treat that metadata as part of the shared prompt. Run one competitor
+   at a time; do not start another competitor's build or test activity until the current
+   one has finished or is explicitly stopped. Append `competitor-finished` or
    `competitor-stopped` before beginning the next competitor.
 4. When an implementer asks a question, allocate the next `Q-###`, write the immutable
    request, append `question-requested` and `implementer-waiting`, and stop that
