@@ -31,10 +31,11 @@ product or release decision.
 
 ### Comparable serial rounds
 
-Within a round, give each competing model or agent the same basic prompt, retained with an
-exact revision or content hash. Retain one shared invented-facts set. Disclose a fact only
-when that implementer asks for it, then record the supplied answer. A later round may use
-a changed competitor prompt with the same facts, but it must identify that change.
+Within a round, give each competing model or agent the same exact full prompt, retained as
+a canonical artifact with an exact revision or content hash. Retain one shared
+invented-facts set. Disclose a fact only when that implementer asks for it, then record
+the supplied answer. A later round may use a changed competitor prompt with the same
+facts, but it must identify that change.
 
 Run competitors serially. Do not overlap their build or test activity. Record the start,
 wait, resume, and finish ordering in the events log so elapsed time, build-cache effects,
@@ -78,6 +79,7 @@ optional and must not substitute for the ordering number:
 {"order":3,"event":"implementer-waiting","actor":"implementer","round":"R-01","competitor":"A","question_id":"Q-001"}
 {"order":4,"event":"answer-supplied","actor":"domain-expert","round":"R-01","competitor":"A","question_id":"Q-001"}
 {"order":5,"event":"implementer-resumed","actor":"runner","round":"R-01","competitor":"A","question_id":"Q-001"}
+{"order":6,"event":"competitor-finished","actor":"runner","round":"R-01","competitor":"A"}
 ```
 
 Do not put prompts, credentials, raw command output, personal data, or unrelated local
@@ -134,7 +136,7 @@ provided; it must not reveal unasked facts from the private assumptions set.
 - Selected documentation revision/URLs: <exact published revision and URLs>
 - Installed skills and revisions: <name, exact revision, and source>
 - Agent/model/tooling configuration: <recorded configuration>
-- Basic competitor prompt revision or SHA-256: <value>
+- Exact full competitor prompt artifact, revision, and SHA-256: <location, revision, hash>
 - Shared invented-facts set identity (Domain expert only): <identifier/hash>
 - Run type: fresh | controlled repeat
 
@@ -241,15 +243,16 @@ trial.
 ## Runner guide
 
 1. Create an exercise root outside the implementer repository and prepare the directory
-   layout above. Create the private facts log, mission brief, exact shared prompt, and
-   allowed-information policy before starting the first competitor.
+   layout above. Create the private facts log, mission brief, canonical exact shared full
+   prompt, and allowed-information policy before starting the first competitor.
 2. Freeze `4.0.0-rc.20`, the documentation URLs/revision, installed skills/revisions,
-   model/tool configuration, prompt SHA-256, shared-facts-set identity, and run type in
-   the mission brief. For a controlled repeat, retain the same facts and record every
-   prompt or restriction change.
-3. Give each competitor in one round the same basic prompt and mission brief. Run one
+   model/tool configuration, full-prompt artifact/revision/SHA-256, shared-facts-set
+   identity, and run type in the mission brief. For a controlled repeat, retain the same
+   facts and record every prompt or restriction change.
+3. Give each competitor in one round the same exact full prompt and mission brief. Run one
    competitor at a time; do not start another competitor's build or test activity until
-   the current one has finished or is explicitly stopped.
+   the current one has finished or is explicitly stopped. Append `competitor-finished` or
+   `competitor-stopped` before beginning the next competitor.
 4. When an implementer asks a question, allocate the next `Q-###`, write the immutable
    request, append `question-requested` and `implementer-waiting`, and stop that
    implementer. The Domain expert or neutral runner writes only the answer actually
@@ -272,8 +275,8 @@ Record `yes`, `no`, `partial`, or `not applicable` for every item, with evidence
 | Area | Check | Result | Evidence / note |
 | --- | --- | --- | --- |
 | Setup | Exact `4.0.0-rc.20` coordinates, documentation/skills revision, allowed-information policy, prompt revision, competitor configuration, and permitted sources were frozen before the run. |  |  |
-| Comparability | All competitors in this round received the same prompt revision and shared-facts identity; any later-round variation is recorded. |  |  |
-| Serial execution | Events show no overlapping competitor build/test activity and every question has an ordered request, wait, answer, and resume. |  |  |
+| Comparability | All competitors in this round received the same exact full-prompt artifact/revision/hash and shared-facts identity; any later-round variation is recorded. |  |  |
+| Serial execution | Events show no overlapping competitor build/test activity, an ordered request/wait/answer/resume for every question, and a finish or stop before the next competitor starts. |  |  |
 | Mission | The implemented schema/model meets the stated domain outcome and its stated limits. |  |  |
 | Model quality | The result uses the applicable canonical roles and domain shape rather than an accidental workaround. |  |  |
 | Assumptions | Inventions, supplied facts, assumptions, and later corrections are distinguishable. |  |  |
