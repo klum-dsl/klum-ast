@@ -255,10 +255,11 @@ trial.
    at a time; do not start another competitor's build or test activity until the current
    one has finished or is explicitly stopped. Append `competitor-finished` or
    `competitor-stopped` before beginning the next competitor.
-4. When an implementer asks a question, allocate the next `Q-###`, write the immutable
-   request, append `question-requested` and `implementer-waiting`, and stop that
-   implementer. The Domain expert or neutral runner writes only the answer actually
-   supplied, appends `answer-supplied` and `implementer-resumed`, then resumes it.
+4. When an implementer asks a question, allocate the next `Q-###` and have the
+   implementer write the immutable request with its unedited question. The runner
+   validates the sequence, appends `question-requested` and `implementer-waiting`, and
+   stops that implementer. The Domain expert or neutral runner writes only the answer
+   actually supplied, appends `answer-supplied` and `implementer-resumed`, then resumes it.
 5. Collect the implementer's append-only assumptions, KlumAST-question, and trial logs
    with its local commits, validations, and explicit reverts. Keep domain facts,
    KlumAST-specific uncertainty, and externally discovered facts separate.
