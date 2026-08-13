@@ -52,7 +52,7 @@ import com.blackbuild.klum.ast.Validate
 @DSL
 class Deployment {
     @Key String name
-    @Validate String environment
+    @Validate({ it in ['development', 'production', 'test'] }) String environment
     Service service
 }
 
