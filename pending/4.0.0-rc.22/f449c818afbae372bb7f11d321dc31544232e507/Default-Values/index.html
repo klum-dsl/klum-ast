@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Default Values — KlumAST 4.0.0-rc.22</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.22 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="./">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="./">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="default-values">Default Values</h1>
+<p>Non-DSL fields can be annotated with <code>@Default</code> to designate a default value, which is set in the
+<a rel="nofollow" href="../Model-Phases/#default-25">Default phase</a> when the value is not Groovy Truth. Booleans are the exception: a <code>false</code>
+boolean is not treated as empty and is therefore not re-defaulted. For DSL-object fields, use <code>@AutoCreate</code> to create an
+owned child or <code>@AutoLink</code>/<code>@LinkTo</code> to resolve an existing target instead. <code>@Default</code> supports three mutually exclusive
+members; each produces a value that is coerced to the field's type.</p>
+<p>The values can be set using the following strategies:</p>
+<p>The executable <code>DefaultValuesDocumentaryTest</code> cohort covers the <code>@Default</code> strategies below and the
+<code>@DefaultValues</code> variants later on this page; each example links directly to its feature method.</p>
+<h2 id="other-fields-field">Other Fields (<code>field</code>)</h2>
+<p>The default value is taken from the value of the target field (of the same instance):</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Config {
+ String name
+ @Default(field = 'name') String id
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-groovy">when: // Model
+def config = Config.Create.With {
+    name 'Hans'
+}
+
+then: // Assertions
+assert config.id == 'Hans' // defaults to name
+</code></pre>
+<p>For example, a release can derive an identifier from its configured name during the default phase:</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Release {
+    String name
+
+    @Default(field = 'name')
+    String identifier
+}
+
+when: // Model
+def release = Release.Create.With {
+    name 'spring-catalog'
+}
+
+then: // Assertions
+assert release.identifier == 'spring-catalog'
+</code></pre>
+<p>The same happy path is executable in <code>DefaultValuesDocumentaryTest.groovy</code>, feature
+<code>defaults a release identifier from its configured name</code>.</p>
+<h2 id="delegate-fields-delegate">Delegate Fields (<code>delegate</code>)</h2>
+<p>The default value is taken from a property with the same name on the targeted delegate. This is especially
+useful in object hierarchies together with an <code>@Owner</code> field.</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'defaults a component name from its owning container'</code>.)</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Container {
+    String name
+
+    Element element
+}
+
+@DSL
+class Element {
+    @Owner Container owner
+
+    @Default(delegate = 'owner')
+    String name
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-groovy">when: // Model
+def container = Container.Create.With {
+    name 'cont'
+    element {}
+}
+
+then: // Assertions
+assert container.element.name == 'cont' // defaults to owner.name
+</code></pre>
+<p>Note that since the default phase runs after <code>Owner</code> as well as <code>AutoLink</code> and <code>AutoCreate</code> phases, the Default
+annotation can make use of fields set in those phases.</p>
+<h2 id="arbitrary-code-code">Arbitrary Code (<code>code</code>)</h2>
+<p>The <code>@Default</code> annotation can also include a closure to be executed if the annotated field is empty. The result of that
+closure is set as the value of that field.</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'derives a normalized release identifier with default code'</code>.)</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Config {
+ String name
+ @Default(code={name.toLowerCase()}) String lower
+}
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-groovy">when: // Model
+def config = Config.Create.With {
+    name 'Hans'
+}
+
+then: // Assertions
+assert config.lower == 'hans' // defaults to lowercase name
+</code></pre>
+<h2 id="default-as-lifecycle-annotation">Default as Lifecycle Annotation</h2>
+<p>(See: <code>DefaultValuesDocumentaryTest#'runs a default lifecycle method when a value is absent'</code>.)</p>
+<p>As with other annotations, <code>@Default</code> can also annotate parameterless methods or Closure fields that run in the
+Default phase. See <a rel="nofollow" href="../Model-Phases/">Model Phases</a> for more information.</p>
+<h2 id="defaultvalues-annotation"><code>@DefaultValues</code> Annotation</h2>
+<p>Another option is an annotation that is itself annotated with <code>@DefaultValues</code>. This is primarily useful with inheritance
+and <a rel="nofollow" href="../Layer3/">Layer3</a>.</p>
+<h2 id="supported-targets">Supported Targets</h2>
+<p>Use such an annotation only on a <code>@DSL</code> class or on a field declared by a <code>@DSL</code> class. KlumAST validates each
+application at compilation time and reports the default-value annotation together with these allowed contexts when it is
+misplaced.</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'uses default-values annotations on DSL classes and DSL fields'</code>.)</p>
+<h3 id="class-annotation">Class Annotation</h3>
+<p>Consider a Layer 3 home-automation architecture. The API layer defines an abstract <code>Room</code>, which Schema classes inherit
+for each room in a house. Each <code>Room</code> needs default display values. Instead of an abstract getter or a <code>@Default</code> method,
+use an <code>@DefaultValues</code> annotation:</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'applies a default-values annotation to a configuration class'</code>.)</p>
+<pre><code class="language-groovy">import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.TYPE, ElementType.FIELD])
+@DefaultValues // makes this annotation a default-value provider
+@interface HomeDefaults {
+    String displayName() default &quot;&quot;
+    String shortLabel() default &quot;&quot;
+}
+
+@DSL 
+abstract class Room {
+  String displayName
+  String shortLabel
+}
+
+@DSL 
+@HomeDefaults(displayName = 'Bath', shortLabel = 'BTH')
+class Bathroom extends Room {
+}
+
+@DSL 
+@HomeDefaults(displayName = 'Main Office', shortLabel = 'MOF')
+class Office extends Room {
+}
+</code></pre>
+<p>This is more concise than abstract getters or <code>@Default</code> methods and avoids repeated code. The compiler does not require a
+subclass of <code>Room</code> to use the annotation. In this Layer 3 style, related room classes commonly live together, so reviewers
+can assess that choice locally.</p>
+<h3 id="field-annotation">Field Annotation</h3>
+<p>Default-value annotations can also target a field to configure that field's object. Unlike the class annotation, this is
+more useful for non-singleton instances.</p>
+<p>Staying with the home-automation example, a <code>Room</code> can contain several similar windows. Rather than introducing a subtype
+for each direction, configure the window through a field annotation:</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'applies a default-values annotation to a child field'</code>.)</p>
+<pre><code class="language-groovy">@DSL 
+class Bathroom extends Room {
+
+  @HomeDefaults(shortLabel = &quot;N&quot;)
+  Window north
+
+  @HomeDefaults(shortLabel = &quot;E&quot;)
+  Window east
+}
+</code></pre>
+<h3 id="closure-and-coercion">Closure and Coercion</h3>
+<p>KlumAST coerces the default value to the target type on a best-effort basis. If an annotation member has type <code>Class</code> and
+contains a closure, that closure runs against the target object and its result becomes the default. If the target field is
+itself a closure, the closure instance is used as the default instead.</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'evaluates a default-values closure and coerces its result'</code>.)</p>
+<pre><code class="language-groovy">import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@DefaultValues
+@interface CapacityDefaults {
+  Class&lt;? extends Closure&gt; capacity()
+}
+
+@CapacityDefaults(capacity = { '42' })
+@DSL
+class Release {
+  int capacity
+}
+</code></pre>
+<h3 id="ignoreunknownfields"><code>ignoreUnknownFields</code></h3>
+<p>(See: <code>DefaultValuesDocumentaryTest#'ignores unmatched default-values members when configured'</code>.)</p>
+<p>If a member of a default-value annotation targets a field that does not exist, KlumAST throws an exception. Set
+<code>DefaultValues.ignoreUnknownFields</code> to <code>true</code> to suppress it.</p>
+<h3 id="valuetarget"><code>valueTarget</code></h3>
+<p><code>@DefaultValues</code> has an optional <code>valueTarget</code> member that maps the target annotation's <code>value</code> member to a different
+field. This enables concise single-value annotations such as <code>@DisplayName</code>.</p>
+<p>(See: <code>DefaultValuesDocumentaryTest#'maps a concise annotation value to a default field'</code>.)</p>
+<pre><code class="language-groovy">@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.TYPE, ElementType.FIELD])
+@DefaultValues(valueTarget = &quot;displayName&quot;)
+@interface DisplayName {
+    String value()
+}
+
+@DSL class Home {
+    @DisplayName(&quot;Living Room&quot;)
+    LivingRoom livingRoom
+}
+</code></pre>
+<p>If the targeted field is named <code>value</code>, the control annotation must still set <code>valueTarget = 'value'</code>, or validation fails.</p>
+<h2 id="defaultapply"><code>@DefaultApply</code></h2>
+<p>(See: <code>DefaultValuesDocumentaryTest#'applies default configuration to a child object'</code>.)</p>
+<p><code>@DefaultApply</code> is a special case of <code>@DefaultValues</code>. It applies its closure to the target field's object during the
+Default phase.</p>
+<p>Note that there are two caveats to this annotation:</p>
+<ol>
+<li>The IDE has no generated delegate metadata for the annotation closure, so it cannot offer code completion there. The
+compiler still checks the closure contents.</li>
+<li>As with <code>@Default</code> methods, the closure must check whether fields are already set.</li>
+</ol>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Foo {
+    @DefaultApply({
+        if (!name) name &quot;defaultName&quot;
+        if (!age) age 42
+    })
+    Bar bar
+}
+
+@DSL class Bar {
+    String name
+    int age
+}
+
+when: // Model
+def foo = Foo.Create.With {
+    bar()
+}
+
+then: // Assertions
+assert foo.bar.name == &quot;defaultName&quot;
+assert foo.bar.age == 42
+</code></pre>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

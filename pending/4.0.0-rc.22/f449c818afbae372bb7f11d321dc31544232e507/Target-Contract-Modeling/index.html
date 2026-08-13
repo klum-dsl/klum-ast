@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Target-contract modeling (4.0 preview) — KlumAST 4.0.0-rc.22</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.22 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="./">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="./">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="target-contract-modeling-40-preview">Target-contract modeling (4.0 preview)</h1>
+<blockquote>
+<p>This onboarding route is a 4.0 preview pending field testing. It targets one authoritative external contract at a time; use documentation matched to the KlumAST version you adopt.</p>
+</blockquote>
+<h2 id="choose-the-authoring-seam">Choose the authoring seam</h2>
+<p>Use target-contract modeling when an existing system such as a Helm chart owns the compatible external values shape. The Klum Schema is then a better authoring language for that contract: it may reduce repeated configuration, introduce validated defaults, and expand a convenient concept into several target values. It does not turn YAML into KlumAST persistence or make every Helm field a public object-model property.</p>
+<p>Make the consumer-shape decision independently:</p>
+<ul>
+<li>Choose <strong>direct-schema</strong> when the Schema Developer also owns the authors who consume the types, and there is no separate stable Domain API to protect.</li>
+<li>Choose <strong><a rel="nofollow" href="../Layer3/">Layer 3</a></strong> only when client developers must compile against a distinct Domain API rather than Schema types.</li>
+</ul>
+<p>Do not add Layer 3 merely as insurance for a future client. Record the selected shape and the reason in the project architecture note.</p>
+<h2 id="executable-helm-journey">Executable Helm journey</h2>
+<p><a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/fixtures/helm-target-contract"><code>agent-skills/fixtures/helm-target-contract</code></a> is the common executable example for this guide and the portable <code>build-target-contract-schema</code> skill. It starts with the <code>catalog</code> and <code>billing</code> Helm values contracts and uses one direct-schema <code>ServiceRelease</code> type:</p>
+<pre><code class="language-groovy">ServiceRelease.Create.With('catalog') {
+    imageTag '1.4.0'
+    publiclyReachable true
+}
+</code></pre>
+<p>The fixture derives <code>ghcr.io/acme/catalog</code> and <code>catalog.example.test</code>, validates a deployable image tag and port, and expands <code>publiclyReachable</code> into the Helm ingress map. Its owned <code>resources</code> object has explicit <code>requests</code> and <code>limits</code> children; absent limits default to a fresh copy of requests, while different memory values store a warning without rejecting the release. This is direct-schema because the same deployment team owns the authoring types and its target values; a separate Domain API would add no real client boundary.</p>
+<p><code>HelmTargetContractDocumentaryTest</code>, tagged <code>documentary</code> and linked to this page, writes human-readable YAML under <code>build/generated-values/</code>. It parses each generated file and compares its meaning to both representative target inputs and golden expected artifacts. Run the established fixture baseline and compatibility variants:</p>
+<pre><code class="language-shell">./gradlew -p agent-skills/fixtures/helm-target-contract test
+./gradlew -p agent-skills/fixtures/helm-target-contract test -PfixtureGroovyVersion=4
+./gradlew -p agent-skills/fixtures/helm-target-contract test -PfixtureGroovyVersion=5
+</code></pre>
+<p>This is a target-contract conformance check, not a promise that KlumAST can import arbitrary Helm YAML, preserve YAML formatting, or round trip its own model through YAML.</p>
+<h2 id="agentic-use">Agentic use</h2>
+<h3 id="apply-the-workflow">Apply the workflow</h3>
+<p>Install <code>build-target-contract-schema</code> from the portable <code>agent-skills/</code> distribution. It guides the Schema Developer to inventory representative artifacts, identify stable concepts and intentional mappings, make the direct-schema-versus-Layer-3 decision explicit, and compare generated output to readable golden values files. The workflow links back to this fixture instead of copying a larger example.</p>
+<p>If a migration needs a value read from an external resource, keep that need with <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/79">#79</a>, resource-backed defaults. If it needs base, environment, and override documents to apply in order, keep it with <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/304">#304</a>, ordered configuration composition. Neither capability is implied by this journey.</p>
+<h3 id="field-test-starting-point">Field-test starting point</h3>
+<p>When applying this preview to a real project, use the fixture's <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/field-tests/target-contract-helm"><code>field-tests/target-contract-helm</code></a> prompt and inventory. Record the chart/version, target-contract owner, representative values, authoring decisions, golden evidence, and any smallest unmet capability. The prompt intentionally does not prescribe a later skill: field-test findings should become focused follow-up issues only when a real project needs them.</p>
+<p>The executable evidence is <code>agent-skills/fixtures/helm-target-contract/src/test/groovy/onboarding/helm/HelmTargetContractDocumentaryTest.groovy</code>, feature <code>generates human-readable #release.name Helm values that conform to the golden contract</code>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
