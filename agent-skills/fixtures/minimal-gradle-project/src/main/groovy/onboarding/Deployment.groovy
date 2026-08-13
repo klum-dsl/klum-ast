@@ -1,8 +1,8 @@
 package onboarding
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.groovy.configdsl.transform.Key
-import com.blackbuild.groovy.configdsl.transform.Validate
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Validate
 
 @DSL
 class Deployment {
