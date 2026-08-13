@@ -1,16 +1,17 @@
 # Issue 546 — adopter-exercise toolkit
 
-This is the reusable, pre-RC setup for [#546](https://github.com/klum-dsl/klum-ast/issues/546).
-It supports bounded discovery exercises after a public KlumAST 4.0 release candidate
-exists. It is not exercise evidence, a release artifact, user-documentation acceptance,
-or a publication procedure. The RC and its exact public coordinates remain the release
-claim governed by [ADR 0012](../adr/0012-shared-prerelease-channel-policy.md),
+This is the reusable control pack for [#546](https://github.com/klum-dsl/klum-ast/issues/546).
+It supports bounded discovery exercises against the final-coordinate KlumAST 4.0 RC,
+`4.0.0-rc.20`. It is not exercise evidence, a release artifact, user-documentation
+acceptance, or a publication procedure. The RC and its exact public coordinates remain
+the release claim governed by [ADR 0012](../adr/0012-shared-prerelease-channel-policy.md),
 `RELEASING.md`, and [#512](https://github.com/klum-dsl/klum-ast/issues/512).
 
 Use one copy of the templates below for every exercise. Keep the completed record outside
 the implementer's local repository. A mission may point to published documentation, the
 selected installed skill revision, and the published RC; it must not turn an exercise into
-an alternate release-validation fixture.
+an alternate release-validation fixture. Freeze the documentation/skills revision and
+allowed-information policy before each round; do not reconstruct them from memory later.
 
 ## Exercise contract
 
@@ -51,6 +52,7 @@ Use a runner-owned directory such as:
 ```text
 <exercise-root>/
   private-domain/                 # Domain expert only; assumptions/facts source
+    assumptions-and-facts.md      # retained facts; never copied to a competitor
   control-plane/
     events.ndjson                  # append-only ordering record
     requests/Q-001.md              # immutable implementer question
@@ -66,19 +68,20 @@ order (`Q-001`, `Q-002`, ...); an implementer writes one request, records `waiti
 stops until the matching answer exists. The Domain expert or neutral runner writes the
 answer, appends the resume event, and only then resumes that implementer.
 
-For every state transition, append one line to `events.ndjson`:
+For every state transition, append one line to `events.ndjson`. `order` is the comparison
+authority; `actor` identifies who made the transition. A safe ISO-8601 timestamp is
+optional and must not substitute for the ordering number:
 
 ```json
-{"order":1,"event":"round-started","round":"R-01","competitor":"A","prompt_sha256":"<sha256>"}
-{"order":2,"event":"question-requested","round":"R-01","competitor":"A","question_id":"Q-001"}
-{"order":3,"event":"implementer-waiting","round":"R-01","competitor":"A","question_id":"Q-001"}
-{"order":4,"event":"answer-supplied","round":"R-01","competitor":"A","question_id":"Q-001"}
-{"order":5,"event":"implementer-resumed","round":"R-01","competitor":"A","question_id":"Q-001"}
+{"order":1,"event":"round-started","actor":"runner","round":"R-01","competitor":"A","prompt_sha256":"<sha256>"}
+{"order":2,"event":"question-requested","actor":"implementer","round":"R-01","competitor":"A","question_id":"Q-001"}
+{"order":3,"event":"implementer-waiting","actor":"implementer","round":"R-01","competitor":"A","question_id":"Q-001"}
+{"order":4,"event":"answer-supplied","actor":"domain-expert","round":"R-01","competitor":"A","question_id":"Q-001"}
+{"order":5,"event":"implementer-resumed","actor":"runner","round":"R-01","competitor":"A","question_id":"Q-001"}
 ```
 
-The runner may add an ISO-8601 timestamp when it is safe to retain, but `order` is the
-comparison authority. Do not put prompts, credentials, raw command output, personal data,
-or unrelated local paths in the event log.
+Do not put prompts, credentials, raw command output, personal data, or unrelated local
+paths in the event log.
 
 ### Control-plane request and answer
 
@@ -126,10 +129,10 @@ provided; it must not reveal unasked facts from the private assumptions set.
 
 - Exercise ID / round: <E-### / R-##>
 - Competitor identifier: <identifier>
-- Public KlumAST RC coordinates: <exact coordinates>
+- Public KlumAST RC coordinates: `4.0.0-rc.20`
 - KlumAST source/tag identity, if supplied: <identity>
-- Selected documentation revision/URLs: <exact revision or URLs>
-- Installed skills and revisions: <name and revision>
+- Selected documentation revision/URLs: <exact published revision and URLs>
+- Installed skills and revisions: <name, exact revision, and source>
 - Agent/model/tooling configuration: <recorded configuration>
 - Basic competitor prompt revision or SHA-256: <value>
 - Shared invented-facts set identity (Domain expert only): <identifier/hash>
@@ -143,6 +146,7 @@ provided; it must not reveal unasked facts from the private assumptions set.
 
 ## Allowed materials and restrictions
 
+- Allowed-information policy revision: <identifier/hash>
 - Published RC documentation and selected skills: allowed
 - Local source/history, issue trackers, JAR inspection, or public internet: <allowed or prohibited per source>
 - Local Git experimentation and explicit reverts: allowed
@@ -162,6 +166,31 @@ Domain expert may disclose a retained fact only in the matching answer file.
 - A short self-assessment of what was documented versus discovered
 ```
 
+## Domain-expert private assumptions and facts template
+
+Keep this file only in `private-domain/`. It is the retained shared facts set for a round,
+not an implementer handoff. The Domain expert may invent a fact to complete the domain,
+but only disclose a retained fact through the matching immutable `answers/Q-###.md` file
+after the implementer has asked. Do not copy an undisclosed row into a mission brief,
+implementer record, events log, or evaluator packet.
+
+```markdown
+# Private assumptions and facts — <exercise ID / round>
+
+- Shared invented-facts set identity: <identifier/hash>
+- Mission-brief revision: <identifier/hash>
+- Prepared by: <Domain expert>
+
+| ID | State | Retained assumption or invented fact | Origin | Eligible question kind | Disclosed in Q-### | Notes / supersedes |
+| --- | --- | --- | --- | --- | --- | --- |
+| D-001 | retained | <fact needed to complete the domain> | domain expert invention \| accepted brief constraint | domain-fact \| clarification | — | <D-### or —> |
+```
+
+`State` is `retained`, `disclosed`, `superseded`, or `withdrawn`. Retain the original row
+and add a new row for a correction. A fact becomes `disclosed` only when the answer file
+records the fact actually supplied; a question that is not answered with that fact leaves
+the row retained.
+
 ## Implementer-record templates
 
 Copy these files into `implementer-records/<competitor>/`. Each log is append-only during a
@@ -180,7 +209,7 @@ run; record corrections as new rows referencing the earlier row rather than rewr
 Use `proposed`, `confirmed`, `superseded`, or `rejected` for Status. Mark an implementer
 invention explicitly; it is distinct from a fact supplied by the Domain expert.
 
-### `questions.md`
+### `questions.md` — KlumAST question log
 
 ```markdown
 # KlumAST questions and uncertainty — <exercise ID / competitor>
@@ -194,7 +223,7 @@ invention explicitly; it is distinct from a fact supplied by the Domain expert.
 domain questions in the control-plane request/answer pair and link them here only when they
 materially affected a KlumAST decision.
 
-### `trials.md`
+### `trials.md` — trial and discovery log
 
 ```markdown
 # Trials and external discoveries — <exercise ID / competitor>
@@ -209,13 +238,40 @@ adopter materials, not the full command output. Preserve useful exploration with
 commit or an explicitly commented revert; do not rewrite history merely to hide a failed
 trial.
 
+## Runner guide
+
+1. Create an exercise root outside the implementer repository and prepare the directory
+   layout above. Create the private facts log, mission brief, exact shared prompt, and
+   allowed-information policy before starting the first competitor.
+2. Freeze `4.0.0-rc.20`, the documentation URLs/revision, installed skills/revisions,
+   model/tool configuration, prompt SHA-256, shared-facts-set identity, and run type in
+   the mission brief. For a controlled repeat, retain the same facts and record every
+   prompt or restriction change.
+3. Give each competitor in one round the same basic prompt and mission brief. Run one
+   competitor at a time; do not start another competitor's build or test activity until
+   the current one has finished or is explicitly stopped.
+4. When an implementer asks a question, allocate the next `Q-###`, write the immutable
+   request, append `question-requested` and `implementer-waiting`, and stop that
+   implementer. The Domain expert or neutral runner writes only the answer actually
+   supplied, appends `answer-supplied` and `implementer-resumed`, then resumes it.
+5. Collect the implementer's append-only assumptions, KlumAST-question, and trial logs
+   with its local commits, validations, and explicit reverts. Keep domain facts,
+   KlumAST-specific uncertainty, and externally discovered facts separate.
+6. Have the evaluator complete the checklist and findings matrix. The maintainer, not the
+   runner, classifies proposed product, documentation, skill, release, or
+   Showcase/Catwalk follow-up. Do not make an automatic product or release change.
+
+The mailbox is a comparability channel only. It is not a confidentiality boundary for
+processes running as the same macOS user. Use separate sandboxes or macOS accounts plus a
+mediator when technical fact isolation is required.
+
 ## Evaluator checklist
 
 Record `yes`, `no`, `partial`, or `not applicable` for every item, with evidence links.
 
 | Area | Check | Result | Evidence / note |
 | --- | --- | --- | --- |
-| Setup | Exact RC, documentation/skills revision, prompt revision, competitor configuration, and permitted sources were frozen before the run. |  |  |
+| Setup | Exact `4.0.0-rc.20` coordinates, documentation/skills revision, allowed-information policy, prompt revision, competitor configuration, and permitted sources were frozen before the run. |  |  |
 | Comparability | All competitors in this round received the same prompt revision and shared-facts identity; any later-round variation is recorded. |  |  |
 | Serial execution | Events show no overlapping competitor build/test activity and every question has an ordered request, wait, answer, and resume. |  |  |
 | Mission | The implemented schema/model meets the stated domain outcome and its stated limits. |  |  |
