@@ -4,6 +4,8 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Documentation infrastructure
 
+- Made the initial Schema onboarding examples directly copyable by showing the canonical `com.blackbuild.klum.ast`
+  imports for `@DSL`, `@Key`, and `@Validate` ([#742](https://github.com/klum-dsl/klum-ast/issues/742)).
 - Corrected 4.0 Fundamentals terminology for validation, lifecycle examples, Builder-first ownership timing, rooted composition, Owner backlinks, and `LINK` side connections. Gradle Onboarding now documents optional local source-mirror automation while retaining explicit portable refresh tasks. Exact versioned documentation now exposes the Changelog and a square Season 4 favicon ([#724](https://github.com/klum-dsl/klum-ast/issues/724)).
 - Current 4.x user documentation is authored in `docs/user/` and rendered locally from an explicit Git revision into an immutable exact-version static HTML tree. The renderer captures a deterministic site manifest and versioned Season/logo input, while the former mutable wiki publisher fails closed ([#456](https://github.com/klum-dsl/klum-ast/issues/456)).
 - Exact 4.x documentation renders six isolated module-Javadoc trees below `/&lt;version&gt;/api/` for `klum-ast`, runtime, annotations, Jackson, Bean Validation, and the Gradle plugin. The BOM and IDE-only source mirrors are not public API inputs ([#456](https://github.com/klum-dsl/klum-ast/issues/456)).

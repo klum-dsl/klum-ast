@@ -45,10 +45,14 @@ flags for it.
 Place Schema classes in `src/main/groovy`, add one root `@DSL` type, and write a test in `src/test/groovy` that constructs a completed model through `Create.With`. Run `./gradlew test` before expanding the model. Use the model plugin only when a separate configured-model artifact is needed; see [Gradle Plugins](Gradle-Plugins.md).
 
 ```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Validate
+
 @DSL
 class Deployment {
     @Key String name
-    String environment
+    @Validate({ it in ['development', 'production', 'test'] }) String environment
     Service service
 }
 

@@ -15,6 +15,15 @@ DSL is used to designate a DSL/Model object, which is enriched using the AST tra
 
 The DSL annotation leads to the creation of a couple of useful methods.
 
+Start a Schema source file with the canonical KlumAST annotation imports. These imports apply to ordinary Schema
+annotations regardless of whether the project later adopts a separate Domain API.
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Validate
+```
+
 ## Factory construction
 
 Each instantiable DSL class gets a static field `Create` of either a subclass of `KlumFactory.Keyed` or
@@ -23,6 +32,10 @@ implementation of `KlumFactory` instead.
 
 ```groovy
 given: // Schema
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Validate
+
 @DSL
 class Config {
 }
