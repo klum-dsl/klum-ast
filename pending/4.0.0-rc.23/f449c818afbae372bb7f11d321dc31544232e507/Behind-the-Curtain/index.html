@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Behind the Curtain — KlumAST 4.0.0-rc.23</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.23 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="./">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="./">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="behind-the-curtain">Behind the Curtain</h1>
+<p>Most pages describe the stable authoring API first. This page collects the implementation mechanics that explain why
+some advanced calls have lifecycle boundaries or targeted diagnostics. You normally do not need these details to write a
+Schema or Model.</p>
+<h2 id="builder-projection-for-custom-producers">Builder Projection for Custom Producers</h2>
+<p>During construction, owned relationships hold Builders rather than completed DSL Objects. A source-visible custom factory
+or converter that creates a DSL Object through a recognizable generated factory path can therefore be projected to a
+Builder-producing path when it is called inside an owning relationship. The original method remains a normal root factory
+when called directly.</p>
+<p>The projection preserves the producer's outer container, order, comparator, duplicates, and map keys. Recursive
+source-visible calls are projected in the same way. Opaque or precompiled producers that return a completed model without
+an explicit <code>KlumBuilder&lt;T&gt;</code> contract cannot safely join the active Construction session, so KlumAST omits them from the
+generated relationship API and reports focused migration guidance. Use the generated child method, expose a concrete
+<code>KlumBuilder&lt;T&gt;</code> result, or compile the producer source with the Schema.</p>
+<p>This protocol is relevant to <a rel="nofollow" href="../Converters/">Converters</a>, <a rel="nofollow" href="../Factory-Classes/">Factory Classes</a>, and <a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a>. Its architectural boundary
+is recorded in <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md">ADR 0004</a>.</p>
+<h2 id="managed-jackson-import-mechanics">Managed Jackson Import Mechanics</h2>
+<p><code>KlumJacksonImporter</code> reads foreign input into generated Builders, never partly initialized completed objects. Root import
+allocates the root and owned Builders, runs <code>PostCreate</code>, binds the input, runs <code>PostApply</code>, then completes the normal
+graph phases once. A missing input property leaves the current Builder value alone; a present value follows the caller's
+Jackson null, merge, and replacement configuration.</p>
+<p>The importer captures a caller-configured <code>ObjectReader</code> without registering modules or changing mapper configuration.
+Each operation consumes one <code>KlumJacksonInput</code>; parsers remain caller-owned and open. Templates, <code>@Overwrite</code>, and
+<code>copyFrom</code> do not participate in Jackson binding. This boundary is why managed import is interoperable with foreign JSON
+and YAML but is not Klum persistence or document layering.</p>
+<p>See <a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a> for the supported API and foreign-format workflow.</p>
+<h2 id="builder-first-materialization">Builder-First Materialization</h2>
+<p>Before <code>INSTANTIATE</code>, closure receivers, child values, mutators, and lifecycle callbacks through <code>POST_TREE</code> are Builders.
+<code>INSTANTIATE</code> materializes the complete composition graph, including cycles; validation and later phases receive completed
+DSL Objects. Builders and completed objects are intentionally different states, so a nested root factory cannot join an
+active parent lifecycle and a completed object cannot become new owned composition.</p>
+<p>Generated <code>$klum$asBuilder$...</code> methods are JVM linkage details for projected producers, not a client API. Generated
+<code>Foo_DSL.Builder</code> interfaces are the supported public construction capability. See <a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a> for the
+actionable migration checklist and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0003-builder-first-materialization.md">ADR 0003</a>
+for the design decision.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

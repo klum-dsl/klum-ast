@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Completed Object Support — KlumAST 4.0.0-rc.23</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.23 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="./">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="./">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="completed-object-support">Completed Object Support</h1>
+<p>Completed DSL Objects are immutable results of KlumAST construction. Client code may still need to inspect where an
+object came from, navigate its ownership structure, or traverse its composed children. <code>KlumObjectSupport</code> is the stable,
+Java-first entry point for those operations without exposing the object's internal Model companion.</p>
+<p>The facade accepts either a completed root object or any completed DSL Object in its subtree:</p>
+<pre><code class="language-java">import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
+import java.util.List;
+import java.util.Map;
+
+KlumObjectSupport&lt;Deployment&gt; support = KlumObjectSupport.of(deployment);
+
+Deployment object = support.getObject();
+String constructionPath = support.getConstructionPath();
+String modelPath = support.getModelPath();
+
+KlumObjectSupport.Structure&lt;Deployment&gt; structure = support.getStructure();
+Map&lt;String, Service&gt; services = structure.findAll(Service.class);
+
+KlumObjectSupport.Validation&lt;Deployment&gt; validation = support.getValidation();
+KlumValidationResult result = validation.getResult();
+List&lt;KlumValidationResult&gt; subtreeResults = validation.getSubtreeResults();
+</code></pre>
+<p>The Javadoc for <code>KlumObjectSupport</code> and its nested <code>Structure</code> and <code>Validation</code> helpers is the source of truth for complete
+signatures, overloads, return types, and exceptional cases.</p>
+<h2 id="construction-and-structural-model-paths">Construction and structural model paths</h2>
+<p>The final 4.0 facade names the Builder/factory call path <code>getConstructionPath()</code>. It is the immutable construction path
+through which the object was created. <code>getModelPath()</code> reports the object's structural location in the completed model.
+These answer different questions and are not interchangeable.</p>
+<p>(See: <code>CompletedObjectSupportDocumentaryTest#'reports distinct construction and structural paths for a completed deployment'</code>.)</p>
+<pre><code class="language-groovy">given:
+@DSL class Deployment {
+    Service service
+}
+
+@DSL class Service {
+}
+
+when:
+def deployment = Deployment.Create.With {
+    service {}
+}
+def deploymentSupport = KlumObjectSupport.of(deployment)
+def serviceSupport = KlumObjectSupport.of(deployment.service)
+
+then:
+assert deploymentSupport.constructionPath == '$/Deployment.With'
+assert serviceSupport.constructionPath == '$/Deployment.With/service'
+assert deploymentSupport.modelPath == '&lt;root&gt;'
+assert serviceSupport.modelPath == '&lt;root&gt;.service'
+</code></pre>
+<p>There is no public <code>getBreadcrumbPath()</code> alias. <code>BreadcrumbCollector</code> remains an internal implementation name. The
+construction path is not provenance: KlumAST does not retain a source-lineage, applied-Template, or lifecycle-event
+record.</p>
+<p>Traversal methods produce contextual traversal paths. Managed import contributes an import source, and validation records a
+validation location. Neither is a substitute for the construction or structural model path.</p>
+<h2 id="ownership-paths-and-traversal">Ownership, paths, and traversal</h2>
+<p><code>getStructure()</code> groups operations that inspect the completed composition graph:</p>
+<ul>
+<li>direct and single-owner lookup, owner hierarchy, and nearest ancestors by type;</li>
+<li>full paths from the composition root and relative paths from one object to an owned descendant; and</li>
+<li>typed <code>findAll</code> and <code>visit</code> traversal. The public traversal signatures are
+<code>visit(Class&lt;R&gt;, BiConsumer&lt;String, R&gt;)</code> and <code>findAll(Class&lt;R&gt;)</code>; the runtime traversal visitor is internal.</li>
+</ul>
+<p>Traversal follows composed DSL values only. Owner and <code>LINK</code> edges are not followed, and identity-based cycle protection
+ensures that object graphs remain safe even when DSL types override <code>equals</code>.</p>
+<p>(See: <code>CompletedObjectSupportDocumentaryTest#'traverses a deployment composition without following linked services'</code>.)</p>
+<pre><code class="language-groovy">given:
+@DSL class Deployment {
+    Service api
+    List&lt;Service&gt; services
+    @Field(FieldType.LINK) Service catalogService
+}
+
+@DSL class Service {
+    @Key String name
+    @Owner Deployment deployment
+}
+
+def catalog = Service.Create.With('catalog') {}
+
+when:
+def deployment = Deployment.Create.With {
+    api('api') {}
+    services {
+        service('worker') {}
+    }
+    catalogService catalog
+}
+def structure = KlumObjectSupport.of(deployment).structure
+
+then:
+assert structure.getRelativePath(deployment.services[0]) == 'services[0]'
+assert KlumObjectSupport.of(deployment.api).structure.singleOwner.get().is(deployment)
+assert structure.findAll(Service).keySet() == ['&lt;root&gt;.api', '&lt;root&gt;.services[0]']
+</code></pre>
+<h2 id="stored-validation">Stored validation</h2>
+<p>(See: <code>CompletedObjectSupportDocumentaryTest#'reads stored validation results for a completed deployment'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With {
+    service {}
+}
+def validation = KlumObjectSupport.of(deployment).validation
+
+assert validation.result.issues
+assert validation.subtreeResults == [
+    validation.result,
+    KlumObjectSupport.of(deployment.service).validation.result
+]
+</code></pre>
+<p><code>getValidation().getResult()</code> returns the result already stored for the target object.
+<code>getValidation().getSubtreeResults()</code> reads all stored results for that target and its owned composition subtree.
+<code>verify()</code> uses the configured failure level, while <code>verify(level)</code> uses the supplied level. These operations only inspect
+lifecycle results: they do not execute <code>InstanceValidator</code>s, create results, or mutate recorded issues.</p>
+<p>The facade may also start at a subtree:</p>
+<pre><code class="language-java">import java.util.Optional;
+
+KlumObjectSupport&lt;Service&gt; serviceSupport = KlumObjectSupport.of(service);
+
+Optional&lt;Object&gt; owner = serviceSupport.getStructure().getSingleOwner();
+String pathFromDeployment = support.getStructure().getRelativePath(service);
+</code></pre>
+<h2 id="compatibility-apis">Compatibility APIs</h2>
+<p><code>StructureUtil</code> remains as a deprecated adapter for existing callers. New completed-object code should use
+<code>KlumObjectSupport</code> directly. <code>KlumModelProxy</code> and its raw metadata are internal implementation details and are not a
+supported client extension API.</p>
+<p><code>Validator</code> result readers are removed in 4.0 with no compatibility adapter. Completed-object code uses
+<code>KlumObjectSupport.getValidation()</code> as described in <a rel="nofollow" href="../Validation/">Validation</a>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
