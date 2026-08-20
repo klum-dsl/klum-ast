@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Core model terms — KlumAST 4.0.0</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0 · Exact version</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="./">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="./">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="current">This is an immutable exact-version documentation snapshot. <a href="../status/">Version status</a>.</aside>
+      <h1 id="core-model-terms">Core model terms</h1>
+<h2 id="schema">Schema</h2>
+<p>A Schema is annotated Groovy source containing the class definitions for a model's DSL Object types, fields,
+relationships, defaults, lifecycle behavior, and validation rules. It is analogous to an XSD for an XML document or a
+JSON Schema for JSON data, but is also executable source: KlumAST generates the model-construction API from it. See
+<a rel="nofollow" href="../Basics/">Basics</a> and <a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a>.</p>
+<h2 id="model">Model</h2>
+<p>A Model is concrete configuration that instantiates a Schema's class definitions into a graph. In its usual form, Model
+source is one or more Groovy scripts using the Schema's generated factories; supported imports and Templates can also
+contribute configuration to construction. It plays the role that an XML document has for an XSD or JSON data has for a
+JSON Schema: it supplies concrete values rather than defining types. When construction runs, a generated factory
+configures its Builder graph, materializes the completed Model, and validates it before returning it. Model Writers
+create Model configuration; clients consume the resulting completed, read-only Model API.</p>
+<h2 id="clientconsumer">Client/Consumer</h2>
+<p>A Client or Consumer uses a completed Model through its public domain API. It may invoke supported construction or
+import operations, handle validation results, and serialize the completed Model for downstream systems; it does not
+depend on generated Builder implementations or Schema-only types in a Layer 3 model. See <a rel="nofollow" href="../Layer3/">Layer3</a> and
+<a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a>.</p>
+<h1 id="roles">Roles</h1>
+<p>KlumAST documentation distinguishes four roles. One person can assume several roles in the same project.</p>
+<h2 id="domain-api-developer">Domain API Developer</h2>
+<p>Defines the stable, consumer-facing model contract. In a <a rel="nofollow" href="../Layer3/">Layer 3 model</a>, this API is designed before the Schema and is the
+only model surface on which generic clients depend.</p>
+<h2 id="schema-developer">Schema Developer</h2>
+<p>Defines DSL Object types, relationships, lifecycle behavior, validation, and external mappings. Without a separate Layer 3
+API, the Schema Developer also owns the consumer-facing model contract.</p>
+<h2 id="client-developer">Client Developer</h2>
+<p>Builds integrations that consume completed DSL Objects through their public domain API, including importer invocation,
+validation-result handling, and downstream serialization.</p>
+<h2 id="model-writer">Model Writer</h2>
+<p>Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, <a rel="nofollow" href="../Templates/">Templates</a>, or combinations of those
+authoring forms. A <a rel="nofollow" href="../Jackson-Integration/">Jackson import operation</a> always consumes one external input; source composition
+is not a Model Writer promise of the Jackson adapter.</p>
+<h1 id="construction-lifecycle">Construction lifecycle</h1>
+<h2 id="lifecycle-phase">Lifecycle phase</h2>
+<p>A lifecycle phase is a named step in model construction, such as <code>POST_TREE</code>, <code>INSTANTIATE</code>, <code>VALIDATE</code>, or <code>VERIFY</code>.
+Builder phases run while configuration remains mutable; <code>INSTANTIATE</code> materializes the completed Model, and later phases
+inspect it. See <a rel="nofollow" href="../Model-Phases/">Model Phases</a>.</p>
+<h2 id="lifecycle-methods-and-closures">Lifecycle methods and closures</h2>
+<p>Lifecycle methods and closure fields are Schema members annotated for a lifecycle phase. KlumAST invokes them at that
+phase, giving pre-materialization callbacks a Builder and later callbacks a completed Model. See <a rel="nofollow" href="../Model-Phases/">Model Phases</a>.</p>
+<h2 id="validation">Validation</h2>
+<p>Validation is the Schema-defined check of a completed Model. It can use field, method, or inner validation-class rules;
+the generated root factory records the result and <code>VERIFY</code> rejects errors at the configured failure level. See
+<a rel="nofollow" href="../Validation/">Validation</a>.</p>
+<h1 id="values">Values</h1>
+<p>In this documentation, we differentiate between these kinds of values:</p>
+<h2 id="dsl-objects">DSL-Objects</h2>
+<p>DSL Objects are annotated with <a rel="nofollow" href="../Basics/"><code>@DSL</code></a>. These are (potentially complex) objects enhanced by the transformation. They
+can either be <em>keyed</em> or <em>unkeyed</em>. Keyed means they have a designated field of type String (currently) decorated with the
+<code>@Key</code> annotation, acting as a key for this class. DSL classes are automatically made <code>Serializable</code>. Generated factories
+configure Builders and return completed DSL Objects; completed objects expose no generated mutation API.</p>
+<h2 id="builders">Builders</h2>
+<p>Builders are the mutable construction-time counterparts of DSL Objects. They own field initializers, DSL mutators,
+relationship state, and lifecycle work through <code>POST_TREE</code>. The <a rel="nofollow" href="../Model-Phases/#instantiate-40"><code>INSTANTIATE</code> phase</a>
+materializes the complete Builder graph before validation. <a rel="nofollow" href="../Builder-First-Migration/">Builder-first construction</a> explains
+the supported construction boundary. Builders are generated implementation types and are not a stable client-facing
+naming contract.</p>
+<h2 id="templates">Templates</h2>
+<p>A Template is a reusable configuration recipe. Applying it rehydrates fresh Builders with its values and recorded recipe
+actions; it is not an ordinary completed Model or a relationship value. See <a rel="nofollow" href="../Templates/">Templates</a>.</p>
+<h2 id="relationships">Relationships</h2>
+<p>An owned relationship creates part of a Model's composition graph through the parent Builder. A <code>LINK</code> relationship refers
+to an existing completed object instead of adopting it as owned composition. See <a rel="nofollow" href="../Basics/">Basics</a> and
+<a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a>.</p>
+<h2 id="collections">Collections</h2>
+<p>Supported <a rel="nofollow" href="../Basics/#collections-of-dsl-objects">collection declarations</a> are <code>List</code>, <code>Set</code>,
+<code>SortedSet</code>/<code>NavigableSet</code>, <code>Map</code>, <code>SortedMap</code>/<code>NavigableMap</code>, and <code>EnumSet</code>.
+Other concrete and custom Collection declarations are rejected during schema compilation. Map keys retain their declared type;
+collection and Map values can be Simple Values or DSL Objects. Collections of Collections are currently not supported.</p>
+<p>Completed models expose independent read-only snapshots. Sorted snapshots preserve their comparator, and <code>EnumSet</code>
+getters return defensive copies.</p>
+<p>A collection field has two name properties: the collection name an the element name. The collection name defaults to
+the name of the field, the element name is the name of the field minus any trailing s:</p>
+<p>If the field name is <code>roles</code>, the default collection name is <code>roles</code> and the element name is <code>role</code>.</p>
+<p>If the field name does not end with an 's', the field name is reused as is (<code>information -&gt; information | information</code>).</p>
+<p>Only the element name can be customized via the <code>@Field</code> annotation (<code>members</code>, see below); the collection name always stays the field name.</p>
+<p><em>Collections must be strongly typed using generics!</em></p>
+<h2 id="simple-values">Simple Values</h2>
+<p>These are everything else, i.e., simple values as well as more complex not-DSL objects.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
