@@ -1,4 +1,4 @@
-# 4.0.0 (unreleased)
+# 4.0.0 The Makeover - 2026-08-20
 
 This is a breaking release. See the [Builder-first construction migration](docs/user/Builder-First-Migration.md) for required client and extension changes.
 
