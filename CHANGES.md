@@ -4,6 +4,7 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Documentation infrastructure
 
+- Clarified when to choose `@Required`, a field `@Validate` closure, or an `@Validate` method for a validation rule.
 - Made the initial Schema onboarding examples directly copyable by showing the canonical `com.blackbuild.klum.ast`
   imports for `@DSL`, `@Key`, and `@Validate` ([#742](https://github.com/klum-dsl/klum-ast/issues/742)).
 - Corrected 4.0 Fundamentals terminology for validation, lifecycle examples, Builder-first ownership timing, rooted composition, Owner backlinks, and `LINK` side connections. Gradle Onboarding now documents optional local source-mirror automation while retaining explicit portable refresh tasks. Exact versioned documentation now exposes the Changelog and a square Season 4 favicon ([#724](https://github.com/klum-dsl/klum-ast/issues/724)).
