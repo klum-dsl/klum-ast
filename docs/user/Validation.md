@@ -35,6 +35,34 @@ The `@Validate` annotation controls validation of a single field. If the annotat
  * A closure that takes a single argument, the value of the field. This closure must either be a single expression that
    is evaluated against Groovy Truth or else an `assert` statement itself.
 
+### Choose a validation form
+
+Use `@Required` for a presence or Groovy-truth rule. For a single-field constraint that is one expression, use a field
+`@Validate({ ... })` closure. Use an `@Validate` method when a rule relates fields, is reused, or has several steps; a
+method remains the right form for those rules even when it happens to be short.
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Required
+import com.blackbuild.klum.ast.Validate
+
+@DSL
+class Deployment {
+    @Required
+    String image
+
+    @Validate({ it in 1..20 })
+    int replicas
+
+    int minimumReplicas
+
+    @Validate
+    void replicasMeetMinimum() {
+        assert replicas >= minimumReplicas : "replicas must meet the configured minimum"
+    }
+}
+```
+
 (See: `ValidationDocumentaryTest#'validates a numeric field with a closure'`.)
 
 ```groovy
