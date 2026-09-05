@@ -47,10 +47,12 @@ an incident.
 ## Before approving an RC or final
 
 1. Confirm an explicit human authorization for this exact stage, version, and full commit SHA
-   on `master`. RC and final approvals are separate.
-2. Start from a clean, non-composite checkout of the intended `master` commit. The build rejects
-   composite builds, and the protected workflow checks that the selected SHA is on `origin/master`
-   and rejects an existing `v<version>` tag or GitHub release.
+   on `master` or the matching `release/<major>.<minor>.x` maintenance line. RC and final
+   approvals are separate.
+2. Start from a clean, non-composite checkout of the intended source commit. The build rejects
+   composite builds, and the protected workflow accepts only `master` or the exact
+   `release/<major>.<minor>.x` line derived from the requested version, proves the selected SHA is
+   an ancestor of that line, and rejects an existing `v<version>` tag or GitHub release.
 3. Verify the expected version: an RC is `X.Y.Z-rc.N` with a new increasing `N`; a final is
    exactly `X.Y.Z`. Alpha, beta, milestone, and snapshot names are not release channels.
 4. Confirm `CHANGES.md` remains under the projected final `(unreleased)` heading while RCs
@@ -67,6 +69,50 @@ an incident.
    substitute the mutable wiki. Stable, line, and preview aliases remain unchanged until this
    release's public proof passes.
 
+## 4.x maintenance branches and promotion
+
+Create `release/4.0.x` only when the first 4.0.x maintenance fix is accepted. Its initial
+history is `v4.0.0`, the explicitly approved post-release corrections `ad306416`, PR #745 commit
+`3569db4` / merge `3346f81`, and the merge result of this policy/documentation change. This
+record defines the creation point; it does not create the branch or claim that the first
+maintenance release has occurred.
+
+The maintenance branch has the normal repository branch protection, author, review, and protected
+release process. A 4.0.x bugfix is authored and reviewed on `release/4.0.x`, and its RC/final is
+released from that branch through the unchanged protected mechanism. REL-1, pending documentation,
+REL-2, documentation promotion, and recovery accept only `master` or the version-matching
+`release/<major>.<minor>.x` line and retain the exact-SHA check, immutable version/tag/release
+record, public proof, and protected authorization controls. They do not create branches, tags, or
+release records.
+
+Forward-promote every applicable maintenance fix to `master` through a merge pull request. Resolve
+any promotion conflict only in that pull request and validate its merge result. If a safe resolution
+is not possible, retain the fix as maintenance-only and record that outcome. When a change is
+intentionally inapplicable to `master`, use an audited `--no-ff -s ours` alignment-merge pull
+request; record the excluded commits, rationale, validation, and the maintenance-only release-note
+treatment. Do not use an alignment merge to hide an unresolved conflict or a fix that should be
+forward-promoted.
+
+Maintenance-only release notes stay on the maintenance line. Do not copy them into `master`'s
+release notes merely to make histories look aligned; the promotion record is the durable cross-line
+explanation. This policy is tracked by [#522](https://github.com/klum-dsl/klum-ast/issues/522).
+
+### Promotion record template
+
+Create this concise record in the promotion pull request (or in the corresponding maintenance-only
+release note when no promotion is possible):
+
+```text
+Maintenance line: release/<major>.<minor>.x
+Maintenance release / source commits: <version and immutable SHAs>
+Promotion PR: <URL or none>
+Outcome: applied | conflict resolved | maintenance-only | alignment merge
+Excluded or aligned commits: <SHAs, if any>
+Rationale: <why every listed change applies, conflicts, or does not apply>
+Validation: <merge-PR checks and any maintenance-line release evidence>
+Maintenance-only release note: <path/heading, or n/a>
+```
+
 ## Protected pending documentation stage
 
 ### Bootstrap and one-time Pages rehearsal
@@ -81,8 +127,9 @@ for this rehearsal and do not preserve it as release evidence.
 
 After cleanup, create a fresh orphan `gh-pages` ledger containing root `.nojekyll`, configure Pages
 to deploy through GitHub Actions, and protect both the `documentation-pages-writer` writer environment
-and the `documentation-pages` deployment environment. The writer environment admits only `master`,
-requires maintainer review without administrator bypass, and holds only the per-library Pages-writer
+and the `documentation-pages` deployment environment. The writer environment admits `master` and
+the approved version-matching maintenance lines, requires maintainer review without administrator
+bypass, and holds only the per-library Pages-writer
 GitHub App credentials. Its short-lived App token is the sole identity allowed to update the ledger.
 The deployment environment contains no writer credential. Protect `gh-pages` against creation, update,
 deletion, and non-fast-forward changes; allow only that App integration to bypass the ruleset, never a
@@ -119,7 +166,7 @@ workflow. The reusable workflow repeats that remote check at its own staging bou
 credential-bearing publication job checks it once more immediately before it receives publication
 credentials. No release decision relies on runner-local Git refs. The workflow receives the exact
 `candidate` or `final` stage, version, and full source SHA; it configures and verifies that exact
-protected Gradle version and proves the clean SHA is on `master`. It renders only that revision with
+protected Gradle version and proves the clean SHA is on the selected allowed release line. It renders only that revision with
 status `pending`; pending chrome and the `pending/<version>/<sha>/` path
 state that this is unlisted release-gate evidence, never a public RC, stable page, or alias.
 
@@ -139,7 +186,7 @@ check reports an empty value, first verify that the unified caller retains `secr
 distinguish a transient failure from a workflow correction. GitHub's **Re-run failed jobs** reuses
 the original reusable-workflow revision, so it cannot test a changed caller or called workflow. If
 the correction is merged before any public exact tree or promotion record exists, dispatch
-**REL-2: Verify public release** once again from `master` with the same stage/version/SHA. Its required
+**REL-2: Verify public release** once again from the original allowed source line with the same stage/version/SHA. Its required
 tag and GitHub release may already exist because REL-2 validates them before its public proof; the new
 dispatch creates a new proof identity internally. Never copy the old proof identity into a dispatch.
 
@@ -164,15 +211,16 @@ sanitized rejection record below `pending-rejected/<version>/<sha>/`; it contain
 and `rejected-pending-documentation` outcome, never command output, credentials, or telemetry.
 That path is also immutable. The root ledger is append-only: correct the cause and follow ADR 0012's
 next-version rule rather than repairing or overwriting a rejected or pending path. A malformed,
-off-master, or already tagged request does not create a pending or rejected Pages record.
+off-allowed-line, or already tagged request does not create a pending or rejected Pages record.
 
 ## Protected publication path
 
-Dispatch **REL-1: Publish protected release**, select `candidate` or `final`, and enter the exact
-version and full `master` commit SHA. The matching environment approval is the irreversible-
+Dispatch **REL-1: Publish protected release** from `master` or the matching
+`release/<major>.<minor>.x` line, select `candidate` or `final`, and enter the exact version and
+full source commit SHA. The matching environment approval is the irreversible-
 operation checkpoint. An unprivileged preflight accepts only valid candidate/final version
 shapes before it selects either protected environment. The workflow then checks out that SHA
-with no persisted GitHub credential, proves it is on `master`, and executes in its protected job:
+with no persisted GitHub credential, proves it is on the dispatch's allowed source line, and executes in its protected job:
 
 ```text
 ./gradlew publishCompleteKlumAstProduct \
@@ -186,7 +234,7 @@ mismatch or an absent matching protected authorization before any publication ta
 the Pages stage can create an immutable snapshot, the workflow has already rejected a remotely
 existing tag or GitHub release for that version; the stage and publication job repeat this check to
 fail closed across queue-time races. Once #456 delivers it, its protected Pages stage independently validates the same
-stage/version/master SHA and deploys an immutable unlisted documentation/Javadoc snapshot plus
+stage/version/source-line SHA and deploys an immutable unlisted documentation/Javadoc snapshot plus
 manifest before `publishCompleteKlumAstProduct`. That task remains the sole permitted public
 artifact publication entry: it publishes every Maven coordinate to one Sonatype staging
 repository, closes/releases it, and then publishes every Plugin Portal marker. #488's successful
@@ -208,7 +256,7 @@ that same SHA (`prerelease` for an RC). This is deliberately outside a waiting e
 every environment approval remains an approval only, and the record step cannot silently require extra
 work halfway through a running workflow.
 
-Then dispatch [REL-2: Verify public release](.github/workflows/verify-public-release.yml) from `master`, with
+Then dispatch [REL-2: Verify public release](.github/workflows/verify-public-release.yml) from the same allowed source line, with
 only the exact `candidate`/`final` stage, version, and full source SHA. It first rejects a missing,
 lightweight, or wrongly targeted tag and any mismatched/draft/wrong-stage GitHub release. Only then does
 its credential-free `resolve` job re-prove the complete product from clean caches and retain an immutable
