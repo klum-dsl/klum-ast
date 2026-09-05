@@ -1,4 +1,13 @@
-# 4.0 issue slate
+# 4.0 release archive
+
+**Status: released as `v4.0.0` on 2026-08-20.** This document preserves the evidence and decisions that governed the
+4.0 release train. It is not the live issue slate and its pre-release gates must not be interpreted as pending work.
+Use [the issue index](issue-index.md) and the current GitHub issue tracker for the active horizon.
+
+The tag points to `88cb1aaf5fb209f5167389087da0123c00416f7d`. Immutable publication snapshots and release evidence
+remain historical records; later documentation or workflow corrections must not rewrite their meaning.
+
+## Historical 4.0 issue slate
 
 This release view is derived from the complete [open issue index](issue-index.md), not from the outdated version plan in
 `docs/user/Roadmap.md`. The policy baseline is README/CHANGES, the Builder-first migration guide, accepted ADRs 0003–0009, and
@@ -8,7 +17,7 @@ delivery-history prose in this document has not yet been rewritten.
 
 Release-facing identity: **Season 4: The Makeover**, always paired with the semantic version `4.0`.
 
-## Release thesis
+## Historical release thesis
 
 4.0 is the breaking Builder-first release. Its minimum coherent scope is to finish and freeze the public boundaries introduced by PR #429:
 
@@ -19,7 +28,7 @@ Release-facing identity: **Season 4: The Makeover**, always paired with the sema
 5. the handwritten package surface and Java module identities are intentional rather than accidental;
 6. Java 17 and Groovy 3/4/5 remain supported.
 
-## Live reconciliation — 2026-07-27
+## Historical reconciliation — 2026-07-27
 
 Live GitHub and `origin/master` were reconciled after PRs #545, #551, and #554–#562. This is the release-facing state;
 the detailed sections below preserve the decisions and historical delivery rationale.
