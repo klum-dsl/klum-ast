@@ -15,7 +15,7 @@ on:
         required: true
         type: string
       commit:
-        description: "Full source commit SHA on master that produced this version"
+        description: "Full source commit SHA on master or release/<major>.<minor>.x that produced this version"
         required: true
         type: string
 
@@ -40,6 +40,7 @@ jobs:
           RELEASE_STAGE: ${{ inputs.stage }}
           RELEASE_VERSION: ${{ inputs.version }}
           EXPECTED_COMMIT: ${{ inputs.commit }}
+          SOURCE_REF: ${{ github.ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -50,19 +51,34 @@ jobs:
             echo 'The public-proof identity is malformed.' >&2
             exit 1
           fi
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_REF" != refs/heads/master && "$SOURCE_REF" != "refs/heads/$maintenance_branch" ]]; then
+            echo "Release workflows may run only from master or $maintenance_branch." >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ inputs.commit }}
-      - name: Prove the selected release source is clean and on master
+      - name: Prove the selected release source is clean and on its allowed line
         env:
           EXPECTED_COMMIT: ${{ inputs.commit }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_BRANCH" != master && "$SOURCE_BRANCH" != "$maintenance_branch" ]]; then
+            echo "Release sources must be on master or $maintenance_branch." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "$SOURCE_BRANCH"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"
           test -z "$(git status --porcelain=v1)"
 
   validate-release-record:

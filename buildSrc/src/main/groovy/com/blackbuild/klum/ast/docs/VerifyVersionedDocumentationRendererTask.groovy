@@ -469,6 +469,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the pending Pages workflow must check GitHub releases through the authoritative remote API')
         assertTrue(!pagesWorkflow.contains('git show-ref --verify'),
                 'the pending Pages workflow must not decide release identity from runner-local Git refs')
+        assertContains(pagesWorkflow, 'maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"',
+                'pending Pages must derive the only allowed maintenance line from the exact release version')
+        assertContains(pagesWorkflow, 'git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"',
+                'pending Pages must bind the exact source SHA to its allowed source line')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
         assertContains(releaseWorkflow, 'name: "REL-1: Publish protected release"',
                 'protected publication must retain the manually dispatched REL-1 display name')
@@ -496,6 +500,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(releaseWorkflow, 'pages: write', 'reusable Pages workflow caller must grant Pages deployment authority')
         assertContains(releaseWorkflow, 'id-token: write', 'reusable Pages workflow caller must grant OIDC authority')
         assertContains(releaseWorkflow, 'DOCUMENTATION_MANIFEST_SHA256', 'artifact workflow must recheck the pending manifest handoff')
+        assertContains(releaseWorkflow, 'Release workflows may run only from master or $maintenance_branch.',
+                'REL-1 must reject source lines other than master or the version-matching maintenance branch')
+        assertContains(releaseWorkflow, 'git merge-base --is-ancestor "$actual_commit" "origin/$SOURCE_BRANCH"',
+                'REL-1 must bind the authorized SHA to the selected allowed source line')
         assertContains(releaseWorkflow, './gradlew publishCompleteKlumAstProduct', 'artifact publication must use the guarded complete-product task without Nebula tagging')
         assertContains(releaseWorkflow, '-Prelease.version=${{ inputs.version }}', 'artifact publication must configure the exact protected release version')
         assertContains(releaseWorkflow, '-Prelease.stage=${{ inputs.stage }}', 'artifact publication must configure the exact protected release stage')
@@ -554,6 +562,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         String proofDispatch = publicProofWorkflow.substring(proofDispatchStart, proofPermissionsStart)
         assertContains(publicProofWorkflow, 'stage:', 'public proof must bind the protected release stage')
         assertContains(publicProofWorkflow, 'commit:', 'public proof must bind the full source SHA')
+        assertContains(publicProofWorkflow, 'Release workflows may run only from master or $maintenance_branch.',
+                'REL-2 must reject source lines other than master or the version-matching maintenance branch')
+        assertContains(publicProofWorkflow, 'git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"',
+                'REL-2 must bind its exact release SHA to the selected allowed source line')
         assertContains(proofDispatch, 'version:', 'unified verification dispatch must bind the exact release version')
         assertTrue(!proofDispatch.contains('proof_run:') && !proofDispatch.contains('proof_attempt:'),
                 'unified verification dispatch must not ask maintainers to copy a proof identity')
@@ -637,8 +649,16 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'release-record recovery must not receive Pages writer or deployment authority')
         assertTrue(!recoveryWorkflow.contains('SONATYPE_') && !recoveryWorkflow.contains('SIGNING_') && !recoveryWorkflow.contains('GRADLE_PUBLISH_'),
                 'release-record recovery must not receive artifact-publishing credentials')
-        assertContains(promotionWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
-                'documentation promotion must reject a dispatch outside master')
+        assertContains(recoveryWorkflow, 'Release recovery may run only from master or $maintenance_branch.',
+                'recovery must reject source lines other than master or the version-matching maintenance branch')
+        assertContains(recoveryWorkflow, 'git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"',
+                'recovery must bind its exact release SHA to the selected allowed source line')
+        assertContains(promotionWorkflow, 'Documentation promotion may run only from master or $maintenance_branch.',
+                'documentation promotion must reject a dispatch outside its allowed release lines')
+        assertContains(promotionWorkflow, '(.head_branch == "master" or .head_branch == $maintenanceBranch)',
+                'promotion must accept only a REL-2 proof run from master or the version-matching maintenance branch')
+        assertContains(promotionWorkflow, 'git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"',
+                'documentation promotion must bind its exact source SHA to the selected allowed source line')
         assertContains(promotionWorkflow, 'name: documentation-pages-writer',
                 'only the protected Pages writer environment may receive documentation writer credentials')
         assertContains(promotionWorkflow, 'secrets.PAGES_WRITER_APP_ID',

@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       commit:
-        description: "Full source commit SHA on master"
+        description: "Full source commit SHA on master or release/<major>.<minor>.x"
         required: true
         type: string
       proof_run:
@@ -59,13 +59,20 @@ jobs:
       proof_identity: ${{ steps.proof.outputs.proof_identity }}
 
     steps:
-      - name: Require the protected REL-2 caller from master
+      - name: Require the protected REL-2 caller from an allowed release line
         env:
           DOCUMENTATION_PAGES_READY: ${{ vars.DOCUMENTATION_PAGES_READY }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_REF: ${{ github.ref }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_REF" != refs/heads/master && "$SOURCE_REF" != "refs/heads/$maintenance_branch" ]]; then
+            echo "Documentation promotion may run only from master or $maintenance_branch." >&2
+            exit 1
+          fi
           test "$DOCUMENTATION_PAGES_READY" = true || {
             echo 'Protected documentation Pages is not rehearsed and enabled.' >&2
             exit 1
@@ -89,6 +96,8 @@ jobs:
             echo 'The requested documentation-promotion identity is malformed.' >&2
             exit 1
           fi
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
           [[ "$PROOF_RUN" =~ ^[1-9][0-9]*$ ]]
           [[ "$PROOF_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
 
@@ -99,8 +108,9 @@ jobs:
             "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN")"
           jq -e \
             --arg repository "$GITHUB_REPOSITORY" \
+            --arg maintenanceBranch "$maintenance_branch" \
             '.name == "REL-2: Verify public release" and .event == "workflow_dispatch" and
-             .head_branch == "master" and .head_repository.full_name == $repository and
+             (.head_branch == "master" or .head_branch == $maintenanceBranch) and .head_repository.full_name == $repository and
              .path == ".github/workflows/verify-public-release.yml"' \
             <<< "$run_json" > /dev/null || {
               echo 'The named proof run is not a trusted REL-2 run.' >&2
@@ -168,14 +178,23 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ needs.validate-proof.outputs.commit }}
-      - name: Prove the source revision remains clean and on master
+      - name: Prove the source revision remains clean and on its allowed line
         env:
           EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_BRANCH" != master && "$SOURCE_BRANCH" != "$maintenance_branch" ]]; then
+            echo "Release sources must be on master or $maintenance_branch." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "$SOURCE_BRANCH"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"
           test -z "$(git status --porcelain=v1)"
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:

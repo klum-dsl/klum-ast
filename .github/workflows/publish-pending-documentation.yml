@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       commit:
-        description: Full source commit SHA on master.
+        description: Full source commit SHA on master or release/<major>.<minor>.x.
         required: true
         type: string
     outputs:
@@ -53,7 +53,7 @@ jobs:
     name: Validate pending documentation identity
     runs-on: ubuntu-latest
     outputs:
-      identity_valid: ${{ steps.master.outputs.valid }}
+      identity_valid: ${{ steps.source.outputs.valid }}
 
     steps:
       - name: Require the rehearsed protected Pages contract
@@ -86,17 +86,25 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ inputs.commit }}
-      - id: master
-        name: Prove the requested source is clean and on master
+      - id: source
+        name: Prove the requested source is clean and on its allowed line
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_COMMIT: ${{ inputs.commit }}
           RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_BRANCH" != master && "$SOURCE_BRANCH" != "$maintenance_branch" ]]; then
+            echo "Release sources must be on master or $maintenance_branch." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "$SOURCE_BRANCH"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"
           test -z "$(git status --porcelain=v1)"
 
           assert_remote_identity_absent() {
