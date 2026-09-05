@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       commit:
-        description: "Full source commit SHA from the failed REL-2 run"
+        description: "Full source commit SHA from the failed REL-2 run on master or release/<major>.<minor>.x"
         required: true
         type: string
       verification_run:
@@ -43,11 +43,19 @@ jobs:
       proof_identity: ${{ steps.proof.outputs.proof_identity }}
 
     steps:
-      - name: Require a protected recovery dispatch from master
+      - name: Require a protected recovery dispatch from an allowed release line
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_REF: ${{ github.ref }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_REF" != refs/heads/master && "$SOURCE_REF" != "refs/heads/$maintenance_branch" ]]; then
+            echo "Release recovery may run only from master or $maintenance_branch." >&2
+            exit 1
+          fi
       - name: Validate the requested recovery identity and failed run
         env:
           GH_TOKEN: ${{ github.token }}
@@ -68,15 +76,17 @@ jobs:
             echo 'The release-record recovery identity is malformed.' >&2
             exit 1
           fi
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
           api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
           run_json="$(curl --fail-with-body --silent --show-error \
             --header "Authorization: Bearer $GH_TOKEN" \
             --header 'Accept: application/vnd.github+json' \
             --header 'X-GitHub-Api-Version: 2022-11-28' \
             "$api/actions/runs/$VERIFICATION_RUN")"
-          jq -e --arg repository "$GITHUB_REPOSITORY" \
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg maintenanceBranch "$maintenance_branch" \
             '.name == "REL-2: Verify public release" and .event == "workflow_dispatch" and
-             .head_branch == "master" and .head_repository.full_name == $repository and
+             (.head_branch == "master" or .head_branch == $maintenanceBranch) and .head_repository.full_name == $repository and
              .path == ".github/workflows/verify-public-release.yml" and
              .conclusion == "failure"' <<< "$run_json" > /dev/null || {
               echo 'The named run is not a failed protected REL-2 run for this source.' >&2
@@ -139,24 +149,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Require the protected recovery dispatch from master
+      - name: Require the protected recovery dispatch from an allowed release line
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_REF: ${{ github.ref }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_REF" != refs/heads/master && "$SOURCE_REF" != "refs/heads/$maintenance_branch" ]]; then
+            echo "Release recovery may run only from master or $maintenance_branch." >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ inputs.commit }}
-      - name: Prove the selected release source remains clean and on master
+      - name: Prove the selected release source remains clean and on its allowed line
         env:
           EXPECTED_COMMIT: ${{ inputs.commit }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_BRANCH" != master && "$SOURCE_BRANCH" != "$maintenance_branch" ]]; then
+            echo "Release sources must be on master or $maintenance_branch." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "$SOURCE_BRANCH"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"
           test -z "$(git status --porcelain=v1)"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

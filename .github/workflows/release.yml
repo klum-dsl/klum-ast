@@ -15,7 +15,7 @@ on:
         required: true
         type: string
       commit:
-        description: "Full source commit SHA on master"
+        description: "Full source commit SHA on master or release/<major>.<minor>.x"
         required: true
         type: string
 
@@ -38,6 +38,7 @@ jobs:
         env:
           RELEASE_STAGE: ${{ inputs.stage }}
           RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_REF: ${{ github.ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -47,6 +48,13 @@ jobs:
             echo 'name=final-release' >> "$GITHUB_OUTPUT"
           else
             echo 'The selected stage does not match the exact immutable version.' >&2
+            exit 1
+          fi
+
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_REF" != refs/heads/master && "$SOURCE_REF" != "refs/heads/$maintenance_branch" ]]; then
+            echo "Release workflows may run only from master or $maintenance_branch." >&2
             exit 1
           fi
 
@@ -135,12 +143,21 @@ jobs:
       - name: Verify the authorized source commit
         env:
           EXPECTED_COMMIT: ${{ inputs.commit }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
           actual_commit=$(git rev-parse HEAD)
           test "$actual_commit" = "$EXPECTED_COMMIT"
-          git merge-base --is-ancestor "$actual_commit" origin/master
+          [[ "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\. ]] || exit 1
+          maintenance_branch="release/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+          if [[ "$SOURCE_BRANCH" != master && "$SOURCE_BRANCH" != "$maintenance_branch" ]]; then
+            echo "Release sources must be on master or $maintenance_branch." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "$SOURCE_BRANCH"
+          git merge-base --is-ancestor "$actual_commit" "origin/$SOURCE_BRANCH"
           test -z "$(git status --porcelain=v1)"
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
