@@ -24,6 +24,16 @@ Each replay clones and schedules its actions against the recipient Builder. Alre
 copied, and action order is preserved. Fresh owned children run one ordinary lifecycle and receive their final ownership
 and model paths when the recipient graph is materialized.
 
+[`@OwnerProvidedDefaults`](Default-Values.md#owner-provided-defaults) uses a separate value-only path. It reads only the
+shared contract's properties, applies one fixed conservative absence policy, never replays Template or live-Builder
+actions, and does not consult the overwrite strategies described below. Its owned DSL values are still rehydrated as fresh
+composition, while completed `LINK` values retain identity.
+
+Rehydration also preserves donor identity within one owner-default application; it does not fan one donor node out into
+independent copies. If multiple contract properties would attach that node through owned recipient relationships, normal
+composition ownership rejects the second claim rather than producing a multiply-owned graph. Model intentional secondary
+references as `LINK` or `OPTIONAL_LINK` relationships so the composition graph remains a single-rooted tree.
+
 When copying an object to another, there are three distinct types of strategies: single object, collections and maps. The strategy can
 be configured on a class for all matching fields at once, or on a per-field basis.
 

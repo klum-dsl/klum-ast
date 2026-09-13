@@ -25,12 +25,53 @@ package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.Validate
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.internal.layer3.KlumVisitorException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
 @Issue("494")
 class OwnerProvidedDefaultsRuntimeTest extends AbstractDSLSpec {
+
+    def "an unannotated recipient does not read defaults from a compatible owner"() {
+        given:
+        createNonDslClass '''
+            package pk
+
+            interface ShipmentDetails {
+                String getRepository()
+                List<String> getCustomers()
+            }
+
+            @DSL
+            class Product implements ShipmentDetails {
+                String repository
+                List<String> customers
+                ProductRelease release
+            }
+
+            @DSL
+            class ProductRelease implements ShipmentDetails {
+                @Owner Product product
+
+                @Default(code = { 'ordinary-default' })
+                String repository
+                List<String> customers
+            }
+        '''
+
+        when:
+        def product = getClass('pk.Product').Create.With {
+            repository 'owner-repository'
+            customers 'owner-customer'
+            release {}
+        }
+
+        then:
+        product.release.repository == 'ordinary-default'
+        product.release.customers.empty
+    }
 
     def "owner values run before ordinary defaults and preserve configured recipient values"() {
         given:
@@ -238,6 +279,55 @@ class OwnerProvidedDefaultsRuntimeTest extends AbstractDSLSpec {
         and: 'recipient-only map entries remain present'
         product.release.configurations.keySet() == ['shared', 'recipientOnly', 'ownerOnly'] as Set
         product.release.configurations.recipientOnly.configuredValue == 'recipient-only'
+    }
+
+    def "a donor-owned value exposed through a link cannot become two recipient composition paths"() {
+        given:
+        createNonDslClass '''
+            package pk
+
+            interface SharedConfiguration {
+                Settings getPrimary()
+                Settings getSecondary()
+            }
+
+            @DSL
+            class Product implements SharedConfiguration {
+                Settings primary
+
+                @Field(FieldType.LINK)
+                Settings secondary
+
+                ProductRelease release
+            }
+
+            @DSL
+            @OwnerProvidedDefaults(SharedConfiguration)
+            class ProductRelease implements SharedConfiguration {
+                @Owner Product product
+                Settings primary
+                Settings secondary
+            }
+
+            @DSL
+            class Settings {
+                @Owner Object owner
+                String value
+            }
+        '''
+
+        when:
+        getClass('pk.Product').Create.With {
+            def shared = primary { value 'shared' }
+            secondary = shared
+            release {}
+        }
+
+        then: 'the donor alias is preserved, so ordinary ownership rejects a second composition claim'
+        KlumVisitorException error = thrown()
+        error.cause instanceof KlumModelException
+        error.cause.message.contains('already claimed by composition relationship pk.ProductRelease.primary')
+        error.cause.message.contains('cannot be attached to composition relationship pk.ProductRelease.secondary')
     }
 
     def "completed links retain identity and donor deferred actions are not replayed"() {
