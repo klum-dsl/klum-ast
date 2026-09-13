@@ -23,10 +23,17 @@
  */
 package com.blackbuild.klum.ast
 
+import com.blackbuild.annodocimal.annotations.AnnoDoc
+import com.blackbuild.klum.cast.KlumCastValidated
+import org.apache.ivy.Ivy
+import org.jspecify.annotations.NullMarked
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.TimeUnit
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 
@@ -56,18 +63,22 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
         and:
         File repository = new File(tempFolder.root, 'repository')
         installSchema(repository)
+        installKlumRuntimeClosure(repository)
         installSupportDependency(repository)
         File grapeRoot = new File(tempFolder.root, 'grape-home')
         File grapeConfig = createGrapeConfig(grapeRoot, repository)
-        String oldGrapeRoot = System.getProperty('grape.root')
-        String oldGrapeConfig = System.getProperty('grape.config')
-        System.setProperty('grape.root', grapeRoot.absolutePath)
-        System.setProperty('grape.config', grapeConfig.absolutePath)
 
         and:
-        def modelScript = '''
+        File modelScript = new File(tempFolder.root, 'catalog.groovy')
+        modelScript.text = '''
             @Grab('com.example.platform:deployment-schema:1.4.2')
             import com.example.platform.Deployment
+
+            def initialClasspath = System.getProperty('java.class.path').split(File.pathSeparator) as List
+            assert initialClasspath.size() == 2
+            assert initialClasspath.every { !it.toLowerCase().contains('klum') }
+            assert Class.forName('com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy',
+                    false, Deployment.classLoader)
 
             def deployment = Deployment.Create.With('catalog') {
                 environment 'production'
@@ -78,36 +89,45 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
 
             assert deployment.service.image == 'catalog:1.0'
             assert Deployment.classLoader.getResource('deployment-support.marker')
-            deployment
+            println "STANDALONE_GRAB_OK:${deployment.name}:${deployment.service.image}"
         '''
 
         when:
-        def modelLoader = new GroovyClassLoader(getClass().classLoader)
-        def deployment
-        try {
-            deployment = new GroovyShell(modelLoader).evaluate(modelScript)
-        } finally {
-            restoreSystemProperty('grape.root', oldGrapeRoot)
-            restoreSystemProperty('grape.config', oldGrapeConfig)
-            modelLoader.close()
-        }
+        def result = runIsolatedModel(modelScript, grapeRoot, grapeConfig)
 
         then:
-        deployment.name == 'catalog'
-        deployment.environment == 'production'
-        deployment.service.image == 'catalog:1.0'
+        result.finished
+        result.exitCode == 0
+        result.output.contains('STANDALONE_GRAB_OK:catalog:catalog:1.0')
     }
 
     private void installSchema(File repository) {
-        File module = moduleDirectory(repository, 'deployment-schema', '1.4.2')
+        File module = moduleDirectory(repository, 'com.example.platform', 'deployment-schema', '1.4.2')
         createJar(compilerConfiguration.targetDirectory, new File(module, 'deployment-schema-1.4.2.jar'))
-        new File(module, 'deployment-schema-1.4.2.pom').text = '''
+        String klumVersion = requiredSystemProperty('klumVersion')
+        new File(module, 'deployment-schema-1.4.2.pom').text = """
             <project xmlns="http://maven.apache.org/POM/4.0.0">
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.example.platform</groupId>
               <artifactId>deployment-schema</artifactId>
               <version>1.4.2</version>
+              <dependencyManagement>
+                <dependencies>
+                  <dependency>
+                    <groupId>com.blackbuild.klum.ast</groupId>
+                    <artifactId>klum-ast-bom</artifactId>
+                    <version>$klumVersion</version>
+                    <type>pom</type>
+                    <scope>import</scope>
+                  </dependency>
+                </dependencies>
+              </dependencyManagement>
               <dependencies>
+                <dependency>
+                  <groupId>com.blackbuild.klum.ast</groupId>
+                  <artifactId>klum-ast-runtime</artifactId>
+                  <scope>compile</scope>
+                </dependency>
                 <dependency>
                   <groupId>com.example.platform</groupId>
                   <artifactId>deployment-support</artifactId>
@@ -115,27 +135,107 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
                 </dependency>
               </dependencies>
             </project>
-        '''.stripIndent()
+        """.stripIndent()
+    }
+
+    private static void installKlumRuntimeClosure(File repository) {
+        String klumVersion = requiredSystemProperty('klumVersion')
+        installPublishedModule(repository, 'com.blackbuild.klum.ast', 'klum-ast-runtime', klumVersion,
+                requiredSystemFile('klumRuntimeJar'), requiredSystemFile('klumRuntimePom'))
+        installPublishedModule(repository, 'com.blackbuild.klum.ast', 'klum-ast-annotations', klumVersion,
+                requiredSystemFile('klumAnnotationsJar'), requiredSystemFile('klumAnnotationsPom'))
+        installPom(repository, 'com.blackbuild.klum.ast', 'klum-ast-bom', klumVersion,
+                requiredSystemFile('klumBomPom'))
+
+        installLeafModule(repository, 'com.blackbuild.annodocimal', 'anno-docimal-annotations', '1.0.0',
+                codeSource(AnnoDoc), [['org.jspecify', 'jspecify', '1.0.0']])
+        installLeafModule(repository, 'org.jspecify', 'jspecify', '1.0.0', codeSource(NullMarked))
+        installLeafModule(repository, 'com.blackbuild.klum.cast', 'klum-cast-annotations', '0.4.0',
+                codeSource(KlumCastValidated))
     }
 
     private static void installSupportDependency(File repository) {
-        File module = moduleDirectory(repository, 'deployment-support', '1.0.0')
+        File module = moduleDirectory(repository, 'com.example.platform', 'deployment-support', '1.0.0')
         createJar(new File(module, 'deployment-support-1.0.0.jar'),
                 'deployment-support.marker', 'resolved transitively')
-        new File(module, 'deployment-support-1.0.0.pom').text = '''
-            <project xmlns="http://maven.apache.org/POM/4.0.0">
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>com.example.platform</groupId>
-              <artifactId>deployment-support</artifactId>
-              <version>1.0.0</version>
-            </project>
-        '''.stripIndent()
+        writePom(new File(module, 'deployment-support-1.0.0.pom'),
+                'com.example.platform', 'deployment-support', '1.0.0')
     }
 
-    private static File moduleDirectory(File repository, String artifact, String version) {
-        File module = new File(repository, "com/example/platform/$artifact/$version")
+    private static void installPublishedModule(
+            File repository,
+            String group,
+            String artifact,
+            String version,
+            File artifactFile,
+            File pomFile
+    ) {
+        File module = moduleDirectory(repository, group, artifact, version)
+        Files.copy(artifactFile.toPath(), new File(module, "$artifact-${version}.jar").toPath(),
+                StandardCopyOption.REPLACE_EXISTING)
+        Files.copy(pomFile.toPath(), new File(module, "$artifact-${version}.pom").toPath(),
+                StandardCopyOption.REPLACE_EXISTING)
+    }
+
+    private static void installPom(
+            File repository,
+            String group,
+            String artifact,
+            String version,
+            File pomFile
+    ) {
+        File module = moduleDirectory(repository, group, artifact, version)
+        Files.copy(pomFile.toPath(), new File(module, "$artifact-${version}.pom").toPath(),
+                StandardCopyOption.REPLACE_EXISTING)
+    }
+
+    private static void installLeafModule(
+            File repository,
+            String group,
+            String artifact,
+            String version,
+            File artifactFile,
+            List<List<String>> dependencies = []
+    ) {
+        File module = moduleDirectory(repository, group, artifact, version)
+        Files.copy(artifactFile.toPath(), new File(module, "$artifact-${version}.jar").toPath(),
+                StandardCopyOption.REPLACE_EXISTING)
+        writePom(new File(module, "$artifact-${version}.pom"), group, artifact, version, dependencies)
+    }
+
+    private static File moduleDirectory(File repository, String group, String artifact, String version) {
+        File module = new File(repository, "${group.replace('.', '/')}/$artifact/$version")
         assert module.mkdirs()
         module
+    }
+
+    private static void writePom(
+            File pomFile,
+            String group,
+            String artifact,
+            String version,
+            List<List<String>> dependencies = []
+    ) {
+        String dependencyXml = dependencies.collect { dependency ->
+            """
+                <dependency>
+                  <groupId>${dependency[0]}</groupId>
+                  <artifactId>${dependency[1]}</artifactId>
+                  <version>${dependency[2]}</version>
+                </dependency>
+            """.stripIndent()
+        }.join('')
+        pomFile.text = """
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>$group</groupId>
+              <artifactId>$artifact</artifactId>
+              <version>$version</version>
+              <dependencies>
+                $dependencyXml
+              </dependencies>
+            </project>
+        """.stripIndent()
     }
 
     private static void createJar(File classesDirectory, File jarFile) {
@@ -182,11 +282,42 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
         config
     }
 
-    private static void restoreSystemProperty(String name, String value) {
-        if (value == null) {
-            System.clearProperty(name)
-        } else {
-            System.setProperty(name, value)
-        }
+    private Map<String, Object> runIsolatedModel(File script, File grapeRoot, File grapeConfig) {
+        List<File> bootstrapClasspath = [codeSource(GroovyShell), codeSource(Ivy)]
+        assert bootstrapClasspath.size() == 2
+        assert bootstrapClasspath.every { !it.name.toLowerCase().contains('klum') }
+        File outputFile = new File(tempFolder.root, 'model-output.txt')
+        Process process = new ProcessBuilder(
+                new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+                "-Dgrape.root=${grapeRoot.absolutePath}",
+                "-Dgrape.config=${grapeConfig.absolutePath}",
+                '-cp',
+                bootstrapClasspath*.absolutePath.join(File.pathSeparator),
+                'groovy.ui.GroovyMain',
+                script.absolutePath
+        )
+                .directory(tempFolder.root)
+                .redirectErrorStream(true)
+                .redirectOutput(outputFile)
+                .start()
+        boolean finished = process.waitFor(60, TimeUnit.SECONDS)
+        if (!finished) process.destroyForcibly()
+        [finished: finished, exitCode: finished ? process.exitValue() : null, output: outputFile.text]
+    }
+
+    private static File codeSource(Class<?> type) {
+        new File(type.protectionDomain.codeSource.location.toURI())
+    }
+
+    private static File requiredSystemFile(String name) {
+        File file = new File(requiredSystemProperty(name))
+        assert file.file: "System property '$name' does not identify a file: $file"
+        file
+    }
+
+    private static String requiredSystemProperty(String name) {
+        String value = System.getProperty(name)
+        assert value: "Missing required system property '$name'"
+        value
     }
 }

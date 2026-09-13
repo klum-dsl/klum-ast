@@ -171,12 +171,17 @@ for that boundary.
 
 ## What KlumAST validates
 
-`GrabModelScriptsDocumentaryTest` compiles the Schema first, publishes it with a transitive fixture dependency to a
-temporary Maven repository, then executes the `@Grab` Model above against that local-only repository in the Groovy 3, 4,
-and 5 test lanes. This deterministically guards the Grape annotation, published-POM dependency resolution, generated
-factory call, Builder-first child construction, and completed Model result without contacting a network repository.
+`GrabModelScriptsDocumentaryTest` compiles the Schema first and installs it in a temporary Maven repository with the
+Schema plugin's BOM-plus-runtime publication shape and a separate transitive fixture dependency. It then starts a new Java
+process whose initial classpath contains only the selected Groovy core and Ivy JARs, and executes the `@Grab` Model above
+against that local-only repository in the Groovy 3, 4, and 5 test lanes. The repository contains the actual generated
+KlumAST runtime, annotations, and BOM POMs. This deterministically guards Grape resolution of the Schema and KlumAST
+runtime closure, the generated factory call, Builder-first child construction, and completed Model result without
+contacting a network repository. The companion
+`KlumAstSchemaPluginTest#'schema publication metadata exposes the KlumAST runtime'` generates a real publication POM and
+locks the same imported-BOM and `klum-ast-runtime` dependency contract.
 
-Publication metadata, repository resolution, proxy/TLS behavior, cache transfer, and egress enforcement depend on the
-Schema project and target deployment environment, so the repository test does not claim to validate them. Validate those
-operational parts with the exact published Schema coordinate, `grape resolve`, and a full Model run in each connected,
-intranet, or disconnected target environment.
+Target-project publication customizations, repository resolution, proxy/TLS behavior, cache transfer, and egress
+enforcement depend on the Schema project and target deployment environment, so the repository test does not claim to
+validate them. Validate those operational parts with the exact published Schema coordinate, `grape resolve`, and a full
+Model run in each connected, intranet, or disconnected target environment.

@@ -9,9 +9,11 @@
 
 - Added a version-pinned `@Grab` workflow for trusted standalone Model scripts backed by a separately compiled and
   published Schema, including controlled-cache, internal Maven repository, and intentionally disconnected operation
-  guidance. A hermetic documentary test resolves a temporary published Schema and its transitive fixture dependency across
-  Groovy 3, 4, and 5; target Schema publication, cache-transfer, and network-policy verification remains an explicit
-  deployment-owner responsibility ([#552](https://github.com/klum-dsl/klum-ast/issues/552)).
+  guidance. An isolated-process documentary test starts with only Groovy and Ivy, then resolves a temporary published
+  Schema, its KlumAST runtime closure, and a transitive fixture dependency across Groovy 3, 4, and 5; a companion test locks
+  the Schema plugin's published BOM/runtime metadata contract. Target Schema publication, cache-transfer, and network-policy
+  verification remains an explicit deployment-owner responsibility
+  ([#552](https://github.com/klum-dsl/klum-ast/issues/552)).
 
 # 4.0.0 The Makeover - 2026-08-20
 

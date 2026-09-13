@@ -29,11 +29,17 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.tasks.GenerateMavenPom
 import org.gradle.api.tasks.SourceSet
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
+import spock.lang.Issue
 import spock.lang.Specification
+
+import java.util.regex.Pattern
 
 class KlumAstSchemaPluginTest extends Specification {
 
@@ -108,6 +114,34 @@ class KlumAstSchemaPluginTest extends Specification {
 
         then:
         project.publishing.publications.size() == 1
+    }
+
+    @Issue('552')
+    def "schema publication metadata exposes the KlumAST runtime"() {
+        given:
+        project.group = 'com.example.platform'
+        project.version = '1.4.2'
+        project.pluginManager.apply(KlumAstSchemaPlugin)
+        project.pluginManager.apply('maven-publish')
+        MavenPublication publication = project.extensions
+                .getByType(PublishingExtension)
+                .publications
+                .getByName('mavenJava') as MavenPublication
+        File pomFile = File.createTempFile('klum-schema-', '.pom')
+        GenerateMavenPom generatePom = project.tasks.create('generateFixturePom', GenerateMavenPom)
+        generatePom.pom = publication.pom
+        generatePom.destination = pomFile
+
+        when:
+        generatePom.doGenerate()
+        String pom = pomFile.text
+
+        then:
+        pom =~ /(?s)<dependency>\s*<groupId>com\.blackbuild\.klum\.ast<\/groupId>\s*<artifactId>klum-ast-bom<\/artifactId>\s*<version>${Pattern.quote(version)}<\/version>\s*<type>pom<\/type>\s*<scope>import<\/scope>\s*<\/dependency>/
+        pom =~ /(?s)<dependency>\s*<groupId>com\.blackbuild\.klum\.ast<\/groupId>\s*<artifactId>klum-ast-runtime<\/artifactId>\s*<scope>compile<\/scope>\s*<\/dependency>/
+
+        cleanup:
+        pomFile.delete()
     }
 
 }
