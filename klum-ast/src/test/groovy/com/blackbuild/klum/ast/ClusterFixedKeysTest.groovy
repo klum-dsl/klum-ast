@@ -28,6 +28,10 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
+import javax.tools.ToolProvider
+import java.net.URL
+import java.net.URLClassLoader
+
 @Issue("356")
 class ClusterFixedKeysTest extends AbstractDSLSpec {
 
@@ -119,6 +123,37 @@ class ClusterFixedKeysTest extends AbstractDSLSpec {
         !getClass('sample.FloorPlan_DSL$Builder').methods.any {
             it.name == 'kitchen' && it.parameterTypes.contains(String)
         }
+
+        when: 'a Java consumer compiles against and verifies the generated public Builder contract'
+        Class<?> javaConsumer = compileJavaConsumer('''
+            package sample;
+
+            import java.lang.reflect.Method;
+            import java.util.Map;
+
+            public final class FixedKeyHomeJavaConsumer {
+                public static void configure(FloorPlan_DSL.Builder<FloorPlan> builder) {
+                    builder.kitchen(Map.of("purpose", "Java public contract"));
+                }
+
+                public static void verifyFixedKeyApi() throws NoSuchMethodException {
+                    FloorPlan_DSL.Builder.class.getMethod("kitchen", Map.class);
+                    for (Method method : FloorPlan_DSL.Builder.class.getMethods()) {
+                        if (method.getName().equals("kitchen")) {
+                            for (Class<?> parameterType : method.getParameterTypes()) {
+                                if (parameterType.equals(String.class)) {
+                                    throw new AssertionError("fixed-key Builder API must not expose a key-taking kitchen overload");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ''', 'sample/FixedKeyHomeJavaConsumer.java')
+        javaConsumer.getMethod('verifyFixedKeyApi').invoke(null)
+
+        then:
+        noExceptionThrown()
     }
 
     def "rejects an unkeyed fixed-key Cluster member"() {
@@ -215,5 +250,29 @@ class ClusterFixedKeysTest extends AbstractDSLSpec {
         then:
         MultipleCompilationErrorsException exception = thrown()
         exception.message.contains('@Cluster(fixedKeys = true) cannot be combined with an explicit @Field(key = ...) on field kitchen.')
+    }
+
+    private Class<?> compileJavaConsumer(String source, String filename) {
+        File sourceFile = new File(tempFolder.root, filename)
+        sourceFile.parentFile.mkdirs()
+        sourceFile.text = source.stripIndent()
+        String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
+                .join(File.pathSeparator)
+        def errors = new ByteArrayOutputStream()
+        int result = ToolProvider.systemJavaCompiler.run(
+                null,
+                null,
+                errors,
+                '-classpath', classpath,
+                '-d', compilerConfiguration.targetDirectory.absolutePath,
+                sourceFile.absolutePath
+        )
+        assert result == 0: errors.toString()
+        URLClassLoader consumerLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], loader)
+        try {
+            return consumerLoader.loadClass(filename.replace('/', '.').replace('.java', ''))
+        } finally {
+            consumerLoader.close()
+        }
     }
 }
