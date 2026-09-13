@@ -156,6 +156,112 @@ class ClusterFixedKeysTest extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    def "uses fixed Cluster keys from empty methods and Cluster properties"() {
+        given:
+        createClass '''
+            package sample
+
+            import com.blackbuild.klum.ast.layer3.Cluster
+
+            @DSL
+            abstract class EmptyMethodHome {
+                @Cluster(fixedKeys = true)
+                Map<String, Zone> getZones() {}
+            }
+
+            @DSL
+            abstract class PropertyHome {
+                @Cluster(fixedKeys = true)
+                Map<String, Zone> zones
+            }
+
+            @DSL
+            abstract class Zone {
+            }
+
+            @DSL class Kitchen extends Zone {
+                @Key String name
+                String purpose
+            }
+
+            @DSL
+            class EmptyMethodFloorPlan extends EmptyMethodHome {
+                Kitchen kitchen
+            }
+
+            @DSL
+            class PropertyFloorPlan extends PropertyHome {
+                Kitchen kitchen
+            }
+        '''
+        Class<?> emptyMethodBuilder = getBuilderClass('sample.EmptyMethodFloorPlan')
+        Class<?> propertyBuilder = getBuilderClass('sample.PropertyFloorPlan')
+
+        expect: 'both declaration forms expose only the no-key Builder creators'
+        hasMethod(emptyMethodBuilder, 'kitchen')
+        hasMethod(emptyMethodBuilder, 'kitchen', Map)
+        hasNoMethod(emptyMethodBuilder, 'kitchen', String)
+        hasNoMethod(emptyMethodBuilder, 'kitchen', Map, String)
+        hasMethod(propertyBuilder, 'kitchen')
+        hasMethod(propertyBuilder, 'kitchen', Map)
+        hasNoMethod(propertyBuilder, 'kitchen', String)
+        hasNoMethod(propertyBuilder, 'kitchen', Map, String)
+
+        when: 'each declaration form configures a child without a key argument'
+        def emptyMethodFloorPlan = create('sample.EmptyMethodFloorPlan') {
+            kitchen(purpose: 'empty method')
+        }
+        def propertyFloorPlan = create('sample.PropertyFloorPlan') {
+            kitchen(purpose: 'property')
+        }
+
+        then: 'the Schema member name is used as the fixed child key'
+        emptyMethodFloorPlan.kitchen.name == 'kitchen'
+        emptyMethodFloorPlan.kitchen.purpose == 'empty method'
+        propertyFloorPlan.kitchen.name == 'kitchen'
+        propertyFloorPlan.kitchen.purpose == 'property'
+
+        when: 'one Java consumer compiles against both generated public Builder contracts'
+        Class<?> javaConsumer = compileJavaConsumer('''
+            package sample;
+
+            import java.lang.reflect.Method;
+            import java.util.Map;
+
+            public final class AlternativeFixedKeyJavaConsumer {
+                public static void configure(
+                        EmptyMethodFloorPlan_DSL.Builder<EmptyMethodFloorPlan> emptyMethodBuilder,
+                        PropertyFloorPlan_DSL.Builder<PropertyFloorPlan> propertyBuilder) {
+                    emptyMethodBuilder.kitchen(Map.of("purpose", "empty method Java contract"));
+                    propertyBuilder.kitchen(Map.of("purpose", "property Java contract"));
+                }
+
+                public static void verifyFixedKeyApi() throws NoSuchMethodException {
+                    assertNoKeyOverload(EmptyMethodFloorPlan_DSL.Builder.class, "kitchen");
+                    assertNoKeyOverload(PropertyFloorPlan_DSL.Builder.class, "kitchen");
+                }
+
+                private static void assertNoKeyOverload(Class<?> builderType, String methodName)
+                        throws NoSuchMethodException {
+                    builderType.getMethod(methodName, Map.class);
+                    for (Method method : builderType.getMethods()) {
+                        if (method.getName().equals(methodName)) {
+                            for (Class<?> parameterType : method.getParameterTypes()) {
+                                if (parameterType.equals(String.class)) {
+                                    throw new AssertionError("fixed-key Builder API must not expose a key-taking overload");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ''', 'sample/AlternativeFixedKeyJavaConsumer.java')
+        javaConsumer.getMethod('verifyFixedKeyApi').invoke(null)
+
+        then:
+        noExceptionThrown()
+    }
+
     def "rejects an unkeyed fixed-key Cluster member"() {
         when:
         createClass '''
