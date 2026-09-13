@@ -22,7 +22,8 @@ klumSchema {
 
 For a new project, Groovy 3 is the baseline. Keep an existing supported Groovy line instead. See [Gradle Onboarding](Gradle-Onboarding.md) for
 the complete first Schema and test, [Gradle Plugins](Gradle-Plugins.md) for plugin details, and the model plugin when a separate configured
-Model artifact is required.
+Model artifact is required. For a small, trusted Model script backed by a separately published Schema, see
+[Standalone Model scripts with `@Grab`](Grab-Model-Scripts.md).
 
 ## Project setup
 

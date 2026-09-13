@@ -14,14 +14,27 @@ test {
 
 gradle.projectsEvaluated {
     tasks.withType(Test).configureEach {
+        def klumAnnotationsPom = project(':klum-ast-annotations').layout.buildDirectory.file('publications/mavenJava/pom-default.xml')
+        def klumRuntimePom = project(':klum-ast-runtime').layout.buildDirectory.file('publications/mavenJava/pom-default.xml')
+        def klumBomPom = project(':klum-ast-bom').layout.buildDirectory.file('publications/mavenJava/pom-default.xml')
         dependsOn tasks.named('jar')
         dependsOn ':klum-ast-annotations:jar'
+        dependsOn ':klum-ast-annotations:generatePomFileForMavenJavaPublication'
         dependsOn ':klum-ast-runtime:jar'
+        dependsOn ':klum-ast-runtime:generatePomFileForMavenJavaPublication'
+        dependsOn ':klum-ast-bom:generatePomFileForMavenJavaPublication'
         dependsOn ':klum-ast-jackson:jar'
         dependsOn ':klum-ast-bean-validation:jar'
+        inputs.file(klumAnnotationsPom)
+        inputs.file(klumRuntimePom)
+        inputs.file(klumBomPom)
         systemProperty('klumAnnotationsJar', project(':klum-ast-annotations').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('klumAnnotationsPom', klumAnnotationsPom.get().asFile)
         systemProperty('klumCompilerJar', tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumRuntimeJar', project(':klum-ast-runtime').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('klumRuntimePom', klumRuntimePom.get().asFile)
+        systemProperty('klumBomPom', klumBomPom.get().asFile)
+        systemProperty('klumVersion', project.version.toString())
         systemProperty('klumJacksonJar', project(':klum-ast-jackson').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumBeanValidationJar', project(':klum-ast-bean-validation').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('jpmsAdapterModulePath', files(
@@ -40,6 +53,7 @@ dependencies {
     api libs.klum.cast.compile
 
     sharedTests libs.annodocimal.gradle.plugin
+    sharedTests 'org.apache.ivy:ivy:2.5.3'
     testFixturesCompileOnly libs.bundles.spock.groovy.v3
     testFixturesCompileOnly libs.jb.anno
 }
