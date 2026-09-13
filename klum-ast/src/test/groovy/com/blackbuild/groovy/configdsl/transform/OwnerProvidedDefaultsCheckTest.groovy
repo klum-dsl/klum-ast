@@ -109,6 +109,79 @@ class OwnerProvidedDefaultsCheckTest extends AbstractDSLSpec {
                 ['GeneralDetails', 'ReleaseDetails']
     }
 
+    def "accepts donor generics within contract wildcard bounds"() {
+        when:
+        createNonDslClass '''
+            interface BoundedDetails {
+                List<? extends CharSequence> getNames()
+                List<? super String> getAliases()
+            }
+
+            @DSL
+            class Product implements BoundedDetails {
+                List<String> names
+                List<Object> aliases
+            }
+
+            @DSL
+            @OwnerProvidedDefaults(BoundedDetails)
+            class ProductRelease implements BoundedDetails {
+                @Owner Product product
+                List<String> names
+                List<Object> aliases
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def "rejects incompatible getters inherited by one contract when Groovy allows the contract"() {
+        given: "Groovy accepts the conflicting interface hierarchy by itself"
+        createNonDslClass '''
+            interface BareTextDetails {
+                List<String> getValues()
+            }
+
+            interface BareNumericDetails {
+                List<Integer> getValues()
+            }
+
+            interface BareConflictingDetails extends BareTextDetails, BareNumericDetails { }
+        '''
+
+        when: "the accepted hierarchy is used as an owner-provided-defaults contract"
+        def error = compilationError '''
+            interface TextDetails {
+                List<String> getValues()
+            }
+
+            interface NumericDetails {
+                List<Integer> getValues()
+            }
+
+            interface ConflictingDetails extends TextDetails, NumericDetails { }
+
+            @DSL
+            class Product implements ConflictingDetails {
+                List values
+            }
+
+            @DSL
+            @OwnerProvidedDefaults(ConflictingDetails)
+            class ProductRelease implements ConflictingDetails {
+                @Owner Product product
+                List values
+            }
+        '''
+
+        then: "the owner-provided-defaults validator rejects the ambiguity"
+        error.message.contains("OwnerProvidedDefaults contract ConflictingDetails inherits incompatible types")
+        error.message.contains("property 'values'")
+        error.message.contains("String")
+        error.message.contains("Integer")
+    }
+
     @Unroll
     def "rejects #description"() {
         expect:

@@ -90,11 +90,16 @@ public class OwnerProvidedDefaultsCheck implements Check {
         if (contract == null)
             return violation(declaration, "@" + ANNOTATION_NAME + " must declare a contract type");
 
-        Map<String, ContractProperty> properties = contractProperties(contract);
-        if (properties.isEmpty())
+        List<ContractProperty> propertyDeclarations = contractPropertyDeclarations(contract);
+        if (propertyDeclarations.isEmpty())
             return violation(declaration, String.format(
                     "@%s contract %s does not declare a JavaBean getter",
                     ANNOTATION_NAME, contract.getName()));
+
+        List<Diagnostic> contractDiagnostics = incompatibleContractProperties(declaration, contract, propertyDeclarations);
+        if (!contractDiagnostics.isEmpty()) return contractDiagnostics;
+
+        Map<String, ContractProperty> properties = contractProperties(propertyDeclarations);
 
         if (!isAssignableTo(recipient, contract))
             return violation(declaration, String.format(
@@ -172,20 +177,47 @@ public class OwnerProvidedDefaultsCheck implements Check {
     }
 
     private static Map<String, ContractProperty> contractProperties(ClassNode contract) {
+        return contractProperties(contractPropertyDeclarations(contract));
+    }
+
+    private static List<ContractProperty> contractPropertyDeclarations(ClassNode contract) {
         Set<ClassNode> declaringTypes = new LinkedHashSet<>(contract.getAllInterfaces());
         declaringTypes.add(contract);
-        Map<String, ContractProperty> result = new LinkedHashMap<>();
-        contract.getMethods().stream()
-                .filter(method -> declaringTypes.stream().anyMatch(type -> sameType(type, method.getDeclaringClass())))
+        return declaringTypes.stream()
+                .flatMap(type -> type.getMethods().stream()
+                        .filter(method -> sameType(type, method.getDeclaringClass())))
                 .filter(OwnerProvidedDefaultsCheck::isJavaBeanGetter)
-                .forEach(method -> {
-                    String propertyName = propertyName(method);
-                    ClassNode returnType = resolvedReturnType(contract, method);
-                    ContractProperty current = result.get(propertyName);
-                    if (current == null || isAssignableType(returnType, current.type))
-                        result.put(propertyName, new ContractProperty(propertyName, method.getName(), returnType));
-                });
+                .map(method -> new ContractProperty(
+                        propertyName(method), method.getName(), resolvedReturnType(contract, method)))
+                .collect(Collectors.toList());
+    }
+
+    private static Map<String, ContractProperty> contractProperties(List<ContractProperty> declarations) {
+        Map<String, ContractProperty> result = new LinkedHashMap<>();
+        declarations.forEach(property -> {
+            ContractProperty current = result.get(property.name);
+            if (current == null || isAssignableType(property.type, current.type))
+                result.put(property.name, property);
+        });
         return result;
+    }
+
+    private List<Diagnostic> incompatibleContractProperties(
+            AnnotationNode declaration,
+            ClassNode contract,
+            List<ContractProperty> properties) {
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        for (int leftIndex = 0; leftIndex < properties.size(); leftIndex++) {
+            ContractProperty left = properties.get(leftIndex);
+            for (int rightIndex = leftIndex + 1; rightIndex < properties.size(); rightIndex++) {
+                ContractProperty right = properties.get(rightIndex);
+                if (!left.name.equals(right.name) || areCompatible(left.type, right.type)) continue;
+                diagnostics.add(diagnostic(declaration, String.format(
+                        "@%s contract %s inherits incompatible types %s and %s for property '%s'",
+                        ANNOTATION_NAME, contract.getName(), typeName(left.type), typeName(right.type), left.name)));
+            }
+        }
+        return diagnostics;
     }
 
     private static ClassNode resolvedReturnType(ClassNode implementation, MethodNode method) {
@@ -280,14 +312,50 @@ public class OwnerProvidedDefaultsCheck implements Check {
         GenericsType[] sourceGenerics = comparableSource.getGenericsTypes();
         if (sourceGenerics == null || sourceGenerics.length != targetGenerics.length) return false;
         for (int index = 0; index < sourceGenerics.length; index++)
-            if (!sameGenericType(sourceGenerics[index], targetGenerics[index])) return false;
+            if (!isAssignableGenericType(sourceGenerics[index], targetGenerics[index])) return false;
         return true;
     }
 
-    private static boolean sameGenericType(GenericsType left, GenericsType right) {
-        if (left.isWildcard() || right.isWildcard()) return left.toString().equals(right.toString());
-        if (left.isPlaceholder() || right.isPlaceholder()) return left.getName().equals(right.getName());
-        return isAssignableType(left.getType(), right.getType()) && isAssignableType(right.getType(), left.getType());
+    private static boolean isAssignableGenericType(GenericsType source, GenericsType target) {
+        if (target.isWildcard()) return isWithinWildcardBounds(source, target);
+        if (source.isWildcard()) return false;
+        if (source.isPlaceholder() || target.isPlaceholder()) return source.getName().equals(target.getName());
+        return isAssignableType(source.getType(), target.getType())
+                && isAssignableType(target.getType(), source.getType());
+    }
+
+    private static boolean isWithinWildcardBounds(GenericsType source, GenericsType target) {
+        ClassNode lowerBound = target.getLowerBound();
+        ClassNode[] upperBounds = target.getUpperBounds();
+        if (lowerBound == null && (upperBounds == null || upperBounds.length == 0
+                || upperBounds.length == 1 && sameType(upperBounds[0], ClassHelper.OBJECT_TYPE)))
+            return true;
+
+        if (source.isPlaceholder()) return false;
+        if (lowerBound != null) {
+            ClassNode sourceLowerBound = source.isWildcard() ? source.getLowerBound() : source.getType();
+            return sourceLowerBound != null && isAssignableType(lowerBound, sourceLowerBound);
+        }
+
+        if (source.isWildcard()) {
+            if (source.getLowerBound() != null) return false;
+            ClassNode[] sourceUpperBounds = source.getUpperBounds();
+            if (sourceUpperBounds == null || sourceUpperBounds.length == 0) return false;
+            for (ClassNode targetUpperBound : upperBounds) {
+                boolean covered = false;
+                for (ClassNode sourceUpperBound : sourceUpperBounds)
+                    if (isAssignableType(sourceUpperBound, targetUpperBound)) {
+                        covered = true;
+                        break;
+                    }
+                if (!covered) return false;
+            }
+            return true;
+        }
+
+        for (ClassNode upperBound : upperBounds)
+            if (!isAssignableType(source.getType(), upperBound)) return false;
+        return true;
     }
 
     private static ClassNode boxed(ClassNode type) {
