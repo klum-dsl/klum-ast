@@ -495,7 +495,9 @@ When a Model Writer sets `legacyChannel`, the stored result records a `DEPRECATI
 
 ## `@Notify`
 
-The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with `@Default` and layer3 annotations `@AutoCreate` and `@LinkTo`.
+The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase.
+This is especially useful in combination with `@Default`, `@AutoCreate`, and `@LinkTo`; those annotations are not limited
+to Layer 3 designs.
 
 (See: `ValidationPolicyDocumentaryTest#'reports a missing manually configured field'`.)
 

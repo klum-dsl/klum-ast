@@ -32,7 +32,8 @@ If the plugin is applied to a child project, it will inherit the configured Groo
 
 ## `com.blackbuild.klum-ast-schema`
 
-This plugin is used in schema projects (as well as `api` as defined by [Layer3]). It does the following things:
+This plugin is used in Schema projects (as well as a DSL Object `api` project in a [Layer 3](Layer3.md) layout). It does
+the following things:
 
 - applies AnnoDocimal's Groovy plugin for generating documentation
 - applies Groovy and JavaLibrary plugins

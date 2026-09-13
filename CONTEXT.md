@@ -37,7 +37,9 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
 - Domain API Developer
 
-  A Domain API Developer defines the stable, consumer-facing model contract that Client Developers compile against. In a Layer 3 model, this contract precedes and constrains the Schema without exposing Schema-specific types to clients.
+  A Domain API Developer defines the stable, consumer-facing model contract that generic Client Developers compile
+  against. In a Layer 3 model, this contract normally precedes and always constrains the Schema without exposing
+  Schema-specific types to generic clients.
 
 - Schema Developer
 
@@ -45,7 +47,10 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
 - Client Developer
 
-  A Client Developer integrates with and consumes completed DSL Objects through their public domain API. Client code may invoke construction/import APIs and downstream serialization, but does not depend on Builder implementations or Schema-only types in a Layer 3 model.
+  A Client Developer integrates with and consumes completed DSL Objects through their public domain API. Client code may
+  invoke construction/import APIs and downstream serialization, but does not depend on Builder implementations. A generic
+  Layer 3 client also avoids Schema-only types; a deliberately Schema-specific client may depend on them and is not
+  portable across Schema realizations.
 
 - Model Writer
 
@@ -211,11 +216,11 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
 - Layer 3 model
 
-  A Layer 3 model is a modeling pattern that separates a generic consumer-facing API layer, a domain-specific Schema
-  layer, and configured Model instances. The Domain API Developer defines the API before the Schema Developer realizes it,
-  Client Developers depend only on that API, and Model Writers create the configured instances. Cluster projection is
-  specialized support for this pattern; lifecycle, linking, ownership, defaults, and traversal are general KlumAST
-  capabilities rather than defining Layer 3 features.
+  A Layer 3 model uses at least one `@Cluster` to project concrete Schema fields through distinct abstract Domain API DSL
+  classes. The Domain API is normally defined first and always constrains the Schema that realizes it; generic Client
+  Developers depend only on that API, while deliberately Schema-specific clients may depend on the concrete Schema.
+  Model Writers create the configured instances. Cluster projection is the defining KlumAST feature; lifecycle, linking,
+  ownership, defaults, validation, and traversal are general capabilities rather than defining Layer 3 features.
 
 - Direct-schema modeling
 

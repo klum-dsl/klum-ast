@@ -866,7 +866,7 @@ the owner's Builder lifecycle.
 ## OPTIONAL_LINK
 `OPTIONAL_LINK` accepts either a locally created child Builder as owned composition or an existing completed DSL Object
 as an aggregation target. `@LinkTo` selects this mode by default; use `@Field(FieldType.LINK) @LinkTo` when a
-relationship must be aggregation-only. See [Layer3](Layer3.md) for the relationship boundary.
+relationship must be aggregation-only. See [Layer 3](Layer3.md) for the relationship boundary.
 
 ## DSL Interfaces
 Interfaces can be marked with `@DSL`. No transformation will be done for these interfaces; however, a field with an

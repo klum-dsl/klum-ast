@@ -9,10 +9,14 @@ adapters translate it for a dashboard, automation hub, report, or other target. 
 
 Choose this independently from domain-first versus target-contract:
 
-- **[Layer 3](Layer3.md)** fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.
+- **[Layer 3](Layer3.md)** fits when abstract Domain API DSL classes constrain the Schema and project its concrete fields
+  through `@Cluster`. Generic Client Developers compile against that API, while Model Writers configure the concrete
+  Model.
 - **Direct-schema** fits when Schema types are the appropriate consumer contract. The Schema Developer also assumes the Domain API Developer role.
 
-Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should not depend on concrete Schema types; it is not a requirement for every domain-first project. The wider terminology, variants, and policy remain under [#454](https://github.com/klum-dsl/klum-ast/issues/454), so this guide does not treat an example as a new contract.
+Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should
+not depend on concrete Schema types; it is not a requirement for every domain-first project. The [Layer 3 guide](Layer3.md)
+defines the role, dependency, Cluster-projection, and client boundaries used by this journey.
 
 ## Smart-home journey
 
