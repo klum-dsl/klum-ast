@@ -136,6 +136,70 @@ class OwnerProvidedDefaultsCheckTest extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    def "accepts contained donor wildcards"() {
+        when:
+        createNonDslClass '''
+            interface BoundedDetails {
+                List<? extends CharSequence> getNames()
+                List<? super String> getAliases()
+            }
+
+            @DSL
+            class Product implements BoundedDetails {
+                List<? extends String> names
+                List<? super CharSequence> aliases
+            }
+
+            @DSL
+            @OwnerProvidedDefaults(BoundedDetails)
+            class ProductRelease implements BoundedDetails {
+                @Owner Product product
+                List<? extends CharSequence> names
+                List<? super String> aliases
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def "rejects donor generics outside contract wildcard bounds"() {
+        expect:
+        def error = compilationError '''
+            interface BoundedDetails {
+                List<? extends CharSequence> getNames()
+                List<? super String> getAliases()
+                List<?> getAnything()
+                List<? extends CharSequence> getTitles()
+                List<? extends CharSequence> getDescriptions()
+            }
+
+            @DSL
+            class Product implements BoundedDetails {
+                List<Integer> names
+                List<Integer> aliases
+                List<String> anything
+                List<? super String> titles
+                List<? extends Object> descriptions
+            }
+
+            @DSL
+            @OwnerProvidedDefaults(BoundedDetails)
+            class ProductRelease implements BoundedDetails {
+                @Owner Product product
+                List<String> names
+                List<Object> aliases
+                List<String> anything
+                List<? extends CharSequence> titles
+                List<? extends CharSequence> descriptions
+            }
+        '''
+        error.message.contains("cannot read property 'names'")
+        error.message.contains("cannot read property 'aliases'")
+        error.message.contains("cannot read property 'titles'")
+        error.message.contains("cannot read property 'descriptions'")
+    }
+
     def "rejects incompatible getters inherited by one contract when Groovy allows the contract"() {
         given: "Groovy accepts the conflicting interface hierarchy by itself"
         createNonDslClass '''

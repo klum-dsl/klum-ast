@@ -68,6 +68,7 @@ public class OwnerProvidedDefaultsCheck implements Check {
     private static final String ANNOTATION_NAME = OwnerProvidedDefaults.class.getSimpleName();
     private static final String ANNOTATION_TYPE = OwnerProvidedDefaults.class.getName();
     private static final String CONTAINER_TYPE = OwnerProvidedDefaults.Container.class.getName();
+    private static final String VALUE_MEMBER = "value";
 
     @Override
     public List<Diagnostic> check(CheckContext context) {
@@ -86,7 +87,7 @@ public class OwnerProvidedDefaultsCheck implements Check {
     }
 
     private List<Diagnostic> validateDeclaration(AnnotationNode declaration, ClassNode recipient) {
-        ClassNode contract = getNullSafeClassMember(declaration, "value", null);
+        ClassNode contract = getNullSafeClassMember(declaration, VALUE_MEMBER, null);
         if (contract == null)
             return violation(declaration, "@" + ANNOTATION_NAME + " must declare a contract type");
 
@@ -108,7 +109,7 @@ public class OwnerProvidedDefaultsCheck implements Check {
 
         List<FieldNode> compatibleOwners = declaredOwnerFields(recipient).stream()
                 .filter(field -> isAssignableTo(field.getType(), contract))
-                .collect(Collectors.toList());
+                .toList();
         if (compatibleOwners.size() != 1) {
             String ownerNames = compatibleOwners.stream().map(FieldNode::getName).collect(Collectors.joining(", "));
             String detail = compatibleOwners.isEmpty()
@@ -122,36 +123,41 @@ public class OwnerProvidedDefaultsCheck implements Check {
 
         FieldNode donor = compatibleOwners.get(0);
         List<Diagnostic> diagnostics = new ArrayList<>();
-        for (ContractProperty property : properties.values()) {
-            ClassNode donorType = readablePropertyType(donor.getType(), property).orElse(null);
-            if (donorType == null || !isAssignableType(donorType, property.type)) {
-                diagnostics.add(diagnostic(declaration, String.format(
-                        "@%s contract %s donor field '%s' cannot read property '%s' with compatible type %s",
-                        ANNOTATION_NAME, contract.getName(), donor.getName(), property.name, typeName(property.type))));
-                continue;
-            }
-
-            FieldNode recipientField = fieldInHierarchy(recipient, property.name).orElse(null);
-            if (recipientField == null || !isConfigurable(recipientField)) {
-                diagnostics.add(diagnostic(declaration, String.format(
-                        "@%s contract %s recipient cannot configure property '%s'",
-                        ANNOTATION_NAME, contract.getName(), property.name)));
-                continue;
-            }
-
-            if (!isAssignableType(donorType, recipientField.getType()))
-                diagnostics.add(diagnostic(declaration, String.format(
-                        "@%s contract %s recipient property '%s' has type %s, which cannot accept donor type %s from owner field '%s'",
-                        ANNOTATION_NAME, contract.getName(), property.name, typeName(recipientField.getType()),
-                        typeName(donorType), donor.getName())));
-        }
+        for (ContractProperty property : properties.values())
+            diagnostics.addAll(validateProperty(declaration, contract, recipient, donor, property));
         return diagnostics;
+    }
+
+    private List<Diagnostic> validateProperty(
+            AnnotationNode declaration,
+            ClassNode contract,
+            ClassNode recipient,
+            FieldNode donor,
+            ContractProperty property) {
+        ClassNode donorType = readablePropertyType(donor.getType(), property).orElse(null);
+        if (donorType == null || !isAssignableType(donorType, property.type))
+            return violation(declaration, String.format(
+                    "@%s contract %s donor field '%s' cannot read property '%s' with compatible type %s",
+                    ANNOTATION_NAME, contract.getName(), donor.getName(), property.name, typeName(property.type)));
+
+        FieldNode recipientField = fieldInHierarchy(recipient, property.name).orElse(null);
+        if (recipientField == null || !isConfigurable(recipientField))
+            return violation(declaration, String.format(
+                    "@%s contract %s recipient cannot configure property '%s'",
+                    ANNOTATION_NAME, contract.getName(), property.name));
+
+        if (!isAssignableType(donorType, recipientField.getType()))
+            return violation(declaration, String.format(
+                    "@%s contract %s recipient property '%s' has type %s, which cannot accept donor type %s from owner field '%s'",
+                    ANNOTATION_NAME, contract.getName(), property.name, typeName(recipientField.getType()),
+                    typeName(donorType), donor.getName()));
+        return List.of();
     }
 
     private List<Diagnostic> validateRepeatedContracts(ClassNode recipient) {
         Map<String, List<DeclaredProperty>> byName = new LinkedHashMap<>();
         for (AnnotationNode declaration : allDeclarations(recipient)) {
-            ClassNode contract = getNullSafeClassMember(declaration, "value", null);
+            ClassNode contract = getNullSafeClassMember(declaration, VALUE_MEMBER, null);
             if (contract == null) continue;
             contractProperties(contract).values().forEach(property ->
                     byName.computeIfAbsent(property.name, ignored -> new ArrayList<>())
@@ -189,7 +195,7 @@ public class OwnerProvidedDefaultsCheck implements Check {
                 .filter(OwnerProvidedDefaultsCheck::isJavaBeanGetter)
                 .map(method -> new ContractProperty(
                         propertyName(method), method.getName(), resolvedReturnType(contract, method)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Map<String, ContractProperty> contractProperties(List<ContractProperty> declarations) {
@@ -239,17 +245,16 @@ public class OwnerProvidedDefaultsCheck implements Check {
     }
 
     private static String propertyName(MethodNode getter) {
-        String stem = getter.getName().startsWith("get")
+        return Introspector.decapitalize(getter.getName().startsWith("get")
                 ? getter.getName().substring(3)
-                : getter.getName().substring(2);
-        return Introspector.decapitalize(stem);
+                : getter.getName().substring(2));
     }
 
     private static List<FieldNode> declaredOwnerFields(ClassNode recipient) {
         return recipient.getFields().stream()
                 .filter(field -> sameType(field.getOwner(), recipient))
                 .filter(field -> !field.getAnnotations(OWNER_ANNOTATION).isEmpty())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Optional<ClassNode> readablePropertyType(ClassNode donorType, ContractProperty property) {
@@ -327,35 +332,44 @@ public class OwnerProvidedDefaultsCheck implements Check {
     private static boolean isWithinWildcardBounds(GenericsType source, GenericsType target) {
         ClassNode lowerBound = target.getLowerBound();
         ClassNode[] upperBounds = target.getUpperBounds();
-        if (lowerBound == null && (upperBounds == null || upperBounds.length == 0
-                || upperBounds.length == 1 && sameType(upperBounds[0], ClassHelper.OBJECT_TYPE)))
-            return true;
+        if (isUnboundedWildcard(lowerBound, upperBounds)) return true;
 
         if (source.isPlaceholder()) return false;
-        if (lowerBound != null) {
-            ClassNode sourceLowerBound = source.isWildcard() ? source.getLowerBound() : source.getType();
-            return sourceLowerBound != null && isAssignableType(lowerBound, sourceLowerBound);
-        }
+        if (lowerBound != null) return isWithinLowerBound(source, lowerBound);
+        return isWithinUpperBounds(source, upperBounds);
+    }
 
-        if (source.isWildcard()) {
-            if (source.getLowerBound() != null) return false;
-            ClassNode[] sourceUpperBounds = source.getUpperBounds();
-            if (sourceUpperBounds == null || sourceUpperBounds.length == 0) return false;
-            for (ClassNode targetUpperBound : upperBounds) {
-                boolean covered = false;
-                for (ClassNode sourceUpperBound : sourceUpperBounds)
-                    if (isAssignableType(sourceUpperBound, targetUpperBound)) {
-                        covered = true;
-                        break;
-                    }
-                if (!covered) return false;
-            }
-            return true;
-        }
+    private static boolean isUnboundedWildcard(ClassNode lowerBound, ClassNode[] upperBounds) {
+        return lowerBound == null && (upperBounds == null || upperBounds.length == 0
+                || upperBounds.length == 1 && sameType(upperBounds[0], ClassHelper.OBJECT_TYPE));
+    }
 
-        for (ClassNode upperBound : upperBounds)
-            if (!isAssignableType(source.getType(), upperBound)) return false;
+    private static boolean isWithinLowerBound(GenericsType source, ClassNode targetLowerBound) {
+        ClassNode sourceLowerBound = source.isWildcard() ? source.getLowerBound() : source.getType();
+        return sourceLowerBound != null && isAssignableType(targetLowerBound, sourceLowerBound);
+    }
+
+    private static boolean isWithinUpperBounds(GenericsType source, ClassNode[] targetUpperBounds) {
+        if (!source.isWildcard()) return satisfiesAllUpperBounds(source.getType(), targetUpperBounds);
+        if (source.getLowerBound() != null) return false;
+
+        ClassNode[] sourceUpperBounds = source.getUpperBounds();
+        if (sourceUpperBounds == null || sourceUpperBounds.length == 0) return false;
+        for (ClassNode targetUpperBound : targetUpperBounds)
+            if (!hasAssignableUpperBound(sourceUpperBounds, targetUpperBound)) return false;
         return true;
+    }
+
+    private static boolean satisfiesAllUpperBounds(ClassNode source, ClassNode[] targetUpperBounds) {
+        for (ClassNode targetUpperBound : targetUpperBounds)
+            if (!isAssignableType(source, targetUpperBound)) return false;
+        return true;
+    }
+
+    private static boolean hasAssignableUpperBound(ClassNode[] sourceUpperBounds, ClassNode targetUpperBound) {
+        for (ClassNode sourceUpperBound : sourceUpperBounds)
+            if (isAssignableType(sourceUpperBound, targetUpperBound)) return true;
+        return false;
     }
 
     private static ClassNode boxed(ClassNode type) {
@@ -378,21 +392,21 @@ public class OwnerProvidedDefaultsCheck implements Check {
     private static List<AnnotationNode> allDeclarations(ClassNode recipient) {
         return annotationCarriers(recipient).stream()
                 .flatMap(carrier -> declarations(carrier).stream())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<AnnotationNode> annotationCarriers(ClassNode recipient) {
         return recipient.getAnnotations().stream()
                 .filter(annotation -> ANNOTATION_TYPE.equals(annotation.getClassNode().getName())
                         || CONTAINER_TYPE.equals(annotation.getClassNode().getName()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<AnnotationNode> declarations(AnnotationNode carrier) {
         if (ANNOTATION_TYPE.equals(carrier.getClassNode().getName())) return List.of(carrier);
         if (!CONTAINER_TYPE.equals(carrier.getClassNode().getName())) return List.of();
 
-        Expression value = carrier.getMember("value");
+        Expression value = carrier.getMember(VALUE_MEMBER);
         List<Expression> expressions;
         if (value instanceof ListExpression listExpression)
             expressions = listExpression.getExpressions();
@@ -409,7 +423,7 @@ public class OwnerProvidedDefaultsCheck implements Check {
                 .map(AnnotationConstantExpression::getValue)
                 .filter(AnnotationNode.class::isInstance)
                 .map(AnnotationNode.class::cast)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<Diagnostic> violation(AnnotationNode annotation, String message) {
