@@ -1,5 +1,9 @@
 # 4.1.0 (unreleased)
 
+- Added an accessible Builder-first relationship visual to the Basics guide, with cross-links from Static Models and
+  Model Phases. It distinguishes owned composition, framework-managed `@Owner` backlinks, and non-owning `LINK` side
+  connections, including the Owner-before-materialization timing boundary ([#727](https://github.com/klum-dsl/klum-ast/issues/727)).
+
 - Added `@Cluster(fixedKeys = true)` for direct keyed DSL Object relationships. A Cluster-selected Schema member now
   derives its child key from its field name and exposes no key-taking Builder creator, equivalent to
   `@Field(key = Field.FieldName)` without per-field annotations. Selected unkeyed fields, collections/maps, and explicit

@@ -80,6 +80,9 @@ heavy use of the owner field.
 
 Also resolves `@Role` fields and methods, which are technically special case `@Owner` elements.
 
+See [Ownership and `@Owner`](Basics.md#ownership-and-owner) for a relationship visual showing that this phase establishes
+framework-managed backlinks after Builder configuration and before materialization.
+
 ## AutoLink (20)
 
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
@@ -102,6 +105,9 @@ to create interlinking between objects that are too complex for AutoLink/AutoCre
 The Instantiate phase materializes the complete composition graph. It first allocates every completed DSL Object and then
 assigns relationship fields, preserving cycles and self-links. Non-relationship state is copied as immutable model state;
 Collections become independent read-only snapshots. After this phase, the PhaseDriver root is the completed DSL Object.
+
+The relationship visual in [Ownership and `@Owner`](Basics.md#ownership-and-owner) places `INSTANTIATE` after Owner
+establishment so it does not imply that relationship configuration immediately assigns an Owner field.
 
 (See: `ModelPhasesDocumentaryTest#'materializes a release plan into an independent completed snapshot'`.)
 

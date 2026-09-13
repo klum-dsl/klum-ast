@@ -632,6 +632,20 @@ not values configured by a Model Writer. `LINK` relationships add side connectio
 changing composition ownership or its root. See [Static Models](Static-Models.md#relationship-graph) for the same graph
 boundary in the static-model overview.
 
+![Completed model relationships: solid arrows form the owned composition tree; dashed arrows are framework-managed Owner backlinks; a dotted LINK arrow reaches an existing object outside the tree; the lifecycle runs from Builder configuration to Owner establishment to materialization.](img/composition-owner-link-boundaries.svg)
+
+The visual shows one composition tree rooted at `Deployment`: `Service`, `Endpoint`, and `Database` receive their
+structural paths only through solid owned-composition edges. `Endpoint` declares two Owner fields: a direct
+`@Owner Service service` backlink and a root `@Owner(root = true) Deployment deployment` backlink. The dashed arrows
+are framework-managed navigation relationships, not additional ownership; a type may declare more than one matching
+Owner field.
+
+The dotted `LINK` from `Service` to an existing completed `Policy` is an optional non-owning side connection. The
+`Policy` remains outside the `Deployment` composition tree: `LINK` does not adopt it, change either root identity, or
+contribute to structural model paths. The timeline is deliberate: Builder configuration creates the owned graph, the
+Owner phase establishes matching backlinks, and `INSTANTIATE` then materializes the completed model. Owner assignment is
+therefore not an immediate side effect of a relationship configuration call.
+
 For each owned child Builder, the Owner phase establishes every matching owner field when both of these conditions hold
 (independently for each field):
 
