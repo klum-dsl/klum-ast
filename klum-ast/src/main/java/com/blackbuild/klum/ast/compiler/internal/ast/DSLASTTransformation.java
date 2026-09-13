@@ -1091,7 +1091,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
-                        fieldNode, dslBaseType, fieldName, fieldKeyName, null, COLLECTION_DOCUMENTATION_SUFFIX);
+                        fieldNode, dslBaseType, fieldKeyName, null, COLLECTION_DOCUMENTATION_SUFFIX);
 
             }
 
@@ -1304,7 +1304,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP,
-                        fieldNode, dslBaseType, fieldName, elementKeyField != null ? "key" : null,
+                        fieldNode, dslBaseType, elementKeyField != null ? "key" : null,
                         null, MAP_DOCUMENTATION_SUFFIX);
 
             }
@@ -1442,14 +1442,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam()
                     .addTo(builderClass);
 
-            createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType, fieldName,
+            createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType,
                     targetKeyFieldName, keyProvider, " to this Builder.");
 
         }
     }
 
-    private void createTypedFactoryProviderMethod(String methodName, String runtimeMethod, AnnotatedNode fieldNode,
-                                                   ClassNode dslBaseType, String fieldName, String keyName, Expression keyProvider,
+    private void createTypedFactoryProviderMethod(String methodName, String runtimeMethod, FieldNode fieldNode,
+                                                   ClassNode dslBaseType, String keyName, Expression keyProvider,
                                                    String documentationSuffix) {
         GenericFactoryMethodTypes types = genericFactoryMethodTypes(dslBaseType);
         createProxyMethod(methodName, runtimeMethod)
@@ -1469,7 +1469,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION)
                         .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION))
                 .namedParams("values")
-                .constantParam(fieldName)
+                .constantParam(fieldNode.getName())
                 .delegationTargetParam(types.providerType(), FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
                 .optionalStringParam(keyName, keyName != null && keyProvider == null, keyProvider)
                 .delegatingClosureParam(FACTORY_NAME, 1, CONFIGURATION_CLOSURE_DOCUMENTATION)

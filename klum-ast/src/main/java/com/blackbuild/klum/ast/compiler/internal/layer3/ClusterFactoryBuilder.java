@@ -34,7 +34,6 @@ import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.ast.compiler.internal.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
@@ -118,14 +117,14 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
                 ? candidate -> DslAstHelper.hasAnnotation(candidate, requiredAnnotation)
                 : candidate -> true;
         ClassNode elementType = getElementTypeForMap(clusterMethod.getReturnType());
-        return getFieldsToInclude(targetClass, elementType, annotationFilter).contains(fieldNode);
+        return elementType != null && getFieldsToInclude(targetClass, elementType, annotationFilter).contains(fieldNode);
     }
 
     private static List<FieldNode> getFieldsToInclude(ClassNode targetClass, ClassNode elementType, Predicate<FieldNode> annotationFilter) {
         return DslAstHelper.getFieldsOfDslHierarchy(targetClass)
                 .filter(field -> CommonAstHelper.isAssignableTo(field.getType(), elementType))
                 .filter(annotationFilter)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static boolean hasFixedKeys(AnnotationNode annotation) {
