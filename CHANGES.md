@@ -1,7 +1,5 @@
 # 4.1.0 (unreleased)
 
-## Builder-first construction
-
 - Added repeatable `@OwnerProvidedDefaults` for an owned DSL Object to inherit absent contract properties from exactly one
   compatible owner. KlumAST validates the JavaBean contract and donor/configuration types at Schema compilation, then
   applies a fixed value-only policy first inside the Default phase: configured values remain authoritative, owned DSL
