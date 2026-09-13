@@ -140,5 +140,13 @@ public @interface Cluster {
      */
     boolean bounded() default false;
 
+    /**
+     * Uses the concrete Schema member name as the key for every selected direct, keyed DSL Object relationship.
+     * This is equivalent to declaring {@code @Field(key = Field.FieldName)} on each selected Schema field.
+     *
+     * @return Whether selected relationship keys are fixed to their Schema member names.
+     */
+    @NotOn({ElementType.TYPE, ElementType.PACKAGE}) boolean fixedKeys() default false;
+
     @interface Undefined {}
 }
