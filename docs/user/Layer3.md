@@ -165,6 +165,49 @@ def deploy(Environment env) {
 empty/`null` body to satisfy an IDE. Prefer the field form for new Schemas. The roles, dependency direction, and
 variants of Layer 3 remain under the explicit terminology review in [#454](https://github.com/klum-dsl/klum-ast/issues/454).
 
+## Fixed Cluster keys
+
+When a Cluster-selected Schema field is a direct, keyed DSL Object relationship, `fixedKeys = true` makes the generated
+Builder use the concrete Schema member name as that child’s key. It is an opt-in convenience equivalent to placing
+`@Field(key = Field.FieldName)` on every selected field, without adding that annotation to the Schema fields.
+
+The convention belongs to the Cluster contract rather than to Layer 3 itself, so it also works for a focused Cluster
+filter. It does not change composition, aggregation, or lifecycle behavior. A selected field must be a single keyed DSL
+Object relationship; selected unkeyed fields, collections/maps, or fields with an explicit `@Field(key = ...)` are
+compile-time errors. Fields outside the Cluster retain their ordinary keyed creation methods.
+
+(See: `ClusterFixedKeysTest#'uses a Cluster convention to derive direct relationship keys'`.)
+
+```groovy
+given: // API and Schema
+@DSL
+abstract class Home {
+    @Cluster(fixedKeys = true)
+    abstract Map<String, Zone> getZones()
+}
+
+@DSL
+abstract class Zone {
+    @Key String name
+}
+
+@DSL
+class FloorPlan extends Home {
+    Kitchen kitchen
+}
+
+@DSL
+class Kitchen extends Zone {}
+
+when: // Model
+def home = FloorPlan.Create.With {
+    kitchen {}
+}
+
+then:
+assert home.kitchen.name == 'kitchen'
+```
+
 Validations in our ShippingApplication can also be done specifically for that application:
 
 ```groovy

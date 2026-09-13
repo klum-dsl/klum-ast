@@ -806,7 +806,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFieldDSLMethods() {
-        annotatedClass.getFields().forEach(this::createDSLMethodsForSingleField);
+        annotatedClass.getFields().forEach(fieldNode -> {
+            validateFixedKeysClusterMembership(fieldNode);
+            createDSLMethodsForSingleField(fieldNode);
+        });
         annotatedClass
                 .getMethods()
                 .stream()
@@ -1061,7 +1064,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
-                        .optionalStringParam(fieldKeyName, fieldKey != null, null)
+                        .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam(elementBuilderType, null)
                         .addTo(builderClass);
             }
@@ -1088,7 +1091,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
-                        fieldNode, dslBaseType, fieldName, fieldKeyName, COLLECTION_DOCUMENTATION_SUFFIX);
+                        fieldNode, dslBaseType, fieldName, fieldKeyName, null, COLLECTION_DOCUMENTATION_SUFFIX);
 
             }
 
@@ -1302,7 +1305,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
                 createTypedFactoryProviderMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP,
                         fieldNode, dslBaseType, fieldName, elementKeyField != null ? "key" : null,
-                        MAP_DOCUMENTATION_SUFFIX);
+                        null, MAP_DOCUMENTATION_SUFFIX);
 
             }
 
@@ -1412,7 +1415,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
                     .constantPrimitveParam(false)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
+                    .optionalStringParam(targetKeyFieldName, needKeyParameter, keyProvider)
                     .delegatingClosureParam(targetBuilderType)
                     .addTo(builderClass);
         }
@@ -1435,18 +1438,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", dslBaseType)
                     .constantPrimitveParam(true)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
+                    .optionalStringParam(targetKeyFieldName, needKeyParameter, keyProvider)
                     .delegatingClosureParam()
                     .addTo(builderClass);
 
             createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType, fieldName,
-                    targetKeyFieldName, " to this Builder.");
+                    targetKeyFieldName, keyProvider, " to this Builder.");
 
         }
     }
 
     private void createTypedFactoryProviderMethod(String methodName, String runtimeMethod, AnnotatedNode fieldNode,
-                                                   ClassNode dslBaseType, String fieldName, String keyName,
+                                                   ClassNode dslBaseType, String fieldName, String keyName, Expression keyProvider,
                                                    String documentationSuffix) {
         GenericFactoryMethodTypes types = genericFactoryMethodTypes(dslBaseType);
         createProxyMethod(methodName, runtimeMethod)
@@ -1468,7 +1471,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .namedParams("values")
                 .constantParam(fieldName)
                 .delegationTargetParam(types.providerType(), FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
-                .optionalStringParam(keyName, keyName != null)
+                .optionalStringParam(keyName, keyName != null && keyProvider == null, keyProvider)
                 .delegatingClosureParam(FACTORY_NAME, 1, CONFIGURATION_CLOSURE_DOCUMENTATION)
                 .addTo(builderClass);
     }
@@ -1574,10 +1577,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
-        if (fieldAnnotation == null)
+        boolean fixedKeysClusterMember = ClusterFactoryBuilder.isFixedKeysClusterMember(annotatedClass, fieldNode);
+
+        if (fixedKeysClusterMember && fieldAnnotation != null && fieldAnnotation.getMember("key") != null)
             return null;
 
-        Expression keyMember = fieldAnnotation.getMember("key");
+        Expression keyMember = fieldAnnotation != null ? fieldAnnotation.getMember("key") : null;
 
         if (keyMember instanceof ClassExpression) {
             ClassNode memberType = keyMember.getType();
@@ -1601,7 +1606,32 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return callX(varX("this"), keyGetterName);
         }
 
+        if (fixedKeysClusterMember)
+            return constX(fieldNode.getName());
+
         return null;
+    }
+
+    private void validateFixedKeysClusterMembership(FieldNode fieldNode) {
+        if (!ClusterFactoryBuilder.isFixedKeysClusterMember(annotatedClass, fieldNode))
+            return;
+
+        if (isCollectionOrMap(fieldNode.getType())) {
+            addCompileError("@Cluster(fixedKeys = true) only supports direct, single keyed DSL Object relationship fields; " +
+                    "field " + fieldNode.getName() + " is a collection or map.", fieldNode);
+            return;
+        }
+
+        if (!isDSLObject(fieldNode.getType()) || getKeyField(fieldNode.getType()) == null) {
+            addCompileError("@Cluster(fixedKeys = true) only supports direct, single keyed DSL Object relationship fields; " +
+                    "field " + fieldNode.getName() + " is not keyed.", fieldNode);
+            return;
+        }
+
+        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+        if (fieldAnnotation != null && fieldAnnotation.getMember("key") != null)
+            addCompileError("@Cluster(fixedKeys = true) cannot be combined with an explicit @Field(key = ...) on field " +
+                    fieldNode.getName() + ".", fieldNode);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

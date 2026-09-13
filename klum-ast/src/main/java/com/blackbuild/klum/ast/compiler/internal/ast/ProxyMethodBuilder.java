@@ -395,6 +395,18 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     /**
+     * Adds either a caller-provided String parameter or a generated fixed String argument.
+     * A fixed argument remains part of the proxied runtime call without widening the public Builder method signature.
+     */
+    public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd, Expression fixedValue) {
+        if (fixedValue != null)
+            params.add(new FixedExpressionArgument(fixedValue));
+        else
+            optionalStringParam(name, doAdd);
+        return this;
+    }
+
+    /**
      * Convenience method to optionally add a string parameter. The parameter is only added, if 'addIfNotNull' is not null.
      * @param name The name of the parameter.
      * @param doAdd If this parameter is null, the method does nothing

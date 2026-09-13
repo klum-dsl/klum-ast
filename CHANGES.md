@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Added `@Cluster(fixedKeys = true)` for direct keyed DSL Object relationships. A Cluster-selected Schema member now
+  derives its child key from its field name and exposes no key-taking Builder creator, equivalent to
+  `@Field(key = Field.FieldName)` without per-field annotations. Selected unkeyed fields, collections/maps, and explicit
+  field-key configuration fail at Schema compilation; unselected fields and runtime lifecycle/composition behavior are
+  unchanged ([#356](https://github.com/klum-dsl/klum-ast/issues/356)).
+
 - Added repeatable `@OwnerProvidedDefaults` for an owned DSL Object to inherit absent contract properties from exactly one
   compatible owner. KlumAST validates the JavaBean contract and donor/configuration types at Schema compilation, then
   applies a fixed value-only policy first inside the Default phase: configured values remain authoritative, owned DSL

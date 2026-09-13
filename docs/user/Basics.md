@@ -908,6 +908,10 @@ creation methods.
 `key` is either a closure on the owning instance or the special class
 `Field.FieldName` which uses the name of the member as fixed key.
 
+For a group of direct keyed relationships selected by an API-level `@Cluster`, prefer
+`@Cluster(fixedKeys = true)` instead of repeating `@Field(key = Field.FieldName)` on every concrete Schema field. See
+[Fixed Cluster keys](Layer3.md#fixed-cluster-keys) for its selection and validation rules.
+
 This is useful if the member is derived from some value of the owner.
 
 For example, consider the following classes:
