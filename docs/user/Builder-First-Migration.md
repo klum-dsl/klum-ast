@@ -168,8 +168,9 @@ same-named writable field retain their existing map-method fallback without a di
 ### 2. Compile and Run a Representative Model
 
 Compile and execute at least one real root configuration. A unit test that calls `Config.Create.With` is usually the
-simplest repeatable migration check; an existing root script is equally suitable. A project-less script can also obtain
-KlumAST with `@Grab`, but the complete standalone-script setup will be documented separately.
+simplest repeatable migration check; an existing root script is equally suitable. A small, trusted project-less Model can
+also obtain its separately published Schema through the documented [standalone `@Grab` workflow](Grab-Model-Scripts.md);
+use the Gradle route for the Schema and for any repeatable Model build.
 
 Build owned children through the generated method on that root Builder, so the entire configuration shares one lifecycle.
 (See: `BuilderFirstMigrationDocumentaryTest#'builds a representative deployment through one Builder lifecycle'`.)
