@@ -37,7 +37,6 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.PropertyNode;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ArrayExpression;
 import org.codehaus.groovy.ast.expr.Expression;
@@ -134,8 +133,16 @@ public class OwnerProvidedDefaultsCheck implements Check {
             ClassNode recipient,
             FieldNode donor,
             ContractProperty property) {
-        ClassNode donorType = readablePropertyType(donor.getType(), property).orElse(null);
-        if (donorType == null || !isAssignableType(donorType, property.type))
+        FieldNode donorProperty = storedBuilderProperty(donor.getType(), property.name).orElse(null);
+        if (donorProperty == null)
+            return violation(declaration, String.format(
+                    "@%s contract %s property '%s' must be a stored Builder-visible property on donor type %s; "
+                            + "owner-provided defaults execute in DEFAULT against the active Builder, do not materialize Models, "
+                            + "and cannot use a computed getter, so declare a field or Groovy property named '%s'",
+                    ANNOTATION_NAME, contract.getName(), property.name, donor.getType().getName(), property.name));
+
+        ClassNode donorType = resolvedFieldType(donor.getType(), donorProperty);
+        if (!isAssignableType(donorType, property.type))
             return violation(declaration, String.format(
                     "@%s contract %s donor field '%s' cannot read property '%s' with compatible type %s",
                     ANNOTATION_NAME, contract.getName(), donor.getName(), property.name, typeName(property.type)));
@@ -193,8 +200,7 @@ public class OwnerProvidedDefaultsCheck implements Check {
                 .flatMap(type -> type.getMethods().stream()
                         .filter(method -> sameType(type, method.getDeclaringClass())))
                 .filter(OwnerProvidedDefaultsCheck::isJavaBeanGetter)
-                .map(method -> new ContractProperty(
-                        propertyName(method), method.getName(), resolvedReturnType(contract, method)))
+                .map(method -> new ContractProperty(propertyName(method), resolvedReturnType(contract, method)))
                 .toList();
     }
 
@@ -233,6 +239,13 @@ public class OwnerProvidedDefaultsCheck implements Check {
                 GenericsUtils.createGenericsSpec(parameterized), method.getReturnType());
     }
 
+    private static ClassNode resolvedFieldType(ClassNode implementation, FieldNode field) {
+        ClassNode declaringType = field.getDeclaringClass();
+        ClassNode parameterized = GenericsUtils.parameterizeType(implementation, declaringType);
+        return GenericsUtils.correctToGenericsSpec(
+                GenericsUtils.createGenericsSpec(parameterized), field.getType());
+    }
+
     private static boolean isJavaBeanGetter(MethodNode method) {
         if (!method.isPublic() || method.isStatic() || method.getParameters().length != 0
                 || ClassHelper.VOID_TYPE.equals(method.getReturnType()))
@@ -257,16 +270,9 @@ public class OwnerProvidedDefaultsCheck implements Check {
                 .toList();
     }
 
-    private static Optional<ClassNode> readablePropertyType(ClassNode donorType, ContractProperty property) {
-        Optional<ClassNode> getterType = donorType.getMethods(property.getterName).stream()
-                .filter(OwnerProvidedDefaultsCheck::isJavaBeanGetter)
-                .filter(method -> !method.isAbstract() || donorType.isInterface() || Modifier.isAbstract(donorType.getModifiers()))
-                .map(method -> resolvedReturnType(donorType, method))
-                .filter(type -> isAssignableType(type, property.type))
-                .findFirst();
-        if (getterType.isPresent()) return getterType;
-
-        return propertyInHierarchy(donorType, property.name).map(PropertyNode::getType);
+    private static Optional<FieldNode> storedBuilderProperty(ClassNode donorType, String name) {
+        return fieldInHierarchy(donorType, name)
+                .filter(field -> !field.isStatic() && !field.getName().startsWith("$"));
     }
 
     private static boolean isConfigurable(FieldNode field) {
@@ -284,17 +290,6 @@ public class OwnerProvidedDefaultsCheck implements Check {
              current = current.getSuperClass()) {
             FieldNode field = current.getDeclaredField(name);
             if (field != null) return Optional.of(field);
-        }
-        return Optional.empty();
-    }
-
-    private static Optional<PropertyNode> propertyInHierarchy(ClassNode type, String name) {
-        for (ClassNode current = type; current != null && !ClassHelper.OBJECT_TYPE.equals(current.redirect());
-             current = current.getSuperClass()) {
-            Optional<PropertyNode> property = current.getProperties().stream()
-                    .filter(candidate -> candidate.getName().equals(name))
-                    .findFirst();
-            if (property.isPresent()) return property;
         }
         return Optional.empty();
     }
@@ -436,12 +431,10 @@ public class OwnerProvidedDefaultsCheck implements Check {
 
     private static final class ContractProperty {
         private final String name;
-        private final String getterName;
         private final ClassNode type;
 
-        private ContractProperty(String name, String getterName, ClassNode type) {
+        private ContractProperty(String name, ClassNode type) {
             this.name = name;
-            this.getterName = getterName;
             this.type = type;
         }
     }

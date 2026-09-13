@@ -136,6 +136,35 @@ class OwnerProvidedDefaultsCheckTest extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    def "rejects a computed donor getter without stored Builder state"() {
+        when:
+        def error = compilationError '''
+            interface ShipmentDetails {
+                String getRepository()
+            }
+
+            @DSL
+            class Product implements ShipmentDetails {
+                String repositoryPrefix
+
+                String getRepository() { repositoryPrefix + '/releases' }
+            }
+
+            @DSL
+            @OwnerProvidedDefaults(ShipmentDetails)
+            class ProductRelease implements ShipmentDetails {
+                @Owner Product product
+                String repository
+            }
+        '''
+
+        then:
+        error.message.contains("property 'repository'")
+        error.message.contains("stored Builder-visible property")
+        error.message.contains("DEFAULT against the active Builder")
+        error.message.contains("do not materialize Models")
+    }
+
     def "accepts contained donor wildcards"() {
         when:
         createNonDslClass '''
@@ -325,7 +354,7 @@ class OwnerProvidedDefaultsCheckTest extends AbstractDSLSpec {
                 String repository
             }
         '''
-        "a donor without a readable property"        | "donor field 'product' cannot read property 'repository'" | '''
+        "a donor without a readable property"        | "must be a stored Builder-visible property"      | '''
             interface ShipmentDetails {
                 String getRepository()
             }
