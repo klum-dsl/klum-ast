@@ -507,6 +507,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                 && Objects.equals(builder.compositionFieldName, fieldName);
     }
 
+    boolean ownsRelationshipValue(String fieldName, Object value) {
+        Field field = getModelField(fieldName);
+        return !DslHelper.isLink(field)
+                && (!DslHelper.isOptionalLink(field) || isCompositionClaimedBy(this, fieldName, value));
+    }
+
     private KlumModelException completedRelationshipInputError(Field schemaField) {
         return new KlumModelException(format(
                 "Completed DSL Object inputs are only supported for LINK relationships or OPTIONAL_LINK relationships (%s.%s)",

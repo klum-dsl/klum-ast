@@ -47,11 +47,26 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         if (container == null) return;
+        applyOwnerData(element, container);
+    }
+
+    private void applyOwnerData(InternalKlumBuilder<?> element, Object container) {
         setDirectOwners(element, container);
         setTransitiveOwners(element);
         setRootOwners(element);
         setRoles(element, container);
         LifecycleHelper.executeLifecycleClosures(element, Owner.class);
+    }
+
+    void initializeAttachedSubtree(InternalKlumBuilder<?> root, InternalKlumBuilder<?> container) {
+        Object previousInstance = PhaseDriver.getContext().getInstance();
+        try {
+            PhaseDriver.getContext().setInstance(root);
+            applyOwnerData(root, container);
+            BuilderStructureSupport.visit(root, this);
+        } finally {
+            PhaseDriver.getContext().setInstance(previousInstance);
+        }
     }
 
     private void setDirectOwners(InternalKlumBuilder<?> builder, Object value) {
