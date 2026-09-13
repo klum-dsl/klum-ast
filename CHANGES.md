@@ -1,3 +1,12 @@
+# 4.1.0 (unreleased)
+
+- Added repeatable `@OwnerProvidedDefaults` for an owned DSL Object to inherit absent contract properties from exactly one
+  compatible owner. KlumAST validates the JavaBean contract and donor/configuration types at Schema compilation, then
+  applies a fixed value-only policy first inside the Default phase: configured values remain authoritative, owned DSL
+  values become fresh recipient composition, completed `LINK` values retain identity, and a missing runtime donor records
+  a non-fatal warning. Unannotated Schemas and generated APIs are unchanged; generic mixins remain separate
+  ([#494](https://github.com/klum-dsl/klum-ast/issues/494)).
+
 # 4.0.0 The Makeover - 2026-08-20
 
 This is a breaking release. See the [Builder-first construction migration](docs/user/Builder-First-Migration.md) for required client and extension changes.

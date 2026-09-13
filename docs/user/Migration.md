@@ -8,6 +8,17 @@ See the dedicated [Builder First Migration](Builder-First-Migration.md) guide fo
 [Templates](Templates.md), [Copy Strategies](Copy-Strategies.md), and [Model Phases](Model-Phases.md) for materialization boundaries and [Jackson Integration](Jackson-Integration.md) for
 foreign-data import and ordinary POJO export.
 
+### Opting in to owner-provided defaults
+
+`@OwnerProvidedDefaults` is additive and opt-in. Existing unannotated Schemas need no migration and retain their generated
+factories, Builders, completed-model API, and lifecycle behavior. A Schema that adopts the annotation must compile and run
+with KlumAST annotation, compiler, and runtime artifacts that include the feature; recompile the Schema and its generated
+DSL support together after adding it. No generated method or type is added by the annotation.
+
+The annotation provides owner-specific conservative defaults through a shared JavaBean contract. It is not a replacement
+for a generic mixin API or an overwrite-strategy migration. See
+[Owner-provided defaults](Default-Values.md#owner-provided-defaults) for its absence, ordering, identity, and warning rules.
+
 Validation callers must import and catch
 `com.blackbuild.klum.ast.runtime.validation.KlumValidationException`. The former
 `com.blackbuild.klum.ast.runtime.KlumValidationException` type has been removed; this is an intentional 4.0 source and

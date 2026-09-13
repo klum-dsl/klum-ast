@@ -87,7 +87,10 @@ by annotating fields with `@LinkTo`. Also, regular lifecycle methods and Closure
 
 ## Default (25)
 
-The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. This includes `@DefaultValues` as well as `@Default` field, delegate and code defaults. As with all lifecycle annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
+The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. Owner-provided
+defaults run as the first ordered action inside this phase, after the Owner phase has selected their donor and before
+`@DefaultValues`, `@Default` field/delegate/code defaults, and `@Default` lifecycle callbacks. As with all lifecycle
+annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
 
 ## PostTree (30)
 
