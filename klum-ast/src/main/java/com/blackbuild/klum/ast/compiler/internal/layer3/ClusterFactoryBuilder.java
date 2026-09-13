@@ -112,6 +112,7 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
 
     private static boolean selectsField(ClassNode targetClass, MethodNode clusterMethod, FieldNode fieldNode) {
         AnnotationNode annotation = getAnnotation(clusterMethod, CLUSTER_ANNOTATION_TYPE);
+        if (annotation == null) return false;
         ClassNode requiredAnnotation = getNullSafeClassMember(annotation, "value", null);
         Predicate<FieldNode> annotationFilter = requiredAnnotation != null
                 ? candidate -> DslAstHelper.hasAnnotation(candidate, requiredAnnotation)
