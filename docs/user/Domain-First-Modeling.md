@@ -9,9 +9,9 @@ adapters translate it for a dashboard, automation hub, report, or other target. 
 
 Choose this independently from domain-first versus target-contract:
 
-- **[Layer 3](Layer3.md)** fits when a stable consumer-facing Domain API constrains the Schema that realizes it. The API
-  is normally designed first. Generic Client Developers compile against that API, while Model Writers configure the
-  concrete Model.
+- **[Layer 3](Layer3.md)** fits when abstract Domain API DSL classes constrain the Schema and project its concrete fields
+  through `@Cluster`. Generic Client Developers compile against that API, while Model Writers configure the concrete
+  Model.
 - **Direct-schema** fits when Schema types are the appropriate consumer contract. The Schema Developer also assumes the Domain API Developer role.
 
 Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should

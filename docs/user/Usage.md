@@ -119,10 +119,10 @@ support for decorated collections. To allow nicer delegates is the goal of the K
 
 ### Layer 3 structure: API - Schema - Model
 
-This approach normally defines a stable Domain API before the concrete Schema; the API constrains the Schema regardless
-of creation order. Generic clients compile against that API, while Model Writers use the Schema's generated construction
-surface and Schema-specific clients may deliberately depend on the concrete types. See [Layer 3](Layer3.md) for the
-decision criteria, dependency direction, and complete example.
+This approach defines distinct abstract Domain API DSL classes and uses `@Cluster` to project concrete Schema fields
+through them. The API constrains the Schema regardless of creation order. Generic clients compile against that API,
+while Model Writers use the Schema's generated construction surface and Schema-specific clients may deliberately depend
+on the concrete types. See [Layer 3](Layer3.md) for the decision criteria, dependency direction, and complete example.
 
 ## Manual dependencies
 

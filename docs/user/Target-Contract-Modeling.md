@@ -9,8 +9,8 @@ Use target-contract modeling when an existing system such as a Helm chart owns t
 Make the consumer-shape decision independently:
 
 - Choose **direct-schema** when the Schema Developer also owns the authors who consume the types, and there is no separate stable Domain API to protect.
-- Choose **[Layer 3](Layer3.md)** only when generic client developers must compile against a distinct Domain API rather
-  than Schema types.
+- Choose **[Layer 3](Layer3.md)** only when generic client developers must compile against distinct abstract Domain API
+  DSL classes that project concrete Schema fields through `@Cluster`.
 
 Do not add Layer 3 merely as insurance for a future client. Record the selected shape and the reason in the project architecture note.
 

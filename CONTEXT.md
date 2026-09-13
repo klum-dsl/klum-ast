@@ -216,12 +216,11 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
 - Layer 3 model
 
-  A Layer 3 model is a modeling pattern that separates a generic consumer-facing API layer, a domain-specific Schema
-  layer, and configured Model instances. The Domain API is normally defined first and always constrains the Schema that
-  realizes it; generic Client Developers depend only on that API, while deliberately Schema-specific clients may depend
-  on the concrete Schema. Model Writers create the configured instances. Cluster projection is specialized support for
-  this pattern; lifecycle, linking, ownership, defaults, validation, and traversal are general KlumAST capabilities
-  rather than defining Layer 3 features.
+  A Layer 3 model uses at least one `@Cluster` to project concrete Schema fields through distinct abstract Domain API DSL
+  classes. The Domain API is normally defined first and always constrains the Schema that realizes it; generic Client
+  Developers depend only on that API, while deliberately Schema-specific clients may depend on the concrete Schema.
+  Model Writers create the configured instances. Cluster projection is the defining KlumAST feature; lifecycle, linking,
+  ownership, defaults, validation, and traversal are general capabilities rather than defining Layer 3 features.
 
 - Direct-schema modeling
 

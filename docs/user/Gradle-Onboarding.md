@@ -10,11 +10,12 @@ Before creating a Schema, answer two independent questions.
    - **Domain-first**: the completed model is the product's domain abstraction; adapters to target systems remain downstream.
    - **Target-contract**: an external contract such as Helm values is authoritative; the Schema provides validated authoring and useful defaults without claiming to replace that contract.
 2. Do client consumers need a distinct stable Domain API?
-   - **Layer 3**: a Domain API Developer normally defines that contract before a Schema Developer realizes it; the API
-     constrains the Schema, and generic Client Developers do not compile against Schema types.
+   - **Layer 3**: abstract Domain API DSL classes constrain the Schema and project its concrete fields through `@Cluster`;
+     generic Client Developers do not compile against Schema types.
    - **Direct-schema**: Schema types are the consumer-facing API, and the Schema Developer also owns that role.
 
-Record the choices near the project architecture. Layer 3 is a modeling pattern, not a requirement for every Gradle project.
+Record the choices near the project architecture. Layer 3 is a modeling pattern for a real generic consumer boundary, not
+a requirement for every Gradle project or a name for an API project without Cluster projection.
 For route-specific guidance, read [Domain First Modeling](Domain-First-Modeling.md) or [Target Contract Modeling](Target-Contract-Modeling.md); the settled Layer 3 pattern
 is explained in [Layer 3](Layer3.md).
 

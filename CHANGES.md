@@ -21,6 +21,13 @@
   verification remains an explicit deployment-owner responsibility
   ([#552](https://github.com/klum-dsl/klum-ast/issues/552)).
 
+## Documentation only
+
+- Defined Layer 3 crisply as the abstract Domain API–concrete Schema–Model pattern whose unique KlumAST feature is a
+  `@Cluster` projection. The environment example now demonstrates generic and Schema-specific consumers, bounded and
+  fixed-key Cluster construction, and distinguishes general automatic creation/linking from Layer 3 behavior
+  ([#454](https://github.com/klum-dsl/klum-ast/issues/454)).
+
 # 4.0.0 The Makeover - 2026-08-20
 
 This is a breaking release. See the [Builder-first construction migration](docs/user/Builder-First-Migration.md) for required client and extension changes.

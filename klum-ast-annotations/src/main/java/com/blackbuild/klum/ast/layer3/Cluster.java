@@ -36,7 +36,9 @@ import java.util.Map;
  *
  * <p>if placed on a (potentially abstract) method, that method is replaced with such a getter.</p>
  *
- * <p>This is usually used to provide the API layer of a three layer model.</p>
+ * <p>This is the defining KlumAST projection for a Layer 3 model when declared by a distinct abstract {@code @DSL}
+ * Domain API class and realized by concrete Schema subclasses. DSL interfaces are not supported Cluster projection
+ * targets.</p>
  *
  * <p>For example:</p>
  *
