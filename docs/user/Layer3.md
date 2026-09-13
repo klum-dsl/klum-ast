@@ -1,385 +1,213 @@
 # Layer 3
 
-A Layer3 structure separates responsibilities that are often combined in a simpler Schema/Model design:
+Layer 3 is the API–Schema–Model modeling pattern. It separates a stable, consumer-facing Domain API from the concrete
+Schema that makes models convenient to author. A Domain API Developer normally defines the API before the Schema
+Developer realizes it; regardless of creation order, the API constrains the Schema. Generic Client Developers depend only
+on that API, and Model Writers create configured Model instances through the Schema's construction DSL.
 
-- The Domain API Developer defines an API layer of abstract consumer-facing model contracts. These usually expose the
-  relevant values through Maps and collections and are technical rather than deployment-specific.
-- The Schema Developer provides the actual Schema classes, usually specific subclasses of API-layer types. They add named
-  fields, lifecycle behavior, and validation so concrete modeling is expressive and domain-specific.
-- The Model Writer creates configured Model instances through scripts or structured inputs and connects them.
-- The Client Developer consumes the API layer without depending on the concrete Schema layer.
+Layer 3 is not a package layout, Gradle convention, or Java-module boundary. There is no `@Layer3` marker. Separate `api`,
+`schema`, and `model` projects are a useful way to enforce the dependencies, but colocated sources can follow the same
+pattern when their public dependencies preserve the boundary.
 
-The role boundaries and variants of this approach need a dedicated design pass under [issue #454](https://github.com/klum-dsl/klum-ast/issues/454). The established
-definition is the API–Schema–Model dependency pattern; it is not a package or Java-module boundary.
+## Recognizing a Layer 3 design
 
-## Example structure
+A design uses Layer 3 when all of these statements are true:
 
-Let's consider an infrastructure model. We have an application that consists of a database, and a number of microservices. This application will be deployed in a number of environments. An environment is thus a collection of related applications that are deployed together. Actual instances of an environment represent different stages for deployment, e.g. dev, test, prod.
+1. A distinct Domain API defines the completed model contract that generic clients consume.
+2. Concrete Schema types depend on and realize that API; the API does not depend on the Schema.
+3. Model configuration depends on the Schema's generated construction surface.
+4. A generic client can compile against the Domain API without Schema-only types in its signatures or dependencies.
 
-In this structure, the API layer will provide the following classes:
+The usual dependency direction is:
 
-- `Environment`
-- `Application`
-- `Database`
-- `Microservice`
-
-These are the classes that will be consumed by our Consumer application (for example, a deployment pipeline).
-
-The schema layer contains classes modeling the actual applications, i.e., if we have two applications, each application will consist of a database class and several microservice classes.
-
-```groovy
-@DSL class CustomerServiceEnvironment extends Environment {
-    Shipping shipping
-    Billing billing
-}
-
-// First Application: Shipping
-@DSL class Shipping extends Application {
-    ShippingDatabase database
-    ShippingFrontend frontend
-    ShippingBackend backend
-    ShippingWorker worker 
-}
-
-@DSL class ShippingDatabase extends Database {
-    @Required DbUser ddl
-    @Required DbUser dml
-    DbUser monitoring
-}
-
-// Second Application: Billing
-@DSL class Billing extends Application {
-    BillingDatabase database
-    BillingService service
-}
-```
-Now without going into much detail, a dsl-model (using KlumAST) could be something like this:
-
-```groovy
-environment("dev") {
-    shipping {
-        database {
-            ddl "admin"
-            dml "shipping_user"
-            monitoring "monitoring"
-        }
-        frontend {
-            replicas 1
-            ssl false
-            //...
-        }
-        // ...
-    }
-    billing {
-        database {
-            ddl "admin"
-            dml "billing_user"
-        }
-        service {
-            //...
-        }
-    }
-}
-environment("prod") {
-    shipping {
-        database {
-            ddl "xcvzh"
-            dml "abcde"
-            monitoring "mon_x"
-        }
-        frontend {
-            replicas 3
-            ssl true
-            //...
-        }
-        // ...
-    }
-    //...
-}
-```
-From the modeling perspective, this is a lot more expressive than using generic microservice or database classes. However, the API layer is still very simple and can be used by the consumer application without having to know about the actual structure of the application.
-
-For each Cluster-Field of a class, a cluster factory named like the field is created, which only contains the matching fields of the cluster. This is especially useful if the name of the field lacks context:
-
-```groovy
-environment("dev") {
-  applications { // cluster factory for field "Environment.applications" 
-      shipping {
-          database {
-              users { // cluster factory for field "Database.users"
-                  ddl "admin"
-                  dml "shipping_user"
-                  monitoring "monitoring"
-              }
-          }
-          frontend {
-              replicas 1
-              ssl false
-              //...
-          }
-          // ...
-      }
-      billing {
-          database {
-            users { // cluster factory for field "Database.users"
-                ddl "admin"
-                dml "billing_user"
-            }
-          }
-          service {
-              //...
-          }
-      }
-  }
-}
+```text
+Domain API <--- Schema <--- Model configuration
+     ^
+     |
+generic client
 ```
 
-By default, these factories are entirely optional (like collection factories). Using
-`@Cluster.bounded`, which can also be placed on a class, one of its superclasses, or a package, makes the cluster
-field methods on the generated Builder construction API `protected`. They are then reachable only inside the factory;
-for example, code completion presents `users` on a `Database` Builder rather than its `ddl` or `dml` members.
+A Schema-specific client may additionally depend on the Schema. That does not invalidate the Layer 3 design; it is a
+different consumer of the same completed Model and does not replace the API-only generic client boundary.
 
-The Environment base class contains method to access the actual applications as a Map:
+By contrast, a design is **direct-schema** when Schema types are themselves the consumer-facing contract. In that shape,
+the Schema Developer also assumes the Domain API Developer role. Splitting one direct-schema design across packages or
+using `@Cluster` does not turn it into Layer 3.
+
+## The four roles
+
+One person or team may hold several roles. The roles describe responsibility, not required organizational boundaries.
+
+| Role | Owns | Depends on |
+| --- | --- | --- |
+| Domain API Developer | Stable completed-model types and operations that clients compile against | KlumAST's documented Schema-authoring contract, when the API types are DSL Objects |
+| Schema Developer | Concrete DSL Object types, relationships, lifecycle behavior, validation, and external mappings | The Domain API and KlumAST Schema APIs |
+| Model Writer | Concrete configuration in Groovy, structured inputs, Templates, or combinations of them | The Schema's generated construction surface |
+| Client Developer | Integrations that read completed models | The Domain API for a generic client; optionally the Schema for a deliberately Schema-specific client |
+
+## End-to-end example
+
+Consider an environment model consumed by both a generic deployment pipeline and application-specific tests.
+
+### Domain API Developer: define the consumer contract
+
+The Domain API describes completed environments and applications without naming any concrete deployment:
 
 ```groovy
 @DSL
 abstract class Environment {
     @Key String name
-    
-    @Cluster Map<String, Application> applications 
+
+    @Cluster(bounded = true)
+    Map<String, Application> applications
+}
+
+@DSL
+abstract class Application {
+    String displayName
+}
+
+@DSL
+abstract class Database {
+    String url
 }
 ```
 
-That way a deployer service can simply iterate over the applications of our CustomerServiceEnvironment and deploy them.
+`Environment.applications` is a generic projection. A Client Developer can read it without knowing which concrete
+applications a particular Schema supplies.
+
+### Schema Developer: realize the contract
+
+The Schema adds named, domain-specific types and fields:
 
 ```groovy
-def deploy(Environment env) {
-    env.applications.each { name, app ->
-        log.info "Deploying $name"
-        deployApplication(app)
+@DSL
+class CustomerEnvironment extends Environment {
+    Shipping shipping
+    Billing billing
+}
+
+@DSL
+class Shipping extends Application {
+    ShippingDatabase database
+    ShippingFrontend frontend
+}
+
+@DSL
+class Billing extends Application {
+    BillingDatabase database
+    BillingService service
+}
+
+@DSL class ShippingDatabase extends Database { }
+@DSL class BillingDatabase extends Database { }
+@DSL class ShippingFrontend { int replicas; boolean ssl }
+@DSL class BillingService { String endpoint }
+```
+
+The concrete fields make the authoring DSL discoverable and typo-safe. The API's `@Cluster` projection exposes those
+fields as `Map<String, Application>` to generic clients.
+
+### Model Writer: configure one Model
+
+Because the Cluster is bounded, matching application methods are available through the named `applications` factory:
+
+```groovy
+def production = CustomerEnvironment.Create.With('production') {
+    applications {
+        shipping {
+            displayName 'Shipping'
+            database { url 'jdbc:postgresql://shipping/prod' }
+            frontend {
+                replicas 3
+                ssl true
+            }
+        }
+        billing {
+            displayName 'Billing'
+            database { url 'jdbc:postgresql://billing/prod' }
+            service { endpoint 'https://billing.example.test' }
+        }
     }
 }
 ```
 
-`@Cluster` can also be placed on a getter method (for example, `getApplications()`), which can be abstract or have an
-empty/`null` body to satisfy an IDE. Prefer the field form for new Schemas. The roles, dependency direction, and
-variants of Layer 3 remain under the explicit terminology review in [#454](https://github.com/klum-dsl/klum-ast/issues/454).
+The Model Writer depends on `CustomerEnvironment` and its generated construction API. The resulting object is completed
+and read-only when the root factory returns it.
 
-## Fixed Cluster keys
+### Client Developer: consume at the intended boundary
 
-When a Cluster-selected Schema field is a direct, keyed DSL Object relationship, `fixedKeys = true` makes the generated
-Builder use the concrete Schema member name as that child’s key. It is an opt-in convenience equivalent to placing
-`@Field(key = Field.FieldName)` on every selected field, without adding that annotation to the Schema fields.
+A generic Java client depends only on the Domain API:
 
-The convention belongs to the Cluster contract rather than to Layer 3 itself, so it also works for a focused Cluster
-filter. It does not change composition, aggregation, or lifecycle behavior. A selected field must be a single keyed DSL
-Object relationship; selected unkeyed fields, collections/maps, or fields with an explicit `@Field(key = ...)` are
-compile-time errors. Fields outside the Cluster retain their ordinary keyed creation methods.
-
-(See: `ClusterFixedKeysTest#'uses a Cluster convention to derive direct relationship keys'`.)
-
-```groovy
-given: // API and Schema
-@DSL
-abstract class Home {
-    @Cluster(fixedKeys = true)
-    abstract Map<String, Zone> getZones()
-}
-
-@DSL
-abstract class Zone {
-    @Key String name
-}
-
-@DSL
-class FloorPlan extends Home {
-    Kitchen kitchen
-}
-
-@DSL
-class Kitchen extends Zone {}
-
-when: // Model
-def home = FloorPlan.Create.With {
-    kitchen {}
-}
-
-then:
-assert home.kitchen.name == 'kitchen'
-```
-
-Validations in our ShippingApplication can also be done specifically for that application:
-
-```groovy
-@Validate void SslNeedsValidationServer() {
-    if (frontend.ssl && backend.validationServer == null)
-        error "Backend must define validation server if SSL is enabled"
+```java
+public void deploy(Environment environment) {
+    environment.getApplications().forEach((name, application) ->
+            deployApplication(name, application));
 }
 ```
 
-## Implementation
-
-Using the `@Cluster` annotation, this method will automatically be implemented using the respective methods of the ClusterModel helper class.
-
-For example, the `getApplications` method is implemented like this:
+A Schema-specific Groovy client can intentionally use the richer concrete type:
 
 ```groovy
-Map<String, Application> getApplications() {
-    ClusterModel.getPropertiesOfType(this, Application)
+void verifyShipping(CustomerEnvironment environment) {
+    assert environment.shipping.frontend.ssl
+    assert environment.shipping.database.url.startsWith('jdbc:postgresql:')
 }
 ```
 
-If the annotated method return `Map<String, Collection<X>>`, `ClusterModel.getCollectionsOfType` will be used instead.
+The first client is portable across Schemas that implement the Domain API. The second is coupled to this Schema and may
+use its named fields directly. Both consume the same completed Model; neither constructs or mutates it through a Builder.
 
-Most ClusterModel methods have an additional parameter to filter the return values, which is usually one of the following:
+## Cluster projection
 
-- A `Predicate<AnnotatedElement>`
-- A `Closure<Boolean>`, which accepts an AnnotatedElement as parameter
-- An Annotation class (which is a shortcut for `it -> it.isAnnotationPresent(filter)`)
+`@Cluster` is specialized support for the Layer 3 pattern. It projects matching concrete fields from a Schema subtype into
+a generic `Map` declared by an API type. Map keys are the matching field names, and values are the field values. The
+annotation may also filter fields by a runtime-retained annotation and can project matching collections.
 
-The most common usage is the last one, simply filtering on the presence of an annotation on the fields. This can also be implemented using the `value` field of the `@Cluster` annotation:
+The generated construction surface includes a Cluster factory named after the projected property. By default, using that
+factory is optional. With `@Cluster(bounded = true)`, matching field methods are `protected` on the generated Builder and
+remain available through the Cluster factory, as `applications { shipping { ... } }` demonstrates above. The bounded
+setting may also be placed on a class, superclass, or package to apply to its Cluster fields.
 
-```groovy
-@Cluster(Important) Map<String, Application> applications
-```
+`@Cluster` can annotate a field or a getter method. Prefer the field form for new Schemas. A getter may be abstract or have
+an empty or `null` body when source tooling requires one.
 
-will be converted to
+Using `@AutoCreate` on a Cluster applies ordinary automatic creation to every matching field. That interaction is useful
+in Layer 3 Schemas, but automatic creation itself remains a general KlumAST capability.
 
-```groovy
-Map<String, Application> getApplications() {
-    return ClusterModel.getPropertiesOfType(this, Application, Important)
-}
-```
+## Public surfaces and boundaries
 
-## AutoCreate
+Layer 3 adds no separate runtime extension SPI. Its supported surfaces are the same bounded contracts used elsewhere in
+KlumAST:
 
-Any `AutoCreate` annotation placed on the cluster field will be used to automatically create all targeted field's objects during the auto-create phase, thus effectively working as if the annotation was placed on all fields of the cluster.
+- Domain API types and their completed values are the client contract.
+- Public Schema annotations, including `@Cluster`, are the Schema-authoring contract.
+- Generated `Foo_DSL` factory, Builder, collection-factory, and Cluster-factory interfaces may be named as parameter,
+  return, or receiver types in client and extension signatures. Do not construct, implement, or subclass them; their
+  generated implementations remain hidden.
+- Use [Completed Object Support](Completed-Object-Support.md) for supported paths, composition traversal, and stored
+  validation results. Internal companions, proxies, Cluster helpers, reflection utilities, and types under `internal`
+  packages are not client or extension seams.
 
-## Benefits of a Layer3 model
+The public package `com.blackbuild.klum.ast.layer3` contains Schema annotations for historical and functional grouping.
+Package membership does not classify an annotation as Layer-3-only and does not mark a design as Layer 3. In particular,
+automatic creation and linking, ownership, roles, defaults, lifecycle callbacks, validation, and completed-model traversal
+all work in direct-schema designs too. See [Basics](Basics.md), [Default Values](Default-Values.md),
+[Model Phases](Model-Phases.md), [Validation](Validation.md), and
+[Completed Object Support](Completed-Object-Support.md) for those general capabilities.
 
-There are various major benefits of using a Layer3 model vs. a generic schema/model approach:
+A broader inventory of possible third-party extension mechanisms remains a separate question in
+[#453](https://github.com/klum-dsl/klum-ast/issues/453). Do not treat public visibility or a Layer 3 example as a promise of
+an additional SPI.
 
-### Editing and code completion
+## Boundaries that remain explicit
 
-With each application being a specific subclass of Application, the actual model gets more concise, and more domain specific. Consider the (partial) example above being modeled using a generic schema/model approach:
+Layer 3 does not imply that a concrete keyed child receives its key from the Schema field that contains it. Cluster map
+keys are field names, but changing the child's `@Key` value automatically is a separate behavior question tracked by
+[#356](https://github.com/klum-dsl/klum-ast/issues/356). Until that issue is decided and implemented, configure child keys
+through existing supported Schema and Model mechanisms; do not infer fixed-key behavior from this pattern.
 
-```groovy
-environment("dev") {
-    application("shipping") {
-        database {
-            user("ddl") { "admin" }
-            user("dml") { "shipping_user" }
-            user("monitoring") { "monitoring" }
-        }
-        service("frontend") {
-            replicas 1
-            ssl false
-            //...
-        }
-        // ...
-    }
-    application("billing") { 
-    // ...
-```
-Besides being harder to read there is neither code completion help nor any protection against typos. The developer needs to know exactly which microservices the application consists of and which database users are needed.
-
-In contrast, by using a specific `ShippingApplication` class, there is exactly one field for each microservice, and the developer can use code completion to see which fields are available. Also, typos like using the wrong user will be detected by the compiler and the IDE immediately.
-
-Using a specific subclass also allows properly commenting the domain-specific fields (what is the use of the monitoring db user?), which is not possible with a generic schema/model approach.
-
-### Domain consumers
-
-Since we are building an environment model in this example, there are two distinct types of consumers:
-
-* Generic consumers, like a deployment pipeline or a test framework, only use the generic methods of the API layer (behaving exactly like in the generic schema/model approach)
-* Specific consumers know the actual ShippingApplication and can access its various fields directly. Specific consumers can be, for example:
-    * The application itself, for example, in reading the jdbc url for the actual database directly from the model (instead of an application.yaml or such)
-    * A post-deployment test that runs against a specific environment and needs to know the actual database users and passwords can obtain them directly from the model. Combined with password retrieving techniques like an Hashicorp Vault accessor, this can be a very powerful approach. Since the tests are identical for every stage, they can be effectively reused. A developer can use the same tests against a local virtual machine as against the actual approval environment. The only difference being that the developer would not have the rights to access the actual passwords of the approval environment.
-
-### Validation
-
-With ShipmentApplication being a class with domain knowledge, it can also contain domain-specific validations. For example:
-
-- if ssl is enabled in the frontend, the backend must have a configured validation server
-- if a monitoring service is defined, the monitoring database user must be defined
-
-Making these validations with a domain schema is trivial.
-
-### Automatic creation and linking
-
-Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant but also error-prone, since the monitoring service might be configured differently for each application.
-
-Using the schema layer with `@AutoCreate`, the monitoring service could automatically be created.
-
-```groovy
-@DSL
-abstract class MonitoredApplication extends Application {
-  @AutoCreate
-  MonitoringService monitoring
-}
-```
-
-Now, our monitoring service needs access to a database, but we want to reuse the database for the application. So we link
-the database field of the monitoring service to the database of its owner:
-
-```groovy
-class MonitoringService extends Microservice {
-  @Owner MonitoredApplication application
-  @LinkTo Database database
-}
-```
-During the instantiation of the model, the database field will be automatically filled but can still be overwritten
-on instance level. `@LinkTo` now selects `FieldType.OPTIONAL_LINK`: a locally created same-session value is owned
-composition, while the Auto-Link fallback and any completed value are aggregation references. For an aggregation-only
-relationship, declare `@Field(FieldType.LINK) @LinkTo`; a normal unannotated relationship remains composition-only.
-See `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries`
-for the executable example.
-
-### Role fields
-
-Fields can be annotated with `@Role` to indicate that they are used for a specific role as seen from their owner. 
-Consider a Database class that has various users. Each user object has access to its owning database object, but it
-might be necessary for the User object to know how it is used in their database. Rather than forcing the modeler to 
-set the role manually, it can simply be inferred from the field name of the Database that points to the user:
-
-```groovy
-@DSL
-class MyDatabase extends Database {
-  String url
-
-  DbUser ddl
-  DbUser dml
-  DbUser monitoring
-}
-
-@DSL
-class DbUser {
-  @Owner Database database
-  @Role String role
-  @Key String id
-}
-
-def db = MyDatabase.Create.With {
-  url "jdbc:..."
-  ddl("user1")
-  dml("user2")
-  monitoring("user3")
-}
-
-assert db.ddl.role == "ddl"
-assert db.dml.role == "dml"
-assert db.monitoring.role == "monitoring"
-```
-
-That way some kind of environment checker can, for example, use [Completed Object Support](Completed-Object-Support.md) to validate that all non
-ddl users have the correct privileges:
-
-```groovy
-KlumObjectSupport.of(model).getStructure().findAll(DbUser).each { path, user ->
-    if (user.role != "ddl")
-      assertNoDdlPrivileges(user, path)
-
-}
-```
-
-Note that this check should not be done during standard model validation because it requires access to the actual database.
+Choose Layer 3 for an actual stable consumer boundary, not as insurance for a hypothetical future client. Choose
+direct-schema when the same team owns the Schema and its consumers and Schema types are the appropriate public contract.
+This choice is independent of [domain-first](Domain-First-Modeling.md) versus
+[target-contract](Target-Contract-Modeling.md) modeling.

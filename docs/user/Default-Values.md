@@ -239,7 +239,7 @@ Default phase. See [Model Phases](Model-Phases.md) for more information.
 ## `@DefaultValues` Annotation
 
 Another option is an annotation that is itself annotated with `@DefaultValues`. This is primarily useful with inheritance
-and [Layer3](Layer3.md).
+and [Layer 3](Layer3.md).
 
 ## Supported Targets
 

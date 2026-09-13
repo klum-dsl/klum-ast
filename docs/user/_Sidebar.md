@@ -28,7 +28,7 @@
   * [Converters](Converters.md)
   * [Alternatives Syntax](Alternatives-Syntax.md)
   * [Advanced Techniques](Advanced-Techniques.md)
-  * [Layer3](Layer3.md)
+  * [Layer 3](Layer3.md)
   * [Jackson Integration](Jackson-Integration.md)
 * More
   * [FAQ](FAQ.md)
