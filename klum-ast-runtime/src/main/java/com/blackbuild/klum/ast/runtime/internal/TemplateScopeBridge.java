@@ -53,7 +53,11 @@ public final class TemplateScopeBridge {
         requireActiveFrame(frame);
         Map<Class<?>, Object> additions = new LinkedHashMap<>();
         Arrays.stream(Objects.requireNonNull(templates, "templates"))
-                .forEach(template -> additions.put(TemplateManager.getRealType(Objects.requireNonNull(template, "template")), template));
+                .forEach(template -> {
+                    if (!TemplateManager.isTemplate(template))
+                        throw new IllegalArgumentException("Template scopes accept only materialized Templates");
+                    additions.put(TemplateManager.getRealType(template), template);
+                });
         frame.templates.putAll(additions);
         restoreEffectiveTemplates(FRAMES.get());
     }
