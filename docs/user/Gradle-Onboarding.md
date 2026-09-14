@@ -45,6 +45,7 @@ ordinary-classpath setup; do not create a descriptor or add JPMS workaround
 flags for it.
 
 Place Schema classes in `src/main/groovy`, add one root `@DSL` type, and write a test in `src/test/groovy` that constructs a completed model through `Create.With`. Run `./gradlew test` before expanding the model. Use the model plugin only when a separate configured-model artifact is needed; see [Gradle Plugins](Gradle-Plugins.md).
+For focused construction, validation, and Template-backed test examples, see [Testing Models and Schemas](Testing-Models-and-Schemas.md).
 
 ```groovy
 import com.blackbuild.klum.ast.DSL

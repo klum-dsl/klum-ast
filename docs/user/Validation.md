@@ -5,6 +5,10 @@ to the completed Model companion during [`INSTANTIATE`](Model-Phases.md#instanti
 `InstanceValidator`s then run on the completed object. Each `InstanceValidator` type is memoized once per completed model.
 For reading stored results from a completed model, see [Completed Object Support](Completed-Object-Support.md).
 
+For focused Schema tests, catch `KlumValidationException` and assert a stable semantic fragment from an explicit
+validation message; [Testing Models and Schemas](Testing-Models-and-Schemas.md#assert-a-validation-failure) shows the
+complete pattern.
+
 ## On Classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
 against Groovy truth (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).

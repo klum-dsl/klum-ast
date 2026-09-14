@@ -1,6 +1,6 @@
 # ADR 0017 implementation plan: Published Template test support
 
-This approved plan implements [ADR 0017](../adr/0017-published-template-test-support.md) for [#658](https://github.com/klum-dsl/klum-ast/issues/658). All implementation slices remain planned. It adds a 4.1 public test artifact; it does not implement a Spock/JUnit extension, change Template semantics, or publish any existing test fixture variant.
+This implementation record delivered [ADR 0017](../adr/0017-published-template-test-support.md) for [#658](https://github.com/klum-dsl/klum-ast/issues/658). Its TS-1 through TS-4 slices are implemented. It adds a 4.1 public test artifact; it does not implement a Spock/JUnit extension, change Template semantics, or publish any existing test fixture variant.
 
 ## Confirmed starting behavior and failure path
 
@@ -120,7 +120,15 @@ Add the project to `settings.gradle`; let `klum-ast-bom` constrain it through it
 
 **Seams:** `docs/user/Templates.md`, `docs/user/Migration.md`, `CHANGES.md`, current navigation only if a page is added, public artifact/Javadocs, and ADR/implementation status.
 
-**Work:** add a concise Templates section with BOM-aligned Gradle test dependency setup and the empty-field, setup-base, feature-addition Spock example from this plan as the primary guide, followed by Java try-with-resources as a convenience example. State that Templates are pre-created materialized recipes, scope state is current-thread only, and Spock `@AutoCleanup` owns teardown after cleanup. Explain both `with` forms, inferred target type, and same-target replacement. Explain that a scope field is never `@Shared`; the core artifact does not inspect Spock annotations, while a future optional extension or a project-local interceptor may enforce broader fixture policy. Explain multiple field order and independent clusters. In the 4.x migration guide, replace any advice to import or mutate `TemplateManager` with constructed `TemplateScope` and `with`; retain `Foo.Template.WithAll` as the no-extra-artifact alternative. Link the documentary test by class and feature method. Add the 4.1 changelog entry and explain that the coordinate is test support, not a new runtime DSL API. Retain ADR 0017 as Accepted and change this plan's implementation status to Implemented only when all feature, publication, external-consumer, documentation, and release-facing checks are actually complete.
+**Delivered:** Templates, migration, and testing guidance now distinguish the automatic Schema-plugin
+`testImplementation` provision from the explicit BOM/runtime/test-support declaration needed by direct Java/Groovy
+consumers. They document the empty-field, setup-base, feature-addition Spock example and Java try-with-resources
+convenience path; explain materialized recipes, current-thread scope, `@AutoCleanup`, both `with` forms, inferred target
+replacement, non-`@Shared` fields, multiple field order, and independent clusters; and link the documentary test. The
+4.1 changelog identifies this as test support rather than a production DSL API. User guidance replaces
+`TemplateManager` migration advice while retaining `Foo.Template.WithAll` as the no-extra-artifact alternative. ADR 0017
+remains Accepted, and this implementation record is Implemented because feature, publication, external-consumer,
+documentation, and release-facing checks are complete.
 
 **Acceptance:** docs render/link checks pass; every dependency coordinate is BOM-aligned and test-scoped; search finds no user instruction that treats `TemplateManager` as a supported migration API; the concise Java and Groovy examples match the documentary test. The release note, public Javadocs, documentation navigation, BOM, and product-resolver evidence all name the same support coordinate.
 

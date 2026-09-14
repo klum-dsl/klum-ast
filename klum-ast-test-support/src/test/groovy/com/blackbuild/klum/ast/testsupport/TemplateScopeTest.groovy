@@ -26,11 +26,15 @@ package com.blackbuild.klum.ast.testsupport
 import com.blackbuild.klum.ast.DSL
 import spock.lang.AutoCleanup
 import spock.lang.Issue
+import spock.lang.See
 import spock.lang.Specification
+import spock.lang.Tag
 
 import java.util.concurrent.atomic.AtomicReference
 
 @Issue("658")
+@Tag("documentary")
+@See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature")
 class TemplateScopeTest extends Specification {
 
     @AutoCleanup
