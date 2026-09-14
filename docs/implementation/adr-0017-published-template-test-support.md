@@ -19,12 +19,12 @@ The 3.x-style failure is therefore not missing Template semantics. A migrated te
 
 ### Consumer contract
 
-The sole initial handwritten public type is `com.blackbuild.klum.ast.testsupport.TemplateScope`. It is a final `AutoCloseable` lifetime token with one empty public constructor, one additive `with(Map)` operation, and no static factory. This matches the existing `BoundTemplateHandler` convention for an object that owns context, rather than `KlumJacksonInput`'s static factories for immutable input values:
+The sole initial handwritten public type is `com.blackbuild.klum.ast.testsupport.TemplateScope`. It is a final `AutoCloseable` lifetime token with one empty public constructor, additive `with(Object...)` and `with(Collection<?>)` operations, and no static factory. This matches the existing `BoundTemplateHandler` convention for an object that owns context, rather than `KlumJacksonInput`'s static factories for immutable input values:
 
 ```java
 import com.blackbuild.klum.ast.testsupport.TemplateScope;
 
-try (TemplateScope ignored = new TemplateScope().with(Map.of(DeliveryData.class, baseline))) {
+try (TemplateScope ignored = new TemplateScope().with(baseline)) {
     DeliveryData delivery = DeliveryData.Create.With();
     assert delivery.region().equals("eu-central");
 }
@@ -37,24 +37,24 @@ The primary Spock use is framework-managed setup/feature/cleanup lifetime, not a
 TemplateScope templates = new TemplateScope()
 
 def setup() {
-    templates.with([(DeliveryData): baseline])
+    templates.with(baseline)
 }
 
 def "adds a feature-specific Template"() {
     given:
-    templates.with([(DeliveryOptions): options])
+    templates.with(options)
 
     expect:
     DeliveryData.Create.With().options.enabled
 }
 ```
 
-`baseline` and `options` are existing materialized Templates, normally produced with `DeliveryData.Create.Template.With { ... }`. The empty constructor preserves the caller's effective mapping as a defensive snapshot. `with` copies the supplied mapping into this scope's own frame and returns the same closeable token; it neither exposes Template identity nor retains the input map. The API is not an anonymous-recipe factory; callers continue to use generated Template creation for that concern. Import `spock.lang.AutoCleanup`; it invokes `close` after `cleanup`, so the active Templates remain available through cleanup. Do not mark the field `@Shared`.
+`baseline` and `options` are existing materialized Templates, normally produced with `DeliveryData.Create.Template.With { ... }`. The empty constructor preserves the caller's effective mapping as a defensive snapshot. `with(Object...)` snapshots its supplied values and infers their model target types using the existing materialized-Template convention; `with(Collection<?>)` performs the same operation for a collection. In either form, later values for one inferred target replace earlier values in this scope. The token neither exposes Template identity nor retains the input collection. The API is not an anonymous-recipe factory; callers continue to use generated Template creation for that concern. Import `spock.lang.AutoCleanup`; it invokes `close` after `cleanup`, so the active Templates remain available through cleanup. Do not mark the field `@Shared`.
 
 | Operation | Required result |
 | --- | --- |
 | `new TemplateScope()` | Capture the prior current-thread mapping as the frame's restoration target and make an empty frame active. |
-| `with(templates)` | Defensively copy and add mappings to this frame; later values in this frame replace earlier values for the same target type. |
+| `with(Object...)` / `with(Collection<?>)` | Defensively snapshot and add supplied materialized Templates to this frame by inferred target type; later values in this frame replace earlier values for the same target type. |
 | multiple fields/nested scopes | Recompose active frames in construction order; a later inner field wins only for repeated target types. |
 | `close` in LIFO order | Restore exactly the map captured by that scope; remove the manager when that captured map is empty. |
 | close after a body failure | Spock `@AutoCleanup` performs the primary restoration after cleanup; Java try-with-resources is the equivalent Java route. |
@@ -78,7 +78,7 @@ def "adds a feature-specific Template"() {
 
 - The support artifact is Java 17 and has one production artifact. It does not create Groovy-specific variants or publish Groovy 3 transitively. Groovy 3 uses `org.codehaus.groovy`; Groovy 4/5 consumers select their own `org.apache.groovy` coordinates as ADR 0011 requires.
 - Existing generated `Foo.Template.With` and `WithAll` remain supported and unchanged. They are still the only supported production callback form and the migration workaround until this artifact ships.
-- `TemplateScope` maps already-materialized Templates to explicit target classes. It neither adds a global mutable registry API nor claims cross-thread propagation, Template creation, framework interception, automatic teardown, Template identity inspection, or new lifecycle semantics.
+- `TemplateScope` accepts already-materialized Templates and infers their normal target classes. It neither adds a global mutable registry API nor claims cross-thread propagation, Template creation, framework interception, automatic teardown, Template identity inspection, explicit alternate target mapping, or new lifecycle semantics.
 - The Template-definition depth remains independent. Opening test support inside Template creation must not make child Builders Template-mode by itself; Template creation inside an active support scope retains its existing semantics.
 - The test artifact must not depend on `testFixtures(project(':klum-ast-runtime'))`, copy those classes, or make test fixture output part of a published or external-consumer classpath.
 
@@ -88,9 +88,9 @@ def "adds a feature-specific Template"() {
 
 **Seams:** `klum-ast-runtime` TemplateManager implementation, its JPMS descriptor, new test-support source/module, `settings.gradle`, and standard publication configuration.
 
-**Work:** factor the existing snapshot/overlay/restore behavior behind one runtime-internal bridge that can create an empty frame, update one active frame, and close a frame without exposing manager state. Add the new Java-library module, its module descriptor, and the final public `new TemplateScope()` plus fluent `with(Map<Class<?>, ?>)` API. Make input snapshots defensive; recompute effective mappings in construction/nesting order; enforce same-thread and LIFO closure; make successful repeat close idempotent. The bridge is the only test-support reference to internal runtime code.
+**Work:** factor the existing snapshot/overlay/restore behavior behind one runtime-internal bridge that can create an empty frame, derive the normal target type for supplied materialized Templates, update one active frame, and close a frame without exposing manager state. Add the new Java-library module, its module descriptor, and the final public `new TemplateScope()` plus fluent `with(Object...)` and `with(Collection<?>)` operations. Make input snapshots defensive; recompute effective mappings in construction/nesting order; enforce same-thread and LIFO closure; make successful repeat close idempotent. The bridge is the only test-support reference to internal runtime code.
 
-**Acceptance:** Java-focused tests prove an empty scope followed by `with` activates supplied materialized Templates, empty prior state is removed on close, nested shadowing restores the exact outer value, and a thrown body leaves no leakage. A two-field fixture proves field construction order, rather than `with` call order, controls repeated target precedence. Focused negative tests prove cross-thread/out-of-order close and `with` after close fail without mutation. Source/Javadoc/bytecode and JPMS inspection prove that the public support descriptor contains no `TemplateManager`, `BoundTemplateHandler`, Builder, or mutable registry type; the runtime internal package is qualified only to the compiler, Jackson, and support implementation modules, never to a consumer module.
+**Acceptance:** Java-focused tests prove an empty scope followed by either `with` form activates supplied materialized Templates, empty prior state is removed on close, nested shadowing restores the exact outer value, and a thrown body leaves no leakage. A duplicate inferred target in one varargs or collection call deterministically leaves the later Template active. A two-field fixture proves field construction order, rather than `with` call order, controls repeated target precedence. Focused negative tests prove cross-thread/out-of-order close and `with` after close fail without mutation. Source/Javadoc/bytecode and JPMS inspection prove that the public support descriptor contains no `TemplateManager`, `BoundTemplateHandler`, Builder, map, or mutable registry type; the runtime internal package is qualified only to the compiler, Jackson, and support implementation modules, never to a consumer module.
 
 **Commit boundary:** one vertical commit containing runtime bridge, module topology, public facade, and the focused scope contract. Do not refactor unrelated Template or test-fixture code.
 
@@ -98,7 +98,7 @@ def "adds a feature-specific Template"() {
 
 **Seams:** new module's Groovy/Spock tests, a minimal `@DSL` fixture, and existing Template behavior tests in `klum-ast` where behavior must remain guarded.
 
-**Work:** add a Java try-with-resources convenience consumer that creates an empty scope, calls `with`, creates a normal DSL root, and proves state disappears after the block, including an exception path. Make the new `TemplateScopeTest` Spock class with `@Issue("658")` the primary acceptance: a non-`@Shared` `@AutoCleanup` field creates an empty scope, `setup` installs a base mapping, and a feature adds a mapping for its own cluster. Prove the scope is active during cleanup and `@AutoCleanup` restores the following feature's clean state after a failure. Cover two named scope fields: a general field declared first and a specialized field declared later; Spock's reverse declaration-order cleanup must close them LIFO and the specialized frame wins on a repeated type. Do not add a KlumAST interceptor or rule; a future optional Spock extension may reject `@Shared`, while a project-local interceptor remains an optional consumer adaptation. Include nesting, same-type shadowing, non-propagation to a worker thread, and a scope active during ordinary root/owned Builder creation. Reuse existing `TemplatesSpec`, `BoundTemplatesSpec`, and Template-companion coverage instead of duplicating recipe/serialization/ownership cases.
+**Work:** add a Java try-with-resources convenience consumer that creates an empty scope, calls both `with` forms, creates a normal DSL root, and proves state disappears after the block, including an exception path. Make the new `TemplateScopeTest` Spock class with `@Issue("658")` the primary acceptance: a non-`@Shared` `@AutoCleanup` field creates an empty scope, `setup` installs a base Template, and a feature adds a Template for its own cluster. Prove the scope is active during cleanup and `@AutoCleanup` restores the following feature's clean state after a failure. Cover two named scope fields: a general field declared first and a specialized field declared later; Spock's reverse declaration-order cleanup must close them LIFO and the specialized frame wins on a repeated type. Do not add a KlumAST interceptor or rule; a future optional Spock extension may reject `@Shared`, while a project-local interceptor remains an optional consumer adaptation. Include nesting, same-type shadowing, duplicate targets within one call, non-propagation to a worker thread, and a scope active during ordinary root/owned Builder creation. Reuse existing `TemplatesSpec`, `BoundTemplatesSpec`, and Template-companion coverage instead of duplicating recipe/serialization/ownership cases.
 
 **Acceptance:** Spock cleanup executes after a deliberately failing feature/body while the field remains active; `@AutoCleanup` then restores exact prior state, observed by a subsequent test. A two-field fixture proves independent template clusters, deterministic precedence, and reverse-order teardown. A focused `@Shared` documentation/extension-boundary test records that the core artifact neither promises to detect nor support it. Java's resource block has equivalent convenience proof. Existing Template recipe replay, definition-scope, lifecycle, and ownership tests remain green, showing the bridge does not redefine them. Every new Spock class/method carries #658; the user-facing happy path is a `TemplateScopeDocumentaryTest` (or an appropriately scoped documentary method) marked `@Tag("documentary")` and `@See` to the final Templates documentation section.
 
@@ -120,7 +120,7 @@ Add the project to `settings.gradle`; let `klum-ast-bom` constrain it through it
 
 **Seams:** `docs/user/Templates.md`, `docs/user/Migration.md`, `CHANGES.md`, current navigation only if a page is added, public artifact/Javadocs, and ADR/implementation status.
 
-**Work:** add a concise Templates section with BOM-aligned Gradle test dependency setup and the empty-field, setup-base, feature-addition Spock example from this plan as the primary guide, followed by Java try-with-resources as a convenience example. State that Templates are pre-created materialized recipes, scope state is current-thread only, and Spock `@AutoCleanup` owns teardown after cleanup. Explain that a scope field is never `@Shared`; the core artifact does not inspect Spock annotations, while a future optional extension or a project-local interceptor may enforce broader fixture policy. Explain multiple field order and independent clusters. In the 4.x migration guide, replace any advice to import or mutate `TemplateManager` with constructed `TemplateScope` and `with`; retain `Foo.Template.WithAll` as the no-extra-artifact alternative. Link the documentary test by class and feature method. Add the 4.1 changelog entry and explain that the coordinate is test support, not a new runtime DSL API. Retain ADR 0017 as Accepted and change this plan's implementation status to Implemented only when all feature, publication, external-consumer, documentation, and release-facing checks are actually complete.
+**Work:** add a concise Templates section with BOM-aligned Gradle test dependency setup and the empty-field, setup-base, feature-addition Spock example from this plan as the primary guide, followed by Java try-with-resources as a convenience example. State that Templates are pre-created materialized recipes, scope state is current-thread only, and Spock `@AutoCleanup` owns teardown after cleanup. Explain both `with` forms, inferred target type, and same-target replacement. Explain that a scope field is never `@Shared`; the core artifact does not inspect Spock annotations, while a future optional extension or a project-local interceptor may enforce broader fixture policy. Explain multiple field order and independent clusters. In the 4.x migration guide, replace any advice to import or mutate `TemplateManager` with constructed `TemplateScope` and `with`; retain `Foo.Template.WithAll` as the no-extra-artifact alternative. Link the documentary test by class and feature method. Add the 4.1 changelog entry and explain that the coordinate is test support, not a new runtime DSL API. Retain ADR 0017 as Accepted and change this plan's implementation status to Implemented only when all feature, publication, external-consumer, documentation, and release-facing checks are actually complete.
 
 **Acceptance:** docs render/link checks pass; every dependency coordinate is BOM-aligned and test-scoped; search finds no user instruction that treats `TemplateManager` as a supported migration API; the concise Java and Groovy examples match the documentary test. The release note, public Javadocs, documentation navigation, BOM, and product-resolver evidence all name the same support coordinate.
 
@@ -130,8 +130,8 @@ Add the project to `settings.gradle`; let `klum-ast-bom` constrain it through it
 
 | Contract | Primary test or fixture | Required proof |
 | --- | --- | --- |
-| Public facade | `TemplateScopeTest` plus Java consumer test | final `AutoCloseable`, one public empty constructor and fluent `with(Map)`, no static factory, manager/registry methods, or internal descriptor references |
-| Exact restoration | focused scope tests | empty-frame creation, additive map snapshots, outer/inner restoration, same-type shadowing, idempotent close, exception cleanup |
+| Public facade | `TemplateScopeTest` plus Java consumer test | final `AutoCloseable`, one public empty constructor and fluent `with(Object...)`/`with(Collection<?>)`, no static factory, manager/registry methods, map parameter, or internal descriptor references |
+| Exact restoration | focused scope tests | empty-frame creation, additive value snapshots, outer/inner restoration, same-type shadowing, duplicate target replacement, idempotent close, exception cleanup |
 | Thread boundary | focused scope tests | another thread cannot observe the scope; wrong-thread close and non-LIFO close reject without state corruption |
 | Existing Template behavior | existing Template/companion/Builder tests | recipe replay, definition scope, lifecycle, ownership, `LINK`, serialization, and Jackson results remain unchanged |
 | Java consumption | try-with-resources test | convenience usage: a materialized Template is active in the block and absent after normal/exceptional exit |
@@ -145,7 +145,7 @@ Add the project to `settings.gradle`; let `klum-ast-bom` constrain it through it
 
 | Risk | Control |
 | --- | --- |
-| A facade accidentally exposes a mutable map or runtime implementation type. | Freeze the one-method/one-token descriptor in reflection, Javadoc, bytecode, and JPMS tests; use copies at both open and bridge boundaries. |
+| A facade accidentally exposes a map or runtime implementation type. | Freeze the two-operation/one-token descriptor in reflection, Javadoc, bytecode, and JPMS tests; use defensive value snapshots at both facade and bridge boundaries. |
 | Out-of-order close silently restores the wrong state. | Maintain a per-thread scope stack and reject non-top close before any mutation; prove outer/inner shadowing and rejection cases. |
 | A Java classpath user reaches the bridge despite JPMS qualified exports. | Keep the bridge in the existing `internal` package, omit it from public docs/inventory, and treat its classpath visibility as unsupported implementation detail; the public facade has no bridge descriptor. |
 | The new module pulls Groovy 3 into a Groovy 4/5 consumer. | Keep production Java-only, runtime as `implementation`, and assert support POM has no Groovy dependency; run clean selected-Groovy consumer fixtures. |
@@ -154,4 +154,4 @@ Add the project to `settings.gradle`; let `klum-ast-bom` constrain it through it
 | A `@Shared` field makes Template state spec-wide. | Document it as unsupported; the Java-only core preserves no false detection guarantee. A future optional Spock extension may validate the field convention without changing the core scope API. |
 | Multiple scope fields produce call-order-dependent defaults. | Retain a frame per scope and recompose by construction/nesting order. Document general-before-specialized declaration and prove reverse `@AutoCleanup` teardown. |
 
-No core product decision remains before implementation: the artifact name, initial package/type, empty-frame/additive mapping contract, restoration/misuse rules, runtime bridge boundary, publication shape, and Groovy-consumer evidence are settled here. An optional Spock validator/interceptor and anonymous-recipe helpers remain deliberately deferred; either requires a separate decision rather than being inferred from #658.
+No core product decision remains before implementation: the artifact name, initial package/type, empty-frame/additive value contract, restoration/misuse rules, runtime bridge boundary, publication shape, and Groovy-consumer evidence are settled here. An optional Spock validator/interceptor, anonymous-recipe helpers, and explicit alternate target mapping remain deliberately deferred; each requires a separate decision rather than being inferred from #658.

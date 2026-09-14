@@ -32,26 +32,28 @@ The test need is not a request to change Template definition, recipe replay, Bui
 
 Add a `klum-ast-test-support` Java-library subproject and publish it as `com.blackbuild.klum.ast:klum-ast-test-support`. It is a normal Maven product with sources, Javadocs, signing, BOM alignment, release-product verification, and an isolated exact-version API page. It is not a `java-test-fixtures` capability and it publishes none of the runtime's test fixture classes.
 
-The module owns one public package, `com.blackbuild.klum.ast.testsupport`, and one initial public type with an explicit empty scope constructor and one additive operation:
+The module owns one public package, `com.blackbuild.klum.ast.testsupport`, and one initial public type with an explicit empty scope constructor and additive value operations:
 
 ```java
 public final class TemplateScope implements AutoCloseable {
     public TemplateScope();
 
-    public TemplateScope with(Map<Class<?>, ?> templates);
+    public TemplateScope with(Object... templates);
+
+    public TemplateScope with(Collection<?> templates);
 
     @Override
     public void close();
 }
 ```
 
-Construction opens an empty current-thread frame and snapshots the preceding effective Template mapping. `with` defensively copies and adds materialized Template mappings to that frame, returning the same scope for ordinary Java chaining. Splitting lifetime from mapping makes a Spock field useful: `setup` can install a base set, while a feature can add or override its own Templates without opening a second top-level test fixture. The public constructor, rather than a static `open` factory, makes lifetime visible at each declaration and works directly with Java's resource syntax and a Spock field. The API neither creates anonymous Templates nor validates, converts, serializes, mutates, or exposes Template values. Callers create recipes through the existing `Foo.Create.Template.With(...)` API and select the target type explicitly in the map. The public signature contains only JDK types, so using the scope does not expose runtime implementation types or force a Groovy version through the support artifact's API.
+Construction opens an empty current-thread frame and snapshots the preceding effective Template mapping. `with` defensively snapshots materialized Templates and adds their inferred model target types to that frame, returning the same scope for ordinary Java chaining. `with(Collection<?>)` is equivalent to supplying the collection's elements to `with(Object...)`; it is deliberately separate so a list is never mistaken for one Template. Splitting lifetime from mapping makes a Spock field useful: `setup` can install a base set, while a feature can add or override its own Templates without opening a second top-level test fixture. The public constructor, rather than a static `open` factory, makes lifetime visible at each declaration and works directly with Java's resource syntax and a Spock field. The API neither creates anonymous Templates nor exposes registry keys, values, or mechanics. Callers create materialized recipes through the existing `Foo.Create.Template.With(...)` API, whose model type supplies the ordinary target selection. The public signature contains only JDK types, so using the scope does not expose runtime implementation types or force a Groovy version through the support artifact's interface.
 
 This is a test-support API, not a new production-runtime construction API. Its Javadocs and user guidance say to declare it in a test dependency configuration. The support artifact has an `implementation` dependency on `klum-ast-runtime` for execution; consumer examples declare the BOM, normal runtime, and test-support coordinate together so the supported Schema runtime remains explicit. The BOM constrains the new coordinate just as it constrains every Java-library subproject.
 
 ### Make the scope restoration contract explicit
 
-Opening a scope captures the complete preceding Template mapping for the calling thread. Each scope retains its own additive frame; the effective mapping is recomposed from active frames in construction/nesting order, with a later frame winning for one repeated target type. A `with` call on an outer frame therefore does not accidentally leapfrog an already-active inner frame. Closing the still-active top-of-stack scope restores that exact preceding mapping. Nested scopes therefore restore their direct parent on inner close and the pre-existing state on outer close. Scope state never propagates to another thread.
+Opening a scope captures the complete preceding Template mapping for the calling thread. Each scope retains its own additive frame; the effective mapping is recomposed from active frames in construction/nesting order, with a later frame winning for one repeated target type. Within one `with` invocation and across successive calls on one scope, a later supplied Template for the same inferred target type wins. A `with` call on an outer frame therefore does not accidentally leapfrog an already-active inner frame. Closing the still-active top-of-stack scope restores that exact preceding mapping. Nested scopes therefore restore their direct parent on inner close and the pre-existing state on outer close. Scope state never propagates to another thread.
 
 `close` is idempotent after a successful close. `with` after close, closing on a different thread, or closing a still-active scope out of nesting order fails with `IllegalStateException` and leaves the calling thread's Template state unchanged. This turns misuse that could corrupt a thread-local stack into an observable test failure. Spock `@AutoCleanup` is the primary lifecycle teardown: it runs after `cleanup`, so the scope remains active for cleanup work even when a feature fails. Java try-with-resources remains an equivalent Java convenience. A failed constructor or `with` leaves no partial registration.
 
@@ -71,7 +73,7 @@ The artifact is one Java 17 production artifact and publishes once. It selects n
 - The public surface remains deep: `TemplateScope` describes lifetime only, while recipe construction and all mutable registry mechanics remain behind the support/runtime boundary.
 - A seventh behavioral Maven artifact becomes part of each 4.1 product release, BOM, public-product resolver, Javadoc renderer, and release evidence. It does not change historic 4.0 documentation or artifacts.
 - Consumers retain Groovy 3/4/5 selection control. The support artifact's POM must not make its Groovy-3 compilation baseline a transitive consumer choice.
-- The first release establishes only map-based, already-materialized Template scopes. Interceptors, JUnit extensions, Spock extensions, anonymous-map creation helpers, and cross-thread propagation remain project-local or future separately designed work.
+- The first release establishes only value-based, already-materialized Template scopes. Interceptors, JUnit extensions, Spock extensions, anonymous-map creation helpers, explicit alternate target mapping, and cross-thread propagation remain project-local or future separately designed work.
 
 ## Rejected alternatives
 
