@@ -22,6 +22,7 @@ gradle.projectsEvaluated {
         dependsOn ':klum-ast-annotations:generatePomFileForMavenJavaPublication'
         dependsOn ':klum-ast-runtime:jar'
         dependsOn ':klum-ast-runtime:generatePomFileForMavenJavaPublication'
+        dependsOn ':klum-ast-test-support:jar'
         dependsOn ':klum-ast-bom:generatePomFileForMavenJavaPublication'
         dependsOn ':klum-ast-jackson:jar'
         dependsOn ':klum-ast-bean-validation:jar'
@@ -32,6 +33,7 @@ gradle.projectsEvaluated {
         systemProperty('klumAnnotationsPom', klumAnnotationsPom.get().asFile)
         systemProperty('klumCompilerJar', tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumRuntimeJar', project(':klum-ast-runtime').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('klumTestSupportJar', project(':klum-ast-test-support').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumRuntimePom', klumRuntimePom.get().asFile)
         systemProperty('klumBomPom', klumBomPom.get().asFile)
         systemProperty('klumVersion', project.version.toString())

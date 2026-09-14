@@ -12,6 +12,10 @@ groovyDependencies {
 
 allprojects {
     repositories {
+        def templateScopeFixtureRepository = providers.gradleProperty('templateScopeFixtureRepository')
+        if (templateScopeFixtureRepository.present) {
+            maven { url = uri(templateScopeFixtureRepository.get()) }
+        }
         mavenCentral()
     }
 }

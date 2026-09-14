@@ -14,6 +14,7 @@ dependencies {
     publicProduct "com.blackbuild.klum.ast:klum-ast-annotations:$releaseVersion"
     publicProduct "com.blackbuild.klum.ast:klum-ast:$releaseVersion"
     publicProduct "com.blackbuild.klum.ast:klum-ast-runtime:$releaseVersion"
+    publicProduct "com.blackbuild.klum.ast:klum-ast-test-support:$releaseVersion"
     publicProduct "com.blackbuild.klum.ast:klum-ast-jackson:$releaseVersion"
     publicProduct "com.blackbuild.klum.ast:klum-ast-bean-validation:$releaseVersion"
     publicProduct "com.blackbuild.klum.ast:klum-ast-gradle-plugin:$releaseVersion"
