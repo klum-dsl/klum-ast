@@ -19,15 +19,20 @@ create the consumer repository.
 ## Target fixture contract
 
 The repository has an immutable root coordinate manifest per run and a versioned baseline manifest per supported release
-line. Together they contain the selected KlumAST version, line-specific expected product set, KlumAST plugin
-ID/marker/implementation coordinates, resolved AnnoDocimal version, Gradle/JDK requirements, fixture revision, selected
-baseline entries, and one of `public-release` or `candidate-maintenance` repository modes. The build fails if a requested
-value is absent, an unapproved repository is consulted, or resolved module/plugin evidence differs from the manifest. It
-must not retroactively require a coordinate, such as 4.0.0 test support, that was not part of the released line.
+line. A baseline records the historical consumer contract—fixture revision/topology, expectations, task graph,
+compatibility commitment, and its released KlumAST pin. A historical/public revalidation resolves that recorded pin.
+Candidate-maintenance mode instead binds the selected baseline contract to the exact newer candidate coordinates; it does
+not use a predecessor pin as the under-test product. Together the manifests contain the selected under-test KlumAST
+version, line-specific expected product set, KlumAST plugin ID/marker/implementation coordinates, resolved AnnoDocimal
+version, Gradle/JDK requirements, fixture revision, selected baseline entries, binding mode, and one of `public-release`
+or `candidate-maintenance` repository modes. The build fails if a requested value is absent, an unapproved repository is
+consulted, or resolved module/plugin evidence differs from the manifest. It must not retroactively require a coordinate,
+such as 4.0.0 test support, that was not part of the released line.
 
-Candidate mode accepts only one complete candidate product: all candidate Maven modules plus the marker and implementation
-for the plugin applied by the fixture have the manifest's same candidate version and resolve from its isolated candidate
-repository. The consumer declares that repository through `pluginManagement` so Gradle performs ordinary marker-based
+Candidate mode accepts only one complete candidate product: the candidate BOM and product Maven modules plus the marker
+and implementation for the plugin applied by the fixture have the manifest's same candidate version and resolve from its
+isolated candidate repository. This applies unchanged when a retained predecessor-line baseline is rebound to the
+candidate. The consumer declares that repository through `pluginManagement` so Gradle performs ordinary marker-based
 plugin resolution. A public marker or implementation, mismatched candidate version, or absent candidate marker makes the
 run incomplete candidate evidence and fails it. `mavenLocal()` is excluded from every public or final candidate run.
 
@@ -116,14 +121,16 @@ Commit boundary: `Run Layer 3 Domain API contract in showcase` with fixture and 
 
 Run each affected baseline fixture on catwalk PRs using pins. Add scheduled/manual public revalidation with an isolated
 cache, and a manual candidate-maintenance proof accepting only the exact coordinate manifest. A minor release runs its
-selected current-line baseline and all retained compatible predecessor-line baselines. Preserve KlumAST's local CI and
+selected current-line baseline and all retained compatible predecessor-line baseline contracts rebound to that candidate;
+their historical pins remain public-revalidation inputs, not candidate inputs. Preserve KlumAST's local CI and
 `release/consumer`; invoke the candidate proof only from release candidate/maintenance orchestration after staging, then
 retain its evidence in the release record.
 
-Acceptance: catwalk PRs get fixture evidence; a scheduled run performs no writes; candidate invocation rejects an
-unbound or incomplete manifest; ordinary KlumAST PRs never await the catwalk; release evidence links exact manifest,
-baseline selection, source SHA, candidate repository digest, resolved marker/implementation/module origins and versions,
-and result.
+Acceptance: catwalk PRs get fixture evidence; a scheduled run performs no writes against each baseline's recorded public
+pin; candidate invocation rejects an unbound or incomplete manifest; a qualifying 4.1 candidate runs a retained 4.0
+baseline against 4.1 candidate coordinates; ordinary KlumAST PRs never await the catwalk; release evidence links exact
+manifest, baseline selection and binding mode, source SHA, candidate repository digest, resolved
+marker/implementation/module origins and versions, and result.
 
 Commit boundary: `Run showcase consumer proof on explicit release inputs` with workflow tests or dry-run validation.
 
@@ -148,8 +155,9 @@ coordinates. Otherwise its build may reuse stable fixture conventions but must n
 task graph.
 
 Acceptance: each showcase or rehearsal declares intended KlumAST pin and audience; every promoted baseline records its
-release-line compatibility promise and passes in a fresh-cache candidate/public run; ordinary showcases remain optional;
-user-facing documentation is reviewed as documentation rather than release proof.
+release-line compatibility promise, historical public pin, and candidate-rebinding eligibility, then passes in a
+fresh-cache public revalidation and a candidate run bound to the selected new version; ordinary showcases remain
+optional; user-facing documentation is reviewed as documentation rather than release proof.
 
 Commit boundary: one coherent user journey or baseline-promotion rationale per commit; no presentation-only catalog change
 is bundled with candidate-release wiring.

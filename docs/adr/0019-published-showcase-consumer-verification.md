@@ -61,6 +61,14 @@ showcases or migration rehearsals that prove a real compatibility commitment for
 the retained baselines for its supported predecessor lines as well as its own current-line baseline. A newly added
 showcase is release evidence only after a reviewed manifest change promotes it; otherwise it remains a runnable example.
 
+The baseline manifest records the historical consumer contract: fixture revision/topology, expectations, task graph,
+compatibility commitment, and that line's released KlumAST pin. A historical/public revalidation resolves that recorded
+pin, so it continues to prove the release line exactly as published. Candidate qualification is different: it rebinds the
+same predecessor-line fixture contract to the newer candidate coordinates. Thus qualifying 4.1 runs the retained 4.0
+consumer baseline against the 4.1 candidate, proving that the supported 4.0-era consumer contract still works with 4.1.
+The rebinding never weakens the candidate boundary: marker, plugin implementation, BOM/product modules, and manifest must
+all resolve from the same exact candidate repository and version.
+
 This preserves a compact default gate while allowing a complex real-world reproduction to become durable regression
 evidence. Compatibility is expressed by pinned coordinates, fixture revision, and manifest—not by copying the project
 or synchronizing commits with KlumAST.
@@ -134,10 +142,11 @@ example churn or an unavailable external runner.
 A scheduled/manual public-revalidation run resolves each supported pin cleanly and reports dependency drift or service
 failure without changing product state. A manually dispatched candidate-maintenance run is required release evidence for
 the exact coordinate manifest, including its staged plugin marker and implementation. For a minor release, it runs every
-retained predecessor-line baseline and the selected current-line baseline. It runs after candidate artifacts exist and
-before protected release approval; it complements, rather than replaces, KlumAST's `release/consumer` resolver and
-`REL-2` public proof. After publication, `REL-2` still resolves only real public endpoints, as required by
-`RELEASING.md`.
+retained predecessor-line baseline rebound to that candidate and the selected current-line baseline. It does not
+re-run predecessor historical pins as candidate evidence; those pins remain the target of public revalidation. It runs
+after candidate artifacts exist and before protected release approval; it complements, rather than replaces, KlumAST's
+`release/consumer` resolver and `REL-2` public proof. After publication, `REL-2` still resolves only real public
+endpoints, as required by `RELEASING.md`.
 
 Admit the direct Schema minimum to **release/4.0.x** when that line first has an accepted maintenance release candidate.
 This is justified despite not being a product bugfix: it tests the public maintenance product as a Schema consumer and is
@@ -177,8 +186,8 @@ KlumAST coordinate selection, Domain API mappings, or this first showcase build.
 - The first published-client proof covers behavior the resolver-only release consumer deliberately does not.
 - A small verification baseline stays failure-diagnostic while complex showcases can be promoted deliberately for a
   concrete regression or release-line compatibility promise.
-- Minor releases prove the retained compatible showcase/migration baselines of their supported predecessor lines rather
-  than relying solely on newly authored fixtures.
+- Minor releases prove retained compatible showcase/migration baselines of supported predecessor lines **against the
+  new candidate**, rather than merely re-running historical pins or relying solely on newly authored fixtures.
 - Candidate proof has a complete coordinate boundary, preventing a successful composite, local-classpath build, or
   released-plugin/candidate-module mixture from being mistaken for published-consumer evidence.
 - The cost is one small repository, coordinate-manifest maintenance, fresh-cache CI time, and release-run coordination.
