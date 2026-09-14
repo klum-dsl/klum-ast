@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Internal frame restoration support for the published Template test lifetime token.
@@ -51,13 +50,9 @@ public final class TemplateScopeBridge {
     /** Adds a defensive value snapshot to an active frame. */
     public static void add(Frame frame, Object[] templates) {
         requireActiveFrame(frame);
+        TemplateManager.validateTemplateValues(Arrays.asList(templates));
         Map<Class<?>, Object> additions = new LinkedHashMap<>();
-        Arrays.stream(Objects.requireNonNull(templates, "templates"))
-                .forEach(template -> {
-                    if (!TemplateManager.isTemplate(template))
-                        throw new IllegalArgumentException("Template scopes accept only materialized Templates");
-                    additions.put(TemplateManager.getRealType(template), template);
-                });
+        Arrays.stream(templates).forEach(template -> additions.put(TemplateManager.getRealType(template), template));
         frame.templates.putAll(additions);
         restoreEffectiveTemplates(FRAMES.get());
     }

@@ -493,7 +493,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         and:
-        def template = clazz.Create.With(name: 'Dieter')
+        def template = clazz.Create.Template.With(name: 'Dieter')
 
         when:
         clazz.Template.With(template) {

@@ -285,6 +285,92 @@ class TemplateScopeTest extends AbstractDSLSpec {
         appliedLabel(scopeType) == null
     }
 
+    @Issue("760")
+    @SuppressWarnings("groovydre:S134") // nested scopes make each atomic registration boundary explicit
+    def "manager registration and TemplateScope share atomic materialized Template validation"() {
+        given:
+        def baseline = templateFor(scopeType, 'baseline')
+        def replacement = templateFor(scopeType, 'replacement')
+        def ordinaryModel = scopeType.Create.With(label: 'ordinary')
+        def managerInputs = [
+                [(scopeType): null],
+                [(scopeType): ordinaryModel],
+                [(scopeType): replacement, (otherScopeType): ordinaryModel]
+        ]
+        List<Object[]> scopeInputs = [
+                [null] as Object[],
+                [ordinaryModel] as Object[],
+                [replacement, ordinaryModel] as Object[]
+        ]
+        List<String> managerDiagnostics = []
+        List<String> scopeDiagnostics = []
+
+        when:
+        TemplateManager.doWithTemplates([(scopeType): baseline]) {
+            managerInputs.each { invalidTemplates ->
+                try {
+                    TemplateManager.doWithTemplates(invalidTemplates) {
+                        assert false: 'invalid Templates must not execute the scoped body'
+                    }
+                } catch (IllegalArgumentException exception) {
+                    managerDiagnostics << exception.message
+                }
+                assert appliedLabel(scopeType) == 'baseline'
+            }
+        }
+
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(baseline)
+            scopeInputs.each { invalidTemplates ->
+                try {
+                    scope.with(invalidTemplates)
+                } catch (IllegalArgumentException exception) {
+                    scopeDiagnostics << exception.message
+                }
+                assert appliedLabel(scopeType) == 'baseline'
+            }
+        }
+
+        then:
+        managerDiagnostics == ['Template scopes accept only materialized Templates'] * 3
+        scopeDiagnostics == managerDiagnostics
+        appliedLabel(scopeType) == null
+    }
+
+    @Issue("760")
+    def "direct manager mutation paths reject invalid Template values before replacing state"() {
+        given:
+        TemplateManager manager = TemplateManager.instance
+        def baseline = templateFor(scopeType, 'baseline')
+        def replacement = templateFor(scopeType, 'replacement')
+        def ordinaryModel = scopeType.Create.With(label: 'ordinary')
+        manager.setTemplates([(scopeType): baseline])
+        List<Closure<?>> invalidMutations = [
+                { manager.setTemplate(scopeType, null) },
+                { manager.setTemplate(scopeType, ordinaryModel) },
+                { manager.addTemplates([(scopeType): replacement, (otherScopeType): ordinaryModel]) },
+                { manager.setTemplates([(scopeType): replacement, (otherScopeType): ordinaryModel]) }
+        ]
+        List<String> diagnostics = []
+
+        when:
+        invalidMutations.each { mutation ->
+            try {
+                mutation.call()
+            } catch (IllegalArgumentException exception) {
+                diagnostics << exception.message
+            }
+            assert manager.getTemplate(scopeType).is(baseline)
+            assert manager.getTemplate(otherScopeType) == null
+        }
+
+        then:
+        diagnostics == ['Template scopes accept only materialized Templates'] * 4
+
+        cleanup:
+        manager.setTemplates([:])
+    }
+
     private Object templateFor(Class<?> modelType, String label) {
         modelType.Create.Template.With(label: label)
     }

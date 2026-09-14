@@ -123,13 +123,14 @@ public class TemplateManager {
      * @return the result of the closure
      */
     public static <T, C> T withTemplate(Class<C> type, C template, Closure<T> body) {
+        requireTemplate(template);
         TemplateManager manager = getInstance();
         C oldTemplate = manager.getTemplate(type);
         try {
             manager.setTemplate(type, template);
             return body.call();
         } finally {
-            manager.setTemplate(type, oldTemplate);
+            manager.restoreTemplate(type, oldTemplate);
             manager.deregister();
         }
     }
@@ -213,8 +214,22 @@ public class TemplateManager {
      * @return the result of the closure
      */
     public static <T> T withTemplates(List<Object> newTemplates, Closure<T> body) {
+        validateTemplateValues(newTemplates);
         Map<Class<?>, Object> templateMap = newTemplates.stream().collect(toMap(TemplateManager::getRealType, identity()));
         return doWithTemplates(templateMap, body);
+    }
+
+    /**
+     * Verifies materialized Template identity for values entering a scoped Template registration.
+     * This is the authoritative validation boundary for internal callers that provide untyped Template values.
+     */
+    static void validateTemplateValues(Iterable<?> newTemplates) {
+        newTemplates.forEach(TemplateManager::requireTemplate);
+    }
+
+    private static void requireTemplate(Object template) {
+        if (!isTemplate(template))
+            throw new IllegalArgumentException("Template scopes accept only materialized Templates");
     }
 
     static Class<?> getRealType(Object target) {
@@ -235,17 +250,24 @@ public class TemplateManager {
     }
 
     /**
-     * Sets the template for the given type. If the template is null, the template is removed.
+     * Sets the materialized Template for the given type.
+     * Null and non-Template values are rejected.
      *
      * @param type     the type of the template
-     * @param template the template
+     * @param template the materialized Template
      * @param <T>      the type of the template
      */
     public <T> void setTemplate(Class<T> type, T template) {
-        if (template != null)
-            templates.put(type, template);
-        else
+        requireTemplate(template);
+        templates.put(type, template);
+    }
+
+    @SuppressWarnings("java:S2583") // a preceding scope can have no Template to restore
+    private <T> void restoreTemplate(Class<T> type, T template) {
+        if (template == null)
             templates.remove(type);
+        else
+            setTemplate(type, template);
     }
 
     /**
@@ -254,6 +276,7 @@ public class TemplateManager {
      * @param newTemplates the templates to add
      */
     public void addTemplates(Map<Class<?>, ?> newTemplates) {
+        validateTemplateValues(newTemplates.values());
         templates.putAll(newTemplates);
     }
 
@@ -263,8 +286,9 @@ public class TemplateManager {
      * @param newTemplates the templates to set
      */
     public void setTemplates(Map<Class<?>, ?> newTemplates) {
+        validateTemplateValues(newTemplates.values());
         templates.clear();
-        addTemplates(newTemplates);
+        templates.putAll(newTemplates);
     }
 
 
