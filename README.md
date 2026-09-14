@@ -9,12 +9,13 @@ Make Your Models Groovy!
 
 # Breaking changes and version overview
 
-4.0 is currently in the final stages as a breaking Builder-first release. Generated factories now configure Builders and
-materialize structurally immutable completed DSL Objects before validation. See the canonical
-[KlumAST documentation entry point](https://klum-dsl.github.io/klum-ast/); once a final is available, use the
-version selector's labelled stable documentation rather than this repository's authoring files.
+KlumAST 4.0.0 is the released Builder-first version. Generated factories configure Builders, materialize structurally
+immutable completed DSL Objects, then validate them. Start with the stable
+[4.0.0 documentation](https://klum-dsl.github.io/klum-ast/4.0.0/) and the
+[Builder First Migration guide](https://klum-dsl.github.io/klum-ast/4.0.0/Builder-First-Migration/) when upgrading an
+existing Schema, client, or extension.
 
-3.0 dropped support for Groovy 2.x and Java 11; the minimum Java version is 17, with Groovy 3, 4, and 5 supported.
+KlumAST requires Java 17 and supports Groovy 3, 4, and 5.
 
 For 4.0 Schema projects, Groovy 4/5 support named Java modules while Groovy 3
 remains classpath-only. The Gradle Schema plugin validates a user-owned
