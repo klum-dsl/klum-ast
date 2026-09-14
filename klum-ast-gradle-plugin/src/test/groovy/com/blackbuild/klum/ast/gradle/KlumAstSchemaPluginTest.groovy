@@ -51,6 +51,7 @@ class KlumAstSchemaPluginTest extends Specification {
         version = PluginHelper.determineOwnVersion()
     }
 
+    @Issue('658')
     def "basic plugin configuration"() {
         given:
         project = ProjectBuilder.builder().build()
@@ -69,6 +70,7 @@ class KlumAstSchemaPluginTest extends Specification {
         and:
         project.configurations.getByName("compileOnly").dependencies.any { it.name == "klum-ast" && it.group == "com.blackbuild.klum.ast" && it.version == null }
         project.configurations.getByName("api").dependencies.any { it.name == "klum-ast-runtime" && it.group == "com.blackbuild.klum.ast" && it.version == null }
+        project.configurations.getByName("testImplementation").dependencies.any { it.name == "klum-ast-test-support" && it.group == "com.blackbuild.klum.ast" && it.version == null }
 
         when:
         def java = project.getExtensions().getByType(JavaPluginExtension.class)
