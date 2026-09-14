@@ -62,7 +62,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
         TemplateManager.isTemplate(second)
 
         when:
-        try (TemplateScope scope = new TemplateScope().with(first).with([second])) {
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(first).with([second])
             assert appliedLabel(scopeType) == 'second'
         }
 
@@ -72,13 +73,15 @@ class TemplateScopeTest extends AbstractDSLSpec {
 
     def "restores outer materialized Templates after nested shadowing"() {
         given:
-        def outer = templateFor(scopeType, 'outer')
-        def inner = templateFor(scopeType, 'inner')
+        def outerTemplate = templateFor(scopeType, 'outer')
+        def innerTemplate = templateFor(scopeType, 'inner')
 
         when:
-        try (TemplateScope ignored = new TemplateScope().with(outer)) {
+        try (TemplateScope outerScope = new TemplateScope()) {
+            outerScope.with(outerTemplate)
             assert appliedLabel(scopeType) == 'outer'
-            try (TemplateScope nested = new TemplateScope().with(inner)) {
+            try (TemplateScope innerScope = new TemplateScope()) {
+                innerScope.with(innerTemplate)
                 assert appliedLabel(scopeType) == 'inner'
             }
             assert appliedLabel(scopeType) == 'outer'
@@ -95,13 +98,12 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def specialized = templateFor(scopeType, 'specialized')
 
         when:
-        try (TemplateScope firstField = new TemplateScope().with(initial)) {
-            TemplateScope secondField = new TemplateScope().with(specialized)
-            try {
-                firstField.with(replacement)
+        try (TemplateScope outerScope = new TemplateScope()) {
+            outerScope.with(initial)
+            try (TemplateScope innerScope = new TemplateScope()) {
+                innerScope.with(specialized)
+                outerScope.with(replacement)
                 assert appliedLabel(scopeType) == 'specialized'
-            } finally {
-                secondField.close()
             }
             assert appliedLabel(scopeType) == 'replacement'
         }
@@ -117,7 +119,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def third = templateFor(scopeType, 'third')
 
         when:
-        try (TemplateScope ignored = new TemplateScope().with(first, second).with([first, third])) {
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(first, second).with([first, third])
             assert appliedLabel(scopeType) == 'third'
         }
 
@@ -133,7 +136,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def collection = [collectionValue]
 
         when:
-        try (TemplateScope ignored = new TemplateScope().with(varargs).with(collection)) {
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(varargs).with(collection)
             varargs[0] = templateFor(scopeType, 'replacement')
             collection[0] = templateFor(otherScopeType, 'replacement')
 
@@ -152,7 +156,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
 
         when:
         try {
-            try (TemplateScope ignored = new TemplateScope().with(value)) {
+            try (TemplateScope scope = new TemplateScope()) {
+                scope.with(value)
                 assert appliedLabel(scopeType) == 'value'
                 throw new IllegalArgumentException('expected')
             }
@@ -170,28 +175,31 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def innerValue = templateFor(scopeType, 'inner')
 
         when:
-        try (TemplateScope outer = new TemplateScope().with(outerValue);
-             TemplateScope inner = new TemplateScope().with(innerValue)) {
-            try {
-                outer.close()
-                assert false
-            } catch (IllegalStateException ignored) {
-            }
-            assert appliedLabel(scopeType) == 'inner'
-
-            AtomicReference<Throwable> failure = new AtomicReference<>()
-            Thread thread = new Thread({
+        try (TemplateScope outerScope = new TemplateScope()) {
+            outerScope.with(outerValue)
+            try (TemplateScope innerScope = new TemplateScope()) {
+                innerScope.with(innerValue)
                 try {
-                    inner.close()
-                } catch (Throwable throwable) {
-                    failure.set(throwable)
+                    outerScope.close()
+                    assert false
+                } catch (IllegalStateException ignored) {
                 }
-            })
-            thread.start()
-            thread.join()
+                assert appliedLabel(scopeType) == 'inner'
 
-            assert failure.get().class == IllegalStateException
-            assert appliedLabel(scopeType) == 'inner'
+                AtomicReference<Throwable> failure = new AtomicReference<>()
+                Thread thread = new Thread({
+                    try {
+                        innerScope.close()
+                    } catch (Throwable throwable) {
+                        failure.set(throwable)
+                    }
+                })
+                thread.start()
+                thread.join()
+
+                assert failure.get().class == IllegalStateException
+                assert appliedLabel(scopeType) == 'inner'
+            }
         }
 
         then:
@@ -200,7 +208,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
 
     def "makes successful close idempotent and rejects further values"() {
         given:
-        TemplateScope scope = new TemplateScope().with(templateFor(scopeType, 'value'))
+        TemplateScope scope = new TemplateScope()
+        scope.with(templateFor(scopeType, 'value'))
 
         when:
         scope.close()
@@ -223,7 +232,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def baseline = templateFor(scopeType, 'baseline')
 
         when:
-        try (TemplateScope scope = new TemplateScope().with(baseline)) {
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(baseline)
             try {
                 scope.with(new Object())
                 assert false
@@ -242,7 +252,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def replacement = templateFor(scopeType, 'replacement')
 
         when:
-        try (TemplateScope scope = new TemplateScope().with(baseline)) {
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(baseline)
             try {
                 scope.with(replacement, new Object())
                 assert false
@@ -260,7 +271,8 @@ class TemplateScopeTest extends AbstractDSLSpec {
         def baseline = templateFor(scopeType, 'baseline')
 
         when:
-        try (TemplateScope scope = new TemplateScope().with(baseline)) {
+        try (TemplateScope scope = new TemplateScope()) {
+            scope.with(baseline)
             try {
                 scope.with([null] as Object[])
                 assert false
