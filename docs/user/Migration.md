@@ -52,9 +52,9 @@ typed Java or static Groovy clients after changing the name. `Foo_DSL.Factory.Te
 the literal `Foo.Create.Template` root-creation field.
 
 For test fixtures that need materialized Templates across a Spock lifecycle, use one non-`@Shared` `TemplateScope` field
-with `@AutoCleanup`. A Schema module already receives `klum-ast-test-support` through the Schema plugin's
-`testImplementation` configuration, so do not add that dependency again. A direct Java/Groovy consumer that does not apply
-the Schema plugin declares the BOM-aligned runtime and test-support coordinates itself. This replaces project-private
+with `@AutoCleanup`. A Schema or Model module already receives `klum-ast-test-support` through its plugin's
+`testImplementation` configuration, so do not add that dependency again. A direct Java/Groovy consumer that applies
+neither plugin declares the BOM-aligned runtime and test-support coordinates itself. This replaces project-private
 ambient setup with a public, per-feature lifetime; see
 [Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
 
