@@ -57,8 +57,10 @@ For final 4.0 RC users that explicitly declared the generated handler type, rena
 the separate type of the `Foo.Create.Template` root-creation field.
 
 When a Spock test needs existing materialized Templates through `setup`, a feature, and `cleanup`, use the separately
-published `TemplateScope` test-support API rather than a callback wrapper. The concise lifecycle pattern and its test
-dependency coordinates are in [Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
+published `TemplateScope` test-support API rather than a callback wrapper. The Schema plugin provides it automatically on
+the test classpath; only direct Java/Groovy consumers that do not apply that plugin declare its coordinate explicitly. The
+concise lifecycle pattern and both dependency paths are in
+[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
 
 (See: `TemplatesDocumentaryTest#'creates a template from a DelegatingScript file'`.)
 

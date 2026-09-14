@@ -8,7 +8,8 @@ Tracking issue: [#658 — Provide published Template test support without exposi
 
 Implementation plan: [ADR 0017 implementation plan](../implementation/adr-0017-published-template-test-support.md)
 
-Implementation status: Planned. No implementation slice is delivered by this decision record.
+Implementation status: Implemented. TS-1 through TS-4 deliver the runtime bridge, public support artifact, publication and
+consumer verification, and final user/migration guidance.
 
 Parent decisions:
 
