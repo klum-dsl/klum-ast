@@ -37,6 +37,12 @@ dependencies {
 
     testFixturesCompileOnly libs.bundles.spock.groovy.v3
     testFixturesCompileOnly libs.jb.anno
+    testImplementation project(':klum-ast-test-support')
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    groovy4TestsImplementation project(':klum-ast-test-support')
+    groovy4TestsImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    groovy5TestsImplementation project(':klum-ast-test-support')
+    groovy5TestsImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
 
 
 

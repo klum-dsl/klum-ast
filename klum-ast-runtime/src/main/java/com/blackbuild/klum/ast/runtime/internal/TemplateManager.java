@@ -99,7 +99,7 @@ public class TemplateManager {
     }
 
 
-    private void deregister() {
+    void deregister() {
         if (templates.isEmpty())
             INSTANCE.remove();
     }
@@ -217,7 +217,7 @@ public class TemplateManager {
         return doWithTemplates(templateMap, body);
     }
 
-    private static Class<?> getRealType(Object target) {
+    static Class<?> getRealType(Object target) {
         Class<?> targetType = target.getClass();
         return targetType.isMemberClass() ? targetType.getSuperclass() : targetType;
     }
