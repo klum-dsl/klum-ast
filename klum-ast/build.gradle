@@ -54,6 +54,9 @@ dependencies {
 
     sharedTests libs.annodocimal.gradle.plugin
     sharedTests 'org.apache.ivy:ivy:2.5.3'
+    testImplementation project(':klum-ast-test-support')
+    groovy4TestsImplementation project(':klum-ast-test-support')
+    groovy5TestsImplementation project(':klum-ast-test-support')
     testFixturesCompileOnly libs.bundles.spock.groovy.v3
     testFixturesCompileOnly libs.jb.anno
 }

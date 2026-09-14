@@ -1,0 +1,26 @@
+plugins {
+    id "klum-ast.java-conventions"
+    id "klum-ast.jpms-descriptor-conventions"
+    id "klum-ast.jacoco-conventions"
+}
+
+description = "Template test support for KlumAST"
+
+dependencies {
+    implementation project(':klum-ast-runtime')
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    testImplementation libs.spock.g3
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

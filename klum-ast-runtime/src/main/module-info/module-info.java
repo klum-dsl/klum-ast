@@ -7,7 +7,8 @@ module com.blackbuild.klum.ast.runtime {
     exports com.blackbuild.klum.ast.runtime.validation;
     exports com.blackbuild.klum.ast.runtime.internal to
             com.blackbuild.klum.ast.compiler,
-            com.blackbuild.klum.ast.jackson;
+            com.blackbuild.klum.ast.jackson,
+            com.blackbuild.klum.ast.test.support;
     exports com.blackbuild.klum.ast.runtime.internal.layer3 to
             com.blackbuild.klum.ast.compiler;
     exports com.blackbuild.klum.ast.runtime.internal.process to
