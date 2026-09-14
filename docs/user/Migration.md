@@ -51,6 +51,10 @@ Code that explicitly named the generated scoped-application type must now use `F
 typed Java or static Groovy clients after changing the name. `Foo_DSL.Factory.Template` remains the distinct type for
 the literal `Foo.Create.Template` root-creation field.
 
+For test fixtures that need materialized Templates across a Spock lifecycle, add the 4.1
+`klum-ast-test-support` test dependency and use one non-`@Shared` `TemplateScope` field with `@AutoCleanup`. It replaces
+project-private ambient setup with a public, per-feature lifetime; see [Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
+
 For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
 and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
