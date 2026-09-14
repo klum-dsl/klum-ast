@@ -250,10 +250,11 @@ public class TemplateManager {
     }
 
     /**
-     * Sets the template for the given type. If the template is null, the template is removed.
+     * Sets the materialized Template for the given type.
+     * Null and non-Template values are rejected.
      *
      * @param type     the type of the template
-     * @param template the template
+     * @param template the materialized Template
      * @param <T>      the type of the template
      */
     public <T> void setTemplate(Class<T> type, T template) {
@@ -261,6 +262,7 @@ public class TemplateManager {
         templates.put(type, template);
     }
 
+    @SuppressWarnings("java:S2583") // a preceding scope can have no Template to restore
     private <T> void restoreTemplate(Class<T> type, T template) {
         if (template == null)
             templates.remove(type);

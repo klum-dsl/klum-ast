@@ -286,6 +286,7 @@ class TemplateScopeTest extends AbstractDSLSpec {
     }
 
     @Issue("760")
+    @SuppressWarnings("groovydre:S134") // nested scopes make each atomic registration boundary explicit
     def "manager registration and TemplateScope share atomic materialized Template validation"() {
         given:
         def baseline = templateFor(scopeType, 'baseline')
