@@ -2,8 +2,8 @@
 
 This is the dependency-ordered plan for proposed [ADR 0019](../adr/0019-published-showcase-consumer-verification.md)
 and [#484](https://github.com/klum-dsl/klum-ast/issues/484). It authorizes no production KlumAST change, new public
-coordinate, release, showcase repository creation, or AnnoDocimal change until maintainers accept the ADR and create the
-consumer repository.
+coordinate, release, `klum-catwalk` repository creation, or AnnoDocimal change until maintainers accept the ADR and
+create the consumer repository.
 
 ## Confirmed starting behavior and failure paths
 
@@ -18,16 +18,21 @@ consumer repository.
 
 ## Target fixture contract
 
-The repository has an immutable root coordinate manifest per run. It contains selected KlumAST version, the
-line-specific expected product set, KlumAST plugin ID/marker/implementation coordinates, resolved AnnoDocimal version,
-Gradle/JDK requirements, fixture revision, and one of `public-release` or `candidate-maintenance` repository modes. The
-build fails if a requested value is absent, an unapproved repository is consulted, or resolved module/plugin evidence
-differs from the manifest. It must not retroactively require a coordinate, such as 4.0.0 test support, that was not part
-of the released line.
+The repository has an immutable root coordinate manifest per run and a versioned baseline manifest per supported release
+line. A baseline records the historical consumer contract—fixture revision/topology, expectations, task graph,
+compatibility commitment, and its released KlumAST pin. A historical/public revalidation resolves that recorded pin.
+Candidate-maintenance mode instead binds the selected baseline contract to the exact newer candidate coordinates; it does
+not use a predecessor pin as the under-test product. Together the manifests contain the selected under-test KlumAST
+version, line-specific expected product set, KlumAST plugin ID/marker/implementation coordinates, resolved AnnoDocimal
+version, Gradle/JDK requirements, fixture revision, selected baseline entries, binding mode, and one of `public-release`
+or `candidate-maintenance` repository modes. The build fails if a requested value is absent, an unapproved repository is
+consulted, or resolved module/plugin evidence differs from the manifest. It must not retroactively require a coordinate,
+such as 4.0.0 test support, that was not part of the released line.
 
-Candidate mode accepts only one complete candidate product: all candidate Maven modules plus the marker and implementation
-for the plugin applied by the fixture have the manifest's same candidate version and resolve from its isolated candidate
-repository. The consumer declares that repository through `pluginManagement` so Gradle performs ordinary marker-based
+Candidate mode accepts only one complete candidate product: the candidate BOM and product Maven modules plus the marker
+and implementation for the plugin applied by the fixture have the manifest's same candidate version and resolve from its
+isolated candidate repository. This applies unchanged when a retained predecessor-line baseline is rebound to the
+candidate. The consumer declares that repository through `pluginManagement` so Gradle performs ordinary marker-based
 plugin resolution. A public marker or implementation, mismatched candidate version, or absent candidate marker makes the
 run incomplete candidate evidence and fails it. `mavenLocal()` is excluded from every public or final candidate run.
 
@@ -53,16 +58,17 @@ not class-directory reuse. The topology contains normal binary project dependenc
 
 ## Thin implementation slices
 
-### SC-1 — Establish the consumer repository and direct public fixture
+### SC-1 — Establish `klum-catwalk` and the direct public baseline
 
-Create the separate repository with one direct Schema fixture, root coordinate manifest, Maven Central/Plugin Portal only,
-and no composites, `mavenLocal()`, or local KlumAST dependencies. Add the small nested-signature and Javadoc test shape.
-Run the full direct task graph with a fresh Gradle home.
+Create the separate repository with one direct Schema fixture, root coordinate manifest, first versioned baseline manifest,
+Maven Central/Plugin Portal only, and no composites, `mavenLocal()`, or local KlumAST dependencies. Add the small
+nested-signature and Javadoc test shape. Run the full direct task graph with a fresh Gradle home.
 
 Acceptance: a released KlumAST coordinate resolves normally; source projection, Javadoc, model test, and `check` pass;
-evidence lists resolved product/plugin/AnnoDocimal coordinates and confirms no mirror-input leak.
+evidence lists resolved product/plugin/AnnoDocimal coordinates and confirms no mirror-input leak. The baseline manifest
+identifies this fixture as the first retained release-proof entry without making future ordinary showcases release gates.
 
-Commit boundary: `Add direct published Schema consumer proof` with fixture, manifest, and executable evidence check.
+Commit boundary: `Add catwalk direct published Schema baseline` with fixture, manifests, and executable evidence check.
 
 ### SC-1a — Make public-product manifests release-line aware
 
@@ -111,16 +117,20 @@ in the test harness. If a 3/4/5 matrix is added, every pair recompiles and runs 
 
 Commit boundary: `Run Layer 3 Domain API contract in showcase` with fixture and contract evidence.
 
-### SC-4 — Wire cadences without widening ordinary development CI
+### SC-4 — Wire baseline cadences without widening ordinary development CI
 
-Run each fixture on showcase PRs using pins. Add scheduled/manual public revalidation with an isolated cache, and a manual
-candidate-maintenance proof accepting only the exact coordinate manifest. Preserve KlumAST's local CI and
+Run each affected baseline fixture on catwalk PRs using pins. Add scheduled/manual public revalidation with an isolated
+cache, and a manual candidate-maintenance proof accepting only the exact coordinate manifest. A minor release runs its
+selected current-line baseline and all retained compatible predecessor-line baseline contracts rebound to that candidate;
+their historical pins remain public-revalidation inputs, not candidate inputs. Preserve KlumAST's local CI and
 `release/consumer`; invoke the candidate proof only from release candidate/maintenance orchestration after staging, then
 retain its evidence in the release record.
 
-Acceptance: showcase PRs get fixture evidence; a scheduled run performs no writes; candidate invocation rejects an
-unbound or incomplete manifest; ordinary KlumAST PRs never await the showcase; release evidence links exact manifest,
-source SHA, candidate repository digest, resolved marker/implementation/module origins and versions, and result.
+Acceptance: catwalk PRs get fixture evidence; a scheduled run performs no writes against each baseline's recorded public
+pin; candidate invocation rejects an unbound or incomplete manifest; a qualifying 4.1 candidate runs a retained 4.0
+baseline against 4.1 candidate coordinates; ordinary KlumAST PRs never await the catwalk; release evidence links exact
+manifest, baseline selection and binding mode, source SHA, candidate repository digest, resolved
+marker/implementation/module origins and versions, and result.
 
 Commit boundary: `Run showcase consumer proof on explicit release inputs` with workflow tests or dry-run validation.
 
@@ -136,16 +146,21 @@ identity; #522's KlumAST branch/promotion record remains independent and accurat
 Commit boundary: `Admit direct consumer proof for KlumAST 4.0.x` in the showcase repository, with a neutral
 `Related: #484` relationship from any coordinating KlumAST record.
 
-### SC-6 — Expand curated examples only after the gate is stable
+### SC-6 — Add curated showcases, migration rehearsals, and deliberate baseline promotion
 
-Add documentation-focused direct-schema and Layer 3 journeys, links from current KlumAST user pages where useful, and
-presentation material. Their build may reuse stable fixture conventions but must not silently expand the release-required
+Add documentation-focused direct-schema and Layer 3 journeys, migration rehearsals from supported prior lines, links from
+current KlumAST user pages where useful, and presentation material. A complex showcase can become a regression baseline
+only through a reviewed release-line manifest change that names the compatibility promise, task graph, and expected
+coordinates. Otherwise its build may reuse stable fixture conventions but must not silently expand the release-required
 task graph.
 
-Acceptance: each example declares intended KlumAST pin and audience; release-gate fixtures remain small and diagnostic;
-user-facing documentation is reviewed as documentation rather than release proof.
+Acceptance: each showcase or rehearsal declares intended KlumAST pin and audience; every promoted baseline records its
+release-line compatibility promise, historical public pin, and candidate-rebinding eligibility, then passes in a
+fresh-cache public revalidation and a candidate run bound to the selected new version; ordinary showcases remain
+optional; user-facing documentation is reviewed as documentation rather than release proof.
 
-Commit boundary: one coherent user journey per commit; no example-catalog change is bundled with candidate-release wiring.
+Commit boundary: one coherent user journey or baseline-promotion rationale per commit; no presentation-only catalog change
+is bundled with candidate-release wiring.
 
 ## Compatibility, ownership, and release policy
 
@@ -178,7 +193,7 @@ Commit boundary: one coherent user journey per commit; no example-catalog change
 
 | Item | Relationship |
 | --- | --- |
-| #484 | Canonical showcase, consumer proof, and later example-catalog owner; SC-1, SC-2 through SC-6. |
+| #484 | Canonical catwalk, consumer proof, showcase, migration-rehearsal, and baseline-promotion owner; SC-1, SC-2 through SC-6. |
 | Public-product resolver repair | SC-1a prerequisite owned by the release-proof surface; related to #484 but not absorbed as showcase implementation. |
 | ADR 0018 / #755 | Owns Layer 3 contract-test behavior exercised only in SC-3. |
 | #548 | Deferred source-level Schema composition; explicitly excluded. |
