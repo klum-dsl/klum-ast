@@ -1,7 +1,7 @@
 # 4.1.0 (unreleased)
 
 - Added the published `klum-ast-test-support` artifact with its small public `TemplateScope` lifetime API for
-  materialized Template setup in Schema tests. A new Testing Models and Schemas guide covers focused completed-model and
+  materialized Template setup in Schema and Model tests. A new Testing Models and Schemas guide covers focused completed-model and
   validation assertions, the public Spock lifecycle pattern, and its boundary with target integration/acceptance tests
   ([#658](https://github.com/klum-dsl/klum-ast/issues/658), [#758](https://github.com/klum-dsl/klum-ast/issues/758)).
 

@@ -66,12 +66,12 @@ See [Validation](Validation.md) for choosing `@Required`, field validation, and 
 
 ## Reuse Templates across a Spock feature
 
-For a Schema module, the Schema plugin already provides the published test-only `TemplateScope` artifact on
+For a Schema or Model module, the corresponding plugin already provides the published test-only `TemplateScope` artifact on
 `testImplementation`. Do not add a second `klum-ast-test-support` dependency. That test-classpath convenience is
 independent of the plugin's optional Spock setup, so the scope is available to Java/JUnit tests as well.
 
-Only a direct Java or Groovy consumer that does **not** apply the Schema plugin declares the normal runtime and test-support
-artifacts itself. Keep those versions aligned with the KlumAST BOM:
+Only a direct Java or Groovy consumer that applies **neither** plugin declares the normal runtime and test-support artifacts
+itself. Keep those versions aligned with the KlumAST BOM:
 
 ```groovy
 dependencies {

@@ -58,7 +58,7 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
 
     @Override
     protected void addDependencies() {
-        // nothing, all dependencies are transitive for now
+        project.getDependencies().add("testImplementation", "com.blackbuild.klum.ast:klum-ast-test-support");
     }
 
     protected void addDependentPlugins() {

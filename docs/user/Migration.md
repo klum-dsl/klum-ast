@@ -51,13 +51,6 @@ Code that explicitly named the generated scoped-application type must now use `F
 typed Java or static Groovy clients after changing the name. `Foo_DSL.Factory.Template` remains the distinct type for
 the literal `Foo.Create.Template` root-creation field.
 
-For test fixtures that need materialized Templates across a Spock lifecycle, use one non-`@Shared` `TemplateScope` field
-with `@AutoCleanup`. A Schema module already receives `klum-ast-test-support` through the Schema plugin's
-`testImplementation` configuration, so do not add that dependency again. A direct Java/Groovy consumer that does not apply
-the Schema plugin declares the BOM-aligned runtime and test-support coordinates itself. This replaces project-private
-ambient setup with a public, per-feature lifetime; see
-[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
-
 For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
 and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
@@ -125,6 +118,15 @@ local module-path flags to compensate for an invalid dependency graph.
 Recompile schemas and custom checks when moving to KlumAST 4.0. KlumAST's built-in name-bound checks use KlumCast's
 durable stateless `Check` SPI and report structured, source-positioned diagnostics. Custom checks must implement that SPI;
 the deprecated compatibility adapter is only a temporary migration aid for external consumers ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
+
+## To 4.1
+
+For test fixtures that need materialized Templates across a Spock lifecycle, use one non-`@Shared` `TemplateScope` field
+with `@AutoCleanup`. A Schema or Model module already receives `klum-ast-test-support` through its plugin's
+`testImplementation` configuration, so do not add that dependency again. A direct Java/Groovy consumer that applies
+neither plugin declares the BOM-aligned runtime and test-support coordinates itself. This replaces project-private
+ambient setup with a public, per-feature lifetime; see
+[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
 
 ## To 2.2
 
