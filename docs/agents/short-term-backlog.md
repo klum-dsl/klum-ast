@@ -63,6 +63,25 @@ authorize automatic follow-up work or change the root `AGENTS.md` delivery/archi
 reaches `(ready:PR)` provides the generic review/change brief in its final callback, then requests rather than self-applies
 archive reconciliation. The Hive alone performs the explicit final check for root `AGENTS.md`'s `(arch)` state.
 
+## Owner-private project-memory adapter
+
+The Hive may use an owner-private project-memory root attached as an auxiliary Codex Project directory. It is a
+local operational aid, never part of this checkout: do not commit the root, its path, current ledger state, prompts,
+transcripts, raw task logs, credentials, or private evidence. The source repository and GitHub remain authoritative.
+
+- Resolve the root only when ordinary Codex Project discovery identifies one attached directory unambiguously. Otherwise
+  record project memory as unavailable and continue ordinary source work; do not guess a path or make memory availability a
+  blocker.
+- Read the root `README.md` before any current-state artifact, including `state/executions.md`. Recover only the smallest
+  useful set of current artifacts. Do not broad-search task history, callbacks, or transcripts.
+- The Hive is the normal sole writer of the active-execution ledger. It updates the ledger only at meaningful execution or
+  delivery transitions; workers may write there only under an explicit grant. This adapter creates no permanent polling or
+  monitor.
+
+The read-only recovery path needs no task inventory or listing that exposes task-summary or transcript previews. Use the
+resolved root, its README, the current ledger, and consequential authoritative source facts; report unavailable or
+conflicting facts rather than inferring them.
+
 ## KlumAST worktree overlay
 
 Maintain a stable, user-owned IDE-main checkout for ordinary KlumAST development. Every agent assignment uses a
