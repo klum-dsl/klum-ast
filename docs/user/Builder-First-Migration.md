@@ -211,13 +211,6 @@ Pay particular attention to lifecycle callbacks, validation, ownership and const
 Templates, serialization, and Jackson inputs. These areas intentionally distinguish between the construction-time Builder
 graph and the completed model graph.
 
-If a migrated Spock suite needs materialized Template defaults through `setup`, a feature, and `cleanup`, use one
-non-`@Shared` `TemplateScope` field with `@AutoCleanup`. The Schema and Model plugins already supply the 4.1
-`klum-ast-test-support` artifact through `testImplementation`; do not declare it again in either module. A direct
-Java/Groovy consumer without either plugin declares the BOM-aligned runtime and test-support artifacts explicitly. The field
-remains active through `cleanup` and closes afterwards; the public setup and example are in
-[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
-
 ## Optional Mechanical Starting Point
 
 The [**best-effort convenience script**](assets/migrate-3x-to-4x-builder-first.sh) performs only a small set of mechanical
