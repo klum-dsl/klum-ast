@@ -40,10 +40,11 @@ class TemplateScopeJavaConsumerTest {
     @Test
     void appliesBothJavaWithFormsToNormalRootAndOwnedBuilderCreation() {
         Fixture fixture = new Fixture();
+        TemplateScope scope = new TemplateScope();
+        scope.with(fixture.template("Delivery", "region", "eu-central"));
+        scope.with(List.of(fixture.template("DeliveryOptions", "enabled", true)));
 
-        try (TemplateScope ignored = new TemplateScope()
-                .with(fixture.template("Delivery", "region", "eu-central"))
-                .with(List.of(fixture.template("DeliveryOptions", "enabled", true)))) {
+        try (scope) {
             assertEquals("eu-central", fixture.deliveryRegion());
             assertEquals(true, fixture.deliveryOptionsEnabled());
         }
@@ -55,9 +56,11 @@ class TemplateScopeJavaConsumerTest {
     @Test
     void restoresNormalDslCreationAfterExceptionalResourceExit() {
         Fixture fixture = new Fixture();
+        TemplateScope scope = new TemplateScope();
+        scope.with(fixture.template("Delivery", "region", "eu-central"));
 
         assertThrows(IllegalStateException.class, () -> {
-            try (TemplateScope ignored = new TemplateScope().with(fixture.template("Delivery", "region", "eu-central"))) {
+            try (scope) {
                 assertEquals("eu-central", fixture.deliveryRegion());
                 throw new IllegalStateException("expected");
             }

@@ -28,6 +28,8 @@ import spock.lang.AutoCleanup
 import spock.lang.Issue
 import spock.lang.Specification
 
+import java.util.concurrent.atomic.AtomicReference
+
 @Issue("658")
 class TemplateScopeTest extends Specification {
 
@@ -59,6 +61,29 @@ class TemplateScopeTest extends Specification {
         then:
         delivery.region == 'specialized'
         delivery.options.enabled
+    }
+
+    def "does not propagate active Templates to a worker thread"() {
+        given:
+        AtomicReference<Delivery> workerDelivery = new AtomicReference<>()
+        AtomicReference<Throwable> workerFailure = new AtomicReference<>()
+
+        when:
+        Thread worker = new Thread({
+            try {
+                workerDelivery.set(delivery())
+            } catch (Throwable failure) {
+                workerFailure.set(failure)
+            }
+        })
+        worker.start()
+        worker.join()
+
+        then:
+        workerFailure.get() == null
+        delivery().region == 'specialized'
+        workerDelivery.get().region == null
+        !workerDelivery.get().options.enabled
     }
 
     private static Delivery delivery() {
