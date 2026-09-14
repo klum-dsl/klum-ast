@@ -9,6 +9,7 @@ description = "Template test support for KlumAST"
 dependencies {
     implementation project(':klum-ast-runtime')
 
+    testImplementation project(':klum-ast')
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
     testImplementation libs.spock.g3
 }
