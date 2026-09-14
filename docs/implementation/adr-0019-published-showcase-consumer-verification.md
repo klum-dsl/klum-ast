@@ -19,10 +19,22 @@ consumer repository.
 ## Target fixture contract
 
 The repository has an immutable root coordinate manifest per run. It contains selected KlumAST version, the
-line-specific expected product and plugin-marker set, resolved AnnoDocimal version, Gradle/JDK requirements, fixture
-revision, and one of `public-release` or `candidate-maintenance` repository modes. The build fails if a requested value is
-absent, an unapproved repository is consulted, or resolved module/plugin evidence differs from the manifest. It must not
-retroactively require a coordinate, such as 4.0.0 test support, that was not part of the released line.
+line-specific expected product set, KlumAST plugin ID/marker/implementation coordinates, resolved AnnoDocimal version,
+Gradle/JDK requirements, fixture revision, and one of `public-release` or `candidate-maintenance` repository modes. The
+build fails if a requested value is absent, an unapproved repository is consulted, or resolved module/plugin evidence
+differs from the manifest. It must not retroactively require a coordinate, such as 4.0.0 test support, that was not part
+of the released line.
+
+Candidate mode accepts only one complete candidate product: all candidate Maven modules plus the marker and implementation
+for the plugin applied by the fixture have the manifest's same candidate version and resolve from its isolated candidate
+repository. The consumer declares that repository through `pluginManagement` so Gradle performs ordinary marker-based
+plugin resolution. A public marker or implementation, mismatched candidate version, or absent candidate marker makes the
+run incomplete candidate evidence and fails it. `mavenLocal()` is excluded from every public or final candidate run.
+
+The harness that proves this topology may first publish marker, implementation, and product artifacts to `mavenLocal()`.
+It then tests marker lookup, implementation resolution, missing-marker failure, and mixed-origin rejection. Those runs are
+bootstrap tests only: their evidence explicitly identifies `mavenLocal()` and they cannot satisfy the public/candidate
+release-evidence acceptance check.
 
 The direct fixture has one compact schema whose generated public signature reaches an external nested declaration and whose
 Javadoc contains the compatible paragraph/tag shape from AnnoDocimal #100. Its checks are:
@@ -68,13 +80,21 @@ showcase creation.
 
 ### SC-2 — Add isolated candidate-maintenance resolution
 
-Add a candidate manifest and producer/consumer handoff that publishes an exact candidate to a temporary repository. Use
-distinct producer and consumer directories and a new Gradle user home. Configure the consumer with the temporary repository
-only through the manifest, before normal public endpoints; prohibit `mavenLocal()` and composite builds. Retain manifest,
-dependency evidence, task reports, and repository-content digest.
+Add a candidate manifest and producer/consumer handoff that publishes an exact candidate's Maven modules, Gradle plugin
+marker, and plugin implementation to a temporary repository. Use distinct producer and consumer directories and a new
+Gradle user home. Configure both dependency resolution and `pluginManagement` with that repository through the manifest;
+the fixture applies the candidate plugin by ID and resolves its marker normally. Prohibit `mavenLocal()` and composite
+builds in the final candidate path. Retain manifest, marker/implementation and module-origin evidence, task reports, and
+repository-content digest.
 
-Acceptance: a deliberately missing candidate module fails resolution; altered coordinate/evidence entries fail verification;
-a staged candidate passes the complete direct task graph by coordinate. The consumer build has no file or project dependency
+Bootstrap acceptance: a test may publish marker, implementation, and product artifacts to `mavenLocal()` and exercise
+`pluginManagement` resolution, missing-marker failure, and mixed-origin rejection. Its result is marked bootstrap-only and
+cannot be recorded as release evidence.
+
+Final acceptance: a deliberately missing candidate module, marker, or implementation fails resolution; altered
+coordinate/evidence entries, a public-origin plugin, and mixed candidate versions fail verification. A staged complete
+candidate passes the direct task graph by coordinate only when its marker, implementation, BOM/product modules, and
+manifest use one candidate version from the isolated repository. The consumer build has no file or project dependency
 resolving into the producer checkout.
 
 Commit boundary: `Verify staged KlumAST candidate as an isolated consumer` with negative and positive exercises together.
@@ -99,8 +119,8 @@ candidate-maintenance proof accepting only the exact coordinate manifest. Preser
 retain its evidence in the release record.
 
 Acceptance: showcase PRs get fixture evidence; a scheduled run performs no writes; candidate invocation rejects an
-unbound manifest; ordinary KlumAST PRs never await the showcase; release evidence links exact manifest, source SHA,
-candidate repository digest, and result.
+unbound or incomplete manifest; ordinary KlumAST PRs never await the showcase; release evidence links exact manifest,
+source SHA, candidate repository digest, resolved marker/implementation/module origins and versions, and result.
 
 Commit boundary: `Run showcase consumer proof on explicit release inputs` with workflow tests or dry-run validation.
 
@@ -138,14 +158,16 @@ Commit boundary: one coherent user journey per commit; no example-catalog change
   its owner; it does not create an unpublished compatibility override.
 - Engineering Baseline governs shared evidence and authorization vocabulary. `gradle-conventions` owns any later portable
   plugin decision. Neither owns showcase topology, publication selection, or an application's Domain API fixture.
-- Candidate verification uses an explicit temporary Maven repository because it proves metadata resolution. A successful
-  producer build, project dependency, composite build, or IDE source mirror is never consumer evidence.
+- Candidate verification uses an explicit temporary Maven repository because it proves metadata and normal
+  `pluginManagement` resolution. A successful producer build, project dependency, composite build, ambient Maven local
+  repository, or IDE source mirror is never final consumer evidence. Maven local is allowed only in labelled bootstrap
+  tests that establish the marker/implementation resolution topology.
 
 ## Risks and open questions
 
 | Risk or question | Containment / decision needed |
 | --- | --- |
-| Candidate Gradle plugin markers cannot be staged like Maven modules. | Prove marker publication/resolution in SC-2; until then candidate mode uses already-public markers with a candidate Maven product and records the limit. |
+| Candidate Gradle plugin marker or implementation cannot be staged or resolved from the isolated repository. | The candidate run is incomplete and cannot be release evidence. Prove the publication and normal `pluginManagement` route first through bootstrap tests using `mavenLocal()`, then through the isolated repository in SC-2. |
 | The current public resolver asserts a post-4.0 artifact against 4.0.0. | Deliver SC-1a before treating 4.0.x showcase evidence as a release gate; do not redefine 4.0.0's published product. |
 | AnnoDocimal #99/#100 are unresolved. | Pin observed released behavior first; coordinate upgrades are explicit compatibility runs, not hidden transitive updates. |
 | Fresh public repositories are intermittently unavailable. | Record failure separately from product regression; do not fall back to local caches or sources. |

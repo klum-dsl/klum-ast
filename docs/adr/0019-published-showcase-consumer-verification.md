@@ -83,13 +83,26 @@ There are exactly two evidence modes:
 | Mode | Inputs and repositories | Purpose |
 | --- | --- | --- |
 | Public-release | Immutable released KlumAST version; Maven Central and Gradle Plugin Portal only; fresh isolated Gradle home. | Proves the public product as a client obtains it. |
-| Candidate-maintenance | Explicit coordinate manifest and isolated temporary Maven repository populated by the candidate publication; released Plugin Portal markers unless matching candidate markers are staged by coordinate; fresh isolated Gradle home. | Proves the exact next maintenance or release candidate before it is trusted as public. |
+| Candidate-maintenance | Explicit coordinate manifest and isolated temporary Maven repository containing the candidate Maven modules, Gradle plugin marker, and plugin implementation; fresh isolated Gradle home. | Proves the exact next maintenance or release candidate before it is trusted as public. |
 
 The candidate repository is an intentionally configured repository, not `mavenLocal()`. The manifest names every
-candidate KlumAST and, when intentionally varied, AnnoDocimal coordinate, repository URL, Gradle wrapper, and SHA. The
-fixtures resolve only those coordinates through normal Maven/Plugin-Portal metadata. Candidate preparation and consumer
-execution use separate clean directories with no source checkout on the consumer classpath. A failing resolution,
-projection, Javadoc, compilation, or test is a failing gate; no local-classpath fallback is permitted.
+candidate KlumAST Maven coordinate, its Gradle plugin ID and marker coordinate, the matching plugin implementation
+coordinate, repository URL, Gradle wrapper, and SHA; it records an AnnoDocimal coordinate when that input is intentionally
+varied. Every KlumAST candidate entry carries one candidate version. The consumer's `pluginManagement` resolves the
+KlumAST plugin marker normally from that candidate repository, and the marker resolves the implementation from the same
+manifest/version. It must not use a public Plugin Portal marker while calling the run complete candidate evidence.
+
+Candidate preparation and consumer execution use separate clean directories with no source checkout on the consumer
+classpath. A run is complete candidate release evidence only when the retained resolution evidence binds the marker,
+plugin implementation, BOM/product modules, and manifest to that one candidate version and candidate repository. A
+missing or public-origin marker/implementation, a mixed version, or an incomplete module set fails the candidate gate. A
+failing resolution, projection, Javadoc, compilation, or test is likewise a failing gate; no local-classpath fallback is
+permitted.
+
+The bootstrap/test harness may publish the marker, implementation, and product artifacts to `mavenLocal()` to exercise
+normal `pluginManagement` resolution and its failure modes before the isolated repository wiring exists. Such a run is
+labelled test infrastructure, records that source, and can never qualify as public or candidate release evidence. The
+production/public-release mode and the final candidate-maintenance mode both continue to forbid `mavenLocal()`.
 
 The required direct graph is `clean`, source-mirror refresh, `javadoc`, and `check`, using the selected release line's
 actual default plugin configuration. The release manifest defines its product set: a 4.0.x run must not demand the later
@@ -106,9 +119,10 @@ an unavailable external runner.
 
 A scheduled/manual public-revalidation run resolves each supported pin cleanly and reports dependency drift or service
 failure without changing product state. A manually dispatched candidate-maintenance run is required release evidence for
-the exact coordinate manifest. It runs after candidate artifacts exist and before protected release approval; it
-complements, rather than replaces, KlumAST's `release/consumer` resolver and `REL-2` public proof. After publication,
-`REL-2` still resolves only real public endpoints, as required by `RELEASING.md`.
+the exact coordinate manifest, including its staged plugin marker and implementation. It runs after candidate artifacts
+exist and before protected release approval; it complements, rather than replaces, KlumAST's `release/consumer` resolver
+and `REL-2` public proof. After publication, `REL-2` still resolves only real public endpoints, as required by
+`RELEASING.md`.
 
 Admit the direct Schema minimum to **release/4.0.x** when that line first has an accepted maintenance release candidate.
 This is justified despite not being a product bugfix: it tests the public maintenance product as a Schema consumer and is
@@ -146,8 +160,8 @@ KlumAST coordinate selection, Domain API mappings, or this first showcase build.
 
 - The first published-client proof covers behavior the resolver-only release consumer deliberately does not.
 - A small verification fixture stays failure-diagnostic as documentation examples grow independently.
-- Candidate proof has a real coordinate boundary, preventing a successful composite or local-classpath build from being
-  mistaken for published-consumer evidence.
+- Candidate proof has a complete coordinate boundary, preventing a successful composite, local-classpath build, or
+  released-plugin/candidate-module mixture from being mistaken for published-consumer evidence.
 - The cost is one small repository, coordinate-manifest maintenance, fresh-cache CI time, and release-run coordination.
   The direct fixture is intentionally kept small to contain that cost.
 - Supporting a new release line requires an explicit branch/pin decision, not an automatic mirror of every KlumAST line.
@@ -163,10 +177,12 @@ published coordinate, transitive projection regression, or downstream Javadoc fa
 
 This couples release reliability to a large changing educational surface and delays the small integration signal.
 
-### Use a composite build, `mavenLocal()`, or direct classpath for candidate proof
+### Use a composite build, `mavenLocal()`, direct classpath, or released plugin marker for candidate proof
 
-Each can hide incomplete metadata, publication, plugin-marker, or transitive dependency failures. A candidate repository
-is acceptable only because it is resolved by explicit coordinates from an isolated normal Maven repository.
+Each can hide incomplete metadata, publication, plugin-marker, plugin-implementation, or transitive dependency failures.
+A candidate repository is acceptable only because it resolves every candidate coordinate, including the marker and plugin
+implementation, from an isolated normal Maven repository. `mavenLocal()` remains useful only as labelled bootstrap/test
+infrastructure and is never final release evidence.
 
 ### Put CT-1 through CT-3 into KlumAST plugins or a shared Gradle convention
 
