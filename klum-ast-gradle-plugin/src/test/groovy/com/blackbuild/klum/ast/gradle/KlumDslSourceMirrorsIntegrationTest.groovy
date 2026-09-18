@@ -158,6 +158,32 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         mirror.text.contains('Updated documentation for Foo_DSL')
     }
 
+    @Issue('772')
+    def "default AnnoDocimal class stubs resolve public nested types from the Schema compile classpath"() {
+        when: 'the external Schema project generates ordinary AnnoDocimal Javadoc stubs'
+        BuildResult stubs = run(':schema:createClassStubs')
+
+        then: 'the default task resolves the nested runtime type used by the public generated contract'
+        stubs.task(':schema:createClassStubs').outcome == TaskOutcome.SUCCESS
+        File stub = new File(testProject, 'schema/build/generated/sources/annodocimal/main/example/Foo_DSL.java')
+        stub.text.contains('KlumFactory.BuilderFactoryProvider')
+    }
+
+    @Issue('772')
+    def "source projection and Javadoc retain block tags after a legacy unmatched paragraph"() {
+        when: 'the external Schema project projects copied documentation and generates Javadoc'
+        BuildResult documented = run(':schema:createKlumDslSourceMirrors', ':schema:javadoc')
+
+        then: 'the generated Javadoc retains the semantic tag following the legacy paragraph'
+        documented.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        documented.task(':schema:javadoc').outcome == TaskOutcome.SUCCESS
+        File mirror = new File(testProject, 'schema/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java')
+        mirror.text.contains('@since 4.0.1')
+        File javadoc = new File(testProject, 'schema/build/docs/javadoc/example/Foo.html')
+        javadoc.text.contains('Since:')
+        javadoc.text.contains('4.0.1')
+    }
+
     @Issue(['703', '737'])
     def "refreshed source mirrors retain the public static support contracts for client test sources"() {
         when: 'the schema compiles its public contract and refreshes its IDEA-only source mirror'
