@@ -32,7 +32,8 @@ KlumAST supports this style with the following techniques:
 Owned DSL Object relationships are a single-rooted composition tree. One or more `@Owner` fields may provide
 framework-managed backlinks for upward navigation; they do not create additional ownership. `LINK` fields can add side
 connections to existing completed DSL Objects without re-owning a target or changing the composition root. See
-[Ownership and `@Owner`](Basics.md#ownership-and-owner) for the Builder-phase timing of those backlinks.
+[Ownership and `@Owner`](Basics.md#ownership-and-owner) for the relationship visual and the Builder-phase timing of
+those backlinks.
 
 ## Transient fields
 

@@ -36,7 +36,9 @@ import java.util.Map;
  *
  * <p>if placed on a (potentially abstract) method, that method is replaced with such a getter.</p>
  *
- * <p>This is usually used to provide the API layer of a three layer model.</p>
+ * <p>This is the defining KlumAST projection for a Layer 3 model when declared by a distinct abstract {@code @DSL}
+ * Domain API class and realized by concrete Schema subclasses. DSL interfaces are not supported Cluster projection
+ * targets.</p>
  *
  * <p>For example:</p>
  *
@@ -139,6 +141,14 @@ public @interface Cluster {
      * @return Whether the setter methods are only created inside a factory.
      */
     boolean bounded() default false;
+
+    /**
+     * Uses the concrete Schema member name as the key for every selected direct, keyed DSL Object relationship.
+     * This is equivalent to declaring {@code @Field(key = Field.FieldName)} on each selected Schema field.
+     *
+     * @return Whether selected relationship keys are fixed to their Schema member names.
+     */
+    @NotOn({ElementType.TYPE, ElementType.PACKAGE}) boolean fixedKeys() default false;
 
     @interface Undefined {}
 }

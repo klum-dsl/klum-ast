@@ -8,6 +8,17 @@ See the dedicated [Builder First Migration](Builder-First-Migration.md) guide fo
 [Templates](Templates.md), [Copy Strategies](Copy-Strategies.md), and [Model Phases](Model-Phases.md) for materialization boundaries and [Jackson Integration](Jackson-Integration.md) for
 foreign-data import and ordinary POJO export.
 
+### Opting in to owner-provided defaults
+
+`@OwnerProvidedDefaults` is additive and opt-in. Existing unannotated Schemas need no migration and retain their generated
+factories, Builders, completed-model API, and lifecycle behavior. A Schema that adopts the annotation must compile and run
+with KlumAST annotation, compiler, and runtime artifacts that include the feature; recompile the Schema and its generated
+DSL support together after adding it. No generated method or type is added by the annotation.
+
+The annotation provides owner-specific conservative defaults through a shared JavaBean contract. It is not a replacement
+for a generic mixin API or an overwrite-strategy migration. See
+[Owner-provided defaults](Default-Values.md#owner-provided-defaults) for its absence, ordering, identity, and warning rules.
+
 Validation callers must import and catch
 `com.blackbuild.klum.ast.runtime.validation.KlumValidationException`. The former
 `com.blackbuild.klum.ast.runtime.KlumValidationException` type has been removed; this is an intentional 4.0 source and
@@ -107,6 +118,15 @@ local module-path flags to compensate for an invalid dependency graph.
 Recompile schemas and custom checks when moving to KlumAST 4.0. KlumAST's built-in name-bound checks use KlumCast's
 durable stateless `Check` SPI and report structured, source-positioned diagnostics. Custom checks must implement that SPI;
 the deprecated compatibility adapter is only a temporary migration aid for external consumers ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
+
+## To 4.1
+
+For test fixtures that need materialized Templates across a Spock lifecycle, use one non-`@Shared` `TemplateScope` field
+with `@AutoCleanup`. A Schema or Model module already receives `klum-ast-test-support` through its plugin's
+`testImplementation` configuration, so do not add that dependency again. A direct Java/Groovy consumer that applies
+neither plugin declares the BOM-aligned runtime and test-support coordinates itself. This replaces project-private
+ambient setup with a public, per-feature lifetime; see
+[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
 
 ## To 2.2
 

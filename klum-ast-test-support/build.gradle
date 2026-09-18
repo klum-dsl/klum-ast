@@ -1,0 +1,43 @@
+plugins {
+    id "klum-ast.multigroovy-conventions"
+    id "klum-ast.jpms-descriptor-conventions"
+    id "klum-ast.jacoco-conventions"
+}
+
+description = "Template test support for KlumAST"
+
+dependencies {
+    implementation project(':klum-ast-runtime')
+
+    testImplementation project(':klum-ast')
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    testImplementation libs.spock.g3
+    groovy4TestsImplementation project(':klum-ast')
+    groovy4TestsImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    groovy5TestsImplementation project(':klum-ast')
+    groovy5TestsImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(Test).configureEach {
+    systemProperty 'klumProjectDirectory', rootProject.projectDir.absolutePath
+    systemProperty 'klumVersion', rootProject.version.toString()
+}
+
+['groovy4Tests', 'groovy5Tests'].each { lane ->
+    sourceSets.named(lane) {
+        groovy.exclude 'com/blackbuild/klum/ast/testsupport/TemplateScopePublishedConsumerTest.groovy'
+    }
+}

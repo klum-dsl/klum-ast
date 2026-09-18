@@ -1,9 +1,48 @@
-# 4.0.1 (unreleased)
+# 4.1.0 (unreleased)
+
+- Added the published `klum-ast-test-support` artifact with its small public `TemplateScope` lifetime API for
+  materialized Template setup in Schema and Model tests. A new Testing Models and Schemas guide covers focused completed-model and
+  validation assertions, the public Spock lifecycle pattern, and its boundary with target integration/acceptance tests
+  ([#658](https://github.com/klum-dsl/klum-ast/issues/658), [#758](https://github.com/klum-dsl/klum-ast/issues/758)).
+
+- Added an accessible Builder-first relationship visual to the Basics guide, with cross-links from Static Models and
+  Model Phases. It distinguishes owned composition, framework-managed `@Owner` backlinks, and non-owning `LINK` side
+  connections, including the Owner-before-materialization timing boundary ([#727](https://github.com/klum-dsl/klum-ast/issues/727)).
+
+- Added `@Cluster(fixedKeys = true)` for direct keyed DSL Object relationships. A Cluster-selected Schema member now
+  derives its child key from its field name and exposes no key-taking Builder creator, equivalent to
+  `@Field(key = Field.FieldName)` without per-field annotations. Selected unkeyed fields, collections/maps, and explicit
+  field-key configuration fail at Schema compilation; unselected fields and runtime lifecycle/composition behavior are
+  unchanged ([#356](https://github.com/klum-dsl/klum-ast/issues/356)).
+
+- Added repeatable `@OwnerProvidedDefaults` for an owned DSL Object to inherit absent contract properties from exactly one
+  compatible owner. KlumAST validates the JavaBean contract and donor/configuration types at Schema compilation, then
+  applies a fixed value-only policy first inside the Default phase: configured values remain authoritative, owned DSL
+  values become fresh recipient composition, completed `LINK` values retain identity, and a missing runtime donor records
+  a non-fatal warning. Unannotated Schemas and generated APIs are unchanged; generic mixins remain separate
+  ([#494](https://github.com/klum-dsl/klum-ast/issues/494)).
+
+- Added a version-pinned `@Grab` workflow for trusted standalone Model scripts backed by a separately compiled and
+  published Schema, including controlled-cache, internal Maven repository, and intentionally disconnected operation
+  guidance. An isolated-process documentary test starts with only Groovy and Ivy, then resolves a temporary published
+  Schema, its KlumAST runtime closure, and a transitive fixture dependency across Groovy 3, 4, and 5; a companion test locks
+  the Schema plugin's published BOM/runtime metadata contract. Target Schema publication, cache-transfer, and network-policy
+  verification remains an explicit deployment-owner responsibility
+  ([#552](https://github.com/klum-dsl/klum-ast/issues/552)).
+
+## Bugfixes
 
 - Qualified [AnnoDocimal 1.0.1](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.1) for Schema projects.
   Its default Javadoc-stub task now resolves public nested types from the compile classpath, and source projection plus
   Javadoc generation retain semantic block tags after legacy unmatched paragraphs. IDEA-only source mirrors remain outside
   compilation and publication inputs ([#772](https://github.com/klum-dsl/klum-ast/issues/772)).
+
+## Documentation only
+
+- Defined Layer 3 crisply as the abstract Domain API–concrete Schema–Model pattern whose unique KlumAST feature is a
+  `@Cluster` projection. The environment example now demonstrates generic and Schema-specific consumers, bounded and
+  fixed-key Cluster construction, and distinguishes general automatic creation/linking from Layer 3 behavior
+  ([#454](https://github.com/klum-dsl/klum-ast/issues/454)).
 
 # 4.0.0 The Makeover - 2026-08-20
 

@@ -12,6 +12,8 @@
   * [Usage](Usage.md)
   * [Gradle Plugins](Gradle-Plugins.md)
   * [Gradle Onboarding](Gradle-Onboarding.md)
+  * [Testing Models and Schemas](Testing-Models-and-Schemas.md)
+  * [Standalone Model scripts with `@Grab`](Grab-Model-Scripts.md)
   * [Domain First Modeling](Domain-First-Modeling.md)
   * [Target Contract Modeling](Target-Contract-Modeling.md)
 * Advanced Features
@@ -27,7 +29,7 @@
   * [Converters](Converters.md)
   * [Alternatives Syntax](Alternatives-Syntax.md)
   * [Advanced Techniques](Advanced-Techniques.md)
-  * [Layer3](Layer3.md)
+  * [Layer 3](Layer3.md)
   * [Jackson Integration](Jackson-Integration.md)
 * More
   * [FAQ](FAQ.md)

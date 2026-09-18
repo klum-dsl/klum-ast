@@ -5,6 +5,10 @@ to the completed Model companion during [`INSTANTIATE`](Model-Phases.md#instanti
 `InstanceValidator`s then run on the completed object. Each `InstanceValidator` type is memoized once per completed model.
 For reading stored results from a completed model, see [Completed Object Support](Completed-Object-Support.md).
 
+For focused Schema tests, catch `KlumValidationException` and assert a stable semantic fragment from an explicit
+validation message; [Testing Models and Schemas](Testing-Models-and-Schemas.md#assert-a-validation-failure) shows the
+complete pattern.
+
 ## On Classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
 against Groovy truth (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).
@@ -495,7 +499,9 @@ When a Model Writer sets `legacyChannel`, the stored result records a `DEPRECATI
 
 ## `@Notify`
 
-The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with `@Default` and layer3 annotations `@AutoCreate` and `@LinkTo`.
+The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase.
+This is especially useful in combination with `@Default`, `@AutoCreate`, and `@LinkTo`; those annotations are not limited
+to Layer 3 designs.
 
 (See: `ValidationPolicyDocumentaryTest#'reports a missing manually configured field'`.)
 

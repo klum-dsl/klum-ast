@@ -34,7 +34,6 @@ import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.ast.compiler.internal.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
@@ -47,6 +46,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
 
     public static final String BOUNDED_MEMBER = "bounded";
+    public static final String FIXED_KEYS_MEMBER = "fixedKeys";
     private final MethodNode clusterField;
     private final String fieldName;
     private final AnnotationNode clusterAnnotation;
@@ -87,9 +87,7 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
         Predicate<FieldNode> annotationFilter = requiredAnnotation != null ? fieldNode -> DslAstHelper.hasAnnotation(fieldNode, requiredAnnotation) : fieldNode -> true;
         ClassNode elementType = getElementTypeForMap(clusterField.getReturnType());
 
-        List<FieldNode> fieldsToInclude = DslAstHelper.getFieldsOfDslHierarchy(targetClass)
-                .filter(field -> CommonAstHelper.isAssignableTo(field.getType(), elementType))
-                .filter(annotationFilter).collect(Collectors.toList());
+        List<FieldNode> fieldsToInclude = getFieldsToInclude(targetClass, elementType, annotationFilter);
 
         if (fieldsToInclude.isEmpty()) return;
 
@@ -98,6 +96,41 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
             addMethodsForField(fieldNode);
 
         createClosureForOuterClass();
+    }
+
+    /**
+     * Returns whether a field is selected by a {@code @Cluster(fixedKeys = true)} method visible to the target class.
+     * The selection intentionally mirrors Cluster factory membership so the generated direct relationship methods and
+     * the Cluster facade cannot disagree about which Schema fields use the convention.
+     */
+    public static boolean isFixedKeysClusterMember(ClassNode targetClass, FieldNode fieldNode) {
+        return targetClass.getAllDeclaredMethods().stream()
+                .filter(methodNode -> DslAstHelper.hasAnnotation(methodNode, CLUSTER_ANNOTATION_TYPE))
+                .filter(methodNode -> hasFixedKeys(getAnnotation(methodNode, CLUSTER_ANNOTATION_TYPE)))
+                .anyMatch(methodNode -> selectsField(targetClass, methodNode, fieldNode));
+    }
+
+    private static boolean selectsField(ClassNode targetClass, MethodNode clusterMethod, FieldNode fieldNode) {
+        AnnotationNode annotation = getAnnotation(clusterMethod, CLUSTER_ANNOTATION_TYPE);
+        if (annotation == null) return false;
+        ClassNode requiredAnnotation = getNullSafeClassMember(annotation, "value", null);
+        Predicate<FieldNode> annotationFilter = requiredAnnotation != null
+                ? candidate -> DslAstHelper.hasAnnotation(candidate, requiredAnnotation)
+                : candidate -> true;
+        ClassNode elementType = getElementTypeForMap(clusterMethod.getReturnType());
+        return elementType != null && getFieldsToInclude(targetClass, elementType, annotationFilter).contains(fieldNode);
+    }
+
+    private static List<FieldNode> getFieldsToInclude(ClassNode targetClass, ClassNode elementType, Predicate<FieldNode> annotationFilter) {
+        return DslAstHelper.getFieldsOfDslHierarchy(targetClass)
+                .filter(field -> CommonAstHelper.isAssignableTo(field.getType(), elementType))
+                .filter(annotationFilter)
+                .toList();
+    }
+
+    private static boolean hasFixedKeys(AnnotationNode annotation) {
+        ConstantExpression member = (ConstantExpression) annotation.getMember(FIXED_KEYS_MEMBER);
+        return member != null && (boolean) member.getValue();
     }
 
     private void createClosureForOuterClass() {

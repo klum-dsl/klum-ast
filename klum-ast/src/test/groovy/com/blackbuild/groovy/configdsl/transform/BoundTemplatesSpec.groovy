@@ -756,7 +756,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = clazz.Create.With {
+        def template = clazz.Create.Template.With {
             name "Default"
             value "DefaultValue"
         }
@@ -883,9 +883,9 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
             }
         ''')
         def fooClass = getClass("pk.Foo")
-        def fooTemplate = fooClass.Create.With(name: 'DefaultName')
+        def fooTemplate = fooClass.Create.Template.With(name: 'DefaultName')
         def barClass = getClass("pk.Bar")
-        def barTemplate = barClass.Create.With(token: 'DefaultToken')
+        def barTemplate = barClass.Create.Template.With(token: 'DefaultToken')
 
 
         def foo, bar

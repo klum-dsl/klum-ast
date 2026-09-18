@@ -16,11 +16,24 @@ JSON Schema: it supplies concrete values rather than defining types. When constr
 configures its Builder graph, materializes the completed Model, and validates it before returning it. Model Writers
 create Model configuration; clients consume the resulting completed, read-only Model API.
 
+## Layer 3 model
+
+A [Layer 3 model](Layer3.md) uses `@Cluster` to project concrete Schema fields through distinct abstract Domain API DSL
+classes. The API constrains the Schema, generic clients depend only on the API, and Model Writers depend on the Schema's
+generated construction surface. Layer 3 is a modeling pattern rather than a package, Gradle, or Java-module boundary;
+no `@Layer3` marker exists.
+
+## Direct-schema modeling
+
+Direct-schema modeling uses the Schema's DSL Object types as the consumer-facing API. The Schema Developer also assumes
+the Domain API Developer role, and Client Developers intentionally depend on the Schema types.
+
 ## Client/Consumer
 
 A Client or Consumer uses a completed Model through its public domain API. It may invoke supported construction or
-import operations, handle validation results, and serialize the completed Model for downstream systems; it does not
-depend on generated Builder implementations or Schema-only types in a Layer 3 model. See [Layer3](Layer3.md) and
+import operations, handle validation results, and serialize the completed Model for downstream systems. No client depends
+on generated Builder implementations. A generic Layer 3 client also avoids Schema-only types; a deliberately
+Schema-specific client may depend on them. See [Layer 3](Layer3.md) and
 [Completed Object Support](Completed-Object-Support.md).
 
 # Roles
@@ -29,8 +42,9 @@ KlumAST documentation distinguishes four roles. One person can assume several ro
 
 ## Domain API Developer
 
-Defines the stable, consumer-facing model contract. In a [Layer 3 model](Layer3.md), this API is designed before the Schema and is the
-only model surface on which generic clients depend.
+Defines the stable, consumer-facing model contract. In a [Layer 3 model](Layer3.md), abstract API DSL classes are normally
+designed before the Schema, always constrain it, and project its concrete fields through `@Cluster`. They are the only
+model surface on which generic clients depend.
 
 ## Schema Developer
 
@@ -40,7 +54,8 @@ API, the Schema Developer also owns the consumer-facing model contract.
 ## Client Developer
 
 Builds integrations that consume completed DSL Objects through their public domain API, including importer invocation,
-validation-result handling, and downstream serialization.
+validation-result handling, and downstream serialization. A generic Layer 3 client depends only on the Domain API; a
+deliberately Schema-specific client may depend on concrete Schema types and is not portable across Schema realizations.
 
 ## Model Writer
 

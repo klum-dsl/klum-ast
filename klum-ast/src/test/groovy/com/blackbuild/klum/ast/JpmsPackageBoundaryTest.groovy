@@ -41,7 +41,7 @@ import groovyjarjarasm.asm.Handle
 import groovyjarjarasm.asm.MethodVisitor
 import groovyjarjarasm.asm.Opcodes
 
-@Issue("391")
+@Issue(["391", "658"])
 class JpmsPackageBoundaryTest extends Specification {
 
     private static final Set<String> LEGACY_PREFIXES = [
@@ -71,6 +71,7 @@ class JpmsPackageBoundaryTest extends Specification {
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.layer3')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.process')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.validation')
+        packagesByArtifact.testSupport == ['com.blackbuild.klum.ast.testsupport'] as Set
         packagesByArtifact.compiler.containsAll([
                 'com.blackbuild.klum.ast.compiler.internal.ast',
                 'com.blackbuild.klum.ast.compiler.internal.ast.converters',
@@ -116,6 +117,7 @@ class JpmsPackageBoundaryTest extends Specification {
         descriptors.collectEntries { name, descriptor -> [(name): descriptor.name()] } == [
                 annotations   : 'com.blackbuild.klum.ast.annotations',
                 runtime       : 'com.blackbuild.klum.ast.runtime',
+                testSupport   : 'com.blackbuild.klum.ast.test.support',
                 compiler      : 'com.blackbuild.klum.ast.compiler',
                 jackson       : 'com.blackbuild.klum.ast.jackson',
                 beanValidation: 'com.blackbuild.klum.ast.validation.bean'
@@ -130,6 +132,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 'com.blackbuild.klum.ast.runtime.generated',
                 'com.blackbuild.klum.ast.runtime.validation'
         ] as Set
+        exportedPackages(descriptors.testSupport) == ['com.blackbuild.klum.ast.testsupport'] as Set
+        descriptors.testSupport.requires()*.name().contains('com.blackbuild.klum.ast.runtime')
         exportedPackages(descriptors.compiler).empty
         exportedPackages(descriptors.jackson) == ['com.blackbuild.klum.ast.jackson'] as Set
         exportedPackages(descriptors.beanValidation) == ['com.blackbuild.klum.ast.validation.bean'] as Set
@@ -152,6 +156,11 @@ class JpmsPackageBoundaryTest extends Specification {
                 ] as Set,
                 'com.blackbuild.klum.ast.compiler.internal.validation'    : ['com.blackbuild.klum.cast.compiler'] as Set
         ]
+        qualifiedExportTargets(descriptors.runtime)['com.blackbuild.klum.ast.runtime.internal'] == [
+                'com.blackbuild.klum.ast.compiler',
+                'com.blackbuild.klum.ast.jackson',
+                'com.blackbuild.klum.ast.test.support'
+        ] as Set
         !descriptors.compiler.provides().any { it.service() == 'org.codehaus.groovy.transform.ASTTransformation' }
         descriptors.runtime.uses().containsAll([
                 'com.blackbuild.klum.ast.runtime.PhaseAction',
@@ -390,6 +399,12 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
+    private static Map<String, Set<String>> qualifiedExportTargets(def descriptor) {
+        descriptor.exports().findAll { it.isQualified() }.collectEntries { exported ->
+            [(exported.source()): exported.targets()]
+        }
+    }
+
     private static Set<String> resourceNames(Path jar) {
         new JarFile(jar.toFile()).withCloseable { archive ->
             archive.entries().findAll { entry ->
@@ -408,6 +423,7 @@ class JpmsPackageBoundaryTest extends Specification {
         [
                 annotations   : jarPath('klumAnnotationsJar'),
                 runtime       : runtimeJar(),
+                testSupport   : jarPath('klumTestSupportJar'),
                 compiler      : jarPath('klumCompilerJar'),
                 jackson       : jarPath('klumJacksonJar'),
                 beanValidation: beanValidationJar()
