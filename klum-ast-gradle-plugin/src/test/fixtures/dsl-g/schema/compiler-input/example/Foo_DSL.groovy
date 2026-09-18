@@ -7,7 +7,9 @@ import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider
 interface Recipient {
 }
 
-@AnnoDoc('Documentation for Foo_DSL')
+@AnnoDoc('''Documentation for Foo_DSL.
+&lt;p&gt;
+@since 4.0.1''')
 interface Foo_DSL {
     interface Factory {
         Recipient With(Map<String, ?> values)
@@ -31,6 +33,9 @@ interface Foo_DSL {
     }
 }
 
+@AnnoDoc('''Public Schema entry point.
+&lt;p&gt;
+@since 4.0.1''')
 class Foo {
     public static final Foo_DSL.Factory Create = null
     public static final Foo_DSL.TemplateScope Template = null

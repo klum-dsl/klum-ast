@@ -1,3 +1,10 @@
+# 4.0.1 (unreleased)
+
+- Qualified [AnnoDocimal 1.0.1](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.1) for Schema projects.
+  Its default Javadoc-stub task now resolves public nested types from the compile classpath, and source projection plus
+  Javadoc generation retain semantic block tags after legacy unmatched paragraphs. IDEA-only source mirrors remain outside
+  compilation and publication inputs ([#772](https://github.com/klum-dsl/klum-ast/issues/772)).
+
 # 4.0.0 The Makeover - 2026-08-20
 
 This is a breaking release. See the [Builder-first construction migration](docs/user/Builder-First-Migration.md) for required client and extension changes.

@@ -29,11 +29,6 @@ tasks.named('compileGroovy') {
     groovyClasspath = configurations.groovy
 }
 
-// The generic fixture input is also visible to AnnoDocimal's Javadoc stub task, which is not KlumAST-created.
-tasks.named('createClassStubs') {
-    referencedClassesClasspath.from(configurations.compileClasspath)
-}
-
 publishing {
     repositories {
         maven {
