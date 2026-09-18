@@ -30,6 +30,13 @@
   verification remains an explicit deployment-owner responsibility
   ([#552](https://github.com/klum-dsl/klum-ast/issues/552)).
 
+## Bugfixes
+
+- Qualified [AnnoDocimal 1.0.1](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.1) for Schema projects.
+  Its default Javadoc-stub task now resolves public nested types from the compile classpath, and source projection plus
+  Javadoc generation retain semantic block tags after legacy unmatched paragraphs. IDEA-only source mirrors remain outside
+  compilation and publication inputs ([#772](https://github.com/klum-dsl/klum-ast/issues/772)).
+
 ## Documentation only
 
 - Defined Layer 3 crisply as the abstract Domain API–concrete Schema–Model pattern whose unique KlumAST feature is a
