@@ -2,8 +2,8 @@
 
 This is the dependency-ordered plan for accepted [ADR 0018](../adr/0018-domain-api-contract-test-packaging.md) and
 [#755](https://github.com/klum-dsl/klum-ast/issues/755). It is not authorization to change KlumAST production behavior,
-generated APIs, Cluster semantics, or its Gradle plugins. The application-owned fixture work remains future and
-unmilestoned.
+generated APIs, Cluster semantics, or its Gradle plugins. CT-1 through CT-3 are implemented in the application-owned
+`klum-catwalk` consumer; CT-4 remains a future extraction decision and is not part of #755's initial delivery.
 
 ## Confirmed starting behavior and failure paths
 
@@ -31,6 +31,22 @@ The refined tracer also compiled an API `src/testFixtures/groovy` abstract Spock
 `./gradlew -p /private/tmp/klum-755-contract-tracer.b7xwUA :groovy-schema:test --console=plain --warning-mode=none`
 passed. This is the accepted Layer 3 topology; its safety depends on matching selection, not on avoiding
 Groovy/Spock fixtures.
+
+## Delivered evidence
+
+Catwalk is the first application-owned implementation of this contract. Its root `layer3TestPair` owns one selected
+Groovy/Spock pair for the participating Domain API fixture and Schema test. The evidence verifier records the resolved
+pair, fixture/API boundary, passing inherited contract, and expected missing-fixture failure; a focused disposable
+Schema drift supplies mismatch evidence.
+
+| Slice | Delivered evidence |
+| --- | --- |
+| CT-1 and CT-2 | [Catwalk PR #5](https://github.com/klum-dsl/klum-catwalk/pull/5), merged as [`6233ed1c29a9b2e0ebc19c66aa1aef71c042f663`](https://github.com/klum-dsl/klum-catwalk/commit/6233ed1c29a9b2e0ebc19c66aa1aef71c042f663), added the API `java-test-fixtures` Groovy/Spock contract, explicit Schema fixture dependency, concrete realization, and wiring controls. `./gradlew clean check --console=plain --warning-mode=none` in `validations/layer3-contracts` passed with the inherited contract and alignment evidence. |
+| CT-3 | [Catwalk PR #6](https://github.com/klum-dsl/klum-catwalk/pull/6), merged as [`257f8e1a3406f586c2a5f111d61b76ed9bd88112`](https://github.com/klum-dsl/klum-catwalk/commit/257f8e1a3406f586c2a5f111d61b76ed9bd88112), made the pair root-owned and verified fixture/test classpath alignment plus focused drift handling. Its `clean check` passed using one selected Groovy 3 / Spock pair; it does not assert a Groovy 3/4/5 matrix. |
+
+The delivery is deliberately limited to ordinary application-owned binary project wiring. It changes neither KlumAST
+runtime nor generated APIs, Schema or Model plugins, publication, source composition under #548, or the scope of a
+multi-Groovy compatibility claim.
 
 ## Accepted target contract
 
@@ -85,44 +101,47 @@ This is ordinary binary project test-fixture wiring. It neither depends on nor e
 Schema-composition workflow in #548. A later #548 decision may deliberately widen the topology, but no source dependency
 is inferred from this fixture edge.
 
-## Thin implementation slices
+## Delivered implementation slices
 
-### CT-1 — Add a Domain API-local contract-test fixture
+### CT-1 — Add a Domain API-local contract-test fixture — implemented
 
-Create the `java-test-fixtures` capability in the selected Domain API repository/module. Add one generic contract for an
-existing, meaningful API-only client behavior and one minimal test input hook. The fixture may use the build's selected
-Groovy/Spock pair. Do not modify KlumAST plugins or publish a new artifact.
+Catwalk added the `java-test-fixtures` capability in its Domain API module, with a generic Groovy/Spock contract for a
+meaningful API-only client behavior and a minimal realization hook. The fixture uses Catwalk's selected pair; it did not
+modify KlumAST plugins or publish a new artifact.
 
-Acceptance: the fixture compiles with the Domain API's selected Groovy/Spock pair; its domain-facing signatures contain
-Domain API types only; the API main artifact does not acquire test dependencies or Schema types.
+Acceptance met: the fixture compiles with the selected pair, its signatures name Domain API types only, and the API main
+artifact does not acquire test dependencies or Schema types.
 
-Commit boundary: `Add API-owned contract-test fixture` with the fixture and its direct fixture compilation check.
+Delivered commit boundary: `Add API-owned contract-test fixture` with the fixture and its direct fixture compilation
+check.
 
-### CT-2 — Execute the fixture from one Schema realization
+### CT-2 — Execute the fixture from one Schema realization — implemented
 
-Add the explicit `testImplementation(testFixtures(project(":domain-api")))` dependency and one concrete contract
-subclass/adapter in a Schema project. Keep the Schema's own behavior tests separate. Verify inherited discovery and that
-the Schema resolves the same Groovy/Spock pair as the Domain API fixture.
+Catwalk added the explicit `testImplementation(testFixtures(project(":domain-api")))` dependency and a concrete Schema
+contract subclass. Its Schema-specific behavior tests remain separate, while the evidence verifies inherited discovery
+and the same selected Groovy/Spock pair as the Domain API fixture.
 
-Acceptance: a focused Schema test identifies the shared assertion; deleting the fixture dependency makes the intended
-compile failure observable in a dedicated wiring check, not as a permanent failing test.
+Acceptance met: the focused Schema run identifies the shared assertion; the dedicated wiring control makes the expected
+compile failure from removing the fixture dependency observable without retaining a failing test.
 
-Commit boundary: `Run Domain API contract in Customer Schema` with the dependency and executable realization coverage.
+Delivered commit boundary: `Run Domain API contract in Customer Schema` with the dependency and executable realization
+coverage.
 
-### CT-3 — Keep the Layer 3 test pair aligned
+### CT-3 — Keep the Layer 3 test pair aligned — implemented
 
-Keep one Groovy/Spock selection aligned across every participating Domain API, Schema, and Model module and provide
-proportionate test/build evidence that catches a mismatch. The exact local mechanism remains the owning build's concern.
-If the project claims compatibility with several Groovy generations, execute the complete API/Schema fixture once per
-generation in isolated builds; never reuse compiled Groovy/Spock fixture output between them.
+Catwalk's root-owned `layer3TestPair` keeps one Groovy/Spock selection aligned across the participating Domain API
+fixture and Schema test, with focused mismatch evidence. The local mechanism remains Catwalk-owned. Catwalk deliberately
+claims only that selected pair; a later project that claims several Groovy generations must still execute the complete
+fixture independently per generation and never reuse compiled fixture output across lanes.
 
-Acceptance: all participating modules resolve the same Groovy and Spock coordinates; the focused shared-contract test
-passes. Any optional 3/4/5 matrix compiles and runs fixtures independently per generation. The production artifact
-remains compiled once and its published metadata has no lane-specific test dependency.
+Acceptance met: the participating Catwalk modules resolve the same Groovy and Spock coordinates and the focused shared
+contract passes. No optional 3/4/5 matrix is claimed; any future matrix must compile and run fixtures independently per
+generation. The production artifact remains compiled once and its published metadata has no lane-specific test dependency.
 
-Commit boundary: `Align Domain API contract-test Groovy selection` with the selection evidence and tests together.
+Delivered commit boundary: `Align Domain API contract-test Groovy selection` with the selection evidence and tests
+together.
 
-### CT-4 — Decide whether a domain-local convention earns extraction
+### CT-4 — Decide whether a domain-local convention earns extraction — future/extraction-only
 
 Only after at least two API-to-Schema mappings repeat the exact dependency/configuration shape, decide whether the owning
 domain repository should add a small convention. Its inputs must be explicit API project/capability references; it must
@@ -140,8 +159,8 @@ Commit boundary: separate owner-specific convention work; it is not part of #755
   `CHANGES.md` entry is required by this plan.
 - The Domain API repository documents the selected test contract beside its own development guidance. It should call out
   fixture consumption and the chosen JUnit/Spock adapter shape without representing it as a KlumAST feature.
-- #755 remains a future, unmilestoned, ready-for-agent application-owned testing item. It is non-blocking for #454 and
-  #753.
+- #755's initial CT-1 through CT-3 delivery is complete in Catwalk. The retained CT-4 extraction question is not part of
+  #755 and is non-blocking for #454 and #753.
 - A published Domain API fixture or artifact introduces Maven metadata, version alignment, and consumer compatibility
   questions; it requires a follow-up design rather than silently extending this local-build plan.
 - #548 is a related, deferred post-4.1 source-level Schema-composition design. It is not a blocker for binary project

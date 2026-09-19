@@ -4,7 +4,9 @@ Date: 2026-09-14
 
 Status: Accepted
 
-Implementation status: Planned application-owned test/build work; no KlumAST production or Gradle-plugin change.
+Implementation status: Implemented for CT-1 through CT-3 in the application-owned `klum-catwalk` consumer. No KlumAST
+production, generated API, Schema or Model plugin, or publication change was made. CT-4 remains future extraction-only
+work.
 
 Tracking issue: [#755 — Support reusable Domain API contract tests in Layer 3 Schema modules](https://github.com/klum-dsl/klum-ast/issues/755)
 
@@ -65,6 +67,15 @@ The repository's multi-Groovy convention explicitly recompiles Groovy test sourc
 several compatibility lanes. It does not prevent a final Layer 3 project from using a single selected Groovy/Spock pair
 for all of its Domain API, Schema, and Model modules. In that aligned topology, an API-owned Groovy/Spock fixture is
 compiled and executed with the same pair as its Schema consumer, so it crosses no lane boundary.
+
+`klum-catwalk` then delivered the accepted topology. [Catwalk PR #5](https://github.com/klum-dsl/klum-catwalk/pull/5),
+merged as [`6233ed1c29a9b2e0ebc19c66aa1aef71c042f663`](https://github.com/klum-dsl/klum-catwalk/commit/6233ed1c29a9b2e0ebc19c66aa1aef71c042f663),
+implemented CT-1 and CT-2: an API-owned Groovy/Spock fixture, explicit Schema `testFixtures(project(":domain-api"))`
+wiring, inherited-contract discovery, and a retained missing-fixture compile-failure control. [Catwalk PR #6](https://github.com/klum-dsl/klum-catwalk/pull/6),
+merged as [`257f8e1a3406f586c2a5f111d61b76ed9bd88112`](https://github.com/klum-dsl/klum-catwalk/commit/257f8e1a3406f586c2a5f111d61b76ed9bd88112),
+implemented CT-3 by making the selected Groovy/Spock pair root-owned and verifying API-fixture and Schema-test
+classpath alignment, including focused drift evidence. The Catwalk evidence claims one selected pair only; it does not
+claim a Groovy 3/4/5 matrix.
 
 `blackbuild/gradle-conventions#1` remains an open design for organization-wide multi-Groovy, publication, and release
 conventions. It has no proven Domain-API coordinate-selection contract. `engineering-baseline` owns policy synchronization,
@@ -136,6 +147,6 @@ the same selected Groovy/Spock pair.
 
 ## Implementation boundary
 
-The accepted contract requires one matching Groovy/Spock pair across participating modules. The owning build should keep
-that selection aligned and provide proportionate test/build evidence against version drift, without prescribing a KlumAST
-plugin mapping, a shared convention, or a new published artifact.
+The accepted contract requires one matching Groovy/Spock pair across participating modules. Catwalk provides the initial
+application-owned evidence against version drift, without prescribing a KlumAST plugin mapping, a shared convention, or
+a new published artifact. It retains no claim to CT-4 extraction, source composition, or a Groovy 3/4/5 matrix.
