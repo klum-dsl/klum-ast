@@ -55,6 +55,11 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         super.copyFromRecipe(template);
     }
 
+    /** Returns the completed Model behind a sealed Builder, or {@code null} before Materialization. */
+    protected final M $klum$completedModelOrNull() {
+        return super.getCompletedModel();
+    }
+
     protected final <T> T $setSingleField(String fieldOrMethodName, T value) {
         return super.setSingleField(fieldOrMethodName, value);
     }

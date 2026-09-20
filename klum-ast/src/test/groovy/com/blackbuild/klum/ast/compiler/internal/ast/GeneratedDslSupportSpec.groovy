@@ -140,6 +140,53 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         compileJavaSource(mirror)
     }
 
+    @Issue('648')
+    def "publishes exact factory-token predicates and Builder narrowing to Java and static Groovy"() {
+        given:
+        Class<?> factory = getClass('sample.Foo_DSL$Factory')
+
+        when: 'the generated Factory public operations are inspected'
+        Method combinedPredicate = factory.getMethod('isModelOrBuilder', Object)
+        Method builderPredicate = factory.getMethod('isBuilder', Object)
+        Method narrowing = factory.getMethod('asBuilder', Object)
+
+        then: 'the Factory inherits the public runtime capability without implementation types'
+        combinedPredicate.returnType == Boolean.TYPE
+        builderPredicate.returnType == Boolean.TYPE
+        narrowing.genericReturnType.typeName == 'B'
+
+        when: 'Java assigns the cast directly to the exact generated Builder contract'
+        compileJavaConsumer('''
+            package sample;
+
+            public final class JavaBuilderNarrowingConsumer {
+                public static Foo_DSL.Builder<Foo> narrow(Object value) {
+                    if (!Foo.Create.isBuilder(value)) {
+                        throw new IllegalArgumentException("not a Foo Builder");
+                    }
+                    return Foo.Create.asBuilder(value);
+                }
+            }
+        ''', 'sample/JavaBuilderNarrowingConsumer.java')
+
+        and: 'statically compiled Groovy sees the same exact return type'
+        createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            final class StaticBuilderNarrowingConsumer {
+                static Foo_DSL.Builder<Foo> narrow(Object value) {
+                    Foo.Create.asBuilder(value)
+                }
+            }
+        ''', 'sample/StaticBuilderNarrowingConsumer.groovy')
+
+        then:
+        noExceptionThrown()
+    }
+
     def "public signatures traverse Builder collection and Cluster APIs without implementation types"() {
         given:
         Class<?> builder = getClass('sample.Foo_DSL$Builder')

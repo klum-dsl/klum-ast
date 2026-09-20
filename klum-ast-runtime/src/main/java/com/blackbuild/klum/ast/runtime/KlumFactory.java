@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedBuilderTypeSupport;
 import com.blackbuild.klum.ast.runtime.internal.DslHelper;
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
@@ -84,6 +85,34 @@ public class KlumFactory<T> {
          * ordinary configuration closure cannot be coerced into polymorphic factory selection.</p>
          */
         Class<T> getModelType();
+
+        /**
+         * Returns whether {@code value} is either a completed instance of the selected Model type or a Builder whose
+         * declared Model type is assignable to it.
+         *
+         * <p>This identity check is independent of Construction-session state and performs no lifecycle transition.</p>
+         */
+        default boolean isModelOrBuilder(Object value) {
+            return GeneratedBuilderTypeSupport.$klum$isModelOrBuilder(getModelType(), value);
+        }
+
+        /**
+         * Returns whether {@code value} is a Builder whose declared Model type is assignable to the selected Model type.
+         *
+         * <p>A completed Model never satisfies this narrower predicate.</p>
+         */
+        default boolean isBuilder(Object value) {
+            return GeneratedBuilderTypeSupport.$klum$isBuilder(getModelType(), value);
+        }
+
+        /**
+         * Narrows {@code value} to this factory's exact public Builder type without changing its identity or lifecycle.
+         *
+         * @throws KlumModelException if {@code value} is not a matching Builder
+         */
+        default B asBuilder(Object value) {
+            return GeneratedBuilderTypeSupport.$klum$asBuilder(getModelType(), value);
+        }
 
         /** Returns the active-session Builder factory for the selected DSL Object type. */
         BuilderFactory<T, B> AsBuilder();
