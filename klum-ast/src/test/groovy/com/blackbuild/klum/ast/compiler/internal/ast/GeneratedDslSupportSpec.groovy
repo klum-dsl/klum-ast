@@ -106,6 +106,77 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [builder, collectionFactory, clusterFactory].every { publicSignatures(it).every { !it.contains('\$_') } }
     }
 
+    @Issue('135')
+    def "collection factory Template expansion is typed in bytecode Java and source mirrors"() {
+        given:
+        Class<?> childBuilder = getClass('sample.Child_DSL$Builder')
+        Class<?> collectionFactory = getClass('sample.Foo_DSL$Builder$CollectionFactory_kids')
+
+        when: 'the generated collection-factory contract is inspected'
+        Method withTemplates = collectionFactory.getMethod('withTemplates', Iterable, Closure)
+
+        then: 'the one generated signature exposes the settled public contract'
+        withTemplates.genericParameterTypes[0].typeName == 'java.lang.Iterable<? extends sample.Child>'
+        withTemplates.returnType == Void.TYPE
+        closureDelegate(withTemplates) == childBuilder
+        withTemplates.getAnnotation(AnnoDoc).value().contains('configures each fresh child once')
+        collectionFactory.methods.count { it.name == 'withTemplates' } == 1
+        !collectionFactory.methods.any { it.name == 'useTemplates' }
+
+        when: 'a Java client names the generated method'
+        compileJavaConsumer('''
+            package sample;
+
+            import groovy.lang.Closure;
+            import java.util.List;
+
+            public final class JavaTemplateListConsumer {
+                public static void addTemplates(
+                        Foo_DSL.Builder.CollectionFactory_kids kids,
+                        List<? extends Child> templates,
+                        Closure<?> configuration) {
+                    kids.withTemplates(templates, configuration);
+                }
+            }
+        ''', 'sample/JavaTemplateListConsumer.java')
+
+        and: 'statically compiled Groovy uses the field-local method and trailing closure'
+        Class<?> staticConsumer = createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            final class StaticTemplateListConsumer {
+                static Foo create(List<? extends Child> templates) {
+                    Foo.Create.With {
+                        kids {
+                            withTemplates(templates) {
+                                name 'configured'
+                            }
+                        }
+                    }
+                }
+            }
+        ''')
+        Class<?> child = getClass('sample.Child')
+        def first = child.Create.Template.With(name: 'first')
+        def second = child.Create.Template.With(name: 'second')
+
+        and: 'the public source mirror is generated from the same contract'
+        File mirrorRoot = new File(tempFolder.root, 'template-list-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        File mirror = new File(mirrorRoot, 'sample/Foo_DSL.java')
+
+        then:
+        mirror.text.contains('void withTemplates(Iterable<? extends Child> templates,')
+        mirror.text.contains('@DelegatesTo(strategy = 3, value = Child_DSL.Builder.class) Closure closure)')
+        !mirror.text.contains('useTemplates')
+        compileJavaSource(mirror)
+        staticConsumer.create([first, second]).kids*.name == ['configured', 'configured']
+    }
+
     @Issue('729')
     def "Factory exposes only the explicit typed AsBuilder() operation"() {
         given:

@@ -230,6 +230,59 @@ Config.Create.With {
 }
 ```
 
+## Expanding Template lists into one relationship
+
+Use `withTemplates` inside a collection factory when several existing Templates should become separate values of that
+one relationship. It accepts an `Iterable` and a required trailing configuration closure. Each Template is rehydrated
+immediately as exactly one fresh owned child in the current Construction session; the closure configures that child once,
+and the Template object itself is never inserted into the relationship. Use an empty closure for pure expansion.
+
+(See: `TemplatesDocumentaryTest#'expands reusable member Templates into one relationship'`.)
+
+```groovy
+@DSL
+class Team {
+    List<Member> members
+}
+
+@DSL
+class Member {
+    String name
+    String role
+    boolean active
+}
+
+def admin = Member.Create.Template.With(name: 'admin', role: 'administrator')
+def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
+
+def team = Team.Create.With {
+    members {
+        withTemplates([admin, reader]) {
+            active true
+        }
+    }
+}
+
+assert team.members*.name == ['admin', 'reader']
+assert team.members*.active == [true, true]
+```
+
+`withTemplates` accepts only an `Iterable` of marked Templates plus the trailing child-Builder closure. Repeated calls
+append fresh children in invocation and iteration order. The complete input is checked before any closure invocation or
+child attachment, so an ordinary completed DSL Object in the batch fails without partially changing the relationship.
+The same closure runs once for every fresh child after its recipe has been replayed and before its normal `@PostApply`
+lifecycle callback. It receives no Template argument; its `DELEGATE_ONLY` delegate is the fresh child Builder.
+
+This is direct, field-local recipe expansion: it installs no temporary Template default, and a later child creator in the
+same collection factory is unaffected. Use `Template.WithAll` instead when the goal is to establish type-wide defaults
+while a body creates objects. `withTemplates` is not generated for `LINK` collections because Templates cannot be link
+targets; `OPTIONAL_LINK` collections may own the freshly rehydrated children.
+
+For map relationships, normal key derivation and duplicate handling remain in effect. A keyed Template remains unkeyed by
+definition, so a map of keyed elements still needs a key source available during creation; an existing `keyMapping` on
+the relationship can derive it from another copied Template value. If two expanded children derive the same map key, the
+later child replaces the earlier value just as with the existing collection-factory operations.
+
 ## Template.WithAll()
 
 `Template.WithAll` is a convenient way of applying multiple templates at one. It takes one of the following arguments:

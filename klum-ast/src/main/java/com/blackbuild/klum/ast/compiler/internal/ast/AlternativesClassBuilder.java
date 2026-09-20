@@ -134,10 +134,39 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         createClosureForOuterClass();
         delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
+            createWithTemplatesMethod();
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
         OmittedProjectionCatalog.complete(collectionFactory);
+    }
+
+    private void createWithTemplatesMethod() {
+        String runtimeMethod = isMap(fieldNode.getType())
+                ? "addTemplatesToMap"
+                : "addTemplatesToCollection";
+        String templateDescription = "the marked Templates to rehydrate as fresh owned children";
+
+        new ProxyMethodBuilder(varX("rw"), "withTemplates", runtimeMethod)
+                .targetType(builderClass)
+                .optional()
+                .mod(ACC_PUBLIC)
+                .returning(VOID_TYPE)
+                .constantParam(fieldNode.getName())
+                .param(
+                        makeClassSafeWithGenerics(make(Iterable.class), buildWildcardType(elementType)),
+                        "templates",
+                        templateDescription
+                )
+                .delegatingClosureParam(
+                        getBuilderClassOf(elementType),
+                        null,
+                        "the configuration applied once to each fresh child Builder"
+                )
+                .withDocumentation(doc -> doc
+                        .title("Rehydrates and configures one fresh owned child per marked Template in the current Construction session.")
+                        .p("The Templates are expanded immediately in iteration order and the closure configures each fresh child once; this operation does not install a scoped Template default."))
+                .addTo(collectionFactory);
     }
 
     private void createClosureForOuterClass() {
