@@ -182,9 +182,12 @@ public class FactoryHelper extends GroovyObjectSupport {
         return prepareBuilder(createBuilder(type, key, null, template), template, configuration);
     }
 
-    static InternalKlumBuilder<?> prepareNestedBuilderFromTemplate(Class<?> declaredType, Object template) {
+    static InternalKlumBuilder<?> prepareNestedBuilderFromTemplate(Class<?> declaredType, Object template, Closure<?> configuration) {
         InternalKlumBuilder<?> builder = createRecipeBuilder(declaredType, template, null, false);
-        return prepareBuilder(builder, false, nestedBuilder -> nestedBuilder.copyFrom(template));
+        return prepareBuilder(builder, false, nestedBuilder -> {
+            nestedBuilder.copyFrom(template);
+            nestedBuilder.applyOnly(null, configuration);
+        });
     }
 
     private static <T> InternalKlumBuilder<T> prepareBuilder(InternalKlumBuilder<T> builder, boolean template,

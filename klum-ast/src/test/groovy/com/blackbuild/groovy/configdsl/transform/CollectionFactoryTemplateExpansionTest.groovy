@@ -50,6 +50,8 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
                 String name
                 String role
                 String identifier
+                String configuredBy
+                String configurationObservedByPostApply
                 boolean postCreateCalled
                 boolean postApplyCalled
 
@@ -61,6 +63,7 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
                 @PostApply
                 void recordPostApply() {
                     postApplyCalled = true
+                    configurationObservedByPostApply = configuredBy
                 }
             }
         '''
@@ -75,25 +78,35 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
             }
         }
         def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
+        def ambient = Member.Create.Template.With(role: 'ambient')
+        int configurationCalls = 0
 
         when:
-        def team = clazz.Create.With {
-            members {
-                useTemplates admin
-                member {
-                    name 'plain'
+        def team
+        Member.Template.With(ambient) {
+            team = clazz.Create.With {
+                members {
+                    withTemplates([admin, reader]) {
+                        configuredBy "batch-${++configurationCalls}"
+                    }
+                    member {
+                        name 'plain'
+                    }
+                    withTemplates([admin]) { }
                 }
-                useTemplates([admin, reader])
-            }
-            optionalMembers {
-                useTemplates reader
+                optionalMembers {
+                    withTemplates([reader]) { }
+                }
             }
         }
 
         then:
-        team.members*.name == ['admin', 'plain', 'admin', 'reader']
-        team.members*.role == ['administrator', null, 'administrator', 'reader']
-        team.members*.identifier == ['ADMIN', null, 'ADMIN', null]
+        configurationCalls == 2
+        team.members*.name == ['admin', 'reader', 'plain', 'admin']
+        team.members*.role == ['administrator', 'reader', 'ambient', 'administrator']
+        team.members*.identifier == ['ADMIN', null, null, 'ADMIN']
+        team.members*.configuredBy == ['batch-1', 'batch-2', null, null]
+        team.members*.configurationObservedByPostApply == ['batch-1', 'batch-2', null, null]
         team.members.findAll { it.name == 'admin' }.with {
             size() == 2
             !get(0).is(get(1))
@@ -118,8 +131,8 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
         when:
         def team = clazz.Create.With {
             membersByName {
-                useTemplates firstAdmin
-                useTemplates([reader, replacementAdmin])
+                withTemplates([firstAdmin]) { }
+                withTemplates([reader, replacementAdmin]) { }
             }
         }
 
@@ -134,13 +147,16 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
         def Member = getClass('pk.Member')
         def template = Member.Create.Template.With(name: 'template')
         def completedModel = Member.Create.With(name: 'ordinary')
+        int configurationCalls = 0
         KlumModelException failure
 
         when:
         def team = clazz.Create.With {
             members {
                 try {
-                    useTemplates([template, completedModel])
+                    withTemplates([template, completedModel]) {
+                        configurationCalls++
+                    }
                 } catch (KlumModelException caught) {
                     failure = caught
                 }
@@ -152,6 +168,7 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
 
         then:
         failure.message.contains('accepts only marked Templates')
+        configurationCalls == 0
         team.members*.name == ['retained']
     }
 
@@ -160,6 +177,6 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
         Class<?> linkFactory = getClass('pk.Team_DSL$Builder$CollectionFactory_linkedMembers')
 
         expect:
-        !linkFactory.methods.any { it.name == 'useTemplates' }
+        !linkFactory.methods.any { it.name == 'withTemplates' }
     }
 }

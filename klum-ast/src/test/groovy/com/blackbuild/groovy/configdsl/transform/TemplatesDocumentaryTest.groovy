@@ -279,6 +279,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
             class Member {
                 String name
                 String role
+                boolean active
             }
         '''
         def Member = getClass('pk.Member')
@@ -288,13 +289,16 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         when:
         def team = clazz.Create.With {
             members {
-                useTemplates admin, reader
+                withTemplates([admin, reader]) {
+                    active true
+                }
             }
         }
 
         then:
         team.members*.name == ['admin', 'reader']
         team.members*.role == ['administrator', 'reader']
+        team.members*.active == [true, true]
     }
 
     @Issue("376")

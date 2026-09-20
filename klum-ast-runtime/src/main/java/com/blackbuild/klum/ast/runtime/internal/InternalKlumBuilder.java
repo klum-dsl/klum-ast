@@ -885,21 +885,13 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     /**
-     * Rehydrates marked Templates as fresh owned children and appends them to a collection relationship.
+     * Rehydrates marked Templates as fresh owned children, configures each child, and appends them to a collection relationship.
      * @param fieldName the collection field name
      * @param templates the marked Templates to rehydrate
+     * @param configuration the configuration applied once to each fresh child Builder
      */
-    public void addTemplatesToCollection(String fieldName, Object... templates) {
-        addTemplatesToCollection(fieldName, Arrays.asList(templates));
-    }
-
-    /**
-     * Rehydrates marked Templates as fresh owned children and appends them to a collection relationship.
-     * @param fieldName the collection field name
-     * @param templates the marked Templates to rehydrate
-     */
-    public void addTemplatesToCollection(String fieldName, Iterable<?> templates) {
-        addTemplates(fieldName, templates, builder -> addElementToCollection(fieldName, builder));
+    public void addTemplatesToCollection(String fieldName, Iterable<?> templates, Closure<?> configuration) {
+        addTemplates(fieldName, templates, configuration, builder -> addElementToCollection(fieldName, builder));
     }
 
     /** Attaches a projected batch of child Builders and returns the producer's original container. */
@@ -943,28 +935,22 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     /**
-     * Rehydrates marked Templates as fresh owned children and adds them to a map relationship using normal key derivation.
+     * Rehydrates marked Templates as fresh owned children, configures each child, and adds them to a map relationship using normal key derivation.
      * @param fieldName the map field name
      * @param templates the marked Templates to rehydrate
+     * @param configuration the configuration applied once to each fresh child Builder
      */
-    public void addTemplatesToMap(String fieldName, Object... templates) {
-        addTemplatesToMap(fieldName, Arrays.asList(templates));
+    public void addTemplatesToMap(String fieldName, Iterable<?> templates, Closure<?> configuration) {
+        addTemplates(fieldName, templates, configuration, builder -> addElementToMap(fieldName, null, builder));
     }
 
-    /**
-     * Rehydrates marked Templates as fresh owned children and adds them to a map relationship using normal key derivation.
-     * @param fieldName the map field name
-     * @param templates the marked Templates to rehydrate
-     */
-    public void addTemplatesToMap(String fieldName, Iterable<?> templates) {
-        addTemplates(fieldName, templates, builder -> addElementToMap(fieldName, null, builder));
-    }
-
-    private void addTemplates(String fieldName, Iterable<?> templates, Consumer<InternalKlumBuilder<?>> attachment) {
+    private void addTemplates(String fieldName, Iterable<?> templates, Closure<?> configuration,
+                              Consumer<InternalKlumBuilder<?>> attachment) {
+        Objects.requireNonNull(configuration, "configuration");
         List<Object> validatedTemplates = validatedTemplateSnapshot(fieldName, templates);
         Class<?> declaredType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
         validatedTemplates.forEach(template -> attachment.accept(
-                FactoryHelper.prepareNestedBuilderFromTemplate(declaredType, template)
+                FactoryHelper.prepareNestedBuilderFromTemplate(declaredType, template, configuration)
         ));
     }
 
@@ -977,7 +963,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         for (Object template : snapshot) {
             if (!TemplateManager.isTemplate(template))
                 throw new KlumModelException(format(
-                        "useTemplates for %s.%s accepts only marked Templates; received %s",
+                        "withTemplates for %s.%s accepts only marked Templates; received %s",
                         modelType.getName(), fieldName, template == null ? "null" : template.getClass().getName()
                 ));
             if (!declaredType.isInstance(template))

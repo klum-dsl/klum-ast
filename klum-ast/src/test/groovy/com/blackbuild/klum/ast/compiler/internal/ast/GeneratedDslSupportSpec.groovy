@@ -109,40 +109,38 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
     @Issue('135')
     def "collection factory Template expansion is typed in bytecode Java and source mirrors"() {
         given:
-        Class<?> child = getClass('sample.Child')
+        Class<?> childBuilder = getClass('sample.Child_DSL$Builder')
         Class<?> collectionFactory = getClass('sample.Foo_DSL$Builder$CollectionFactory_kids')
 
         when: 'the generated collection-factory contract is inspected'
-        Method varargsMethod = collectionFactory.getMethod('useTemplates', child.arrayType())
-        Method iterableMethod = collectionFactory.getMethod('useTemplates', Iterable)
+        Method withTemplates = collectionFactory.getMethod('withTemplates', Iterable, Closure)
 
-        then: 'both generated signatures expose the settled public contract'
-        varargsMethod.varArgs
-        varargsMethod.returnType == Void.TYPE
-        iterableMethod.genericParameterTypes[0].typeName == 'java.lang.Iterable<? extends sample.Child>'
-        iterableMethod.returnType == Void.TYPE
-        [varargsMethod, iterableMethod].every {
-            it.getAnnotation(AnnoDoc).value().contains('fresh owned children')
-        }
+        then: 'the one generated signature exposes the settled public contract'
+        withTemplates.genericParameterTypes[0].typeName == 'java.lang.Iterable<? extends sample.Child>'
+        withTemplates.returnType == Void.TYPE
+        closureDelegate(withTemplates) == childBuilder
+        withTemplates.getAnnotation(AnnoDoc).value().contains('configures each fresh child once')
+        collectionFactory.methods.count { it.name == 'withTemplates' } == 1
+        !collectionFactory.methods.any { it.name == 'useTemplates' }
 
-        when: 'a Java client names both generated overloads'
+        when: 'a Java client names the generated method'
         compileJavaConsumer('''
             package sample;
 
+            import groovy.lang.Closure;
             import java.util.List;
 
             public final class JavaTemplateListConsumer {
                 public static void addTemplates(
                         Foo_DSL.Builder.CollectionFactory_kids kids,
-                        Child first,
-                        List<? extends Child> remaining) {
-                    kids.useTemplates(first);
-                    kids.useTemplates(remaining);
+                        List<? extends Child> templates,
+                        Closure<?> configuration) {
+                    kids.withTemplates(templates, configuration);
                 }
             }
         ''', 'sample/JavaTemplateListConsumer.java')
 
-        and: 'statically compiled Groovy uses both field-local overloads'
+        and: 'statically compiled Groovy uses the field-local method and trailing closure'
         Class<?> staticConsumer = createSecondaryClass('''
             package sample
 
@@ -150,16 +148,18 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
             @CompileStatic
             final class StaticTemplateListConsumer {
-                static Foo create(Child first, List<? extends Child> remaining) {
+                static Foo create(List<? extends Child> templates) {
                     Foo.Create.With {
                         kids {
-                            useTemplates first
-                            useTemplates remaining
+                            withTemplates(templates) {
+                                name 'configured'
+                            }
                         }
                     }
                 }
             }
         ''')
+        Class<?> child = getClass('sample.Child')
         def first = child.Create.Template.With(name: 'first')
         def second = child.Create.Template.With(name: 'second')
 
@@ -170,10 +170,11 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         File mirror = new File(mirrorRoot, 'sample/Foo_DSL.java')
 
         then:
-        mirror.text.contains('void useTemplates(Child[] templates)')
-        mirror.text.contains('void useTemplates(Iterable<? extends Child> templates)')
+        mirror.text.contains('void withTemplates(Iterable<? extends Child> templates,')
+        mirror.text.contains('@DelegatesTo(strategy = 3, value = Child_DSL.Builder.class) Closure closure)')
+        !mirror.text.contains('useTemplates')
         compileJavaSource(mirror)
-        staticConsumer.create(first, [second]).kids*.name == ['first', 'second']
+        staticConsumer.create([first, second]).kids*.name == ['configured', 'configured']
     }
 
     @Issue('729')

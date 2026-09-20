@@ -134,32 +134,20 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         createClosureForOuterClass();
         delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
-            createUseTemplatesMethods();
+            createWithTemplatesMethod();
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
         OmittedProjectionCatalog.complete(collectionFactory);
     }
 
-    private void createUseTemplatesMethods() {
+    private void createWithTemplatesMethod() {
         String runtimeMethod = isMap(fieldNode.getType())
                 ? "addTemplatesToMap"
                 : "addTemplatesToCollection";
         String templateDescription = "the marked Templates to rehydrate as fresh owned children";
 
-        new ProxyMethodBuilder(varX("rw"), "useTemplates", runtimeMethod)
-                .targetType(builderClass)
-                .optional()
-                .mod(ACC_PUBLIC)
-                .returning(VOID_TYPE)
-                .constantParam(fieldNode.getName())
-                .arrayParam(elementType, "templates", templateDescription)
-                .withDocumentation(doc -> doc
-                        .title("Rehydrates the marked Templates as fresh owned children in the current Construction session.")
-                        .p("The Templates are expanded immediately in argument order; this operation does not install a scoped Template default."))
-                .addTo(collectionFactory);
-
-        new ProxyMethodBuilder(varX("rw"), "useTemplates", runtimeMethod)
+        new ProxyMethodBuilder(varX("rw"), "withTemplates", runtimeMethod)
                 .targetType(builderClass)
                 .optional()
                 .mod(ACC_PUBLIC)
@@ -170,9 +158,14 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         "templates",
                         templateDescription
                 )
+                .delegatingClosureParam(
+                        getBuilderClassOf(elementType),
+                        null,
+                        "the configuration applied once to each fresh child Builder"
+                )
                 .withDocumentation(doc -> doc
-                        .title("Rehydrates the marked Templates as fresh owned children in the current Construction session.")
-                        .p("The Templates are expanded immediately in iteration order; this operation does not install a scoped Template default."))
+                        .title("Rehydrates and configures one fresh owned child per marked Template in the current Construction session.")
+                        .p("The Templates are expanded immediately in iteration order and the closure configures each fresh child once; this operation does not install a scoped Template default."))
                 .addTo(collectionFactory);
     }
 
