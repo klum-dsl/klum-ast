@@ -88,6 +88,56 @@ calling foreign non-DSL code remains the Schema Developer's assertion that the c
 query calls a query on a separately compiled DSL Object, that dependency must itself have been compiled with its emitted
 `@Builder.Query` contract.
 
+## Flowing Builders through Explicit Inputs and Results
+
+Use `@Builder.Input` and `@Builder.Result` when one domain helper must also participate in Builder-phase composition. The
+annotations select only the marked parameter and result positions. Where a Model form remains, its signature still
+consumes and returns completed DSL Objects, while the generated Builder contract uses the corresponding exact public
+Builder types.
+
+(See: `SharedCapabilitiesDocumentaryTest#'flows an explicitly selected Builder input into an owned Builder result'`.)
+
+```groovy
+@CompileStatic
+@DSL class Deployment {
+    Registry source
+    Registry normalized
+
+    @PostTree
+    void normalizeRegistry() {
+        normalized Registry.normalized(source)
+    }
+}
+
+@DSL class Registry {
+    String host
+
+    @Builder.Result
+    static Registry normalized(@Builder.Input Registry source) {
+        Registry.Create.With(host: source.host.toLowerCase())
+    }
+}
+```
+
+In completed-Model code, `Registry.normalized(Registry)` remains the authored signature and owns its normal root factory
+lifecycle. During Builder execution KlumAST binds the same source call to a linked operation equivalent to
+`Registry_DSL.Builder<Registry> normalized(Registry_DSL.Builder<Registry>)`. The returned Builder stays unsealed in the
+active Construction session and can be attached through the generated `normalized` relationship method.
+
+The annotations are orthogonal signature facets. An unmarked DSL Object parameter still means a completed Model—for
+example a `LINK` target—and an unmarked DSL Object result remains a Model result. A static helper can use the facets
+directly. An instance method must also declare its category: `@Builder.Query` may use `@Builder.Input` but cannot produce
+an owned Builder result, while `@Builder.Method @Builder.Result` retargets the Builder-only method directly. Supported
+Collection and Map positions preserve their declared outer type, element order, map keys, and concrete collection
+behavior while projecting their DSL Object elements or values.
+
+Projection is deliberately strict. Raw or wildcard Builder types, unresolved DSL-bearing generics, unsupported nested
+containers, non-DSL annotated positions, and overloads that collapse after projection fail at Schema compilation. A
+separately compiled Schema must expose the generated linked contract; recompile older bytecode when the diagnostic says
+that its Builder twin is unavailable. These annotations never convert a completed Model into composition and never adopt,
+reopen, or move a Builder across Construction sessions; the normal session, sealing, attachment, and ownership checks
+remain authoritative.
+
 ## Narrowing a Builder by Model Type
 
 Builder-phase relationship values are Builders rather than completed Models, so `value instanceof SpecialRegistry` does

@@ -4,8 +4,15 @@
   `@Builder.Method`, for methods that exist only on generated Builders. Deprecated `@Mutator` remains source-compatible
   and is promoted to `@Builder.Method` during compilation, so validation, movement, field retargeting, public
   `Foo_DSL.Builder`, IDE mirrors, and emitted runtime annotations use one canonical path; migrate by changing only the
-  annotation spelling. The later input, result, and narrowing capabilities remain deliberately outside this slice
+  annotation spelling. The later input, result, and narrowing capabilities are delivered in separate slices
   ([#689](https://github.com/klum-dsl/klum-ast/issues/689)).
+
+- Added `@Builder.Input` and `@Builder.Result` as explicit, position-level opt-ins for shared Model/Builder helpers. Marked
+  DSL Object, Collection, and Map positions project to exact generated public Builder types while Model methods retain
+  their completed-state signatures; selected Builder methods are retargeted directly. Unsupported generic shapes,
+  collapsed overloads, and unavailable precompiled twins fail deterministically, while existing Construction-session,
+  sealing, attachment, and ownership boundaries remain unchanged
+  ([#650](https://github.com/klum-dsl/klum-ast/issues/650)).
 
 - Added `@Builder.Query` as an explicit opt-in for projecting a side-effect-free Model query onto the generated public
   Builder contract. The original method remains on completed Models; Builder calls read current construction state.
