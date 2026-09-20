@@ -165,16 +165,19 @@ successor issue rather than weakening `@BuilderResult`.
 
 **Timing:** after SMB-1 through SMB-4 have executable evidence and before final contract reconciliation.
 
-**Decision:** evaluate whether repeated per-method annotations, generic state consumers, or the implemented type projector
-justify an interface-level bulk projection. Record exactly one outcome in ADR 0020:
+**Decision:** evaluate whether repeated per-method annotations justify an interface-level declaration map. Use
+`@OwnerProvidedDefaults` as the precedent: an implemented interface can select a set of declarations for special handling
+without becoming a generated Builder interface. Record exactly one outcome in ADR 0020:
 
-- implement it in the current lane, with a separately reviewed public name, generated-contract shape, inheritance rules,
-  precompiled behavior, and acceptance matrix;
+- implement selector-interface grouping in the current lane, with a separately reviewed public name, method/position
+  classification rules, inheritance rules, precompiled behavior, and acceptance matrix;
 - waive it because the three explicit annotations cover the demonstrated use cases; or
 - create a later related issue when the need is credible but not required for this lane.
 
-This checkpoint must not hold the four foundational slices open merely to preserve a hypothetical public seam. A generated
-paired Model/Builder state contract is an option to evaluate, not a pre-approved implementation.
+In the soft candidate, the Model implements the selector interface; its generated Builder receives the selected projected
+methods but implements neither that interface nor a generated companion. A paired Model/Builder state contract is a
+stronger alternative only if separate evidence shows value in typing generic Builder-state consumers. This checkpoint must
+not hold the four foundational slices open merely to preserve either hypothetical public seam.
 
 ### SMB-5 — Reconcile the complete public contract (#689)
 
@@ -256,7 +259,7 @@ creating an unrelated example vocabulary.
 | --- | --- |
 | Local purity checks miss mutation hidden in foreign non-DSL calls. | Document `@BuilderQuery` as a Schema Developer assertion and reject locally visible construction/mutation; do not claim whole-program purity. |
 | Annotation combinations become another implicit method taxonomy. | Keep the three annotations orthogonal; defer any bulk-query seam until post-slice evidence shows that it adds leverage; do not add an open-ended method-kind enum. |
-| A speculative Builder State contract expands the current lane. | SMB-D1 requires an evidence-led implement, waive, or later-issue decision; no annotation name or generated companion shape is reserved now. |
+| A speculative Builder State contract expands the current lane. | SMB-D1 treats a selector-only interface as the soft candidate and requires an evidence-led implement, waive, or later-issue decision; no annotation name or generated companion shape is reserved now. |
 | Projected overloads erase to one descriptor. | Reject the collision at Schema compilation and name both source signatures. |
 | A Model result is confused with owned composition. | Require `@BuilderResult`; validate active-session unsealed Builder identity; leave every unmarked result unchanged. |
 | Precompiled behavior differs from same-source behavior. | Treat emitted `Foo_DSL`/linked twins as the only precompiled authority; diagnose older opaque bytecode instead of analyzing method bodies. |

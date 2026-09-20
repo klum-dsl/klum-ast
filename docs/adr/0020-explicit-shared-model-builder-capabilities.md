@@ -95,21 +95,26 @@ path. `toUrl()` remains available on the completed Model and is explicitly proje
 
 ### Defer bulk state-interface projection until the first slices provide evidence
 
-A fourth interface-level annotation could provide a bulk opt-in for coherent read-only state, but this ADR does not adopt
-one yet. Its value and truthful public shape depend on evidence from the narrower query, input, result, and narrowing
-slices. Deciding it now would freeze substantially more generated surface, inheritance behavior, and precompiled-contract
-rules than the initial use cases require.
+A fourth interface-level annotation could provide a bulk opt-in for coherent shared behavior, but this ADR does not adopt
+one yet. Its value depends on evidence from the narrower query, input, result, and narrowing slices.
+
+The preferred soft candidate is a selector interface, analogous to the contract interfaces used by
+`@OwnerProvidedDefaults`. The Model implements the authored interface, and that interface identifies the Model methods
+which receive the same special handling as individually annotated methods. KlumAST classifies each selected method and its
+parameter/result positions according to the explicit projection rules. The generated Builder gains those projected
+methods, but does not implement the selector interface, and KlumAST generates no companion interface. The interface is a
+declaration map, not a shared Model/Builder type.
 
 After the first four behavior slices are executable, ADR 0020 must be revisited and record one of three outcomes:
 
-- implement a bulk state-interface projection in the current lane because repeated annotations or generic state consumers
-  demonstrate enough leverage;
+- implement selector-interface grouping in the current lane because repeated annotations demonstrate enough leverage;
 - waive it because the explicit per-method and per-position annotations remain sufficient; or
 - move it to a later related issue when the need is credible but the contract is not required for the current lane.
 
-If that review chooses an interface-level feature, one authored interface must not be shared unchanged by Model and
-Builder when DSL Object parameter or result types differ. A generated paired companion remains a candidate, not an
-accepted contract. This ADR neither reserves the `BuilderState` name nor requires a particular companion shape.
+If that review finds a separately typeable Builder-state contract valuable, it may consider a generated paired companion
+as a stronger alternative. That alternative needs independent evidence because it adds a public type hierarchy without
+improving method selection. One authored interface must never be shared unchanged by Model and Builder when DSL Object
+parameter or result types differ. This ADR reserves neither the `BuilderState` name nor any companion shape.
 
 ### Project types only at annotated positions
 
