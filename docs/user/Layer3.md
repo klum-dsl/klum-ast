@@ -179,6 +179,10 @@ void verifyShipping(CustomerEnvironment environment) {
 Schema tests and application-specific integrations are valid Schema consumers. The first client remains portable across
 Schema realizations; the second deliberately does not. Both consume the same completed Model.
 
+When several Schema realizations must prove the same generic Domain API behavior, keep the reusable contract with the
+Domain API and let each Schema opt in explicitly. [Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-a-domain-api-contract-across-schema-realizations)
+shows the application-owned fixture wiring and its Groovy/Spock alignment boundary.
+
 ## Fixed Cluster keys
 
 `@Cluster(fixedKeys = true)` is a Cluster-level quality-of-life convention for direct, single, keyed DSL Object

@@ -35,6 +35,24 @@ Keep assertions at the public completed-model boundary. A focused model test is 
 constructs the expected model; an integration or acceptance test still proves that a target system accepts and uses its
 separate projection.
 
+## Reuse a Domain API contract across Schema realizations
+
+When one Layer 3 Domain API has several Schema realizations, keep reusable generic assertions with the Domain API rather
+than copying them into each Schema test. In an application-owned multi-project build, enable Gradle's
+`java-test-fixtures` capability in the Domain API project. Each Schema realization explicitly consumes that fixture and
+supplies the concrete Model creation hook for the shared contract:
+
+```groovy
+// schema/build.gradle
+dependencies {
+    testImplementation(testFixtures(project(':domain-api')))
+}
+```
+
+The shared contract names Domain API types only; Schema tests retain their concrete Schema assertions. Every
+participating Domain API, Schema, and Model module must select the same Groovy/Spock pair. KlumAST plugins do not infer
+an application's Domain API test dependency or map it to a project, so keep each fixture dependency explicit.
+
 ## Assert a validation failure
 
 Give a domain rule an explicit message and assert its stable semantic fragment. The full exception also includes the
