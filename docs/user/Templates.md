@@ -230,6 +230,52 @@ Config.Create.With {
 }
 ```
 
+## Expanding Template lists into one relationship
+
+Use `useTemplates` inside a collection factory when several existing Templates should become separate values of that
+one relationship. Each argument is rehydrated immediately as a fresh owned child in the current Construction session;
+the Template object itself is never inserted into the relationship.
+
+(See: `TemplatesDocumentaryTest#'expands reusable member Templates into one relationship'`.)
+
+```groovy
+@DSL
+class Team {
+    List<Member> members
+}
+
+@DSL
+class Member {
+    String name
+    String role
+}
+
+def admin = Member.Create.Template.With(name: 'admin', role: 'administrator')
+def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
+
+def team = Team.Create.With {
+    members {
+        useTemplates admin, reader
+    }
+}
+
+assert team.members*.name == ['admin', 'reader']
+```
+
+`useTemplates` accepts either varargs or an `Iterable` of marked Templates. Repeated calls append fresh children in
+invocation and iteration order. The complete input is checked before any child from that call is attached, so an ordinary
+completed DSL Object in the batch fails without partially changing the relationship.
+
+This is direct, field-local recipe expansion: it installs no temporary Template default, and a later child creator in the
+same collection factory is unaffected. Use `Template.WithAll` instead when the goal is to establish type-wide defaults
+while a body creates objects. `useTemplates` is not generated for `LINK` collections because Templates cannot be link
+targets; `OPTIONAL_LINK` collections may own the freshly rehydrated children.
+
+For map relationships, normal key derivation and duplicate handling remain in effect. A keyed Template remains unkeyed by
+definition, so a map of keyed elements still needs a key source available during creation; an existing `keyMapping` on
+the relationship can derive it from another copied Template value. If two expanded children derive the same map key, the
+later child replaces the earlier value just as with the existing collection-factory operations.
+
 ## Template.WithAll()
 
 `Template.WithAll` is a convenient way of applying multiple templates at one. It takes one of the following arguments:

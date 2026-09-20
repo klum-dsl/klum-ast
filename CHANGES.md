@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- Added field-local `useTemplates(...)` operations to generated collection factories. Varargs or iterable marked
+  Templates are expanded immediately into fresh owned children in call order, without installing scoped Template state;
+  map relationships retain their existing key derivation and duplicate behavior, while `LINK` collections expose no such
+  operation ([#135](https://github.com/klum-dsl/klum-ast/issues/135)).
+
 - Added the published `klum-ast-test-support` artifact with its small public `TemplateScope` lifetime API for
   materialized Template setup in Schema and Model tests. A new Testing Models and Schemas guide covers focused completed-model and
   validation assertions, the public Spock lifecycle pattern, and its boundary with target integration/acceptance tests
