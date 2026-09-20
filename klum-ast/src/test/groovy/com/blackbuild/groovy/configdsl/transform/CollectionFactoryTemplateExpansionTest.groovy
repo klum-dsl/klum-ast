@@ -93,6 +93,9 @@ class CollectionFactoryTemplateExpansionTest extends AbstractDSLSpec {
                         name 'plain'
                     }
                     withTemplates([admin]) { }
+                    withTemplates([]) {
+                        configurationCalls++
+                    }
                 }
                 optionalMembers {
                     withTemplates([reader]) { }

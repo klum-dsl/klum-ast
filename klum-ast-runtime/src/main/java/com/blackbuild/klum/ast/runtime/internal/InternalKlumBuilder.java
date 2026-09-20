@@ -947,17 +947,15 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     private void addTemplates(String fieldName, Iterable<?> templates, Closure<?> configuration,
                               Consumer<InternalKlumBuilder<?>> attachment) {
         Objects.requireNonNull(configuration, "configuration");
-        List<Object> validatedTemplates = validatedTemplateSnapshot(fieldName, templates);
         Class<?> declaredType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
+        List<Object> validatedTemplates = validatedTemplateSnapshot(fieldName, declaredType, templates);
         validatedTemplates.forEach(template -> attachment.accept(
                 FactoryHelper.prepareNestedBuilderFromTemplate(declaredType, template, configuration)
         ));
     }
 
-    private List<Object> validatedTemplateSnapshot(String fieldName, Iterable<?> templates) {
+    private List<Object> validatedTemplateSnapshot(String fieldName, Class<?> declaredType, Iterable<?> templates) {
         assertMutable();
-        Field field = getModelField(fieldName);
-        Class<?> declaredType = getClassFromType(DslHelper.getElementType(field));
         List<Object> snapshot = new ArrayList<>();
         templates.forEach(snapshot::add);
         for (Object template : snapshot) {
