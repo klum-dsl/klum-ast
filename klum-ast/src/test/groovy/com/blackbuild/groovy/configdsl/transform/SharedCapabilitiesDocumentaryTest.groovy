@@ -100,4 +100,51 @@ class SharedCapabilitiesDocumentaryTest extends AbstractDSLSpec {
         deployment.configuredRegistryUrl == 'https://packages.example.test'
         deployment.registry.toUrl() == deployment.configuredRegistryUrl
     }
+
+    @Issue('648')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#narrowing-a-builder-by-model-type')
+    def "narrows a related subtype Builder through its factory token"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.Builder
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            @DSL class Deployment {
+                Registry registry
+                String configuredRegistryUrl
+
+                @PostTree
+                void captureSpecialRegistryUrl() {
+                    if (SpecialRegistry.Create.isBuilder(registry)) {
+                        def special = SpecialRegistry.Create.asBuilder(registry)
+                        configuredRegistryUrl = special.toUrl()
+                    }
+                }
+            }
+
+            @DSL abstract class Registry {
+                String host
+
+                @Builder.Query
+                String toUrl() { "https://$host" }
+            }
+
+            @DSL class SpecialRegistry extends Registry {
+                String tenant
+            }
+        '''
+        def specialFactory = getClass('SpecialRegistry').Create
+
+        when:
+        def deployment = clazz.Create.With {
+            registry(specialFactory) {
+                host 'packages.example.test'
+                tenant 'documentation'
+            }
+        }
+
+        then:
+        deployment.configuredRegistryUrl == 'https://packages.example.test'
+    }
 }

@@ -88,6 +88,66 @@ calling foreign non-DSL code remains the Schema Developer's assertion that the c
 query calls a query on a separately compiled DSL Object, that dependency must itself have been compiled with its emitted
 `@Builder.Query` contract.
 
+## Narrowing a Builder by Model Type
+
+Builder-phase relationship values are Builders rather than completed Models, so `value instanceof SpecialRegistry` does
+not test the intended state. Use the subtype's generated factory token to test and narrow the value explicitly.
+
+(See: `SharedCapabilitiesDocumentaryTest#'narrows a related subtype Builder through its factory token'`.)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+
+@CompileStatic
+@DSL class Deployment {
+    Registry registry
+    String configuredRegistryUrl
+
+    @PostTree
+    void captureSpecialRegistryUrl() {
+        if (SpecialRegistry.Create.isBuilder(registry)) {
+            def special = SpecialRegistry.Create.asBuilder(registry)
+            configuredRegistryUrl = special.toUrl()
+        }
+    }
+}
+
+@DSL abstract class Registry {
+    String host
+
+    @Builder.Query
+    String toUrl() { "https://$host" }
+}
+
+@DSL class SpecialRegistry extends Registry {
+    String tenant
+}
+
+when:
+def deployment = Deployment.Create.With {
+    registry(SpecialRegistry.Create) {
+        host 'packages.example.test'
+        tenant 'documentation'
+    }
+}
+
+then:
+deployment.configuredRegistryUrl == 'https://packages.example.test'
+```
+
+Every generated `Foo.Create` factory token exposes three related operations:
+
+- `isModelOrBuilder(value)` accepts a completed `Foo` Model or a Builder whose declared Model type is `Foo` or a subtype.
+- `isBuilder(value)` accepts only the matching Builder state.
+- `asBuilder(value)` returns that same value as the factory's exact generated `Foo_DSL.Builder<Foo>` contract. It throws
+  `KlumModelException` for a completed Model, mismatched Builder, `null`, or a non-DSL value.
+
+These operations follow ordinary subtype assignability and are deterministic outside an active Construction session.
+They do not create, adopt, unseal, or materialize a Builder. A narrowed sealed or inactive Builder therefore retains its
+read-only projected queries, while existing lifecycle, ownership, and mutation guards continue to reject invalid work.
+The predicates inspect only framework-owned Model identity; protected discriminator fields stay protected and need not be
+made configurable or public.
+
 ## Delegation Hints for Builder Closures
 
 Generated DSL methods that accept configuration closures automatically receive the appropriate `@DelegatesTo` metadata,
