@@ -99,45 +99,53 @@ final class BuilderQuerySupport {
     void invoke() {
         List<MethodNode> queries = new ArrayList<>(model.getMethods()).stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(model.redirect()))
-                .filter(this::isBuilderQuery)
+                .filter(BuilderQuerySupport::isBuilderQuery)
                 .toList();
 
         Map<MethodNode, MethodNode> twins = new IdentityHashMap<>();
         queries.forEach(query -> projectQuery(query, twins));
 
         twins.forEach((query, twin) -> {
-            twin.setCode(block(
-                    ifS(
-                            notNullX(callThisX("$klum$completedModelOrNull")),
-                            returnS(callX(
-                                    castX(model.getPlainNodeReference(), callThisX("$klum$completedModelOrNull")),
-                                    query.getName(),
-                                    args(twin.getParameters())
-                            ))
-                    ),
-                    new QueryBodyTransformer().cloneStatement(query.getCode())
-            ));
-            builder.addMethod(twin);
+            Statement projectedBody = new QueryBodyTransformer(query, twin).cloneStatement(query.getCode());
+            twin.setCode(hasBuilderInput(query)
+                    ? projectedBody
+                    : block(
+                            ifS(
+                                    notNullX(callThisX("$klum$completedModelOrNull")),
+                                    returnS(callX(
+                                            castX(model.getPlainNodeReference(), callThisX("$klum$completedModelOrNull")),
+                                            query.getName(),
+                                            args(twin.getParameters())
+                                    ))
+                            ),
+                            projectedBody
+                    ));
         });
     }
 
     private void projectQuery(MethodNode query, Map<MethodNode, MethodNode> twins) {
-        if (!isProjectableDeclaration(query)) return;
+        if (!isProjectableDeclaration(query) || BuilderMethodProjection.hasBuilderResult(query)) return;
         validateResult(query);
         if (query.getCode() != null) query.getCode().visit(new PurityVisitor(query));
-        if (hasBuilderCollision(query)) {
+        Parameter[] projectedParameters = BuilderMethodProjection.projectedParameters(query, model);
+        if (hasBuilderCollision(query, projectedParameters)) {
             error(query, String.format(
                     "@Builder.Query %s collides with an existing Builder method; rename the query or the Builder operation",
                     signature(query)));
             return;
         }
-        MethodNode twin = createTwin(query);
+        MethodNode twin = createTwin(query, projectedParameters);
         twins.put(query, twin);
         query.setNodeMetaData(TWIN_METADATA_KEY, twin);
+        builder.addMethod(twin);
     }
 
-    private boolean isBuilderQuery(MethodNode method) {
+    static boolean isBuilderQuery(MethodNode method) {
         return !method.getAnnotations(BUILDER_QUERY).isEmpty();
+    }
+
+    private static boolean hasBuilderInput(MethodNode method) {
+        return Arrays.stream(method.getParameters()).anyMatch(BuilderMethodProjection::isBuilderInput);
     }
 
     private boolean isProjectableDeclaration(MethodNode method) {
@@ -170,14 +178,21 @@ final class BuilderQuerySupport {
         return false;
     }
 
-    private boolean hasBuilderCollision(MethodNode query) {
-        if (builder.getDeclaredMethod(query.getName(), query.getParameters()) != null) return true;
+    private boolean hasBuilderCollision(MethodNode query, Parameter[] projectedParameters) {
+        if (builder.getDeclaredMethod(query.getName(), projectedParameters) != null) return true;
         return model.getMethods().stream()
                 .filter(method -> method != query)
                 .filter(method -> method.getDeclaringClass().redirect().equals(model.redirect()))
                 .filter(method -> method.getName().equals(query.getName()))
-                .filter(method -> parametersMatch(method, query))
+                .filter(method -> parametersMatch(method.getParameters(), projectedParameters))
                 .anyMatch(method -> WriteAccessHelper.getWriteAccessTypeForMethodOrField(method).isPresent());
+    }
+
+    private boolean parametersMatch(Parameter[] left, Parameter[] right) {
+        if (left.length != right.length) return false;
+        for (int index = 0; index < left.length; index++)
+            if (!left[index].getType().redirect().equals(right[index].getType().redirect())) return false;
+        return true;
     }
 
     private boolean parametersMatch(MethodNode left, MethodNode right) {
@@ -188,14 +203,14 @@ final class BuilderQuerySupport {
         return true;
     }
 
-    private MethodNode createTwin(MethodNode source) {
+    private MethodNode createTwin(MethodNode source, Parameter[] parameters) {
         int modifiers = (source.getModifiers() & (Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL
                 | Opcodes.ACC_SYNCHRONIZED | Opcodes.ACC_STRICT)) | Opcodes.ACC_PUBLIC;
         MethodNode twin = new MethodNode(
                 source.getName(),
                 modifiers,
                 source.getReturnType(),
-                source.getParameters(),
+                parameters,
                 source.getExceptions(),
                 null
         );
@@ -206,7 +221,9 @@ final class BuilderQuerySupport {
 
         Documentation sourceDocumentation = AstDocumentation.extractExact(source).orElse(Documentation.empty());
         KlumDocumentation documentation = new KlumDocumentation().replace(sourceDocumentation)
-                .p("This projection evaluates the query against the current Builder state before materialization.");
+                .p(hasBuilderInput(source)
+                        ? "This projection evaluates the query against Builder state; explicitly marked inputs use exact generated Builder types."
+                        : "This projection evaluates the query against the current Builder state before materialization.");
         AstDocumentation.attach(twin, documentation.rendered());
         return twin;
     }
@@ -530,6 +547,15 @@ final class BuilderQuerySupport {
     }
 
     private final class QueryBodyTransformer extends BuilderMethodProjection.StatementCloner {
+        private final Map<Variable, Parameter> parameters = new IdentityHashMap<>();
+
+        private QueryBodyTransformer(MethodNode source, MethodNode twin) {
+            Parameter[] sourceParameters = source.getParameters();
+            Parameter[] twinParameters = twin.getParameters();
+            for (int index = 0; index < Math.min(sourceParameters.length, twinParameters.length); index++)
+                parameters.put(sourceParameters[index], twinParameters[index]);
+        }
+
         @Override
         protected Statement handleUnsupportedStatement(Statement source) {
             return source;
@@ -541,6 +567,12 @@ final class BuilderQuerySupport {
             if (expression instanceof ClosureExpression source) return cloneClosure(source);
             if (expression instanceof VariableExpression source) {
                 VariableExpression result = (VariableExpression) source.transformExpression(this);
+                Parameter parameter = parameters.get(source.getAccessedVariable());
+                if (parameter != null) {
+                    result.setAccessedVariable(parameter);
+                    result.setType(parameter.getType());
+                    return result;
+                }
                 FieldNode field = modelField(source);
                 if (field != null) {
                     FieldNode builderField = builder.getField(field.getName());

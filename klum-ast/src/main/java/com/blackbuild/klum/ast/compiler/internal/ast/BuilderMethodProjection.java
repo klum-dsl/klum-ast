@@ -25,7 +25,9 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.annodocimal.ast.Documentation;
+import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.DelegatesToRW;
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -37,9 +39,11 @@ import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.CodeVisitorSupport;
 import org.codehaus.groovy.ast.DynamicVariable;
+import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.Variable;
 import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.CastExpression;
@@ -69,6 +73,7 @@ import org.codehaus.groovy.ast.stmt.SynchronizedStatement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.stmt.WhileStatement;
+import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,6 +113,8 @@ public final class BuilderMethodProjection {
     private static final String TWIN_PREFIX = "$klum$asBuilder$";
     private static final String ANNOTATION_VALUE_MEMBER = "value";
 
+    private static final ClassNode BUILDER_INPUT = ClassHelper.make(Builder.Input.class);
+    private static final ClassNode BUILDER_RESULT = ClassHelper.make(Builder.Result.class);
     private static final ClassNode KLUM_BUILDER = ClassHelper.make(KlumBuilder.class);
     private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
     private static final ClassNode DELEGATES_TO_RW = ClassHelper.make(DelegatesToRW.class);
@@ -119,6 +126,197 @@ public final class BuilderMethodProjection {
     );
 
     private BuilderMethodProjection() {
+    }
+
+    /** Validates explicit signature facets and links selected static helpers before Builder methods are moved. */
+    static void projectExplicitCapabilities(ClassNode model, SourceUnit sourceUnit) {
+        List<MethodNode> selected = new ArrayList<>(model.getMethods()).stream()
+                .filter(method -> method.getDeclaringClass().redirect().equals(model.redirect()))
+                .filter(BuilderMethodProjection::isExplicitCapability)
+                .toList();
+
+        selected.forEach(method -> validateExplicitProjection(method, sourceUnit));
+        if (selected.stream().anyMatch(MethodNode::isStatic)) ensureProjectedMethods(model, model);
+
+        // Static helpers use the linked-twin path below. Builder.Query owns query projection, while Builder.Method
+        // declarations are retargeted in place when write-access methods move to the Builder.
+    }
+
+    /** Retargets the explicitly annotated positions of a mutator that is about to move to its Builder. */
+    public static void projectExplicitMovedMethod(MethodNode method, ClassNode builder) {
+        if (!isExplicitCapability(method) || !isValidExplicitProjection(method)) return;
+
+        ClassNode model = method.getDeclaringClass();
+        ProjectionState state = new ProjectionState(projectionModel(method, model));
+        for (Parameter parameter : method.getParameters()) {
+            if (isBuilderInput(parameter)) {
+                ClassNode projected = projectExplicitType(parameter.getType());
+                parameter.setType(projected);
+                parameter.setOriginType(projected);
+            }
+        }
+        if (hasBuilderResult(method)) method.setReturnType(projectExplicitType(method.getReturnType()));
+
+        Candidate candidate = new Candidate(method, method, true, builder);
+        state.candidates.put(method, candidate);
+        method.setCode(new ProjectionTransformer(state, candidate).cloneStatement(method.getCode()));
+
+        if (candidate.opaque)
+            CommonAstHelper.addCompileError(
+                    model.getModule().getContext(),
+                    "Cannot project " + explicitAnnotationName(method) + " method " + method.getTypeDescriptor()
+                            + ": its Builder-side body contains an opaque or precompiled Model-producing call. "
+                            + "Recompile the producer with its explicit Builder contract or call a generated relationship/Builder method.",
+                    method
+            );
+    }
+
+    private static void validateExplicitProjection(MethodNode method, SourceUnit sourceUnit) {
+        if (!method.isPublic())
+            CommonAstHelper.addCompileError(sourceUnit, explicitAnnotationName(method) + " methods must be public", method);
+        if (method.isAbstract())
+            CommonAstHelper.addCompileError(sourceUnit, explicitAnnotationName(method) + " methods must declare an implementation", method);
+        if (!method.isStatic()
+                && !BuilderQuerySupport.isBuilderQuery(method)
+                && !WriteAccessHelper.isBuilderMethod(method))
+            CommonAstHelper.addCompileError(
+                    sourceUnit,
+                    explicitAnnotationName(method)
+                            + " on an instance method requires @Builder.Query or @Builder.Method",
+                    method
+            );
+
+        for (Parameter parameter : method.getParameters()) {
+            if (!isBuilderInput(parameter)) continue;
+            String problem = explicitProjectionProblem(parameter.getType(), false);
+            if (problem != null)
+                CommonAstHelper.addCompileError(
+                        sourceUnit,
+                        "Cannot project @Builder.Input parameter '" + parameter.getName() + "' of "
+                                + method.getTypeDescriptor() + ": " + problem,
+                        parameter
+                );
+        }
+
+        if (hasBuilderResult(method)) {
+            String problem = explicitProjectionProblem(method.getReturnType(), false);
+            if (problem != null)
+                CommonAstHelper.addCompileError(
+                        sourceUnit,
+                        "Cannot project @Builder.Result of " + method.getTypeDescriptor() + ": " + problem,
+                        method
+                );
+        }
+    }
+
+    private static boolean isValidExplicitProjection(MethodNode method) {
+        if (!method.isPublic() || method.isAbstract()) return false;
+        if (hasBuilderResult(method) && explicitProjectionProblem(method.getReturnType(), false) != null) return false;
+        return Arrays.stream(method.getParameters())
+                .filter(BuilderMethodProjection::isBuilderInput)
+                .allMatch(parameter -> explicitProjectionProblem(parameter.getType(), false) == null);
+    }
+
+    private static boolean isExplicitCapability(MethodNode method) {
+        return hasBuilderResult(method) || Arrays.stream(method.getParameters()).anyMatch(BuilderMethodProjection::isBuilderInput);
+    }
+
+    static boolean hasExplicitProjection(MethodNode method) {
+        return isExplicitCapability(method);
+    }
+
+    static boolean hasBuilderResult(MethodNode method) {
+        return !method.getAnnotations(BUILDER_RESULT).isEmpty();
+    }
+
+    static boolean isBuilderInput(Parameter parameter) {
+        return !parameter.getAnnotations(BUILDER_INPUT).isEmpty();
+    }
+
+    private static String explicitAnnotationName(MethodNode method) {
+        if (hasBuilderResult(method) && Arrays.stream(method.getParameters()).anyMatch(BuilderMethodProjection::isBuilderInput))
+            return "@Builder.Input/@Builder.Result";
+        return hasBuilderResult(method) ? "@Builder.Result" : "@Builder.Input";
+    }
+
+    private static String projectedSignature(MethodNode source, Parameter[] parameters) {
+        return source.getName() + "(" + Arrays.stream(parameters)
+                .map(parameter -> parameter.getType().getName())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("") + ")";
+    }
+
+    private static ClassNode projectionModel(MethodNode method, ClassNode fallback) {
+        if (!hasBuilderResult(method)) return fallback;
+        ClassNode type = method.getReturnType();
+        if (isDSLObject(type)) return type;
+        if (isCollection(type)) return getElementTypeForCollection(type);
+        if (isMap(type)) return getElementTypeForMap(type);
+        return fallback;
+    }
+
+    private static String explicitProjectionProblem(ClassNode type, boolean nested) {
+        if (type == null) return "the type is unresolved";
+        if (type.isGenericsPlaceHolder()) return "the DSL Object type is an unresolved generic placeholder";
+        if (isAssignableTo(type, KLUM_BUILDER)) {
+            GenericsType[] generics = type.getGenericsTypes();
+            if (generics == null || generics.length != 1) return "the KlumBuilder type is raw";
+            GenericsType model = generics[0];
+            if (model.isWildcard()) return "the KlumBuilder model type is a wildcard";
+            if (model.isPlaceholder()) return "the KlumBuilder model type is an unresolved generic placeholder";
+            if (model.getType() == null || !isDSLObject(model.getType()))
+                return "the KlumBuilder model type does not resolve to a DSL Object";
+            return null;
+        }
+        if (isDSLObject(type)) return null;
+        if (isCollection(type)) {
+            if (nested) return "nested Collection/Map positions are not supported";
+            GenericsType[] generics = type.getGenericsTypes();
+            if (generics == null || generics.length != 1) return "the Collection type is raw";
+            return explicitGenericProjectionProblem(generics[0], true);
+        }
+        if (isMap(type)) {
+            if (nested) return "nested Collection/Map positions are not supported";
+            GenericsType[] generics = type.getGenericsTypes();
+            if (generics == null || generics.length != 2) return "the Map type is raw";
+            return explicitGenericProjectionProblem(generics[1], true);
+        }
+        return "the type does not resolve to a DSL Object or a supported Collection/Map of DSL Objects";
+    }
+
+    private static String explicitGenericProjectionProblem(GenericsType generic, boolean nested) {
+        if (generic == null) return "the generic DSL Object type is unresolved";
+        if (generic.isWildcard()) return "the DSL Object element type is a wildcard";
+        if (generic.isPlaceholder()) return "the DSL Object element type is an unresolved generic placeholder";
+        return explicitProjectionProblem(generic.getType(), nested);
+    }
+
+    private static ClassNode projectExplicitType(ClassNode sourceType) {
+        if (isAssignableTo(sourceType, KLUM_BUILDER))
+            return GeneratedDslSupport.builderTypeFor(sourceType.getGenericsTypes()[0].getType());
+        if (isDSLObject(sourceType))
+            return (sourceType.getModifiers() & Opcodes.ACC_ABSTRACT) != 0
+                    ? GeneratedDslSupport.builderTypeForSubtype(sourceType)
+                    : GeneratedDslSupport.builderTypeFor(sourceType);
+        if (isCollection(sourceType)) {
+            ClassNode result = sourceType.getPlainNodeReference();
+            result.setUsingGenerics(true);
+            result.setGenericsTypes(new GenericsType[] {
+                    new GenericsType(projectExplicitType(getElementTypeForCollection(sourceType)))
+            });
+            return result;
+        }
+        if (isMap(sourceType)) {
+            GenericsType[] generics = sourceType.getGenericsTypes();
+            ClassNode result = sourceType.getPlainNodeReference();
+            result.setUsingGenerics(true);
+            result.setGenericsTypes(new GenericsType[] {
+                    generics[0],
+                    new GenericsType(projectExplicitType(getElementTypeForMap(sourceType)))
+            });
+            return result;
+        }
+        return sourceType;
     }
 
     static MethodNode builderProducerFor(MethodNode source, ClassNode expectedModel) {
@@ -150,6 +348,13 @@ public final class BuilderMethodProjection {
             Parameter original = source.getParameters()[index];
             Parameter projected = result[index];
             copyAnnotationsFromSourceToTarget(original, projected, Collections.emptyList());
+
+            if (isBuilderInput(original)
+                    && explicitProjectionProblem(original.getType(), false) == null) {
+                ClassNode projectedType = projectExplicitType(original.getType());
+                projected.setType(projectedType);
+                projected.setOriginType(projectedType);
+            }
 
             List<AnnotationNode> aliases = original.getAnnotations(DELEGATES_TO_RW);
             if (aliases.isEmpty()) continue;
@@ -235,8 +440,38 @@ public final class BuilderMethodProjection {
         });
 
         declaredMethods.stream()
-                .filter(method -> projectType(method.getReturnType(), expectedModel) != null)
-                .forEach(method -> state.addCandidate(method, createTwinShell(method, expectedModel)));
+                .filter(method -> !(isDSLObject(sourceClass) && isExplicitCapability(method) && !method.isStatic()))
+                .filter(method -> projectType(method.getReturnType(), expectedModel) != null
+                        || method.isStatic() && isExplicitCapability(method))
+                .forEach(method -> state.addCandidate(
+                        method,
+                        createTwinShell(method, expectedModel),
+                        isExplicitCapability(method),
+                        null
+                ));
+
+        Map<String, List<Candidate>> projectedSignatures = new LinkedHashMap<>();
+        state.candidates.values().forEach(candidate -> projectedSignatures
+                .computeIfAbsent(projectedSignature(candidate.twin, candidate.twin.getParameters()), ignored -> new ArrayList<>())
+                .add(candidate));
+        projectedSignatures.values().stream()
+                .filter(candidates -> candidates.size() > 1)
+                .forEach(candidates -> {
+                    String originals = candidates.stream()
+                            .map(candidate -> candidate.original.getTypeDescriptor())
+                            .reduce((left, right) -> left + " and " + right)
+                            .orElse("projected methods");
+                    candidates.forEach(candidate -> {
+                        candidate.opaque = true;
+                        CommonAstHelper.addCompileError(
+                                sourceClass.getModule().getContext(),
+                                "Projected Builder overloads collapse to "
+                                        + projectedSignature(candidate.twin, candidate.twin.getParameters())
+                                        + ": " + originals,
+                                candidate.original
+                        );
+                    });
+                });
 
         state.candidates.values().forEach(candidate -> {
             ProjectionTransformer transformer = new ProjectionTransformer(state, candidate);
@@ -344,6 +579,19 @@ public final class BuilderMethodProjection {
             if (twin != null) return twin;
         }
         if (owner == null) return null;
+
+        List<MethodNode> emittedTwins = owner.getMethods(TWIN_PREFIX + name).stream()
+                .filter(MethodNode::isStatic)
+                .filter(method -> method.getDeclaringClass().redirect().equals(owner.redirect()))
+                .filter(BuilderMethodProjection::isExplicitCapability)
+                .filter(method -> acceptsArgumentCount(method, argumentCount(arguments)))
+                .toList();
+        if (emittedTwins.size() == 1) return emittedTwins.get(0);
+        MethodNode matchingEmittedTwin = emittedTwins.stream()
+                .filter(method -> argumentsMatch(method.getParameters(), arguments))
+                .findFirst()
+                .orElse(null);
+        if (matchingEmittedTwin != null) return matchingEmittedTwin;
 
         List<MethodNode> candidates = owner.getMethods(name).stream()
                 .filter(MethodNode::isStatic)
@@ -520,6 +768,8 @@ public final class BuilderMethodProjection {
                 Expression arguments = transform(source.getArguments());
                 MethodNode twin = builderTwinFor(null, sourceClassFor(source.getOwnerType(), context), source.getMethod(), source.getArguments());
                 if (twin == null) {
+                    diagnoseMissingPrecompiledTwin(sourceClassFor(source.getOwnerType(), context), source.getMethod(),
+                            source.getArguments(), source);
                     StaticMethodCallExpression result = new StaticMethodCallExpression(
                             source.getOwnerType(), source.getMethod(), arguments);
                     result.setSourcePosition(source);
@@ -539,30 +789,55 @@ public final class BuilderMethodProjection {
                 ClassNode owner = sourceClassFor(source.getObjectExpression(), context);
                 MethodNode twin = owner == null ? null
                         : builderTwinFor(source.getMethodTarget(), owner, source.getMethodAsString(), source.getArguments());
-                if (twin == null) return result;
+                if (twin == null) {
+                    diagnoseMissingPrecompiledTwin(owner, source.getMethodAsString(), source.getArguments(), source);
+                    return result;
+                }
                 result.setMethod(new ConstantExpression(twin.getName()));
                 result.setType(source.getType());
                 return result;
             }
             return expression.transformExpression(this);
         }
+
+        private void diagnoseMissingPrecompiledTwin(ClassNode owner, String name, Expression arguments, Expression source) {
+            if (owner == null || !owner.isResolved() || owner.getModule() != null) return;
+            boolean explicitlySelected = owner.getMethods(name).stream()
+                    .filter(MethodNode::isStatic)
+                    .filter(method -> acceptsArgumentCount(method, argumentCount(arguments)))
+                    .anyMatch(BuilderMethodProjection::isExplicitCapability);
+            if (!explicitlySelected) return;
+            CommonAstHelper.addCompileError(
+                    context.getModule().getContext(),
+                    "Cannot project explicitly selected precompiled helper " + owner.getName() + "." + name
+                            + "(): its emitted Builder twin is unavailable. Recompile the declaring Schema with the current "
+                            + "KlumAST version or call an explicit generated relationship/Builder method.",
+                    source
+            );
+        }
     }
 
     private static MethodNode createTwinShell(MethodNode source, ClassNode expectedModel) {
         normalizeDelegatingParameters(source, expectedModel);
+        ClassNode projectedReturn = hasBuilderResult(source)
+                && explicitProjectionProblem(source.getReturnType(), false) == null
+                ? projectExplicitType(source.getReturnType())
+                : projectType(source.getReturnType(), expectedModel);
+        if (projectedReturn == null) projectedReturn = source.getReturnType();
         int modifiers = (source.getModifiers() & (Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL
                 | Opcodes.ACC_SYNCHRONIZED | Opcodes.ACC_STRICT)) | Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC;
         MethodNode twin = new MethodNode(
                 TWIN_PREFIX + source.getName(),
                 modifiers,
-                projectType(source.getReturnType(), expectedModel),
-                source.getParameters(),
+                projectedReturn,
+                isExplicitCapability(source) ? projectedParameters(source, expectedModel) : source.getParameters(),
                 source.getExceptions(),
                 EmptyStatement.INSTANCE
         );
         twin.setGenericsTypes(source.getGenericsTypes());
         twin.setSourcePosition(source);
         twin.setSynthetic(true);
+        source.getAnnotations(BUILDER_RESULT).forEach(twin::addAnnotation);
         twin.addAnnotation(createGeneratedAnnotation(BuilderMethodProjection.class));
         source.setNodeMetaData(TWIN_METADATA_KEY, twin);
         twin.setNodeMetaData(ORIGINAL_METADATA_KEY, source);
@@ -599,6 +874,7 @@ public final class BuilderMethodProjection {
 
     private static boolean isNewlyAdaptable(Candidate candidate, Set<Candidate> adaptable) {
         if (candidate.opaque || adaptable.contains(candidate)) return false;
+        if (candidate.explicit) return adaptable.containsAll(candidate.dependencies);
         boolean hasBuilderPath = candidate.directBuilderCall
                 || candidate.dependencies.stream().anyMatch(adaptable::contains);
         return hasBuilderPath && adaptable.containsAll(candidate.dependencies);
@@ -713,8 +989,8 @@ public final class BuilderMethodProjection {
             this.model = model;
         }
 
-        private void addCandidate(MethodNode original, MethodNode twin) {
-            candidates.put(original, new Candidate(original, twin));
+        private void addCandidate(MethodNode original, MethodNode twin, boolean explicit, ClassNode builder) {
+            candidates.put(original, new Candidate(original, twin, explicit, builder));
         }
 
         private Candidate candidateFor(MethodNode method) {
@@ -725,14 +1001,23 @@ public final class BuilderMethodProjection {
     private static final class Candidate {
         private final MethodNode original;
         private final MethodNode twin;
+        private final boolean explicit;
+        private final ClassNode builder;
+        private final Map<Variable, Parameter> parameters = new IdentityHashMap<>();
         private final Set<Candidate> dependencies = new LinkedHashSet<>();
         private final Set<ClassNode> concreteModels = new LinkedHashSet<>();
         private boolean directBuilderCall;
         private boolean opaque;
 
-        private Candidate(MethodNode original, MethodNode twin) {
+        private Candidate(MethodNode original, MethodNode twin, boolean explicit, ClassNode builder) {
             this.original = original;
             this.twin = twin;
+            this.explicit = explicit;
+            this.builder = builder;
+            Parameter[] originalParameters = original.getParameters();
+            Parameter[] twinParameters = twin.getParameters();
+            for (int index = 0; index < Math.min(originalParameters.length, twinParameters.length); index++)
+                parameters.put(originalParameters[index], twinParameters[index]);
         }
     }
 
@@ -757,6 +1042,23 @@ public final class BuilderMethodProjection {
             if (expression instanceof ClosureExpression source) {
                 return cloneClosure(source);
             }
+            if (expression instanceof VariableExpression source) {
+                VariableExpression result = (VariableExpression) source.transformExpression(this);
+                Parameter parameter = candidate.parameters.get(source.getAccessedVariable());
+                if (parameter != null) {
+                    result.setAccessedVariable(parameter);
+                    result.setType(parameter.getType());
+                    return result;
+                }
+                if (candidate.builder != null && source.getAccessedVariable() instanceof FieldNode field) {
+                    FieldNode builderField = candidate.builder.getField(field.getName());
+                    if (builderField != null) {
+                        result.setAccessedVariable(builderField);
+                        result.setType(builderField.getType());
+                    }
+                }
+                return result;
+            }
             if (expression instanceof StaticMethodCallExpression source)
                 return transformStaticMethodCall(source);
             if (!(expression instanceof MethodCallExpression source))
@@ -769,6 +1071,15 @@ public final class BuilderMethodProjection {
                 candidate.dependencies.add(dependency);
                 result.setMethod(new ConstantExpression(dependency.twin.getName()));
                 result.setMethodTarget(dependency.twin);
+                return result;
+            }
+
+            MethodNode target = source.getMethodTarget();
+            MethodNode linkedTwin = target == null ? null : target.getNodeMetaData(TWIN_METADATA_KEY);
+            if (linkedTwin != null) {
+                candidate.directBuilderCall = true;
+                result.setMethod(new ConstantExpression(linkedTwin.getName()));
+                result.setMethodTarget(linkedTwin);
                 return result;
             }
 
@@ -800,7 +1111,6 @@ public final class BuilderMethodProjection {
                 return cast;
             }
 
-            MethodNode target = source.getMethodTarget();
             if (target != null && projectType(target.getReturnType(), state.model) != null)
                 candidate.opaque = true;
             return result;
@@ -866,8 +1176,8 @@ public final class BuilderMethodProjection {
         }
 
         private MethodNode findQualifiedBuilderTwin(MethodCallExpression call) {
-            if (!(call.getObjectExpression() instanceof ClassExpression owner)) return null;
-            ClassNode sourceOwner = sourceClassFor(owner.getType(), candidate.original.getDeclaringClass());
+            ClassNode sourceOwner = sourceClassFor(call.getObjectExpression(), candidate.original.getDeclaringClass());
+            if (sourceOwner == null) return null;
             ensureProjectedMethods(sourceOwner, sourceOwner);
             return builderTwinFor(call.getMethodTarget(), sourceOwner, call.getMethodAsString(), call.getArguments());
         }
@@ -909,8 +1219,8 @@ public final class BuilderMethodProjection {
             Expression receiver = call.getObjectExpression();
             if (receiver instanceof PropertyExpression create
                     && "Create".equals(create.getPropertyAsString())
-                    && create.getObjectExpression() instanceof ClassExpression classExpression) {
-                ClassNode model = classExpression.getType();
+                    && sourceClassFor(create.getObjectExpression(), candidate.original.getDeclaringClass()) != null) {
+                ClassNode model = sourceClassFor(create.getObjectExpression(), candidate.original.getDeclaringClass());
                 if (isDSLObject(model)) return new RootFactoryCall(model, true);
             }
 
