@@ -6,8 +6,8 @@ Status: Proposed
 
 Target release: 4.1
 
-Implementation status: Not started; the implementation plan defines five independently verifiable behavior slices plus
-final contract reconciliation.
+Implementation status: Not started; the implementation plan defines four independently verifiable behavior slices, a
+post-slice decision checkpoint, and final contract reconciliation.
 
 Tracking issue: [#689 — Design explicit shared Model and Builder capabilities](https://github.com/klum-dsl/klum-ast/issues/689)
 
@@ -46,7 +46,7 @@ Builder. The dead `DelegateFromRwToModel` lineage in #208 and #503 is evidence a
 
 ### Make every shared operation opt in
 
-Add four orthogonal annotations to the public schema vocabulary:
+Add three orthogonal annotations to the public schema vocabulary:
 
 - `@BuilderQuery` marks a side-effect-free instance method that remains on the completed Model and is also generated on
   the public `Foo_DSL.Builder` contract. Its result must contain no DSL Object or Builder type.
@@ -54,21 +54,16 @@ Add four orthogonal annotations to the public schema vocabulary:
   type. Unmarked Model-typed parameters retain completed-Model semantics, including `LINK` use cases.
 - `@BuilderResult` marks a method result whose Builder-side signature and execution produce an owned, unsealed Builder in
   the active Construction session. It may be used on an ordinary shared helper or on a Builder-only `@Mutator`.
-- `@BuilderState` marks a schema-authored interface implemented by a Model. Every eligible method in that interface is an
-  explicit state-query projection; KlumAST generates a distinct Builder-side companion interface with projected parameter
-  and result types.
 
-`@BuilderQuery` and `@BuilderResult` target methods, `@BuilderInput` targets parameters, and `@BuilderState` targets
-interfaces. They use the annotation module's normal runtime retention so KlumCast and generated-contract inspection see
-one consistent declaration, but runtime construction does not discover or interpret them. Method/parameter annotations are
-valid only on methods declared by a DSL Object; `@BuilderState` is valid only on an interface implemented by at least one
-DSL Object. Annotating an untransformed external helper or custom Factory method is a targeted compilation error.
+`@BuilderQuery` and `@BuilderResult` target methods, while `@BuilderInput` targets parameters. They use the annotation
+module's normal runtime retention so KlumCast and generated-contract inspection see one consistent declaration, but
+runtime construction does not discover or interpret them. The annotations are valid only on methods declared by a DSL
+Object. Annotating an untransformed external helper or custom Factory method is a targeted compilation error.
 
 The presence of `@BuilderQuery`, `@BuilderInput`, or `@BuilderResult` selects an otherwise ordinary source-visible method
 for Builder-side projection. An ordinary non-static method remains on the Model and gains a generated Builder twin; a
 `@Mutator` remains Builder-only. Source-visible static converter/helper methods continue to use ADR 0004's hidden linked
-twin mechanism rather than becoming static members of `Foo_DSL.Builder`. `@BuilderState` selects the complete eligible
-method set of its interface and produces the paired companion contract in one declaration.
+twin mechanism rather than becoming static members of `Foo_DSL.Builder`.
 
 The annotations describe independent facts instead of introducing a broad `@Method(MethodType)` classification. Existing
 lifecycle and `@Mutator` annotations retain their established meaning, and future method categories do not acquire Builder
@@ -77,28 +72,13 @@ visibility merely by being added to an enum.
 For example:
 
 ```groovy
-@BuilderState
-interface RegistryState {
-    String toUrl()
-    Registry selectedRegistry()
-    boolean selects(Registry candidate)
-}
-
 @DSL
-class Registry implements RegistryState {
+class Registry {
     String host
-    Registry selected
 
+    @BuilderQuery
     String toUrl() {
         "https://$host"
-    }
-
-    Registry selectedRegistry() {
-        selected
-    }
-
-    boolean selects(Registry candidate) {
-        selected.is(candidate)
     }
 
     @BuilderResult
@@ -108,38 +88,28 @@ class Registry implements RegistryState {
 }
 ```
 
-`Registry` implements the completed-state `RegistryState`. Its generated Builder implements the distinct
-`RegistryState_DSL.BuilderState` companion, whose `selectedRegistry()` result and `selects(...)` parameter are
-`Registry_DSL.Builder<Registry>` rather than `Registry`. The completed helper signature stays
-`Registry normalized(Registry)`. In Builder-phase source compiled with the Schema, its selected twin is equivalent to
+The completed helper signature stays `Registry normalized(Registry)`. In Builder-phase source compiled with the Schema,
+its selected twin is equivalent to
 `Registry_DSL.Builder<Registry> normalized(Registry_DSL.Builder<Registry>)` and uses the active-session Builder-producing
-path.
+path. `toUrl()` remains available on the completed Model and is explicitly projected onto the generated Builder.
 
-### Project schema-authored state interfaces as paired contracts
+### Defer bulk state-interface projection until the first slices provide evidence
 
-`@BuilderState` is the bulk opt-in for a coherent read-only state interface. The Model implements the authored interface;
-the Builder does not. For an annotated interface `S`, KlumAST generates `S_DSL.BuilderState` and makes each applicable
-`Foo_DSL.Builder` implement that companion. This is a pair of state-specific interfaces, not one interface shared across
-the Materialization boundary.
+A fourth interface-level annotation could provide a bulk opt-in for coherent read-only state, but this ADR does not adopt
+one yet. Its value and truthful public shape depend on evidence from the narrower query, input, result, and narrowing
+slices. Deciding it now would freeze substantially more generated surface, inheritance behavior, and precompiled-contract
+rules than the initial use cases require.
 
-Every public instance method declared or inherited by `S` participates. It has `@BuilderQuery` purity semantics, while
-its complete parameter and result signature is recursively state-projected. Concrete DSL Object types become exact public
-Builders, annotated state-interface types become their generated `BuilderState` companions, and supported Collection/Map
-shapes preserve their outer type and keys. Non-DSL types remain unchanged. Static/private interface methods do not form
-instance state and are rejected rather than silently omitted.
+After the first four behavior slices are executable, ADR 0020 must be revisited and record one of three outcomes:
 
-The Model must provide each abstract method through its source implementation, inherited Model implementation, or generated
-property accessor. A source-visible default interface method is projected with the same purity checks. A precompiled
-annotated interface is usable only when it was compiled with the matching KlumAST contract and carries its generated
-companion; KlumAST does not reconstruct an opaque default body from bytecode.
+- implement a bulk state-interface projection in the current lane because repeated annotations or generic state consumers
+  demonstrate enough leverage;
+- waive it because the explicit per-method and per-position annotations remain sufficient; or
+- move it to a later related issue when the need is credible but the contract is not required for the current lane.
 
-Multiple `@BuilderState` interfaces compose: the generated Model Builder implements each companion, and companion
-inheritance mirrors annotated source-interface inheritance. Incompatible inherited projections or two methods that erase to
-the same Builder descriptor fail Schema compilation with both source declarations named.
-
-The companion is deliberately narrower than `Foo_DSL.Builder`: it describes observable construction state but provides no
-factory, mutation, lifecycle, session, or materialization capability. Generic helpers may depend on the companion when they
-truly operate on Builder state, without depending on a complete schema-specific Builder contract.
+If that review chooses an interface-level feature, one authored interface must not be shared unchanged by Model and
+Builder when DSL Object parameter or result types differ. A generated paired companion remains a candidate, not an
+accepted contract. This ADR neither reserves the `BuilderState` name nor requires a particular companion shape.
 
 ### Project types only at annotated positions
 
@@ -153,10 +123,6 @@ Model unless `@BuilderResult` explicitly declares owned-Builder semantics. `@Bui
 Model into composition: every successful Builder path must already produce an unsealed Builder in the current Construction
 session, and normal attachment/claim checks remain authoritative.
 
-A DSL Object result projected through `@BuilderState` is different: it exposes the Builder currently stored in that state
-position and makes no ownership or mutability promise. It may be an owned unsealed Builder or a sealed wrapper for a
-completed `LINK`. Only `@BuilderResult` denotes a newly produced owned Builder result.
-
 Raw `KlumBuilder`, wildcard Builder elements, unresolved DSL-bearing generic placeholders, unsupported nested containers,
 and projected overloads that collapse to the same JVM signature are compilation errors. KlumAST reports the annotated
 position and the unsupported type instead of guessing. Non-DSL generics are preserved.
@@ -166,8 +132,7 @@ position and the unsupported type instead of guessing. Non-DSL generics are pres
 `@BuilderQuery` is permitted only on a non-void method that remains valid on a completed Model. Its implementation may read
 fields present in both states, call other projected queries, and use ordinary non-DSL values. It may not assign DSL fields,
 invoke known mutators or lifecycle methods, use construction-only `FieldType.BUILDER` state, start or attach construction,
-or return a DSL Object/Builder-bearing value. `@BuilderState` methods use the same purity rules but may declare DSL-bearing
-parameters/results because the paired companion gives those positions distinct truthful Builder-state types.
+or return a DSL Object/Builder-bearing value.
 
 The compiler enforces these locally visible restrictions. The annotation is also a Schema Developer assertion that calls
 into foreign non-DSL code are observational; KlumAST does not attempt whole-program purity analysis. An `instanceof M`
@@ -204,13 +169,9 @@ session, and ownership guards still control every subsequent construction operat
 ### Keep generated and completed contracts separate
 
 Public non-static projected methods appear on `Foo_DSL.Builder`, and therefore in its AnnoDocimal IDE mirror, with exact
-projected signatures and Builder-state documentation. `@BuilderState` additionally produces the paired
-`S_DSL.BuilderState` companion and mirror. The original Model method/interface documentation retains completed-state
-semantics. Hidden static twins remain synthetic generated linkage and are not client entrypoints.
-
-Do not make the original `@BuilderState` interface common to Model and Builder. Annotated DSL Object parameters and results
-have different truthful signatures in the two states. The generated companion is the narrow observable-state interface;
-`Foo_DSL.Builder` remains the complete schema-specific construction contract and `KlumBuilder<T>` remains zero-operation.
+projected signatures and Builder-state documentation. The original Model method documentation retains completed-state
+semantics. Hidden static twins remain synthetic generated linkage and are not client entrypoints. `Foo_DSL.Builder` remains
+the complete schema-specific construction contract and `KlumBuilder<T>` remains zero-operation.
 
 Source compiled by an older compiler has no shared-capability contract. A precompiled DSL type produced by an implementing
 compiler is usable through its emitted `Foo_DSL` API and linked twins; an older or otherwise opaque precompiled helper is
@@ -232,8 +193,8 @@ Every compiler/API slice requires Groovy 3, 4, and 5 source coverage. Generated 
 
 - Schema Developers can share selected domain logic without recovering legacy Model-to-Builder delegation.
 - An annotation at each projected method, parameter, or result makes Builder exposure reviewable in source.
-- A schema-authored `@BuilderState` interface groups a coherent state view and produces a separately typed Builder
-  companion without making Builders implement the completed-Model interface.
+- Bulk state-interface projection remains conditional until implementation evidence shows whether it earns a public
+  interface in the current lane.
 - Exact generated Builder types flow through public contracts while `KlumBuilder<T>` stays narrow.
 - Completed `LINK` results remain distinguishable from owned Builder results.
 - Static source projection retains ADR 0004's same-compilation/source-visibility boundary.
@@ -252,13 +213,13 @@ Builder types. Adding reflective accessors would expose implementation state and
 second Builder type parameter would merely restate the paired Model/Builder types at every call site. A binary wrapper also
 cannot truthfully capture the construction distinctions that matter after narrowing: unsealed versus sealed, current versus
 inactive session, and unclaimed versus composition-claimed ownership. It would force callers to branch on lifecycle state
-that the compiler already knows while contaminating parameters, results, and container element types. State-specific Model
-and generated companion interfaces retain more information with a smaller caller interface. A private implementation view
-may still be introduced later if repeated internal inspection proves a real seam; it is not generated or supported surface.
+that the compiler already knows while contaminating parameters, results, and container element types. Exact Model and
+generated Builder contracts retain more information with a smaller caller interface. A private implementation view may
+still be introduced later if repeated internal inspection proves a real seam; it is not generated or supported surface.
 
 **Make one interface common to Model and Builder.** Even a schema-authored state interface may contain DSL Object
-parameters/results whose truthful types differ across Materialization. `@BuilderState` therefore generates a paired
-Builder-side companion instead of making the Builder implement the completed-state interface.
+parameters/results whose truthful types differ across Materialization. If bulk interface projection is later justified,
+its review must preserve distinct truthful Model and Builder contracts rather than force one shared type.
 
 **Use one extensible `@Method(MethodType)` annotation.** It overlaps `@Mutator` and lifecycle annotations, makes unrelated
 future enum members part of one compatibility surface, and hides whether an input, result, or whole query is projected.

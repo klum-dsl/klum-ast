@@ -38,10 +38,10 @@ dynamic bridge. The design must close only annotated positions.
 
 | Module/seam | Planned responsibility |
 | --- | --- |
-| `klum-ast-annotations` | Public `@BuilderQuery`, `@BuilderInput`, `@BuilderResult`, and `@BuilderState` schema vocabulary and KlumCast validation bindings. |
+| `klum-ast-annotations` | Public `@BuilderQuery`, `@BuilderInput`, and `@BuilderResult` schema vocabulary and KlumCast validation bindings. |
 | `klum-ast` mutator/type-checking pipeline | Validate query purity and annotation combinations; clone/retarget selected method bodies; bind Builder-phase calls to exact twins; diagnose completed-Model tests and invalid projections. |
 | `BuilderMethodProjection` | Reuse one recursive type projector and linked-twin mechanism for annotated inputs/results without broadening unannotated ADR 0004 inference. |
-| `GeneratedDslSupport` | Publish exact non-static projected methods on `Foo_DSL.Builder`; generate paired `S_DSL.BuilderState` interfaces; preserve inheritance, overloads, documentation, and IDE-mirror parity. |
+| `GeneratedDslSupport` | Publish exact non-static projected methods on `Foo_DSL.Builder`; preserve inheritance, overloads, documentation, and IDE-mirror parity. |
 | `klum-ast-runtime` | Implement factory-token identity predicates and exact Builder cast without adding methods to `KlumBuilder<T>`. |
 | Tests and scenarios | Groovy 3/4/5 compiler behavior, Java/static-Groovy generated API, source/precompiled boundaries, ownership failures, and documentary examples. |
 | `docs/user/Advanced-Techniques.md` | Canonical 4.1 authoring examples for shared queries, narrowing, and explicitly projected helper flow. |
@@ -57,8 +57,8 @@ bridges, but must not add schema-bytecode references to `runtime.internal` packa
   composition.
 - Unmarked Model parameters/results retain their exact completed-state meaning. Existing schemas change neither generated
   surface nor runtime behavior until they opt in.
-- A Model implements its schema-authored `@BuilderState` interface; its Builder implements only the generated
-  `S_DSL.BuilderState` companion. Neither state is assignable to the other's interface.
+- Bulk state-interface projection is not part of the initial public contract. It remains a mandatory post-slice decision,
+  not an implementation prerequisite.
 - `KlumBuilder<T>` remains zero-operation, and generated implementation classes remain unsupported.
 - The public surface is the emitted `Foo_DSL` contract; IDE mirrors must be derived from it and remain excluded from
   compilation, packaging, and downstream inputs.
@@ -91,34 +91,7 @@ results, and projected signature collisions. Publish the method through `Foo_DSL
 Java/static-Groovy fixtures, documentary test, user guide, migration note, and `CHANGES.md`. Keep implementation and its
 driving tests in the same commit.
 
-### SMB-2 — Generate paired Builder State interfaces (#651/#689)
-
-**Work:** add interface-level `@BuilderState`. For every implemented annotated interface, generate
-`S_DSL.BuilderState`, recursively project every public instance method's parameter/result types, and make the concrete
-`Foo_DSL.Builder` implement the companion. Treat each participating method as a query for purity checking; resolve abstract
-methods to Model/generated-accessor implementations and project source-visible default bodies. Mirror annotated interface
-inheritance and compose multiple state interfaces without making the Builder implement the completed-state interface.
-
-**Acceptance:**
-
-- A Model is assignable to `S`, while its Builder is assignable to `S_DSL.BuilderState` and not to `S`.
-- Scalar signatures remain identical; concrete/abstract DSL Object and supported Collection/Map positions use exact
-  Builder-state types in the companion.
-- A projected DSL Object result exposes the existing relationship Builder, including a sealed `LINK` wrapper, without
-  claiming or creating ownership.
-- An implementing Model can satisfy an abstract state method through an explicit method, inheritance, or generated
-  property accessor; a source-visible default method is projected and purity-checked.
-- Multiple/inherited state interfaces compose once. Static/private members, missing implementations, incompatible
-  inherited projections, descriptor collisions, unsupported generics/containers, and opaque precompiled interfaces without
-  a generated companion fail with targeted diagnostics rather than partial projection.
-- Java and `@CompileStatic` Groovy can name `S_DSL.BuilderState`; AnnoDocimal emits the same companion; Groovy 3, 4, and 5
-  pass.
-
-**Commit boundaries:** (1) annotation, eligibility/purity rules, and companion-interface generation with focused tests;
-(2) Model implementation/default-method resolution, inheritance/composition, public/mirror fixtures, and negative matrix;
-(3) documentary example and migration/release text after the contract is executable.
-
-### SMB-3 — Add explicit Model-or-Builder identity and exact narrowing (#648)
+### SMB-2 — Add explicit Model-or-Builder identity and exact narrowing (#648)
 
 **Work:** extend `BuilderFactoryProvider<T, B>` and generated Factory implementations with `isModelOrBuilder`, `isBuilder`,
 and `asBuilder`. Compare completed values with `getModelType().isInstance`; compare Builder values through the existing
@@ -140,7 +113,7 @@ and performs no lifecycle transition.
 **Commit boundaries:** one runtime/generated-factory behavior commit with Java/Groovy tests, followed by one documentary
 and migration commit if separating prose keeps both commits independently reviewable.
 
-### SMB-4 — Project explicitly marked Builder inputs (#650)
+### SMB-3 — Project explicitly marked Builder inputs (#650)
 
 **Work:** add parameter-level `@BuilderInput`; select the declaring source method for Builder-side projection; recursively
 map supported concrete/abstract DSL Object and Collection/Map positions to exact public Builder types. Clone ordinary
@@ -162,7 +135,7 @@ converters. Leave unmarked Model parameters unchanged.
 **Commit boundaries:** (1) annotation/type projector and negative compiler matrix; (2) instance/static linked-twin flow and
 exact generated API tests; (3) documentary/migration/release closure when the two implementation steps are green.
 
-### SMB-5 — Project explicit owned Builder results (#650/#689)
+### SMB-4 — Project explicit owned Builder results (#650/#689)
 
 **Work:** add method-level `@BuilderResult`; project supported DSL Object or Collection/Map result positions to exact public
 Builder types. For ordinary source methods, retain the completed-Model method and build a linked Builder twin using ADR
@@ -188,7 +161,22 @@ return diagnostics; (3) Java/static-Groovy/mirror/documentary/migration/release 
 mutator results require a materially different lifecycle contract, stop after the first commit and create a dedicated
 successor issue rather than weakening `@BuilderResult`.
 
-### SMB-6 — Reconcile the complete public contract (#689)
+### SMB-D1 — Revisit bulk state-interface projection (#689)
+
+**Timing:** after SMB-1 through SMB-4 have executable evidence and before final contract reconciliation.
+
+**Decision:** evaluate whether repeated per-method annotations, generic state consumers, or the implemented type projector
+justify an interface-level bulk projection. Record exactly one outcome in ADR 0020:
+
+- implement it in the current lane, with a separately reviewed public name, generated-contract shape, inheritance rules,
+  precompiled behavior, and acceptance matrix;
+- waive it because the three explicit annotations cover the demonstrated use cases; or
+- create a later related issue when the need is credible but not required for this lane.
+
+This checkpoint must not hold the four foundational slices open merely to preserve a hypothetical public seam. A generated
+paired Model/Builder state contract is an option to evaluate, not a pre-approved implementation.
+
+### SMB-5 — Reconcile the complete public contract (#689)
 
 **Work:** run the combined query/narrowing/input/result matrix across direct-schema and inherited schemas; inspect emitted
 descriptors and AnnoDocimal mirrors; reconcile public API inventory, architecture map, user documentation, migration
@@ -203,15 +191,14 @@ guidance, and release notes. Remove no historical workaround guidance until its 
 - Each #689 acceptance criterion points to an executable test and documentation section; #648/#650/#651 can be closed or
   narrowed without an orphaned requirement.
 
-**Commit boundary:** one evidence/reconciliation commit after the five behavior slices are green; do not mix unrelated
-cleanup such as #503 into it.
+**Commit boundary:** one evidence/reconciliation commit after the four behavior slices are green and SMB-D1 has a recorded
+outcome; do not mix unrelated cleanup such as #503 into it.
 
 ## Acceptance matrix
 
 | Contract | Focused seam | Public/consumer evidence | Compatibility evidence |
 | --- | --- | --- | --- |
 | Pure query projection | New `BuilderQueryTest`; existing `ModelVerificationVisitor` tests | `GeneratedDslSupportSpec`, Java and `@CompileStatic` Groovy, IDE mirror | Groovy 3/4/5; inherited and precompiled fixtures |
-| Paired Builder State interface | New `BuilderStateInterfaceTest` | Model `S` versus generated `S_DSL.BuilderState`, Java/static-Groovy, IDE mirror | inheritance, multiple interfaces, default/accessor implementations, opaque-precompiled negative |
 | Type predicate/narrowing | Runtime factory-provider test | Exact `Special_DSL.Builder<Special>` result in Java/Groovy | Sealed/inactive Builder and model-hierarchy cases |
 | Input projection | `BuilderMethodProjection` and mutator/type-checking tests | Instance method, static converter/helper, mirror signatures | raw/wildcard/generic/opaque/collision negatives in all lanes |
 | Result projection | `BuilderProjectionSpec`, ownership/session tests | exact single/Collection/Map result and mutator return | completed/Template/sealed/cross-session/wrong-type negatives |
@@ -227,17 +214,12 @@ contracts is deliberately scheduled but not implemented; any such test must stat
 than ordinary Model Writer syntax. `Builder-First-Migration.md` adds a diagnostic-to-replacement table for duplicated
 queries, invalid `instanceof`, dynamic Builder parameter bridges, and unattachable generic `KlumBuilder<T>` results.
 `CHANGES.md` records each capability only when its executable slice ships. `CONTEXT.md` gains the term **shared Builder
-capability** only when the ADR is accepted: an explicitly projected domain operation or paired state contract, not
-Model/Builder substitutability.
+capability** only when the ADR is accepted: an explicitly projected domain operation, not Model/Builder substitutability.
+If SMB-D1 later adopts a bulk state contract, that decision updates the definition separately.
 
 The documentary path should evolve this compact Groovy example:
 
 ```groovy
-@BuilderState
-interface RegistryState {
-    String toUrl()
-}
-
 @DSL
 class Deployment {
     Registry registry
@@ -252,9 +234,10 @@ class Deployment {
 }
 
 @DSL
-class Registry implements RegistryState {
+class Registry {
     String host
 
+    @BuilderQuery
     String toUrl() { "https://$host" }
 }
 
@@ -264,7 +247,7 @@ class SpecialRegistry extends Registry {
 }
 ```
 
-SMB-4/5 extend the same fixture with one explicitly annotated donor parameter/result and owned attachment rather than
+SMB-3/4 extend the same fixture with one explicitly annotated donor parameter/result and owned attachment rather than
 creating an unrelated example vocabulary.
 
 ## Risks and open questions
@@ -272,28 +255,28 @@ creating an unrelated example vocabulary.
 | Risk/question | Decision or control |
 | --- | --- |
 | Local purity checks miss mutation hidden in foreign non-DSL calls. | Document `@BuilderQuery` as a Schema Developer assertion and reject locally visible construction/mutation; do not claim whole-program purity. |
-| Annotation combinations become another implicit method taxonomy. | Keep the three position annotations orthogonal; make `@BuilderState` the one explicit bulk-query seam; do not add an open-ended method-kind enum. |
-| A Builder State interface is mistaken for one shared Model/Builder type. | Generate and document `S_DSL.BuilderState` as a distinct companion; assert both positive and negative assignability in Java/Groovy fixtures. |
+| Annotation combinations become another implicit method taxonomy. | Keep the three annotations orthogonal; defer any bulk-query seam until post-slice evidence shows that it adds leverage; do not add an open-ended method-kind enum. |
+| A speculative Builder State contract expands the current lane. | SMB-D1 requires an evidence-led implement, waive, or later-issue decision; no annotation name or generated companion shape is reserved now. |
 | Projected overloads erase to one descriptor. | Reject the collision at Schema compilation and name both source signatures. |
 | A Model result is confused with owned composition. | Require `@BuilderResult`; validate active-session unsealed Builder identity; leave every unmarked result unchanged. |
 | Precompiled behavior differs from same-source behavior. | Treat emitted `Foo_DSL`/linked twins as the only precompiled authority; diagnose older opaque bytecode instead of analyzing method bodies. |
 | Factory narrowing leaks internal Builder metadata. | Implement comparisons behind the runtime/generated bridge; expose only booleans and exact `B` identity. |
 | Repeated Model/Builder inspection tempts a public union wrapper. | Keep any such view private to the runtime implementation until two real adapters need a seam; public methods retain exact Model or generated Builder-state types. |
-| `@BuilderResult` on mutators proves lifecycle-incompatible. | Keep SMB-5's ordinary helper result independently deliverable and split the mutator case into a successor issue rather than broadening ownership. |
+| `@BuilderResult` on mutators proves lifecycle-incompatible. | Keep SMB-4's ordinary helper result independently deliverable and split the mutator case into a successor issue rather than broadening ownership. |
 
-The final implementation may choose package-private compiler helper names freely. The four public annotation names and
+The final implementation may choose package-private compiler helper names freely. The three public annotation names and
 factory operations are ADR-level decisions; changing them requires revising ADR 0020 before implementation publication.
 
 ## Issue-to-slice mapping
 
 | Requirement/owner | Slices and acceptance evidence |
 | --- | --- |
-| #651 pure Builder-visible queries | SMB-1, SMB-2, and SMB-6; individual and interface-grouped query parity, purity diagnostics, public/mirror signatures. |
-| #648 Model/Builder predicate and narrowing | SMB-3 and SMB-6; factory-token identity matrix and exact Builder cast. |
-| #650 explicit Builder parameters/results | SMB-4, SMB-5, and SMB-6; root navigation, converter/helper twins, exact attachment, generic/precompiled diagnostics. |
-| #689 Builder State companion and selected mutator results | SMB-2, SMB-5, and SMB-6; paired interfaces, explicit retargeted return, and ownership/session failures. |
+| #651 pure Builder-visible queries | SMB-1 and SMB-5; individual query parity, purity diagnostics, public/mirror signatures. |
+| #648 Model/Builder predicate and narrowing | SMB-2 and SMB-5; factory-token identity matrix and exact Builder cast. |
+| #650 explicit Builder parameters/results | SMB-3, SMB-4, and SMB-5; root navigation, converter/helper twins, exact attachment, generic/precompiled diagnostics. |
+| #689 shared capability design and selected mutator results | SMB-4, SMB-D1, and SMB-5; explicit retargeted return, ownership/session failures, and a recorded bulk-interface disposition. |
 | ADR 0003 Materialization and ownership | Every slice; no Model-to-Builder conversion, nested root lifecycle, or post-materialization mutation. |
-| ADR 0004 Builder-producing projection | SMB-4/5 reuse linked twins, source-visibility rules, container fidelity, and active-session validation. |
-| ADR 0005 generated public API | SMB-1/2/4/5 generated Builder/state signatures and mirror parity; `KlumBuilder<T>` stays zero-operation. |
-| ADR 0010 public-interface conventions | SMB-3 factory-token interface and classification; no public internal helpers. |
+| ADR 0004 Builder-producing projection | SMB-3/4 reuse linked twins, source-visibility rules, container fidelity, and active-session validation. |
+| ADR 0005 generated public API | SMB-1/3/4 generated Builder signatures and mirror parity; `KlumBuilder<T>` stays zero-operation. |
+| ADR 0010 public-interface conventions | SMB-2 factory-token interface and classification; no public internal helpers. |
 | ADR 0011 multi-Groovy contract | Every implementation slice runs focused Groovy 3 and final Groovy 4/5 compatibility evidence. |
