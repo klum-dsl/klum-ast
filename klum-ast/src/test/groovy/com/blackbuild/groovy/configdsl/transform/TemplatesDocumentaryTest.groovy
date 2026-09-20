@@ -263,6 +263,40 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         deployment.servers*.clusterMember == [true, true]
     }
 
+    @Issue("135")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#expanding-template-lists-into-one-relationship")
+    def "expands reusable member Templates into one relationship"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Team {
+                List<Member> members
+            }
+
+            @DSL
+            class Member {
+                String name
+                String role
+            }
+        '''
+        def Member = getClass('pk.Member')
+        def admin = Member.Create.Template.With(name: 'admin', role: 'administrator')
+        def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
+
+        when:
+        def team = clazz.Create.With {
+            members {
+                useTemplates admin, reader
+            }
+        }
+
+        then:
+        team.members*.name == ['admin', 'reader']
+        team.members*.role == ['administrator', 'reader']
+    }
+
     @Issue("376")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#templatewithall")
     def "applies templates for multiple configuration types in one scope"() {

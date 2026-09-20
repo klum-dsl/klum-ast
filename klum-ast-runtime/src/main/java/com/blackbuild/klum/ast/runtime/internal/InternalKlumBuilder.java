@@ -65,6 +65,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -883,6 +884,24 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
+    /**
+     * Rehydrates marked Templates as fresh owned children and appends them to a collection relationship.
+     * @param fieldName the collection field name
+     * @param templates the marked Templates to rehydrate
+     */
+    public void addTemplatesToCollection(String fieldName, Object... templates) {
+        addTemplatesToCollection(fieldName, Arrays.asList(templates));
+    }
+
+    /**
+     * Rehydrates marked Templates as fresh owned children and appends them to a collection relationship.
+     * @param fieldName the collection field name
+     * @param templates the marked Templates to rehydrate
+     */
+    public void addTemplatesToCollection(String fieldName, Iterable<?> templates) {
+        addTemplates(fieldName, templates, builder -> addElementToCollection(fieldName, builder));
+    }
+
     /** Attaches a projected batch of child Builders and returns the producer's original container. */
     public <C extends Collection<?>> C addProjectedBuildersFromCollectionToCollection(String fieldName, C builders) {
         assertMutable();
@@ -921,6 +940,53 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     public void addElementsToMap(String fieldName, Object... values) {
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
+    }
+
+    /**
+     * Rehydrates marked Templates as fresh owned children and adds them to a map relationship using normal key derivation.
+     * @param fieldName the map field name
+     * @param templates the marked Templates to rehydrate
+     */
+    public void addTemplatesToMap(String fieldName, Object... templates) {
+        addTemplatesToMap(fieldName, Arrays.asList(templates));
+    }
+
+    /**
+     * Rehydrates marked Templates as fresh owned children and adds them to a map relationship using normal key derivation.
+     * @param fieldName the map field name
+     * @param templates the marked Templates to rehydrate
+     */
+    public void addTemplatesToMap(String fieldName, Iterable<?> templates) {
+        addTemplates(fieldName, templates, builder -> addElementToMap(fieldName, null, builder));
+    }
+
+    private void addTemplates(String fieldName, Iterable<?> templates, Consumer<InternalKlumBuilder<?>> attachment) {
+        List<Object> validatedTemplates = validatedTemplateSnapshot(fieldName, templates);
+        Class<?> declaredType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
+        validatedTemplates.forEach(template -> attachment.accept(
+                FactoryHelper.prepareNestedBuilderFromTemplate(declaredType, template)
+        ));
+    }
+
+    private List<Object> validatedTemplateSnapshot(String fieldName, Iterable<?> templates) {
+        assertMutable();
+        Field field = getModelField(fieldName);
+        Class<?> declaredType = getClassFromType(DslHelper.getElementType(field));
+        List<Object> snapshot = new ArrayList<>();
+        templates.forEach(snapshot::add);
+        for (Object template : snapshot) {
+            if (!TemplateManager.isTemplate(template))
+                throw new KlumModelException(format(
+                        "useTemplates for %s.%s accepts only marked Templates; received %s",
+                        modelType.getName(), fieldName, template == null ? "null" : template.getClass().getName()
+                ));
+            if (!declaredType.isInstance(template))
+                throw new KlumModelException(format(
+                        "Template type %s is not compatible with relationship %s.%s of element type %s",
+                        template.getClass().getName(), modelType.getName(), fieldName, declaredType.getName()
+                ));
+        }
+        return snapshot;
     }
 
     /**

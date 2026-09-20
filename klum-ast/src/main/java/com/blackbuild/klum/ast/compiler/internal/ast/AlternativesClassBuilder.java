@@ -134,10 +134,46 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         createClosureForOuterClass();
         delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
+            createUseTemplatesMethods();
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
         OmittedProjectionCatalog.complete(collectionFactory);
+    }
+
+    private void createUseTemplatesMethods() {
+        String runtimeMethod = isMap(fieldNode.getType())
+                ? "addTemplatesToMap"
+                : "addTemplatesToCollection";
+        String templateDescription = "the marked Templates to rehydrate as fresh owned children";
+
+        new ProxyMethodBuilder(varX("rw"), "useTemplates", runtimeMethod)
+                .targetType(builderClass)
+                .optional()
+                .mod(ACC_PUBLIC)
+                .returning(VOID_TYPE)
+                .constantParam(fieldNode.getName())
+                .arrayParam(elementType, "templates", templateDescription)
+                .withDocumentation(doc -> doc
+                        .title("Rehydrates the marked Templates as fresh owned children in the current Construction session.")
+                        .p("The Templates are expanded immediately in argument order; this operation does not install a scoped Template default."))
+                .addTo(collectionFactory);
+
+        new ProxyMethodBuilder(varX("rw"), "useTemplates", runtimeMethod)
+                .targetType(builderClass)
+                .optional()
+                .mod(ACC_PUBLIC)
+                .returning(VOID_TYPE)
+                .constantParam(fieldNode.getName())
+                .param(
+                        makeClassSafeWithGenerics(make(Iterable.class), buildWildcardType(elementType)),
+                        "templates",
+                        templateDescription
+                )
+                .withDocumentation(doc -> doc
+                        .title("Rehydrates the marked Templates as fresh owned children in the current Construction session.")
+                        .p("The Templates are expanded immediately in iteration order; this operation does not install a scoped Template default."))
+                .addTo(collectionFactory);
     }
 
     private void createClosureForOuterClass() {

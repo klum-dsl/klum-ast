@@ -106,6 +106,76 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [builder, collectionFactory, clusterFactory].every { publicSignatures(it).every { !it.contains('\$_') } }
     }
 
+    @Issue('135')
+    def "collection factory Template expansion is typed in bytecode Java and source mirrors"() {
+        given:
+        Class<?> child = getClass('sample.Child')
+        Class<?> collectionFactory = getClass('sample.Foo_DSL$Builder$CollectionFactory_kids')
+
+        when: 'the generated collection-factory contract is inspected'
+        Method varargsMethod = collectionFactory.getMethod('useTemplates', child.arrayType())
+        Method iterableMethod = collectionFactory.getMethod('useTemplates', Iterable)
+
+        then: 'both generated signatures expose the settled public contract'
+        varargsMethod.varArgs
+        varargsMethod.returnType == Void.TYPE
+        iterableMethod.genericParameterTypes[0].typeName == 'java.lang.Iterable<? extends sample.Child>'
+        iterableMethod.returnType == Void.TYPE
+        [varargsMethod, iterableMethod].every {
+            it.getAnnotation(AnnoDoc).value().contains('fresh owned children')
+        }
+
+        when: 'a Java client names both generated overloads'
+        compileJavaConsumer('''
+            package sample;
+
+            import java.util.List;
+
+            public final class JavaTemplateListConsumer {
+                public static void addTemplates(
+                        Foo_DSL.Builder.CollectionFactory_kids kids,
+                        Child first,
+                        List<? extends Child> remaining) {
+                    kids.useTemplates(first);
+                    kids.useTemplates(remaining);
+                }
+            }
+        ''', 'sample/JavaTemplateListConsumer.java')
+
+        and: 'statically compiled Groovy uses both field-local overloads'
+        Class<?> staticConsumer = createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            final class StaticTemplateListConsumer {
+                static Foo create(Child first, List<? extends Child> remaining) {
+                    Foo.Create.With {
+                        kids {
+                            useTemplates first
+                            useTemplates remaining
+                        }
+                    }
+                }
+            }
+        ''')
+        def first = child.Create.Template.With(name: 'first')
+        def second = child.Create.Template.With(name: 'second')
+
+        and: 'the public source mirror is generated from the same contract'
+        File mirrorRoot = new File(tempFolder.root, 'template-list-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        File mirror = new File(mirrorRoot, 'sample/Foo_DSL.java')
+
+        then:
+        mirror.text.contains('void useTemplates(Child[] templates)')
+        mirror.text.contains('void useTemplates(Iterable<? extends Child> templates)')
+        compileJavaSource(mirror)
+        staticConsumer.create(first, [second]).kids*.name == ['first', 'second']
+    }
+
     @Issue('729')
     def "Factory exposes only the explicit typed AsBuilder() operation"() {
         given:
