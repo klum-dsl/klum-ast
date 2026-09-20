@@ -232,9 +232,10 @@ Config.Create.With {
 
 ## Expanding Template lists into one relationship
 
-Use `useTemplates` inside a collection factory when several existing Templates should become separate values of that
-one relationship. Each argument is rehydrated immediately as a fresh owned child in the current Construction session;
-the Template object itself is never inserted into the relationship.
+Use `withTemplates` inside a collection factory when several existing Templates should become separate values of that
+one relationship. It accepts an `Iterable` and a required trailing configuration closure. Each Template is rehydrated
+immediately as exactly one fresh owned child in the current Construction session; the closure configures that child once,
+and the Template object itself is never inserted into the relationship. Use an empty closure for pure expansion.
 
 (See: `TemplatesDocumentaryTest#'expands reusable member Templates into one relationship'`.)
 
@@ -248,6 +249,7 @@ class Team {
 class Member {
     String name
     String role
+    boolean active
 }
 
 def admin = Member.Create.Template.With(name: 'admin', role: 'administrator')
@@ -255,20 +257,25 @@ def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
 
 def team = Team.Create.With {
     members {
-        useTemplates admin, reader
+        withTemplates([admin, reader]) {
+            active true
+        }
     }
 }
 
 assert team.members*.name == ['admin', 'reader']
+assert team.members*.active == [true, true]
 ```
 
-`useTemplates` accepts either varargs or an `Iterable` of marked Templates. Repeated calls append fresh children in
-invocation and iteration order. The complete input is checked before any child from that call is attached, so an ordinary
-completed DSL Object in the batch fails without partially changing the relationship.
+`withTemplates` accepts only an `Iterable` of marked Templates plus the trailing child-Builder closure. Repeated calls
+append fresh children in invocation and iteration order. The complete input is checked before any closure invocation or
+child attachment, so an ordinary completed DSL Object in the batch fails without partially changing the relationship.
+The same closure runs once for every fresh child after its recipe has been replayed and before its normal `@PostApply`
+lifecycle callback. It receives no Template argument; its `DELEGATE_ONLY` delegate is the fresh child Builder.
 
 This is direct, field-local recipe expansion: it installs no temporary Template default, and a later child creator in the
 same collection factory is unaffected. Use `Template.WithAll` instead when the goal is to establish type-wide defaults
-while a body creates objects. `useTemplates` is not generated for `LINK` collections because Templates cannot be link
+while a body creates objects. `withTemplates` is not generated for `LINK` collections because Templates cannot be link
 targets; `OPTIONAL_LINK` collections may own the freshly rehydrated children.
 
 For map relationships, normal key derivation and duplicate handling remain in effect. A keyed Template remains unkeyed by
