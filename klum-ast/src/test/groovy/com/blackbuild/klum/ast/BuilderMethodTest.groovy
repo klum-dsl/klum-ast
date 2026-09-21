@@ -244,19 +244,25 @@ class BuilderMethodTest extends AbstractDSLSpec {
         error.message.contains('Builder-only methods can only be declared by a @DSL class')
     }
 
-    def "legacy Mutator uses canonical Builder Method visibility validation after promotion"() {
+    def "private #marker methods use the canonical Builder-only diagnostic"() {
         when:
-        createClass('''
+        createClass("""
             @DSL
             class Registry {
-                @Mutator
+                $annotation
                 private void normalizeHost() { }
             }
-        ''')
+        """)
 
         then:
         def error = thrown(MultipleCompilationErrorsException)
-        error.message.contains('Lifecycle methods must not be private!')
+        error.message.contains('Builder-only methods must not be private')
+        !error.message.contains('Lifecycle methods must not be private!')
+
+        where:
+        marker           | annotation
+        'Builder.Method' | '@Builder.Method'
+        'Mutator'        | '@Mutator'
     }
 
     def "the IDE mirror contains only explicitly selected Builder methods"() {

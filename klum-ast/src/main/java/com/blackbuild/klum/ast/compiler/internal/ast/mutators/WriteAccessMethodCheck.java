@@ -52,7 +52,9 @@ public class WriteAccessMethodCheck implements Check {
             return Optional.of("Builder-only methods can only be declared by a @DSL class");
 
         if (method.isPrivate())
-            return Optional.of("Lifecycle methods must not be private!");
+            return Optional.of(writeAccessType == WriteAccess.Type.MANUAL
+                    ? "Builder-only methods must not be private"
+                    : "Lifecycle methods must not be private!");
 
         if (writeAccessType == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
             return Optional.of(String.format(

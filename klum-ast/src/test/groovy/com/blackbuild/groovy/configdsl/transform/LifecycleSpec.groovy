@@ -53,6 +53,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    @Issue('689')
     def "Lifecycle methods must not be private"() {
         when:
         createClass('''
@@ -67,7 +68,9 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        thrown(MultipleCompilationErrorsException)
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('Lifecycle methods must not be private!')
+        !error.message.contains('Builder-only methods must not be private')
     }
 
     def "Lifecycle must be parameterless"() {
