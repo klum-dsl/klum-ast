@@ -2,7 +2,8 @@
 
 Date: 2026-09-20
 
-Amended: 2026-09-21 (canonical nested `Builder` vocabulary and `@Mutator` migration)
+Amended: 2026-09-21 (canonical nested `Builder` vocabulary, `@Mutator` migration, `narrowBuilder` naming, and
+projected-query state after Materialization)
 
 Status: Accepted
 
@@ -176,6 +177,10 @@ The compiler enforces these locally visible restrictions. The annotation is also
 into foreign non-DSL code are observational; KlumAST does not attempt whole-program purity analysis. An `instanceof M`
 test against a Builder remains invalid and is not silently rewritten.
 
+Before Materialization, the projected query evaluates against current Builder state. After Materialization, a projected
+`@Builder.Query` invoked through a retained or sealed Builder evaluates against the completed Model; the Builder
+projection never exposes stale construction state.
+
 ### Put subtype identity and narrowing on the typed factory token
 
 Extend the generated factory capability `KlumFactory.BuilderFactoryProvider<T, B>` with:
@@ -183,20 +188,24 @@ Extend the generated factory capability `KlumFactory.BuilderFactoryProvider<T, B
 ```java
 boolean isModelOrBuilder(Object value);
 boolean isBuilder(Object value);
-B asBuilder(Object value);
+B narrowBuilder(Object value);
 ```
 
 `isModelOrBuilder` tests the selected Model type against either a completed DSL Object or a Builder's declared Model type.
-`isBuilder` is the narrower predicate for Builder values. `asBuilder` returns the same Builder identity as the exact public
+`isBuilder` is the narrower predicate for Builder values. `narrowBuilder` returns the same Builder identity as the exact public
 `B` type and throws a targeted `KlumModelException` for a completed Model, a mismatched Builder, or a non-DSL value. It
 does not create, unseal, adopt, or materialize anything.
+
+`narrowBuilder(value)` is deliberately distinct from the established `AsBuilder()` factory entry point. `AsBuilder()`
+enters the active-session Builder-producing factory API; `narrowBuilder(value)` only type-narrows an existing matching
+Builder while preserving its identity and lifecycle state.
 
 This makes subtype-sensitive Builder code explicit and statically narrowable without exposing Builder implementation
 classes:
 
 ```groovy
 if (SpecialRegistry.Create.isBuilder(registry)) {
-    def special = SpecialRegistry.Create.asBuilder(registry)
+    def special = SpecialRegistry.Create.narrowBuilder(registry)
     assert special.toUrl().startsWith('https://')
 }
 ```

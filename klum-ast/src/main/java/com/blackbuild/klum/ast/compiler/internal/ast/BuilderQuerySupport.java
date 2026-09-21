@@ -69,6 +69,14 @@ import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.copyAnn
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isAssignableTo;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.castX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.notNullX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 
 /** Projects explicitly selected pure Model queries onto the hidden and public Builder contracts. */
 final class BuilderQuerySupport {
@@ -98,7 +106,17 @@ final class BuilderQuerySupport {
         queries.forEach(query -> projectQuery(query, twins));
 
         twins.forEach((query, twin) -> {
-            twin.setCode(new QueryBodyTransformer().cloneStatement(query.getCode()));
+            twin.setCode(block(
+                    ifS(
+                            notNullX(callThisX("$klum$completedModelOrNull")),
+                            returnS(callX(
+                                    castX(model.getPlainNodeReference(), callThisX("$klum$completedModelOrNull")),
+                                    query.getName(),
+                                    args(twin.getParameters())
+                            ))
+                    ),
+                    new QueryBodyTransformer().cloneStatement(query.getCode())
+            ));
             builder.addMethod(twin);
         });
     }
