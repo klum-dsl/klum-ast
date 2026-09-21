@@ -101,6 +101,44 @@ class SharedCapabilitiesDocumentaryTest extends AbstractDSLSpec {
         deployment.registry.toUrl() == deployment.configuredRegistryUrl
     }
 
+    @Issue('650')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#flowing-builders-through-explicit-inputs-and-results')
+    def "flows an explicitly selected Builder input into an owned Builder result"() {
+        given:
+        createClass '''
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            @DSL class Deployment {
+                Registry source
+                Registry normalized
+
+                @PostTree
+                void normalizeRegistry() {
+                    normalized Registry.normalized(source)
+                }
+            }
+
+            @DSL class Registry {
+                String host
+
+                @Builder.Result
+                static Registry normalized(@Builder.Input Registry source) {
+                    Registry.Create.With(host: source.host.toLowerCase())
+                }
+            }
+        '''
+
+        when:
+        def deployment = clazz.Create.With {
+            source { host 'PACKAGES.EXAMPLE.TEST' }
+        }
+
+        then:
+        deployment.source.host == 'PACKAGES.EXAMPLE.TEST'
+        deployment.normalized.host == 'packages.example.test'
+    }
+
     @Issue('648')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#narrowing-a-builder-by-model-type')
     def "narrows a related subtype Builder through its factory token"() {

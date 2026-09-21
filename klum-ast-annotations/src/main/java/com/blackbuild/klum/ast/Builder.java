@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.KlumCastValidator;
+import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -75,5 +76,34 @@ public final class Builder {
     @WriteAccess(WriteAccess.Type.MANUAL)
     @Documented
     public @interface Method {
+    }
+
+    /**
+     * Projects one DSL Object parameter to its exact generated Builder type in the method's Builder-side contract.
+     *
+     * <p>The completed-Model method retains the declared Model type. Only the explicitly annotated position changes in
+     * the linked Builder method; unannotated parameters keep their completed-state meaning.</p>
+     */
+    @Target(ElementType.PARAMETER)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.ast.BuilderInputTransformation")
+    @Documented
+    public @interface Input {
+    }
+
+    /**
+     * Projects a DSL Object result to its exact generated Builder type in the method's Builder-side contract.
+     *
+     * <p>A successful Builder-side invocation returns an unsealed Builder in the active Construction session. The
+     * annotation never converts a completed Model into composition; normal session, sealing, attachment, and ownership
+     * checks remain authoritative.</p>
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.ast.BuilderResultCheck")
+    @Documented
+    public @interface Result {
     }
 }

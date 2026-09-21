@@ -300,7 +300,9 @@ class ConverterBuilder {
 
     private void createBuilderConverterMethod(MethodNode sourceMethod, MethodNode builderProducer) {
         Map<String, ClassNode> genericsSpec = GenericsUtils.createGenericsSpec(elementType);
-        Parameter[] parameters = cloneParamsWithAdjustedNames(sourceMethod);
+        Parameter[] parameters = BuilderMethodProjection.hasExplicitProjection(sourceMethod)
+                ? BuilderMethodProjection.projectedParameters(sourceMethod, elementType)
+                : cloneParamsWithAdjustedNames(sourceMethod);
         for (int index = 0; index < parameters.length; index++) {
             parameters[index].setType(correctToGenericsSpecRecurse(genericsSpec, parameters[index].getOriginType()));
             copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[index], parameters[index], Collections.emptyList());

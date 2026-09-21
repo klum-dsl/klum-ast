@@ -140,6 +140,97 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         compileJavaSource(mirror)
     }
 
+    @Issue('650')
+    def "publishes explicit Builder inputs and results to bytecode Java static Groovy and source mirrors"() {
+        given:
+        Class<?> builder = getClass('sample.Foo_DSL$Builder')
+        Class<?> childBuilder = getClass('sample.Child_DSL$Builder')
+
+        when: 'the emitted public Builder contract is inspected'
+        Method projected = builder.getMethod('copyChild', childBuilder)
+
+        then:
+        projected.returnType == childBuilder
+        projected.getAnnotation(Builder.Result)
+        projected.parameters[0].getAnnotation(Builder.Input)
+
+        when: 'Java and statically compiled Groovy name the exact projected contract'
+        compileJavaConsumer('''
+            package sample;
+
+            public final class JavaBuilderProjectionConsumer {
+                public static Child_DSL.Builder<Child> copy(
+                        Foo_DSL.Builder<Foo> foo,
+                        Child_DSL.Builder<Child> child) {
+                    return foo.copyChild(child);
+                }
+            }
+        ''', 'sample/JavaBuilderProjectionConsumer.java')
+        createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            final class StaticBuilderProjectionConsumer {
+                static Child_DSL.Builder<Child> copy(
+                        Foo_DSL.Builder<Foo> foo,
+                        Child_DSL.Builder<Child> child) {
+                    foo.copyChild(child)
+                }
+            }
+        ''', 'sample/StaticBuilderProjectionConsumer.groovy')
+
+        and: 'the IDE-only source mirror derives the same exact method'
+        File mirrorRoot = new File(tempFolder.root, 'builder-projection-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        File mirror = new File(mirrorRoot, 'sample/Foo_DSL.java')
+
+        then:
+        mirror.text.contains('@com.blackbuild.klum.ast.Builder.Result')
+        mirror.text.contains('Child_DSL.Builder<Child> copyChild(')
+        mirror.text.contains('@com.blackbuild.klum.ast.Builder.Input Child_DSL.Builder<Child> donor')
+        compileJavaSource(mirror)
+    }
+
+    @Issue('650')
+    def "rejects an explicitly annotated precompiled helper without an emitted Builder twin"() {
+        given:
+        compileJavaConsumer('''
+            package external;
+
+            import com.blackbuild.klum.ast.Builder;
+            import com.blackbuild.klum.ast.DSL;
+
+            @DSL
+            public class OpaqueRegistry {
+                @Builder.Result
+                public static OpaqueRegistry normalized(@Builder.Input OpaqueRegistry source) {
+                    return source;
+                }
+            }
+        ''', 'external/OpaqueRegistry.java')
+        loader.addClasspath(compilerConfiguration.targetDirectory.absolutePath)
+
+        when:
+        createSecondaryClass '''
+            import external.OpaqueRegistry
+
+            @DSL class Deployment {
+                @Builder.Method
+                void normalize() {
+                    OpaqueRegistry.normalized(null)
+                }
+            }
+        '''
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('Cannot project explicitly selected precompiled helper external.OpaqueRegistry.normalized()')
+        error.message.contains('its emitted Builder twin is unavailable')
+    }
+
     @Issue('648')
     def "publishes exact factory-token predicates and Builder narrowing to Java and static Groovy"() {
         given:
@@ -1407,6 +1498,12 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 /** Returns the configured label for one audience. */
                 @Builder.Query
                 String displayLabel(String audience) { "$audience: $label" }
+
+                @Builder.Method
+                @Builder.Result
+                Child copyChild(@Builder.Input Child donor) {
+                    Child.Create.With(name: donor.name)
+                }
 
                 String modelOnly() { label }
             }
