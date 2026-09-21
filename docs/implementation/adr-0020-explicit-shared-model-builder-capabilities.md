@@ -1,6 +1,6 @@
 # ADR 0020 implementation plan: explicit shared Model and Builder capabilities
 
-This plan implements proposed
+This plan implements accepted
 [ADR 0020](../adr/0020-explicit-shared-model-builder-capabilities.md) for
 [#689](https://github.com/klum-dsl/klum-ast/issues/689). It orders the narrower
 [#651](https://github.com/klum-dsl/klum-ast/issues/651),
@@ -12,7 +12,18 @@ boundaries.
 The `BQ` identifiers are stable delivery labels. The vocabulary and compatibility prerequisite is deliberately `BQ-0`, so
 the established `BQ-1` identity continues to name pure-query projection while every later slice retains dependency order.
 
-## Confirmed current behavior and failure paths
+## Delivery status
+
+| Slice | Delivery |
+| --- | --- |
+| BQ-0 — vocabulary and legacy bridge | Merged PR [#780](https://github.com/klum-dsl/klum-ast/pull/780) |
+| BQ-1 — queries | Merged PR [#778](https://github.com/klum-dsl/klum-ast/pull/778) |
+| BQ-2 — predicates and narrowing | Merged PR [#781](https://github.com/klum-dsl/klum-ast/pull/781) |
+| BQ-3 and BQ-4 — inputs and results | Merged PR [#782](https://github.com/klum-dsl/klum-ast/pull/782); both slices were delivered despite the task's BQ-3 label |
+| BQ-D1 — selector-interface checkpoint | Deferred to untargeted [#783](https://github.com/klum-dsl/klum-ast/issues/783) |
+| BQ-5 — final reconciliation | Combined behavior, public-descriptor, language-consumer, mirror, documentation, and inventory evidence under #689 |
+
+## Recorded baseline before implementation
 
 - `WriteAccessMethodsMover` moves legacy `@Mutator` and lifecycle methods from the Model to the hidden Builder and
   retargets only established Owner/virtual-field positions. `@Mutator` is not yet deprecated, and there is no canonical
@@ -68,8 +79,8 @@ bridges, but must not add schema-bytecode references to `runtime.internal` packa
   release; newly compiled reflection metadata uses the canonical annotation.
 - Unmarked Model parameters/results retain their exact completed-state meaning. Existing schemas change neither generated
   surface nor runtime behavior until they opt in.
-- Bulk state-interface projection is not part of the initial public contract. It remains a mandatory post-slice decision,
-  not an implementation prerequisite.
+- Bulk state-interface projection is not part of the 4.1 public contract. BQ-D1 completed the mandatory post-slice review
+  by deferring that separate, evidence-led design to untargeted #783.
 - `KlumBuilder<T>` remains zero-operation, and generated implementation classes remain unsupported.
 - The public surface is the emitted `Foo_DSL` contract; IDE mirrors must be derived from it and remain excluded from
   compilation, packaging, and downstream inputs.
@@ -211,19 +222,12 @@ successor issue rather than weakening `@Builder.Result`.
 
 **Timing:** after BQ-0 through BQ-4 have executable evidence and before final contract reconciliation.
 
-**Decision:** evaluate whether repeated per-method annotations justify an interface-level declaration map. Use
-`@OwnerProvidedDefaults` as the precedent: an implemented interface can select a set of declarations for special handling
-without becoming a generated Builder interface. Record exactly one outcome in ADR 0020:
-
-- implement selector-interface grouping in the current lane, with a separately reviewed public name, method/position
-  classification rules, inheritance rules, precompiled behavior, and acceptance matrix;
-- waive it because the four nested annotations cover the demonstrated use cases; or
-- create a later related issue when the need is credible but not required for this lane.
-
-In the soft candidate, the Model implements the selector interface; its generated Builder receives the selected projected
-methods but implements neither that interface nor a generated companion. A paired Model/Builder state contract is a
-stronger alternative only if separate evidence shows value in typing generic Builder-state consumers. This checkpoint must
-not hold the five foundational slices open merely to preserve either hypothetical public seam.
+**Decision:** defer selector-interface grouping to untargeted
+[#783](https://github.com/klum-dsl/klum-ast/issues/783). BQ-0 through BQ-4 show that the four explicit annotations cover
+the accepted 4.1 use cases without another public declaration-mapping seam. The later issue may reassess real-world
+annotation repetition, but it must define naming, inheritance, precompiled behavior, position classification, diagnostics,
+and compatibility evidence before adopting a selector. No selector or companion-interface name is reserved, and neither
+the generated Builder nor the Model gains another interface in this tranche.
 
 ### BQ-5 — Reconcile the complete public contract (#689)
 
@@ -243,6 +247,17 @@ guidance, and release notes. Remove no historical workaround guidance until its 
 **Commit boundary:** one evidence/reconciliation commit after the five behavior slices are green and BQ-D1 has a recorded
 outcome; do not mix unrelated cleanup such as #503 into it.
 
+### #689 acceptance traceability
+
+| Accepted requirement | Executable evidence | Documentation section |
+| --- | --- | --- |
+| Opt-in syntax plus exact generated public and IDE-mirror signatures | `BuilderMethodTest#'the IDE mirror contains only explicitly selected Builder methods'`; `GeneratedDslSupportSpec#'publishes Builder queries to bytecode Java static Groovy and source mirrors'`; `GeneratedDslSupportSpec#'publishes explicit Builder inputs and results to bytecode Java static Groovy and source mirrors'` | `Advanced-Techniques.md#builder-only-methods`, `#sharing-a-pure-query-with-builders`, and `#flowing-builders-through-explicit-inputs-and-results` |
+| Safe operations in Model and Builder contexts | `BuilderQueryTest#'projects a pure scalar query to Builder state and keeps the Model method'`; `BuilderQueryTest#'rejects mutation and construction-only state in a Builder query'`; `SharedCapabilitiesDocumentaryTest#'combines explicit capabilities across an inherited Builder'` | `Advanced-Techniques.md#sharing-a-pure-query-with-builders` and `#combining-builder-capabilities` |
+| Parameter/result projection and subtype narrowing semantics | `BuilderInputResultProjectionTest#'projects explicit static Builder input and result through lifecycle attachment'`; `BuilderTypeNarrowingTest#'matches completed Models and Builders with ordinary hierarchy assignability'`; `BuilderTypeNarrowingTest#'narrows a related Builder under static checking during lifecycle execution'` | `Advanced-Techniques.md#flowing-builders-through-explicit-inputs-and-results` and `#narrowing-a-builder-by-model-type` |
+| Ambiguous, unsupported, generic, and precompiled diagnostics | `BuilderQueryTest#'rejects an ambiguous overloaded DSL call in a Builder query'`; `BuilderInputResultProjectionTest#'rejects unsupported explicit Builder input shapes'`; `BuilderInputResultProjectionTest#'rejects unsupported explicit Builder result shapes'`; `GeneratedDslSupportSpec#'rejects an explicitly annotated precompiled helper without an emitted Builder twin'` | `Builder-First-Migration.md#migration-checklist` |
+| Migration examples and Groovy 3/4/5 compatibility strategy | `SharedCapabilitiesDocumentaryTest` methods linked from each capability section; the same sources compile in `test`, `groovy4Tests`, and `groovy5Tests` | `Builder-First-Migration.md#mutator-to-buildermethod`, `#migration-checklist`, and this plan's `#acceptance-matrix` |
+| Independently testable tracer slices and final combined reconciliation | `GeneratedDslSupportSpec#'reconciles direct and inherited Builder capabilities across bytecode consumers and source mirrors'` plus the focused tests above | This plan's `#delivery-status`, `#tracer-bullets-and-reasoned-commits`, and ADR 0020's `#defer-bulk-state-interface-projection-to-later-evidence` |
+
 ## Acceptance matrix
 
 | Contract | Focused seam | Public/consumer evidence | Compatibility evidence |
@@ -252,7 +267,7 @@ outcome; do not mix unrelated cleanup such as #503 into it.
 | Type predicate/narrowing | Runtime factory-provider test | Exact `Special_DSL.Builder<Special>` result in Java/Groovy | Sealed/inactive Builder and model-hierarchy cases |
 | Input projection | `BuilderMethodProjection` and method-category/type-checking tests | Classified instance method, static converter/helper, mirror signatures | facet-without-category/raw/wildcard/generic/opaque/collision negatives in all lanes |
 | Result projection | `BuilderProjectionSpec`, ownership/session tests | exact single/Collection/Map result and `Builder.Method` return | query-result conflict plus completed/Template/sealed/cross-session/wrong-type negatives |
-| Documentary flow | New `SharedCapabilitiesDocumentaryTest` | `Advanced-Techniques.md` links through `@See` | direct-schema plus inherited Schema example |
+| Combined contract | `SharedCapabilitiesDocumentaryTest#'combines explicit capabilities across an inherited Builder'` | `GeneratedDslSupportSpec#'reconciles direct and inherited Builder capabilities across bytecode consumers and source mirrors'`; Java, `@CompileStatic` Groovy, and AnnoDocimal mirrors | direct declarations plus inherited Builder API; full Groovy 3/4/5 lanes |
 
 Prefer new `*Test` class names. Reuse `BuilderProjectionSpec` and `GeneratedDslSupportSpec` only where their established
 fixtures materially reduce duplication. No `@PendingFeature` test is needed until ADR 0020 is accepted and one of these
@@ -331,7 +346,7 @@ creating an unrelated example vocabulary.
 | Local purity checks miss mutation hidden in foreign non-DSL calls. | Document `@Builder.Query` as a Schema Developer assertion and reject locally visible construction/mutation; do not claim whole-program purity. |
 | The nested `Builder.Method` name is mistaken for the rejected enum design. | Specify `Query` and `Method` as separate zero-argument categories, keep `Input` and `Result` as position facets, reject mixed categories, and never add a `MethodType` member. |
 | `@Mutator` deprecation breaks existing schemas or creates two subtly different Builder-only paths. | Keep legacy source compatible but promote its annotation node during semantic analysis; every later compiler stage sees only `@Builder.Method`. Test equivalent emitted signatures, canonical reflection metadata, and the double-annotation diagnostic. |
-| A speculative Builder State contract expands the current lane. | BQ-D1 treats a selector-only interface as the soft candidate and requires an evidence-led implement, waive, or later-issue decision; no annotation name or generated companion shape is reserved now. |
+| A speculative Builder State contract expands the current lane. | BQ-D1 deferred selector-interface grouping to untargeted #783; no annotation name or generated companion shape is reserved. |
 | Projected overloads erase to one descriptor. | Reject the collision at Schema compilation and name both source signatures. |
 | A Model result is confused with owned composition. | Require `@Builder.Result`; validate active-session unsealed Builder identity; leave every unmarked result unchanged. |
 | Precompiled behavior differs from same-source behavior. | Treat emitted `Foo_DSL`/linked twins as the only precompiled authority; diagnose older opaque bytecode instead of analyzing method bodies. |
@@ -347,10 +362,10 @@ changing them requires revising ADR 0020 before implementation publication.
 
 | Requirement/owner | Slices and acceptance evidence |
 | --- | --- |
-| #651 pure Builder-visible queries | BQ-1 and BQ-5; individual query parity, purity diagnostics, public/mirror signatures. |
-| #648 Model/Builder predicate and narrowing | BQ-2 and BQ-5; factory-token identity matrix and exact Builder cast. |
-| #650 explicit Builder parameters/results | BQ-3, BQ-4, and BQ-5; root navigation, converter/helper twins, exact attachment, generic/precompiled diagnostics. |
-| #689 canonical Builder vocabulary and shared capability design | BQ-0, BQ-4, BQ-D1, and BQ-5; category/facet diagnostics, `@Mutator` migration, explicit retargeted return, ownership/session failures, and a recorded bulk-interface disposition. |
+| Closed #651 pure Builder-visible queries | Delivered by BQ-1/PR #778 and reconciled by BQ-5; individual query parity, purity diagnostics, public/mirror signatures. |
+| Closed #648 Model/Builder predicate and narrowing | Delivered by BQ-2/PR #781 and reconciled by BQ-5; factory-token identity matrix and exact Builder cast. |
+| Closed #650 explicit Builder parameters/results | Delivered by BQ-3 and BQ-4/PR #782 and reconciled by BQ-5; root navigation, converter/helper twins, exact attachment, generic/precompiled diagnostics. |
+| #689 canonical Builder vocabulary and shared capability design | BQ-0 through BQ-5; category/facet diagnostics, `@Mutator` migration, explicit retargeted return, ownership/session failures, combined direct/inherited evidence, and BQ-D1's deferral to #783. |
 | ADR 0003 Materialization and ownership | Every slice; no Model-to-Builder conversion, nested root lifecycle, or post-materialization mutation. |
 | ADR 0004 Builder-producing projection | BQ-3/4 reuse linked twins, source-visibility rules, container fidelity, and active-session validation. |
 | ADR 0005 generated public API | BQ-0/1/3/4 generated Builder signatures and mirror parity; `KlumBuilder<T>` stays zero-operation. |

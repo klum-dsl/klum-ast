@@ -32,6 +32,65 @@ import spock.lang.Tag
 class SharedCapabilitiesDocumentaryTest extends AbstractDSLSpec {
 
     @Issue('689')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#combining-builder-capabilities')
+    def "combines explicit capabilities across an inherited Builder"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.Builder
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            @DSL class Deployment {
+                Registry source
+                Registry normalized
+                String configuredUrl
+
+                @PostTree
+                void normalizeRegistry() {
+                    if (SpecialRegistry.Create.isBuilder(source)) {
+                        def special = SpecialRegistry.Create.narrowBuilder(source)
+                        special.normalizeHost()
+                        configuredUrl = special.toUrl()
+                        normalized SpecialRegistry.normalized(special)
+                    }
+                }
+            }
+
+            @DSL class Registry {
+                String host
+
+                @Builder.Query
+                String toUrl() { "https://$host" }
+
+            }
+
+            @DSL class SpecialRegistry extends Registry {
+                @Builder.Method
+                void normalizeHost() { host = host.toLowerCase() }
+
+                @Builder.Result
+                static Registry normalized(@Builder.Input SpecialRegistry source) {
+                    Registry.Create.With(host: source.host)
+                }
+            }
+        '''
+        def specialFactory = getClass('SpecialRegistry').Create
+
+        when:
+        def deployment = clazz.Create.With {
+            source(specialFactory) {
+                host 'PACKAGES.EXAMPLE.TEST'
+            }
+        }
+
+        then:
+        deployment.source.host == 'packages.example.test'
+        deployment.configuredUrl == 'https://packages.example.test'
+        deployment.normalized.host == 'packages.example.test'
+        deployment.normalized.toUrl() == deployment.configuredUrl
+    }
+
+    @Issue('689')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#builder-only-methods')
     def "declares Builder-only behavior with Builder Method"() {
         given:

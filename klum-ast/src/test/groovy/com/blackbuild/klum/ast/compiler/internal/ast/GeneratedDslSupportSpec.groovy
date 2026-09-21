@@ -279,6 +279,102 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue('689')
+    def "reconciles direct and inherited Builder capabilities across bytecode consumers and source mirrors"() {
+        given:
+        Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
+        Class<?> specialBuilder = getClass('sample.SpecialFoo_DSL$Builder')
+        Class<?> childBuilder = getClass('sample.Child_DSL$Builder')
+        Class<?> specialFactory = getClass('sample.SpecialFoo_DSL$Factory')
+
+        when: 'the direct and inherited public descriptors are inspected together'
+        Method directQuery = fooBuilder.getMethod('displayLabel', String)
+        Method directProjection = fooBuilder.getMethod('copyChild', childBuilder)
+        Method inheritedQuery = specialBuilder.getMethod('displayLabel', String)
+        Method inheritedProjection = specialBuilder.getMethod('copyChild', childBuilder)
+
+        then: 'only explicitly selected operations are exposed with exact public types'
+        directQuery.returnType == String
+        directQuery.getAnnotation(Builder.Query)
+        directProjection.returnType == childBuilder
+        directProjection.getAnnotation(Builder.Method)
+        directProjection.getAnnotation(Builder.Result)
+        directProjection.parameters[0].getAnnotation(Builder.Input)
+        inheritedQuery == directQuery
+        inheritedProjection == directProjection
+        fooBuilder.isAssignableFrom(specialBuilder)
+        !fooBuilder.methods*.name.contains('modelOnly')
+        !specialBuilder.methods*.name.contains('modelOnly')
+        specialFactory.getMethod('isModelOrBuilder', Object).returnType == Boolean.TYPE
+        specialFactory.getMethod('isBuilder', Object).returnType == Boolean.TYPE
+        specialFactory.getMethod('narrowBuilder', Object).genericReturnType.typeName == 'B'
+        [fooBuilder, specialBuilder].every { type ->
+            publicSignatures(type).every { signature ->
+                !signature.contains('sample.Foo$Builder') &&
+                        !signature.contains('sample.SpecialFoo$Builder') &&
+                        !signature.contains('sample.Child$Builder')
+            }
+        }
+
+        when: 'Java and statically compiled Groovy consume the combined inherited contract'
+        compileJavaConsumer('''
+            package sample;
+
+            public final class JavaSharedCapabilityConsumer {
+                public static Child_DSL.Builder<Child> copy(
+                        SpecialFoo_DSL.Builder<SpecialFoo> target,
+                        Child_DSL.Builder<Child> donor,
+                        Object candidate) {
+                    if (SpecialFoo.Create.isBuilder(candidate)) {
+                        SpecialFoo_DSL.Builder<SpecialFoo> narrowed = SpecialFoo.Create.narrowBuilder(candidate);
+                        narrowed.displayLabel("java");
+                    }
+                    return target.copyChild(donor);
+                }
+            }
+        ''', 'sample/JavaSharedCapabilityConsumer.java')
+        createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            final class StaticSharedCapabilityConsumer {
+                static Child_DSL.Builder<Child> copy(
+                        SpecialFoo_DSL.Builder<SpecialFoo> target,
+                        Child_DSL.Builder<Child> donor,
+                        Object candidate) {
+                    if (SpecialFoo.Create.isModelOrBuilder(candidate) && SpecialFoo.Create.isBuilder(candidate)) {
+                        SpecialFoo.Create.narrowBuilder(candidate).displayLabel('groovy')
+                    }
+                    target.copyChild(donor)
+                }
+            }
+        ''', 'sample/StaticSharedCapabilityConsumer.groovy')
+
+        and: 'AnnoDocimal mirrors retain the same direct and inherited surface'
+        File mirrorRoot = new File(tempFolder.root, 'shared-capability-mirrors')
+        ['Foo_DSL', 'SpecialFoo_DSL'].each { name ->
+            File namespaceClass = new File(compilerConfiguration.targetDirectory, "sample/${name}.class")
+            new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        }
+        String fooMirror = new File(mirrorRoot, 'sample/Foo_DSL.java').text
+        String specialMirror = new File(mirrorRoot, 'sample/SpecialFoo_DSL.java').text
+
+        then:
+        fooMirror.contains('String displayLabel(String audience)')
+        fooMirror.contains('@com.blackbuild.klum.ast.Builder.Result')
+        fooMirror.contains('Child_DSL.Builder<Child> copyChild(')
+        fooMirror.contains('@com.blackbuild.klum.ast.Builder.Input Child_DSL.Builder<Child> donor')
+        !fooMirror.contains('modelOnly')
+        specialMirror.contains('extends Foo_DSL.Builder<SELF>')
+        !specialMirror.contains('displayLabel(')
+        !specialMirror.contains('copyChild(')
+        !specialMirror.contains('modelOnly')
+        compileJavaSource(new File(mirrorRoot, 'sample/Foo_DSL.java'))
+        compileJavaSource(new File(mirrorRoot, 'sample/SpecialFoo_DSL.java'))
+    }
+
     def "public signatures traverse Builder collection and Cluster APIs without implementation types"() {
         given:
         Class<?> builder = getClass('sample.Foo_DSL$Builder')
@@ -1506,6 +1602,10 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 }
 
                 String modelOnly() { label }
+            }
+
+            @DSL class SpecialFoo extends Foo {
+                String detail
             }
 
             @DSL class Deployment {

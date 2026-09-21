@@ -202,6 +202,56 @@ read-only projected queries, while existing lifecycle, ownership, and mutation g
 The predicates inspect only framework-owned Model identity; protected discriminator fields stay protected and need not be
 made configurable or public.
 
+## Combining Builder Capabilities
+
+The four annotations compose without creating a common Model/Builder type. A subclass Builder inherits a projected query,
+factory-token narrowing preserves its exact subtype, and an explicitly projected helper can consume that subtype Builder
+and return a new owned Builder in the same Construction session.
+
+(See: `SharedCapabilitiesDocumentaryTest#'combines explicit capabilities across an inherited Builder'`.)
+
+```groovy
+@CompileStatic
+@DSL class Deployment {
+    Registry source
+    Registry normalized
+    String configuredUrl
+
+    @PostTree
+    void normalizeRegistry() {
+        if (SpecialRegistry.Create.isBuilder(source)) {
+            def special = SpecialRegistry.Create.narrowBuilder(source)
+            special.normalizeHost()
+            configuredUrl = special.toUrl()
+            normalized SpecialRegistry.normalized(special)
+        }
+    }
+}
+
+@DSL class Registry {
+    String host
+
+    @Builder.Query
+    String toUrl() { "https://$host" }
+}
+
+@DSL class SpecialRegistry extends Registry {
+    @Builder.Method
+    void normalizeHost() { host = host.toLowerCase() }
+
+    @Builder.Result
+    static Registry normalized(@Builder.Input SpecialRegistry source) {
+        Registry.Create.With(host: source.host)
+    }
+}
+```
+
+Only the annotated method or signature position is projected. The generated `SpecialRegistry_DSL.Builder` inherits
+`toUrl`, exposes `normalizeHost`, and participates in the exact linked `normalized` helper; ordinary Model-only methods
+remain absent. Java, static Groovy, and the AnnoDocimal source mirror see the same public types. KlumAST 4.1 deliberately
+does not add an interface-level grouping annotation; that separate, evidence-led question is tracked by
+[#783](https://github.com/klum-dsl/klum-ast/issues/783).
+
 ## Delegation Hints for Builder Closures
 
 Generated DSL methods that accept configuration closures automatically receive the appropriate `@DelegatesTo` metadata,

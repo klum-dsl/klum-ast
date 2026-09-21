@@ -2,15 +2,18 @@
 
 Date: 2026-09-20
 
-Amended: 2026-09-21 (canonical nested `Builder` vocabulary, `@Mutator` migration, `narrowBuilder` naming, and
-projected-query state after Materialization)
+Amended: 2026-09-21 (canonical nested `Builder` vocabulary, `@Mutator` migration, `narrowBuilder` naming,
+projected-query state after Materialization, and BQ-D1 disposition)
 
 Status: Accepted
 
 Target release: 4.1
 
-Implementation status: BQ-0 establishes the canonical `Builder` namespace, `@Builder.Method`, and deprecated `@Mutator`
-compatibility bridge. BQ-1 through BQ-5, the post-slice decision checkpoint, and final contract reconciliation remain.
+Implementation status: BQ-0 through BQ-4 are delivered by PRs
+[#780](https://github.com/klum-dsl/klum-ast/pull/780), [#778](https://github.com/klum-dsl/klum-ast/pull/778),
+[#781](https://github.com/klum-dsl/klum-ast/pull/781), and [#782](https://github.com/klum-dsl/klum-ast/pull/782).
+PR #782 delivered both BQ-3 and BQ-4 despite its BQ-3 task label. BQ-D1 is deferred to untargeted
+[#783](https://github.com/klum-dsl/klum-ast/issues/783); BQ-5 owns final contract reconciliation.
 
 Tracking issue: [#689 — Design explicit shared Model and Builder capabilities](https://github.com/klum-dsl/klum-ast/issues/689)
 
@@ -126,10 +129,13 @@ path. `toUrl()` remains available on the completed Model and is explicitly proje
 `normalizeHost()` exists only on the Builder. Existing source may continue to spell the last annotation `@Mutator`, but
 new source uses `@Builder.Method`.
 
-### Defer bulk state-interface projection until the first slices provide evidence
+### Defer bulk state-interface projection to later evidence
 
 A further interface-level annotation could provide a bulk opt-in for coherent shared behavior, but this ADR does not adopt
-one yet. Its value depends on evidence from the narrower query, input, result, and narrowing slices.
+one for 4.1. BQ-D1 reviewed the delivered query, input, result, and narrowing slices and found no current evidence that an
+additional public selector contract is required. The explicit per-method and per-position annotations remain the complete
+4.1 contract; later evidence-led reconsideration belongs to untargeted issue
+[#783](https://github.com/klum-dsl/klum-ast/issues/783).
 
 The preferred soft candidate is a selector interface, analogous to the contract interfaces used by
 `@OwnerProvidedDefaults`. The Model implements the authored interface, and that interface identifies the Model methods
@@ -138,13 +144,7 @@ parameter/result positions according to the explicit projection rules. The gener
 methods, but does not implement the selector interface, and KlumAST generates no companion interface. The interface is a
 declaration map, not a shared Model/Builder type.
 
-After the five behavior slices are executable, ADR 0020 must be revisited and record one of three outcomes:
-
-- implement selector-interface grouping in the current lane because repeated annotations demonstrate enough leverage;
-- waive it because the explicit per-method and per-position annotations remain sufficient; or
-- move it to a later related issue when the need is credible but the contract is not required for the current lane.
-
-If that review finds a separately typeable Builder-state contract valuable, it may consider a generated paired companion
+If that later review finds a separately typeable Builder-state contract valuable, it may consider a generated paired companion
 as a stronger alternative. That alternative needs independent evidence because it adds a public type hierarchy without
 improving method selection. One authored interface must never be shared unchanged by Model and Builder when DSL Object
 parameter or result types differ. This ADR reserves neither the `BuilderState` name nor any companion shape.
@@ -244,8 +244,8 @@ Every compiler/API slice requires Groovy 3, 4, and 5 source coverage. Generated 
   unannotated methods remain Model-only.
 - Existing `@Mutator` source remains valid and compiles to the canonical `@Builder.Method` marker while new code converges
   on that spelling directly.
-- Bulk state-interface projection remains conditional until implementation evidence shows whether it earns a public
-  interface in the current lane.
+- Bulk state-interface projection is not part of the 4.1 contract and is deferred to untargeted #783 without reserving a
+  public selector or companion shape.
 - Exact generated Builder types flow through public contracts while `KlumBuilder<T>` stays narrow.
 - Completed `LINK` results remain distinguishable from owned Builder results.
 - Static source projection retains ADR 0004's same-compilation/source-visibility boundary.

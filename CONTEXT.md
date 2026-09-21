@@ -97,8 +97,12 @@ These terms are sourced from the user documentation and consolidated here. Use t
   Deprecated `@Mutator` remains a source-compatible spelling during the 4.1 migration window and is promoted to
   `@Builder.Method` during semantic analysis; downstream compiler stages and newly emitted runtime annotations use only
   the canonical marker. `@Builder.Query` is a shared Builder capability: it explicitly projects a side-effect-free Model
-  query onto current Builder state while retaining the original completed-Model method. Unannotated Model methods remain
-  Model-only, and no general Model/Builder substitutability follows from this vocabulary.
+  query onto current Builder state while retaining the original completed-Model method. `@Builder.Input` projects one
+  selected Model-typed parameter to its exact public Builder type; `@Builder.Result` marks a selected owned, unsealed,
+  same-session Builder result. Generated factory tokens provide `isModelOrBuilder`, `isBuilder`, and `narrowBuilder` for
+  explicit state testing and exact identity-preserving narrowing. Unannotated Model methods and positions retain completed
+  Model semantics, and no general Model/Builder substitutability follows from this vocabulary. Interface-level grouping is
+  deferred to untargeted #783; the four nested annotations are the complete 4.1 vocabulary.
 
 - Generated DSL support namespace
 
