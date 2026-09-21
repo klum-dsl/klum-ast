@@ -2,7 +2,8 @@
 
 Date: 2026-09-20
 
-Amended: 2026-09-21 (canonical nested `Builder` vocabulary and `@Mutator` migration)
+Amended: 2026-09-21 (canonical nested `Builder` vocabulary, `@Mutator` migration, and projected-query state after
+Materialization)
 
 Status: Accepted
 
@@ -175,6 +176,10 @@ or return a DSL Object/Builder-bearing value.
 The compiler enforces these locally visible restrictions. The annotation is also a Schema Developer assertion that calls
 into foreign non-DSL code are observational; KlumAST does not attempt whole-program purity analysis. An `instanceof M`
 test against a Builder remains invalid and is not silently rewritten.
+
+Before Materialization, the projected query evaluates against current Builder state. After Materialization, a projected
+`@Builder.Query` invoked through a retained or sealed Builder evaluates against the completed Model; the Builder
+projection never exposes stale construction state.
 
 ### Put subtype identity and narrowing on the typed factory token
 
