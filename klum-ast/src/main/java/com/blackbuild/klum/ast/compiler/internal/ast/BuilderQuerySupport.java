@@ -565,35 +565,37 @@ final class BuilderQuerySupport {
         public Expression transform(Expression expression) {
             if (expression == null) return null;
             if (expression instanceof ClosureExpression source) return cloneClosure(source);
-            if (expression instanceof VariableExpression source) {
-                VariableExpression result = (VariableExpression) source.transformExpression(this);
-                Parameter parameter = parameters.get(source.getAccessedVariable());
-                if (parameter != null) {
-                    result.setAccessedVariable(parameter);
-                    result.setType(parameter.getType());
-                    return result;
-                }
-                FieldNode field = modelField(source);
-                if (field != null) {
-                    FieldNode builderField = builder.getField(field.getName());
-                    if (builderField != null) {
-                        result.setAccessedVariable(builderField);
-                        result.setType(builderField.getType());
-                    }
-                }
-                return result;
-            }
-            if (expression instanceof MethodCallExpression source) {
-                MethodCallExpression result = (MethodCallExpression) source.transformExpression(this);
-                MethodNode target = source.getMethodTarget();
-                if (target != null) {
-                    MethodNode twin = target.getNodeMetaData(TWIN_METADATA_KEY);
-                    if (twin != null) result.setMethodTarget(twin);
-                    else result.setMethodTarget(null);
-                }
-                return result;
-            }
+            if (expression instanceof VariableExpression source) return transformVariable(source);
+            if (expression instanceof MethodCallExpression source) return transformMethodCall(source);
             return expression.transformExpression(this);
+        }
+
+        private VariableExpression transformVariable(VariableExpression source) {
+            VariableExpression result = (VariableExpression) source.transformExpression(this);
+            Parameter parameter = parameters.get(source.getAccessedVariable());
+            if (parameter != null) {
+                result.setAccessedVariable(parameter);
+                result.setType(parameter.getType());
+                return result;
+            }
+            FieldNode field = modelField(source);
+            if (field != null) {
+                FieldNode builderField = builder.getField(field.getName());
+                if (builderField != null) {
+                    result.setAccessedVariable(builderField);
+                    result.setType(builderField.getType());
+                }
+            }
+            return result;
+        }
+
+        private MethodCallExpression transformMethodCall(MethodCallExpression source) {
+            MethodCallExpression result = (MethodCallExpression) source.transformExpression(this);
+            MethodNode target = source.getMethodTarget();
+            if (target == null) return result;
+            MethodNode twin = target.getNodeMetaData(TWIN_METADATA_KEY);
+            result.setMethodTarget(twin);
+            return result;
         }
     }
 }

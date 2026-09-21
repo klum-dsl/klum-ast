@@ -34,7 +34,13 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.Arrays;
 
-/** Rejects {@code @Builder.Input} outside methods declared by a DSL Object. */
+/**
+ * Rejects {@code @Builder.Input} outside methods declared by a DSL Object.
+ *
+ * <p>KlumCast exposes the annotated {@link Parameter}, but Groovy parameter nodes retain neither their enclosing
+ * {@link MethodNode} nor a reliable declaring class. The local transform therefore has to recover the enclosing method
+ * by parameter identity before it can validate the DSL Object boundary.</p>
+ */
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class BuilderInputTransformation extends AbstractASTTransformation {
 

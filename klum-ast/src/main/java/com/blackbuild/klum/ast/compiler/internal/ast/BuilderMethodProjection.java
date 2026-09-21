@@ -258,30 +258,36 @@ public final class BuilderMethodProjection {
     private static String explicitProjectionProblem(ClassNode type, boolean nested) {
         if (type == null) return "the type is unresolved";
         if (type.isGenericsPlaceHolder()) return "the DSL Object type is an unresolved generic placeholder";
-        if (isAssignableTo(type, KLUM_BUILDER)) {
-            GenericsType[] generics = type.getGenericsTypes();
-            if (generics == null || generics.length != 1) return "the KlumBuilder type is raw";
-            GenericsType model = generics[0];
-            if (model.isWildcard()) return "the KlumBuilder model type is a wildcard";
-            if (model.isPlaceholder()) return "the KlumBuilder model type is an unresolved generic placeholder";
-            if (model.getType() == null || !isDSLObject(model.getType()))
-                return "the KlumBuilder model type does not resolve to a DSL Object";
-            return null;
-        }
+        if (isAssignableTo(type, KLUM_BUILDER)) return explicitBuilderProjectionProblem(type);
         if (isDSLObject(type)) return null;
-        if (isCollection(type)) {
-            if (nested) return "nested Collection/Map positions are not supported";
-            GenericsType[] generics = type.getGenericsTypes();
-            if (generics == null || generics.length != 1) return "the Collection type is raw";
-            return explicitGenericProjectionProblem(generics[0], true);
-        }
-        if (isMap(type)) {
-            if (nested) return "nested Collection/Map positions are not supported";
-            GenericsType[] generics = type.getGenericsTypes();
-            if (generics == null || generics.length != 2) return "the Map type is raw";
-            return explicitGenericProjectionProblem(generics[1], true);
-        }
+        if (isCollection(type)) return explicitCollectionProjectionProblem(type, nested);
+        if (isMap(type)) return explicitMapProjectionProblem(type, nested);
         return "the type does not resolve to a DSL Object or a supported Collection/Map of DSL Objects";
+    }
+
+    private static String explicitBuilderProjectionProblem(ClassNode type) {
+        GenericsType[] generics = type.getGenericsTypes();
+        if (generics == null || generics.length != 1) return "the KlumBuilder type is raw";
+        GenericsType model = generics[0];
+        if (model.isWildcard()) return "the KlumBuilder model type is a wildcard";
+        if (model.isPlaceholder()) return "the KlumBuilder model type is an unresolved generic placeholder";
+        if (model.getType() == null || !isDSLObject(model.getType()))
+            return "the KlumBuilder model type does not resolve to a DSL Object";
+        return null;
+    }
+
+    private static String explicitCollectionProjectionProblem(ClassNode type, boolean nested) {
+        if (nested) return "nested Collection/Map positions are not supported";
+        GenericsType[] generics = type.getGenericsTypes();
+        if (generics == null || generics.length != 1) return "the Collection type is raw";
+        return explicitGenericProjectionProblem(generics[0], true);
+    }
+
+    private static String explicitMapProjectionProblem(ClassNode type, boolean nested) {
+        if (nested) return "nested Collection/Map positions are not supported";
+        GenericsType[] generics = type.getGenericsTypes();
+        if (generics == null || generics.length != 2) return "the Map type is raw";
+        return explicitGenericProjectionProblem(generics[1], true);
     }
 
     private static String explicitGenericProjectionProblem(GenericsType generic, boolean nested) {
@@ -1039,31 +1045,33 @@ public final class BuilderMethodProjection {
         @Override
         public Expression transform(Expression expression) {
             if (expression == null) return null;
-            if (expression instanceof ClosureExpression source) {
-                return cloneClosure(source);
-            }
-            if (expression instanceof VariableExpression source) {
-                VariableExpression result = (VariableExpression) source.transformExpression(this);
-                Parameter parameter = candidate.parameters.get(source.getAccessedVariable());
-                if (parameter != null) {
-                    result.setAccessedVariable(parameter);
-                    result.setType(parameter.getType());
-                    return result;
-                }
-                if (candidate.builder != null && source.getAccessedVariable() instanceof FieldNode field) {
-                    FieldNode builderField = candidate.builder.getField(field.getName());
-                    if (builderField != null) {
-                        result.setAccessedVariable(builderField);
-                        result.setType(builderField.getType());
-                    }
-                }
-                return result;
-            }
+            if (expression instanceof ClosureExpression source) return cloneClosure(source);
+            if (expression instanceof VariableExpression source) return transformVariable(source);
             if (expression instanceof StaticMethodCallExpression source)
                 return transformStaticMethodCall(source);
-            if (!(expression instanceof MethodCallExpression source))
-                return expression.transformExpression(this);
+            if (expression instanceof MethodCallExpression source) return transformMethodCall(source);
+            return expression.transformExpression(this);
+        }
 
+        private VariableExpression transformVariable(VariableExpression source) {
+            VariableExpression result = (VariableExpression) source.transformExpression(this);
+            Parameter parameter = candidate.parameters.get(source.getAccessedVariable());
+            if (parameter != null) {
+                result.setAccessedVariable(parameter);
+                result.setType(parameter.getType());
+                return result;
+            }
+            if (candidate.builder != null && source.getAccessedVariable() instanceof FieldNode field) {
+                FieldNode builderField = candidate.builder.getField(field.getName());
+                if (builderField != null) {
+                    result.setAccessedVariable(builderField);
+                    result.setType(builderField.getType());
+                }
+            }
+            return result;
+        }
+
+        private Expression transformMethodCall(MethodCallExpression source) {
             MethodCallExpression result = (MethodCallExpression) source.transformExpression(this);
 
             Candidate dependency = findDependency(source);
@@ -1092,28 +1100,31 @@ public final class BuilderMethodProjection {
             }
 
             RootFactoryCall rootCall = findRootFactoryCall(source);
-            if (rootCall != null) {
-                MethodNode builderMethod = findBuilderFactoryMethod(source, rootCall.model);
-                if (builderMethod == null) {
-                    candidate.opaque = true;
-                    return result;
-                }
-                candidate.directBuilderCall = true;
-                candidate.concreteModels.add(rootCall.model.redirect());
-                Expression factory = rootCall.explicitFactory
-                        ? transform(source.getObjectExpression())
-                        : varX("this");
-                result.setObjectExpression(asBuilderCall(factory, rootCall.model));
-                result.setImplicitThis(false);
-                result.setMethodTarget(builderMethod);
-                CastExpression cast = new CastExpression(GeneratedDslSupport.builderTypeFor(rootCall.model), result);
-                cast.setSourcePosition(source);
-                return cast;
-            }
+            if (rootCall != null) return transformRootFactoryCall(source, result, rootCall);
 
             if (target != null && projectType(target.getReturnType(), state.model) != null)
                 candidate.opaque = true;
             return result;
+        }
+
+        private Expression transformRootFactoryCall(MethodCallExpression source, MethodCallExpression result,
+                                                    RootFactoryCall rootCall) {
+            MethodNode builderMethod = findBuilderFactoryMethod(source, rootCall.model);
+            if (builderMethod == null) {
+                candidate.opaque = true;
+                return result;
+            }
+            candidate.directBuilderCall = true;
+            candidate.concreteModels.add(rootCall.model.redirect());
+            Expression factory = rootCall.explicitFactory
+                    ? transform(source.getObjectExpression())
+                    : varX("this");
+            result.setObjectExpression(asBuilderCall(factory, rootCall.model));
+            result.setImplicitThis(false);
+            result.setMethodTarget(builderMethod);
+            CastExpression cast = new CastExpression(GeneratedDslSupport.builderTypeFor(rootCall.model), result);
+            cast.setSourcePosition(source);
+            return cast;
         }
 
         private static MethodCallExpression asBuilderCall(Expression factory, ClassNode model) {
