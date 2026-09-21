@@ -28,10 +28,10 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
-@Issue('689')
 @Tag('documentary')
 class SharedCapabilitiesDocumentaryTest extends AbstractDSLSpec {
 
+    @Issue('689')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#builder-only-methods')
     def "declares Builder-only behavior with Builder Method"() {
         given:
@@ -60,5 +60,44 @@ class SharedCapabilitiesDocumentaryTest extends AbstractDSLSpec {
         registry.host == 'example.test'
         hasNoMethod(clazz, 'normalizeHost')
         hasMethod(getClass('Registry_DSL$Builder'), 'normalizeHost')
+    }
+
+    @Issue('651')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Advanced-Techniques.md#sharing-a-pure-query-with-builders')
+    def "shares a pure URL query between Builder lifecycle code and the completed Model"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.Builder
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            @DSL class Deployment {
+                Registry registry
+                String configuredRegistryUrl
+
+                @PostTree
+                void captureRegistryUrl() {
+                    configuredRegistryUrl = registry.toUrl()
+                }
+            }
+
+            @DSL class Registry {
+                String host
+
+                @Builder.Query
+                String toUrl() { "https://$host" }
+            }
+        '''
+
+        when:
+        def deployment = clazz.Create.With {
+            registry {
+                host 'packages.example.test'
+            }
+        }
+
+        then:
+        deployment.configuredRegistryUrl == 'https://packages.example.test'
+        deployment.registry.toUrl() == deployment.configuredRegistryUrl
     }
 }
