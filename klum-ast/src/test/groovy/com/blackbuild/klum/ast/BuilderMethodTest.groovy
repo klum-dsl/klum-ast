@@ -32,6 +32,7 @@ import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.MethodNode
 import org.codehaus.groovy.ast.Parameter
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.transform.GroovyASTTransformationClass
 import spock.lang.Issue
 
 import javax.tools.ToolProvider
@@ -65,22 +66,21 @@ class BuilderMethodTest extends AbstractDSLSpec {
         Builder.Method.getAnnotation(WriteAccess).value() == WriteAccess.Type.MANUAL
     }
 
-    def "canonical and legacy markers normalize to the same manual write-access category"() {
+    def "Builder Method is the only compiler-visible manual method category"() {
         given:
         MethodNode canonical = methodAnnotatedWith(Builder.Method)
-        MethodNode legacy = methodAnnotatedWith(Mutator)
 
         expect:
         WriteAccessHelper.getWriteAccessTypeForMethodOrField(canonical).get() == WriteAccess.Type.MANUAL
-        WriteAccessHelper.getWriteAccessTypeForMethodOrField(legacy).get() == WriteAccess.Type.MANUAL
         WriteAccessHelper.isManualWriteAccess(canonical)
-        WriteAccessHelper.isManualWriteAccess(legacy)
         WriteAccessHelper.isBuilderMethod(canonical)
-        WriteAccessHelper.isBuilderMethod(legacy)
 
-        and: 'the compatibility alias carries an explicit non-removal deprecation signal'
+        and: 'the compatibility alias carries its deprecation promotion hook'
         Mutator.getAnnotation(Deprecated).since() == '4.1'
         !Mutator.getAnnotation(Deprecated).forRemoval()
+        Mutator.getAnnotation(GroovyASTTransformationClass).value().toList() == [
+                'com.blackbuild.klum.ast.compiler.internal.ast.converters.MutatorToBuilderMethodTransformation'
+        ]
     }
 
     def "Builder Method follows the legacy movement retargeting and generated contract path"() {
@@ -124,9 +124,11 @@ class BuilderMethodTest extends AbstractDSLSpec {
         publicBuilder.getMethod('normalizeHost').returnType == Void.TYPE
         publicBuilder.getMethod('legacyNormalizeHost').returnType == Void.TYPE
         builderClass.getDeclaredMethod('normalizeHost').getAnnotation(Builder.Method)
-        builderClass.getDeclaredMethod('legacyNormalizeHost').getAnnotation(Mutator)
+        builderClass.getDeclaredMethod('legacyNormalizeHost').getAnnotation(Builder.Method)
+        !builderClass.getDeclaredMethod('legacyNormalizeHost').getAnnotation(Mutator)
         publicBuilder.getMethod('normalizeHost').getAnnotation(Builder.Method)
-        publicBuilder.getMethod('legacyNormalizeHost').getAnnotation(Mutator)
+        publicBuilder.getMethod('legacyNormalizeHost').getAnnotation(Builder.Method)
+        !publicBuilder.getMethod('legacyNormalizeHost').getAnnotation(Mutator)
         hasNoMethod(clazz, 'normalizeHost')
         hasNoMethod(clazz, 'legacyNormalizeHost')
 
@@ -206,6 +208,20 @@ class BuilderMethodTest extends AbstractDSLSpec {
         createNonDslClass('''
             class ExternalHelper {
                 @Builder.Method
+                void normalizeHost() { }
+            }
+        ''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('Builder-only methods can only be declared by a @DSL class')
+    }
+
+    def "legacy Mutator is promoted before Builder Method validation outside a DSL Object"() {
+        when:
+        createNonDslClass('''
+            class ExternalHelper {
+                @Mutator
                 void normalizeHost() { }
             }
         ''')

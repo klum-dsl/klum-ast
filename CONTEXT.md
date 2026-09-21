@@ -94,8 +94,9 @@ These terms are sourced from the user documentation and consolidated here. Use t
   `com.blackbuild.klum.ast.Builder` is the namespace for explicit Builder-specific schema annotations; it is not an
   annotation itself and is unrelated to a generated `Foo_DSL.Builder` interface. `@Builder.Method` is the canonical
   Builder-only method category: the method is moved to the generated Builder and is absent from the completed Model.
-  Deprecated `@Mutator` remains a source-compatible spelling for the same category during the 4.1 migration window.
-  No general Model/Builder substitutability follows from this vocabulary.
+  Deprecated `@Mutator` remains a source-compatible spelling during the 4.1 migration window and is promoted to
+  `@Builder.Method` during semantic analysis; downstream compiler stages and newly emitted runtime annotations use only
+  the canonical marker. No general Model/Builder substitutability follows from this vocabulary.
 
 - Generated DSL support namespace
 

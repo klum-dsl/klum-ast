@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 
 import com.blackbuild.klum.ast.Builder;
-import com.blackbuild.klum.ast.Mutator;
 import com.blackbuild.klum.ast.WriteAccess;
 import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -41,8 +40,6 @@ public class WriteAccessHelper {
 
     private static final ClassNode WRITE_ACCESS_ANNOTATION = ClassHelper.make(WriteAccess.class);
     private static final ClassNode BUILDER_METHOD_ANNOTATION = ClassHelper.make(Builder.Method.class);
-    @SuppressWarnings("deprecation") // @Mutator is intentionally classified throughout its 4.1 compatibility window.
-    private static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
 
     private WriteAccessHelper() {
         // helper class
@@ -63,19 +60,7 @@ public class WriteAccessHelper {
     }
 
     public static boolean isBuilderMethod(AnnotatedNode method) {
-        return hasAnnotation(method, BUILDER_METHOD_ANNOTATION) || hasAnnotation(method, MUTATOR_ANNOTATION);
-    }
-
-    public static boolean hasConflictingBuilderMethodAnnotations(AnnotatedNode method) {
-        return hasAnnotation(method, BUILDER_METHOD_ANNOTATION) && hasAnnotation(method, MUTATOR_ANNOTATION);
-    }
-
-    static boolean isCanonicalBuilderMethodAnnotation(AnnotationNode annotation) {
-        return annotation != null && annotation.getClassNode().getName().equals(BUILDER_METHOD_ANNOTATION.getName());
-    }
-
-    private static boolean hasAnnotation(AnnotatedNode node, ClassNode annotationType) {
-        return node != null && !node.getAnnotations(annotationType).isEmpty();
+        return method != null && !method.getAnnotations(BUILDER_METHOD_ANNOTATION).isEmpty();
     }
 
     private static WriteAccess.Type getWriteAccessTypeForAnnotation(AnnotationNode annotation) {

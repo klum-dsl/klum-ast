@@ -47,8 +47,8 @@ public final class Builder {
      * Marks a method as Builder-only construction behavior.
      *
      * <p>The method is moved to the generated Builder, can change Builder state, and is absent from the completed DSL
-     * Object. This is the canonical replacement for {@link Mutator}; both spellings have identical behavior during the
-     * 4.1 migration window and must not be combined on one method.</p>
+     * Object. This is the canonical replacement for {@link Mutator}; the legacy spelling is promoted to this annotation
+     * during compilation and both must not be combined on one method.</p>
      */
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)

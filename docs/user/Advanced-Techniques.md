@@ -31,9 +31,10 @@ assert registry.host == 'example.test'
 ```
 
 The legacy `@Mutator` spelling remains source-compatible in 4.1 but is deprecated. Replace it when the Schema is next
-edited; the spelling change does not alter receiver state, visibility, generated signatures, or lifecycle timing. Do not
-combine both annotations on one method. See [Builder First Migration](Builder-First-Migration.md#mutator-to-buildermethod)
-for the mechanical migration.
+edited; compilation already promotes it to `@Builder.Method`, including the annotation visible through reflection on the
+generated Builder API. The spelling change does not alter receiver state, visibility, generated signatures, or lifecycle
+timing. Do not combine both annotations on one method. See
+[Builder First Migration](Builder-First-Migration.md#mutator-to-buildermethod) for the mechanical migration.
 
 ## Delegation Hints for Builder Closures
 

@@ -37,21 +37,11 @@ public class WriteAccessMethodCheck implements Check {
     public List<Diagnostic> check(CheckContext context) {
         MethodNode method = (MethodNode) context.getTarget();
 
-        if (WriteAccessHelper.hasConflictingBuilderMethodAnnotations(method)) {
-            if (WriteAccessHelper.isCanonicalBuilderMethodAnnotation(context.getValidatedAnnotation()))
-                return List.of(new Diagnostic(
-                        getClass().getName(),
-                        "A Builder-only method cannot declare both @Builder.Method and deprecated @Mutator; use only @Builder.Method",
-                        context.getValidatedAnnotation()
-                ));
-            return List.of();
-        }
-
         WriteAccess.Type writeAccessType = context.getControlAnnotation(WriteAccess.class)
                 .orElseThrow(() -> new IllegalStateException("WriteAccessMethodCheck requires a WriteAccess control annotation"))
                 .value();
 
-        if (WriteAccessHelper.isBuilderMethod(method) && !DslAstHelper.isDSLObject(method.getDeclaringClass()))
+        if (writeAccessType == WriteAccess.Type.MANUAL && !DslAstHelper.isDSLObject(method.getDeclaringClass()))
             return List.of(new Diagnostic(
                     getClass().getName(),
                     "Builder-only methods can only be declared by a @DSL class",

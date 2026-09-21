@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
+import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -37,10 +38,12 @@ import java.lang.annotation.Target;
  * Builder and are not exposed on the completed DSL Object.
  *
  * @deprecated since 4.1; use {@link Builder.Method}. Replacing this annotation changes only the spelling: receiver state,
- * visibility, generated signatures, and lifecycle timing remain unchanged.
+ * visibility, generated signatures, and lifecycle timing remain unchanged. Compilation promotes this annotation to
+ * {@code Builder.Method}, which is therefore the annotation retained on newly generated Builder methods.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.ast.converters.MutatorToBuilderMethodTransformation")
 @KlumCastValidated
 @WriteAccess(WriteAccess.Type.MANUAL)
 @Documented

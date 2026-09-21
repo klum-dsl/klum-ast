@@ -860,14 +860,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void diagnoseNonSetterConfiguratorOverrides() {
         annotatedClass.getMethods().stream()
-                .filter(this::isExplicitMutator)
+                .filter(WriteAccessHelper::isBuilderMethod)
                 .forEach(method -> builderFields.forEach((field, builderField) ->
                         diagnoseNonSetterConfiguratorOverride(method, field, builderField)
                 ));
-    }
-
-    private boolean isExplicitMutator(MethodNode method) {
-        return WriteAccessHelper.isBuilderMethod(method);
     }
 
     private void diagnoseNonSetterConfiguratorOverride(MethodNode method, FieldNode field, FieldNode builderField) {

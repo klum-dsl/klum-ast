@@ -124,8 +124,9 @@ the deprecated compatibility adapter is only a temporary migration aid for exter
 ### Canonical Builder-only methods
 
 Use `@Builder.Method` for methods that exist only during Builder construction. The 4.0 `@Mutator` spelling remains
-accepted in 4.1 and produces the same generated Builder API, but is deprecated. Migrate it when the Schema is next edited;
-do not combine both annotations. See the spelling-only
+accepted in 4.1 and produces the same generated Builder API, but is deprecated. Compilation promotes it to the canonical
+`@Builder.Method` annotation, including newly emitted runtime metadata. Migrate it when the Schema is next edited; do not
+combine both annotations. See the spelling-only
 [`@Mutator` to `@Builder.Method`](Builder-First-Migration.md#mutator-to-buildermethod) guidance and the canonical example
 in [Advanced Techniques](Advanced-Techniques.md#builder-only-methods).
 

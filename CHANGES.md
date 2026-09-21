@@ -2,9 +2,10 @@
 
 - Added the canonical `com.blackbuild.klum.ast.Builder` schema-vocabulary namespace and its first self-contained category,
   `@Builder.Method`, for methods that exist only on generated Builders. Deprecated `@Mutator` remains source-compatible
-  and follows the identical validation, movement, field-retargeting, public `Foo_DSL.Builder`, and IDE-mirror path; migrate
-  by changing only the annotation spelling. The later query, input, result, and narrowing capabilities remain deliberately
-  outside this slice ([#689](https://github.com/klum-dsl/klum-ast/issues/689)).
+  and is promoted to `@Builder.Method` during compilation, so validation, movement, field retargeting, public
+  `Foo_DSL.Builder`, IDE mirrors, and emitted runtime annotations use one canonical path; migrate by changing only the
+  annotation spelling. The later query, input, result, and narrowing capabilities remain deliberately outside this slice
+  ([#689](https://github.com/klum-dsl/klum-ast/issues/689)).
 
 - Added field-local `withTemplates(Iterable) { ... }` operations to generated collection factories. Each marked Template
   becomes exactly one fresh owned child in call order, and the trailing child-Builder closure configures every child once

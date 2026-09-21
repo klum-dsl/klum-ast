@@ -34,12 +34,14 @@ void normalizeHost() { host = host.toLowerCase() }
 void normalizeHost() { host = host.toLowerCase() }
 ```
 
-This is a spelling-only migration. Both annotations identify the same manual write-access category and use the same
-validation, field-retargeting, method-movement, and generated-public-contract path. Replacing the annotation does not
-change receiver state, method visibility, the generated `Foo_DSL.Builder` signature, or lifecycle timing. Existing source
-does not require a bulk rewrite, and already generated Builder APIs remain compatible. Do not put both annotations on one
-method; KlumAST rejects that ambiguous declaration. The outer `com.blackbuild.klum.ast.Builder` type is only a namespace
-for schema annotations and is unrelated to each Schema's generated `Foo_DSL.Builder` interface.
+This is a spelling-only source migration. During semantic analysis, KlumAST replaces `@Mutator` with `@Builder.Method`,
+so validation, field retargeting, method movement, generated public contracts, and emitted runtime annotation metadata all
+use the canonical marker. Replacing the source spelling does not change receiver state, method visibility, the generated
+`Foo_DSL.Builder` signature, or lifecycle timing. Existing source does not require a bulk rewrite, and already generated
+Builder APIs remain compatible. Code reflecting on a newly compiled legacy declaration sees `@Builder.Method`, not
+`@Mutator`. Do not put both annotations on one method; KlumAST rejects that ambiguous declaration. The outer
+`com.blackbuild.klum.ast.Builder` type is only a namespace for schema annotations and is unrelated to each Schema's
+generated `Foo_DSL.Builder` interface.
 
 ## Migration Checklist
 
