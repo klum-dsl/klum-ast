@@ -64,6 +64,7 @@ use this guide for Builder-first diagnostics:
 | A public static method declared on a custom `Factory` is rejected | Public `Factory` methods become root operations on `Create`, which delegates to a Factory instance. | Remove `static`. Move model-level static converters out of `Factory`; they remain model methods. Non-public static Factory helpers remain valid. |
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
 | A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
+| Pure query logic is duplicated between a Model method and a Builder helper | Ordinary Model methods are intentionally unavailable during Builder phases. | Keep one side-effect-free Model method, annotate it with `@Builder.Query`, and recompile the Schema. Its scalar or other non-DSL result is projected onto `Foo_DSL.Builder`; mutating, construction-only, and DSL-bearing behavior remains rejected. |
 
 ### Public Builder Contracts
 

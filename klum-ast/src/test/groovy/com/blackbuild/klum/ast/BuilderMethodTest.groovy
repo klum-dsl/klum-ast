@@ -49,7 +49,8 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.block
 @Issue('689')
 class BuilderMethodTest extends AbstractDSLSpec {
 
-    def "Builder is a non-instantiable namespace containing only the runtime Method marker"() {
+    @Issue('651')
+    def "Builder is a non-instantiable namespace containing the runtime Method marker"() {
         when:
         def namespaceConstructor = Builder.declaredConstructors.first()
 
@@ -59,7 +60,7 @@ class BuilderMethodTest extends AbstractDSLSpec {
         !Builder.annotation
         Builder.declaredConstructors.size() == 1
         Modifier.isPrivate(namespaceConstructor.modifiers)
-        Builder.declaredClasses.toList() == [Builder.Method]
+        Builder.declaredClasses.contains(Builder.Method)
 
         and:
         Builder.Method.name == 'com.blackbuild.klum.ast.Builder$Method'

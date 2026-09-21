@@ -4,8 +4,14 @@
   `@Builder.Method`, for methods that exist only on generated Builders. Deprecated `@Mutator` remains source-compatible
   and is promoted to `@Builder.Method` during compilation, so validation, movement, field retargeting, public
   `Foo_DSL.Builder`, IDE mirrors, and emitted runtime annotations use one canonical path; migrate by changing only the
-  annotation spelling. The later query, input, result, and narrowing capabilities remain deliberately outside this slice
+  annotation spelling. The later input, result, and narrowing capabilities remain deliberately outside this slice
   ([#689](https://github.com/klum-dsl/klum-ast/issues/689)).
+
+- Added `@Builder.Query` as an explicit opt-in for projecting a side-effect-free Model query onto the generated public
+  Builder contract. The original method remains on completed Models; Builder calls read current construction state.
+  KlumAST rejects mutation, construction-only state, DSL Object/Builder-bearing results, and unavailable precompiled
+  projections, while unannotated Model methods remain absent from Builder and IDE-mirror surfaces
+  ([#651](https://github.com/klum-dsl/klum-ast/issues/651)).
 
 - Added field-local `withTemplates(Iterable) { ... }` operations to generated collection factories. Each marked Template
   becomes exactly one fresh owned child in call order, and the trailing child-Builder closure configures every child once

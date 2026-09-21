@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.generator.ProjectionPolicy
 import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.KlumFactory
@@ -84,6 +85,59 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         clusterFactory.isAssignableFrom(getClass('sample.Foo$_services'))
         generatedLink(getClass('sample.Foo$Builder')) == builder.name
         generatedLink(getClass('sample.Foo$_Factory')) == factory.name
+    }
+
+    @Issue('651')
+    def "publishes Builder queries to bytecode Java static Groovy and source mirrors"() {
+        given:
+        Class<?> foo = getClass('sample.Foo')
+        Class<?> builder = getClass('sample.Foo_DSL$Builder')
+
+        when: 'the emitted public Builder contract is inspected'
+        Method query = builder.getMethod('displayLabel', String)
+
+        then:
+        query.returnType == String
+        query.getAnnotation(Builder.Query)
+        query.getAnnotation(AnnoDoc).value().contains('current Builder state before materialization')
+        foo.getMethod('displayLabel', String).with {
+            returnType == String && getAnnotation(Builder.Query)
+        }
+
+        when: 'Java and statically compiled Groovy name the exact public query'
+        compileJavaConsumer('''
+            package sample;
+
+            public final class JavaBuilderQueryConsumer {
+                public static String display(Foo_DSL.Builder<Foo> builder) {
+                    return builder.displayLabel("java");
+                }
+            }
+        ''', 'sample/JavaBuilderQueryConsumer.java')
+        createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            final class StaticBuilderQueryConsumer {
+                static String display(Foo_DSL.Builder<Foo> builder) {
+                    builder.displayLabel('groovy')
+                }
+            }
+        ''', 'sample/StaticBuilderQueryConsumer.groovy')
+
+        and: 'the IDE-only source mirror derives the same method and Builder-state documentation'
+        File mirrorRoot = new File(tempFolder.root, 'builder-query-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        File mirror = new File(mirrorRoot, 'sample/Foo_DSL.java')
+
+        then:
+        mirror.text.contains('String displayLabel(String audience)')
+        mirror.text.contains('current Builder state before materialization')
+        !mirror.text.contains('modelOnly')
+        compileJavaSource(mirror)
     }
 
     def "public signatures traverse Builder collection and Cluster APIs without implementation types"() {
@@ -665,6 +719,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             package defaulted
 
             import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Builder
             import com.blackbuild.klum.ast.Key
 
             @DSL(defaultImpl = Impl)
@@ -1300,6 +1355,12 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 @Deprecated Child secondary
                 OpaqueChild opaqueChild
                 @Cluster Map<String, Child> services
+
+                /** Returns the configured label for one audience. */
+                @Builder.Query
+                String displayLabel(String audience) { "$audience: $label" }
+
+                String modelOnly() { label }
             }
 
             @DSL class Deployment {

@@ -36,6 +36,58 @@ generated Builder API. The spelling change does not alter receiver state, visibi
 timing. Do not combine both annotations on one method. See
 [Builder First Migration](Builder-First-Migration.md#mutator-to-buildermethod) for the mechanical migration.
 
+## Sharing a Pure Query with Builders
+
+Ordinary Model methods execute on completed DSL Objects. If a side-effect-free query is also meaningful during
+construction, mark it with `@Builder.Query`. KlumAST keeps the original Model method and projects the same signature onto
+the generated public Builder contract.
+
+(See: `SharedCapabilitiesDocumentaryTest#'shares a pure URL query between Builder lifecycle code and the completed Model'`.)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+
+@CompileStatic
+@DSL class Deployment {
+    Registry registry
+    String configuredRegistryUrl
+
+    @PostTree
+    void captureRegistryUrl() {
+        configuredRegistryUrl = registry.toUrl()
+    }
+}
+
+@DSL class Registry {
+    String host
+
+    @Builder.Query
+    String toUrl() { "https://$host" }
+}
+
+when:
+def deployment = Deployment.Create.With {
+    registry {
+        host 'packages.example.test'
+    }
+}
+
+then:
+deployment.configuredRegistryUrl == 'https://packages.example.test'
+deployment.registry.toUrl() == deployment.configuredRegistryUrl
+```
+
+The lifecycle call reads the current `Registry` Builder; the final call reads the completed `Registry` Model. A Builder
+query may read fields available in both states, call another projected query, and use ordinary non-DSL values. Its result
+must not contain a DSL Object or Builder. It must not assign DSL fields, call a mutator or lifecycle operation, read a
+`FieldType.BUILDER` field, or start construction.
+
+`@Builder.Query` is an explicit, per-method projection, not Model/Builder substitutability. Unannotated Model methods stay
+off the hidden Builder, `Foo_DSL.Builder`, and its IDE source mirror. KlumAST checks locally visible purity constraints;
+calling foreign non-DSL code remains the Schema Developer's assertion that the call is observational. If a projected
+query calls a query on a separately compiled DSL Object, that dependency must itself have been compiled with its emitted
+`@Builder.Query` contract.
+
 ## Delegation Hints for Builder Closures
 
 Generated DSL methods that accept configuration closures automatically receive the appropriate `@DelegatesTo` metadata,

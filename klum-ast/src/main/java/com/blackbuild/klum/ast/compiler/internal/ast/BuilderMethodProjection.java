@@ -392,7 +392,7 @@ public final class BuilderMethodProjection {
         return true;
     }
 
-    private abstract static class StatementCloner implements ExpressionTransformer {
+    abstract static class StatementCloner implements ExpressionTransformer {
 
         protected final Statement cloneStatement(Statement source) {
             if (source == null) return null;
