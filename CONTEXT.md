@@ -89,6 +89,14 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
   Completed DSL Objects preserve cyclic relationships, including `LINK` relationships. Their object graph may therefore require internal-only assignment during materialization after the Builders have completed their lifecycle.
 
+- Builder method vocabulary
+
+  `com.blackbuild.klum.ast.Builder` is the namespace for explicit Builder-specific schema annotations; it is not an
+  annotation itself and is unrelated to a generated `Foo_DSL.Builder` interface. `@Builder.Method` is the canonical
+  Builder-only method category: the method is moved to the generated Builder and is absent from the completed Model.
+  Deprecated `@Mutator` remains a source-compatible spelling for the same category during the 4.1 migration window.
+  No general Model/Builder substitutability follows from this vocabulary.
+
 - Generated DSL support namespace
 
   `Foo_DSL` is the top-level generated namespace for the public build-time interfaces of DSL Object `Foo`. It contains

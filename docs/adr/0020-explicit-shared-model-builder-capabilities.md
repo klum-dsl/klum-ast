@@ -4,12 +4,12 @@ Date: 2026-09-20
 
 Amended: 2026-09-21 (canonical nested `Builder` vocabulary and `@Mutator` migration)
 
-Status: Proposed
+Status: Accepted
 
 Target release: 4.1
 
-Implementation status: Not started; the implementation plan defines five independently verifiable behavior slices, a
-post-slice decision checkpoint, and final contract reconciliation.
+Implementation status: BQ-0 establishes the canonical `Builder` namespace, `@Builder.Method`, and deprecated `@Mutator`
+compatibility bridge. BQ-1 through BQ-5, the post-slice decision checkpoint, and final contract reconciliation remain.
 
 Tracking issue: [#689 — Design explicit shared Model and Builder capabilities](https://github.com/klum-dsl/klum-ast/issues/689)
 

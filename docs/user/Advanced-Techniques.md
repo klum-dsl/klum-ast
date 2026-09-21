@@ -1,13 +1,48 @@
 # Advanced Techniques
 
+## Builder-only Methods
+
+Use `@Builder.Method` for Schema methods that change construction-time state and must not appear on the completed DSL
+Object. KlumAST moves the method to the generated Builder, retargets its field access to Builder state, and publishes a
+matching method on `Foo_DSL.Builder`. The outer `Builder` type is only an annotation namespace; it is not the generated
+Builder interface.
+
+(See: `SharedCapabilitiesDocumentaryTest#'declares Builder-only behavior with Builder Method'`.)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+
+@DSL
+class Registry {
+    String host
+
+    @Builder.Method
+    void normalizeHost() {
+        host = host.toLowerCase()
+    }
+}
+
+def registry = Registry.Create.With {
+    host 'EXAMPLE.TEST'
+    normalizeHost()
+}
+
+assert registry.host == 'example.test'
+```
+
+The legacy `@Mutator` spelling remains source-compatible in 4.1 but is deprecated. Replace it when the Schema is next
+edited; the spelling change does not alter receiver state, visibility, generated signatures, or lifecycle timing. Do not
+combine both annotations on one method. See [Builder First Migration](Builder-First-Migration.md#mutator-to-buildermethod)
+for the mechanical migration.
+
 ## Delegation Hints for Builder Closures
 
 Generated DSL methods that accept configuration closures automatically receive the appropriate `@DelegatesTo` metadata,
 so modern IDEs can infer the available Builder methods.
 
-Schema-defined Mutators can also accept and forward configuration closures. Because the generated Builder type does not
-exist when that source method is parsed, use `@DelegatesToBuilder` for those parameters. It tells the IDE and static type
-checker about the generated Builder; it does not make the completed DSL Object mutable.
+Schema-defined Builder-only methods can also accept and forward configuration closures. Because the generated Builder
+type does not exist when that source method is parsed, use `@DelegatesToBuilder` for those parameters. It tells the IDE
+and static type checker about the generated Builder; it does not make the completed DSL Object mutable.
 
 The optional annotation value names the DSL Object whose Builder receives the closure:
 
@@ -16,19 +51,19 @@ The optional annotation value names the DSL Object whose Builder receives the cl
 class Container {
     List<Element> elements
 
-    @Mutator
+    @Builder.Method
     def circle(@DelegatesToBuilder(Element) Closure body) {
         element(type: 'circle', body)
     }
 
-    @Mutator
+    @Builder.Method
     def square(@DelegatesToBuilder(Element) Closure body) {
         element(type: 'square', body)
     }
 }
 ```
 
-Here both Mutators execute on the `Container` Builder and delegate `body` to a newly created `Element` Builder.
+Here both methods execute on the `Container` Builder and delegate `body` to a newly created `Element` Builder.
 `@DelegatesToBuilder` does not add a completed-model `apply` or `configure` path. An API that configures a DSL Object must
 participate in factory/Builder construction; see [Builder First Migration](Builder-First-Migration.md) for the lifecycle boundary.
 
