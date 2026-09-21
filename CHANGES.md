@@ -4,7 +4,8 @@
   `@Builder.Method`, for methods that exist only on generated Builders. Deprecated `@Mutator` remains source-compatible
   and is promoted to `@Builder.Method` during compilation, so validation, movement, field retargeting, public
   `Foo_DSL.Builder`, IDE mirrors, and emitted runtime annotations use one canonical path; migrate by changing only the
-  annotation spelling. The later input, result, and narrowing capabilities are delivered in separate slices
+  annotation spelling. The companion input, result, query, and narrowing capabilities are delivered in the same explicit
+  4.1 contract
   ([#689](https://github.com/klum-dsl/klum-ast/issues/689)).
 
 - Added `@Builder.Input` and `@Builder.Result` as explicit, position-level opt-ins for shared Model/Builder helpers. Marked
@@ -24,6 +25,12 @@
   ordinary Model-hierarchy identity in either state and narrow a matching Builder to its exact public generated contract
   without exposing implementation types or changing identity, ownership, sealing, or Construction-session state
   ([#648](https://github.com/klum-dsl/klum-ast/issues/648)).
+
+- Reconciled the complete explicit Builder-capability contract across direct and inherited Schemas, emitted public
+  descriptors, Java and static-Groovy consumers, and AnnoDocimal mirrors. The 4.1 surface remains the four explicit
+  `Builder` annotations plus factory-token narrowing; selector-interface grouping is deferred to untargeted
+  [#783](https://github.com/klum-dsl/klum-ast/issues/783) without reserving another public type
+  ([#689](https://github.com/klum-dsl/klum-ast/issues/689)).
 
 - Added field-local `withTemplates(Iterable) { ... }` operations to generated collection factories. Each marked Template
   becomes exactly one fresh owned child in call order, and the trailing child-Builder closure configures every child once
