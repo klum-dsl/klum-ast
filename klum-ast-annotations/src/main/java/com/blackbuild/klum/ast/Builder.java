@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -32,7 +33,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Namespace for annotations that describe explicit Builder-only schema behavior.
+ * Namespace for annotations that describe explicit Builder-specific schema behavior.
  *
  * <p>This type is not an annotation and is unrelated to the generated {@code Foo_DSL.Builder} interface. It only groups
  * schema vocabulary whose meaning is specific to construction-time Builders.</p>
@@ -41,6 +42,24 @@ public final class Builder {
 
     private Builder() {
         throw new AssertionError("Builder is an annotation namespace and cannot be instantiated");
+    }
+
+    /**
+     * Projects a side-effect-free DSL Object query onto that object's generated public Builder contract.
+     *
+     * <p>The original method remains available on completed Models. Its generated Builder counterpart executes against
+     * the current Builder state and may only read state that is present before and after materialization. The result must
+     * not contain a DSL Object or Builder type.</p>
+     *
+     * <p>Calls into foreign non-DSL code are treated as a Schema Developer assertion that the call is observational;
+     * KlumAST enforces only locally visible purity restrictions.</p>
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.ast.BuilderQueryCheck")
+    @Documented
+    public @interface Query {
     }
 
     /**

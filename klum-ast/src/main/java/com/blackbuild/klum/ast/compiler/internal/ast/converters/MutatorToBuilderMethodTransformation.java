@@ -44,6 +44,7 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
 public class MutatorToBuilderMethodTransformation extends AbstractASTTransformation {
 
     private static final ClassNode BUILDER_METHOD_ANNOTATION = make(Builder.Method.class);
+    private static final ClassNode BUILDER_QUERY_ANNOTATION = make(Builder.Query.class);
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -55,6 +56,15 @@ public class MutatorToBuilderMethodTransformation extends AbstractASTTransformat
         if (!annotatedMethod.getAnnotations(BUILDER_METHOD_ANNOTATION).isEmpty()) {
             addError(
                     "A Builder-only method cannot declare both @Builder.Method and deprecated @Mutator; use only @Builder.Method",
+                    mutatorAnnotation
+            );
+            annotatedMethod.getAnnotations().remove(mutatorAnnotation);
+            return;
+        }
+
+        if (!annotatedMethod.getAnnotations(BUILDER_QUERY_ANNOTATION).isEmpty()) {
+            addError(
+                    "@Builder.Query and @Builder.Method are mutually exclusive method categories",
                     mutatorAnnotation
             );
             annotatedMethod.getAnnotations().remove(mutatorAnnotation);

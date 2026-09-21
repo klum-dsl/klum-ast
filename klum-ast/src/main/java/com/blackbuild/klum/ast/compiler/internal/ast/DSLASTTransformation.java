@@ -195,6 +195,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryField();
         createClusterFactories();
         convertValidationClosures();
+        projectBuilderQueries();
         moveMutatorsToBuilderClass();
         createOwnerClosureMethods();
         retargetBuilderAnnotationClosures();
@@ -290,6 +291,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void moveMutatorsToBuilderClass() {
         new WriteAccessMethodsMover(annotatedClass).invoke();
+    }
+
+    private void projectBuilderQueries() {
+        new BuilderQuerySupport(annotatedClass, builderClass, sourceUnit).invoke();
     }
 
     private void setPropertyAccessors() {
