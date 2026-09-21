@@ -35,7 +35,7 @@ public enum FieldType {
 
     /**
      * Designates the field as protected. Setters and dsl methods for internal fields are created protected, making them
-     * not directly changeable from a configuration. They can only be changed from inside {@link Mutator}
+     * not directly changeable from a configuration. They can only be changed from inside {@link Builder.Method}
      * or lifecycle methods.
      */
     PROTECTED,

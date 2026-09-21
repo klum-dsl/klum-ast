@@ -24,30 +24,45 @@
 package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 
 import com.blackbuild.klum.ast.WriteAccess;
+import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.MethodNode;
 
 import java.util.List;
+import java.util.Optional;
 
 public class WriteAccessMethodCheck implements Check {
     @Override
     public List<Diagnostic> check(CheckContext context) {
         MethodNode method = (MethodNode) context.getTarget();
 
-        if (method.isPrivate())
-            return List.of(new Diagnostic(getClass().getName(), "Lifecycle methods must not be private!", context.getValidatedAnnotation()));
-
-        if (context.getControlAnnotation(WriteAccess.class)
+        WriteAccess.Type writeAccessType = context.getControlAnnotation(WriteAccess.class)
                 .orElseThrow(() -> new IllegalStateException("WriteAccessMethodCheck requires a WriteAccess control annotation"))
-                .value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
-            return List.of(new Diagnostic(getClass().getName(), String.format(
-                "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
-                method.getDeclaringClass().getName(),
-                method.getName()
-            ), context.getValidatedAnnotation()));
+                .value();
 
-        return List.of();
+        return findViolation(method, writeAccessType)
+                .map(message -> List.of(new Diagnostic(getClass().getName(), message, context.getValidatedAnnotation())))
+                .orElseGet(List::of);
+    }
+
+    public static Optional<String> findViolation(MethodNode method, WriteAccess.Type writeAccessType) {
+        if (writeAccessType == WriteAccess.Type.MANUAL && !DslAstHelper.isDSLObject(method.getDeclaringClass()))
+            return Optional.of("Builder-only methods can only be declared by a @DSL class");
+
+        if (method.isPrivate())
+            return Optional.of(writeAccessType == WriteAccess.Type.MANUAL
+                    ? "Builder-only methods must not be private"
+                    : "Lifecycle methods must not be private!");
+
+        if (writeAccessType == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
+            return Optional.of(String.format(
+                    "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
+                    method.getDeclaringClass().getName(),
+                    method.getName()
+            ));
+
+        return Optional.empty();
     }
 }

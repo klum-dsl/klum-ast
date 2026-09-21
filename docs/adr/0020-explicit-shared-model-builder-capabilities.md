@@ -4,12 +4,12 @@ Date: 2026-09-20
 
 Amended: 2026-09-21 (canonical nested `Builder` vocabulary and `@Mutator` migration)
 
-Status: Proposed
+Status: Accepted
 
 Target release: 4.1
 
-Implementation status: Not started; the implementation plan defines five independently verifiable behavior slices, a
-post-slice decision checkpoint, and final contract reconciliation.
+Implementation status: BQ-0 establishes the canonical `Builder` namespace, `@Builder.Method`, and deprecated `@Mutator`
+compatibility bridge. BQ-1 through BQ-5, the post-slice decision checkpoint, and final contract reconciliation remain.
 
 Tracking issue: [#689 — Design explicit shared Model and Builder capabilities](https://github.com/klum-dsl/klum-ast/issues/689)
 
@@ -80,10 +80,11 @@ rather than becoming static members of `Foo_DSL.Builder`; `@Builder.Input` and `
 Builder signatures without reclassifying the source method as an instance `Query` or `Method`.
 
 `@Builder.Method` is the canonical successor to `@Mutator`. `@Mutator` remains source-compatible for the 4.1 migration
-window, retains exactly the same Builder-only behavior, and is deprecated in source and generated documentation in favor
-of `@Builder.Method`. The compiler must not require an immediate source rewrite, silently change a legacy method's
-visibility, or allow both annotations on one declaration. New examples and generated guidance use only
-`@Builder.Method`.
+window, retains exactly the same Builder-only behavior, and is deprecated in source documentation in favor of
+`@Builder.Method`. During semantic analysis, the compiler promotes `@Mutator` to `@Builder.Method`; all later compiler
+stages and newly emitted runtime annotation metadata therefore use the canonical marker. The compiler must not require an
+immediate source rewrite, silently change a legacy method's visibility or generated signature, or allow both annotations
+on one declaration. New examples and generated guidance use only `@Builder.Method`.
 
 The nested vocabulary does not revive the rejected `@Method(MethodType)` design. `Builder.Method` is a zero-argument
 marker for one fixed Builder-only category, not an annotation whose enum value selects among an open-ended set of method
@@ -232,7 +233,8 @@ Every compiler/API slice requires Groovy 3, 4, and 5 source coverage. Generated 
 - The `Builder` namespace makes method categories and projected signature positions discoverable without conflating them.
 - An annotation at each projected method, parameter, or result makes Builder exposure reviewable in source; ordinary
   unannotated methods remain Model-only.
-- Existing `@Mutator` source remains valid while new code converges on the canonical `@Builder.Method` spelling.
+- Existing `@Mutator` source remains valid and compiles to the canonical `@Builder.Method` marker while new code converges
+  on that spelling directly.
 - Bulk state-interface projection remains conditional until implementation evidence shows whether it earns a public
   interface in the current lane.
 - Exact generated Builder types flow through public contracts while `KlumBuilder<T>` stays narrow.

@@ -42,8 +42,8 @@ dynamic bridge. The design must close only annotated positions.
 
 | Module/seam | Planned responsibility |
 | --- | --- |
-| `klum-ast-annotations` | Public `Builder` namespace with nested `@Builder.Query`, `@Builder.Method`, `@Builder.Input`, and `@Builder.Result`; `@Builder.Method` and deprecated source-compatible `@Mutator` both declare `@WriteAccess(MANUAL)`; KlumCast validation bindings. |
-| `klum-ast` mutator/type-checking pipeline | Normalize both Builder-only spellings through `WriteAccessHelper` before validation and method movement; remove direct `@Mutator` classification branches; validate query purity and annotation combinations; clone/retarget selected method bodies; bind Builder-phase calls to exact twins; diagnose completed-Model tests and invalid projections. |
+| `klum-ast-annotations` | Public `Builder` namespace with nested `@Builder.Query`, `@Builder.Method`, `@Builder.Input`, and `@Builder.Result`; canonical `@Builder.Method` declares `@WriteAccess(MANUAL)`, while deprecated source-compatible `@Mutator` installs an early promotion transform; KlumCast validation bindings. |
+| `klum-ast` mutator/type-checking pipeline | Promote legacy `@Mutator` source to `@Builder.Method` during semantic analysis, then classify only the canonical manual category for method movement and downstream generation; validate query purity and annotation combinations; clone/retarget selected method bodies; bind Builder-phase calls to exact twins; diagnose completed-Model tests and invalid projections. |
 | `BuilderMethodProjection` | Reuse one recursive type projector and linked-twin mechanism for annotated inputs/results without broadening unannotated ADR 0004 inference. |
 | `GeneratedDslSupport` | Publish exact non-static projected methods on `Foo_DSL.Builder`; preserve inheritance, overloads, documentation, and IDE-mirror parity. |
 | `klum-ast-runtime` | Implement factory-token identity predicates and exact Builder cast without adding methods to `KlumBuilder<T>`. |
@@ -63,8 +63,9 @@ bridges, but must not add schema-bytecode references to `runtime.internal` packa
   remains Model-only; `@Builder.Input` and `@Builder.Result` modify projected signature positions but do not classify an
   instance method by themselves.
 - `@Mutator` remains source-compatible with its existing Builder-only behavior but is deprecated in favor of
-  `@Builder.Method`. Both annotations resolve through the existing manual `WriteAccess` seam to one internal Builder-only
-  category. Existing source is not forced to migrate in the same release.
+  `@Builder.Method`. Semantic analysis promotes the legacy spelling to the canonical annotation before DSL transformation,
+  so downstream compiler code has one manual `WriteAccess` category. Existing source is not forced to migrate in the same
+  release; newly compiled reflection metadata uses the canonical annotation.
 - Unmarked Model parameters/results retain their exact completed-state meaning. Existing schemas change neither generated
   surface nor runtime behavior until they opt in.
 - Bulk state-interface projection is not part of the initial public contract. It remains a mandatory post-slice decision,
@@ -83,25 +84,21 @@ bridges, but must not add schema-bytecode references to `runtime.internal` packa
 ### BQ-0 — Establish the Builder method vocabulary and legacy bridge (#689)
 
 **Work:** add the final, non-instantiable public `com.blackbuild.klum.ast.Builder` namespace class and its public nested
-`Method` marker. Mark `@Builder.Method` with `@WriteAccess(MANUAL)` and retain the same meta-annotation on deprecated
-`@Mutator`. Normalize both spellings through `WriteAccessHelper` before validation and method movement so the existing
-write-access mover remains the single implementation path. Generalize direct `@Mutator` checks, including explicit manual
-configurator diagnostics, to consume that canonical manual category. Reject `@Builder.Method` combined with `@Mutator` or
-with `@Builder.Query`, and retain ordinary unannotated instance methods exclusively on the Model.
-
-This compatibility contract must not depend on rewriting the source-visible `@Mutator` annotation into
-`@Builder.Method`. The implementation may attach private AST metadata after classification when useful, but annotation
-replacement, metadata shape, and helper names remain implementation details. Reserve the nested `Query`, `Input`, and
-`Result` names in the ADR contract, but implement their behavior only in their owning slices.
+`Method` marker and mark it with `@WriteAccess(MANUAL)`. Attach a semantic-analysis promotion transform to deprecated
+`@Mutator`; it rejects an explicitly combined declaration, removes the legacy annotation node, and adds
+`@Builder.Method` before the DSL transformation runs. Validation still consumes the shared manual `WriteAccess` category,
+while movement, configurator diagnostics, generated contracts, and annotation copying see only the canonical marker.
+Reserve the nested `Query`, `Input`, and `Result` names in the ADR contract, but implement their behavior only in their
+owning slices.
 
 **Acceptance:**
 
 - A method marked `@Builder.Method` is callable from Builder configuration/lifecycle code and is absent from the completed
   Model, with the same field retargeting and generated public signature as an equivalent legacy `@Mutator`.
-- Existing `@Mutator` schemas compile and behave unchanged apart from the documented deprecation signal; their generated
-  Builder API remains source and binary compatible.
-- Focused classification coverage proves that `@Builder.Method` and `@Mutator` both resolve to
-  `WriteAccess.Type.MANUAL` and reach the same validation, movement, field-retargeting, and generated-contract path.
+- Existing `@Mutator` schemas compile and behave unchanged apart from the documented deprecation signal and canonical
+  runtime annotation; their generated Builder API remains source and binary compatible.
+- Focused promotion coverage proves that `@Mutator` becomes `@Builder.Method` before movement, field retargeting,
+  generated-contract projection, and annotation copying, with no downstream compiler dependency on `Mutator`.
 - Applying both canonical and legacy markers, applying both `@Builder.Query` and `@Builder.Method`, or applying a
   Builder-only category outside a DSL Object produces a targeted diagnostic.
 - An ordinary unannotated instance method remains only on the Model and does not appear on the hidden Builder,
@@ -250,7 +247,7 @@ outcome; do not mix unrelated cleanup such as #503 into it.
 
 | Contract | Focused seam | Public/consumer evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| Method category and legacy bridge | New `BuilderMethodTest`; existing mutator/write-access tests | `@Builder.Method` and deprecated `@Mutator` emit equivalent `Foo_DSL.Builder` methods; neither remains on the Model | Groovy 3/4/5; canonical/legacy conflict and unannotated-method negatives |
+| Method category and legacy bridge | New `BuilderMethodTest`; existing mutator/write-access tests | Deprecated `@Mutator` source is promoted to `@Builder.Method` and emits the same `Foo_DSL.Builder` method; neither remains on the Model | Groovy 3/4/5; canonical reflection, canonical/legacy conflict, and unannotated-method negatives |
 | Pure query projection | New `BuilderQueryTest`; existing `ModelVerificationVisitor` tests | `GeneratedDslSupportSpec`, Java and `@CompileStatic` Groovy, IDE mirror | Groovy 3/4/5; `Query`/`Method` exclusion, inherited and precompiled fixtures |
 | Type predicate/narrowing | Runtime factory-provider test | Exact `Special_DSL.Builder<Special>` result in Java/Groovy | Sealed/inactive Builder and model-hierarchy cases |
 | Input projection | `BuilderMethodProjection` and method-category/type-checking tests | Classified instance method, static converter/helper, mirror signatures | facet-without-category/raw/wildcard/generic/opaque/collision negatives in all lanes |
@@ -265,7 +262,7 @@ contracts is deliberately scheduled but not implemented; any such test must stat
 
 `Advanced-Techniques.md` owns the positive 4.1 examples because these annotations are Schema Developer techniques rather
 than ordinary Model Writer syntax. `Builder-First-Migration.md` first shows the mechanical `@Mutator` to
-`@Builder.Method` replacement and states that legacy source remains accepted, then adds a diagnostic-to-replacement table
+`@Builder.Method` replacement and states that legacy source is promoted to the canonical runtime marker, then adds a diagnostic-to-replacement table
 for duplicated queries, invalid `instanceof`, dynamic Builder parameter bridges, and unattachable generic
 `KlumBuilder<T>` results.
 `CHANGES.md` records each capability only when its executable slice ships. `CONTEXT.md` gains the term **shared Builder
@@ -285,8 +282,9 @@ void normalizeHost() { host = host.toLowerCase() }
 ```
 
 Migration documentation must not imply that replacing `@Mutator` changes receiver state, visibility, generated signatures,
-or lifecycle timing. It should recommend the canonical spelling when a schema is next edited, without requiring a bulk
-rewrite before the compatibility alias is removed by a separately announced decision.
+or lifecycle timing. It should explain that compilation already emits the canonical `@Builder.Method` marker, recommend
+the canonical source spelling when a schema is next edited, and avoid requiring a bulk rewrite before the compatibility
+alias is removed by a separately announced decision.
 
 The documentary path should evolve this compact Groovy example:
 
@@ -332,7 +330,7 @@ creating an unrelated example vocabulary.
 | --- | --- |
 | Local purity checks miss mutation hidden in foreign non-DSL calls. | Document `@Builder.Query` as a Schema Developer assertion and reject locally visible construction/mutation; do not claim whole-program purity. |
 | The nested `Builder.Method` name is mistaken for the rejected enum design. | Specify `Query` and `Method` as separate zero-argument categories, keep `Input` and `Result` as position facets, reject mixed categories, and never add a `MethodType` member. |
-| `@Mutator` deprecation breaks existing schemas or creates two subtly different Builder-only paths. | Keep it source-compatible, classify both spellings through `WriteAccessHelper` as `MANUAL`, and route that category through one implementation; test equivalent emitted signatures and reject double annotation. Do not require a source-annotation rewrite. |
+| `@Mutator` deprecation breaks existing schemas or creates two subtly different Builder-only paths. | Keep legacy source compatible but promote its annotation node during semantic analysis; every later compiler stage sees only `@Builder.Method`. Test equivalent emitted signatures, canonical reflection metadata, and the double-annotation diagnostic. |
 | A speculative Builder State contract expands the current lane. | BQ-D1 treats a selector-only interface as the soft candidate and requires an evidence-led implement, waive, or later-issue decision; no annotation name or generated companion shape is reserved now. |
 | Projected overloads erase to one descriptor. | Reject the collision at Schema compilation and name both source signatures. |
 | A Model result is confused with owned composition. | Require `@Builder.Result`; validate active-session unsealed Builder identity; leave every unmarked result unchanged. |
