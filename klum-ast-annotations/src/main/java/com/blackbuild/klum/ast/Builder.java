@@ -32,18 +32,29 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a method as Builder-only construction behavior. Such methods change Builder state and can be called only
- * while a DSL Object is being configured by a factory, Template, or lifecycle callback. They are moved to the generated
- * Builder and are not exposed on the completed DSL Object.
+ * Namespace for annotations that describe explicit Builder-only schema behavior.
  *
- * @deprecated since 4.1; use {@link Builder.Method}. Replacing this annotation changes only the spelling: receiver state,
- * visibility, generated signatures, and lifecycle timing remain unchanged.
+ * <p>This type is not an annotation and is unrelated to the generated {@code Foo_DSL.Builder} interface. It only groups
+ * schema vocabulary whose meaning is specific to construction-time Builders.</p>
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@KlumCastValidated
-@WriteAccess(WriteAccess.Type.MANUAL)
-@Documented
-@Deprecated(since = "4.1")
-public @interface Mutator {
+public final class Builder {
+
+    private Builder() {
+        throw new AssertionError("Builder is an annotation namespace and cannot be instantiated");
+    }
+
+    /**
+     * Marks a method as Builder-only construction behavior.
+     *
+     * <p>The method is moved to the generated Builder, can change Builder state, and is absent from the completed DSL
+     * Object. This is the canonical replacement for {@link Mutator}; both spellings have identical behavior during the
+     * 4.1 migration window and must not be combined on one method.</p>
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @WriteAccess(WriteAccess.Type.MANUAL)
+    @Documented
+    public @interface Method {
+    }
 }

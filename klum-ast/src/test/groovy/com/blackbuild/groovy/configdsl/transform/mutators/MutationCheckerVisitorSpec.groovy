@@ -23,8 +23,12 @@
  */
 package com.blackbuild.klum.ast.mutators
 
+import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.ModelVerificationVisitor
+import org.codehaus.groovy.ast.AnnotationNode
+import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.ast.Parameter
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.control.CompilePhase
 import org.codehaus.groovy.control.ErrorCollector
@@ -83,12 +87,13 @@ class MutationCheckerVisitorSpec extends Specification {
             class Bla {
               String name
             
-              @Mutator
               def doIt() {
                 this.name = "blub"
               }
             }
 '''
+        clazz.getDeclaredMethod('doIt', Parameter.EMPTY_ARRAY)
+                .addAnnotation(new AnnotationNode(ClassHelper.make(Builder.Method)))
 
         when:
         doVisit()

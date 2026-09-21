@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.*;
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.runtime.KlumKeyedModelObject;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
@@ -866,7 +867,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private boolean isExplicitMutator(MethodNode method) {
-        return !method.getAnnotations(make(Mutator.class)).isEmpty();
+        return WriteAccessHelper.isBuilderMethod(method);
     }
 
     private void diagnoseNonSetterConfiguratorOverride(MethodNode method, FieldNode field, FieldNode builderField) {
