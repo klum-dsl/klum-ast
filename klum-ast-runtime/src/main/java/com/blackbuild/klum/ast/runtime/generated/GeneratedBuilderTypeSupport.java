@@ -51,7 +51,7 @@ public final class GeneratedBuilderTypeSupport {
     }
 
     /** Returns the matching Builder unchanged or reports why the value cannot be narrowed. */
-    public static <B> B $klum$asBuilder(Class<?> selectedModelType, Object value) {
+    public static <B> B $klum$narrowBuilder(Class<?> selectedModelType, Object value) {
         if ($klum$isBuilder(selectedModelType, value))
             return (B) value;
 
@@ -69,7 +69,7 @@ public final class GeneratedBuilderTypeSupport {
 
         if (value instanceof KlumModelObject)
             return new KlumModelException("Cannot narrow completed Model " + value.getClass().getName()
-                    + " to the Builder for " + selectedName + ": asBuilder accepts only an existing Builder");
+                    + " to the Builder for " + selectedName + ": narrowBuilder accepts only an existing Builder");
 
         return new KlumModelException("Cannot narrow " + value.getClass().getName() + " to the Builder for "
                 + selectedName + ": the value is neither a DSL Object nor a Builder");

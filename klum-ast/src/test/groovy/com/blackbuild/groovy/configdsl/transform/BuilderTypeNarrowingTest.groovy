@@ -52,7 +52,7 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
                 void inspectRegistry() {
                     assert Registry.Create.isModelOrBuilder(registry)
                     assert SpecialRegistry.Create.isBuilder(registry)
-                    def special = SpecialRegistry.Create.asBuilder(registry)
+                    def special = SpecialRegistry.Create.narrowBuilder(registry)
                     observedUrl = special.toUrl()
                 }
             }
@@ -84,7 +84,7 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
 
                 @PostTree
                 void inspectRegistry() {
-                    def special = SpecialRegistry.Create.asBuilder(registry)
+                    def special = SpecialRegistry.Create.narrowBuilder(registry)
                     observedUrl = special.toUrl()
                     try {
                         special.host('changed.example.test')
@@ -123,8 +123,8 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
         Registry.Create.isBuilder(capturedBuilder)
         SpecialRegistry.Create.isBuilder(capturedBuilder)
         !OrdinaryRegistry.Create.isBuilder(capturedBuilder)
-        Registry.Create.asBuilder(capturedBuilder).is(capturedBuilder)
-        SpecialRegistry.Create.asBuilder(capturedBuilder).is(capturedBuilder)
+        Registry.Create.narrowBuilder(capturedBuilder).is(capturedBuilder)
+        SpecialRegistry.Create.narrowBuilder(capturedBuilder).is(capturedBuilder)
 
         and: 'null and foreign values never match'
         !Registry.Create.isModelOrBuilder(null)
@@ -163,7 +163,7 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
         }
 
         when: 'the captured Builder is narrowed for read-only use'
-        Object narrowed = SpecialRegistry.Create.asBuilder(capturedBuilder)
+        Object narrowed = SpecialRegistry.Create.narrowBuilder(capturedBuilder)
 
         then:
         SpecialRegistry.Create.isBuilder(capturedBuilder)
@@ -193,7 +193,7 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
 
         then:
         SpecialRegistry.Create.isBuilder(linkWrapper)
-        SpecialRegistry.Create.asBuilder(linkWrapper).is(linkWrapper)
+        SpecialRegistry.Create.narrowBuilder(linkWrapper).is(linkWrapper)
         deployment.registry.is(completedSpecial)
         deployment.observedUrl == 'https://packages.example.test'
         deployment.mutationFailure.contains('sealed Builder')
@@ -210,15 +210,15 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
         }
 
         when: 'a completed Model is supplied'
-        SpecialRegistry.Create.asBuilder(special)
+        SpecialRegistry.Create.narrowBuilder(special)
 
         then:
         KlumModelException completed = thrown()
         completed.message.contains('Cannot narrow completed Model')
-        completed.message.contains('asBuilder accepts only an existing Builder')
+        completed.message.contains('narrowBuilder accepts only an existing Builder')
 
         when: 'a Builder from a sibling Model type is supplied'
-        SpecialRegistry.Create.asBuilder(ordinaryBuilder)
+        SpecialRegistry.Create.narrowBuilder(ordinaryBuilder)
 
         then:
         KlumModelException mismatch = thrown()
@@ -226,14 +226,14 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
         mismatch.message.contains('declared Model types are not assignable')
 
         when: 'null is supplied'
-        SpecialRegistry.Create.asBuilder(null)
+        SpecialRegistry.Create.narrowBuilder(null)
 
         then:
         KlumModelException nullValue = thrown()
         nullValue.message.contains('Cannot narrow null to the Builder for predicates.SpecialRegistry')
 
         when: 'a foreign value is supplied'
-        SpecialRegistry.Create.asBuilder('registry')
+        SpecialRegistry.Create.narrowBuilder('registry')
 
         then:
         KlumModelException foreign = thrown()
@@ -250,7 +250,7 @@ class BuilderTypeNarrowingTest extends AbstractDSLSpec {
             @CompileStatic
             final class StaticBuilderNarrowingConsumer {
                 static SpecialRegistry_DSL.Builder<SpecialRegistry> narrow(Object value) {
-                    SpecialRegistry.Create.asBuilder(value)
+                    SpecialRegistry.Create.narrowBuilder(value)
                 }
             }
         ''', 'predicates/StaticBuilderNarrowingConsumer.groovy'

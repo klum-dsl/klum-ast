@@ -148,12 +148,13 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         when: 'the generated Factory public operations are inspected'
         Method combinedPredicate = factory.getMethod('isModelOrBuilder', Object)
         Method builderPredicate = factory.getMethod('isBuilder', Object)
-        Method narrowing = factory.getMethod('asBuilder', Object)
+        Method narrowing = factory.getMethod('narrowBuilder', Object)
 
         then: 'the Factory inherits the public runtime capability without implementation types'
         combinedPredicate.returnType == Boolean.TYPE
         builderPredicate.returnType == Boolean.TYPE
         narrowing.genericReturnType.typeName == 'B'
+        !factory.methods*.name.contains('asBuilder')
 
         when: 'Java assigns the cast directly to the exact generated Builder contract'
         compileJavaConsumer('''
@@ -164,7 +165,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                     if (!Foo.Create.isBuilder(value)) {
                         throw new IllegalArgumentException("not a Foo Builder");
                     }
-                    return Foo.Create.asBuilder(value);
+                    return Foo.Create.narrowBuilder(value);
                 }
             }
         ''', 'sample/JavaBuilderNarrowingConsumer.java')
@@ -178,7 +179,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             @CompileStatic
             final class StaticBuilderNarrowingConsumer {
                 static Foo_DSL.Builder<Foo> narrow(Object value) {
-                    Foo.Create.asBuilder(value)
+                    Foo.Create.narrowBuilder(value)
                 }
             }
         ''', 'sample/StaticBuilderNarrowingConsumer.groovy')

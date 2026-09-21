@@ -117,7 +117,7 @@ class SharedCapabilitiesDocumentaryTest extends AbstractDSLSpec {
                 @PostTree
                 void captureSpecialRegistryUrl() {
                     if (SpecialRegistry.Create.isBuilder(registry)) {
-                        def special = SpecialRegistry.Create.asBuilder(registry)
+                        def special = SpecialRegistry.Create.narrowBuilder(registry)
                         configuredRegistryUrl = special.toUrl()
                     }
                 }

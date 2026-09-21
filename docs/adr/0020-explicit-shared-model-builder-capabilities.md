@@ -2,8 +2,8 @@
 
 Date: 2026-09-20
 
-Amended: 2026-09-21 (canonical nested `Builder` vocabulary, `@Mutator` migration, and projected-query state after
-Materialization)
+Amended: 2026-09-21 (canonical nested `Builder` vocabulary, `@Mutator` migration, `narrowBuilder` naming, and
+projected-query state after Materialization)
 
 Status: Accepted
 
@@ -188,20 +188,24 @@ Extend the generated factory capability `KlumFactory.BuilderFactoryProvider<T, B
 ```java
 boolean isModelOrBuilder(Object value);
 boolean isBuilder(Object value);
-B asBuilder(Object value);
+B narrowBuilder(Object value);
 ```
 
 `isModelOrBuilder` tests the selected Model type against either a completed DSL Object or a Builder's declared Model type.
-`isBuilder` is the narrower predicate for Builder values. `asBuilder` returns the same Builder identity as the exact public
+`isBuilder` is the narrower predicate for Builder values. `narrowBuilder` returns the same Builder identity as the exact public
 `B` type and throws a targeted `KlumModelException` for a completed Model, a mismatched Builder, or a non-DSL value. It
 does not create, unseal, adopt, or materialize anything.
+
+`narrowBuilder(value)` is deliberately distinct from the established `AsBuilder()` factory entry point. `AsBuilder()`
+enters the active-session Builder-producing factory API; `narrowBuilder(value)` only type-narrows an existing matching
+Builder while preserving its identity and lifecycle state.
 
 This makes subtype-sensitive Builder code explicit and statically narrowable without exposing Builder implementation
 classes:
 
 ```groovy
 if (SpecialRegistry.Create.isBuilder(registry)) {
-    def special = SpecialRegistry.Create.asBuilder(registry)
+    def special = SpecialRegistry.Create.narrowBuilder(registry)
     assert special.toUrl().startsWith('https://')
 }
 ```

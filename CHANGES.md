@@ -13,7 +13,7 @@
   projections, while unannotated Model methods remain absent from Builder and IDE-mirror surfaces
   ([#651](https://github.com/klum-dsl/klum-ast/issues/651)).
 
-- Added `isModelOrBuilder`, `isBuilder`, and `asBuilder` to generated `Foo.Create` factory tokens. Lifecycle code can test
+- Added `isModelOrBuilder`, `isBuilder`, and `narrowBuilder` to generated `Foo.Create` factory tokens. Lifecycle code can test
   ordinary Model-hierarchy identity in either state and narrow a matching Builder to its exact public generated contract
   without exposing implementation types or changing identity, ownership, sealing, or Construction-session state
   ([#648](https://github.com/klum-dsl/klum-ast/issues/648)).

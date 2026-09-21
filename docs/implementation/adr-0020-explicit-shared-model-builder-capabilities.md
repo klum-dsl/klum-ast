@@ -137,8 +137,8 @@ driving tests in the same commit.
 ### BQ-2 — Add explicit Model-or-Builder identity and exact narrowing (#648)
 
 **Work:** extend `BuilderFactoryProvider<T, B>` and generated Factory implementations with `isModelOrBuilder`, `isBuilder`,
-and `asBuilder`. Compare completed values with `getModelType().isInstance`; compare Builder values through the existing
-internal declared-Model-type hook behind an approved runtime/generated bridge. `asBuilder` returns the same identity as `B`
+and `narrowBuilder`. Compare completed values with `getModelType().isInstance`; compare Builder values through the existing
+internal declared-Model-type hook behind an approved runtime/generated bridge. `narrowBuilder` returns the same identity as `B`
 and performs no lifecycle transition.
 
 **Acceptance:**
@@ -146,7 +146,7 @@ and performs no lifecycle transition.
 - Base/subtype completed Models and Builders follow ordinary assignability rules.
 - `isModelOrBuilder` accepts both states; `isBuilder` accepts only Builders; null, foreign values, and mismatched model
   hierarchies return false.
-- `asBuilder` gives Java and `@CompileStatic` Groovy the exact subtype Builder contract and rejects a completed Model,
+- `narrowBuilder` gives Java and `@CompileStatic` Groovy the exact subtype Builder contract and rejects a completed Model,
   mismatch, null, or foreign value with a stable `KlumModelException` diagnostic.
 - A sealed Builder wrapper can be narrowed for read-only projected queries; mutation still fails through its existing
   guard. A captured inactive Builder receives the same identity result and retains existing lifecycle failures.
@@ -298,7 +298,7 @@ class Deployment {
     @PostTree
     void normalizeRegistry() {
         if (SpecialRegistry.Create.isBuilder(registry)) {
-            def special = SpecialRegistry.Create.asBuilder(registry)
+            def special = SpecialRegistry.Create.narrowBuilder(registry)
             assert special.toUrl().startsWith('https://')
         }
     }

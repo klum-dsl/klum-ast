@@ -106,7 +106,7 @@ import com.blackbuild.klum.ast.Builder
     @PostTree
     void captureSpecialRegistryUrl() {
         if (SpecialRegistry.Create.isBuilder(registry)) {
-            def special = SpecialRegistry.Create.asBuilder(registry)
+            def special = SpecialRegistry.Create.narrowBuilder(registry)
             configuredRegistryUrl = special.toUrl()
         }
     }
@@ -139,8 +139,12 @@ Every generated `Foo.Create` factory token exposes three related operations:
 
 - `isModelOrBuilder(value)` accepts a completed `Foo` Model or a Builder whose declared Model type is `Foo` or a subtype.
 - `isBuilder(value)` accepts only the matching Builder state.
-- `asBuilder(value)` returns that same value as the factory's exact generated `Foo_DSL.Builder<Foo>` contract. It throws
+- `narrowBuilder(value)` returns that same value as the factory's exact generated `Foo_DSL.Builder<Foo>` contract. It throws
   `KlumModelException` for a completed Model, mismatched Builder, `null`, or a non-DSL value.
+
+Do not confuse `narrowBuilder(value)` with `Foo.Create.AsBuilder()`. `AsBuilder()` enters the active-session
+Builder-producing factory API; `narrowBuilder(value)` only type-narrows an existing matching Builder and preserves its
+identity and lifecycle state.
 
 These operations follow ordinary subtype assignability and are deterministic outside an active Construction session.
 They do not create, adopt, unseal, or materialize a Builder. A narrowed sealed or inactive Builder therefore retains its

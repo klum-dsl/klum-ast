@@ -108,10 +108,13 @@ public class KlumFactory<T> {
         /**
          * Narrows {@code value} to this factory's exact public Builder type without changing its identity or lifecycle.
          *
+         * <p>Unlike {@link #AsBuilder()}, this operation accepts only an existing matching Builder and never enters the
+         * Builder-producing factory API.</p>
+         *
          * @throws KlumModelException if {@code value} is not a matching Builder
          */
-        default B asBuilder(Object value) {
-            return GeneratedBuilderTypeSupport.$klum$asBuilder(getModelType(), value);
+        default B narrowBuilder(Object value) {
+            return GeneratedBuilderTypeSupport.$klum$narrowBuilder(getModelType(), value);
         }
 
         /** Returns the active-session Builder factory for the selected DSL Object type. */
