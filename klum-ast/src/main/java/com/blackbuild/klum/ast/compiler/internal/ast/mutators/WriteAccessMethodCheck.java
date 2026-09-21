@@ -31,6 +31,7 @@ import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.MethodNode;
 
 import java.util.List;
+import java.util.Optional;
 
 public class WriteAccessMethodCheck implements Check {
     @Override
@@ -41,23 +42,25 @@ public class WriteAccessMethodCheck implements Check {
                 .orElseThrow(() -> new IllegalStateException("WriteAccessMethodCheck requires a WriteAccess control annotation"))
                 .value();
 
+        return findViolation(method, writeAccessType)
+                .map(message -> List.of(new Diagnostic(getClass().getName(), message, context.getValidatedAnnotation())))
+                .orElseGet(List::of);
+    }
+
+    public static Optional<String> findViolation(MethodNode method, WriteAccess.Type writeAccessType) {
         if (writeAccessType == WriteAccess.Type.MANUAL && !DslAstHelper.isDSLObject(method.getDeclaringClass()))
-            return List.of(new Diagnostic(
-                    getClass().getName(),
-                    "Builder-only methods can only be declared by a @DSL class",
-                    context.getValidatedAnnotation()
-            ));
+            return Optional.of("Builder-only methods can only be declared by a @DSL class");
 
         if (method.isPrivate())
-            return List.of(new Diagnostic(getClass().getName(), "Lifecycle methods must not be private!", context.getValidatedAnnotation()));
+            return Optional.of("Lifecycle methods must not be private!");
 
         if (writeAccessType == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
-            return List.of(new Diagnostic(getClass().getName(), String.format(
-                "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
-                method.getDeclaringClass().getName(),
-                method.getName()
-            ), context.getValidatedAnnotation()));
+            return Optional.of(String.format(
+                    "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
+                    method.getDeclaringClass().getName(),
+                    method.getName()
+            ));
 
-        return List.of();
+        return Optional.empty();
     }
 }

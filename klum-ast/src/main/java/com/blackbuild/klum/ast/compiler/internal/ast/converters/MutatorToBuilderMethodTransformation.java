@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.compiler.internal.ast.converters;
 
 import com.blackbuild.klum.ast.Builder;
+import com.blackbuild.klum.ast.WriteAccess;
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodCheck;
 import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -63,5 +65,8 @@ public class MutatorToBuilderMethodTransformation extends AbstractASTTransformat
         builderMethodAnnotation.setSourcePosition(mutatorAnnotation);
         annotatedMethod.getAnnotations().remove(mutatorAnnotation);
         annotatedMethod.addAnnotation(builderMethodAnnotation);
+
+        WriteAccessMethodCheck.findViolation(annotatedMethod, WriteAccess.Type.MANUAL)
+                .ifPresent(message -> addError(message, builderMethodAnnotation));
     }
 }

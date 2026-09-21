@@ -50,12 +50,15 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.block
 class BuilderMethodTest extends AbstractDSLSpec {
 
     def "Builder is a non-instantiable namespace containing only the runtime Method marker"() {
-        expect:
+        when:
+        def namespaceConstructor = Builder.declaredConstructors.first()
+
+        then:
         Modifier.isPublic(Builder.modifiers)
         Modifier.isFinal(Builder.modifiers)
         !Builder.annotation
         Builder.declaredConstructors.size() == 1
-        Modifier.isPrivate(Builder.declaredConstructors.first().modifiers)
+        Modifier.isPrivate(namespaceConstructor.modifiers)
         Builder.declaredClasses.toList() == [Builder.Method]
 
         and:
@@ -70,15 +73,20 @@ class BuilderMethodTest extends AbstractDSLSpec {
         given:
         MethodNode canonical = methodAnnotatedWith(Builder.Method)
 
-        expect:
-        WriteAccessHelper.getWriteAccessTypeForMethodOrField(canonical).get() == WriteAccess.Type.MANUAL
-        WriteAccessHelper.isManualWriteAccess(canonical)
+        when:
+        def writeAccessType = WriteAccessHelper.getWriteAccessTypeForMethodOrField(canonical)
+        def promotion = Mutator.getAnnotation(GroovyASTTransformationClass)
+
+        then:
+        writeAccessType.get() == WriteAccess.Type.MANUAL
         WriteAccessHelper.isBuilderMethod(canonical)
 
         and: 'the compatibility alias carries its deprecation promotion hook'
         Mutator.getAnnotation(Deprecated).since() == '4.1'
         !Mutator.getAnnotation(Deprecated).forRemoval()
-        Mutator.getAnnotation(GroovyASTTransformationClass).value().toList() == [
+        !Mutator.getAnnotation(WriteAccess)
+        promotion
+        promotion.value().toList() == [
                 'com.blackbuild.klum.ast.compiler.internal.ast.converters.MutatorToBuilderMethodTransformation'
         ]
     }
@@ -112,13 +120,18 @@ class BuilderMethodTest extends AbstractDSLSpec {
             }
         ''')
         Class<?> publicBuilder = getClass('vocabulary.Registry_DSL$Builder')
-        instance = clazz.Create.With {
+        def canonicalInstance = clazz.Create.With {
             host 'EXAMPLE.TEST'
             normalizeHost()
         }
+        def legacyInstance = clazz.Create.With {
+            host 'LEGACY.TEST'
+            legacyNormalizeHost()
+        }
 
         then: 'both Builder-only spellings have the same runtime and public API shape'
-        instance.host == 'example.test'
+        canonicalInstance.host == 'example.test'
+        legacyInstance.host == 'legacy.test'
         builderClass.getDeclaredMethod('normalizeHost').returnType == Void.TYPE
         builderClass.getDeclaredMethod('legacyNormalizeHost').returnType == Void.TYPE
         publicBuilder.getMethod('normalizeHost').returnType == Void.TYPE
@@ -229,6 +242,21 @@ class BuilderMethodTest extends AbstractDSLSpec {
         then:
         def error = thrown(MultipleCompilationErrorsException)
         error.message.contains('Builder-only methods can only be declared by a @DSL class')
+    }
+
+    def "legacy Mutator uses canonical Builder Method visibility validation after promotion"() {
+        when:
+        createClass('''
+            @DSL
+            class Registry {
+                @Mutator
+                private void normalizeHost() { }
+            }
+        ''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('Lifecycle methods must not be private!')
     }
 
     def "the IDE mirror contains only explicitly selected Builder methods"() {

@@ -53,12 +53,6 @@ public class WriteAccessHelper {
                 .findAny();
     }
 
-    public static boolean isManualWriteAccess(AnnotatedNode fieldOrMethod) {
-        return getWriteAccessTypeForMethodOrField(fieldOrMethod)
-                .filter(type -> type == WriteAccess.Type.MANUAL)
-                .isPresent();
-    }
-
     public static boolean isBuilderMethod(AnnotatedNode method) {
         return method != null && !method.getAnnotations(BUILDER_METHOD_ANNOTATION).isEmpty();
     }

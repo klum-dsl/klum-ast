@@ -23,7 +23,6 @@
  */
 package com.blackbuild.klum.ast;
 
-import com.blackbuild.klum.cast.KlumCastValidated;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.Documented;
@@ -44,8 +43,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.ast.converters.MutatorToBuilderMethodTransformation")
-@KlumCastValidated
-@WriteAccess(WriteAccess.Type.MANUAL)
 @Documented
 @Deprecated(since = "4.1")
 public @interface Mutator {
