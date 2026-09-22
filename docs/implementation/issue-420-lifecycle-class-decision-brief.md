@@ -2,40 +2,33 @@
 
 Date: 2026-09-22
 
-Status: **Needs maintainer decision — do not implement yet**
+Status: **Provisional design direction — validate before ADR**
 
 Issue: [#420 — Lifecycle classes](https://github.com/klum-dsl/klum-ast/issues/420)
 
-## Decision required
+## Provisional design direction
 
-Choose the source contract for a lifecycle class whose callback runs before
-`INSTANTIATE`:
+The maintainer's preferred source contract is a non-static inner lifecycle
+class, structurally relocated into the generated Builder before type checking.
+It can have several public, parameterless callback methods; its ordinary
+unqualified field and method access then resolves through the Builder outer
+class. This keeps IDE completion and avoids a one-method callback wrapper.
 
-1. **Explicit state-typed callback (recommended).** A Builder-phase lifecycle
-   class is a separate callback component. Its entry method receives the exact
-   generated `Foo_DSL.Builder<Foo>` receiver (or an equally explicit generated
-   Builder contract), so its source has no implicit `Foo.this` access. The
-   compiler validates the state-typed receiver and the runtime invokes the
-   component only while that Builder is in the active construction session.
-2. **Projected lexical-inner class.** A source non-static inner class keeps
-   direct model-member syntax, but the compiler creates and maintains a distinct
-   Builder-side counterpart, including every lexical outer reference, field,
-   method, inheritance, constructor, and diagnostic projection needed to make
-   that syntax truthful before materialization.
+This is not a general Model-to-Builder delegation. The source class disappears
+from the completed Model and becomes a Builder-private lifecycle class; its
+callbacks receive the Builder only through their lexical outer relationship.
+The compiler must reject a reference for which the generated Builder has no
+truthful counterpart, especially an unannotated Model-only instance method.
 
-The first option preserves the Builder-first state boundary with a small,
-reviewable public contract. The second is a substantial compiler feature and a
-new source-compatibility promise. Neither the original issue nor its #415
-provenance chooses between them. Implementing the current shorthand
-`@PostTree class Checks { void normalize() { host = ... } }` would silently
-choose option 2, while invoking that class with a completed Model would silently
-violate option 1 and Builder-first immutability.
+The original issue and #415 provenance did not select this contract. It is a
+new Builder-first decision and must be captured in an ADR before implementation.
+Invoking the source class with a completed Model would still violate
+Builder-first immutability.
 
-This is the only decision needed before an ADR can fix the remaining spelling,
-method ordering, and tracer slices. The recommended option should also decide
-whether the component is static/no-outer-state and whether one named entry point
-or several ordered public entry methods form the callback protocol; those are
-part of the same public receiver contract, not runtime details.
+The ADR must fix class visibility, callback ordering/inheritance, permitted
+constructors and helper members, and diagnostics. `this` remains the lifecycle
+class instance; explicit `Foo.this` has no Builder-safe meaning and must fail
+with a targeted diagnostic.
 
 ## Re-established state contract
 
@@ -71,12 +64,12 @@ its lexical outer instance, so moving only that method cannot make `host`,
 the Builder. Passing a completed Model instead would expose a state that does
 not yet exist and could not safely mutate it.
 
-Consequently, a lifecycle-class method cannot be mechanically moved or
-delegated. Each callback family needs a distinct receiver contract: Builder
-components before 40 and Model validation components after 40. This also rules
-out a generic `KlumBuilder` callback API: it deliberately has no
-schema-specific member surface, and a generic Model-to-Builder delegation would
-repeat the rejected blanket projection model.
+Consequently, the inner class itself—not only an individual method—must be
+relocated under the Builder before its members are resolved. Each callback family
+still needs a distinct receiver contract: Builder components before 40 and Model
+validation components after 40. This rules out a generic `KlumBuilder` callback
+API: it deliberately has no schema-specific member surface, and a generic
+Model-to-Builder delegation would repeat the rejected blanket projection model.
 
 ## Consequences that the chosen contract must preserve
 
@@ -130,11 +123,28 @@ expand callback behavior to custom phase actions.
   current receiver mechanisms; `WriteAccessMethodsMover` demonstrates that a
   lifecycle method is currently a Builder projection, not a Model callback.
 
+### Throwaway relocation probe (2026-09-22)
+
+`/private/tmp/lifecycle-inner-class-relocation-poc.groovy` is a disposable,
+one-command Groovy probe. Under `@CompileStatic`, it transferred the original
+`TreeRules` `MethodNode`s into a newly constructed non-static
+`DeploymentBuilder$TreeRules` `InnerClassNode`, without manual field or method
+reference rewriting. The relocated class compiled, received a synthetic
+`DeploymentBuilder` outer constructor parameter, invoked the Builder's query
+and Builder-only method, and changed Builder state as expected.
+
+This establishes the critical language/AST feasibility, not feature readiness.
+`InnerClassNode` has no mutable outer-class setter, so the implementation must
+construct a Builder-owned node and transfer or clone its members before variable
+scope/type checking. The probe used the locally installed Groovy 5.1.2 runtime;
+the real tracer must prove the repository's Groovy 3, 4, and 5 lanes, generated
+DSL/mirror behavior, runtime callback discovery, and rejection diagnostics.
+
 ## Handoff condition
 
-After the maintainer selects one receiver contract, draft a dedicated ADR and
-an implementation plan. The ADR must state the exact annotation/type grammar,
-entry-method and inheritance ordering, diagnostics, generated API/mirror
+Draft a dedicated ADR and implementation plan after the probe's real-transform
+tracer confirms the same result. The ADR must state the exact annotation/type
+grammar, callback ordering/inheritance, diagnostics, generated API/mirror
 visibility, and Model/Builder boundary. The plan can then split the work into
 independently testable compiler, runtime, documentation, and three-Groovy-lane
 tracer slices.
