@@ -34,9 +34,10 @@ Layer 3 is not a package layout, Gradle convention, Java-module boundary, or org
 `schema`, and `model` projects can enforce the dependencies, but colocated sources can preserve the same architecture.
 There is no `@Layer3` marker.
 
-Abstract classes are the supported Domain API form. DSL interfaces currently cover only a subset of Schema features and
-are not a Layer 3 API alternative. See [#753](https://github.com/klum-dsl/klum-ast/issues/753) for the separate interface
-projection question.
+Abstract DSL base classes are the supported Domain API form. DSL interfaces currently cover only a subset of Schema
+features and are not a Layer 3 API alternative: a `@Cluster` property or getter declared by a `@DSL` interface is rejected
+during Schema compilation. Move that member to an abstract DSL base class until first-class interface projection support is
+designed. See [#753](https://github.com/klum-dsl/klum-ast/issues/753) for the separate interface projection question.
 
 ## Discovery order is not architecture
 

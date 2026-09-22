@@ -70,6 +70,10 @@
 
 ## Bugfixes
 
+- `@Cluster` properties and getters declared by `@DSL` interfaces now fail during Schema compilation with guidance to use
+  an abstract DSL base class. Supported class and abstract-class Cluster projections are unchanged; first-class interface
+  projection remains future work ([#786](https://github.com/klum-dsl/klum-ast/issues/786)).
+
 - Qualified [AnnoDocimal 1.0.1](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.1) for Schema projects.
   Its default Javadoc-stub task now resolves public nested types from the compile classpath, and source projection plus
   Javadoc generation retain semantic block tags after legacy unmatched paragraphs. IDEA-only source mirrors remain outside
