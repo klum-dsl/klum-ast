@@ -2,11 +2,11 @@
 
 Date: 2026-09-22
 
-Status: **Provisional design direction — validate before ADR**
+Status: Superseded by [ADR 0021](../adr/0021-builder-owned-lifecycle-classes.md)
 
 Issue: [#420 — Lifecycle classes](https://github.com/klum-dsl/klum-ast/issues/420)
 
-## Provisional design direction
+## Recorded design direction
 
 The maintainer's preferred source contract is a non-static inner lifecycle
 class, structurally relocated into the generated Builder before type checking.
@@ -20,10 +20,9 @@ callbacks receive the Builder only through their lexical outer relationship.
 The compiler must reject a reference for which the generated Builder has no
 truthful counterpart, especially an unannotated Model-only instance method.
 
-The original issue and #415 provenance did not select this contract. It is a
-new Builder-first decision and must be captured in an ADR before implementation.
-Invoking the source class with a completed Model would still violate
-Builder-first immutability.
+The original issue and #415 provenance did not select this contract. ADR 0021
+now records it as the accepted Builder-first decision. Invoking the source class
+with a completed Model would still violate Builder-first immutability.
 
 The ADR must fix class visibility, callback ordering/inheritance, permitted
 constructors and helper members, and diagnostics. `this` remains the lifecycle
@@ -140,11 +139,10 @@ scope/type checking. The probe used the locally installed Groovy 5.1.2 runtime;
 the real tracer must prove the repository's Groovy 3, 4, and 5 lanes, generated
 DSL/mirror behavior, runtime callback discovery, and rejection diagnostics.
 
-## Handoff condition
+## Next action
 
-Draft a dedicated ADR and implementation plan after the probe's real-transform
-tracer confirms the same result. The ADR must state the exact annotation/type
-grammar, callback ordering/inheritance, diagnostics, generated API/mirror
-visibility, and Model/Builder boundary. The plan can then split the work into
-independently testable compiler, runtime, documentation, and three-Groovy-lane
-tracer slices.
+Execute LC-1 from ADR 0021: add the real-transform `@PostTree` tracer that
+relocates a direct inner class into the Builder, emits one ordered Builder
+runner, proves transferred instance state across multiple callbacks, and rejects
+invalid class shapes. Keep inheritance rejected until LC-4 proves or records its
+feasibility.
