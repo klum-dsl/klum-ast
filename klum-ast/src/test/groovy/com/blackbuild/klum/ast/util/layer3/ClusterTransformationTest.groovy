@@ -32,6 +32,95 @@ import java.lang.reflect.Modifier
 
 class ClusterTransformationTest extends AbstractDSLSpec {
 
+    @Issue("786")
+    def "rejects a Cluster property declared by a DSL interface"() {
+        when:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.Cluster
+
+            @DSL
+            interface EnvironmentApi {
+                @Cluster Map<String, Application> applications
+            }
+
+            @DSL
+            abstract class Application {
+                @Key String name
+            }
+        '''
+
+        then:
+        MultipleCompilationErrorsException exception = thrown()
+        exception.message.contains('@Cluster is not supported on DSL interface member EnvironmentApi.applications; use an abstract DSL base class for the Layer 3 Domain API.')
+    }
+
+    @Issue("786")
+    def "rejects a Cluster getter declared by a DSL interface"() {
+        when:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.Cluster
+
+            @DSL
+            interface EnvironmentApi {
+                @Cluster Map<String, Application> getServices()
+            }
+
+            @DSL
+            abstract class Application {
+                @Key String name
+            }
+        '''
+
+        then:
+        MultipleCompilationErrorsException exception = thrown()
+        exception.message.contains('@Cluster is not supported on DSL interface member EnvironmentApi.getServices(); use an abstract DSL base class for the Layer 3 Domain API.')
+    }
+
+    @Issue("786")
+    def "continues to support Cluster on DSL classes and abstract DSL base classes"() {
+        when:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.Cluster
+
+            @DSL
+            abstract class EnvironmentApi {
+                @Cluster abstract Map<String, Application> getApplications()
+            }
+
+            @DSL
+            abstract class Application {
+                @Key String name
+            }
+
+            @DSL
+            class CustomerEnvironment extends EnvironmentApi {
+                Application billing
+            }
+
+            @DSL
+            class DirectEnvironment {
+                @Cluster Map<String, Application> applications
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("786")
+    def "continues to allow unrelated DSL interface methods"() {
+        when:
+        createSecondaryClass '''
+            @DSL
+            interface EnvironmentApi {
+                String getName()
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     def "Cluster annotation on Map resolves correctly"() {
         given:
         createClass '''
