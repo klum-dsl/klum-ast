@@ -71,21 +71,24 @@ is emitted.
 Commit boundary: `Validate Builder-only lifecycle class references` with the
 positive and negative compiler fixtures.
 
-### LC-3 — Generalize to eligible Builder lifecycle annotations
+### LC-3 — Preserve annotation-specific scope
 
-Apply the same class contract to `@PostCreate`, `@PostApply`, `@AutoCreate`,
-`@AutoLink`, and `@Default`. Preserve each phase's existing Builder traversal,
-creation order, ownership, and deferred-action guards. Keep one class bound to
-one annotation/phase; reject mixed phase annotations rather than guessing.
+Do not generalize the `@PostTree` class contract. `@Default`, `@AutoCreate`,
+and `@AutoLink` are semantically special cases, and `@PostCreate` is a
+creation-time callback rather than a lifecycle phase. `@PostApply` and every
+other annotation are out of #420's implementation scope as well. A later
+proposal for any annotation needs its own decision/tracer before its target or
+transform behavior changes; shared Builder state alone is not sufficient
+justification.
 
-Acceptance: one focused fixture per annotation proves the callback receives
-Builder state at its documented lifecycle point. Template replay, same-session
-owned creation, aggregation-link rejection, and `applyLater(40+)` behavior stay
-unchanged. `@Owner`, `EARLY_VALIDATE`, `@Validate`, custom phase actions, and
-post-materialization mutation are explicit rejection/no-op cases as applicable.
+Acceptance: #420 delivers only `@PostTree` lifecycle classes and keeps every
+other annotation's current placement rules unchanged. The ADR and user guidance
+make that boundary explicit; no feature test presents another annotation as a
+planned extension of the `@PostTree` implementation.
 
-Commit boundary: `Support lifecycle classes in Builder phases` with all
-eligible annotations and their phase-focused tests.
+Commit boundary: no production generalization is part of #420. A future
+annotation-specific decision starts with evidence for that annotation's
+receiver, ordering, ownership, template, and scheduling behavior.
 
 ### LC-4 — Lifecycle-class inheritance feasibility tracer
 
@@ -144,13 +147,13 @@ documentary test, user documentation, migration guidance, and release note.
 | Dynamic Groovy resolves a Model-only method late. | LC-2 adds an explicit compiler verifier; no dynamic fallback or runtime Model delegation. |
 | Source lifecycle classes leak as public nested Model types. | LC-1 verifies removal from the Model; LC-2 verifies no generated interface/mirror addition. |
 | Inheritance needs a Builder-superclass name that source cannot name. | Keep it rejected until LC-4 proves a complete projected hierarchy across all lanes. |
-| Templates or delayed actions retain a Builder callback object. | Classes are fresh, phase-local construction machinery; LC-3 proves scheduling/template guards remain authoritative. |
+| Templates or delayed actions retain a Builder callback object. | Classes are fresh, `@PostTree`-local construction machinery; no later annotation may inherit this guarantee without its own tracer. |
 
 ## Issue-to-slice map
 
 | Item | Relationship |
 | --- | --- |
-| #420 | Governing issue and all LC-1 through LC-5 slices. |
+| #420 | Governing issue; LC-1, LC-2, LC-4, and LC-5 are implementation slices, while LC-3 preserves the annotation-specific scope. |
 | #415 | Delivered completed-Model validation classes; regression/contrast only. |
 | #416 / ADR 0003 | Builder-first state and materialization authority consumed by every slice. |
 | ADR 0020 / #689 | Explicit Builder query/method boundary enforced by LC-2; no blanket projection. |

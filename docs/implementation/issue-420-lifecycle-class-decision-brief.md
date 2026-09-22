@@ -34,9 +34,9 @@ with a targeted diagnostic.
 The lifecycle boundary is a receiver boundary, not merely an execution-order
 detail.
 
-| Work | Current receiver | Lifecycle-class implication |
+| Work | Current receiver | Scope evidence, not lifecycle-class eligibility |
 | --- | --- | --- |
-| `@PostCreate`, `@PostApply`, `@AutoCreate`, `@AutoLink`, `@Default`, `@PostTree` | mutable Builder | A grouped callback must receive Builder state and obey construction-session, ownership, template, and pre-40 scheduling rules. |
+| `@PostCreate`, `@PostApply`, `@AutoCreate`, `@AutoLink`, `@Default`, `@PostTree` | mutable Builder | Builder state is necessary context for existing callbacks, but does not make lifecycle-class support appropriate; each annotation needs a separate semantic decision. |
 | `EARLY_VALIDATE` | Builder metadata | It is a built-in provisional issue pass, not an existing user lifecycle-method annotation; it must not be accidentally turned into a completed-model validator. |
 | `INSTANTIATE` (40) | state switch | Materialization copies Builder state, resolves relationship links, transfers provisional issues, and drops Builder-only state. It is not a callback receiver. |
 | `@Validate` / validation `InstanceValidator`s (50+) | completed Model | Existing `@Validate` inner classes remain Model-owned validation classes. They need no Builder projection and must not mutate. |
@@ -93,9 +93,11 @@ Model-to-Builder delegation would repeat the rejected blanket projection model.
 
 ## Smallest viable 4.1 scope after a decision
 
-Only one receiver family should be added first: grouped callbacks for the
-parameterless, Builder-phase lifecycle annotations through `POST_TREE`, with
+Only one annotation should be added first: grouped `@PostTree` callbacks, with
 one explicit source grammar and targeted compiler rejection diagnostics.
+`@Default`, `@AutoCreate`, `@AutoLink`, `@PostCreate`, `@PostApply`, and any
+other annotation require individual decisions; Builder state does not make them
+automatic extensions of this class contract.
 `@Validate` inner classes remain unchanged and serve as the completed-Model
 precedent, not as an implementation shortcut.
 

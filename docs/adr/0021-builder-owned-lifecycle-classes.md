@@ -44,7 +44,7 @@ than modifying the source node in place.
 ### Relocate one Builder-phase class, not each individual method
 
 A direct, non-static inner class of a DSL Object, at any source visibility, may
-be marked with one eligible pre-materialization lifecycle annotation. The
+be marked with `@PostTree`. The
 compiler relocates it into the hidden generated Builder before variable scope
 and type checking, removes it from the completed Model, and creates a
 Builder-internal runner for its phase. A `private` source class is therefore
@@ -52,13 +52,18 @@ valid and is preferred when the rules have no source-level consumer. The runner
 constructs one lifecycle-class instance per visited Builder and invokes its
 callback methods in source declaration order.
 
-The initial implementation starts with `@PostTree`; subsequent slices may add
-the other parameterless Builder-phase lifecycle annotations (`@PostCreate`,
-`@PostApply`, `@AutoCreate`, `@AutoLink`, and `@Default`) under the same
-contract. `EARLY_VALIDATE` is a built-in provisional-issue pass, not a
-lifecycle-class callback. `@Owner` has a parameterized relationship contract
-and is excluded. `@Validate` classes remain completed-Model validation classes
-and are neither moved nor generalized.
+This ADR deliberately adopts no other annotation. `@Default`, `@AutoCreate`,
+and `@AutoLink` have their own semantic contracts; `@PostCreate` is a
+creation-time callback rather than a lifecycle phase. `@PostApply` and every
+other annotation are equally outside this decision. Lifecycle-class support for
+any of them must be separately justified and decided with its own receiver,
+ordering, ownership, template, and scheduling semantics. This ADR does not
+reserve a generic lifecycle-class extension point.
+
+`EARLY_VALIDATE` is a built-in provisional-issue pass, not a lifecycle-class
+callback. `@Owner` has a parameterized relationship contract and is excluded.
+`@Validate` classes remain completed-Model validation classes and are neither
+moved nor generalized.
 
 For example, the intended source shape is:
 
@@ -139,6 +144,8 @@ its Builder-only state are construction machinery and are not serialized.
   compiler relocates its lexical outer before type resolution.
 - Callback declaration order becomes an explicit contract and must be generated,
   rather than inferred from reflection's method order.
+- No other lifecycle or creation annotation gains class placement by implication;
+  each must earn a separate decision from its own semantics.
 - The compiler gains focused diagnostics for Model-only calls, explicit Model
   outer references, invalid class placement, constructors, and unsupported
   inheritance.
