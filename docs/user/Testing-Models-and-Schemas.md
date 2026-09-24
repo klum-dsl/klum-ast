@@ -8,6 +8,8 @@ Start with the small Schema Gradle feedback loop in [Gradle Onboarding](Gradle-O
 `src/main/groovy`, its Spock tests in `src/test/groovy`, and run `./gradlew test`. The Schema plugin supplies the normal
 KlumAST compiler/runtime and matching Groovy/Spock setup.
 
+For a new one-module direct-schema project, the copyable [`start-klum-project` skill](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/start-klum-project) pins its setup and validation guidance to public 4.0.1. Its [public-coordinate mission](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/fixtures/direct-schema-public-4.0.1) exercises a completed Model and a semantic validation-message assertion with native Spock tests.
+
 ## Assert a completed Model
 
 Construct through the generated root factory, then assert the completed Model's public state. The callback configures a
