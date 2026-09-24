@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -56,9 +57,27 @@ def main():
     require((FIXTURE / "build.gradle").is_file(), "Public mission build is missing")
     build = (FIXTURE / "build.gradle").read_text()
     settings = (FIXTURE / "settings.gradle").read_text()
+    readme = (FIXTURE / "README.md").read_text()
     require("id 'com.blackbuild.klum-ast-schema' version '4.0.1'" in build, "Public plugin pin is missing")
     require("mavenCentral()" in build and "gradlePluginPortal()" in settings, "Public repositories are missing")
     require(not re.search(r"includeBuild|mavenLocal\(|files\(|project\(", build + settings), "Public mission has a local product source")
+    require("./gradlew --no-daemon test" in readme, "Public mission must use its own wrapper")
+    require(not any(path.is_symlink() for path in FIXTURE.rglob("*")), "Public mission has an external symlink")
+    with tempfile.TemporaryDirectory() as temporary:
+        copied_fixture = Path(temporary) / FIXTURE.name
+        shutil.copytree(FIXTURE, copied_fixture)
+        wrapper = copied_fixture / "gradlew"
+        require(wrapper.is_file() and wrapper.stat().st_mode & 0o111, "Copyable Gradle wrapper is missing or not executable")
+        require((copied_fixture / "gradlew.bat").is_file(), "Copyable Windows Gradle wrapper is missing")
+        wrapper_jar = copied_fixture / "gradle/wrapper/gradle-wrapper.jar"
+        require(wrapper_jar.is_file(), "Copyable Gradle wrapper JAR is missing")
+        with zipfile.ZipFile(wrapper_jar) as jar:
+            require("org/gradle/wrapper/GradleWrapperMain.class" in jar.namelist(), "Copyable Gradle wrapper JAR is invalid")
+        properties = (copied_fixture / "gradle/wrapper/gradle-wrapper.properties").read_text()
+        require(
+            re.search(r"^distributionUrl=https\\://services\.gradle\.org/distributions/gradle-8\.14\.4-all\.zip$", properties, re.MULTILINE),
+            "Copyable Gradle wrapper must pin public Gradle 8.14.4",
+        )
     for page in ("Gradle-Onboarding.md", "Testing-Models-and-Schemas.md"):
         text = (ROOT / "docs/user" / page).read_text()
         links = re.findall(r"\]\(([^)]+)\)", text)
