@@ -37,6 +37,7 @@
   after recipe replay. The operation installs no scoped Template state; map relationships retain their existing key
   derivation and duplicate behavior, while `LINK` collections expose no such operation
   ([#135](https://github.com/klum-dsl/klum-ast/issues/135)).
+- Added a copyable 4.0.1 direct-schema `start-klum-project` skill with a frozen tagged authority record, a one-module public-coordinate adopter mission, and links from setup and Schema-testing guidance. The separate Catwalk consumer baseline and broader onboarding journeys remain under their own work ([#469](https://github.com/klum-dsl/klum-ast/issues/469)).
 
 - Added the published `klum-ast-test-support` artifact with its small public `TemplateScope` lifetime API for
   materialized Template setup in Schema and Model tests. A new Testing Models and Schemas guide covers focused completed-model and
