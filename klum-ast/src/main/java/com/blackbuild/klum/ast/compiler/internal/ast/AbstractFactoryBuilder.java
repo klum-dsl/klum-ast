@@ -54,7 +54,7 @@ public abstract class AbstractFactoryBuilder {
         // i.e. bla(int a, int b = 1) -> bla(int a, int b) and bla(int a), otherwise, null values might
         // cause the wrong method to be called.
         do {
-            new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
+            MethodNode delegated = new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
                     .targetType(builderClass)
                     .linkToMethod(targetMethod)
                     .optional()
@@ -63,6 +63,7 @@ public abstract class AbstractFactoryBuilder {
                     .returning(targetMethod.getReturnType())
                     .paramsFromWithoutDefaults(targetMethod, numberOfDefaultParams)
                     .addTo(collectionFactory);
+            NamedMapMetadata.copyTargets(targetMethod, delegated);
             numberOfDefaultParams--;
         } while (numberOfDefaultParams >= 0);
     }

@@ -1067,7 +1067,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
-                        .namedParams("values")
+                        .namedParams("values", null, defaultImpl)
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
@@ -1280,7 +1280,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
-                        .namedParams("values")
+                        .namedParams("values", null, defaultImpl)
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
@@ -1418,7 +1418,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                             .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                             .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
-                    .namedParams("values")
+                    .namedParams("values", null, defaultImpl)
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
                     .constantPrimitveParam(false)
@@ -1764,8 +1764,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(method -> !method.isSynthetic())
                     .filter(method -> !method.getName().startsWith(RESERVED_KLUM_NAMESPACE))
                     .filter(method -> !method.getName().equals(AS_BUILDER))
-                    .map(method -> correctFactoryMethod(currentSpec, method))
-                    .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
+                    .forEach(method -> overrideFactoryMethod(
+                            factoryClass,
+                            defaultImpl,
+                            correctFactoryMethod(currentSpec, method),
+                            isBuiltInRootWith(declaringClass, method)
+                    ));
             currentLevel = currentLevel.getUnresolvedSuperClass();
         }
     }
@@ -1779,14 +1783,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return corrected;
     }
 
-    private void overrideFactoryMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
+    private static boolean isBuiltInRootWith(ClassNode declaringClass, MethodNode method) {
+        return method.getName().equals("With")
+                && (declaringClass.redirect().equals(KEYED_FACTORY) || declaringClass.redirect().equals(UNKEYED_FACTORY))
+                && method.getParameters().length > 0
+                && method.getParameters()[0].getOriginType().redirect().equals(MAP_TYPE);
+    }
+
+    private void overrideFactoryMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode,
+                                       boolean namedMapEligible) {
         Parameter[] sourceParameters = methodNode.getParameters();
         if (sourceParameters.length > 0 && sourceParameters[sourceParameters.length - 1].getType().equals(CLOSURE_TYPE)) {
-            overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode);
+            overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode, namedMapEligible);
             return;
         }
 
         Parameter[] parameters = cloneFactoryParameters(methodNode);
+        if (namedMapEligible)
+            NamedMapMetadata.target(parameters[0], annotatedClass);
         if (factoryClass.getDeclaredMethod(methodNode.getName(), parameters) != null)
             return;
 
@@ -1847,7 +1861,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ));
     }
 
-    private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
+    private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode,
+                                                  boolean namedMapEligible) {
         if (methodNode.getParameters().length == 0)
             return;
         Parameter lastParam = methodNode.getParameters()[methodNode.getParameters().length - 1];
@@ -1867,6 +1882,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         Parameter[] parameters = cloneFactoryParameters(methodNode);
+        if (namedMapEligible)
+            NamedMapMetadata.target(parameters[0], annotatedClass);
         Parameter closureParam = parameters[parameters.length - 1];
 
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
@@ -1899,6 +1916,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             Parameter parameter = sourceParameters[index];
             Parameter clone = new Parameter(parameter.getType(), parameter.getName(), parameter.getInitialExpression());
             copyAnnotationsFromSourceToTarget(parameter, clone, Collections.emptyList());
+            NamedMapMetadata.copyTarget(parameter, clone);
             result[index] = clone;
         }
         return result;

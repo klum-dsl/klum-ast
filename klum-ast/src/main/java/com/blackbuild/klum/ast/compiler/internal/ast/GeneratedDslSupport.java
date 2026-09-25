@@ -194,6 +194,7 @@ public final class GeneratedDslSupport {
     public static void complete(ClassNode model) {
         GeneratedDslSupport support = of(model);
         support.implementations.forEach(support::projectImplementation);
+        NamedMapMetadata.complete(model);
     }
 
     static void markRelationshipCreator(MethodNode method) {
@@ -434,6 +435,7 @@ public final class GeneratedDslSupport {
             Parameter parameter = source[index];
             Parameter clone = new Parameter(publicType(parameter.getType()), parameter.getName(), parameter.getInitialExpression());
             copyAnnotationsFromSourceToTarget(parameter, clone, Collections.emptyList());
+            NamedMapMetadata.copyTarget(parameter, clone);
             projectDelegatesTo(clone);
             result[index] = clone;
         }
