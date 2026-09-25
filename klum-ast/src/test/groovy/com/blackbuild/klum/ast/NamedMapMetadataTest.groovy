@@ -42,6 +42,7 @@ class NamedMapMetadataTest extends AbstractDSLSpec {
             package namedmeta
 
             import com.blackbuild.klum.ast.layer3.Cluster
+            import com.blackbuild.klum.ast.runtime.KlumFactory
 
             @DSL
             class Catalog {
@@ -70,6 +71,14 @@ class NamedMapMetadataTest extends AbstractDSLSpec {
 
             @DSL
             class Item extends BaseItem {
+                static class Factory extends KlumFactory.Unkeyed<Item> {
+                    protected Factory() { super(Item) }
+
+                    Item custom(Map<String, ?> values) {
+                        With(values)
+                    }
+                }
+
                 String title
                 int count
                 String mode
@@ -274,6 +283,7 @@ class NamedMapMetadataTest extends AbstractDSLSpec {
         !item.getField('Create').type.getField('Template').type.getMethod('With', Map).parameters[0]
                 .isAnnotationPresent(NamedParams)
         !item.getField('Create').type.getMethod('FromMap', Map).parameters[0].isAnnotationPresent(NamedParams)
+        !item.getField('Create').type.getMethod('custom', Map).parameters[0].isAnnotationPresent(NamedParams)
 
         when:
         File mirrorRoot = new File(tempFolder.root, 'named-map-mirrors')
