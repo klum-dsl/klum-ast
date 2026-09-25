@@ -301,3 +301,5 @@ direct-schema when the Schema types themselves are the appropriate consumer cont
 This choice is independent of [domain-first](Domain-First-Modeling.md) versus
 [target-contract](Target-Contract-Modeling.md) discovery. There are no separately named Layer 3 variants for different
 source layouts, role assignments, or discovery orders.
+
+The optional [domain-first smart-home showcase](https://github.com/klum-dsl/klum-catwalk/tree/519404ebc259e24bb24086f86c2ef6322d8bcbb7/showcases/domain-first-smart-home) runs this pattern across independent Domain API, Schema, API-only Client, and Model leaves using public 4.0.1 coordinates. Use this guide for the Layer 3 contract and [Gradle onboarding](Gradle-Onboarding.md) for setup; Catwalk provides the executable consumer evidence.
