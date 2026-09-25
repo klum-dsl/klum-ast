@@ -82,6 +82,8 @@
 
 ## Documentation only
 
+- Linked the optional, immutable public 4.0.1 smart-home Layer 3 showcase from direct-schema onboarding and the model guides. KlumAST remains the authority for setup and concepts; Catwalk supplies the executable four-role consumer journey ([#469](https://github.com/klum-dsl/klum-ast/issues/469)).
+
 - Defined Layer 3 crisply as the abstract Domain API–concrete Schema–Model pattern whose unique KlumAST feature is a
   `@Cluster` projection. The environment example now demonstrates generic and Schema-specific consumers, bounded and
   fixed-key Cluster construction, and distinguishes general automatic creation/linking from Layer 3 behavior

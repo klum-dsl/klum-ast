@@ -12,6 +12,10 @@ import zipfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "agent-skills/start-klum-project"
 FIXTURE = ROOT / "agent-skills/fixtures/direct-schema-public-4.0.1"
+CATWALK_SHOWCASE = (
+    "https://github.com/klum-dsl/klum-catwalk/tree/"
+    "519404ebc259e24bb24086f86c2ef6322d8bcbb7/showcases/domain-first-smart-home"
+)
 TAGGED_BLOBS = {
     "docs/user/Basics.md": "15922d51e4cd24bd85bf3ce588ddf417383db256",
     "docs/user/Builder-First-Migration.md": "51e6acec3c25d937cc616c68ccaa7ba01ed92ad0",
@@ -83,6 +87,14 @@ def main():
         links = re.findall(r"\]\(([^)]+)\)", text)
         for target in ("agent-skills/start-klum-project", "agent-skills/fixtures/direct-schema-public-4.0.1"):
             require(any(link.endswith(target) for link in links), f"{page} does not link to {target}")
+    for source in (
+        SKILL / "SKILL.md",
+        *(ROOT / "docs/user" / page for page in ("Gradle-Onboarding.md", "Domain-First-Modeling.md", "Layer3.md")),
+    ):
+        require(
+            CATWALK_SHOWCASE in re.findall(r"\]\(([^)]+)\)", source.read_text()),
+            f"{source.relative_to(ROOT)} does not link to the immutable Catwalk showcase",
+        )
     print("#469 portable skill, authority, public mission, and user links: OK")
 
 
