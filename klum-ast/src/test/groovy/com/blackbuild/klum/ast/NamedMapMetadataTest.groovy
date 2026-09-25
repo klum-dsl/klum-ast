@@ -32,7 +32,6 @@ import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
 import javax.tools.ToolProvider
-import java.lang.reflect.Method
 
 @Issue('792')
 class NamedMapMetadataTest extends AbstractDSLSpec {
@@ -249,7 +248,6 @@ class NamedMapMetadataTest extends AbstractDSLSpec {
     def "hidden public reflection and AnnoDocimal mirror contracts carry the same public catalog"() {
         given:
         Class<?> item = getClass('namedmeta.Item')
-        Class<?> itemBuilder = getClass('namedmeta.Item_DSL$Builder')
         Class<?> catalogBuilder = getClass('namedmeta.Catalog_DSL$Builder')
         Class<?> collectionFactory = getClass('namedmeta.Catalog_DSL$Builder$CollectionFactory_listedItems')
         Class<?> clusterFactory = getClass('namedmeta.Catalog_DSL$Builder$ClusterFactory_featured')

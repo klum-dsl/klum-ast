@@ -23,7 +23,6 @@
  */
 package com.blackbuild.klum.ast
 
-import groovy.transform.NamedParam
 import groovy.transform.NamedParams
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
@@ -31,26 +30,28 @@ import spock.lang.Issue
 @Issue('792')
 class NativeNamedParamCompatibilityTest extends AbstractDSLSpec {
 
-    private static final String API = '''
-        package nativeparams
+    private static String api() {
+        '''
+            package nativeparams
 
-        import groovy.transform.NamedParam
-        import groovy.transform.NamedParams
+            import groovy.transform.NamedParam
+            import groovy.transform.NamedParams
 
-        class NamedApi {
-            static Map accept(
-                    @NamedParams([
-                        @NamedParam(value = 'name', type = String),
-                        @NamedParam(value = 'count', type = Integer)
-                    ]) Map<String, ?> values) {
-                values
+            class NamedApi {
+                static Map accept(
+                        @NamedParams([
+                            @NamedParam(value = 'name', type = String),
+                            @NamedParam(value = 'count', type = Integer)
+                        ]) Map<String, ?> values) {
+                    values
+                }
             }
-        }
-    '''
+        '''
+    }
 
     def "native named-parameter metadata supports source and binary static consumers"() {
         when: 'the API and its consumer compile in one source unit'
-        createNonDslClass API + '''
+        createNonDslClass api() + '''
             @groovy.transform.CompileStatic
             class SourceConsumer {
                 static Map create() { NamedApi.accept(name: 'source', count: 1) }
@@ -80,7 +81,7 @@ class NativeNamedParamCompatibilityTest extends AbstractDSLSpec {
 
     def "native metadata rejects invalid literals including computed and spread keys"() {
         given:
-        createNonDslClass API
+        createNonDslClass api()
 
         when:
         createSecondaryClass invalidConsumer("NamedApi.accept(unknown: 'value')")
