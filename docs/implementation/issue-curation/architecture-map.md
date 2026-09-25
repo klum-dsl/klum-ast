@@ -143,6 +143,13 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
   capabilities through `@Builder.Query`, `@Builder.Method`, `@Builder.Input`, `@Builder.Result`, and factory-token
   narrowing. PRs #780, #778, #781, and #782 deliver BQ-0 through BQ-4; #782 contains both input and result slices.
   Selector-interface grouping is not a 4.1 capability and is deferred to untargeted #783.
+- [ADR 0022](../../adr/0022-conservative-named-map-safety.md) accepts the #487 work split without implementing production
+  behavior: NAMED-META owns a bounded static literal-map metadata spike, NAMED-DIAG separately owns dynamic unknown-key
+  diagnostics, NAMED-IDE requires native source-mirror and binary-contract evidence before GDSL, and NAMED-DSLD remains a
+  later-4.x Eclipse investigation. Native `@NamedParam` rejects computed and spread entries across the supported Groovy
+  generations; these are accepted as unsupported static forms because literal-map IDE assistance is the primary use case.
+  Named-map entries are ordinary one-argument calls, not property assignments; every matching public generated Builder
+  operation is eligible without a separate “configuration”/“infrastructure” taxonomy.
 - [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 construction-path/composition support,
   OS-2 stored-validation support/companion lockdown, and OS-3's `getConstructionPath()` compatibility closure are implemented.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) is **Superseded**; its JSON-1 property binding and JSON-2
