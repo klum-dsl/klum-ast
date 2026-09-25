@@ -185,6 +185,67 @@ class NamedMapMetadataTest extends AbstractDSLSpec {
         getClass('namedmetasource.SameSourceConsumer').create().title == 'same source'
     }
 
+    def "default-parameter eligibility follows the final public one-argument Builder contract"() {
+        given:
+        createClass '''
+            package namedmetadefaults
+
+            @DSL
+            class DefaultParameterItem {
+                String configured
+                boolean strict
+
+                @Builder.Method
+                void configure(String value, boolean strict = false) {
+                    configured = value
+                    this.strict = strict
+                }
+            }
+        '''
+        Class<?> item = getClass('namedmetadefaults.DefaultParameterItem')
+        Class<?> publicBuilder = getClass('namedmetadefaults.DefaultParameterItem_DSL$Builder')
+        def oneArgumentOperation = publicBuilder.methods.find {
+            it.name == 'configure' && it.parameterTypes.toList() == [String]
+        }
+        NamedParam configureMetadata = namedParams(
+                item.getField('Create').type.getMethod('With', Map).parameters[0]
+        ).find { it.value() == 'configure' }
+
+        expect: 'metadata eligibility is defined by the final public contract, not source-method arity'
+        (oneArgumentOperation != null) == (configureMetadata != null)
+        oneArgumentOperation == null || configureMetadata.type() == String
+
+        when: 'the generated contract exposes the one-argument overload'
+        Class<?> consumer = oneArgumentOperation == null ? null : createSecondaryClass('''
+            package namedmetadefaults
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class DefaultParameterConsumer {
+                static DefaultParameterItem viaNamedMap() {
+                    DefaultParameterItem.Create.With(configure: 'value')
+                }
+
+                static DefaultParameterItem viaDirectBuilderCall() {
+                    DefaultParameterItem.Create.With {
+                        configure 'value'
+                    }
+                }
+            }
+        ''')
+
+        then: 'the map entry and direct Builder call have identical behavior'
+        if (oneArgumentOperation != null) {
+            def viaNamedMap = consumer.viaNamedMap()
+            def viaDirectBuilderCall = consumer.viaDirectBuilderCall()
+            assert viaNamedMap.configured == viaDirectBuilderCall.configured
+            assert viaNamedMap.strict == viaDirectBuilderCall.strict
+            assert viaNamedMap.configured == 'value'
+            assert !viaNamedMap.strict
+        }
+    }
+
     def "native metadata rejects unknown keys incompatible values computed keys and spread maps"() {
         when:
         createSecondaryClass '''
