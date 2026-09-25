@@ -88,6 +88,70 @@ Config.Create.With(name: 'Dieter', age: 15)
 
 Of course, named parameters and regular calls inside the closure can be combined ad lib.
 
+### Named-map Builder calls
+
+A named map is a sequence of ordinary one-argument calls on the generated Builder, not field or property assignment.
+Consequently, its keys include the complete public Builder vocabulary: generated field configurators and `setX` methods,
+relationship creators and adders, converters, `copyFrom`, inherited operations, and explicit one-argument
+`@Builder.Method`s. When a method-first operation has the same name as a field configurator, normal Groovy method
+selection still decides which operation runs; `setX` remains the direct-storage spelling.
+
+For statically compiled Groovy, KlumAST publishes this vocabulary as native named-parameter metadata on plain literal maps
+passed to `Create.With` and fixed-target single, collection, map, and Cluster relationship creators. Unknown literal keys
+and incompatible values therefore fail where the literal is compiled. Overloaded keys use a type broad enough to retain
+every existing runtime-valid overload, up to `Object`; the metadata does not change runtime dispatch, lifecycle,
+ownership, or materialization.
+
+(See: `NamedMapBuilderOperationsDocumentaryTest#'uses literal map entries as ordinary Builder operation calls'`.)
+
+```groovy
+given: // Schema
+@DSL
+class Library {
+    String name
+    Publication featured
+
+    @Field(members = 'publication')
+    List<Publication> publications
+}
+
+@DSL
+class Publication {
+    String title
+
+    @Field(converters = [{ String value -> URI.create(value) }])
+    URI source
+    List<String> tags
+
+    @Builder.Method
+    String title(Integer edition) {
+        title = "Edition $edition"
+    }
+}
+
+when: // statically compiled Model
+def baseline = Publication.Create.With(title: 'Baseline')
+def library = Library.Create.With(name: 'City Library') {
+    featured(copyFrom: baseline, setTitle: 'Featured') {
+        tag 'spotlight'
+    }
+    publication(
+            title: 2,
+            source: 'https://example.test/guide',
+            tag: 'guide')
+}
+
+then:
+library.featured.title == 'Featured'
+library.publications*.title == ['Edition 2']
+```
+
+The static metadata intentionally covers only plain literals at those fixed-target entry points. Map variables keep their
+ordinary `Map` contract, while computed-key and spread-map expressions are unsupported on annotated calls under static
+compilation. `Create.AsBuilder`, Templates, generic or custom Factory map methods, polymorphic `Class` or typed-Factory
+selection, and `FromMap`/import paths are outside this contract. Dynamic Groovy and Java callers retain their existing
+runtime and `Map` behavior.
+
 For example, a keyed deployment and its owned service can be configured together:
 
 ```groovy

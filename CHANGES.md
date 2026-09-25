@@ -1,5 +1,14 @@
 # 4.1.0 (unreleased)
 
+- Added native Groovy named-parameter metadata for plain literal maps passed to generated `Create.With` and fixed-target
+  single, collection, map, and Cluster relationship creators. Static Groovy 3, 4, and 5 consumers now receive key and
+  value checks derived from the complete public Builder hierarchy, including inherited operations, method-first
+  overrides, `setX`, relationship adders, converters, `copyFrom`, and explicit one-argument `@Builder.Method`s. Ambiguous
+  overloads fall back to a safe common type; runtime dispatch, lifecycle, ownership, materialization, Java APIs, and
+  map-variable, Template, polymorphic, custom-Factory, and import paths are unchanged. Computed-key and spread-map
+  expressions are explicitly unsupported static forms on the newly annotated calls
+  ([#792](https://github.com/klum-dsl/klum-ast/issues/792)).
+
 - Added the canonical `com.blackbuild.klum.ast.Builder` schema-vocabulary namespace and its first self-contained category,
   `@Builder.Method`, for methods that exist only on generated Builders. Deprecated `@Mutator` remains source-compatible
   and is promoted to `@Builder.Method` during compilation, so validation, movement, field retargeting, public

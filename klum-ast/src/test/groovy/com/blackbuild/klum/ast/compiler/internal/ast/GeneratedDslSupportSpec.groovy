@@ -1167,7 +1167,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         !dynamicEndpointMethod.isAnnotationPresent(Deprecated)
     }
 
-    @Issue(['719', '728'])
+    @Issue(['719', '728', '792'])
     def "public Builder contracts and source mirrors declare relationship creators without their optional closure"() {
         given:
         Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
@@ -1258,9 +1258,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         consumer.createWithEmptyClosure().primary.name == 'from public Builder'
 
         and: 'the mirrors list the shorter direct, collection, map, keyed, dynamic-Class, and typed-Factory creator overloads'
-        mirror.contains('Child_DSL.Builder<Child> primary(Map<String, ?> values)')
-        mirror.contains('Child_DSL.Builder<Child> kid(Map<String, ?> values)')
-        mirror.readLines().any { it.contains(' primary(Map<String, ?> values)') && !it.contains('Closure') }
+        (mirror =~ /(?s)Child_DSL\.Builder<Child> primary\(\s*@NamedParams.*?Map<String, \?> values\);/).find()
+        (mirror =~ /(?s)Child_DSL\.Builder<Child> kid\(\s*@NamedParams.*?Map<String, \?> values\);/).find()
         (deploymentMirror =~ /(?s)Endpoint_DSL\.Builder<Endpoint> endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends Endpoint> typeToCreate\);/).find()
         (deploymentMirror =~ /(?s)B endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory\);/).find()
         (deploymentMirror =~ /(?s)KeyedEndpoint_DSL\.Builder<KeyedEndpoint> keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends KeyedEndpoint> typeToCreate,?\s+String key\);/).find()
