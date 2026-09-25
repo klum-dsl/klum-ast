@@ -50,8 +50,8 @@ A local source-and-binary probe used the repository's supported Groovy 3.0.25, 4
 | incompatible literal value | static error | static error | static error | value-type checking works |
 | separately compiled annotated API | passes/checked | passes/checked | passes/checked | metadata survives the binary boundary |
 | map variable | not inspected | not inspected | not inspected | excluded variables retain ordinary `Map` behavior |
-| computed key in a map expression | rejected | rejected | rejected | explicit compatibility gate for NAMED-META |
-| spread-map entry | rejected | rejected | rejected | explicit compatibility gate for NAMED-META |
+| computed key in a map expression | rejected | rejected | rejected | accepted unsupported static form |
+| spread-map entry | rejected | rejected | rejected | accepted unsupported static form |
 
 Repeated `@NamedParam` annotations are emitted as the runtime-visible `@NamedParams` container in all three generations.
 Groovy 4 additionally emits a formal-parameter type annotation, and Groovy 5 emits more type-annotation locations; the
@@ -77,6 +77,9 @@ public Builder capability is added.
   compilation; it therefore requires public/mirror parity tests.
 - Every supported literal accepted before the change must remain accepted. When overloads cannot be represented as one
   `@NamedParam.type`, use a safe common supertype rather than a falsely narrow type.
+- Computed-key and spread-map entries on annotated calls are explicitly unsupported under static compilation. This
+  accepted source-compatibility boundary favors IDE assistance for the primary literal-map use case; dynamic calls and
+  already-built map variables retain their existing runtime behavior.
 - No named parameter is `required`; Klum validation/defaulting remains the authority for missing configuration.
 - Dynamic scripts are not annotated or type checked. NAMED-DIAG must allow `MetaClass` and `methodMissing` to handle keys
   before it diagnoses a miss.
@@ -92,9 +95,9 @@ NAMED-META ──> NAMED-IDE ──> NAMED-DSLD
      └── no runtime dependency ── NAMED-DIAG
 ```
 
-NAMED-DIAG may be implemented independently after this plan. NAMED-IDE requires a proven metadata artifact. NAMED-DSLD
-requires both the stable metadata contract and the recorded native-IntelliJ result so it does not repeat or pre-empt that
-work.
+NAMED-DIAG may be implemented independently after this plan. NAMED-IDE is the primary user-facing outcome and follows as
+soon as NAMED-META provides a proven metadata artifact. NAMED-DSLD requires both the stable metadata contract and the
+recorded native-IntelliJ result so it does not repeat or pre-empt that work.
 
 ## Tracer-bullet slices
 
@@ -113,9 +116,8 @@ work.
    projection. Preserve public types in annotation class literals.
 4. Assert hidden implementation, public interface, class-file reflection, and AnnoDocimal mirror parity. Do not add a
    second mirror-only catalog.
-5. Ship only if the exclusion/no-false-positive matrix passes. If Groovy's treatment of computed/spread entries remains
-   incompatible with the accepted boundary, record the no-go evidence and return to #487 without introducing a custom
-   checker or API adapter in this issue.
+5. Lock in the accepted boundary: computed and spread entries are unsupported static forms on annotated calls. Do not
+   introduce a custom checker or API adapter to recover them in this issue.
 
 **Executable acceptance:**
 
@@ -124,8 +126,9 @@ work.
 - Inherited field configurators, inherited `@Builder.Method`, `setX`, singular/plural collection aliases, a converter,
   `copyFrom`, and a method-first same-name override are represented.
 - An overloaded key accepts every runtime-valid covered value; when necessary its metadata type is `Object`.
-- Map variables, computed/spread keys, generic/custom factory routes, polymorphic selectors, Templates,
-  `Create.AsBuilder`, and `FromMap` exhibit the explicitly agreed unchanged/excluded behavior.
+- Map variables and the other generic/custom factory routes, polymorphic selectors, Templates, `Create.AsBuilder`, and
+  `FromMap` retain their agreed excluded behavior; computed/spread entries are rejected as documented unsupported static
+  forms.
 - Root and relationship runtime controls prove identical dispatch and completed graphs with and without static compilation.
 - Reflection sees the same `NamedParams` entries on hidden and public methods, and the mirror contains those entries using
   only public types.
@@ -134,8 +137,8 @@ work.
 
 **Commit boundaries:**
 
-1. `Characterize native named-map metadata across Groovy versions` — executable source/binary controls and the explicit
-   computed/spread gate, with no production behavior.
+1. `Characterize native named-map metadata across Groovy versions` — executable source/binary controls and the accepted
+   computed/spread boundary, with no production behavior.
 2. `Emit conservative metadata from public Builder contracts` — catalog derivation, eligible root/relationship emission,
    and runtime-equivalence coverage.
 3. `Preserve named-map metadata in public mirrors` — public-interface/reflection/AnnoDocimal parity and fixture evidence.
@@ -214,9 +217,9 @@ This planning-only change needs no user documentation or release-note entry beca
 
 ## Risks, gates, and residual decisions
 
-1. **Computed/spread compatibility gate.** Native `@NamedParam` rejects these entries in every supported Groovy
-   generation. NAMED-META cannot quietly call that unchanged behavior. Its first commit must make the release decision
-   explicit: accept those forms as unsupported static literals, or record a no-go and return to #487.
+1. **Computed/spread compatibility boundary — resolved.** Native `@NamedParam` rejects these entries in every supported
+   Groovy generation. They are explicitly accepted as unsupported static forms because literal maps are the primary use
+   case and their IDE assistance outweighs preserving these less common statically compiled forms.
 2. **Overload type unions.** Native metadata expresses one type per key, not a union. The safe fallback is a common
    supertype/`Object`; precision must never create a false rejection.
 3. **Repeatable annotation projection.** Existing annotation-copy helpers suppress duplicate annotation types. The
@@ -224,13 +227,15 @@ This planning-only change needs no user documentation or release-note entry beca
    survives each clone/projection step.
 4. **Mirror fidelity.** AnnoDocimal already preserves parameter annotations such as `@DelegatesTo`, but nested repeatable
    annotation values and public Builder class literals need an explicit mirror compilation check.
-5. **IDE interpretation.** Groovy compiler support does not prove IntelliJ completion. NAMED-IDE is a manual acceptance
-   gate and must state its exact tested version.
+5. **IDE interpretation.** Groovy compiler support does not prove IntelliJ completion. Because editor assistance is the
+   primary user outcome, NAMED-IDE is a required manual acceptance gate and must state its exact tested version; compiler
+   diagnostics alone do not complete that outcome.
 6. **Failure attribution.** Catching every `MissingMethodException` would hide user code failures. NAMED-DIAG must prove
    receiver/method attribution before translation.
 
-No other product decision is needed to file the four successors. The computed/spread release choice belongs inside
-NAMED-META because the executable spike supplies the decisive evidence.
+No other product decision is needed to file the four successors. The computed/spread release choice is settled in favor
+of the bounded literal-map contract; the implementation probe records it as compatibility evidence rather than reopening
+the product decision.
 
 ## Requirement-to-slice map
 
@@ -242,6 +247,7 @@ NAMED-META because the executable spike supplies the decisive evidence.
 | public/hidden/mirror annotation propagation | NAMED-META |
 | Groovy 3/4/5 source and binary controls | NAMED-META |
 | no lifecycle/dispatch/runtime behavior change from metadata | NAMED-META |
+| IDE completion and immediate source-local key/value feedback | NAMED-IDE |
 | actionable dynamic unknown-key failure | NAMED-DIAG |
 | dynamic `MetaClass`/`methodMissing` preservation | NAMED-DIAG |
 | native IntelliJ source/binary evidence | NAMED-IDE |

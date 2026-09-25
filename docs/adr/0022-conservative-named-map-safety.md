@@ -41,6 +41,11 @@ literal keys and incompatible literal values. The same probe also exposes an imp
 report computed keys and spread-map entries as unexpected named arguments. The metadata slice must therefore prove its
 compatibility boundary before any annotation is added to the supported generated contract.
 
+The primary user value is IDE assistance while editing the overwhelmingly common literal-map form: completion and
+immediate, source-local feedback for unknown keys and incompatible values. Compiler checking establishes the portable
+contract behind that assistance and remains a useful fallback, but it is not the main product objective. Runtime dispatch
+continues to catch invalid keys outside the bounded static form, albeit later and with less precise source diagnostics.
+
 ## Decision
 
 ### Split the umbrella into independently releasable concerns
@@ -68,6 +73,12 @@ It excludes `Create.AsBuilder().With`, Template factories, generic/custom Factor
 selection, typed generated-Factory selection, map variables, computed or spread keys, import/`FromMap` paths, broad
 custom-map analysis, `@NamedVariant` adapters, and generic static-type-checking extensions.
 
+Literal maps are the accepted primary use case. Computed-key and spread-map entries on these annotated calls are
+explicitly unsupported under static compilation, matching the behavior of native `@NamedParam` in every supported Groovy
+generation. This is an accepted source-compatibility boundary rather than a reason to withhold metadata. Dynamic calls
+retain normal runtime dispatch, and callers that genuinely need computed construction can pass an already-built map
+variable outside the checked literal subset.
+
 The metadata describes existing dispatch; it does not introduce required keys and does not change overload selection,
 map iteration order, lifecycle phases, ownership, materialization, serialization, or runtime invocation.
 
@@ -84,11 +95,9 @@ common supertype, up to `Object`. Losing precision is acceptable; rejecting a ru
 Return types do not participate. Explicit Builder methods and generated overrides are observed after projection so
 method-first behavior is preserved.
 
-NAMED-META first tries Groovy's native `@NamedParam`/`@NamedParams` contract. It may ship that metadata only if executable
-Groovy 3/4/5 controls show that calls outside the agreed literal subset do not acquire unacceptable new failures. In
-particular, because the current native checker rejects computed and spread entries, the spike must either prove that this
-is the explicitly accepted unsupported boundary or stop with a documented no-go result. It must not silently broaden into
-a custom checker or change factory signatures to evade that gate.
+NAMED-META uses Groovy's native `@NamedParam`/`@NamedParams` contract. Executable Groovy 3/4/5 controls must lock in both
+the supported literal behavior and the accepted rejection of computed and spread entries. It must not broaden into a
+custom checker or change factory signatures to recover excluded forms.
 
 ### Preserve one generated contract from bytecode through mirrors
 
@@ -124,12 +133,18 @@ and an overloaded key whose metadata deliberately falls back to a safe supertype
 annotations natively, no GDSL change is made. A GDSL addition is permitted only for a precisely recorded native gap and
 must read the public generated contract rather than infer a parallel DSL.
 
+This IDE experience is the primary delivery outcome. NAMED-META supplies one compiler- and bytecode-visible source of
+truth so that editor assistance does not drift from runtime Builder dispatch; compile-time diagnostics are a secondary
+benefit and fallback when IDE assistance is absent.
+
 Eclipse/DSLD work starts only after this compiler/binary/native-IntelliJ contract is stable. It makes no IDE-parity claim
 before its own acceptance evidence exists.
 
 ## Consequences
 
 - Static safety is intentionally partial and follows the Builder API that runtime dispatch already uses.
+- Statically compiled computed-key and spread-map entries on annotated calls become unsupported; literal maps are the
+  deliberately preferred and optimized form.
 - Public generated interfaces may gain runtime-visible Groovy parameter annotations; method descriptors and runtime
   implementations remain unchanged.
 - Ambiguous/overloaded keys favor no false positives over maximum value-type precision.
@@ -154,8 +169,9 @@ collection/map adders, converters, and explicit Builder operations that runtime 
 **Analyze every `Map` accepted by any Factory method.** Custom factories, import maps, polymorphic selection, and map
 variables have different or unresolved target contracts and are outside the bounded use case.
 
-**Use GDSL as the primary solution.** It would not help the Groovy compiler or binary consumers and would create a second,
-IDE-specific truth.
+**Use GDSL as the primary source of truth.** IDE assistance is the primary user outcome, but a standalone GDSL catalog
+would not help binary consumers and could drift from the generated Builder contract. Any necessary GDSL bridge must
+consume the public metadata rather than re-derive the vocabulary.
 
 **Prevalidate dynamic maps before invocation.** That would bypass `MetaClass`/`methodMissing`, risk different overload
 selection, and change the order and failure behavior of established Builder dispatch.

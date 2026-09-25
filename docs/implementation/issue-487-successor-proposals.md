@@ -32,12 +32,14 @@ until the native IntelliJ result exists.
 >
 > ## Primary use case
 >
-> A Schema Developer or statically typed extension author passes a literal map to a generated root or fixed-target child
-> creator and receives useful unknown-key and value-type feedback before runtime.
+> A Model Writer, Schema Developer, or statically typed extension author passes a literal map to a generated root or
+> fixed-target child creator and receives IDE completion plus immediate, source-local unknown-key and value-type feedback.
+> Compiler checking supplies the portable metadata contract and fallback; runtime dispatch remains the later safety net.
 >
 > - Need horizon: Future, targeted for 4.1.
 > - Workaround: viable but error-prone — execute the configuration and interpret a dynamic method failure.
-> - Secondary angle: the same metadata may improve IDE completion, but IntelliJ acceptance belongs to NAMED-IDE.
+> - Secondary angle: compiler diagnostics remain useful when editor assistance is absent; exact IntelliJ acceptance
+>   belongs to NAMED-IDE.
 >
 > ## Scope
 >
@@ -50,13 +52,13 @@ until the native IntelliJ result exists.
 > map variables, computed/spread keys, `FromMap`/imports, broad custom-map analysis, `@NamedVariant`, and generic STC
 > extensions.
 >
-> ## Compatibility gate
+> ## Compatibility boundary
 >
 > Start with executable Groovy 3/4/5 characterization of native `@NamedParam`/`@NamedParams`. The current planning probe
 > shows that valid/invalid plain literals and binary consumers work, while computed and spread entries are rejected in all
-> three generations. Do not ship public metadata until the accepted exclusion/no-false-positive boundary is explicit. If
-> the native contract cannot meet it, close this spike with no-go evidence and return the design question to #487; do not
-> introduce a custom checker or new overload in this issue.
+> three generations. Literal maps are the accepted primary use case, so computed and spread entries are explicitly
+> unsupported static forms on annotated calls. Record that boundary in tests and documentation; do not introduce a custom
+> checker or new overload to recover those forms in this issue.
 >
 > ## Acceptance criteria
 >
@@ -65,7 +67,8 @@ until the native IntelliJ result exists.
 > - Inherited keys, method-first override, `setX`, collection/map aliases, a converter, `copyFrom`, and overloaded keys are
 >   covered without rejecting a runtime-valid supported literal.
 > - Ambiguous overload groups use a safe common type, up to `Object`.
-> - Excluded call shapes retain the explicitly agreed behavior; the computed/spread gate is recorded rather than hidden.
+> - Excluded call shapes retain the explicitly agreed behavior; computed/spread entries are rejected as documented
+>   unsupported static forms.
 > - Hidden implementation, public `Foo_DSL` interface, runtime-visible class-file annotations, and AnnoDocimal mirror agree
 >   and use only public types.
 > - Separately compiled static Groovy consumers prove the binary contract in every Groovy lane.
@@ -147,11 +150,12 @@ until the native IntelliJ result exists.
 >
 > ## Primary use case
 >
-> A Schema Developer or statically typed extension author edits a literal named map in IntelliJ and receives assistance
-> consistent with the compiler contract.
+> A Model Writer, Schema Developer, or statically typed extension author edits a literal named map in IntelliJ and
+> receives key completion plus immediate, line-local key/value feedback consistent with the generated metadata contract.
+> This editor experience is the primary user-facing outcome; compiler errors and runtime failures are fallbacks.
 >
 > - Need horizon: Future, targeted for 4.1 after NAMED-META.
-> - Workaround: viable — rely on compiler feedback rather than editor assistance.
+> - Workaround: viable but inferior — rely on later compiler or runtime feedback without equivalent editing context.
 > - Secondary angle: a narrowly demonstrated native gap may justify a contract-driven GDSL adapter.
 >
 > ## Scope

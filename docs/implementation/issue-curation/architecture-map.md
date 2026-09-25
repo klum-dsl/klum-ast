@@ -147,7 +147,7 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
   behavior: NAMED-META owns a bounded static literal-map metadata spike, NAMED-DIAG separately owns dynamic unknown-key
   diagnostics, NAMED-IDE requires native source-mirror and binary-contract evidence before GDSL, and NAMED-DSLD remains a
   later-4.x Eclipse investigation. Native `@NamedParam` rejects computed and spread entries across the supported Groovy
-  generations, so NAMED-META retains an explicit no-false-positive release gate.
+  generations; these are accepted as unsupported static forms because literal-map IDE assistance is the primary use case.
 - [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 construction-path/composition support,
   OS-2 stored-validation support/companion lockdown, and OS-3's `getConstructionPath()` compatibility closure are implemented.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) is **Superseded**; its JSON-1 property binding and JSON-2
