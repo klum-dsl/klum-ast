@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Dynamic Model and Grape scripts now receive a Klum-specific `KlumModelException` when a named-map key has no matching
+  one-argument Builder operation. The diagnostic names the key and target Model, retains the original
+  `MissingMethodException` as its cause, and preserves normal dispatch and partial application before the failing entry
+  ([#794](https://github.com/klum-dsl/klum-ast/issues/794), related to
+  [#487](https://github.com/klum-dsl/klum-ast/issues/487)).
+
 - Added native Groovy named-parameter metadata for plain literal maps passed to generated `Create.With` and fixed-target
   single, collection, map, and Cluster relationship creators. Static Groovy 3, 4, and 5 consumers now receive key and
   value checks derived from the complete public Builder hierarchy, including inherited operations, method-first

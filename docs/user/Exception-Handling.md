@@ -17,6 +17,26 @@ This is NOT the path of the object in the actual model tree, but the path in the
 
 (See: `ExceptionHandlingDocumentaryTest#'reports the DSL location for a model-creation error'`.)
 
+Unknown keys in a named map passed to a generated Builder call now raise a `KlumModelException` that names the attempted
+key and target Model. This applies to dynamic Model and Grape scripts, which remain dynamically dispatched and do not
+receive static key checking. Named-map entries are ordinary one-argument method calls on the Builder; use a public
+Builder operation as each key. The original `MissingMethodException` remains available as the cause, and the exception
+includes the active construction path. Entries before the failing key have already been applied.
+
+For example, a misspelled nested key identifies `Service` as the target Model:
+
+```groovy
+Deployment.Create.With {
+    service(nmae: 'catalog')
+}
+```
+
+The resulting message explains that `nmae` is not a one-argument Builder operation on `Service`. Correct it to the
+intended public Builder method, for example `name`.
+
+(See: `NamedMapDiagnosticTest#'unknown fixed-child named-map key reports the child Model'` and
+`GrabModelScriptsDocumentaryTest#'runs a standalone Model script against a separately compiled Schema'`.)
+
 For example, configuring a single nested service twice with different keys reports the second DSL call as the source of
 the model-creation error:
 
