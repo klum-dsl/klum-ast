@@ -170,6 +170,11 @@ class NamedMapDiagnosticTest extends AbstractDSLSpec {
                     System.setProperty('klum.namedMapDiagnostic.applied', value)
                 }
 
+                @Builder.Method
+                void inspectAppliedValues(String value) {
+                    System.setProperty('klum.namedMapDiagnostic.values', "$methodValue|$name|$inherited")
+                }
+
                 @PostApply
                 void recordApply() {
                     System.setProperty('klum.namedMapDiagnostic.lifecycle', 'called')
@@ -184,21 +189,24 @@ class NamedMapDiagnosticTest extends AbstractDSLSpec {
         builderClass = getBuilderClass(clazz.name)
         System.clearProperty('klum.namedMapDiagnostic.applied')
         System.clearProperty('klum.namedMapDiagnostic.lifecycle')
+        System.clearProperty('klum.namedMapDiagnostic.values')
         def marker = UUID.randomUUID().toString()
 
         when:
-        clazz.Create.With([recordApplied: marker, name: 'method', setName: 'field', inherited: 'parent', typo: 'x'])
+        clazz.Create.With([recordApplied: marker, name: 'method', setName: 'field', inherited: 'parent', inspectAppliedValues: 'capture', typo: 'x'])
 
         then:
         def error = thrown(KlumModelException)
         System.getProperty('klum.namedMapDiagnostic.applied') == marker
         System.getProperty('klum.namedMapDiagnostic.lifecycle') == null
+        System.getProperty('klum.namedMapDiagnostic.values') == 'method|field|parent'
         error.cause instanceof MissingMethodException
         error.cause.method == 'typo'
 
         cleanup:
         System.clearProperty('klum.namedMapDiagnostic.applied')
         System.clearProperty('klum.namedMapDiagnostic.lifecycle')
+        System.clearProperty('klum.namedMapDiagnostic.values')
     }
 
     @Issue("794")

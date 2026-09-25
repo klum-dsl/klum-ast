@@ -618,9 +618,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                 });
             } catch (RuntimeException exception) {
                 RuntimeException missingMethod = exception;
-                if (!isMissingMethodException(missingMethod.getClass())) {
+                if (findMissingMethodExceptionType(missingMethod.getClass()) == null) {
                     Throwable cause = exception.getCause();
-                    if (!(cause instanceof RuntimeException) || !isMissingMethodException(cause.getClass()))
+                    if (!(cause instanceof RuntimeException)
+                            || findMissingMethodExceptionType(cause.getClass()) == null)
                         throw exception;
                     missingMethod = (RuntimeException) cause;
                 }
@@ -634,16 +635,16 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private boolean isNamedParameterDispatchFailure(RuntimeException exception, String key) {
-        if (key == null || !isMissingMethodException(exception.getClass()))
+        if (key == null)
             return false;
         StackTraceElement[] stack = exception.getStackTrace();
         if (!hasNamedMapDispatchOrigin(stack))
             return false;
         try {
             // Groovy scripts can load a separate MissingMethodException class; inspect its public API across classloaders.
-            Class<?> exceptionType = exception.getClass();
-            while (!exceptionType.getName().equals(MissingMethodException.class.getName()))
-                exceptionType = exceptionType.getSuperclass();
+            Class<?> exceptionType = findMissingMethodExceptionType(exception.getClass());
+            if (exceptionType == null)
+                return false;
             String missingMethod = (String) exceptionType.getMethod("getMethod").invoke(exception);
             Class<?> receiverType = (Class<?>) exceptionType.getMethod("getType").invoke(exception);
             String receiverName = receiverType.getName();
@@ -669,11 +670,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return false;
     }
 
-    private boolean isMissingMethodException(Class<?> type) {
+    private Class<?> findMissingMethodExceptionType(Class<?> type) {
         for (Class<?> current = type; current != null; current = current.getSuperclass())
             if (current.getName().equals(MissingMethodException.class.getName()))
-                return true;
-        return false;
+                return current;
+        return null;
     }
 
     /**
