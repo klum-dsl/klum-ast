@@ -44,9 +44,24 @@ until the native IntelliJ result exists.
 > ## Scope
 >
 > Cover only literal maps passed to generated `Foo.Create.With` and concrete/default fixed-target single, collection, map,
-> and Cluster relationship creators. Derive keys from the final public `Target_DSL.Builder` hierarchy so inherited methods,
-> method-first overrides, `setX`, collection/map aliases, converters, `copyFrom`, and explicit one-argument Builder methods
-> remain truthful.
+> and Cluster relationship creators. Named maps are Builder-call maps, not property-assignment maps: each entry invokes its
+> key as a normal one-argument method on the target Builder. Derive keys from the final public `Target_DSL.Builder`
+> hierarchy so generated field configurators, method-first overrides, `setX`, relationship operations/adders, converters,
+> `copyFrom`, inherited operations, and explicit one-argument `@Builder.Method`s remain truthful.
+>
+> A valid named-map key is a public Builder operation callable with exactly one supplied value. Do not introduce a
+> separate eligibility taxonomy for “configuration” versus “infrastructure” methods; the generated public Builder
+> contract plus normal one-argument dispatch is the single source of truth.
+>
+> Intentional syntax includes:
+>
+> ```groovy
+> outer {
+>     inner(copyFrom: somethingElse) {
+>         // additional configuration
+>     }
+> }
+> ```
 >
 > Exclude `Create.AsBuilder`, Templates, generic/custom Factory map methods, polymorphic `Class` and typed-Factory selection,
 > map variables, computed/spread keys, `FromMap`/imports, broad custom-map analysis, `@NamedVariant`, and generic STC
@@ -66,6 +81,10 @@ until the native IntelliJ result exists.
 > - Unknown literal keys and incompatible literal values fail static compilation.
 > - Inherited keys, method-first override, `setX`, collection/map aliases, a converter, `copyFrom`, and overloaded keys are
 >   covered without rejecting a runtime-valid supported literal.
+> - A nested `inner(copyFrom: somethingElse) { ... }` call proves `copyFrom` is intentional Builder configuration syntax,
+>   followed by ordinary closure configuration of the same child.
+> - Key-catalog tests prove that public one-argument Builder operations are included without a field/property filter or a
+>   “configuration”/“infrastructure” classification.
 > - Ambiguous overload groups use a safe common type, up to `Object`.
 > - Excluded call shapes retain the explicitly agreed behavior; computed/spread entries are rejected as documented
 >   unsupported static forms.
@@ -73,15 +92,17 @@ until the native IntelliJ result exists.
 >   and use only public types.
 > - Separately compiled static Groovy consumers prove the binary contract in every Groovy lane.
 > - Runtime controls prove dispatch, lifecycle, ownership, materialization, and results are unchanged.
-> - New tests carry this issue number in `@Issue`; shipped behavior has a linked documentary test, user guidance, and a
->   4.1 `CHANGES.md` entry.
+> - New tests carry this issue number in `@Issue`. A `NamedMapBuilderOperationsDocumentaryTest` marked
+>   `@Tag("documentary")` links via `@See` to a new “Named-map Builder calls” section in `docs/user/Basics.md`; both teach
+>   “map entries are Builder method calls, not fields,” including the nested `copyFrom` example. `CHANGES.md` records the
+>   bounded 4.1 behavior.
 >
 > ## Commit plan
 >
 > 1. Characterize native metadata across Groovy versions.
 > 2. Emit conservative metadata from public Builder contracts.
 > 3. Preserve metadata in public bytecode and source mirrors.
-> 4. Document the bounded behavior, only if the spike ships.
+> 4. Document named maps as Builder calls, only if the spike ships.
 >
 > Related: #487. ADR: `docs/adr/0022-conservative-named-map-safety.md`.
 

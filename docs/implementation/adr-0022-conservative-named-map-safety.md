@@ -15,15 +15,32 @@ Exact ready-to-file successor bodies are in
 `InternalKlumBuilder.applyOnly`. Generated fixed-target relationship creators reach the same `applyOnly` path through
 `createSingleChild`, `addNewDslElementToCollection`, or `addNewDslElementToMap`.
 
-`InternalKlumBuilder.applyNamedParameters` iterates the map and calls
+Named maps are not property-assignment maps. Each entry is an ordinary one-argument Builder call, in map order, and
+`InternalKlumBuilder.applyNamedParameters` implements that contract through
 `InvokerHelper.invokeMethod(builder, key, value)`. Consequences already visible in tests and user guidance are:
 
 - a generated `field(value)` method configures a simple field;
 - `setField(value)` directly assigns Builder storage and remains a supported alias;
-- singular/plural collection and map methods are valid keys;
+- relationship operations and singular/plural collection and map adders are valid keys;
+- converters and `copyFrom` are valid keys;
 - an explicit same-named `@Builder.Method` is selected before direct storage;
 - inherited public Builder operations remain callable; and
 - an unknown key becomes `MissingMethodException` unless dynamic Groovy handling supplies it.
+
+These are supported Builder configuration semantics, not an accidental consequence of using `InvokerHelper`: a valid
+named-map key is a public Builder operation callable with exactly one supplied value. The implementation must not
+introduce a second “configuration” versus “infrastructure” eligibility taxonomy.
+
+For example, a fixed-target relationship map intentionally exposes the child Builder's `copyFrom` operation before
+additional closure configuration:
+
+```groovy
+outer {
+    inner(copyFrom: somethingElse) {
+        // additional configuration
+    }
+}
+```
 
 `FromMap` is different: it uses `CopyHandler` and field/copy strategy semantics. It is not part of this plan.
 
@@ -109,9 +126,10 @@ recorded native-IntelliJ result so it does not repeat or pre-empt that work.
 
 1. Characterize native `@NamedParam` behavior in executable Groovy 3/4/5 compiler tests, including source and separately
    compiled consumers.
-2. Build one transformation-time key catalog from the final public target Builder hierarchy. Group one-argument public
-   methods by name and choose a value type that accepts every supported overload; use `Object` when no narrower safe type
-   exists.
+2. Build one transformation-time key catalog from the final public target Builder hierarchy. Include every public
+   operation callable with exactly one supplied value, without classifying operations as “configuration” or
+   “infrastructure.” Group candidates by name and choose a value type that accepts every supported overload; use `Object`
+   when no narrower safe type exists.
 3. Attach repeatable native metadata to the eligible source-shaped `Map` parameter before factory/Builder public
    projection. Preserve public types in annotation class literals.
 4. Assert hidden implementation, public interface, class-file reflection, and AnnoDocimal mirror parity. Do not add a
@@ -125,6 +143,10 @@ recorded native-IntelliJ result so it does not repeat or pre-empt that work.
 - G3/G4/G5 reject one unknown key and one incompatible value with Groovy's native named-argument diagnostic.
 - Inherited field configurators, inherited `@Builder.Method`, `setX`, singular/plural collection aliases, a converter,
   `copyFrom`, and a method-first same-name override are represented.
+- A nested fixed-target call using `inner(copyFrom: somethingElse) { ... }` compiles, invokes the child Builder's
+  `copyFrom` operation through normal dispatch, and permits subsequent closure configuration.
+- Coverage proves key eligibility is derived from the public one-argument Builder contract without a property-based or
+  “configuration”/“infrastructure” filter.
 - An overloaded key accepts every runtime-valid covered value; when necessary its metadata type is `Object`.
 - Map variables and the other generic/custom factory routes, polymorphic selectors, Templates, `Create.AsBuilder`, and
   `FromMap` retain their agreed excluded behavior; computed/spread entries are rejected as documented unsupported static
@@ -132,8 +154,9 @@ recorded native-IntelliJ result so it does not repeat or pre-empt that work.
 - Root and relationship runtime controls prove identical dispatch and completed graphs with and without static compilation.
 - Reflection sees the same `NamedParams` entries on hidden and public methods, and the mirror contains those entries using
   only public types.
-- New tests carry the successor issue number in `@Issue`; user-visible behavior receives a documentary test linked from
-  the updated user page.
+- New tests carry the successor issue number in `@Issue`. A dedicated `NamedMapBuilderOperationsDocumentaryTest`, marked
+  `@Tag("documentary")`, exercises the broad Builder-operation rule and nested `copyFrom` form and links through `@See`
+  to the updated `docs/user/Basics.md` section.
 
 **Commit boundaries:**
 
@@ -142,7 +165,8 @@ recorded native-IntelliJ result so it does not repeat or pre-empt that work.
 2. `Emit conservative metadata from public Builder contracts` — catalog derivation, eligible root/relationship emission,
    and runtime-equivalence coverage.
 3. `Preserve named-map metadata in public mirrors` — public-interface/reflection/AnnoDocimal parity and fixture evidence.
-4. `Document bounded named-map checking` — user guidance and `CHANGES.md`, only if the spike ships.
+4. `Document named maps as Builder calls` — linked documentary coverage, user guidance, and `CHANGES.md`, only if the
+   spike ships.
 
 ### NAMED-DIAG — unknown dynamic-key diagnostic
 
@@ -207,8 +231,12 @@ prototype justifies production work.
 
 ## Documentation and release work
 
-NAMED-META, if shipped, updates the named-parameter section of `docs/user/Basics.md`, links a documentary test, states the
-literal/fixed-target boundary and excluded forms, and adds the 4.1 entry to `CHANGES.md`. NAMED-DIAG updates
+NAMED-META, if shipped, adds a “Named-map Builder calls” section under factory construction in `docs/user/Basics.md`,
+links `NamedMapBuilderOperationsDocumentaryTest` to it with `@See`, states the literal/fixed-target boundary and excluded
+forms, and adds the 4.1 entry to `CHANGES.md`. That user page and documentary test must teach that each named-map entry is
+a normal one-argument Builder method call, not a field/property assignment. The examples cover a generated field
+configurator, a relationship operation/adder, a converter, inherited and explicit `@Builder.Method` operations, `setX`,
+and nested `inner(copyFrom: somethingElse) { ... }` configuration. NAMED-DIAG updates
 `docs/user/Exception-Handling.md` and the same release section. NAMED-IDE updates `docs/user/Gradle-Onboarding.md` and the
 FAQ only with manually verified behavior. NAMED-DSLD owns any later Eclipse documentation and must not retrofit an
 unverified parity statement into the earlier slices.
@@ -244,6 +272,8 @@ the product decision.
 | literal `Foo.Create.With` safety | NAMED-META |
 | fixed-target relationship safety | NAMED-META |
 | method-first, inheritance, aliases, overload safety | NAMED-META |
+| Builder-call rather than property-assignment semantics | NAMED-META |
+| `copyFrom` and other public one-argument Builder operations as intentional keys | NAMED-META |
 | public/hidden/mirror annotation propagation | NAMED-META |
 | Groovy 3/4/5 source and binary controls | NAMED-META |
 | no lifecycle/dispatch/runtime behavior change from metadata | NAMED-META |

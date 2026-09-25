@@ -20,16 +20,30 @@ Parent decisions:
 
 ## Context
 
-Named-map configuration is an established shorthand for invoking one-argument methods on an active Builder. Root
-`Foo.Create.With(name: value)` calls and generated relationship creators both pass the map to
-`InternalKlumBuilder.applyNamedParameters`. That method invokes each key as a method name through Groovy's normal dynamic
-dispatch. It does not copy map entries directly into Model fields.
+Named-map configuration is established syntax for a sequence of ordinary one-argument calls on an active Builder. Each
+`key: value` entry means “invoke `key(value)` through normal Builder dispatch”; it is not a property assignment and does
+not imply that `key` names a Model field. Root `Foo.Create.With(name: value)` calls and generated relationship creators
+both implement that semantic through `InternalKlumBuilder.applyNamedParameters`, preserving map order and Groovy method
+selection.
 
-The resulting contract is broader than a list of writable Model fields. It includes generated field configurators,
-explicit `setX` aliases, singular and plural collection/map adders, converters, explicit `@Builder.Method` operations,
-and inherited public Builder operations. An explicit same-named Builder method wins through normal method resolution. The
-`setX` spelling remains the direct-storage escape hatch when a same-named method intentionally overrides field
-configuration.
+The resulting contract intentionally includes every public Builder operation callable with exactly one supplied value:
+generated field configurators, explicit `setX` aliases, relationship operations and adders, converters, `copyFrom`,
+inherited operations, and explicit one-argument `@Builder.Method`s. An explicit same-named Builder method wins through
+normal method resolution. The `setX` spelling remains the direct-storage escape hatch when a same-named method
+intentionally overrides field configuration.
+
+This makes `copyFrom` useful intentional named-map syntax rather than an incidental implementation leak:
+
+```groovy
+outer {
+    inner(copyFrom: somethingElse) {
+        // additional configuration
+    }
+}
+```
+
+Here `copyFrom: somethingElse` invokes the child Builder's ordinary `copyFrom(somethingElse)` operation. The following
+closure continues configuring that same child through the established relationship-creator semantics.
 
 Static Groovy callers currently see only `Map<String, ?>`, so literal keys and values receive no schema-specific check.
 Dynamic Model and Grape scripts are intentionally not type checked; an unknown key currently escapes as a low-level
@@ -85,9 +99,15 @@ map iteration order, lifecycle phases, ownership, materialization, serialization
 ### Derive keys from the public Builder contract
 
 For each eligible target, the compiler derives a key catalog from the final public generated
-`Target_DSL.Builder<Target>` contract, including inherited Builder interfaces. A key is a public Builder method name that
-normal Groovy dispatch can call with exactly one supplied value. This intentionally includes supported aliases already
-present in the public contract rather than reconstructing a second field-based vocabulary.
+`Target_DSL.Builder<Target>` contract, including inherited Builder interfaces. The rule is deliberately broad and exact:
+
+> A valid named-map key is a public Builder operation callable with exactly one supplied value.
+
+The catalog therefore describes supported Builder configuration semantics, not Model properties. It includes generated
+field configurators, `setX` aliases, relationship operations/adders, converters, `copyFrom`, inherited operations, and
+explicit one-argument `@Builder.Method`s. No separate eligibility taxonomy distinguishes “configuration” from
+“infrastructure” methods: the generated public Builder contract plus normal one-argument dispatch is the single source of
+truth.
 
 Candidates with the same name are grouped. Metadata may state a precise value type only when that type accepts every
 currently valid one-argument overload for the key under the supported Groovy static checker. Otherwise it uses a safe
@@ -164,7 +184,8 @@ Builder dispatch.
 contracts and is unnecessary unless a later ADR explicitly replaces the native-metadata approach.
 
 **Infer keys from Model fields only.** This would omit method-first overrides, inherited Builder members, aliases,
-collection/map adders, converters, and explicit Builder operations that runtime already accepts.
+relationship operations/adders, converters, `copyFrom`, and explicit Builder operations that the named-map contract
+intentionally accepts.
 
 **Analyze every `Map` accepted by any Factory method.** Custom factories, import maps, polymorphic selection, and map
 variables have different or unresolved target contracts and are outside the bounded use case.
