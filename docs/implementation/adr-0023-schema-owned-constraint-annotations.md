@@ -3,8 +3,8 @@
 This is the implementation plan for the accepted field contract in
 [ADR 0023](../adr/0023-schema-owned-constraint-annotations.md), related to
 [#799](https://github.com/klum-dsl/klum-ast/issues/799). No production behavior or tracker state changes here.
-S0 gates the public API signature and production implementation. The accepted scope covers owned, `LINK`, and
-`OPTIONAL_LINK` relationships; combination with defaults is optional.
+S0 has selected the annotation member encoding and still gates production implementation. The accepted scope covers
+owned, `LINK`, and `OPTIONAL_LINK` relationships; combination with defaults is optional.
 
 ## Confirmed behavior and failure paths
 
@@ -31,18 +31,50 @@ test was removed after the run, leaving this design branch documentation-only.
 An earlier version using a typed `@Validate` closure on `LINK` fields failed despite successful Schema compilation:
 the generated closure expected `LinkNode$Builder`, while `VALIDATE` passed `LinkNode`; the resulting
 `MissingMethodException` was attributed to source members `first` and `second` in the owner result. This establishes
-both completed value availability and a real typed-closure compatibility risk. It does **not** prove that the proposed
-new meta-annotation callback compiles or runs, nor does it prove Groovy 4/5 or JPMS. S0 must test those before API freeze.
+both completed value availability and a real typed-closure compatibility risk. At that point it did **not** prove that
+the proposed meta-annotation callback compiled or ran across Groovy 4/5 or JPMS; the committed S0 proof below supplies
+that evidence.
+
+### Committed S0 compatibility proof
+
+`ConstraintCallbackProbeTest` proves a test-only runtime-retained meta-annotation member encoded as
+`Class<?> value()`, with an authored `(concreteAnnotation, declaredModelType)` closure. It receives
+completed Models at owner `VALIDATE` for owned, external `LINK`, same-root `LINK`, and `OPTIONAL_LINK` fields. The
+parameter remains the authored Model type rather than being rewritten to a Builder. A supertype target parameter
+(`Object`) works. A test-only semantic-analysis guard rejects a narrower `KafkaPool` parameter for a declared `Pool`
+field, both in same-source and separately compiled annotation consumers. Null optional values skip evaluation;
+external target identity, model path, validation count, and stored result remain unchanged. Reflection confirms the
+annotation member's exact generic return type is `java.lang.Class<?>`, with no Groovy type in its signature.
+
+The extended `JpmsPackageBoundaryTest` separately compiles the Schema and Java consumer, reflects the concrete
+annotation and closure class, and invokes the callback on the Groovy 3/4/5 classpath and in Groovy 4/5 named modules.
+The callback class, annotation, and Model have the Schema's loader and module, without additional module opens. The
+three `:klum-ast` test lanes passed. The public marker name remains provisional; the annotation member encoding is
+selected. This proof is non-shipping and has no production compiler check or evaluator.
+
+The closure class-literal encoding is selected over `BiFunction`: its generic arguments erase at the annotation
+boundary, and it does not encode Klum validation semantics. `Class<?>` preserves the authored closure literal, so no
+rule interface is needed. If this form fails in a later compiler case, test a purpose-specific JDK-only
+`ConstraintRule<A,T>` fallback and return for a maintainer decision before adding production API.
 
 ## Affected seams and compatibility constraints
 
-- `klum-ast-annotations`: proposed runtime-retained marker in exported schema vocabulary. Leave `@DefaultValues`
-  unchanged in the core slices. Keep the annotation artifact independent of runtime and do not add a transitive Groovy
-  dependency. Decide package placement against the root versus `.layer3` ownership documented in ADR 0014.
-- `klum-ast`: compile-time placement and signature checks through existing KlumCast validator patterns. Reject unsupported
-  field target types, non-DSL containing classes, and invalid closure signatures with useful diagnostics. Determine the
+- `klum-ast-annotations`: proposed runtime-retained marker in exported schema vocabulary with the selected
+  `Class<?> value()` member. The public marker name remains provisional. Leave `@DefaultValues`
+  unchanged in the core slices. Keep the annotation artifact independent of runtime and add no Groovy dependency for
+  this marker. Decide package placement against the root versus `.layer3` ownership documented in ADR 0014.
+- `klum-ast`: compile-time placement and signature checks through `@KlumCastValidated`, `@KlumCastValidator`, and a
+  KlumAST-owned `Check` using `CheckContext`, analogous to `DefaultValuesCheck`. Do not change KlumCast or create a
+  KlumCast issue unless S1 demonstrates that the generic context is insufficient. Reject a non-closure class literal,
+  unsupported field target types, non-DSL containing classes, and invalid authored two-parameter signatures with useful
+  diagnostics. Determine the
   target parameter's assignability from the declared relationship target type, never from a resolved runtime subtype;
-  reject a callback requiring a narrower subtype during Schema compilation.
+  reject a callback requiring a narrower subtype during Schema compilation. Inspect the authored closure's two typed
+  parameters without the existing `@Validate` field closure's Builder projection. Accept a single Groovy-truth
+  expression by converting it to an assertion, and retain authored assertions and their messages. After conversion,
+  normal completion of either form succeeds regardless of return value; false truth expressions and failed assertions
+  contribute their assertion messages. Preserve the validation reporter context so callback reporter calls can add
+  issues even on normal completion.
 - `klum-ast-runtime`: evaluate resolved field values in the existing `KlumFieldAnnotationsValidator` or a similarly
   narrow owner-scoped validator during `VALIDATE`. Preserve `InstanceValidator` and `KlumObjectSupport` signatures,
   phase numbers, source-model validator memoization, and companion privacy. No relationship mutation or target lifecycle
@@ -58,7 +90,7 @@ new meta-annotation callback compiles or runs, nor does it prove Groovy 4/5 or J
 
 | Label | Contract and reasoned commit boundary | Executable acceptance |
 | --- | --- | --- |
-| **CONSTRAINT-S0 — callback and resolved-link proof** | Add a narrow, non-shipping probe for a runtime-retained field domain annotation carrying a typed two-parameter closure on its meta-annotation. Inspect an owner Model's completed fields at `VALIDATE`: owned child, completed external `LINK`, `LINK` to a same-root model, and `OPTIONAL_LINK` with owned, external, and null/unresolved cases. For both owned and `LINK` fields declared as abstract `Pool` but resolving to completed `KafkaPool extends Pool`, prove callback target typing against the declared `Pool`: accept `(PoolBounds, Pool)`, reject `(PoolBounds, KafkaPool)` at Schema compilation, and test an appropriate supertype if supported by the selected callback form. Test field reflection, source compilation, separately compiled consumer loading, closure invocation, and Groovy 3/4/5 plus 4/5 JPMS as appropriate. If the closure fails, test the accepted typed-rule-class fallback to the same standard. Record the selected public name/signature, supported supertype behavior, and proof in ADR 0023 before S1; if neither works narrowly, report the smallest alternate seam/cost and stop. | Three-lane compilation/execution; separate binary consumer; no module-access exception. The callback receives the completed subtype Model through a parameter assignable from the **declared** relationship target type, regardless of the observed subtype. A narrower callback fails Schema compilation for both owned and `LINK` fields, even when the test value is that subtype. Values are resolved when the source owner validates; null/unresolved optional values skip only the constraint. Target identity, ownership, lifecycle execution count, and target validation result are unchanged by checking the link. |
+| **CONSTRAINT-S0 — callback and resolved-link proof** | Add a narrow, non-shipping probe for a runtime-retained field domain annotation carrying a typed two-parameter closure on its meta-annotation. Inspect an owner Model's completed fields at `VALIDATE`: owned child, completed external `LINK`, `LINK` to a same-root model, and `OPTIONAL_LINK` with owned, external, and null/unresolved cases. For both owned and `LINK` fields declared as abstract `Pool` but resolving to completed `KafkaPool extends Pool`, prove callback target typing against the declared `Pool`: accept `(PoolBounds, Pool)`, reject `(PoolBounds, KafkaPool)` at Schema compilation, and test an appropriate supertype if supported by the selected callback form. Test field reflection, source compilation, separately compiled consumer loading, closure invocation, and Groovy 3/4/5 plus 4/5 JPMS as appropriate. If the `Class<?>` closure-literal form fails, test a purpose-specific JDK-only `ConstraintRule<A,T>` fallback to the same standard and return for a maintainer decision. Record the selected member encoding, supported supertype behavior, and proof in ADR 0023; leave the public marker name to S1. | Three-lane compilation/execution; separate binary consumer; no module-access exception. The callback receives the completed subtype Model through a parameter assignable from the **declared** relationship target type, regardless of the observed subtype. A narrower callback fails Schema compilation for both owned and `LINK` fields, even when the test value is that subtype. Values are resolved when the source owner validates; null/unresolved optional values skip only the constraint. Target identity, ownership, lifecycle execution count, and target validation result are unchanged by checking the link. |
 | **CONSTRAINT-S1 — owner-field rule across all relationship kinds** | Add the marker, KlumCast placement/signature validation, and a field-sourced evaluator in the existing owner `InstanceValidator` path in one vertical commit with tests. Keep it independent of `@Validate.Ignore`. Reject scalar/non-DSL placement while accepting owned, LINK, and OPTIONAL_LINK relationships. | `@Issue("799")` `ConstraintValuesTest`: owned, LINK, and OPTIONAL_LINK fields accept valid resolved values and reject invalid values on the **source owner's** result/path with the source field member, concrete constraint name, message, and level. Two annotated fields referencing the same target yield two distinct source-field failures; the target result/lifecycle/identity is unchanged. Verify `skipVerify`, later `verify()`, null/unresolved optional skip, separate `@Required` behavior, and no added Model property/generated signature. |
 | **CONSTRAINT-S2 — collection, lifecycle and adapter depth** | Extend the same owner-field evaluator across collection/map entries and late value sources. Keep each coherent behavior with its passing tests in a reasoned commit. | Per-entry index/key appears in the message while member remains the source field; repeated same target at two list positions remains distinguishable in the stored result. Cover owned/LINK/OPTIONAL_LINK collections and maps, same-root link cycles, late `@PostTree` values, external Jackson import after resolution, optional Bean Validation coexistence, and no revalidation of an external target. Existing `DefaultValuesSpec` stays green without production changes. |
 | **CONSTRAINT-S3 — documentation and consumer proof** | Add one readable `ConstraintValuesDocumentaryTest` with `@Issue("799")`, `@Tag("documentary")`, and `@See` to `docs/user/Validation.md`; update that page, cross-link from `docs/user/Default-Values.md`, and update `CHANGES.md` together. Include a separate consumer reflection/JPMS fixture as needed. | Documentary example uses two domain annotations on one field and matches current docs. Reflection exposes marker and concrete bounds from a compiled Schema field; generated source-mirror task output and bytecode remain unchanged. Run `:klum-ast:test`, `:klum-ast:groovy4Tests`, `:klum-ast:groovy5Tests` and affected module tests; run `git diff --check` and documentation checks. |
@@ -77,20 +109,18 @@ decision. #799 can own S0–S3. S4 is optional and may be a separate successor o
 choose it. No successor issue is created by this plan. Each partial pull request must be related to #799 rather than
 automatically close it.
 
-The primary risk is Groovy annotation closure encoding and completed-Model parameter typing across 3/4/5 and JPMS;
-the temporary Groovy 3 probe demonstrates a Builder-typed `@Validate` closure mismatch that the new callback must not
-inherit. S0 must also prevent a callback narrowed to one runtime subtype from compiling against a base-typed Schema
-relationship. Resolved external LINK/OPTIONAL_LINK values were readable in that probe, but same-root, collection,
-Groovy 4/5, and named-module behavior still need S0/S1 proof. The source-field implementation pays one annotation/field
-scan per owner and
-one callback per resolved annotated relationship entry, including repeated references; its cost is proportional to
+S0 has retired the primary closure-encoding risk across Groovy 3/4/5 and the applicable named-module lanes. The older
+Groovy 3 `@Validate` field closure still demonstrates the Builder-type mismatch that S1 must avoid. The test-only S0
+guard proves declared-target rejection but is not production KlumCast validation. S1 still needs the actual marker,
+compiler diagnostics, both `@Validate` closure forms, reporter compatibility, and runtime issue attribution; S2 retains
+collection/map and adapter depth. The source-field implementation pays one annotation/field scan per owner and one
+callback per resolved annotated relationship entry, including repeated references; its cost is proportional to
 annotated source entries and must be measured if a Schema uses large annotated collections. No target traversal,
 ownership transfer, or lifecycle replay is part of the proposed mechanism. Accidental defaulting from mixed annotation
 attributes remains a **follow-up risk only**; S1–S3 use separate annotations, so `@DefaultValues` needs no change.
 Runtime reflection is a deliberately minimal metadata surface; a tooling catalog is deferred until there is a consumer.
 The historical source-mirror path is an IDE projection of generated contracts, not a second Schema annotation authority.
 
-Implementation stops if S0 cannot prove resolved link values and a typed completed-Model callback across the required
-lanes using either the preferred closure or accepted rule-class fallback. Report the smallest alternate seam/cost before
-production APIs. Source-owner path/field attribution is accepted; the example marker name/signature remains provisional
-until S0 records its final form in ADR 0023.
+The S0 gate has passed with the JDK-only `Class<?>` annotation member. Source-owner path/field
+attribution is accepted; the example marker name remains provisional for S1. If S1 finds the generic KlumCast
+`CheckContext` insufficient, report the smallest missing context and cost before proposing a KlumCast change or issue.
