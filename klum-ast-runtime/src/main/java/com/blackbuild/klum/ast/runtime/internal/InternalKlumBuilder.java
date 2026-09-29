@@ -643,8 +643,6 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         try {
             // Groovy scripts can load a separate MissingMethodException class; inspect its public API across classloaders.
             Class<?> exceptionType = findMissingMethodExceptionType(exception.getClass());
-            if (exceptionType == null)
-                return false;
             String missingMethod = (String) exceptionType.getMethod("getMethod").invoke(exception);
             Class<?> receiverType = (Class<?>) exceptionType.getMethod("getType").invoke(exception);
             String receiverName = receiverType.getName();
@@ -670,6 +668,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return false;
     }
 
+    /**
+     * Finds Groovy's exception type by binary name because scripts can load it through an isolated classloader.
+     */
+    @SuppressWarnings("java:S1872")
     private Class<?> findMissingMethodExceptionType(Class<?> type) {
         for (Class<?> current = type; current != null; current = current.getSuperclass())
             if (current.getName().equals(MissingMethodException.class.getName()))

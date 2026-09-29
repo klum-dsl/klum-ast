@@ -153,6 +153,29 @@ class NamedMapDiagnosticTest extends AbstractDSLSpec {
     }
 
     @Issue("794")
+    def "does not translate a configurator MissingMethodException without dispatch frames"() {
+        given:
+        createClass '''
+            @DSL class Deployment {
+                @Builder.Method
+                void configureWithoutStack(String value) {
+                    MissingMethodException failure = new MissingMethodException('configureWithoutStack', this.class, [value] as Object[])
+                    failure.setStackTrace(new StackTraceElement[0])
+                    throw failure
+                }
+            }
+        '''
+
+        when:
+        clazz.Create.With([configureWithoutStack: 'catalog'])
+
+        then:
+        def error = thrown(MissingMethodException)
+        error.method == 'configureWithoutStack'
+        error.stackTrace.length == 0
+    }
+
+    @Issue("794")
     def "named maps retain ordinary dispatch and partial application before a later unknown key"() {
         given:
         createClass '''
