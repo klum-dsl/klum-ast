@@ -42,6 +42,7 @@ import java.util.jar.JarOutputStream
 @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Grab-Model-Scripts.md#run-a-connected-local-model")
 class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
 
+    @Issue("794")
     def "runs a standalone Model script against a separately compiled Schema"() {
         given:
         createClass '''
@@ -73,6 +74,7 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
         modelScript.text = '''
             @Grab('com.example.platform:deployment-schema:1.4.2')
             import com.example.platform.Deployment
+            import com.blackbuild.klum.ast.runtime.KlumModelException
 
             def initialClasspath = System.getProperty('java.class.path').split(File.pathSeparator) as List
             assert initialClasspath.size() == 2
@@ -89,6 +91,17 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
 
             assert deployment.service.image == 'catalog:1.0'
             assert Deployment.classLoader.getResource('deployment-support.marker')
+
+            try {
+                Deployment.Create.With('catalog') {
+                    service(nmae: 'catalog:1.0')
+                }
+                assert false: 'an unknown named-map key must fail'
+            } catch (KlumModelException error) {
+                assert error.message.contains("Unknown named-map Builder call 'nmae'")
+                assert error.message.contains('Model com.example.platform.Service')
+                assert error.cause.class.name == 'groovy.lang.MissingMethodException'
+            }
             println "STANDALONE_GRAB_OK:${deployment.name}:${deployment.service.image}"
         '''
 

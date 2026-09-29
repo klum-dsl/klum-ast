@@ -43,6 +43,7 @@ import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
+import groovy.lang.MissingMethodException;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Reference;
 import groovy.lang.Script;
@@ -608,8 +609,77 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private void applyNamedParameters(Map<String, ?> values) {
-        if (values != null)
-            values.forEach((key, value) -> InvokerHelper.invokeMethod(this, key, value));
+        if (values == null)
+            return;
+        for (Map.Entry<String, ?> entry : values.entrySet())
+            applyNamedParameter(entry.getKey(), entry.getValue());
+    }
+
+    private void applyNamedParameter(String key, Object value) {
+        try {
+            InvokerHelper.invokeMethod(this, key, value);
+        } catch (RuntimeException exception) {
+            RuntimeException missingMethod = exception;
+            if (findMissingMethodExceptionType(missingMethod.getClass()) == null) {
+                Throwable cause = exception.getCause();
+                if (!(cause instanceof RuntimeException)
+                        || findMissingMethodExceptionType(cause.getClass()) == null)
+                    throw exception;
+                missingMethod = (RuntimeException) cause;
+            }
+            if (!isNamedParameterDispatchFailure(missingMethod, key))
+                throw exception;
+            throw new KlumModelException(format(
+                    "Unknown named-map Builder call '%s' for Model %s. Each named-map entry calls a public Builder method with exactly one argument.",
+                    key, modelType.getName()), missingMethod);
+        }
+    }
+
+    private boolean isNamedParameterDispatchFailure(RuntimeException exception, String key) {
+        if (key == null)
+            return false;
+        StackTraceElement[] stack = exception.getStackTrace();
+        if (!hasNamedMapDispatchOrigin(stack))
+            return false;
+        try {
+            // Groovy scripts can load a separate MissingMethodException class; inspect its public API across classloaders.
+            Class<?> exceptionType = findMissingMethodExceptionType(exception.getClass());
+            String missingMethod = (String) exceptionType.getMethod("getMethod").invoke(exception);
+            Class<?> receiverType = (Class<?>) exceptionType.getMethod("getType").invoke(exception);
+            String receiverName = receiverType.getName();
+            return key.equals(missingMethod)
+                    && (receiverName.equals(modelType.getName())
+                    || receiverName.equals(modelType.getName() + "$Builder")
+                    || receiverName.equals(getClass().getName()));
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
+    private boolean hasNamedMapDispatchOrigin(StackTraceElement[] stack) {
+        for (StackTraceElement frame : stack) {
+            String className = frame.getClassName();
+            String methodName = frame.getMethodName();
+            if (className.startsWith("java.") || className.startsWith("org.codehaus.groovy.")
+                    || className.startsWith("groovy.lang."))
+                continue;
+            boolean namedParameterDispatch = className.equals(InternalKlumBuilder.class.getName())
+                    && methodName.equals("applyNamedParameter");
+            boolean builderMethodMissing = methodName.equals("methodMissing") && className.endsWith("$Builder");
+            return namedParameterDispatch || builderMethodMissing;
+        }
+        return false;
+    }
+
+    /**
+     * Finds Groovy's exception type by binary name because scripts can load it through an isolated classloader.
+     */
+    @SuppressWarnings("java:S1872")
+    private Class<?> findMissingMethodExceptionType(Class<?> type) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass())
+            if (current.getName().equals(MissingMethodException.class.getName()))
+                return current;
+        return null;
     }
 
     /**
