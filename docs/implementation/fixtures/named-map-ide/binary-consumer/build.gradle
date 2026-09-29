@@ -1,0 +1,13 @@
+plugins {
+    id 'groovy'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation "com.blackbuild.klum.ast:named-map-ide-schema:${klumVersion}"
+    implementation 'org.codehaus.groovy:groovy:3.0.25'
+}
