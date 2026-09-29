@@ -1,0 +1,4 @@
+schema/.gradle/
+schema/build/
+binary-consumer/.gradle/
+binary-consumer/build/

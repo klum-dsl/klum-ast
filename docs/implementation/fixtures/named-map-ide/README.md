@@ -43,7 +43,8 @@ Record **Help → About** exactly, including product build number. In both build
 commands above. For each call shape, record completion, value type help, and inspection feedback separately:
 
 1. In `schema/src/main/groovy/ideacceptance/SameProjectClient.groovy`, invoke completion inside each literal map and
-   record whether the expected keys appear. Use Quick Documentation / parameter information on `precise`,
+   record whether the expected keys appear, including both `title` and `setTitle` where both public Builder operations
+   are available. Use Quick Documentation / parameter information on `precise`,
    `overloaded`, and `mode` to record the type IntelliJ presents.
 2. Temporarily replace a valid key with `unknownNamedKey` and then pass an integer to `precise`. Record whether each
    produces immediate editor feedback at that map entry. Restore the valid source afterward.

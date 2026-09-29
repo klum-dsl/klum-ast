@@ -6,8 +6,8 @@ import groovy.transform.CompileStatic
 class SameProjectClient {
     static Catalog root() {
         Catalog.Create.With(name: 'root') {
-            primary(title: 'single child')
-            listed(title: 'collection child')
+            primary(title: 'single child', setTitle: 'single child')
+            listed(title: 'collection child', setTitle: 'collection child')
         }
     }
 
@@ -15,6 +15,7 @@ class SameProjectClient {
         Item.Create.With(
                 inherited: 'inherited field',
                 inheritedOperation: 'inherited method',
+                title: 'DSL method',
                 setTitle: 'setter alias',
                 mode: 7,
                 precise: 'text',
