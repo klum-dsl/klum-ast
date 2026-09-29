@@ -3,8 +3,10 @@
 ## Status
 
 Repository preparation and automated evidence are complete. The available IntelliJ installation is 2026.2.3, build
-`IU-262.10968.63` (About dialog observed on 2026-09-29). Native editor observation is pending for both fixture shapes.
-No completion, type-help, or inspection result is claimed here yet.
+`IU-262.10968.63` (About dialog observed on 2026-09-29). The maintainer tested the same-project source-mirror fixture
+for root, fixed single-child, and fixed collection-child calls. Completion works for all three; Quick Documentation
+shows nothing; unknown keys and wrong values show no IDE errors, although compilation rejects them; and the
+map-variable exclusion control works. Binary-consumer behavior remains unobserved.
 
 ## Fixture
 
@@ -34,12 +36,13 @@ behavior.
 
 | Fixture shape | Call shape | IntelliJ build | Completion | Value type help | Unknown key / wrong value inspection | Exclusion control |
 | --- | --- | --- | --- | --- | --- | --- |
-| Same-project source mirror | Root | IU-262.10968.63 | Pending | Pending | Pending | Pending |
-| Same-project source mirror | Fixed single child | IU-262.10968.63 | Pending | Pending | Pending | Pending |
-| Same-project source mirror | Fixed collection child | IU-262.10968.63 | Pending | Pending | Pending | Pending |
+| Same-project source mirror | Root | IU-262.10968.63 | Works | Quick Documentation empty | No IDE error; compilation rejects invalid key/value | Works |
+| Same-project source mirror | Fixed single child | IU-262.10968.63 | Works | Quick Documentation empty | No IDE error; compilation rejects invalid key/value | Works |
+| Same-project source mirror | Fixed collection child | IU-262.10968.63 | Works | Quick Documentation empty | No IDE error; compilation rejects invalid key/value | Works |
 | Clean binary consumer | Root | IU-262.10968.63 | Pending | Pending | Pending | Pending |
 | Clean binary consumer | Fixed single child | IU-262.10968.63 | Pending | Pending | Pending | Pending |
 | Clean binary consumer | Fixed collection child | IU-262.10968.63 | Pending | Pending | Pending | Pending |
 
-The installed build is recorded; each result cell must be filled after manually exercising that call shape in the stated
-fixture. A GDSL change remains unjustified until the record demonstrates a specific native gap.
+The installed build is recorded. Source-mirror behavior is a maintainer report; binary-consumer result cells remain
+pending. The source-mirror report identifies a specific native gap in type help and immediate invalid-key/value
+feedback; any GDSL response must be scoped to the public generated contract and kept separate from the evidence commit.
