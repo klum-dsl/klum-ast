@@ -1,0 +1,22 @@
+plugins {
+    id 'com.blackbuild.klum-ast-schema'
+    id 'maven-publish'
+}
+
+group = 'com.blackbuild.klum.ast'
+version = '797.0'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+klumSchema {
+    groovyVersion = 3
+}
+
+publishing {
+    repositories {
+        mavenLocal()
+    }
+}
