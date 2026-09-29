@@ -122,6 +122,70 @@ class ConstraintValuesTest extends AbstractDSLSpec {
         !getBuilderClass(planType.name).methods*.name.any { it.toLowerCase().contains('constraint') }
     }
 
+    def 'multiple domain constraints on one relationship each report their own failure'() {
+        given:
+        createNonDslClass '''
+            package constraints
+
+            import com.blackbuild.klum.ast.*
+            import java.lang.annotation.*
+
+            @ConstraintValues({ MinimumSlots minimum, Pool pool ->
+                Pool.minimumChecks++
+                assert pool.slots >= minimum.value() : 'too few slots'
+            })
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.FIELD)
+            @interface MinimumSlots { int value() }
+
+            @ConstraintValues({ MaximumSlots maximum, Pool pool ->
+                Pool.maximumChecks++
+                assert pool.slots <= maximum.value() : 'too many slots'
+            })
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.FIELD)
+            @interface MaximumSlots { int value() }
+
+            @DSL class Pool {
+                static int minimumChecks
+                static int maximumChecks
+                static int validationCount
+                int slots
+                @Validate void countValidation() { validationCount++ }
+            }
+
+            @DSL class Plan {
+                @MinimumSlots(10) @MaximumSlots(5) @Field(FieldType.LINK) Pool pool
+            }
+        '''
+        def planType = getClass('constraints.Plan')
+        def poolType = getClass('constraints.Pool')
+        def target = poolType.Create.With { slots 7 }
+        int validationsBefore = poolType.validationCount
+        def targetResult = KlumObjectSupport.of(target).validation.result
+        def targetIssues = targetResult.issues.toList()
+        def targetPath = KlumObjectSupport.of(target).modelPath
+        sysProps.set('klum.validation.skipVerify', 'true')
+
+        when:
+        def plan = planType.Create.With { delegate.pool = target }
+        def issues = KlumObjectSupport.of(plan).validation.result.issues.toList()
+
+        then:
+        plan.pool.is(target)
+        poolType.minimumChecks == 1
+        poolType.maximumChecks == 1
+        issues.size() == 2
+        issues*.member == ['pool', 'pool']
+        issues.every { it.level.name() == 'ERROR' && it.breadcrumbPath.contains('Plan') }
+        issues.count { it.message.contains('MinimumSlots') && it.message.contains('too few slots') } == 1
+        issues.count { it.message.contains('MaximumSlots') && it.message.contains('too many slots') } == 1
+        poolType.validationCount == validationsBefore
+        KlumObjectSupport.of(target).validation.result.is(targetResult)
+        targetResult.issues.toList() == targetIssues
+        KlumObjectSupport.of(target).modelPath == targetPath
+    }
+
     def 'null optional relationships skip constraints and reporter calls do not invert normal completion'() {
         given:
         createNonDslClass '''
