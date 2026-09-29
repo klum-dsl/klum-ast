@@ -17,8 +17,8 @@ and [ADR 0014](0014-groovy4-jpms-boundary.md).
 ## Context
 
 `@DefaultValues` lets a Schema Developer place domain-specific, runtime-retained annotations on a `@DSL` class or an
-owned child field. Its field use configures the **child DSL Object**, including each element of a composition collection or
-map. Its current implementation applies *every nondefault annotation member* as a default. A single domain annotation
+owned child field. Its field use configures a constructed child DSL Object. Its current implementation applies *every
+nondefault annotation member* as a default. A single domain annotation
 containing both `slots` and `minSlots`/`maxSlots` would incorrectly attempt to write the bounds as defaults. The
 maintainer has clarified that a constraint annotation on a Schema field is the required outcome; a combined defaults and
 constraints annotation is desirable but optional. Two domain annotations on the same field are acceptable.
@@ -27,30 +27,39 @@ constraints annotation is desirable but optional. Two domain annotations on the 
 the model declaration and cannot receive attributes of a distinct domain annotation instance. The optional Jakarta Bean
 Validation adapter has its own constraint vocabulary and dependency. Neither gives #799 a Klum-owned metadata source for
 domain annotations without an added model property. ADR 0003 fixes the relevant lifecycle: defaults and `@PostTree` run
-on Builders, materialization follows, and `VALIDATE` runs on completed DSL Objects. The completed-model traversal already
-has the owning container and field name for each owned child; validation issues already store object path, member, message,
-and level.
+on Builders, materialization follows, and `VALIDATE` runs on completed DSL Objects. The core field validator already
+iterates each completed Model's declared fields and reads their resolved values by reflection. In contrast, composition
+traversal skips `LINK` fields, so a child-visit-only design would miss a primary use case. Validation issues already store
+object path, member, message, and level.
 
 ## Proposed decision, subject to the gates below
 
 ### Keep the annotation on the Schema
 
 Add a public, runtime-retained meta-annotation (working name `@ConstraintValues`) in the annotations artifact. A Schema
-Developer places it on a runtime-retained domain annotation used on an owned DSL relationship field. The *concrete domain
-annotation instance* and the completed child DSL Object are inputs to one rule, once per child for a collection or map.
-A missing child has no target and is left to `@Required`/`@Validate`. `LINK` and `OPTIONAL_LINK` fields, scalar fields,
+Developer places it on a runtime-retained domain annotation used on a DSL relationship field: owned composition,
+`LINK`, or `OPTIONAL_LINK`. The *concrete domain annotation instance* and the completed, resolved field value are inputs
+to one rule. Collections and maps are evaluated per non-null DSL Object element. A null or unresolved optional value
+has no target and causes no constraint evaluation; presence is a separate `@Required`/`@Validate` concern. Scalar fields,
 methods, packages, class declarations, and arbitrary nested annotation chains are outside the first contract. The
 compiler should reject unsupported placements rather than produce a runtime surprise. Class-declaration support may be
 considered after the field contract is proven; it is not a condition for the first 4.1 slice.
 
 The narrow syntax probe is a typed Groovy closure on the meta-annotation, receiving `(domainAnnotation, completedModel)`;
 its assertion message supplies the failure reason. A runtime helper would invoke it under the current validation context
-and convert a failed assertion or exception to a normal `KlumValidationIssue`, using the target object's path and the
-concrete constraint annotation's name as the member. The existing reporter can remain available inside the callback for
-advanced messages. This reuses the present `@Validate` closure/result semantics. The closure encoding, self-referential
+and convert a failed assertion or exception to a normal `KlumValidationIssue` on the **source owner Model's** result,
+with its existing path and the annotated field as member. The message identifies the concrete constraint annotation and
+the failing assertion; for collections/maps it also identifies the entry index/key. This is relationship-local validation:
+two annotated fields pointing to the same completed object are evaluated independently and produce issues under their
+respective source fields. The rule reads the linked target without mutating, owning, or rerunning its lifecycle or
+validators. The existing reporter can remain available inside the callback for advanced messages. This reuses the
+present `@Validate` assertion/exception result semantics. The closure encoding, self-referential
 annotation type, classloader behavior, and parameter typing must pass the S0 Groovy 3/4/5 source-and-binary probe before
 the API name or signature is accepted. If that probe fails, a typed rule class in the existing public runtime validation
-package is the bounded fallback; an expression language is not.
+package is the bounded fallback; an expression language is not. A focused Groovy 3 probe of existing `@Validate` on a
+`LINK` field compiled a typed closure to accept the target's **Builder**, then passed a completed Model at validation,
+causing a method-signature issue. The new meta-annotation must prove completed-Model parameter typing independently;
+merely wrapping the existing field-closure path is insufficient evidence.
 
 The proposed schema shape is intentionally domain-neutral and provisional. Separate domain annotations satisfy the
 required behavior without changing `@DefaultValues`:
@@ -79,6 +88,10 @@ required behavior without changing `@DefaultValues`:
     @PoolDefaults(slots = 8)
     @PoolBounds(minSlots = 5, maxSlots = 10)
     Pool pool
+
+    @Field(FieldType.LINK)
+    @PoolBounds(minSlots = 5, maxSlots = 10)
+    Pool sharedPool
 }
 ```
 
@@ -96,14 +109,26 @@ and semantics are undecided and do not gate the field constraint feature.
 ### Run in the existing validation lifecycle
 
 The constraint evaluator belongs in the existing `VALIDATE` action, after all ordinary/default/external configuration and
-materialization. It must consume the traversal's owner/field context for field annotations; `InstanceValidator` currently
-receives only `(instance, result)` and cannot discover the owning field reliably. Preserve its public signature and
-memoization behavior. Add issues to the completed target's stored `KlumValidationResult`; `VERIFY` keeps the existing fail
-level and skip policy. The evaluator must not mutate the completed model or retain a Builder in model metadata.
+materialization. The narrow first seam is the existing `KlumFieldAnnotationsValidator`: it receives each completed source
+Model through `InstanceValidator`, walks the declared fields in each DSL hierarchy layer, and can read the final field
+value directly. This works for composition, `LINK`, and `OPTIONAL_LINK` without widening composition traversal or the
+public `InstanceValidator` signature. Constraint processing must be independent of `@Validate.Ignore`/`@Optional`; those
+controls govern ordinary `@Validate`, not a separate domain annotation. Keep validator memoization per **source Model**.
+Add issues to that source Model's stored `KlumValidationResult`; `VERIFY` keeps the existing fail level and skip policy.
 
-For owned collections/maps, the normal composition traversal supplies the child path and source field for each visited
-element. Field-sourced rules must check that source field is an eligible owned-composition declaration. Avoid promising
-an order between independent annotations or validators beyond the phase boundary; results are collected as usual.
+Read each annotated relationship value without changing it. Evaluate each distinct source field independently, including
+two fields or container entries that point to one completed target. For a collection/map, retain the field name as the
+issue member so existing `suppressOn(field)` behavior remains intelligible, and put the entry index/key in the message.
+If a collection contains the same target twice at different positions, entry context keeps both failures distinct in the
+result set. A null field or null entry is skipped; an unresolved optional link receives no special synthetic failure.
+No constraint evaluator should call the linked target's factory, lifecycle, `InstanceValidator`s, or ownership APIs.
+An ephemeral Groovy 3 probe using an owner `@Validate` method confirmed that a completed external target was readable
+through two `LINK` fields and an `OPTIONAL_LINK` field during validation; three issues landed under the source owner with
+distinct field members, the external target's stored result stayed unchanged, and an absent optional value did not cause
+an issue when treated as optional. S0/S1 must prove the new callback path, same-root links, and Groovy 4/5/JPMS cases.
+If that path cannot use the owner field validator narrowly, report the smallest required seam and its cost before
+implementation. Avoid promising an order between independent annotations or validators beyond the phase boundary;
+results are collected as usual.
 
 ### Keep metadata inspectable without exposing companion internals
 
@@ -118,15 +143,16 @@ their generation should stay unchanged, with a test proving the annotation remai
 
 - One public meta-annotation is added to Schema vocabulary; direct annotation reflection is the metadata contract.
   Existing default annotations keep their semantics.
-- A failed rule reports the completed target's normal validation path, the concrete constraint name, message, and level.
-  It contributes to stored results and obeys `VERIFY` without changing the phase order.
+- A failed rule reports the source Model's normal validation path and field member, with the concrete constraint name,
+  entry context when relevant, message, and level. It contributes to stored results and obeys `VERIFY` without changing
+  the phase order. The linked target's stored result remains untouched.
 - No public Model property, generated Builder signature, or serialization format is added. Ordinary Schema annotations
   remain on the class/field in bytecode; validation results continue to serialize as ADR 0003 specifies.
 - Groovy 3 classpath and Groovy 4/5 classpath plus named-module consumers must pass the same source and separately
   compiled binary cases. The annotation artifact must not acquire a runtime-module dependency.
-- The planned field scope mirrors `@DefaultValues` child semantics. Direct scalar constraints remain covered by
-  `@Validate` or optional Bean Validation; class-declaration support and a broader general field-constraint framework
-  need further evidence.
+- The planned field scope includes owned, `LINK`, and `OPTIONAL_LINK` DSL relationships. Direct scalar constraints remain
+  covered by `@Validate` or optional Bean Validation; class-declaration support and a broader general field-constraint
+  framework need further evidence.
 
 ## Rejected alternatives for this bounded proposal
 
@@ -141,13 +167,13 @@ their generation should stay unchanged, with a test proving the annotation remai
 
 ## Decisions still required before implementation
 
-1. Confirm the intentionally narrow 4.1 field scope: owned DSL relationship fields, with each owned child as the rule
-   target; scalar, class, and LINK targets remain outside the first contract.
-2. After S0, accept the typed closure as the rule surface and choose its public name and error-member spelling. If S0
+1. After S0/S1, confirm source-owner field attribution, including entry context in messages and independent evaluation
+   when two annotated fields reference one target. This is proposed to avoid changing linked-object results or ownership.
+2. After S0, accept the typed closure as the rule surface and choose its public name. If S0
    disproves cross-Groovy viability, decide whether a typed rule-class fallback still fits 4.1.
 3. Confirm that runtime-visible annotation reflection satisfies the initial tooling requirement; a public catalog API
    is deferred until a concrete documentation/tooling consumer needs it.
 
-The maintainer has settled field annotation priority and allowed separate annotations for defaults and constraints. The
-public rule surface and exact bounded targets remain proposed. This ADR remains **Proposed** until those decisions and the
-S0 proof are recorded.
+The maintainer has settled field annotation priority, inclusion of `LINK` and `OPTIONAL_LINK`, and acceptance of separate
+annotations for defaults and constraints. The public rule surface and issue attribution remain proposed. This ADR remains
+**Proposed** until those decisions and the S0/S1 relationship probes are recorded.
