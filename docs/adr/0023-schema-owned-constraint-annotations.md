@@ -101,6 +101,21 @@ signature are provisional until S0. Separate domain annotations satisfy the acce
 The constraint annotation has no corresponding `Plan` or `Pool` validation-only property. The names are illustrative.
 This preserves the #799 shape without making its Kafka example the Klum API.
 
+### Gate callback typing on the declared relationship target
+
+The callback's target parameter is checked against the **declared relationship target type**, not a subtype that happens
+to be present when validation runs. For an owned `Pool pool` or a `@Field(FieldType.LINK) Pool pool` whose completed value
+is a `KafkaPool extends Pool`, a callback accepting `(PoolBounds, Pool)` must receive that completed `KafkaPool` instance.
+The same Schema must reject a callback requiring `(PoolBounds, KafkaPool)` at Schema compilation: a `Pool` relationship
+could later resolve to a different subtype. If the selected callback form supports an appropriate supertype parameter
+(for example, `Object`), S0 must prove and document that form as valid too. The assignability check is against the
+declared type (`callbackTargetType.isAssignableFrom(declaredTargetType)` for ordinary nominal types), independent of the
+observed runtime value. The domain-annotation parameter and the public callback encoding remain subject to S0.
+
+S0 must exercise these positive and negative cases for both an owned relationship and a `LINK`, in authored source and
+in a separately compiled consumer across the required Groovy 3/4/5 and JPMS lanes as appropriate. This is an acceptance
+rule for choosing a callback signature, not a freeze of the provisional `@ConstraintValues` example above.
+
 ### Keep combined annotations optional
 
 The required 4.1 contract does not change `@DefaultValues`. A future single domain annotation or nested-annotation
@@ -177,7 +192,9 @@ evaluation; and no mutation, reownership, or target lifecycle rerun. Runtime ann
 tooling metadata, and separate default and constraint annotations satisfy #799's core.
 
 S0 is a stop gate before any public marker signature is frozen: prove a typed callback receiving the **completed Model**
-and concrete annotation across Groovy 3/4/5, separately compiled binaries, and Groovy 4/5 JPMS. If the closure form
+and concrete annotation, including declared-target assignability for owned and `LINK` relationships with completed
+subtype values and Schema-compile rejection of a narrower callback target, across Groovy 3/4/5, separately compiled
+binaries, and Groovy 4/5 JPMS. If the closure form
 fails, prove the accepted typed-rule-class fallback to the same standard. Record the chosen public name/signature and
 the proof in this ADR before S1 production implementation. If neither bounded form works, return with the smallest
 alternate seam and cost for maintainer review. S1 then verifies all relationship kinds, source attribution, repeated
