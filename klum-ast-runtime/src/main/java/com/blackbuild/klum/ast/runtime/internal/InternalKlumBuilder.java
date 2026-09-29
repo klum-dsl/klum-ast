@@ -609,28 +609,29 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private void applyNamedParameters(Map<String, ?> values) {
-        if (values != null) {
-            String[] attemptedKey = new String[1];
-            try {
-                values.forEach((key, value) -> {
-                    attemptedKey[0] = key;
-                    InvokerHelper.invokeMethod(this, key, value);
-                });
-            } catch (RuntimeException exception) {
-                RuntimeException missingMethod = exception;
-                if (findMissingMethodExceptionType(missingMethod.getClass()) == null) {
-                    Throwable cause = exception.getCause();
-                    if (!(cause instanceof RuntimeException)
-                            || findMissingMethodExceptionType(cause.getClass()) == null)
-                        throw exception;
-                    missingMethod = (RuntimeException) cause;
-                }
-                if (!isNamedParameterDispatchFailure(missingMethod, attemptedKey[0]))
+        if (values == null)
+            return;
+        for (Map.Entry<String, ?> entry : values.entrySet())
+            applyNamedParameter(entry.getKey(), entry.getValue());
+    }
+
+    private void applyNamedParameter(String key, Object value) {
+        try {
+            InvokerHelper.invokeMethod(this, key, value);
+        } catch (RuntimeException exception) {
+            RuntimeException missingMethod = exception;
+            if (findMissingMethodExceptionType(missingMethod.getClass()) == null) {
+                Throwable cause = exception.getCause();
+                if (!(cause instanceof RuntimeException)
+                        || findMissingMethodExceptionType(cause.getClass()) == null)
                     throw exception;
-                throw new KlumModelException(format(
-                        "Unknown named-map Builder call '%s' for Model %s. Each named-map entry calls a public Builder method with exactly one argument.",
-                        attemptedKey[0], modelType.getName()), missingMethod);
+                missingMethod = (RuntimeException) cause;
             }
+            if (!isNamedParameterDispatchFailure(missingMethod, key))
+                throw exception;
+            throw new KlumModelException(format(
+                    "Unknown named-map Builder call '%s' for Model %s. Each named-map entry calls a public Builder method with exactly one argument.",
+                    key, modelType.getName()), missingMethod);
         }
     }
 
@@ -662,8 +663,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             if (className.startsWith("java.") || className.startsWith("org.codehaus.groovy.")
                     || className.startsWith("groovy.lang."))
                 continue;
-            return methodName.startsWith("lambda$applyNamedParameters$")
-                    || (methodName.equals("methodMissing") && className.endsWith("$Builder"));
+            boolean namedParameterDispatch = className.equals(InternalKlumBuilder.class.getName())
+                    && methodName.equals("applyNamedParameter");
+            boolean builderMethodMissing = methodName.equals("methodMissing") && className.endsWith("$Builder");
+            return namedParameterDispatch || builderMethodMissing;
         }
         return false;
     }
