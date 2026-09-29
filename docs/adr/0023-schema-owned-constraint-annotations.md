@@ -4,7 +4,7 @@ Date: 2026-09-29
 
 Status: Accepted
 
-Implementation status: S0 compatibility proof required before public API signature and production implementation
+Implementation status: S0 compatibility proof passed; annotation member encoding selected; production implementation pending
 
 Target: candidate 4.1 quality-of-life feature, gated by S0; no release commitment yet
 
@@ -47,25 +47,27 @@ methods, packages, class declarations, and arbitrary nested annotation chains ar
 compiler should reject unsupported placements rather than produce a runtime surprise. Class-declaration support may be
 considered after the field contract is proven; it is not a condition for the first 4.1 slice.
 
-The narrow syntax probe is a typed Groovy closure on the meta-annotation, receiving `(domainAnnotation, completedModel)`;
-its assertion message supplies the failure reason. A runtime helper would invoke it under the current validation context
-and convert a failed assertion or exception to a normal `KlumValidationIssue` on the **source owner Model's** result,
+The selected meta-annotation member encoding is `Class<? extends Closure> value()`, authored with a typed two-parameter
+Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker name remains to be chosen. This class
+literal preserves Groovy's annotation closure syntax; a `BiFunction` or other SAM class literal would require a named
+rule class, and its generic arguments would not retain the concrete annotation and relationship types at runtime.
+The compiler must inspect the authored closure's two parameters. It must accept either a single Groovy-truth expression
+or an assertion, as `@Validate` does: turn the former into an assertion while leaving the latter's assertion semantics
+intact. Normal completion of an assertion closure succeeds; a failed assertion retains its message. A runtime helper
+would invoke the closure under the current validation context and convert a failed assertion or exception to a normal
+`KlumValidationIssue` on the **source owner Model's** result,
 with its existing path and the annotated field as member. The message identifies the concrete constraint annotation and
 the failing assertion; for collections/maps it also identifies the entry index/key. This is relationship-local validation:
 two annotated fields pointing to the same completed object are evaluated independently and produce issues under their
 respective source fields. The rule reads the linked target without mutating, owning, or rerunning its lifecycle or
-validators. The existing reporter can remain available inside the callback for advanced messages. This reuses the
-present `@Validate` assertion/exception result semantics. The closure encoding, self-referential
-annotation type, classloader behavior, and parameter typing must pass the S0 Groovy 3/4/5 source-and-binary probe before
-the API name or signature is accepted. If that probe fails, a typed rule class in the existing public runtime validation
-package is the accepted bounded fallback; an expression language is not. A focused Groovy 3 probe of existing `@Validate` on a
+validators. Keep the existing validation reporter available inside the callback for advanced messages, and preserve
+`@Validate` assertion/exception result semantics. A focused Groovy 3 probe of existing `@Validate` on a
 `LINK` field compiled a typed closure to accept the target's **Builder**, then passed a completed Model at validation,
-causing a method-signature issue. The new meta-annotation must prove completed-Model parameter typing independently;
-merely wrapping the existing field-closure path is insufficient evidence.
+causing a method-signature issue. The S0 meta-annotation probe proves completed-Model parameter typing independently;
+wrapping the existing field-closure path would not provide that guarantee.
 
-The schema shape below is domain-neutral. It illustrates the preferred callback syntax; the public marker name and
-signature are provisional until S0. Separate domain annotations satisfy the accepted behavior without changing
-`@DefaultValues`:
+The schema shape below is domain-neutral. It illustrates the selected callback encoding with a provisional public
+marker name. Separate domain annotations satisfy the accepted behavior without changing `@DefaultValues`:
 
 ```groovy
 @DefaultValues
@@ -107,14 +109,38 @@ The callback's target parameter is checked against the **declared relationship t
 to be present when validation runs. For an owned `Pool pool` or a `@Field(FieldType.LINK) Pool pool` whose completed value
 is a `KafkaPool extends Pool`, a callback accepting `(PoolBounds, Pool)` must receive that completed `KafkaPool` instance.
 The same Schema must reject a callback requiring `(PoolBounds, KafkaPool)` at Schema compilation: a `Pool` relationship
-could later resolve to a different subtype. If the selected callback form supports an appropriate supertype parameter
-(for example, `Object`), S0 must prove and document that form as valid too. The assignability check is against the
+could later resolve to a different subtype. S0 also proves that an appropriate supertype parameter such as `Object`
+is valid. The assignability check is against the
 declared type (`callbackTargetType.isAssignableFrom(declaredTargetType)` for ordinary nominal types), independent of the
-observed runtime value. The domain-annotation parameter and the public callback encoding remain subject to S0.
+observed runtime value. The first parameter must accept the concrete domain annotation type, and the callback must have
+exactly two parameters.
 
-S0 must exercise these positive and negative cases for both an owned relationship and a `LINK`, in authored source and
-in a separately compiled consumer across the required Groovy 3/4/5 and JPMS lanes as appropriate. This is an acceptance
-rule for choosing a callback signature, not a freeze of the provisional `@ConstraintValues` example above.
+The S0 proof exercises these positive and negative cases for owned and `LINK` relationships in authored source and
+in a separately compiled consumer across Groovy 3/4/5 and JPMS where applicable. This is an acceptance
+rule for validating the selected callback encoding, not a freeze of the provisional `@ConstraintValues` name above.
+
+### S0 proof and compiler boundary
+
+The non-shipping `ConstraintCallbackProbeTest` demonstrates the selected encoding across Groovy 3, 4, and 5. At
+`VALIDATE`, its owner reads completed `KafkaPool` values through owned, external `LINK`, same-root `LINK`, and
+`OPTIONAL_LINK` fields. The typed closure receives the concrete bounds annotation and `Pool`, not `Pool$Builder`.
+An `Object` target parameter also accepts a declared `Pool`; a `KafkaPool` parameter is rejected against that declared
+type for both owned and `LINK` fields. A test-only semantic-analysis guard demonstrates this rejection in authored source
+and in a separately compiled annotation consumer. External target identity, root model path, stored validation result,
+and validation count stay unchanged; absent optional values skip the callback.
+
+The extended `JpmsPackageBoundaryTest` separately compiles a Java consumer against the Schema and invokes the reflected
+callback on the classpath in all three Groovy lanes and in named modules in Groovy 4 and 5. The generated closure,
+concrete annotation, and Model share the Schema module and classloader. The named-module fixture needs no additional
+package opening to Groovy or the consumer. These tests prove feasibility, not the production marker, compiler check,
+evaluator, failure attribution, or reporter behavior.
+
+For S1, implement placement and signature diagnostics through the existing KlumCast validation SPI where possible:
+`@KlumCastValidated`, `@KlumCastValidator`, and a KlumAST-owned `Check` using `CheckContext`, following
+`DefaultValuesCheck`. The test-only S0 guard is not the production implementation. Do not change KlumCast or create a
+KlumCast issue unless S1 demonstrates that the SPI's generic context is insufficient for a required check. The
+single-expression-to-assertion conversion must preserve the authored `(domainAnnotation, completedModel)` parameter
+types and must not reuse the `@Validate` field closure's Builder projection.
 
 ### Keep combined annotations optional
 
@@ -191,12 +217,8 @@ attribution; independent checks for each annotated source field or entry; null o
 evaluation; and no mutation, reownership, or target lifecycle rerun. Runtime annotation reflection is sufficient initial
 tooling metadata, and separate default and constraint annotations satisfy #799's core.
 
-S0 is a stop gate before any public marker signature is frozen: prove a typed callback receiving the **completed Model**
-and concrete annotation, including declared-target assignability for owned and `LINK` relationships with completed
-subtype values and Schema-compile rejection of a narrower callback target, across Groovy 3/4/5, separately compiled
-binaries, and Groovy 4/5 JPMS. If the closure form
-fails, prove the accepted typed-rule-class fallback to the same standard. Record the chosen public name/signature and
-the proof in this ADR before S1 production implementation. If neither bounded form works, return with the smallest
-alternate seam and cost for maintainer review. S1 then verifies all relationship kinds, source attribution, repeated
-references, optional-null behavior, and lifecycle/identity boundaries end to end. Acceptance of this ADR does not mean
-that those implementation gates have passed or that a 4.1 release is committed.
+S0 has established the closure encoding and completed-Model boundary across Groovy 3/4/5, separately compiled binaries,
+and Groovy 4/5 JPMS. S1 must implement and test the public marker and KlumCast compiler check, both accepted closure
+forms, reporter compatibility, source attribution, repeated references, optional-null behavior, and lifecycle/identity
+boundaries end to end. The public marker name and production diagnostics remain open within that implementation slice.
+Acceptance of this ADR does not mean those implementation gates have passed or that a 4.1 release is committed.
