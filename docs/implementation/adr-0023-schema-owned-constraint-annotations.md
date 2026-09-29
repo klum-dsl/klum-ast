@@ -1,10 +1,10 @@
 # ADR 0023 implementation plan: schema-owned constraint annotations
 
-This is the proposed design and tracer plan for [#799](https://github.com/klum-dsl/klum-ast/issues/799), governed by
-[ADR 0023](../adr/0023-schema-owned-constraint-annotations.md). No production behavior or tracker state changes here.
-The ADR is not accepted; S0/S1 and the remaining decisions at its end gate implementation. The maintainer has clarified
-that a domain constraint annotation on a Schema field is required, `LINK`/`OPTIONAL_LINK` are part of that primary use
-case, and combination with defaults is optional.
+This is the implementation plan for the accepted field contract in
+[ADR 0023](../adr/0023-schema-owned-constraint-annotations.md), related to
+[#799](https://github.com/klum-dsl/klum-ast/issues/799). No production behavior or tracker state changes here.
+S0 gates the public API signature and production implementation. The accepted scope covers owned, `LINK`, and
+`OPTIONAL_LINK` relationships; combination with defaults is optional.
 
 ## Confirmed behavior and failure paths
 
@@ -56,7 +56,7 @@ new meta-annotation callback compiles or runs, nor does it prove Groovy 4/5 or J
 
 | Label | Contract and reasoned commit boundary | Executable acceptance |
 | --- | --- | --- |
-| **CONSTRAINT-S0 — closure and resolved-link proof** | Add a narrow, non-shipping probe for a runtime-retained field domain annotation carrying a typed two-parameter closure on its meta-annotation. In the same proof, inspect an owner Model's completed fields at `VALIDATE`: owned child, completed external `LINK`, `LINK` to a same-root model, and `OPTIONAL_LINK` with owned, external, and null/unresolved cases. Test field reflection, separately compiled consumer loading, closure invocation, and Groovy 3/4/5 plus 4/5 JPMS. Record the result before freezing the API; if a link value is unavailable, report the smallest alternate owner-field seam and cost rather than excluding links. | Three-lane compilation/execution; separate binary consumer; no module-access exception. Values are resolved when the source owner validates; null/unresolved optional values skip only the constraint. The proof records that target identity, ownership, lifecycle execution count, and target validation result are unchanged by reading and checking the link. |
+| **CONSTRAINT-S0 — callback and resolved-link proof** | Add a narrow, non-shipping probe for a runtime-retained field domain annotation carrying a typed two-parameter closure on its meta-annotation. Inspect an owner Model's completed fields at `VALIDATE`: owned child, completed external `LINK`, `LINK` to a same-root model, and `OPTIONAL_LINK` with owned, external, and null/unresolved cases. Test field reflection, separately compiled consumer loading, closure invocation, and Groovy 3/4/5 plus 4/5 JPMS. If the closure fails, test the accepted typed-rule-class fallback to the same standard. Record the selected public name/signature and proof in ADR 0023 before S1; if neither works narrowly, report the smallest alternate seam/cost and stop. | Three-lane compilation/execution; separate binary consumer; no module-access exception. The callback receives a completed Model. Values are resolved when the source owner validates; null/unresolved optional values skip only the constraint. Target identity, ownership, lifecycle execution count, and target validation result are unchanged by checking the link. |
 | **CONSTRAINT-S1 — owner-field rule across all relationship kinds** | Add the marker, KlumCast placement/signature validation, and a field-sourced evaluator in the existing owner `InstanceValidator` path in one vertical commit with tests. Keep it independent of `@Validate.Ignore`. Reject scalar/non-DSL placement while accepting owned, LINK, and OPTIONAL_LINK relationships. | `@Issue("799")` `ConstraintValuesTest`: owned, LINK, and OPTIONAL_LINK fields accept valid resolved values and reject invalid values on the **source owner's** result/path with the source field member, concrete constraint name, message, and level. Two annotated fields referencing the same target yield two distinct source-field failures; the target result/lifecycle/identity is unchanged. Verify `skipVerify`, later `verify()`, null/unresolved optional skip, separate `@Required` behavior, and no added Model property/generated signature. |
 | **CONSTRAINT-S2 — collection, lifecycle and adapter depth** | Extend the same owner-field evaluator across collection/map entries and late value sources. Keep each coherent behavior with its passing tests in a reasoned commit. | Per-entry index/key appears in the message while member remains the source field; repeated same target at two list positions remains distinguishable in the stored result. Cover owned/LINK/OPTIONAL_LINK collections and maps, same-root link cycles, late `@PostTree` values, external Jackson import after resolution, optional Bean Validation coexistence, and no revalidation of an external target. Existing `DefaultValuesSpec` stays green without production changes. |
 | **CONSTRAINT-S3 — documentation and consumer proof** | Add one readable `ConstraintValuesDocumentaryTest` with `@Issue("799")`, `@Tag("documentary")`, and `@See` to `docs/user/Validation.md`; update that page, cross-link from `docs/user/Default-Values.md`, and update `CHANGES.md` together. Include a separate consumer reflection/JPMS fixture as needed. | Documentary example uses two domain annotations on one field and matches current docs. Reflection exposes marker and concrete bounds from a compiled Schema field; generated source-mirror task output and bytecode remain unchanged. Run `:klum-ast:test`, `:klum-ast:groovy4Tests`, `:klum-ast:groovy5Tests` and affected module tests; run `git diff --check` and documentation checks. |
@@ -70,8 +70,8 @@ review the entire issue-branch sequence and final diff per `docs/agents/commits.
 
 ## Issue placement, risk, and decision gate
 
-The bounded **field** core is viable as a **4.1 candidate**, contingent on S0/S1 and maintainer acceptance of the ADR's
-remaining decisions. #799 can own S0–S3. S4 is optional and may be a separate successor only if the Hive and maintainer
+The bounded **field** core is an accepted **4.1 candidate**, contingent on S0/S1 evidence rather than another product
+decision. #799 can own S0–S3. S4 is optional and may be a separate successor only if the Hive and maintainer
 choose it. No successor issue is created by this plan. Each partial pull request must be related to #799 rather than
 automatically close it.
 
@@ -86,6 +86,7 @@ attributes remains a **follow-up risk only**; S1–S3 use separate annotations, 
 Runtime reflection is a deliberately minimal metadata surface; a tooling catalog is deferred until there is a consumer.
 The historical source-mirror path is an IDE projection of generated contracts, not a second Schema annotation authority.
 
-Implementation stops if S0 cannot prove resolved link values or cross-Groovy callback viability without a broader
-runtime change. Report the smallest alternate seam/cost and update this proposed ADR before adding production APIs. Do
-not treat the example API names or issue-attribution format as approved until that decision.
+Implementation stops if S0 cannot prove resolved link values and a typed completed-Model callback across the required
+lanes using either the preferred closure or accepted rule-class fallback. Report the smallest alternate seam/cost before
+production APIs. Source-owner path/field attribution is accepted; the example marker name/signature remains provisional
+until S0 records its final form in ADR 0023.

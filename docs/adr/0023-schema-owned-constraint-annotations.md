@@ -2,9 +2,11 @@
 
 Date: 2026-09-29
 
-Status: Proposed — maintainer contract decision and compatibility tracer required
+Status: Accepted
 
-Target: candidate 4.1 quality-of-life feature; no release commitment yet
+Implementation status: S0 compatibility proof required before public API signature and production implementation
+
+Target: candidate 4.1 quality-of-life feature, gated by S0; no release commitment yet
 
 Tracking issue: [#799 — Add constraint meta-annotations analogous to @DefaultValues](https://github.com/klum-dsl/klum-ast/issues/799)
 
@@ -18,8 +20,8 @@ and [ADR 0014](0014-groovy4-jpms-boundary.md).
 
 `@DefaultValues` lets a Schema Developer place domain-specific, runtime-retained annotations on a `@DSL` class or an
 owned child field. Its field use configures a constructed child DSL Object. Its current implementation applies *every
-nondefault annotation member* as a default. A single domain annotation
-containing both `slots` and `minSlots`/`maxSlots` would incorrectly attempt to write the bounds as defaults. The
+nondefault annotation member* as a default. A single domain annotation containing both `slots` and
+`minSlots`/`maxSlots` would incorrectly attempt to write the bounds as defaults. The
 maintainer has clarified that a constraint annotation on a Schema field is the required outcome; a combined defaults and
 constraints annotation is desirable but optional. Two domain annotations on the same field are acceptable.
 
@@ -32,7 +34,7 @@ iterates each completed Model's declared fields and reads their resolved values 
 traversal skips `LINK` fields, so a child-visit-only design would miss a primary use case. Validation issues already store
 object path, member, message, and level.
 
-## Proposed decision, subject to the gates below
+## Decision
 
 ### Keep the annotation on the Schema
 
@@ -56,13 +58,14 @@ validators. The existing reporter can remain available inside the callback for a
 present `@Validate` assertion/exception result semantics. The closure encoding, self-referential
 annotation type, classloader behavior, and parameter typing must pass the S0 Groovy 3/4/5 source-and-binary probe before
 the API name or signature is accepted. If that probe fails, a typed rule class in the existing public runtime validation
-package is the bounded fallback; an expression language is not. A focused Groovy 3 probe of existing `@Validate` on a
+package is the accepted bounded fallback; an expression language is not. A focused Groovy 3 probe of existing `@Validate` on a
 `LINK` field compiled a typed closure to accept the target's **Builder**, then passed a completed Model at validation,
 causing a method-signature issue. The new meta-annotation must prove completed-Model parameter typing independently;
 merely wrapping the existing field-closure path is insufficient evidence.
 
-The proposed schema shape is intentionally domain-neutral and provisional. Separate domain annotations satisfy the
-required behavior without changing `@DefaultValues`:
+The schema shape below is domain-neutral. It illustrates the preferred callback syntax; the public marker name and
+signature are provisional until S0. Separate domain annotations satisfy the accepted behavior without changing
+`@DefaultValues`:
 
 ```groovy
 @DefaultValues
@@ -133,10 +136,11 @@ results are collected as usual.
 ### Keep metadata inspectable without exposing companion internals
 
 The marker and concrete annotation are runtime-visible Schema metadata. Tooling can inspect the annotation type's
-marker and the concrete annotation instance on the Schema class or field, including its bounds, through ordinary Java
-reflection. The first slice needs no generated `Foo_DSL` method, domain Model field, companion metadata Map, wire-format
-property, or new `KlumObjectSupport` method. An explicit discovery facade would require a consumer and separate design
-evidence. AnnoDocimal source mirrors describe generated Builder/Factory contracts, not these source-owned annotations;
+marker and the concrete annotation instance on the Schema field, including its bounds, through ordinary Java reflection.
+This is the accepted initial tooling contract; it needs no generated `Foo_DSL` method, domain Model field, companion
+metadata Map, wire-format property, or new `KlumObjectSupport` method. An explicit discovery facade would require a
+consumer and separate design evidence. AnnoDocimal source mirrors describe generated Builder/Factory contracts, not
+these source-owned annotations;
 their generation should stay unchanged, with a test proving the annotation remains on compiled Schema declarations.
 
 ## Consequences and acceptance boundary
@@ -154,7 +158,7 @@ their generation should stay unchanged, with a test proving the annotation remai
   covered by `@Validate` or optional Bean Validation; class-declaration support and a broader general field-constraint
   framework need further evidence.
 
-## Rejected alternatives for this bounded proposal
+## Rejected alternatives
 
 - Add `min`/`max` fields to each public Model: exposes Schema validation knobs to Client Developers.
 - Encode property names or expressions as strings: duplicates a path language and loses typed model access.
@@ -165,15 +169,17 @@ their generation should stay unchanged, with a test proving the annotation remai
 - Expose raw Model companion metadata or generate support-interface members: conflicts with ADR 0006 and adds an
   unneeded client contract.
 
-## Decisions still required before implementation
+## Implementation gate
 
-1. After S0/S1, confirm source-owner field attribution, including entry context in messages and independent evaluation
-   when two annotated fields reference one target. This is proposed to avoid changing linked-object results or ownership.
-2. After S0, accept the typed closure as the rule surface and choose its public name. If S0
-   disproves cross-Groovy viability, decide whether a typed rule-class fallback still fits 4.1.
-3. Confirm that runtime-visible annotation reflection satisfies the initial tooling requirement; a public catalog API
-   is deferred until a concrete documentation/tooling consumer needs it.
+The maintainer accepts owned, `LINK`, and `OPTIONAL_LINK` relationship fields; source-owner path and field-member
+attribution; independent checks for each annotated source field or entry; null optional values skipping constraint
+evaluation; and no mutation, reownership, or target lifecycle rerun. Runtime annotation reflection is sufficient initial
+tooling metadata, and separate default and constraint annotations satisfy #799's core.
 
-The maintainer has settled field annotation priority, inclusion of `LINK` and `OPTIONAL_LINK`, and acceptance of separate
-annotations for defaults and constraints. The public rule surface and issue attribution remain proposed. This ADR remains
-**Proposed** until those decisions and the S0/S1 relationship probes are recorded.
+S0 is a stop gate before any public marker signature is frozen: prove a typed callback receiving the **completed Model**
+and concrete annotation across Groovy 3/4/5, separately compiled binaries, and Groovy 4/5 JPMS. If the closure form
+fails, prove the accepted typed-rule-class fallback to the same standard. Record the chosen public name/signature and
+the proof in this ADR before S1 production implementation. If neither bounded form works, return with the smallest
+alternate seam and cost for maintainer review. S1 then verifies all relationship kinds, source attribution, repeated
+references, optional-null behavior, and lifecycle/identity boundaries end to end. Acceptance of this ADR does not mean
+that those implementation gates have passed or that a 4.1 release is committed.
