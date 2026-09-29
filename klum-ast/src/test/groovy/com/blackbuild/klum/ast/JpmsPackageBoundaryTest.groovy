@@ -356,7 +356,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626", "693", "729"])
+    @Issue(["620", "622", "626", "693", "729", "799"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -642,10 +642,26 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.PostTree
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import org.codehaus.groovy.runtime.InvokerHelper
             import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
             import jakarta.validation.constraints.Min
 
+            import java.lang.annotation.ElementType
+            import java.lang.annotation.Retention
+            import java.lang.annotation.RetentionPolicy
+            import java.lang.annotation.Target
             import java.util.List
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.ANNOTATION_TYPE)
+            public @interface CallbackProbe { Class<? extends Closure> value() }
+
+            @CallbackProbe({ EndpointBounds bounds, Endpoint endpoint ->
+                assert endpoint.capacity >= bounds.minimum()
+            })
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.FIELD)
+            public @interface EndpointBounds { int minimum() }
 
             @DSL
             class Station {
@@ -682,12 +698,26 @@ class JpmsPackageBoundaryTest extends Specification {
 
             @DSL
             class Deployment {
+                private static int CALLBACKS
+
                 HttpEndpoint endpoint
                 List<HttpEndpoint> routes
                 Map<String, KeyedEndpoint> keyedEndpoints
-                Endpoint classEndpoint
+                @EndpointBounds(minimum = 5) Endpoint classEndpoint
                 List<Endpoint> classRoutes
                 Map<String, KeyedEndpoint> classKeyedEndpoints
+
+                @Validate
+                void probeCompletedTarget() {
+                    if (classEndpoint == null) return
+                    def bounds = Deployment.class.getDeclaredField('classEndpoint').getAnnotation(EndpointBounds)
+                    Closure callback = (Closure) InvokerHelper.invokeConstructorOf(
+                            EndpointBounds.getAnnotation(CallbackProbe).value(), [null, null] as Object[])
+                    callback.call(bounds, classEndpoint)
+                    CALLBACKS++
+                }
+
+                static int callbackCount() { CALLBACKS }
 
                 @PostCreate
                 void addOwnedRelationships() {
@@ -714,6 +744,7 @@ class JpmsPackageBoundaryTest extends Specification {
 
             @DSL
             abstract class Endpoint {
+                int capacity
             }
 
             @DSL
@@ -736,6 +767,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     Deployment.Create.With {
                         classEndpoint(DynamicHttpEndpoint) {
                             url 'https://class-direct.example.test'
+                            capacity 8
                         }
                         classRoutes {
                             classRoute(DynamicHttpEndpoint) {
@@ -796,6 +828,8 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.fasterxml.jackson.databind.ObjectMapper;
+            import groovy.lang.Closure;
+            import org.codehaus.groovy.runtime.InvokerHelper;
             import fixture.schema.Deployment;
             import fixture.schema.DynamicHttpEndpoint;
             import fixture.schema.DynamicSchemaConsumer;
@@ -805,6 +839,8 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.Station_DSL;
 
             import java.util.ArrayList;
+            import java.lang.annotation.Annotation;
+            import java.lang.reflect.Field;
             import java.util.List;
             import java.util.Map;
             import java.util.ServiceLoader;
@@ -845,6 +881,28 @@ class JpmsPackageBoundaryTest extends Specification {
                             !"https://class-list.example.test".equals(((DynamicHttpEndpoint) dynamicDeployment.getClassRoutes().get(0)).getUrl()) ||
                             !"class-named".equals(dynamicDeployment.getClassKeyedEndpoints().get("class-named").getName()))
                         throw new AssertionError("Dynamic Class relationship selection did not materialize");
+                    if (Deployment.callbackCount() != 1)
+                        throw new AssertionError("Callback did not run during completed-Model validation");
+                    Field constrainedField = Deployment.class.getDeclaredField("classEndpoint");
+                    Annotation bounds = constrainedField.getAnnotation(fixture.schema.EndpointBounds.class);
+                    if (bounds == null || fixture.schema.EndpointBounds.class
+                            .getAnnotation(fixture.schema.CallbackProbe.class) == null)
+                        throw new AssertionError("Schema field and meta-annotation were not retained");
+                    Class<? extends Closure> callbackType = fixture.schema.EndpointBounds.class
+                            .getAnnotation(fixture.schema.CallbackProbe.class).value();
+                    if (callbackType.getModule() != Deployment.class.getModule() ||
+                            bounds.annotationType().getModule() != Deployment.class.getModule() ||
+                            callbackType.getClassLoader() != Deployment.class.getClassLoader())
+                        throw new AssertionError("Callback and concrete annotation left the Schema module/loader");
+                    Closure<?> callback = (Closure<?>) InvokerHelper.invokeConstructorOf(callbackType,
+                            new Object[] { null, null });
+                    if (callback.getParameterTypes().length != 2 ||
+                            callback.getParameterTypes()[0] != fixture.schema.EndpointBounds.class ||
+                            callback.getParameterTypes()[1] != fixture.schema.Endpoint.class ||
+                            !callback.getParameterTypes()[1].isAssignableFrom(constrainedField.getType()) ||
+                            dynamicDeployment.getClassEndpoint().getClass() != DynamicHttpEndpoint.class)
+                        throw new AssertionError("Callback did not preserve the declared completed Model signature");
+                    callback.call(bounds, dynamicDeployment.getClassEndpoint());
                     boolean phaseActionLoaded = ServiceLoader.load(PhaseAction.class).stream()
                             .anyMatch(provider -> provider.type().getName()
                                     .equals("com.blackbuild.klum.ast.runtime.internal.validation.ValidationPhase"));
