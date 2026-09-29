@@ -654,7 +654,7 @@ class JpmsPackageBoundaryTest extends Specification {
 
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.ANNOTATION_TYPE)
-            public @interface CallbackProbe { Class<? extends Closure> value() }
+            public @interface CallbackProbe { Class<?> value() }
 
             @CallbackProbe({ EndpointBounds bounds, Endpoint endpoint ->
                 assert endpoint.capacity >= bounds.minimum()
@@ -711,8 +711,10 @@ class JpmsPackageBoundaryTest extends Specification {
                 void probeCompletedTarget() {
                     if (classEndpoint == null) return
                     def bounds = Deployment.class.getDeclaredField('classEndpoint').getAnnotation(EndpointBounds)
+                    Class<?> callbackType = EndpointBounds.getAnnotation(CallbackProbe).value()
+                    assert Closure.isAssignableFrom(callbackType)
                     Closure callback = (Closure) InvokerHelper.invokeConstructorOf(
-                            EndpointBounds.getAnnotation(CallbackProbe).value(), [null, null] as Object[])
+                            callbackType, [null, null] as Object[])
                     callback.call(bounds, classEndpoint)
                     CALLBACKS++
                 }
@@ -888,8 +890,13 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (bounds == null || fixture.schema.EndpointBounds.class
                             .getAnnotation(fixture.schema.CallbackProbe.class) == null)
                         throw new AssertionError("Schema field and meta-annotation were not retained");
-                    Class<? extends Closure> callbackType = fixture.schema.EndpointBounds.class
+                    if (!fixture.schema.CallbackProbe.class.getDeclaredMethod("value").getGenericReturnType()
+                            .getTypeName().equals("java.lang.Class<?>"))
+                        throw new AssertionError("Probe annotation member acquired a Groovy type dependency");
+                    Class<?> callbackType = fixture.schema.EndpointBounds.class
                             .getAnnotation(fixture.schema.CallbackProbe.class).value();
+                    if (!Closure.class.isAssignableFrom(callbackType))
+                        throw new AssertionError("Callback member did not contain a Groovy closure class");
                     if (callbackType.getModule() != Deployment.class.getModule() ||
                             bounds.annotationType().getModule() != Deployment.class.getModule() ||
                             callbackType.getClassLoader() != Deployment.class.getClassLoader())

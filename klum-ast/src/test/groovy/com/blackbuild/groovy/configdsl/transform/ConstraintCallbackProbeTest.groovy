@@ -62,7 +62,7 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
 
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.ANNOTATION_TYPE)
-            @interface ProbeRule { Class<? extends Closure> value() }
+            @interface ProbeRule { Class<?> value() }
 
             @ProbeRule({ Bounds bounds, Pool pool -> assert pool.slots >= bounds.minimum() })
             @Retention(RetentionPolicy.RUNTIME)
@@ -107,6 +107,7 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
                         if (value == null) return
                         def domain = field.annotations.find { it.annotationType().isAnnotationPresent(ProbeRule) }
                         def marker = domain.annotationType().getAnnotation(ProbeRule)
+                        assert Closure.isAssignableFrom(marker.value())
                         Closure callback = (Closure) InvokerHelper.invokeConstructorOf(marker.value(), [null, null] as Object[])
                         callback.call(domain, value)
                         CALLBACKS << name
@@ -119,11 +120,12 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
         Class<?> poolType = getClass('probe.Pool')
         Class<?> boundsType = getClass('probe.Bounds')
         Annotation marker = boundsType.getAnnotation(getClass('probe.ProbeRule'))
-        Class<? extends Closure> callbackType = marker.value()
-        Closure callback = ClosureHelper.createClosureInstance(callbackType)
+        Class<?> callbackType = marker.value()
+        Closure callback = instantiateCallback(callbackType)
 
         expect:
         marker != null
+        getClass('probe.ProbeRule').getDeclaredMethod('value').genericReturnType.typeName == 'java.lang.Class<?>'
         callback.parameterTypes.toList() == [boundsType, poolType]
         callbackType.module == boundsType.module
         planType.getDeclaredField('owned').getAnnotation(boundsType).minimum() == 5
@@ -197,10 +199,11 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
         Class<?> binaryPlan = binaryLoader.loadClass('probe.Plan')
         Class<?> binaryBounds = binaryLoader.loadClass('probe.Bounds')
         Annotation binaryMarker = binaryBounds.getAnnotation(binaryLoader.loadClass('probe.ProbeRule'))
-        Closure binaryCallback = ClosureHelper.createClosureInstance(binaryMarker.value())
+        Closure binaryCallback = instantiateCallback(binaryMarker.value())
         binaryPlan.classLoader.is(binaryLoader)
         binaryBounds.classLoader.is(binaryLoader)
         binaryCallback.class.classLoader.is(binaryLoader)
+        binaryLoader.loadClass('probe.ProbeRule').getDeclaredMethod('value').genericReturnType.typeName == 'java.lang.Class<?>'
         binaryCallback.parameterTypes.toList() == [binaryBounds, binaryLoader.loadClass('probe.Pool')]
         binaryPlan.getDeclaredField('external').getAnnotation(binaryBounds).minimum() == 5
         binaryCallback.call(binaryPlan.getDeclaredField('external').getAnnotation(binaryBounds),
@@ -222,7 +225,7 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
 
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.ANNOTATION_TYPE)
-            @interface ProbeRule { Class<? extends Closure> value() }
+            @interface ProbeRule { Class<?> value() }
 
             @ProbeRule({ NarrowBounds bounds, KafkaPool pool -> assert pool.slots > 0 })
             @Retention(RetentionPolicy.RUNTIME)
@@ -256,7 +259,7 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
 
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.ANNOTATION_TYPE)
-            @interface ProbeRule { Class<? extends Closure> value() }
+            @interface ProbeRule { Class<?> value() }
 
             @ProbeRule({ NarrowBounds bounds, KafkaPool pool -> assert pool.slots > 0 })
             @Retention(RetentionPolicy.RUNTIME)
@@ -297,9 +300,14 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
         linkAnnotation << ['', '@Field(FieldType.LINK)']
     }
 
-    private static boolean acceptsDeclaredTarget(Class<? extends Closure> callbackType, Field field) {
-        Class<?>[] parameters = ClosureHelper.createClosureInstance(callbackType).parameterTypes
+    private static boolean acceptsDeclaredTarget(Class<?> callbackType, Field field) {
+        Class<?>[] parameters = instantiateCallback(callbackType).parameterTypes
         parameters.length == 2 && parameters[1].isAssignableFrom(field.type)
+    }
+
+    private static Closure instantiateCallback(Class<?> callbackType) {
+        assert Closure.isAssignableFrom(callbackType)
+        ClosureHelper.createClosureInstance((Class<? extends Closure>) callbackType)
     }
 
     /** S0-only stand-in for the planned Schema compiler check; it contributes no production API. */
@@ -322,7 +330,7 @@ class ConstraintCallbackProbeTest extends AbstractDSLSpec {
                         Class<?> markerType = annotationType.classLoader.loadClass('probe.ProbeRule')
                         Annotation binaryMarker = annotationType.getAnnotation(markerType)
                         if (binaryMarker == null) return
-                        Class<?>[] parameters = ClosureHelper.createClosureInstance(binaryMarker.value()).parameterTypes
+                        Class<?>[] parameters = instantiateCallback(binaryMarker.value()).parameterTypes
                         if (parameters.length != 2) return
                         target = ClassHelper.make(parameters[1])
                     }

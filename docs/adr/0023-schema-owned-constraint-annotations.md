@@ -47,21 +47,27 @@ methods, packages, class declarations, and arbitrary nested annotation chains ar
 compiler should reject unsupported placements rather than produce a runtime surprise. Class-declaration support may be
 considered after the field contract is proven; it is not a condition for the first 4.1 slice.
 
-The selected meta-annotation member encoding is `Class<? extends Closure> value()`, authored with a typed two-parameter
-Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker name remains to be chosen. This class
-literal preserves Groovy's annotation closure syntax; a `BiFunction` or other SAM class literal would require a named
-rule class, and its generic arguments would not retain the concrete annotation and relationship types at runtime.
-The compiler must inspect the authored closure's two parameters. It must accept either a single Groovy-truth expression
-or an assertion, as `@Validate` does: turn the former into an assertion while leaving the latter's assertion semantics
-intact. Normal completion of an assertion closure succeeds; a failed assertion retains its message. A runtime helper
+The selected meta-annotation member encoding is the JDK-only `Class<?> value()`, authored with a typed two-parameter
+Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker name remains to be chosen. This
+member adds no Groovy type to the public marker signature or new Groovy dependency to the annotations artifact. The
+KlumAST compiler check must recognize that the class literal is a
+closure and inspect its two authored parameter types; the Groovy-dependent compiler and runtime modules handle closure
+normalization and invocation. A `BiFunction` class literal would require a named rule class, erase the concrete
+annotation and relationship types at the annotation boundary, and fail to express Klum validation semantics.
+
+The compiler must accept either a single Groovy-truth expression or an assertion, as `@Validate` does: turn the former
+into an assertion while leaving the latter intact. After that normalization, normal completion of either form succeeds
+regardless of the closure's returned value. A false expression fails through the generated assertion; an authored failed
+assertion retains its message. A runtime helper
 would invoke the closure under the current validation context and convert a failed assertion or exception to a normal
 `KlumValidationIssue` on the **source owner Model's** result,
 with its existing path and the annotated field as member. The message identifies the concrete constraint annotation and
 the failing assertion; for collections/maps it also identifies the entry index/key. This is relationship-local validation:
 two annotated fields pointing to the same completed object are evaluated independently and produce issues under their
 respective source fields. The rule reads the linked target without mutating, owning, or rerunning its lifecycle or
-validators. Keep the existing validation reporter available inside the callback for advanced messages, and preserve
-`@Validate` assertion/exception result semantics. A focused Groovy 3 probe of existing `@Validate` on a
+validators. Keep the existing validation reporter available inside the callback for advanced messages: reporter calls
+may add issues even when the callback completes normally. Preserve `@Validate` assertion/exception result semantics.
+A focused Groovy 3 probe of existing `@Validate` on a
 `LINK` field compiled a typed closure to accept the target's **Builder**, then passed a completed Model at validation,
 causing a method-signature issue. The S0 meta-annotation probe proves completed-Model parameter typing independently;
 wrapping the existing field-closure path would not provide that guarantee.
@@ -124,6 +130,7 @@ rule for validating the selected callback encoding, not a freeze of the provisio
 The non-shipping `ConstraintCallbackProbeTest` demonstrates the selected encoding across Groovy 3, 4, and 5. At
 `VALIDATE`, its owner reads completed `KafkaPool` values through owned, external `LINK`, same-root `LINK`, and
 `OPTIONAL_LINK` fields. The typed closure receives the concrete bounds annotation and `Pool`, not `Pool$Builder`.
+Reflection reports the meta-annotation member's generic return type as `java.lang.Class<?>`, without a Groovy type.
 An `Object` target parameter also accepts a declared `Pool`; a `KafkaPool` parameter is rejected against that declared
 type for both owned and `LINK` fields. A test-only semantic-analysis guard demonstrates this rejection in authored source
 and in a separately compiled annotation consumer. External target identity, root model path, stored validation result,
@@ -137,10 +144,15 @@ evaluator, failure attribution, or reporter behavior.
 
 For S1, implement placement and signature diagnostics through the existing KlumCast validation SPI where possible:
 `@KlumCastValidated`, `@KlumCastValidator`, and a KlumAST-owned `Check` using `CheckContext`, following
-`DefaultValuesCheck`. The test-only S0 guard is not the production implementation. Do not change KlumCast or create a
+`DefaultValuesCheck`. This check must reject a non-closure class before inspecting the authored closure parameters.
+The test-only S0 guard is not the production implementation. Do not change KlumCast or create a
 KlumCast issue unless S1 demonstrates that the SPI's generic context is insufficient for a required check. The
 single-expression-to-assertion conversion must preserve the authored `(domainAnnotation, completedModel)` parameter
 types and must not reuse the `@Validate` field closure's Builder projection.
+
+The `Class<?>` closure-literal form passed S0, so no rule interface is introduced. If a later compiler case disproves
+that form, test a purpose-specific, JDK-only `ConstraintRule<A,T>` as a bounded fallback and return for a new maintainer
+decision before adding production API.
 
 ### Keep combined annotations optional
 
