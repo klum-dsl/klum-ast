@@ -2,7 +2,7 @@
 
 Date: 2026-09-30
 
-Status: Proposed — fresh-copy operation confirmed; type-domain and keyed-Template boundaries need maintainer review
+Status: Proposed — fresh-copy operation and seed descriptors confirmed; keyed-Template boundary needs maintainer review
 
 Implementation status: Design only; no runtime, compiler, or generated API implementation
 
@@ -47,9 +47,9 @@ fresh public child Builder, as other construction-time relationship creators do.
 
 Do not add seed-list, closure-free, named-map, explicit-type/key, root `Create.With(seed, ...)`, `WithTemplate`,
 `fromTemplates`, `useTemplates`, or `installTemplates` variants as part of #342. A Template is an instance of a Model
-class with marked identity, so it needs no separate public Template overload. Model and Builder source categories may
-need separate JVM overloads, but those must represent this same two-argument language; the generated descriptor choice
-is an acceptance gate, not permission to add a second operation.
+class with marked identity, so it needs no separate public Template overload. Exactly two JVM overloads represent this
+same two-argument language: one Model seed and one Builder seed, both based on the relationship's highest DSL superclass
+as specified below. They are two source-state signatures for one operation, not separate DSL forms.
 
 Illustrative direct-Schema use; this syntax is proposed, not available today:
 
@@ -110,11 +110,12 @@ mutation remains unavailable. Simple Values retain existing copy semantics; this
 of arbitrary user objects. Keys, Owners, Roles, ignored/transient state, composition graphs, and aggregation edges retain
 `CopyHandler` rules rather than a second clone implementation.
 
-The lifecycle order follows existing nested creation: source initializers; currently active Template defaults in hierarchy
+The lifecycle order follows existing nested creation: recipient initializers; currently active Template defaults in hierarchy
 order; `PostCreate`; explicit seed copy; refinement closure; `PostApply`; outer graph phases; materialization; validation.
 Recipes schedule into the recipient's lifecycle and cannot schedule at or after phase 40. Template recipe closures must
-not capture Builders; live-source snapshots retain the existing ephemeral capture rules without new serialization checks. The closure has the public child Builder as a `DELEGATE_ONLY` delegate and receives no seed
-argument. It runs once, not once per copied descendant.
+not capture Builders; live-source snapshots retain the existing ephemeral capture rules without new serialization checks.
+The closure has the public child Builder as a `DELEGATE_ONLY` delegate and receives no seed argument. It runs once, not
+once per copied descendant.
 
 During Template definition, materialized Model/Template seeds use the existing Template-mode child construction path,
 with its lifecycle omissions and marked graph. Live Builder seeds remain subject to the existing active-session source
@@ -138,33 +139,56 @@ This is compatible with both published scoped APIs precisely because it is an ex
 or registry. #304 remains the separate ordered root-layer coordinator; this child operation introduces no competing
 `Compose` or heterogeneous layer protocol.
 
-## Proposed type selection — requires confirmation
+## Confirmed seed domain and descriptors
 
-Resolve the source's Model type using framework metadata: completed Models use their DSL type, live Builders use their
-Model type, and a synthetic abstract Template uses its original abstract DSL type, never its artificial implementation.
-Do not select a generated synthetic Template implementation for an ordinary recipient.
+The maintainer selected one common domain for both seed states: the relationship's **highest DSL superclass**, or the
+relationship type itself when it has no DSL ancestor. For a collection/map element, apply this rule to the element Model
+type. Derive this one class from the relationship's declared Model hierarchy, not from the runtime seed subtype or a
+field's default implementation. There is no per-ancestor overload enumeration.
 
-The recommended policy follows the historical use case while keeping Schema constraints authoritative:
+For a `Bedroom` relationship whose highest DSL superclass is `HeatedRoom`, generate exactly these seed signatures on the
+owning public Builder and applicable forwarding factory contracts:
 
-| Relationship and seed | Recommended recipient |
+```java
+Bedroom_DSL.Builder<Bedroom> bedroom(HeatedRoom seed, Closure<?> refinement);
+Bedroom_DSL.Builder<Bedroom> bedroom(HeatedRoom_DSL.Builder<? extends HeatedRoom> seed,
+                                   Closure<?> refinement);
+```
+
+Both closures carry `@DelegatesTo(Bedroom_DSL.Builder)` with `Closure.DELEGATE_ONLY`. The Builder source wildcard accepts
+Builders for `HeatedRoom` and its descendants through the existing self-typed Builder inheritance contract; the return
+and delegate remain the declared recipient's public Builder. The erased parameter descriptors are `(HeatedRoom, Closure)`
+and `(HeatedRoom_DSL.Builder, Closure)`, and both return the public `Bedroom_DSL.Builder`. A relationship with no DSL
+ancestor uses its own Model and corresponding public Builder in those two seed positions.
+
+This admits ancestor seeds, `Bedroom` seeds/subtypes, and sibling seeds sharing `HeatedRoom`. An unrelated domain is
+rejected statically rather than admitted through an `Object`/`KlumModelObject` fallback. Dynamic invocation must enforce
+the same domain and existing live-Builder eligibility. A marked Template enters through the Model signature; synthetic
+Template implementations must be normalized to their original Model type for recipient selection. Do not introduce a
+marker/union source API, generic `KlumBuilder` fallthrough, or additional signatures for intermediate DSL ancestors.
+
+Source admissibility and recipient selection are distinct. A sibling is an accepted seed, not a replacement for the
+Schema's declared child type:
+
+| Relationship and seed | Recipient selection |
 | --- | --- |
 | Seed is a concrete subtype assignable to declared relationship type | That concrete seed type |
-| Seed is the relationship type or its superclass; relationship/default implementation is concrete | Relationship's existing concrete/default implementation |
-| Synthetic abstract Template for an ancestor | Relationship's concrete/default implementation; copied base configuration only |
-| Abstract relationship and abstract seed, without a concrete/default implementation | Error with guidance to use the ordinary explicit-type creator plus `copyFrom` |
-| Unrelated types, sibling types incompatible with the concrete relationship, or non-DSL input | Error before refinement or attachment |
+| Seed is an ancestor or sibling within the selected highest-DSL domain; relationship/default implementation is concrete | Relationship's existing concrete/default implementation |
+| Synthetic abstract Template within the selected domain | Relationship's concrete/default implementation; never the synthetic implementation |
+| Abstract relationship and seed with no compatible concrete/default implementation | Error with guidance to use the ordinary explicit-type creator plus `copyFrom` |
+| Seed is outside the selected highest-DSL domain or is non-DSL input | Unsupported seed call; static rejection or dynamic domain diagnostic before refinement/attachment |
 
-Honor field-level default implementation as well as the DSL type's default implementation. Shared field names alone do
-not establish compatible types. Do not extend this operation to Maps, arbitrary POJOs, Classes, or Factory tokens; those
-already have other input semantics.
+Honor field-level default implementation as well as the DSL type's default implementation when selecting a concrete
+recipient. Shared field names do not admit unrelated domains. Sibling copying preserves existing `copyFrom`/`@Overwrite`
+policy: an accepted sibling seed can still fail a normal copy check when it contributes fields absent from the recipient;
+`CopyHandler` currently defaults missing fields to `FAIL`. This descriptor decision does not silently discard sibling-only
+fields or change missing-field policy. A sibling with compatible configuration demonstrates the admitted domain.
 
-Superclass seeds are the substantive open choice: #135 currently requires each Template to be an instance of the declared
-collection element type, whereas #342's original single-child example contemplated a base recipe for a concrete child.
-Accepting a base seed is useful for Cluster projections but needs an explicit runtime domain check and a truthful static
-signature. A broad `Object` parameter makes the base case possible but weakens type checking; a declared-child Model
-parameter excludes it. Do not silently invent a framework-wide Model/Builder union type to resolve this.
+Choosing a different domain ancestor, or skipping a technical/non-domain DSL ancestor, is a future interface/domain-modeling
+concern explicitly outside #342. The highest DSL class is authoritative here even when its name or intended role seems
+technical; the generator must not guess which ancestor is a better domain boundary.
 
-Proposed Layer 3 syntax if base seeds are accepted:
+Illustrative syntax for the confirmed base-seed domain:
 
 ```groovy
 @DSL
@@ -174,20 +198,26 @@ abstract class HeatedRoom { int temperature }
 class Bedroom extends HeatedRoom { String label }
 
 @DSL
+class StorageRoom extends HeatedRoom { }
+
+@DSL
 class Flat {
     Bedroom bedroom
     // Other concrete room fields can be exposed through the existing @Cluster API.
 }
 
 def heated = HeatedRoom.Create.Template.With(temperature: 20)
+def storage = StorageRoom.Create.With(temperature: 12)
 def flat = Flat.Create.With {
     bedroom(heated) { label 'Bedroom' }
+    bedroom(storage) { label 'Copied storage defaults' }
 }
 ```
 
-This creates `Bedroom`, not an abstract `HeatedRoom` or synthetic Template Model. A real Layer 3 documentary acceptance
+Each call creates a fresh `Bedroom`, not an abstract `HeatedRoom`, sibling `StorageRoom`, or synthetic Template Model.
+The second call replaces the first child through the normal setter attachment path. A real Layer 3 documentary acceptance
 must include distinct abstract Domain API types and a meaningful `@Cluster` projection, as in Catwalk's smart-home
-journey; the reduced example above isolates only the type-selection question.
+journey; the reduced example above isolates the source-domain and recipient-selection contract.
 
 ## Key and failure boundaries
 
@@ -232,7 +262,7 @@ Factory-token creation plus `copyFrom`. Java, static Groovy 3/4/5, source mirror
 
 ## Acceptance and stopping boundary
 
-The fresh-copy operation and one-seed-plus-closure language are confirmed. Type-domain/static-descriptor choice and the
-keyed-Template limitation remain proposed. This ADR must not be marked Accepted or implemented until those choices and
-signature collision evidence are reconciled. The accompanying plan maps all confirmed requirements and the proposed
-branches to small executable slices. Issue #342 stays open; this design document makes no release delivery claim.
+The fresh-copy operation, one-seed-plus-closure language, and exactly two highest-DSL-domain source descriptors are
+confirmed. The keyed-Template limitation remains the product decision gate. This ADR must not be marked Accepted or
+implemented until that choice and signature collision evidence are reconciled. The accompanying plan maps all confirmed
+requirements and the proposed branches to small executable slices. Issue #342 stays open; this design document makes no release delivery claim.

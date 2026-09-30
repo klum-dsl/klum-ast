@@ -7,7 +7,10 @@ Planning only for [#342](https://github.com/klum-dsl/klum-ast/issues/342) and
 
 KlumAST source base: `b747422ca5a149065cf612cae749563f9d92329d`, observed 2026-09-30. The maintainer's in-task
 clarification is authoritative: exactly one `relationship(seed) { refinement }` form accepts a materialized Model,
-Builder, or Template; the input only seeds a fresh Builder. Earlier bounded-default scoping is superseded.
+Builder, or Template; the input only seeds a fresh Builder. Earlier bounded-default scoping is superseded. The subsequent
+maintainer direction fixes exactly two seed signatures at the relationship's highest DSL superclass: one Model and one
+public Builder input. Ancestors, descendants, and siblings inside that selected domain are accepted; unrelated domains
+are rejected statically. There is no broad marker or per-ancestor signature set.
 
 | Evidence | Confirmed fact / limit |
 | --- | --- |
@@ -30,8 +33,10 @@ journey uses an existing `copyFrom` path and is not itself a Template feature pr
 - `FactoryHelper.prepareNestedBuilder` applies active Templates, `PostCreate`, explicit configuration, and `PostApply`.
   `prepareNestedBuilderFromTemplate` offers a narrow fresh allocation/copy path for #135, but accepts only that use case.
 - `FactoryHelper.effectiveRecipeType` prefers a compatible concrete recipe type, otherwise uses the declared type's
-  default implementation. It is not sufficient by itself for the new contract: field defaults, superclass compatibility,
-  invalid-source rejection, and synthetic Template normalization need explicit checking before allocation.
+  default implementation. It is not sufficient by itself for the new contract: field defaults, highest-DSL-domain
+  membership (including siblings), invalid-source rejection, and synthetic Template normalization need explicit checking
+  before allocation. `CopyHandler` defaults missing fields to `FAIL`; sibling source admissibility does not remove that
+  existing copy-policy check.
 - `InternalKlumBuilder.copyFrom` accepts null as no-op, checks live Builder eligibility, copies values with `CopyHandler`,
   and replays/snapshots pending actions. The new setter rejects a null seed before this existing method is called.
 - `CopyHandler` ignores source Key/Owner/Role/transient/ignored fields, rehydrates composition into fresh Builders, and
@@ -41,19 +46,36 @@ journey uses an existing `copyFrom` path and is not itself a Template feature pr
 - Completed Models and Templates cannot be directly adopted into composition. The explicit seed argument is a copy
   request; one-argument setters continue enforcing existing ownership and LINK semantics.
 
-## Decision gates before implementation
+## Confirmed descriptor and remaining gate
 
-1. **Type domain and descriptor:** accept/reject superclass seeds for concrete relationships, then choose public Model/
-   Builder parameter descriptors that describe that domain truthfully. Recommended runtime policy is the ADR table.
-   Templates require no third descriptor. Do not add a source-union public type without a separate accepted decision.
-2. **Keyed Templates:** confirm that only a seed key or existing relationship key provider is sufficient for this first
-   form. A keyed Template without such a source must fail; arbitrary key input is a later explicit design choice.
-3. **Signature/collision proof:** inventory same-arity custom/converter methods and existing Class/Factory/Map/Closure
-   families. Record actual collisions and require a maintainer disposition if preserving both meanings is impossible.
+Let `D` be the relationship's highest DSL superclass, or the relationship type itself if it has no DSL ancestor.
+Let `R` be the declared relationship/element Model type. Generate exactly:
 
-No implementation slice is admitted while these substantive choices remain open. Do not add speculative pending tests
-or treat recommendations below as accepted API. The #342 issue can be synchronized after maintainer acceptance by its
-owner; this task changes no GitHub state, curation index, release gate, or milestone.
+```java
+R_DSL.Builder<R> relationship(D seed, Closure<?> refinement);
+R_DSL.Builder<R> relationship(D_DSL.Builder<? extends D> seed, Closure<?> refinement);
+```
+
+For `Bedroom` below highest DSL ancestor `HeatedRoom`, these are
+`bedroom(HeatedRoom, Closure)` and `bedroom(HeatedRoom_DSL.Builder<? extends HeatedRoom>, Closure)`, returning
+`Bedroom_DSL.Builder<Bedroom>` and delegating refinement to the public `Bedroom_DSL.Builder` with `DELEGATE_ONLY`.
+The Builder source wildcard is required for self-typed descendant Builder assignability; erased Builder seed type is
+`HeatedRoom_DSL.Builder`. Templates use the Model input. No `Object`, `KlumModelObject`, generic `KlumBuilder`, union
+marker, or per-ancestor fallback is generated. Accept siblings sharing `D`; recipient selection still respects `R`.
+Choosing/skipping technical or non-domain DSL ancestors belongs to a future interface/domain-modeling decision, outside
+#342. The highest DSL ancestor is used without semantic filtering.
+
+**Remaining product gate — keyed Templates:** confirm that only a seed key or existing relationship key provider is
+sufficient for this first form. A keyed Template without such a source must fail; arbitrary key input is a later explicit
+design choice. No implementation slice is admitted while this choice remains open.
+
+**Implementation acceptance — signature/collision proof:** inventory same-arity custom/converter methods and existing
+Class/Factory/Map/Closure families using the confirmed pair of descriptors. Record actual collisions and require a
+maintainer disposition if preserving both meanings is impossible; no present conflict has been established by this
+planning-only change. The chosen descriptor is no longer a product question.
+
+Do not add speculative pending tests or treat the keyed recommendation as accepted API. The #342 issue can be synchronized
+after maintainer acceptance by its owner; this task changes no GitHub state, curation index, release gate, or milestone.
 
 ## Affected modules and generated seams
 
@@ -62,7 +84,7 @@ owner; this task changes no GitHub state, curation index, release gate, or miles
 | Runtime | `runtime.internal.FactoryHelper`, `InternalKlumBuilder`, `CopyHandler` | One shared fresh-child path; type/key/source checks; existing copy protocol and lifecycle; attach only after successful refinement |
 | Compiler | `compiler.internal.ast.DSLASTTransformation` | Generate direct-child and collection/map element seed creators with required closure; LINK omission; correct method tags/visibility/delegates |
 | Collection/Cluster forwarding | `ast.AlternativesClassBuilder` and `layer3.ClusterFactoryBuilder` | Forward the same setter shape to its owning relationship; do not invent collection-wide seed batching |
-| Public contracts | `GeneratedDslSupport`, generated `Foo_DSL.Builder` interfaces | Model/Builder input descriptors, declared child-Builder result/delegate, no implementation descriptors |
+| Public contracts | `GeneratedDslSupport`, generated `Foo_DSL.Builder` interfaces | Exactly two highest-DSL-domain Model/Builder input descriptors, declared child-Builder result/delegate, no implementation descriptors |
 | Runtime linkage | Existing `runtime.generated` Builder bridge | If a new JVM method is necessary, expose only the generated-only linkage under ADR 0015; keep source/session mechanics internal |
 | IDE/docs | Source mirrors, existing GDSL, AnnoDocimal | Match actual generated overloads, required closure, freshness, source restrictions, and declared delegate |
 | User guidance | `docs/user/Templates.md`, relationship/copy guidance, Builder-first migration, `CHANGES.md` | Document delivered syntax, source distinctions, keys, freshness, scope precedence, and documentary traceability after implementation |
@@ -75,13 +97,16 @@ pre-package-migration links and is not a substitute for the present package tree
 
 ### SEED-0 — Accept the contract and prove the generated seam
 
-Depends on the three decision gates. A bounded descriptor/collision investigation precedes acceptance; do not publish a
-runtime feature to discover its product contract. Record accepted type/key policy in ADR 0024 and #342 through the normal
-maintainer/Hive workflow. One reasoned documentation commit captures the final decision and narrowed plan. If a minimal
+Depends on the keyed-Template decision and signature/collision proof. Verify the confirmed descriptor pair before
+acceptance; do not publish a runtime feature to discover its product contract. Record the confirmed seed-domain and
+accepted key policy in ADR 0024 and #342 through the normal maintainer/Hive workflow. One reasoned documentation commit captures the final decision and narrowed plan. If a minimal
 compiler probe is needed, retain its evidence only when it tests the selected contract; no throwaway code becomes API.
 
-Acceptance: a descriptor table and representative calls show the same two-argument operation for all three seed states;
-no root/list/key/map variant; no reinterpretation of valid existing calls; explicit resolution for real collisions.
+Acceptance: a descriptor table and representative calls show the same two-argument operation for all three seed states
+with exactly one highest-DSL Model input and its wildcarded public Builder input. Cover no-DSL-ancestor relationships,
+multi-level DSL hierarchies without intermediate overloads, ancestor/descendant/sibling positive calls, and unrelated-domain
+negative static calls. No root/list/key/map variant or broad fallthrough; no reinterpretation of valid existing calls;
+explicit resolution for real collisions. Technical ancestor filtering is neither implemented nor promised.
 
 ### SEED-1 — Direct owned child, all three source categories
 
@@ -94,13 +119,16 @@ Acceptance in a new `SeededRelationshipCreationTest` (`@Issue("342")`):
 
 - Ordinary completed Model, marked Template, and same-session child Builder each create distinct owned children.
 - Model actions do not replay; Template actions replay against the recipient; Builder pending actions snapshot and
-  subsequent source field assignments do not update the recipient (Simple Values retain existing reference semantics). The source ownership and Template identity remain intact.
+  subsequent source field assignments do not update the recipient (Simple Values retain existing reference semantics).
+  The source ownership and Template identity remain intact.
 - Closure delegates to the fresh public Builder, receives no seed parameter, runs exactly once, and its result does not
   replace the Builder result. `{}` is valid; missing closure has no new seed-only overload.
 - A populated direct relationship receives a fresh replacement; source/current/returned/previous Builder identities
   remain distinct. Displaced children do not unexpectedly participate as owned graph nodes in final validation.
-- Active type defaults precede seed copy and refinement under existing overwrite policies; superclass/concrete/synthetic
-  seed selection and field/type defaults match the accepted matrix. No synthetic ordinary Model is instantiated.
+- Active type defaults precede seed copy and refinement under existing overwrite policies; ancestor/concrete/sibling/
+  synthetic seed selection and field/type defaults match the ADR matrix. An admitted sibling seeds a fresh relationship
+  type/default implementation, never an incompatible sibling recipient. Cover both successful compatible sibling values
+  and existing missing-field policy failure; no silent sibling-field filtering. No synthetic ordinary Model is instantiated.
 - Key provider/seed key precedence and missing keyed-Template identity match the accepted policy.
 - Recipient callbacks and graph materialization/validation execute in the outer session only; ordinary root Factory
   calls are never used to allocate children. Template definition keeps its existing callback omissions.
@@ -118,7 +146,8 @@ Acceptance:
 - Direct collection/map element adders and their factory delegates expose identical seed semantics; #135 iterable
   Template expansion retains its exact signature and behavior.
 - A genuine Layer 3 fixture has abstract Domain API room types, concrete Schema fields, and a bounded/unbounded Cluster
-  projection as appropriate; a base Template can seed concrete named rooms if SEED-0 accepted that policy.
+  projection as appropriate; an accepted highest-domain base Template and compatible sibling Model/Builder can seed
+  concrete named rooms. The two seed signatures use the same domain in direct and forwarding contracts.
 - `OPTIONAL_LINK` always owns the new result; ordinary source may still be an aggregation target elsewhere; `LINK` has no
   seeded creator in bytecode, mirrors, or static surface. Nested composition is fresh and LINK identity follows existing
   copy rules.
@@ -139,7 +168,8 @@ reasoned documentation commit synchronizes delivered behavior and release naviga
 Acceptance:
 
 - `GeneratedDslSupportSpec` covers exact source/result descriptors, required closure and `DELEGATE_ONLY` public child
-  delegate, no hidden implementation/session types, source-mirror parity, inherited relationships, and collision cases.
+  delegate, exactly the two selected-domain seed inputs (and no fallthrough/intermediate-ancestor forms), no hidden
+  implementation/session types, source-mirror parity, inherited relationships, and collision cases.
 - Java and Groovy 3/4/5 compile against separately generated Schema contracts. Runtime subtype inference never promises
   exact subtype completion from a base-typed seed; existing explicit Factory-token creator remains the exact-type path.
 - `SeededRelationshipsDocumentaryTest` carries `@Issue("342")`, `@Tag("documentary")`, and `@See` for the current
@@ -168,9 +198,10 @@ or issue closure is authorized by this design task.
 
 ## Review risks and handoff
 
-The main risks are superclass/static signature fit, keyed Template creation with only two arguments, source/overload
-collisions, and replacing an occupied owned Builder without leaking lifecycle participation. These are recorded as gates
-or executable acceptance, not hidden implementation details. Fresh copy semantics are confirmed; broader cloning, arbitrary
+The remaining product gate is keyed Template creation with only two arguments. Implementation risks are sibling
+copy-policy failures, source/overload collisions, and replacing an occupied owned Builder without leaking lifecycle
+participation. These are recorded as a gate or executable acceptance, not hidden implementation details. Fresh copy
+semantics and the two highest-DSL-domain seed descriptors are confirmed; broader cloning, arbitrary
 POJO seeds, new root APIs, mutation of completed Models, and Template registration changes are outside the contract.
 
 A design handoff must state the exact worktree/branch, base/final commit, checks, remaining decision gates, no GitHub
