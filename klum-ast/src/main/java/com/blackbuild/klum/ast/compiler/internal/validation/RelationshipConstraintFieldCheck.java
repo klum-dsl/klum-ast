@@ -62,21 +62,24 @@ public final class RelationshipConstraintFieldCheck {
         for (AnnotationNode use : field.getAnnotations()) {
             ClassNode domain = use.getClassNode();
             AnnotationNode marker = domain.getAnnotations(MARKER).stream().findFirst().orElse(null);
-            if (marker != null) {
-                if (domain.isResolved()) checkDeclaration(domain, marker, use, source);
-                ClassNode target = isCollectionOrMap(field.getType()) ? getElementType(field) : field.getType();
-                if (Modifier.isStatic(field.getModifiers()) || target == null || !isDSLObject(target)) {
-                    error(source, use, "Relationship constraint on field '" + field.getName()
-                            + "' must declare a non-static DSL relationship target or collection/map of DSL relationships");
-                } else {
-                    callbackParameters(domain, marker).ifPresent(parameters -> {
-                        if (parameters.length == 2 && !accepts(parameters[1], target))
-                            error(source, use, "Relationship constraint callback target " + parameters[1].getName()
-                                    + " cannot accept declared relationship " + target.getName());
-                    });
-                }
-            }
+            if (marker != null) checkRelationshipUse(field, source, use, domain, marker);
         }
+    }
+
+    private static void checkRelationshipUse(FieldNode field, SourceUnit source, AnnotationNode use,
+                                             ClassNode domain, AnnotationNode marker) {
+        if (domain.isResolved()) checkDeclaration(domain, marker, use, source);
+        ClassNode target = isCollectionOrMap(field.getType()) ? getElementType(field) : field.getType();
+        if (Modifier.isStatic(field.getModifiers()) || target == null || !isDSLObject(target)) {
+            error(source, use, "Relationship constraint on field '" + field.getName()
+                    + "' must declare a non-static DSL relationship target or collection/map of DSL relationships");
+            return;
+        }
+        callbackParameters(domain, marker).ifPresent(parameters -> {
+            if (parameters.length == 2 && !accepts(parameters[1], target))
+                error(source, use, "Relationship constraint callback target " + parameters[1].getName()
+                        + " cannot accept declared relationship " + target.getName());
+        });
     }
 
     public static void checkDeclaration(ClassNode domain, AnnotationNode marker, AnnotationNode location, SourceUnit source) {
