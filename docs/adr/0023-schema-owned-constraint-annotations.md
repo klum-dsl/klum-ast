@@ -4,9 +4,9 @@ Date: 2026-09-29
 
 Status: Accepted
 
-Implementation status: S0 compatibility proof passed; annotation member encoding selected; production implementation pending
+Implementation status: S0 compatibility proof passed; S1 relationship-field implementation in progress
 
-Target: candidate 4.1 quality-of-life feature, gated by S0; no release commitment yet
+Target: candidate 4.1 quality-of-life feature; no release commitment yet
 
 Tracking issue: [#799 — Add constraint meta-annotations analogous to @DefaultValues](https://github.com/klum-dsl/klum-ast/issues/799)
 
@@ -48,7 +48,7 @@ compiler should reject unsupported placements rather than produce a runtime surp
 considered after the field contract is proven; it is not a condition for the first 4.1 slice.
 
 The selected meta-annotation member encoding is the JDK-only `Class<?> value()`, authored with a typed two-parameter
-Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker name remains to be chosen. This
+Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker is named `@ConstraintValues`. This
 member adds no Groovy type to the public marker signature or new Groovy dependency to the annotations artifact. The
 KlumAST compiler check must recognize that the class literal is a
 closure and inspect its two authored parameter types; the Groovy-dependent compiler and runtime modules handle closure
@@ -72,8 +72,8 @@ A focused Groovy 3 probe of existing `@Validate` on a
 causing a method-signature issue. The S0 meta-annotation probe proves completed-Model parameter typing independently;
 wrapping the existing field-closure path would not provide that guarantee.
 
-The schema shape below is domain-neutral. It illustrates the selected callback encoding with a provisional public
-marker name. Separate domain annotations satisfy the accepted behavior without changing `@DefaultValues`:
+The schema shape below is domain-neutral. It illustrates the selected callback encoding with the public marker.
+Separate domain annotations satisfy the accepted behavior without changing `@DefaultValues`:
 
 ```groovy
 @DefaultValues
@@ -123,7 +123,7 @@ exactly two parameters.
 
 The S0 proof exercises these positive and negative cases for owned and `LINK` relationships in authored source and
 in a separately compiled consumer across Groovy 3/4/5 and JPMS where applicable. This is an acceptance
-rule for validating the selected callback encoding, not a freeze of the provisional `@ConstraintValues` name above.
+rule for validating the selected callback encoding.
 
 ### S0 proof and compiler boundary
 
@@ -142,11 +142,17 @@ concrete annotation, and Model share the Schema module and classloader. The name
 package opening to Groovy or the consumer. These tests prove feasibility, not the production marker, compiler check,
 evaluator, failure attribution, or reporter behavior.
 
-For S1, implement placement and signature diagnostics through the existing KlumCast validation SPI where possible:
-`@KlumCastValidated`, `@KlumCastValidator`, and a KlumAST-owned `Check` using `CheckContext`, following
-`DefaultValuesCheck`. This check must reject a non-closure class before inspecting the authored closure parameters.
-The test-only S0 guard is not the production implementation. Do not change KlumCast or create a
-KlumCast issue unless S1 demonstrates that the SPI's generic context is insufficient for a required check. The
+For S1, a local transformation on `@ConstraintValues` checks each marked domain annotation declaration and converts a
+single Groovy-truth expression to an assertion. The existing DSL field transformation checks each annotated relationship
+field against the declared target type. Both use the direct annotation AST, including when declaration and use share a
+source compilation; neither scans a source unit for annotations. The declaration check covers runtime retention,
+field-only target, closure encoding, and two authored parameters. The test-only S0 guard is not the production implementation.
+KlumCast 0.4.0 propagates a validation binding from a meta-annotation to every domain-annotation use and rejects
+same-source domain annotations before invoking a `Check`; therefore `@ConstraintValues` carries no KlumCast binding.
+Do not change KlumCast as part of #799. The marker keeps its JDK-only `Class<?>` member and adds no Gradle dependency to
+the annotations artifact; it uses the same Groovy local-transform metadata already used by other KlumAST annotations.
+A future generic same-source dispatch capability in KlumCast or KlumGuard
+could supersede the local field check only if released before #799's release qualification. The
 single-expression-to-assertion conversion must preserve the authored `(domainAnnotation, completedModel)` parameter
 types and must not reuse the `@Validate` field closure's Builder projection.
 
@@ -230,7 +236,7 @@ evaluation; and no mutation, reownership, or target lifecycle rerun. Runtime ann
 tooling metadata, and separate default and constraint annotations satisfy #799's core.
 
 S0 has established the closure encoding and completed-Model boundary across Groovy 3/4/5, separately compiled binaries,
-and Groovy 4/5 JPMS. S1 must implement and test the public marker and KlumCast compiler check, both accepted closure
+and Groovy 4/5 JPMS. S1 must implement and test the public marker and KlumAST-local compiler check, both accepted closure
 forms, reporter compatibility, source attribution, repeated references, optional-null behavior, and lifecycle/identity
-boundaries end to end. The public marker name and production diagnostics remain open within that implementation slice.
+boundaries end to end. Production diagnostics remain part of that implementation slice.
 Acceptance of this ADR does not mean those implementation gates have passed or that a 4.1 release is committed.
