@@ -33,6 +33,22 @@ name 'Klaus'
 
 or configure `GroovyClassLoader` / `GroovyShell` with a `BaseScript` (see the Javadoc of `DelegatingScript` for details).
 
+A `DelegatingScript` executes its bare configuration calls against the target's Builder at runtime. IntelliJ currently
+does not infer that concrete Builder for bare calls in the script body, so completion and navigation there are incomplete.
+This improvement is tracked in [#805](https://github.com/klum-dsl/klum-ast/issues/805).
+
+For the currently supported IntelliJ completion and navigation path, an ordinary Model script uses a typed factory call:
+
+```groovy
+Deployment.Create.With {
+    environment 'production'
+}
+```
+
+That call exposes the generated Builder contract through refreshed source mirrors in a Schema project or compiled Schema
+classes in a separate consumer. It creates a completed Model; it is not interchangeable with a `DelegatingScript` recipe
+that configures a Builder inside an active Construction session.
+
 For a [Usage#schema---model---consumer](Usage.md#schema---model---consumer) setup, the most convenient solution is to configure the Model project with a
 compiler customizer.
 
@@ -110,8 +126,8 @@ If no class loader is given, the current context class loader is used.
 ## File or URL
 
 Instead of text, a `File` or `URL` can be given; for a keyed object, the key is derived from the filename
-(the first segment, in the example above, the key would be "bla"). By using a small dsld-snippet in your IDE, you even 
-get complete code completion and syntax highlighting an specialized config files.
+(the first segment, in the example above, the key would be "bla"). The same
+[`DelegatingScript` IDE limitation](#delegating-scripts) applies to these scripts.
 
 This allows splitting configurations into different files, which might be automatically resolved by something like:
 
