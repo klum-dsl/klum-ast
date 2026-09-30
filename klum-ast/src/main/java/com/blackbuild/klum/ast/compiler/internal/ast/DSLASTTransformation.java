@@ -43,7 +43,7 @@ import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
-import com.blackbuild.klum.ast.compiler.internal.validation.ConstraintValuesFieldCheck;
+import com.blackbuild.klum.ast.compiler.internal.validation.RelationshipConstraintFieldCheck;
 import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
@@ -233,7 +233,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.getFields().forEach(field -> {
             warnIfInvalid(field);
             if (field.getOwner() == annotatedClass)
-                ConstraintValuesFieldCheck.check(field, sourceUnit);
+                RelationshipConstraintFieldCheck.check(field, sourceUnit);
         });
     }
 

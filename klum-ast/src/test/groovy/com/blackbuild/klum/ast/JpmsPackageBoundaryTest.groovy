@@ -154,7 +154,10 @@ class JpmsPackageBoundaryTest extends Specification {
                         'org.apache.groovy',
                         'com.blackbuild.klum.cast.compiler'
                 ] as Set,
-                'com.blackbuild.klum.ast.compiler.internal.validation'    : ['com.blackbuild.klum.cast.compiler'] as Set
+                'com.blackbuild.klum.ast.compiler.internal.validation'    : [
+                        'org.apache.groovy',
+                        'com.blackbuild.klum.cast.compiler'
+                ] as Set
         ]
         qualifiedExportTargets(descriptors.runtime)['com.blackbuild.klum.ast.runtime.internal'] == [
                 'com.blackbuild.klum.ast.compiler',
@@ -637,6 +640,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.schema
 
             import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.RelationshipConstraint
             import com.blackbuild.klum.ast.Key
             import com.blackbuild.klum.ast.PostCreate
             import com.blackbuild.klum.ast.PostTree
@@ -658,6 +662,9 @@ class JpmsPackageBoundaryTest extends Specification {
 
             @CallbackProbe({ EndpointBounds bounds, Endpoint endpoint ->
                 assert endpoint.capacity >= bounds.minimum()
+            })
+            @RelationshipConstraint({ EndpointBounds bounds, Endpoint endpoint ->
+                assert endpoint.capacity >= bounds.minimum() : 'endpoint capacity below minimum'
             })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
@@ -783,6 +790,12 @@ class JpmsPackageBoundaryTest extends Specification {
                         }
                     }
                 }
+
+                static Deployment createBelowMinimum() {
+                    Deployment.Create.With {
+                        classEndpoint(DynamicHttpEndpoint) { capacity 2 }
+                    }
+                }
             }
         '''.stripIndent()
     }
@@ -807,6 +820,7 @@ class JpmsPackageBoundaryTest extends Specification {
         '''
             module fixture.consumer {
                 requires fixture.schema;
+                requires com.blackbuild.klum.ast.annotations;
                 requires com.blackbuild.klum.ast.runtime;
                 requires com.blackbuild.klum.ast.jackson;
                 requires com.blackbuild.klum.ast.validation.bean;
@@ -824,17 +838,22 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.consumer;
 
             import com.blackbuild.klum.ast.Validate;
+            import com.blackbuild.klum.ast.RelationshipConstraint;
             import com.blackbuild.klum.ast.runtime.PhaseAction;
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
+            import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
             import com.fasterxml.jackson.databind.ObjectMapper;
             import groovy.lang.Closure;
             import org.codehaus.groovy.runtime.InvokerHelper;
             import fixture.schema.Deployment;
+            import fixture.schema.CallbackProbe;
             import fixture.schema.DynamicHttpEndpoint;
             import fixture.schema.DynamicSchemaConsumer;
+            import fixture.schema.Endpoint;
+            import fixture.schema.EndpointBounds;
             import fixture.schema.HttpEndpoint;
             import fixture.schema.HttpEndpoint_DSL;
             import fixture.schema.Station;
@@ -886,15 +905,15 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (Deployment.callbackCount() != 1)
                         throw new AssertionError("Callback did not run during completed-Model validation");
                     Field constrainedField = Deployment.class.getDeclaredField("classEndpoint");
-                    Annotation bounds = constrainedField.getAnnotation(fixture.schema.EndpointBounds.class);
-                    if (bounds == null || fixture.schema.EndpointBounds.class
-                            .getAnnotation(fixture.schema.CallbackProbe.class) == null)
+                    Annotation bounds = constrainedField.getAnnotation(EndpointBounds.class);
+                    if (bounds == null || EndpointBounds.class
+                            .getAnnotation(CallbackProbe.class) == null)
                         throw new AssertionError("Schema field and meta-annotation were not retained");
-                    if (!fixture.schema.CallbackProbe.class.getDeclaredMethod("value").getGenericReturnType()
+                    if (!CallbackProbe.class.getDeclaredMethod("value").getGenericReturnType()
                             .getTypeName().equals("java.lang.Class<?>"))
                         throw new AssertionError("Probe annotation member acquired a Groovy type dependency");
-                    Class<?> callbackType = fixture.schema.EndpointBounds.class
-                            .getAnnotation(fixture.schema.CallbackProbe.class).value();
+                    Class<?> callbackType = EndpointBounds.class
+                            .getAnnotation(CallbackProbe.class).value();
                     if (!Closure.class.isAssignableFrom(callbackType))
                         throw new AssertionError("Callback member did not contain a Groovy closure class");
                     if (callbackType.getModule() != Deployment.class.getModule() ||
@@ -904,12 +923,24 @@ class JpmsPackageBoundaryTest extends Specification {
                     Closure<?> callback = (Closure<?>) InvokerHelper.invokeConstructorOf(callbackType,
                             new Object[] { null, null });
                     if (callback.getParameterTypes().length != 2 ||
-                            callback.getParameterTypes()[0] != fixture.schema.EndpointBounds.class ||
-                            callback.getParameterTypes()[1] != fixture.schema.Endpoint.class ||
+                            callback.getParameterTypes()[0] != EndpointBounds.class ||
+                            callback.getParameterTypes()[1] != Endpoint.class ||
                             !callback.getParameterTypes()[1].isAssignableFrom(constrainedField.getType()) ||
                             dynamicDeployment.getClassEndpoint().getClass() != DynamicHttpEndpoint.class)
                         throw new AssertionError("Callback did not preserve the declared completed Model signature");
                     callback.call(bounds, dynamicDeployment.getClassEndpoint());
+                    RelationshipConstraint marker = EndpointBounds.class.getAnnotation(RelationshipConstraint.class);
+                    if (marker == null || marker.value() == null ||
+                            ((EndpointBounds) bounds).minimum() != 5)
+                        throw new AssertionError("Public constraint marker and concrete bound were not retained");
+                    try {
+                        DynamicSchemaConsumer.createBelowMinimum();
+                        throw new AssertionError("External consumer expected the runtime constraint to fail");
+                    } catch (KlumValidationException expected) {
+                        if (!expected.getMessage().contains("#classEndpoint:") ||
+                                !expected.getMessage().contains("endpoint capacity below minimum"))
+                            throw new AssertionError("Constraint failure lost its source field or message", expected);
+                    }
                     boolean phaseActionLoaded = ServiceLoader.load(PhaseAction.class).stream()
                             .anyMatch(provider -> provider.type().getName()
                                     .equals("com.blackbuild.klum.ast.runtime.internal.validation.ValidationPhase"));

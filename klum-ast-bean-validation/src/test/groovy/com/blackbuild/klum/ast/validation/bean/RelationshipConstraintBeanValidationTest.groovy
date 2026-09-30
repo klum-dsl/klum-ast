@@ -30,7 +30,7 @@ import spock.lang.Issue
 import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 @Issue('799')
-class ConstraintValuesBeanValidationTest extends AbstractDSLSpec {
+class RelationshipConstraintBeanValidationTest extends AbstractDSLSpec {
 
     @AutoCleanup('teardown') SystemProperties sysProps = new SystemProperties()
 
@@ -40,7 +40,7 @@ class ConstraintValuesBeanValidationTest extends AbstractDSLSpec {
         given:
         createClass('''
             package pk
-            import com.blackbuild.klum.ast.ConstraintValues
+            import com.blackbuild.klum.ast.RelationshipConstraint
             import jakarta.validation.constraints.Min
             import java.lang.annotation.*
 
@@ -48,7 +48,7 @@ class ConstraintValuesBeanValidationTest extends AbstractDSLSpec {
                 @Bounds(minimum = 6) List<Pool> pools
             }
 
-            @ConstraintValues({ Bounds bounds, Pool pool ->
+            @RelationshipConstraint({ Bounds bounds, Pool pool ->
                 assert pool.slots >= bounds.minimum() : 'schema bound failed'
             })
             @Retention(RetentionPolicy.RUNTIME)

@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal.validation;
 
-import com.blackbuild.klum.ast.ConstraintValues;
+import com.blackbuild.klum.ast.RelationshipConstraint;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.runtime.internal.AnnotationHelper;
@@ -54,50 +54,50 @@ public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidat
     @Override
     protected void doValidateLayer() {
         for (Field field : currentLayer.getDeclaredFields()) {
-            if (!Modifier.isStatic(field.getModifiers())) validateConstraints(field);
+            if (!Modifier.isStatic(field.getModifiers())) validateRelationshipConstraints(field);
             if (!isNotExplicitlyIgnored(field)) continue;
             validateField(field).ifPresent(validationResult::addIssue);
         }
     }
 
-    private void validateConstraints(Field field) {
-        List<Annotation> annotations = AnnotationHelper.getMetaAnnotated(field, ConstraintValues.class).toList();
+    private void validateRelationshipConstraints(Field field) {
+        List<Annotation> annotations = AnnotationHelper.getMetaAnnotated(field, RelationshipConstraint.class).toList();
         if (annotations.isEmpty()) return;
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
         if (value == null) return;
         Map<Object, String> elementContexts = new IdentityHashMap<>();
         Set<String> usedContexts = new HashSet<>();
         for (Annotation annotation : annotations) {
-            ConstraintValues marker = annotation.annotationType().getAnnotation(ConstraintValues.class);
-            String label = "Constraint @" + annotation.annotationType().getSimpleName();
-            validateConstraintEntries(field, value, annotation, marker, label, elementContexts, usedContexts);
+            RelationshipConstraint marker = annotation.annotationType().getAnnotation(RelationshipConstraint.class);
+            String label = "Relationship constraint @" + annotation.annotationType().getSimpleName();
+            validateRelationshipEntries(field, value, annotation, marker, label, elementContexts, usedContexts);
         }
     }
 
-    private void validateConstraintEntries(Field field, Object value, Annotation annotation, ConstraintValues marker,
+    private void validateRelationshipEntries(Field field, Object value, Annotation annotation, RelationshipConstraint marker,
                                            String label, Map<Object, String> elementContexts, Set<String> usedContexts) {
         if (value instanceof Map<?, ?> map) {
             for (Map.Entry<?, ?> entry : map.entrySet())
-                validateConstraintValue(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
+                validateRelationshipTarget(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
         } else if (value instanceof List<?> list) {
             int index = 0;
             for (Object element : list)
-                validateConstraintValue(field, annotation, marker, label + " at index " + index++, element);
+                validateRelationshipTarget(field, annotation, marker, label + " at index " + index++, element);
         } else if (value instanceof Collection<?> collection) {
             validateNonPositionalCollection(field, annotation, marker, label, collection, elementContexts, usedContexts);
         } else {
-            validateConstraintValue(field, annotation, marker, label, value);
+            validateRelationshipTarget(field, annotation, marker, label, value);
         }
     }
 
-    private void validateNonPositionalCollection(Field field, Annotation annotation, ConstraintValues marker,
+    private void validateNonPositionalCollection(Field field, Annotation annotation, RelationshipConstraint marker,
                                                  String label, Collection<?> collection,
                                                  Map<Object, String> elementContexts, Set<String> usedContexts) {
         for (Object element : collection) {
             if (element == null) continue;
             String context = elementContexts.computeIfAbsent(element,
                     target -> newElementContext(target, usedContexts));
-            validateConstraintValue(field, annotation, marker, label + " at " + context, element);
+            validateRelationshipTarget(field, annotation, marker, label + " at " + context, element);
         }
     }
 
@@ -111,7 +111,7 @@ public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidat
     }
 
     @SuppressWarnings("unchecked")
-    private void validateConstraintValue(Field field, Annotation annotation, ConstraintValues marker,
+    private void validateRelationshipTarget(Field field, Annotation annotation, RelationshipConstraint marker,
                                          String label, Object value) {
         if (value == null) return;
         try {

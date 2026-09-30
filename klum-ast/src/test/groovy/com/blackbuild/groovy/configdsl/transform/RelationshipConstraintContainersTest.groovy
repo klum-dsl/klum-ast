@@ -31,7 +31,7 @@ import spock.lang.Issue
 import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 @Issue('799')
-class ConstraintValuesContainersTest extends AbstractDSLSpec {
+class RelationshipConstraintContainersTest extends AbstractDSLSpec {
 
     @AutoCleanup('teardown') SystemProperties sysProps = new SystemProperties()
 
@@ -44,7 +44,7 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Minimum minimum, Pool pool ->
+            @RelationshipConstraint({ Minimum minimum, Pool pool ->
                 Pool.minimumChecks++
                 assert pool.slots >= minimum.value() : 'below minimum'
             })
@@ -52,7 +52,7 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
             @Target(ElementType.FIELD)
             @interface Minimum { int value() }
 
-            @ConstraintValues({ Maximum maximum, Pool pool ->
+            @RelationshipConstraint({ Maximum maximum, Pool pool ->
                 Pool.maximumChecks++
                 assert pool.slots <= maximum.value() : 'above maximum'
             })
@@ -130,7 +130,7 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Narrow n, KafkaPool pool -> true })
+            @RelationshipConstraint({ Narrow n, KafkaPool pool -> true })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface Narrow {}
@@ -155,7 +155,7 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds bounds, Pool pool ->
+            @RelationshipConstraint({ Bounds bounds, Pool pool ->
                 assert pool.slots >= bounds.minimum() : 'resolved pool is too small'
             })
             @Retention(RetentionPolicy.RUNTIME)
@@ -206,7 +206,7 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds bounds, Graph graph ->
+            @RelationshipConstraint({ Bounds bounds, Graph graph ->
                 Graph.constraintChecks++
                 assert graph.limit >= bounds.minimum() : 'limit too small'
             })
@@ -248,7 +248,7 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds bounds, Pool pool ->
+            @RelationshipConstraint({ Bounds bounds, Pool pool ->
                 Pool.checks[pool.name] = (Pool.checks[pool.name] ?: 0) + 1
                 assert pool.slots >= bounds.minimum() : 'too few slots'
             })

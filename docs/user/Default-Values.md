@@ -240,6 +240,10 @@ Default phase. See [Model Phases](Model-Phases.md) for more information.
 
 Another option is an annotation that is itself annotated with `@DefaultValues`. This is primarily useful with inheritance
 and [Layer 3](Layer3.md).
+For an allowed range on the completed child, use a separate
+[`@RelationshipConstraint` domain annotation](Validation.md#domain-defined-relationship-constraints) on the same relationship
+field. `@DefaultValues` still treats its annotation members as defaults, so keep constraint bounds in that separate
+annotation.
 
 ## Supported Targets
 
