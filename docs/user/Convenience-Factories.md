@@ -68,6 +68,8 @@ contributor(context(scope: scriptScope())) {
 Then write **`catalog.environment.groovy`** as the `DelegatingScript` recipe:
 
 ```groovy
+package example
+
 import groovy.transform.BaseScript
 import groovy.util.DelegatingScript
 
@@ -77,6 +79,21 @@ region 'eu'
 ```
 
 For example, `Environment.Create.From(new File('catalog.environment.groovy'))` runs that file as an Environment recipe.
+This `Environment` is deliberately unkeyed. For a keyed Schema (for example, after adding `@Key String name`), the
+creation route matters: `Create.From(File)` uses `catalog.environment` as the default key because it removes only the
+final `.groovy` extension, while `Create.From(scriptClass)` uses the compiled script class's simple name,
+`catalog_environment`. The same class-derived key applies when `Create.FromClasspath()` loads that script class.
+To choose `catalog` for the file route, supply the existing key provider explicitly:
+
+```groovy
+Environment.Create.From(new File('catalog.environment.groovy'), { File ignored -> 'catalog' })
+```
+
+If you compile the recipe and use `Create.FromClasspath()`, put a marker at
+`META-INF/klum-model/example.Environment.properties` with `model-class: example.catalog_environment`.
+The marker names the **actual compiled script class**, not `catalog.environment.groovy`; the dotted filename produced
+`example.catalog_environment` in Groovy 3, 4, and 5. Keep the marker in the classpath that loads that script.
+
 IntelliJ uses the GDSL only to offer and resolve operations from the existing `Environment_DSL.Builder`; it does not
 change Groovy compilation or `DelegatingScript` runtime dispatch. The generated contract must be visible to the IDE,
 either through refreshed Schema source mirrors or compiled Schema classes. After renaming the Schema or changing its
