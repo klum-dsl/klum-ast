@@ -59,13 +59,85 @@ compiles the script, so it is not independently a truthful fix.
 
 | Candidate and illustrative author syntax | Runtime / compilation | IntelliJ feasibility and mirror / binary compatibility | Risk and proof needed |
 | --- | --- | --- | --- |
-| **Concrete typed BaseScript:** `@BaseScript DeploymentScript base` then `environment 'production'`, where a proposed `DeploymentScript` extends `DelegatingScript` and somehow exposes `Deployment_DSL.Builder<Deployment>`. | A subclass remains accepted by `Create.From(Class)` and `AsBuilder().From(Class)` under their `isAssignableFrom` checks. Text/File/URL compilation currently forces `DelegatingScript` as base; selecting another base in source or shell configuration needs an explicit compatibility test. A generic `KlumScript<Deployment>` alone does not automatically generate `environment` methods or turn an `Object` delegate into typed bare calls. | A concrete superclass with actual matching methods could give PSI declarations and use mirror/binary Builder types in signatures, but method exposure, delegation, and generated-interface use require proof. `@BaseScript` alone proves only superclass selection. | New public script API and possible generated per-Schema type; type must denote the **Builder**, not the completed Model. #269's “actual Model type” should be treated as a model *selector* unless its mapping to `Foo_DSL.Builder<Foo>` is specified. Test Groovy 3/4/5 compile/run and same-project/binary IntelliJ completion/navigation; verify no fake mirror is compiled. |
+| **Concrete typed BaseScript:** `@BaseScript DeploymentScript base` then `environment 'production'`, where a proposed `DeploymentScript` extends `DelegatingScript` and exposes methods corresponding to `Deployment_DSL.Builder<Deployment>`. | A subclass remains accepted by `Create.From(Class)` and `AsBuilder().From(Class)` under their `isAssignableFrom` checks. Text/File/URL compilation currently forces `DelegatingScript` as base; selecting another base in source or shell configuration needs an explicit compatibility test. A generic `KlumScript<Deployment>` alone does not automatically generate `environment` methods or turn an `Object` delegate into typed bare calls. | A concrete superclass with actual forwarding methods could give PSI declarations and use mirror/binary Builder types in signatures. `@BaseScript` alone proves only superclass selection. | New public script API and possible generated per-Schema type; type must denote the **Builder**, not the completed Model. #269's “actual Model type” should be treated as a model *selector* unless its mapping to `Foo_DSL.Builder<Foo>` is specified. Test Groovy 3/4/5 compile/run and same-project/binary IntelliJ completion/navigation; verify no fake mirror is compiled. |
 | **Intentional file convention plus GDSL:** `service.environment.groovy` (or `service.environment`) with bare `endpoint 'x'`, where a *declared* convention maps the suffix to `Environment_DSL.Builder<Environment>`. | The extension alone changes no runtime behavior. A non-`.groovy` file must still be accepted by the chosen parser/Gradle source route; file names and relationship target must agree. A GDSL contribution affects IDEA only and cannot make an invalid runtime call valid. | IntelliJ provides [`scriptScope`](https://github.com/JetBrains/intellij-community/blob/master/plugins/groovy/groovy-psi/src/org/jetbrains/plugins/groovy/dsl/GdslScriptBase.java) and [`delegatesTo(PsiClass)`](https://github.com/JetBrains/intellij-community/blob/master/plugins/groovy/groovy-psi/src/org/jetbrains/plugins/groovy/dsl/dsltop/GroovyDslDefaultMembers.java), so a script-scoped GDSL could select a real generated Builder class available as a mirror or class file. `scriptScope(extension: 'environment')` applies to `.environment`, not `.environment.groovy`; the latter needs a tested name/regex match because IntelliJ's [script scope](https://github.com/JetBrains/intellij-community/blob/master/plugins/groovy/groovy-psi/src/org/jetbrains/plugins/groovy/dsl/toplevel/scopes/ScriptScope.java) uses the file's last extension. The existing closure-scope contributor is not reusable unchanged. | A convention is a new authoring contract and may collide across Schemas or mislead when one script is reused for another target. Test positive and negative suffix mappings, script refactors, same-project mirror and binary consumer, and an IntelliJ editor session. No GDSL syntax should be adopted solely from a stub test. |
 | **Existing typed factory closure:** `Deployment.Create.With { environment 'production' }` in an ordinary `.groovy` Model script. | Existing, compiled and runtime-proven path; this materializes a root Model, so it is not a drop-in replacement for an active-session `DelegatingScript` recipe. | Uses generated factory/Builder contracts, mirrors or class files, and established IntelliJ evidence. | Lowest risk as interim guidance, but it does not solve the bare recipe use case. Keep a regular-script control in the IDE fixture. A closure wrapper/helper with a typed `@DelegatesTo` parameter is another possible author spelling, but must be checked against active-session semantics before calling it an alternative. |
 
+### Follow-up: implementing the Builder interface on the script
+
+The proposed `abstract EnvironmentScript extends DelegatingScript implements
+Environment_DSL.Builder<Environment>` is a useful direction for exposing
+ordinary methods to editors, but `implements` alone does not supply those
+methods. The generated Builder interface contains abstract projected methods
+([projection](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupport.java)).
+A standalone Groovy 5.1.2 probe with one `endpoint(String)` method failed to
+compile its concrete `@BaseScript` script until the base class supplied an
+`endpoint` forwarder. With the forwarder, it compiled and ran against the
+delegate. An empty implementation of `endpoint` also compiled, but the script
+called that empty method and **did not** call the Builder's `endpoint` method:
+`DelegatingScript.invokeMethod` did not override a declared method. Thus an
+empty stub would silently discard configuration. These are language probes,
+not KlumAST or IDE acceptance tests.
+
+Having the script **implement** `Foo_DSL.Builder` creates a further contract
+problem: a script is a recipe forwarding to a Builder, not the Builder's
+identity or lifecycle state. It would be `instanceof Foo_DSL.Builder` and
+`KlumBuilder`, while `Foo.Create.isBuilder(script)` would remain false because
+the runtime predicate requires `InternalKlumBuilder`
+([predicate implementation](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/generated/GeneratedBuilderTypeSupport.java)).
+It also conflicts with [ADR 0005](../../adr/0005-generated-dsl-support-api.md),
+which reserves implementation of generated Builder interfaces for the hidden
+generated Builder. A framework-generated script facade would still need an
+explicit exception or contract revision if it implemented the interface.
+
+A narrower typed facade can extend `DelegatingScript`, hold a typed
+`Foo_DSL.Builder<Foo>` field, bind that field in `setDelegate`, and publish
+concrete forwarding methods **without implementing** the Builder interface.
+In the same standalone probe, `@Delegate(interfaces=false)` generated the
+forwarder, the recipe compiled and ran, and `script instanceof Builder` was
+false. [Groovy's `@Delegate` API](https://docs.groovy-lang.org/docs/groovy-4.0.26/html/api/groovy/lang/Delegate.html)
+documents that switch; method and parameter annotations are *not* copied by
+default. A real generator must preserve overloads, generics, nested-closure
+`@DelegatesTo`, named-parameter metadata, and documentation, or explicitly
+generate the forwarding methods instead. Same-project IDEA would need a
+truthful source mirror of the **script base class** as well as the Builder
+interface; binary consumers would use the compiled script-base class. A
+published typed class may be discoverable in IntelliJ and Eclipse without
+GDSL/DSLD, but both editors still need direct proof. VS Code depends on the
+selected Groovy extension/language server; one
+[Groovy language server](https://github.com/GroovyLanguageServer/groovy-language-server)
+documents completion and configurable classpath, not this BaseScript scenario.
+
+**Default-method variant.** A standalone Groovy 5.1.2 probe also confirmed
+that a default `endpoint(String)` on `EnvironmentBuilder` lets a script
+`implements EnvironmentBuilder` compile and forward to its runtime delegate
+without a per-script stub. This is technically viable, but changes the
+published Builder interface from a pure contract to an implementation carrier
+and retains the false Builder identity described above. Hidden generated
+Builders already have concrete implementations, so their normal dispatch
+would override such defaults; the concern is the new public fallback behavior
+and any other object implementing that interface. A second probe used a
+separate `EnvironmentScriptMethods` interface with the same default forwarder;
+the recipe compiled and ran while `script instanceof EnvironmentBuilder` stayed
+false. A generated script-method interface plus a `DelegatingScript` base class
+may therefore retain the no-GDSL, cross-editor benefit without redefining
+Builder identity. It still duplicates method signatures as a generated public
+surface and needs the same overload, annotation, mirror, binary, and
+Groovy 3/4/5 proof. Neither default-method variant has been tried with actual
+KlumAST generated contracts or any editor.
+
+Generate such a script base class for every `@DSL` type only if that bytecode,
+mirror, and public-API cost is justified. Restricting it to “root” DSL types
+would miss documented child collection/map recipes. An opt-in marker on the
+*target DSL Object type* is a smaller initial scope, provided the real Schelm
+use case and child recipe remain covered. The opt-in spelling and any public
+generated name are product/API decisions, not selected by this note.
+
 **Recommendation:** begin implementation planning with a small IDE tracer, not a
 public BaseScript or extension decision. First verify the source/binary controls,
-then try the concrete BaseScript and narrowly scoped GDSL prototype in IntelliJ.
+then try a typed script facade with concrete or separate-interface default
+forwarders as the leading GDSL-free prototype, followed by a narrowly scoped
+GDSL prototype in IntelliJ if needed.
 Select only a mechanism whose visible Builder methods resolve to the real
 generated contract and whose script still configures the runtime Builder.
 Groovy compilation and the current GDSL unit stubs cannot establish IntelliJ
