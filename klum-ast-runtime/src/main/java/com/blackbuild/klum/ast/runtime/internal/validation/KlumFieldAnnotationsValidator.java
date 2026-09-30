@@ -70,23 +70,34 @@ public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidat
         for (Annotation annotation : annotations) {
             ConstraintValues marker = annotation.annotationType().getAnnotation(ConstraintValues.class);
             String label = "Constraint @" + annotation.annotationType().getSimpleName();
-            if (value instanceof Map<?, ?> map) {
-                for (Map.Entry<?, ?> entry : map.entrySet())
-                    validateConstraintValue(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
-            } else if (value instanceof List<?> list) {
-                int index = 0;
-                for (Object element : list)
-                    validateConstraintValue(field, annotation, marker, label + " at index " + index++, element);
-            } else if (value instanceof Collection<?> collection) {
-                for (Object element : collection) {
-                    if (element == null) continue;
-                    String context = elementContexts.computeIfAbsent(element,
-                            target -> newElementContext(target, usedContexts));
-                    validateConstraintValue(field, annotation, marker, label + " at " + context, element);
-                }
-            } else {
-                validateConstraintValue(field, annotation, marker, label, value);
-            }
+            validateConstraintEntries(field, value, annotation, marker, label, elementContexts, usedContexts);
+        }
+    }
+
+    private void validateConstraintEntries(Field field, Object value, Annotation annotation, ConstraintValues marker,
+                                           String label, Map<Object, String> elementContexts, Set<String> usedContexts) {
+        if (value instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet())
+                validateConstraintValue(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
+        } else if (value instanceof List<?> list) {
+            int index = 0;
+            for (Object element : list)
+                validateConstraintValue(field, annotation, marker, label + " at index " + index++, element);
+        } else if (value instanceof Collection<?> collection) {
+            validateNonPositionalCollection(field, annotation, marker, label, collection, elementContexts, usedContexts);
+        } else {
+            validateConstraintValue(field, annotation, marker, label, value);
+        }
+    }
+
+    private void validateNonPositionalCollection(Field field, Annotation annotation, ConstraintValues marker,
+                                                 String label, Collection<?> collection,
+                                                 Map<Object, String> elementContexts, Set<String> usedContexts) {
+        for (Object element : collection) {
+            if (element == null) continue;
+            String context = elementContexts.computeIfAbsent(element,
+                    target -> newElementContext(target, usedContexts));
+            validateConstraintValue(field, annotation, marker, label + " at " + context, element);
         }
     }
 
