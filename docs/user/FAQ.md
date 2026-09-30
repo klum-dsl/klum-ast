@@ -40,7 +40,10 @@ according to its release instructions. [Usage#all-in-one](Usage.md#all-in-one) d
 preview route; [#469](https://github.com/klum-dsl/klum-ast/issues/469) owns the first-RC real-project field test.
 
 For a separate compiled Schema artifact, a Consumer project can also obtain normal IDE assistance from the generated public
-API. The legacy GDSL/DSLD approach is not the current setup path.
+API. The former global GDSL/DSLD setup is not the current setup path.
+
+For a `DelegatingScript` with bare Builder calls, see the optional, Schema- or Model-owned, filename-scoped
+[IntelliJ GDSL example](Convenience-Factories.md#optional-intellij-completion-for-one-script-family).
 
 ## What does the name mean?
 

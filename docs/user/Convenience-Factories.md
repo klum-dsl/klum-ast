@@ -37,6 +37,88 @@ A `DelegatingScript` executes its bare configuration calls against the target's 
 does not infer that concrete Builder for bare calls in the script body, so completion and navigation there are incomplete.
 This improvement is tracked in [#805](https://github.com/klum-dsl/klum-ast/issues/805).
 
+### Optional IntelliJ completion for one script family
+
+If your project owns a filename convention for scripts that configure one Schema type, you can add an IntelliJ GDSL file
+under `src/main/resources` in either the Schema or Model project. This is optional Schema- or Model-owned IntelliJ
+configuration; KlumAST does not install this contributor for every `DelegatingScript`. For example, given
+`src/main/groovy/example/Environment.groovy`:
+
+```groovy
+package example
+
+import com.blackbuild.klum.ast.DSL
+
+@DSL
+class Environment {
+    String region
+}
+```
+
+Put this **`src/main/resources/environment.gdsl`** in the chosen project and enable it if IntelliJ prompts you.
+IntelliJ needs the GDSL on its classpath for reliable discovery. Choose its owner according to the convention:
+
+- **Schema-owned:** keep it in the Schema project's resources when all consuming Models should use the same
+  filename-to-Builder mapping. Gradle's standard resource processing normally packages it in the Schema JAR, making it
+  available to Model projects that consume that Schema. That propagation is intentional: the mapping becomes part of
+  the Schema's effective editor contract.
+- **Model-owned:** keep it in the Model project's resources when the naming convention belongs only to that Model
+  project. Resource processing may package it in the Model JAR, but it does not propagate with the reusable Schema.
+
+Replace `example.Environment_DSL.Builder` with the real generated Builder contract for your Schema. Use a stable,
+intentional suffix, update a Schema-owned contributor when its Schema type or convention changes, and avoid a suffix that
+could match scripts for another target type:
+
+```groovy
+contributor(context(scope: scriptScope())) {
+    if (place.containingFile.name.endsWith('.environment.groovy'))
+        delegatesTo(findClass('example.Environment_DSL.Builder'))
+}
+```
+
+Then write **`catalog.environment.groovy`** as the `DelegatingScript` recipe:
+
+```groovy
+package example
+
+import groovy.transform.BaseScript
+import groovy.util.DelegatingScript
+
+@BaseScript DelegatingScript base
+
+region 'eu'
+```
+
+For example, `Environment.Create.From(new File('catalog.environment.groovy'))` runs that file as an Environment recipe.
+This `Environment` is deliberately unkeyed. For a keyed Schema (for example, after adding `@Key String name`), the
+creation route matters: `Create.From(File)` uses `catalog.environment` as the default key because it removes only the
+final `.groovy` extension, while `Create.From(scriptClass)` uses the compiled script class's simple name,
+`catalog_environment`. The same class-derived key applies when `Create.FromClasspath()` loads that script class.
+To choose `catalog` for the file route, supply the existing key provider explicitly:
+
+```groovy
+Environment.Create.From(new File('catalog.environment.groovy'), { File ignored -> 'catalog' })
+```
+
+If you compile the recipe and use `Create.FromClasspath()`, put a marker at
+`META-INF/klum-model/example.Environment.properties` with `model-class: example.catalog_environment`.
+The marker names the **actual compiled script class**, not `catalog.environment.groovy`; the dotted filename produced
+`example.catalog_environment` in Groovy 3, 4, and 5. Keep the marker in the classpath that loads that script.
+
+IntelliJ uses the GDSL only to offer and resolve operations from the existing `Environment_DSL.Builder`; it does not
+change Groovy compilation or `DelegatingScript` runtime dispatch. The generated contract must be visible to the IDE,
+either through refreshed Schema source mirrors or compiled Schema classes. After renaming the Schema or changing its
+operations, refresh the mirrors and update this Schema- or Model-owned GDSL as needed.
+
+Check the boundary in IntelliJ: `catalog.environment.groovy` should offer `region` and navigate to the generated Builder
+contract, while `catalog.other.groovy` should not gain that completion from this contributor. A script with the matching
+suffix that actually runs against another Schema type would receive misleading suggestions; use a separate suffix and
+contributor for that type. This example is specific to IntelliJ GDSL and does not claim editor support elsewhere.
+
+This manual recipe is an interim option under [#805](https://github.com/klum-dsl/klum-ast/issues/805). A future
+KlumAST Gradle-plugin facility could generate, materialize, and register a contributor from an explicit Schema
+declaration, but its design needs a separate decision under that issue.
+
 For the currently supported IntelliJ completion and navigation path, an ordinary Model script uses a typed factory call:
 
 ```groovy
