@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 package com.blackbuild.klum.ast.runtime.internal.validation;
-import com.blackbuild.klum.ast.runtime.validation.KlumValidationIssue;
 
 import com.blackbuild.klum.ast.ConstraintValues;
 import com.blackbuild.klum.ast.Owner;
@@ -31,11 +30,15 @@ import com.blackbuild.klum.ast.runtime.internal.AnnotationHelper;
 import com.blackbuild.klum.ast.runtime.internal.ClosureHelper;
 import com.blackbuild.klum.ast.runtime.internal.DslHelper;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationIssue;
 import groovy.lang.Closure;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
@@ -54,27 +57,43 @@ public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidat
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void validateConstraints(Field field) {
-        Object value = null;
-        for (Annotation annotation : AnnotationHelper.getMetaAnnotated(field, ConstraintValues.class).toList()) {
-            if (value == null) value = DslHelper.getAttributeValue(field.getName(), instance);
-            if (value == null) return;
+        List<Annotation> annotations = AnnotationHelper.getMetaAnnotated(field, ConstraintValues.class).toList();
+        if (annotations.isEmpty()) return;
+        Object value = DslHelper.getAttributeValue(field.getName(), instance);
+        if (value == null) return;
+        for (Annotation annotation : annotations) {
             ConstraintValues marker = annotation.annotationType().getAnnotation(ConstraintValues.class);
             String label = "Constraint @" + annotation.annotationType().getSimpleName();
-            try {
-                PhaseDriver.getContext().setMember(field.getName());
-                ClosureHelper.invokeClosureWithDelegate(
-                        (Class<? extends Closure<Object>>) marker.value(), instance, annotation, value);
-            } catch (AssertionError error) {
-                validationResult.addIssue(new KlumValidationIssue(breadcrumbPath, field.getName(),
-                        label + ": " + error.getMessage(), null, Validate.Level.ERROR));
-            } catch (Exception error) {
-                validationResult.addIssue(new KlumValidationIssue(breadcrumbPath, field.getName(),
-                        label + ": " + error.getMessage(), error, Validate.Level.ERROR));
-            } finally {
-                PhaseDriver.getContext().setMember(null);
+            if (value instanceof Map<?, ?> map) {
+                for (Map.Entry<?, ?> entry : map.entrySet())
+                    validateConstraintValue(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
+            } else if (value instanceof Collection<?> collection) {
+                int index = 0;
+                for (Object element : collection)
+                    validateConstraintValue(field, annotation, marker, label + " at index " + index++, element);
+            } else {
+                validateConstraintValue(field, annotation, marker, label, value);
             }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateConstraintValue(Field field, Annotation annotation, ConstraintValues marker,
+                                         String label, Object value) {
+        if (value == null) return;
+        try {
+            PhaseDriver.getContext().setMember(field.getName());
+            ClosureHelper.invokeClosureWithDelegate(
+                    (Class<? extends Closure<Object>>) marker.value(), instance, annotation, value);
+        } catch (AssertionError error) {
+            validationResult.addIssue(new KlumValidationIssue(breadcrumbPath, field.getName(),
+                    label + ": " + error.getMessage(), null, Validate.Level.ERROR));
+        } catch (Exception error) {
+            validationResult.addIssue(new KlumValidationIssue(breadcrumbPath, field.getName(),
+                    label + ": " + error.getMessage(), error, Validate.Level.ERROR));
+        } finally {
+            PhaseDriver.getContext().setMember(null);
         }
     }
 

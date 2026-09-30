@@ -47,6 +47,8 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Modifier;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementType;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollectionOrMap;
 
 /** Checks only annotations on declared DSL fields; source-defined annotation declarations remain in their own AST. */
 public final class ConstraintValuesFieldCheck {
@@ -61,16 +63,17 @@ public final class ConstraintValuesFieldCheck {
             if (marker == null) continue;
 
             if (domain.isResolved()) checkDeclaration(domain, marker, use, source);
-            if (Modifier.isStatic(field.getModifiers()) || !isDSLObject(field.getType())) {
+            ClassNode target = isCollectionOrMap(field.getType()) ? getElementType(field) : field.getType();
+            if (Modifier.isStatic(field.getModifiers()) || target == null || !isDSLObject(target)) {
                 error(source, use, "@ConstraintValues field '" + field.getName()
-                        + "' must declare one non-static DSL relationship target (collections, maps, and scalars are unsupported)");
+                        + "' must declare a non-static DSL relationship target or collection/map of DSL relationships");
                 continue;
             }
 
             ClassNode[] parameters = callbackParameters(domain, marker);
-            if (parameters != null && parameters.length == 2 && !accepts(parameters[1], field.getType()))
+            if (parameters != null && parameters.length == 2 && !accepts(parameters[1], target))
                 error(source, use, "Constraint callback target " + parameters[1].getName()
-                        + " cannot accept declared relationship " + field.getType().getName());
+                        + " cannot accept declared relationship " + target.getName());
         }
     }
 
