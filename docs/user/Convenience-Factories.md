@@ -40,8 +40,8 @@ This improvement is tracked in [#805](https://github.com/klum-dsl/klum-ast/issue
 ### Optional IntelliJ completion for one script family
 
 If your project owns a filename convention for scripts that configure one Schema type, you can add an IntelliJ GDSL file
-under `src/main/resources` in either the Schema or Model project. This is optional, project-owned editor configuration;
-KlumAST does not install this contributor for every `DelegatingScript`. For example, given
+under `src/main/resources` in either the Schema or Model project. This is optional Schema- or Model-owned IntelliJ
+configuration; KlumAST does not install this contributor for every `DelegatingScript`. For example, given
 `src/main/groovy/example/Environment.groovy`:
 
 ```groovy
@@ -55,10 +55,19 @@ class Environment {
 }
 ```
 
-Put this **`src/main/resources/environment.gdsl`** in the chosen Schema or Model project and enable it if IntelliJ
-prompts you. Replace
-`example.Environment_DSL.Builder` with the generated Builder contract for your Schema. The filename suffix is an
-intentional promise that every matching script configures that same type:
+Put this **`src/main/resources/environment.gdsl`** in the chosen project and enable it if IntelliJ prompts you.
+IntelliJ needs the GDSL on its classpath for reliable discovery. Choose its owner according to the convention:
+
+- **Schema-owned:** keep it in the Schema project's resources when all consuming Models should use the same
+  filename-to-Builder mapping. Gradle's standard resource processing normally packages it in the Schema JAR, making it
+  available to Model projects that consume that Schema. That propagation is intentional: the mapping becomes part of
+  the Schema's effective editor contract.
+- **Model-owned:** keep it in the Model project's resources when the naming convention belongs only to that Model
+  project. Resource processing may package it in the Model JAR, but it does not propagate with the reusable Schema.
+
+Replace `example.Environment_DSL.Builder` with the real generated Builder contract for your Schema. Use a stable,
+intentional suffix, update a Schema-owned contributor when its Schema type or convention changes, and avoid a suffix that
+could match scripts for another target type:
 
 ```groovy
 contributor(context(scope: scriptScope())) {
@@ -99,12 +108,16 @@ The marker names the **actual compiled script class**, not `catalog.environment.
 IntelliJ uses the GDSL only to offer and resolve operations from the existing `Environment_DSL.Builder`; it does not
 change Groovy compilation or `DelegatingScript` runtime dispatch. The generated contract must be visible to the IDE,
 either through refreshed Schema source mirrors or compiled Schema classes. After renaming the Schema or changing its
-operations, refresh the mirrors and update this project-owned GDSL as needed.
+operations, refresh the mirrors and update this Schema- or Model-owned GDSL as needed.
 
 Check the boundary in IntelliJ: `catalog.environment.groovy` should offer `region` and navigate to the generated Builder
 contract, while `catalog.other.groovy` should not gain that completion from this contributor. A script with the matching
 suffix that actually runs against another Schema type would receive misleading suggestions; use a separate suffix and
 contributor for that type. This example is specific to IntelliJ GDSL and does not claim editor support elsewhere.
+
+This manual recipe is an interim option under [#805](https://github.com/klum-dsl/klum-ast/issues/805). A future
+KlumAST Gradle-plugin facility could generate, materialize, and register a contributor from an explicit Schema
+declaration, but its design needs a separate decision under that issue.
 
 For the currently supported IntelliJ completion and navigation path, an ordinary Model script uses a typed factory call:
 
