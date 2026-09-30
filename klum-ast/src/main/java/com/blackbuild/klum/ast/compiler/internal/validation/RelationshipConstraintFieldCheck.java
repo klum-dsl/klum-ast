@@ -45,6 +45,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Modifier;
+import java.util.Optional;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementType;
@@ -53,6 +54,7 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.i
 /** Checks only annotations on declared DSL fields; source-defined annotation declarations remain in their own AST. */
 public final class RelationshipConstraintFieldCheck {
     private static final ClassNode MARKER = ClassHelper.make(RelationshipConstraint.class);
+    private static final String VALUE_MEMBER = "value";
 
     private RelationshipConstraintFieldCheck() {}
 
@@ -60,20 +62,20 @@ public final class RelationshipConstraintFieldCheck {
         for (AnnotationNode use : field.getAnnotations()) {
             ClassNode domain = use.getClassNode();
             AnnotationNode marker = domain.getAnnotations(MARKER).stream().findFirst().orElse(null);
-            if (marker == null) continue;
-
-            if (domain.isResolved()) checkDeclaration(domain, marker, use, source);
-            ClassNode target = isCollectionOrMap(field.getType()) ? getElementType(field) : field.getType();
-            if (Modifier.isStatic(field.getModifiers()) || target == null || !isDSLObject(target)) {
-                error(source, use, "Relationship constraint on field '" + field.getName()
-                        + "' must declare a non-static DSL relationship target or collection/map of DSL relationships");
-                continue;
+            if (marker != null) {
+                if (domain.isResolved()) checkDeclaration(domain, marker, use, source);
+                ClassNode target = isCollectionOrMap(field.getType()) ? getElementType(field) : field.getType();
+                if (Modifier.isStatic(field.getModifiers()) || target == null || !isDSLObject(target)) {
+                    error(source, use, "Relationship constraint on field '" + field.getName()
+                            + "' must declare a non-static DSL relationship target or collection/map of DSL relationships");
+                } else {
+                    callbackParameters(domain, marker).ifPresent(parameters -> {
+                        if (parameters.length == 2 && !accepts(parameters[1], target))
+                            error(source, use, "Relationship constraint callback target " + parameters[1].getName()
+                                    + " cannot accept declared relationship " + target.getName());
+                    });
+                }
             }
-
-            ClassNode[] parameters = callbackParameters(domain, marker);
-            if (parameters != null && parameters.length == 2 && !accepts(parameters[1], target))
-                error(source, use, "Relationship constraint callback target " + parameters[1].getName()
-                        + " cannot accept declared relationship " + target.getName());
         }
     }
 
@@ -83,36 +85,39 @@ public final class RelationshipConstraintFieldCheck {
         if (!targetsOnlyFields(domain))
             error(source, location, "Relationship constraint annotation " + domain.getName() + " must have @Target(FIELD)");
 
-        ClassNode[] parameters = callbackParameters(domain, marker);
-        if (parameters == null)
+        Optional<ClassNode[]> maybeParameters = callbackParameters(domain, marker);
+        if (maybeParameters.isEmpty())
             error(source, location, "@RelationshipConstraint.value must denote a Groovy Closure");
-        else if (parameters.length != 2)
-            error(source, location, "@RelationshipConstraint callback must declare exactly two authored parameters: (domain annotation, completed relationship target)");
-        else if (!accepts(parameters[0], domain))
-            error(source, location, "Relationship constraint callback first parameter " + parameters[0].getName()
-                    + " cannot accept annotation " + domain.getName());
+        else {
+            ClassNode[] parameters = maybeParameters.get();
+            if (parameters.length != 2)
+                error(source, location, "@RelationshipConstraint callback must declare exactly two authored parameters: (domain annotation, completed relationship target)");
+            else if (!accepts(parameters[0], domain))
+                error(source, location, "Relationship constraint callback first parameter " + parameters[0].getName()
+                        + " cannot accept annotation " + domain.getName());
+        }
     }
 
-    private static ClassNode[] callbackParameters(ClassNode domain, AnnotationNode marker) {
-        Expression expression = marker.getMember("value");
+    private static Optional<ClassNode[]> callbackParameters(ClassNode domain, AnnotationNode marker) {
+        Expression expression = marker.getMember(VALUE_MEMBER);
         if (expression instanceof ClosureExpression closure) {
             Parameter[] authored = closure.getParameters();
-            if (authored == null) return new ClassNode[0];
+            if (authored == null) return Optional.of(new ClassNode[0]);
             ClassNode[] parameters = new ClassNode[authored.length];
             for (int i = 0; i < authored.length; i++) parameters[i] = authored[i].getType();
-            return parameters;
+            return Optional.of(parameters);
         }
-        if (!domain.isResolved()) return null;
+        if (!domain.isResolved()) return Optional.empty();
         RelationshipConstraint compiled = (RelationshipConstraint) domain.getTypeClass().getAnnotation(RelationshipConstraint.class);
-        if (compiled == null || !Closure.class.isAssignableFrom(compiled.value())) return null;
+        if (compiled == null || !Closure.class.isAssignableFrom(compiled.value())) return Optional.empty();
         try {
             Closure<?> callback = (Closure<?>) InvokerHelper.invokeConstructorOf(compiled.value(), new Object[]{null, null});
             Class<?>[] types = callback.getParameterTypes();
             ClassNode[] parameters = new ClassNode[types.length];
             for (int i = 0; i < types.length; i++) parameters[i] = ClassHelper.make(types[i]);
-            return parameters;
+            return Optional.of(parameters);
         } catch (RuntimeException ignored) {
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -126,7 +131,7 @@ public final class RelationshipConstraintFieldCheck {
             return retention != null && retention.value() == RetentionPolicy.RUNTIME;
         }
         return domain.getAnnotations(ClassHelper.make(Retention.class)).stream()
-                .map(annotation -> annotation.getMember("value"))
+                .map(annotation -> annotation.getMember(VALUE_MEMBER))
                 .anyMatch(value -> value != null && value.getText().endsWith("RUNTIME"));
     }
 
@@ -136,7 +141,7 @@ public final class RelationshipConstraintFieldCheck {
             return target != null && target.value().length == 1 && target.value()[0] == ElementType.FIELD;
         }
         return domain.getAnnotations(ClassHelper.make(Target.class)).stream()
-                .map(annotation -> annotation.getMember("value"))
+                .map(annotation -> annotation.getMember(VALUE_MEMBER))
                 .anyMatch(RelationshipConstraintFieldCheck::isOnlyFieldTarget);
     }
 
