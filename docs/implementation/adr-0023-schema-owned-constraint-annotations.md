@@ -1,9 +1,11 @@
 # ADR 0023 implementation plan: schema-owned constraint annotations
 
+Status: S0–S2 merged; S3 delivered with production-marker named-module proof. S4 is optional and undecided.
+
 This is the implementation plan for the accepted field contract in
 [ADR 0023](../adr/0023-schema-owned-constraint-annotations.md), related to
 [#799](https://github.com/klum-dsl/klum-ast/issues/799). No production behavior or tracker state changes here.
-S0 has selected the annotation member encoding and still gates production implementation. The accepted scope covers
+S0 selected the annotation member encoding. The accepted scope covers
 owned, `LINK`, and `OPTIONAL_LINK` relationships; combination with defaults is optional.
 
 ## Confirmed behavior and failure paths
@@ -110,11 +112,10 @@ decision. #799 can own S0–S3. S4 is optional and may be a separate successor o
 choose it. No successor issue is created by this plan. Each partial pull request must be related to #799 rather than
 automatically close it.
 
-S0 has retired the primary closure-encoding risk across Groovy 3/4/5 and the applicable named-module lanes. The older
-Groovy 3 `@Validate` field closure still demonstrates the Builder-type mismatch that S1 must avoid. The test-only S0
-guard proves declared-target rejection but is not production validation. S1 still needs the actual marker,
-compiler diagnostics, both `@Validate` closure forms, reporter compatibility, and runtime issue attribution; S2 retains
-collection/map and adapter depth. The source-field implementation pays one annotation/field scan per owner and one
+S0 retired the primary closure-encoding risk across Groovy 3/4/5 and the applicable named-module lanes. The older
+Groovy 3 `@Validate` field closure demonstrated the Builder-type mismatch avoided by S1's production marker and
+declared-target check. S1 and S2 now cover compiler diagnostics, both supported callback forms, reporter compatibility,
+runtime issue attribution, collection/map entries, and adapter coexistence. The source-field implementation pays one annotation/field scan per owner and one
 callback per resolved annotated relationship entry, including repeated references; its cost is proportional to
 annotated source entries and must be measured if a Schema uses large annotated collections. No target traversal,
 ownership transfer, or lifecycle replay is part of the proposed mechanism. Accidental defaulting from mixed annotation
@@ -122,8 +123,21 @@ attributes remains a **follow-up risk only**; S1–S3 use separate annotations, 
 Runtime reflection is a deliberately minimal metadata surface; a tooling catalog is deferred until there is a consumer.
 The historical source-mirror path is an IDE projection of generated contracts, not a second Schema annotation authority.
 
-The S0 gate has passed with the JDK-only `Class<?>` annotation member. Source-owner path/field
-attribution is accepted. The marker is named `@ConstraintValues` in S1. KlumCast 0.4.0 recursively applies a
+The S0 gate passed with the JDK-only `Class<?>` annotation member. Source-owner path/field
+attribution is accepted. S1 named the marker `@ConstraintValues`. KlumCast 0.4.0 recursively applies a
 meta-annotation binding to domain-annotation uses and requires those annotation types to be compiled already. The
 KlumAST-local field check preserves same-source declarations. A future generic same-source KlumCast or KlumGuard
 dispatch capability can replace it only if released before #799's release qualification.
+
+## S3 delivery and consumer gate
+
+`ConstraintValuesDocumentaryTest#'checks a completed child against domain-defined bounds after applying defaults'`
+executes the example in [Validation](../user/Validation.md#domain-defined-relationship-constraints), with two separate
+domain annotations on one relationship field. `JpmsPackageBoundaryTest#'a real schema and consumer prove the classpath
+and named-module contracts'` builds a Schema artifact and separately compiles a Java consumer against it; that consumer
+reflects the runtime marker and concrete bound and executes both a passing and a failing model. It passes on the
+classpath in Groovy 3/4/5 and in Groovy 4/5 named modules. The named-module proof exposed a missing qualified opening
+for `ConstraintValuesDeclarationTransformation`; the maintainer approved adding `org.apache.groovy` to the existing
+`compiler.internal.validation` opening while retaining KlumCast. This packaging correction changes no callback semantics,
+generated signature, or source-mirror input. S4 is left for an explicit maintainer decision based on a concrete consumer; class-declaration
+rules or combined default/constraint member mapping are neither implemented nor required to finish S3.

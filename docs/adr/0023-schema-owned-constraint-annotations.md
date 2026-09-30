@@ -4,7 +4,7 @@ Date: 2026-09-29
 
 Status: Accepted
 
-Implementation status: S0 compatibility proof passed; S1 relationship-field implementation in progress
+Implementation status: S0–S2 merged; S3 delivered with production-marker consumer proof and a narrow JPMS packaging correction. S4 remains optional and undecided.
 
 Target: candidate 4.1 quality-of-life feature; no release commitment yet
 
@@ -187,7 +187,7 @@ No constraint evaluator should call the linked target's factory, lifecycle, `Ins
 An ephemeral Groovy 3 probe using an owner `@Validate` method confirmed that a completed external target was readable
 through two `LINK` fields and an `OPTIONAL_LINK` field during validation; three issues landed under the source owner with
 distinct field members, the external target's stored result stayed unchanged, and an absent optional value did not cause
-an issue when treated as optional. S0/S1 must prove the new callback path, same-root links, and Groovy 4/5/JPMS cases.
+an issue when treated as optional. S0/S1 prove the callback path and same-root links; S0 covers Groovy 4/5 JPMS.
 If that path cannot use the owner field validator narrowly, report the smallest required seam and its cost before
 implementation. Avoid promising an order between independent annotations or validators beyond the phase boundary;
 results are collected as usual.
@@ -235,8 +235,14 @@ attribution; independent checks for each annotated source field or entry; null o
 evaluation; and no mutation, reownership, or target lifecycle rerun. Runtime annotation reflection is sufficient initial
 tooling metadata, and separate default and constraint annotations satisfy #799's core.
 
-S0 has established the closure encoding and completed-Model boundary across Groovy 3/4/5, separately compiled binaries,
-and Groovy 4/5 JPMS. S1 must implement and test the public marker and KlumAST-local compiler check, both accepted closure
-forms, reporter compatibility, source attribution, repeated references, optional-null behavior, and lifecycle/identity
-boundaries end to end. Production diagnostics remain part of that implementation slice.
-Acceptance of this ADR does not mean those implementation gates have passed or that a 4.1 release is committed.
+S0 established the closure encoding and completed-Model boundary across Groovy 3/4/5, separately compiled binaries,
+and Groovy 4/5 JPMS for the S0 callback probe. Merged S1 and S2 deliver the public marker, KlumAST-local compiler check,
+source-field evaluation, container entries, lifecycle boundaries, and adapter coexistence. S3 adds the
+[user guide](../user/Validation.md#domain-defined-relationship-constraints), its executable documentary example, and a
+separately compiled Java consumer that reflects the marker and concrete bound and exercises the runtime rule on the
+classpath and, for Groovy 4/5, in named modules. This proof exposed a missing JPMS opening for the production marker's
+local transform. The maintainer approved adding `org.apache.groovy` to the compiler validation package's existing
+qualified opening while retaining KlumCast access. No generated API or source mirror changed. S4 remains an optional
+maintainer decision: class-declaration rules and a combined
+defaults/constraints annotation need real consumer evidence and may warrant separate follow-up work. Neither is part of
+the accepted 4.1 field contract. Acceptance of this ADR does not commit a 4.1 release.

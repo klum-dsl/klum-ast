@@ -1,5 +1,12 @@
 # 4.1.0 (unreleased)
 
+- Added `@ConstraintValues` for domain-defined constraints on owned, `LINK`, and `OPTIONAL_LINK` DSL relationship fields,
+  including collection and map entries. Typed callbacks inspect completed values during validation; failures belong to
+  the source field, while linked targets retain their lifecycle and stored results. Separate `@DefaultValues` and
+  constraint annotations can decorate one field, and compiled Schema annotations expose bounds through reflection.
+  Class and scalar constraints and a combined defaults/constraints annotation remain outside this 4.1 field contract
+  ([#799](https://github.com/klum-dsl/klum-ast/issues/799)).
+
 - Dynamic Model and Grape scripts now receive a Klum-specific `KlumModelException` when a named-map key has no matching
   one-argument Builder operation. The diagnostic names the key and target Model, retains the original
   `MissingMethodException` as its cause, and preserves normal dispatch and partial application before the failing entry

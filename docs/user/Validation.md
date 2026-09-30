@@ -130,6 +130,61 @@ Any failed validation is represented by a `KlumValidationIssue`, all
 issues of a single object are collected in a `KlumValidationResult`. The result is stored in the completed object's Model
 companion and is accessed through `KlumObjectSupport.of(object).getValidation().getResult()` rather than through a proxy.
 
+## Domain-defined relationship constraints
+
+A Schema library can define a runtime-retained field annotation with `@ConstraintValues`. Its two-parameter Groovy
+closure receives the concrete annotation instance and the **completed** DSL Object at the annotated relationship. Use
+the annotation's members for domain bounds, without adding validation-only properties to the Model. The closure may be a
+single Groovy-truth expression or an `assert` with a message. Keep default values in a separate `@DefaultValues` domain
+annotation; they can both decorate the same field. Compile a `@DefaultValues` annotation before compiling a Schema that
+uses it.
+
+(See: `ConstraintValuesDocumentaryTest#'checks a completed child against domain-defined bounds after applying defaults'`.)
+
+```groovy
+given: // Schema; compile PoolDefaults before its use
+@DefaultValues
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface PoolDefaults { int slots() }
+
+@ConstraintValues({ PoolBounds bounds, Pool pool ->
+    assert pool.slots in bounds.minSlots()..bounds.maxSlots() :
+        "slots must be within ${bounds.minSlots()}..${bounds.maxSlots()}"
+})
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface PoolBounds {
+    int minSlots()
+    int maxSlots()
+}
+
+@DSL class Pool { int slots }
+@DSL class Plan {
+    @PoolDefaults(slots = 8)
+    @PoolBounds(minSlots = 5, maxSlots = 10)
+    Pool pool
+}
+
+when: // Model
+def plan = Plan.Create.With { pool {} }
+
+then: // Completed value
+assert plan.pool.slots == 8
+```
+
+The rule runs during `VALIDATE`, after defaults, `@PostTree`, external configuration, and materialization have resolved
+the field value. It applies to owned, `@Field(FieldType.LINK)`, and `@Field(FieldType.OPTIONAL_LINK)` DSL relationships,
+including their collections and maps. Each non-null target or entry is checked independently. A null field or entry,
+including an unresolved optional link, is skipped; use `@Required` when presence is required. Scalar fields and class
+declarations are outside this annotation's scope.
+
+A failed rule is stored on the **source owner's** validation result and names the annotated field. Collection indices
+and map keys appear in the message while the issue member remains the source field. Two fields or entries pointing to
+the same target can therefore report separate failures. Checking a `LINK` reads the completed target; it does not take
+ownership, alter its identity, rerun its lifecycle or validators, or add an issue to the linked target's stored result.
+The marker and concrete bounds remain available through ordinary reflection on the compiled Schema field.
+
 ## `@Required` and `@Optional`
 
 `@Required` is a convenient alias for `@Validate` with an empty value (i.e., default validation), also with an optional message and level.
