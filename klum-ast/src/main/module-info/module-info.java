@@ -17,5 +17,7 @@ module com.blackbuild.klum.ast.compiler {
     opens com.blackbuild.klum.ast.compiler.internal.layer3 to
             org.apache.groovy,
             com.blackbuild.klum.cast.compiler;
-    opens com.blackbuild.klum.ast.compiler.internal.validation to com.blackbuild.klum.cast.compiler;
+    opens com.blackbuild.klum.ast.compiler.internal.validation to
+            org.apache.groovy,
+            com.blackbuild.klum.cast.compiler;
 }
