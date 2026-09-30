@@ -136,6 +136,16 @@ Acceptance in a new `SeededRelationshipCreationTest` (`@Issue("342")`):
   synthetic seed selection and field/type defaults match the ADR matrix. An admitted sibling seeds a fresh relationship
   type/default implementation, never an incompatible sibling recipient. Cover both successful compatible sibling values
   and existing missing-field policy failure; no silent sibling-field filtering. No synthetic ordinary Model is instantiated.
+- For the ADR's `Room` → `Bedroom` → `LuxuryBedroom` hierarchy and `Flat.bedroom: Bedroom`, a completed
+  `LuxuryBedroom` seed creates a fresh actual `LuxuryBedroom` Builder and completed recipient. Assert identities differ
+  from the seed, declared `windows` refinement succeeds, and descendant-only `sauna` seed state is copied under existing
+  `CopyHandler` policy rather than truncated to `Bedroom`. Include a copy-policy override control so this proves reuse of
+  existing policy, not a second clone routine. Recipient callbacks and descendant composition remain in the same session.
+- Dynamic descendant refinement follows accepted option 1: `bedroom(luxurySeed) { sauna true }` succeeds on the fresh
+  `LuxuryBedroom` delegate, invokes the closure once, and leaves the seed unchanged. Use a seed with `sauna: false` to
+  distinguish refinement from merely copying an already true value. A companion dynamic `Bedroom` seed does not gain
+  `sauna`; its unsupported call retains normal missing-method behavior and failure attachment semantics. No delegate
+  wrapper or member allowlist restricts the concrete Builder to the declared static surface.
 - Key provider/seed key precedence and missing keyed-Template identity match the accepted policy.
 - Recipient callbacks and graph materialization/validation execute in the outer session only; ordinary root Factory
   calls are never used to allocate children. Template definition keeps its existing callback omissions.
@@ -177,8 +187,26 @@ Acceptance:
 - `GeneratedDslSupportSpec` covers exact source/result descriptors, required closure and `DELEGATE_ONLY` public child
   delegate, exactly the two selected-domain seed inputs (and no fallthrough/intermediate-ancestor forms), no hidden
   implementation/session types, source-mirror parity, inherited relationships, and collision cases.
-- Java and Groovy 3/4/5 compile against separately generated Schema contracts. Runtime subtype inference never promises
-  exact subtype completion from a base-typed seed; existing explicit Factory-token creator remains the exact-type path.
+- For the same `LuxuryBedroom` seed case, inspect both generated `bedroom` seed overloads: erased JVM return remains
+  `Bedroom_DSL.Builder`, generic return remains `Bedroom_DSL.Builder<Bedroom>`, and `@DelegatesTo` remains
+  `Bedroom_DSL.Builder` with `DELEGATE_ONLY`. In this hierarchy the seed parameter pair is `Room` and
+  `Room_DSL.Builder<? extends Room>`. Runtime recipient selection must not generate a Luxury-specific overload, return
+  signature, or delegate hint. Java consumption assigns the result to the declared public Builder contract.
+- Source mirrors, generated Javadocs, and applicable IDE metadata reproduce that declared return/delegate surface and
+  offer `windows`, not descendant-only `sauna`, as seeded-refinement completion. They must not infer a more specific
+  contract from either a statically typed or runtime `LuxuryBedroom` seed. Explanatory Javadocs may describe dynamic
+  dispatch, but their advertised types/operations stay declared. Inspect the seeded method metadata, not the legitimate
+  standalone `LuxuryBedroom_DSL.Builder` contract, which naturally contains `sauna`.
+- Use separately generated Schema contracts in Java and `@CompileStatic` Groovy 3/4/5 consumers. A positive seeded
+  `bedroom(luxurySeed) { windows 3 }` call compiles and returns the declared Builder. A negative consumer with
+  `bedroom(luxurySeed) { sauna true }` fails static checking with a missing `sauna` operation on the declared Builder,
+  even when the seed variable is statically `LuxuryBedroom`. Keep closure owner/lexical methods free of a same-named
+  `sauna` helper so the negative test isolates the delegate contract; do not use dynamic escapes or casts. The equivalent
+  unannotated dynamic consumer succeeds as required by SEED-1.
+- A positive static consumer uses `bedroom(LuxuryBedroom.Create) { copyFrom luxurySeed; sauna true }` and compiles against
+  the exact Factory-token-selected `LuxuryBedroom_DSL.Builder`. Verify its descendant refinement and fresh result. This
+  is the existing statically typed route; ordinary dynamic Class selection plus `copyFrom` does not gain a new exact
+  subtype completion promise. Runtime-seed-based overloads and static/IDE inference remain excluded.
 - `SeededRelationshipsDocumentaryTest` carries `@Issue("342")`, `@Tag("documentary")`, and `@See` for the current
   `docs/user/` section. It shows completed Model, Template, and live Builder sources plus one genuine Layer 3 example.
 - Update Templates and relevant relationship/copy pages, Builder-first guidance, Migration navigation if a new guide is
@@ -205,7 +233,9 @@ or issue closure is authorized by this design task.
 
 ## Review risks and handoff
 
-No product decision remains open in this accepted design. Implementation risks are sibling copy-policy failures,
+No product decision remains open in this accepted design. Dynamic descendant-only refinement is valid through normal
+runtime dispatch (option 1), while static/IDE refinement stays at the declared relationship Builder. Implementation risks
+include accidental metadata specialization or accidental runtime narrowing of that delegate, sibling copy-policy failures,
 source/overload collisions, missing construction keys, and replacing an occupied owned Builder without leaking lifecycle
 participation. These are executable acceptance checks; signature/collision proof belongs to SEED-0 rather than a design
 publication gate. Broader cloning, arbitrary POJO seeds, new root APIs, mutation of completed Models, Template registration

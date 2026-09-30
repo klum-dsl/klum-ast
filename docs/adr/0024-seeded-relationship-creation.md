@@ -222,6 +222,80 @@ The second call replaces the first child through the normal setter attachment pa
 must include distinct abstract Domain API types and a meaningful `@Cluster` projection, as in Catwalk's smart-home
 journey; the reduced example above isolates the source-domain and recipient-selection contract.
 
+## Concrete descendant recipient and declared refinement contract
+
+A compatible concrete descendant seed selects a fresh recipient of that concrete descendant type, while the generated
+return type and closure metadata stay fixed at the relationship's declared Builder. This asymmetry is intentional: runtime
+selection preserves the seed's compatible concrete Schema type and its descendant-specific configuration; the stable
+public contract describes what every seed accepted by that relationship can refine. Seed copying uses existing
+`CopyHandler` policy across the concrete recipient's hierarchy, including descendant fields; it does not truncate the seed
+to the declared relationship type or infer additional generated overloads from the seed.
+
+Representative accepted syntax, not an implemented feature:
+
+```groovy
+@DSL
+abstract class Room { String label }
+
+@DSL
+class Bedroom extends Room { int windows }
+
+@DSL
+class LuxuryBedroom extends Bedroom { boolean sauna }
+
+@DSL
+class Flat { Bedroom bedroom }
+
+def luxurySeed = LuxuryBedroom.Create.With(windows: 2, sauna: true)
+def flat = Flat.Create.With {
+    bedroom(luxurySeed) { windows 3 }
+}
+```
+
+The recipient is a new `LuxuryBedroom`; `windows` is refined to 3, and `sauna` is copied under the existing copy policy.
+The generated seed methods still return `Bedroom_DSL.Builder<Bedroom>` (erased JVM return `Bedroom_DSL.Builder`), and
+both refinement closures retain `@DelegatesTo(Bedroom_DSL.Builder)` with `DELEGATE_ONLY`. In this hierarchy their seed
+parameters are `Room` and `Room_DSL.Builder<? extends Room>`, because `Room` is the highest DSL superclass. Neither a
+statically declared `LuxuryBedroom` seed nor its runtime value specializes that return/delegate contract. Source mirrors,
+generated Javadocs, and IDE metadata describe the declared `Bedroom` refinement surface; they do not advertise `sauna`
+as a seeded-setter operation or change completion according to the seed's runtime type.
+
+**Dynamic refinement decision — option 1:** descendant-only refinement is valid through normal dynamic Groovy dispatch
+when the actual fresh delegate supports it, and is intentionally absent from the public/static/IDE refinement contract.
+For the same compatible `LuxuryBedroom` seed, this dynamic body is valid:
+
+```groovy
+Flat.Create.With {
+    bedroom(luxurySeed) { sauna true }
+}
+```
+
+The fresh actual delegate is a `LuxuryBedroom` Builder. Do not wrap it in a declared-type-only delegate, introduce a member
+allowlist, or reject a supported descendant operation merely because it is absent from `Bedroom_DSL.Builder`.
+`DELEGATE_ONLY` controls name resolution; `@DelegatesTo` describes the static contract rather than restricting runtime
+method dispatch. A dynamic seed selecting only `Bedroom` has no `sauna` operation and follows normal missing-method
+behavior. No dynamic success is promised solely from the seed's static source-domain type.
+
+In an `@CompileStatic` Groovy consumer, `bedroom(luxurySeed) { windows 3 }` is supported, while
+`bedroom(luxurySeed) { sauna true }` must fail static checking because its refinement delegate is the declared
+`Bedroom_DSL.Builder`. This remains true even when `luxurySeed` is statically declared `LuxuryBedroom`. The generated
+contract must not attempt runtime-seed-based type inference or completion. Callers who need statically typed
+descendant-specific refinement use the existing typed Factory-token creator and `copyFrom`:
+
+```groovy
+Flat.Create.With {
+    bedroom(LuxuryBedroom.Create) {
+        copyFrom luxurySeed
+        sauna true
+    }
+}
+```
+
+That creator has the exact selected public `LuxuryBedroom_DSL.Builder` delegate under the existing Factory-token contract.
+An ordinary dynamic Class-selection creator can also select the concrete runtime type plus `copyFrom`, but it does not
+imply exact descendant completion; the typed Factory token is the static route. SEED-1 and SEED-3 must prove the runtime
+selection/copy and stable metadata/static boundaries below without implementing this feature in the planning PR.
+
 ## Key and failure boundaries
 
 Keys must be resolved before Builder allocation. The accepted policy retains an existing Schema relationship key
