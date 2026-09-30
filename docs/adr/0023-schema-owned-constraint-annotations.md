@@ -38,7 +38,7 @@ object path, member, message, and level.
 
 ### Keep the annotation on the Schema
 
-Add a public, runtime-retained meta-annotation (working name `@ConstraintValues`) in the annotations artifact. A Schema
+Add the public, runtime-retained `@RelationshipConstraint` meta-annotation in the annotations artifact. A Schema
 Developer places it on a runtime-retained domain annotation used on a DSL relationship field: owned composition,
 `LINK`, or `OPTIONAL_LINK`. The *concrete domain annotation instance* and the completed, resolved field value are inputs
 to one rule. Collections and maps are evaluated per non-null DSL Object element. A null or unresolved optional value
@@ -48,7 +48,7 @@ compiler should reject unsupported placements rather than produce a runtime surp
 considered after the field contract is proven; it is not a condition for the first 4.1 slice.
 
 The selected meta-annotation member encoding is the JDK-only `Class<?> value()`, authored with a typed two-parameter
-Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker is named `@ConstraintValues`. This
+Groovy closure receiving `(domainAnnotation, completedModel)`. The public marker is named `@RelationshipConstraint`. This
 member adds no Groovy type to the public marker signature or new Groovy dependency to the annotations artifact. The
 KlumAST compiler check must recognize that the class literal is a
 closure and inspect its two authored parameter types; the Groovy-dependent compiler and runtime modules handle closure
@@ -62,7 +62,8 @@ assertion retains its message. A runtime helper
 would invoke the closure under the current validation context and convert a failed assertion or exception to a normal
 `KlumValidationIssue` on the **source owner Model's** result,
 with its existing path and the annotated field as member. The message identifies the concrete constraint annotation and
-the failing assertion; for collections/maps it also identifies the entry index/key. This is relationship-local validation:
+the failing assertion; for containers it also identifies entry context: a list index, map key, or opaque token for a
+non-positional collection. This is relationship-local validation:
 two annotated fields pointing to the same completed object are evaluated independently and produce issues under their
 respective source fields. The rule reads the linked target without mutating, owning, or rerunning its lifecycle or
 validators. Keep the existing validation reporter available inside the callback for advanced messages: reporter calls
@@ -83,7 +84,7 @@ Separate domain annotations satisfy the accepted behavior without changing `@Def
     int slots() default 0
 }
 
-@ConstraintValues({ PoolBounds bounds, Pool pool ->
+@RelationshipConstraint({ PoolBounds bounds, Pool pool ->
     assert pool.slots in bounds.minSlots()..bounds.maxSlots() :
         "slots must be within ${bounds.minSlots()}..${bounds.maxSlots()}"
 })
@@ -142,13 +143,13 @@ concrete annotation, and Model share the Schema module and classloader. The name
 package opening to Groovy or the consumer. These tests prove feasibility, not the production marker, compiler check,
 evaluator, failure attribution, or reporter behavior.
 
-For S1, a local transformation on `@ConstraintValues` checks each marked domain annotation declaration and converts a
+For S1, a local transformation on `@RelationshipConstraint` checks each marked domain annotation declaration and converts a
 single Groovy-truth expression to an assertion. The existing DSL field transformation checks each annotated relationship
 field against the declared target type. Both use the direct annotation AST, including when declaration and use share a
 source compilation; neither scans a source unit for annotations. The declaration check covers runtime retention,
 field-only target, closure encoding, and two authored parameters. The test-only S0 guard is not the production implementation.
 KlumCast 0.4.0 propagates a validation binding from a meta-annotation to every domain-annotation use and rejects
-same-source domain annotations before invoking a `Check`; therefore `@ConstraintValues` carries no KlumCast binding.
+same-source domain annotations before invoking a `Check`; therefore `@RelationshipConstraint` carries no KlumCast binding.
 Do not change KlumCast as part of #799. The marker keeps its JDK-only `Class<?>` member and adds no Gradle dependency to
 the annotations artifact; it uses the same Groovy local-transform metadata already used by other KlumAST annotations.
 A future generic same-source dispatch capability in KlumCast or KlumGuard
@@ -180,7 +181,7 @@ Add issues to that source Model's stored `KlumValidationResult`; `VERIFY` keeps 
 
 Read each annotated relationship value without changing it. Evaluate each distinct source field independently, including
 two fields or container entries that point to one completed target. For a collection/map, retain the field name as the
-issue member so existing `suppressOn(field)` behavior remains intelligible, and put the entry index/key in the message.
+issue member so existing `suppressOn(field)` behavior remains intelligible, and put entry context in the message.
 If a collection contains the same target twice at different positions, entry context keeps both failures distinct in the
 result set. A null field or null entry is skipped; an unresolved optional link receives no special synthetic failure.
 No constraint evaluator should call the linked target's factory, lifecycle, `InstanceValidator`s, or ownership APIs.
@@ -237,7 +238,9 @@ tooling metadata, and separate default and constraint annotations satisfy #799's
 
 S0 established the closure encoding and completed-Model boundary across Groovy 3/4/5, separately compiled binaries,
 and Groovy 4/5 JPMS for the S0 callback probe. Merged S1 and S2 deliver the public marker, KlumAST-local compiler check,
-source-field evaluation, container entries, lifecycle boundaries, and adapter coexistence. S3 adds the
+source-field evaluation, container entries, lifecycle boundaries, and adapter coexistence. S3 finalizes the
+relationship-local public name `@RelationshipConstraint` without changing the `Class<?> value()` encoding or S1/S2
+semantics. It adds the
 [user guide](../user/Validation.md#domain-defined-relationship-constraints), its executable documentary example, and a
 separately compiled Java consumer that reflects the marker and concrete bound and exercises the runtime rule on the
 classpath and, for Groovy 4/5, in named modules. This proof exposed a missing JPMS opening for the production marker's

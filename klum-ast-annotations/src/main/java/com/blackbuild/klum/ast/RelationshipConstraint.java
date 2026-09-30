@@ -33,8 +33,8 @@ import java.lang.annotation.Target;
 /** Marks a runtime-retained field annotation as a constraint on a completed DSL relationship value. */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
-@GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.validation.ConstraintValuesDeclarationTransformation")
-public @interface ConstraintValues {
-    /** @return a Groovy closure accepting the concrete annotation and the declared relationship target */
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.validation.RelationshipConstraintDeclarationTransformation")
+public @interface RelationshipConstraint {
+    /** @return a Groovy closure accepting the concrete annotation and completed relationship target */
     Class<?> value();
 }

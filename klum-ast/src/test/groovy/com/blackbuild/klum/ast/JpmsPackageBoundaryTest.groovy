@@ -640,7 +640,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.schema
 
             import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.ConstraintValues
+            import com.blackbuild.klum.ast.RelationshipConstraint
             import com.blackbuild.klum.ast.Key
             import com.blackbuild.klum.ast.PostCreate
             import com.blackbuild.klum.ast.PostTree
@@ -663,7 +663,7 @@ class JpmsPackageBoundaryTest extends Specification {
             @CallbackProbe({ EndpointBounds bounds, Endpoint endpoint ->
                 assert endpoint.capacity >= bounds.minimum()
             })
-            @ConstraintValues({ EndpointBounds bounds, Endpoint endpoint ->
+            @RelationshipConstraint({ EndpointBounds bounds, Endpoint endpoint ->
                 assert endpoint.capacity >= bounds.minimum() : 'endpoint capacity below minimum'
             })
             @Retention(RetentionPolicy.RUNTIME)
@@ -838,7 +838,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.consumer;
 
             import com.blackbuild.klum.ast.Validate;
-            import com.blackbuild.klum.ast.ConstraintValues;
+            import com.blackbuild.klum.ast.RelationshipConstraint;
             import com.blackbuild.klum.ast.runtime.PhaseAction;
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
@@ -929,7 +929,7 @@ class JpmsPackageBoundaryTest extends Specification {
                             dynamicDeployment.getClassEndpoint().getClass() != DynamicHttpEndpoint.class)
                         throw new AssertionError("Callback did not preserve the declared completed Model signature");
                     callback.call(bounds, dynamicDeployment.getClassEndpoint());
-                    ConstraintValues marker = EndpointBounds.class.getAnnotation(ConstraintValues.class);
+                    RelationshipConstraint marker = EndpointBounds.class.getAnnotation(RelationshipConstraint.class);
                     if (marker == null || marker.value() == null ||
                             ((EndpointBounds) bounds).minimum() != 5)
                         throw new AssertionError("Public constraint marker and concrete bound were not retained");

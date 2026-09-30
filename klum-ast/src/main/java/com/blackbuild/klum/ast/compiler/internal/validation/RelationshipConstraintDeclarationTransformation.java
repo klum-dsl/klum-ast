@@ -40,17 +40,17 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 /** Validates a marked annotation declaration and gives single truth expressions assertion semantics. */
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
-public class ConstraintValuesDeclarationTransformation extends AbstractASTTransformation {
+public class RelationshipConstraintDeclarationTransformation extends AbstractASTTransformation {
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
         init(nodes, source);
         if (nodes.length < 2 || !(nodes[0] instanceof AnnotationNode marker)) return;
         if (!(nodes[1] instanceof ClassNode domain) || !domain.isAnnotationDefinition()) {
-            addError("@ConstraintValues can only mark an annotation declaration", nodes[1]);
+            addError("@RelationshipConstraint can only mark an annotation declaration", nodes[1]);
             return;
         }
-        ConstraintValuesFieldCheck.checkDeclaration(domain, marker, marker, source);
+        RelationshipConstraintFieldCheck.checkDeclaration(domain, marker, marker, source);
 
         if (!(marker.getMember("value") instanceof ClosureExpression closure)) return;
         if (!(closure.getCode() instanceof BlockStatement block) || block.getStatements().size() != 1) return;
@@ -59,7 +59,7 @@ public class ConstraintValuesDeclarationTransformation extends AbstractASTTransf
 
         AssertStatement assertion = new AssertStatement(
                 new BooleanExpression(expressionStatement.getExpression()),
-                new ConstantExpression("Constraint expression evaluated false: " + expressionStatement.getExpression().getText()));
+                new ConstantExpression("Relationship constraint expression evaluated false: " + expressionStatement.getExpression().getText()));
         assertion.setSourcePosition(statement);
         block.getStatements().set(0, assertion);
     }

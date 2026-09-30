@@ -31,7 +31,7 @@ import spock.lang.Issue
 import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 @Issue('799')
-class ConstraintValuesJacksonTest extends AbstractDSLSpec {
+class RelationshipConstraintJacksonTest extends AbstractDSLSpec {
 
     ObjectMapper mapper = new ObjectMapper().findAndRegisterModules()
     @AutoCleanup('teardown') SystemProperties sysProps = new SystemProperties()
@@ -42,7 +42,7 @@ class ConstraintValuesJacksonTest extends AbstractDSLSpec {
         given:
         createClass('''
             package pk
-            import com.blackbuild.klum.ast.ConstraintValues
+            import com.blackbuild.klum.ast.RelationshipConstraint
             import java.lang.annotation.*
 
             @DSL class Plan {
@@ -50,7 +50,7 @@ class ConstraintValuesJacksonTest extends AbstractDSLSpec {
                 @Bounds(minimum = 5) Map<String, Pool> indexed
             }
 
-            @ConstraintValues({ Bounds bounds, Pool pool ->
+            @RelationshipConstraint({ Bounds bounds, Pool pool ->
                 assert pool.slots >= bounds.minimum() : 'imported pool is too small'
             })
             @Retention(RetentionPolicy.RUNTIME)

@@ -24,7 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import com.blackbuild.klum.ast.ConstraintValues
+import com.blackbuild.klum.ast.RelationshipConstraint
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -34,7 +34,7 @@ import spock.lang.Unroll
 import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 @Issue('799')
-class ConstraintValuesTest extends AbstractDSLSpec {
+class RelationshipConstraintTest extends AbstractDSLSpec {
 
     @AutoCleanup('teardown') SystemProperties sysProps = new SystemProperties()
 
@@ -48,12 +48,12 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds bounds, Pool pool -> pool.slots >= bounds.minimum() })
+            @RelationshipConstraint({ Bounds bounds, Pool pool -> pool.slots >= bounds.minimum() })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface Bounds { int minimum() }
 
-            @ConstraintValues({ AssertBounds bounds, Pool pool ->
+            @RelationshipConstraint({ AssertBounds bounds, Pool pool ->
                 assert pool.slots >= bounds.minimum() : 'pool is too small'
             })
             @Retention(RetentionPolicy.RUNTIME)
@@ -116,7 +116,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
 
         and: 'the annotation is visible but no validation member enters the public API'
         planType.getDeclaredField('owned').getAnnotation(getClass('constraints.Bounds')).minimum() == 5
-        getClass('constraints.Bounds').getAnnotation(ConstraintValues).value() != null
+        getClass('constraints.Bounds').getAnnotation(RelationshipConstraint).value() != null
         !planType.declaredFields*.name.any { it.toLowerCase().contains('constraint') }
         !planType.methods*.name.any { it.toLowerCase().contains('constraint') }
         !getBuilderClass(planType.name).methods*.name.any { it.toLowerCase().contains('constraint') }
@@ -130,7 +130,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ MinimumSlots minimum, Pool pool ->
+            @RelationshipConstraint({ MinimumSlots minimum, Pool pool ->
                 Pool.minimumChecks++
                 assert pool.slots >= minimum.value() : 'too few slots'
             })
@@ -138,7 +138,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             @Target(ElementType.FIELD)
             @interface MinimumSlots { int value() }
 
-            @ConstraintValues({ MaximumSlots maximum, Pool pool ->
+            @RelationshipConstraint({ MaximumSlots maximum, Pool pool ->
                 Pool.maximumChecks++
                 assert pool.slots <= maximum.value() : 'too many slots'
             })
@@ -195,7 +195,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport
             import java.lang.annotation.*
 
-            @ConstraintValues({ ReporterBounds bounds, Pool pool ->
+            @RelationshipConstraint({ ReporterBounds bounds, Pool pool ->
                 KlumSchemaSupport.klumValidation.errorAt('optional', 'reported')
                 false
             })
@@ -234,7 +234,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds b, Object model -> model != null })
+            @RelationshipConstraint({ Bounds b, Object model -> model != null })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface Bounds {}
@@ -268,8 +268,8 @@ class ConstraintValuesTest extends AbstractDSLSpec {
         plan.optional == null
         plan.ordinary == 'accepted'
         KlumObjectSupport.of(plan).validation.result.issues.empty
-        ConstraintValues.getDeclaredMethod('value').genericReturnType.typeName == 'java.lang.Class<?>'
-        !ConstraintValues.annotations*.annotationType()*.simpleName.any { it.startsWith('KlumCast') }
+        RelationshipConstraint.getDeclaredMethod('value').genericReturnType.typeName == 'java.lang.Class<?>'
+        !RelationshipConstraint.annotations*.annotationType()*.simpleName.any { it.startsWith('KlumCast') }
     }
 
     def 'required optional field remains a separate validation concern'() {
@@ -279,7 +279,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds b, Pool pool -> false })
+            @RelationshipConstraint({ Bounds b, Pool pool -> false })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface Bounds {}
@@ -297,7 +297,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
         then:
         def issues = KlumObjectSupport.of(plan).validation.result.issues.toList()
         issues*.member == ['optional']
-        issues.every { !it.message.contains('Constraint @Bounds') }
+        issues.every { !it.message.contains('Relationship constraint @Bounds') }
     }
 
     def 'a null truth expression fails while an authored assertion may complete with a false return'() {
@@ -307,12 +307,12 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ TruthBounds b, Pool p -> null })
+            @RelationshipConstraint({ TruthBounds b, Pool p -> null })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface TruthBounds {}
 
-            @ConstraintValues({ AssertBounds b, Pool p ->
+            @RelationshipConstraint({ AssertBounds b, Pool p ->
                 assert p != null
                 false
             })
@@ -338,7 +338,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
         def issues = KlumObjectSupport.of(plan).validation.result.issues.toList()
         issues*.member == ['truth']
         issues.first().message.contains('TruthBounds')
-        issues.first().message.contains('Constraint expression evaluated false')
+        issues.first().message.contains('Relationship constraint expression evaluated false')
     }
 
     @Unroll
@@ -377,7 +377,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds b, Pool p -> true })
+            @RelationshipConstraint({ Bounds b, Pool p -> true })
             @Retention(RetentionPolicy.CLASS)
             @Target([ElementType.FIELD, ElementType.TYPE])
             @interface Bounds {}
@@ -403,7 +403,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             @Target(ElementType.TYPE)
             @interface Unrelated {}
 
-            @ConstraintValues(String)
+            @RelationshipConstraint(String)
             @Retention(RetentionPolicy.CLASS)
             @Target([ElementType.FIELD, ElementType.PARAMETER])
             @interface Invalid {}
@@ -411,9 +411,9 @@ class ConstraintValuesTest extends AbstractDSLSpec {
 
         then:
         MultipleCompilationErrorsException error = thrown()
-        error.message.contains('Constraint annotation constraints.Invalid must have @Retention(RUNTIME)')
-        error.message.contains('Constraint annotation constraints.Invalid must have @Target(FIELD)')
-        error.message.contains('@ConstraintValues.value must denote a Groovy Closure')
+        error.message.contains('Relationship constraint annotation constraints.Invalid must have @Retention(RUNTIME)')
+        error.message.contains('Relationship constraint annotation constraints.Invalid must have @Target(FIELD)')
+        error.message.contains('@RelationshipConstraint.value must denote a Groovy Closure')
         !error.message.contains('Unrelated')
     }
 
@@ -425,7 +425,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import java.lang.annotation.*
             import static java.lang.annotation.ElementType.FIELD
 
-            @ConstraintValues({ Bounds b, Pool p -> true })
+            @RelationshipConstraint({ Bounds b, Pool p -> true })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(FIELD)
             @interface Bounds {}
@@ -445,7 +445,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ Bounds b, Pool p -> p != null })
+            @RelationshipConstraint({ Bounds b, Pool p -> p != null })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface Bounds {}
@@ -474,7 +474,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
             import constraints.KafkaPool
             import java.lang.annotation.*
 
-            @ConstraintValues({ Narrow b, KafkaPool p -> true })
+            @RelationshipConstraint({ Narrow b, KafkaPool p -> true })
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.FIELD)
             @interface Narrow {}
@@ -487,7 +487,7 @@ class ConstraintValuesTest extends AbstractDSLSpec {
     }
 
     private static String bounds(String callback) {
-        """@ConstraintValues(${callback})
+        """@RelationshipConstraint(${callback})
            @Retention(RetentionPolicy.RUNTIME)
            @Target(ElementType.FIELD)
            @interface Bounds {}"""

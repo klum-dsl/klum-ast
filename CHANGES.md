@@ -1,6 +1,6 @@
 # 4.1.0 (unreleased)
 
-- Added `@ConstraintValues` for domain-defined constraints on owned, `LINK`, and `OPTIONAL_LINK` DSL relationship fields,
+- Added `@RelationshipConstraint` for domain-defined constraints on owned, `LINK`, and `OPTIONAL_LINK` DSL relationship fields,
   including collection and map entries. Typed callbacks inspect completed values during validation; failures belong to
   the source field, while linked targets retain their lifecycle and stored results. Separate `@DefaultValues` and
   constraint annotations can decorate one field, and compiled Schema annotations expose bounds through reflection.

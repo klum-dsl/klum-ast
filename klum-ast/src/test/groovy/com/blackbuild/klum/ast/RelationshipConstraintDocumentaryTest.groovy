@@ -30,7 +30,7 @@ import spock.lang.Tag
 
 @Issue('799')
 @Tag('documentary')
-class ConstraintValuesDocumentaryTest extends AbstractDSLSpec {
+class RelationshipConstraintDocumentaryTest extends AbstractDSLSpec {
 
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#domain-defined-relationship-constraints')
     def 'checks a completed child against domain-defined bounds after applying defaults'() {
@@ -53,7 +53,7 @@ class ConstraintValuesDocumentaryTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
 
-            @ConstraintValues({ PoolBounds bounds, Pool pool ->
+            @RelationshipConstraint({ PoolBounds bounds, Pool pool ->
                 assert pool.slots in bounds.minSlots()..bounds.maxSlots() :
                     "slots must be within ${bounds.minSlots()}..${bounds.maxSlots()}"
             })
