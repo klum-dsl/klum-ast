@@ -240,4 +240,58 @@ class ConstraintValuesContainersTest extends AbstractDSLSpec {
         graphType.constraintChecks == 2
         graphType.validationCount == 1
     }
+
+    def 'Set failures use distinct non-positional element context without revalidating linked targets'() {
+        given:
+        createNonDslClass '''
+            package constraints
+            import com.blackbuild.klum.ast.*
+            import java.lang.annotation.*
+
+            @ConstraintValues({ Bounds bounds, Pool pool ->
+                Pool.checks[pool.name] = (Pool.checks[pool.name] ?: 0) + 1
+                assert pool.slots >= bounds.minimum() : 'too few slots'
+            })
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.FIELD)
+            @interface Bounds { int minimum() }
+
+            @DSL class Pool {
+                static Map<String, Integer> checks = [:]
+                static int validationCount
+                String name
+                int slots
+                @Validate void countValidation() { validationCount++ }
+            }
+
+            @DSL class Plan {
+                @Bounds(minimum = 5) @Field(FieldType.LINK) Set<Pool> linked
+            }
+        '''
+        def poolType = getClass('constraints.Pool')
+        def first = poolType.Create.With { name 'first'; slots 2 }
+        def second = poolType.Create.With { name 'second'; slots 2 }
+        def firstResult = KlumObjectSupport.of(first).validation.result
+        def secondResult = KlumObjectSupport.of(second).validation.result
+        int validationsBefore = poolType.validationCount
+        sysProps.set('klum.validation.skipVerify', 'true')
+
+        when:
+        def plan = getClass('constraints.Plan').Create.With {
+            linked = [first, second] as Set
+        }
+        def issues = KlumObjectSupport.of(plan).validation.result.issues.toList()
+
+        then:
+        plan.linked.containsAll([first, second])
+        poolType.checks == [first: 1, second: 1]
+        issues.size() == 2
+        issues*.member == ['linked', 'linked']
+        issues*.message.every { it.contains('element @') && !it.contains('index ') }
+        issues*.message.toSet().size() == 2
+        issues.every { it.breadcrumbPath.contains('Plan') }
+        poolType.validationCount == validationsBefore
+        KlumObjectSupport.of(first).validation.result.is(firstResult)
+        KlumObjectSupport.of(second).validation.result.is(secondResult)
+    }
 }

@@ -37,9 +37,12 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
@@ -62,20 +65,38 @@ public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidat
         if (annotations.isEmpty()) return;
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
         if (value == null) return;
+        Map<Object, String> elementContexts = new IdentityHashMap<>();
+        Set<String> usedContexts = new HashSet<>();
         for (Annotation annotation : annotations) {
             ConstraintValues marker = annotation.annotationType().getAnnotation(ConstraintValues.class);
             String label = "Constraint @" + annotation.annotationType().getSimpleName();
             if (value instanceof Map<?, ?> map) {
                 for (Map.Entry<?, ?> entry : map.entrySet())
                     validateConstraintValue(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
-            } else if (value instanceof Collection<?> collection) {
+            } else if (value instanceof List<?> list) {
                 int index = 0;
-                for (Object element : collection)
+                for (Object element : list)
                     validateConstraintValue(field, annotation, marker, label + " at index " + index++, element);
+            } else if (value instanceof Collection<?> collection) {
+                for (Object element : collection) {
+                    if (element == null) continue;
+                    String context = elementContexts.computeIfAbsent(element,
+                            target -> newElementContext(target, usedContexts));
+                    validateConstraintValue(field, annotation, marker, label + " at " + context, element);
+                }
             } else {
                 validateConstraintValue(field, annotation, marker, label, value);
             }
         }
+    }
+
+    private static String newElementContext(Object element, Set<String> usedContexts) {
+        // An opaque identity token distinguishes Set entries without claiming an iteration position.
+        String base = "element @" + Integer.toHexString(System.identityHashCode(element));
+        String context = base;
+        int collision = 2;
+        while (!usedContexts.add(context)) context = base + "-" + collision++;
+        return context;
     }
 
     @SuppressWarnings("unchecked")
