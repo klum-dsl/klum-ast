@@ -37,6 +37,56 @@ A `DelegatingScript` executes its bare configuration calls against the target's 
 does not infer that concrete Builder for bare calls in the script body, so completion and navigation there are incomplete.
 This improvement is tracked in [#805](https://github.com/klum-dsl/klum-ast/issues/805).
 
+### Optional IntelliJ completion for one script family
+
+If your project owns a filename convention for scripts that configure one Schema type, you can add an IntelliJ GDSL file
+to the consuming project's content root. This is optional, project-owned editor configuration; KlumAST does not install
+this contributor for every `DelegatingScript`. For example, given `src/main/groovy/example/Environment.groovy`:
+
+```groovy
+package example
+
+import com.blackbuild.klum.ast.DSL
+
+@DSL
+class Environment {
+    String region
+}
+```
+
+Put this **`environment.gdsl`** in the project's content root and enable it if IntelliJ prompts you. Replace
+`example.Environment_DSL.Builder` with the generated Builder contract for your Schema. The filename suffix is an
+intentional promise that every matching script configures that same type:
+
+```groovy
+contributor(context(scope: scriptScope())) {
+    if (place.containingFile.name.endsWith('.environment.groovy'))
+        delegatesTo(findClass('example.Environment_DSL.Builder'))
+}
+```
+
+Then write **`catalog.environment.groovy`** as the `DelegatingScript` recipe:
+
+```groovy
+import groovy.transform.BaseScript
+import groovy.util.DelegatingScript
+
+@BaseScript DelegatingScript base
+
+region 'eu'
+```
+
+For example, `Environment.Create.From(new File('catalog.environment.groovy'))` runs that file as an Environment recipe.
+IntelliJ uses the GDSL only to offer and resolve operations from the existing `Environment_DSL.Builder`; it does not
+change Groovy compilation or `DelegatingScript` runtime dispatch. The generated contract must be visible to the IDE,
+either through refreshed Schema source mirrors or compiled Schema classes. After renaming the Schema or changing its
+operations, refresh the mirrors and update this project-owned GDSL as needed.
+
+Check the boundary in IntelliJ: `catalog.environment.groovy` should offer `region` and navigate to the generated Builder
+contract, while `catalog.other.groovy` should not gain that completion from this contributor. A script with the matching
+suffix that actually runs against another Schema type would receive misleading suggestions; use a separate suffix and
+contributor for that type. This example is specific to IntelliJ GDSL and does not claim editor support elsewhere.
+
 For the currently supported IntelliJ completion and navigation path, an ordinary Model script uses a typed factory call:
 
 ```groovy

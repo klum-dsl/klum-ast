@@ -1,5 +1,9 @@
 # 4.1.0 (unreleased)
 
+- Documented an optional, project-owned IntelliJ GDSL recipe for `DelegatingScript` files with an intentional filename
+  suffix. It resolves editor assistance through the existing generated Builder contract and leaves script execution and
+  generated/public APIs unchanged ([#805](https://github.com/klum-dsl/klum-ast/issues/805)).
+
 - Added `@RelationshipConstraint` for domain-defined constraints on owned, `LINK`, and `OPTIONAL_LINK` DSL relationship fields,
   including collection and map entries. Typed callbacks inspect completed values during validation; failures belong to
   the source field, while linked targets retain their lifecycle and stored results. Separate `@DefaultValues` and
