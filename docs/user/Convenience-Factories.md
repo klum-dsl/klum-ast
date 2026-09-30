@@ -40,8 +40,9 @@ This improvement is tracked in [#805](https://github.com/klum-dsl/klum-ast/issue
 ### Optional IntelliJ completion for one script family
 
 If your project owns a filename convention for scripts that configure one Schema type, you can add an IntelliJ GDSL file
-to the consuming project's content root. This is optional, project-owned editor configuration; KlumAST does not install
-this contributor for every `DelegatingScript`. For example, given `src/main/groovy/example/Environment.groovy`:
+under `src/main/resources` in either the Schema or Model project. This is optional, project-owned editor configuration;
+KlumAST does not install this contributor for every `DelegatingScript`. For example, given
+`src/main/groovy/example/Environment.groovy`:
 
 ```groovy
 package example
@@ -54,7 +55,8 @@ class Environment {
 }
 ```
 
-Put this **`environment.gdsl`** in the project's content root and enable it if IntelliJ prompts you. Replace
+Put this **`src/main/resources/environment.gdsl`** in the chosen Schema or Model project and enable it if IntelliJ
+prompts you. Replace
 `example.Environment_DSL.Builder` with the generated Builder contract for your Schema. The filename suffix is an
 intentional promise that every matching script configures that same type:
 
