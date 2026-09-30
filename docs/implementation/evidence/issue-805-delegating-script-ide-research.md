@@ -133,11 +133,17 @@ would miss documented child collection/map recipes. An opt-in marker on the
 use case and child recipe remain covered. The opt-in spelling and any public
 generated name are product/API decisions, not selected by this note.
 
-**Recommendation:** begin implementation planning with a small IDE tracer, not a
-public BaseScript or extension decision. First verify the source/binary controls,
-then try a typed script facade with concrete or separate-interface default
-forwarders as the leading GDSL-free prototype, followed by a narrowly scoped
-GDSL prototype in IntelliJ if needed.
+**Recommendation:** use the real Schelm consumer as a comparative IDE tracer.
+Keep the typed script facade and an intentional filename plus GDSL as primary
+candidates, with an ordinary typed factory script as the control. The typed
+facade may be tried first for convenience, but its forwarding signatures,
+overloads, generics, `@DelegatesTo`, named-parameter metadata, documentation,
+mirrors, and binary compatibility may make its generated/public surface costly.
+The filename/GDSL route has different authoring and IDE maintenance costs.
+Compare all three against runtime truth, IntelliJ completion/navigation and
+inspections, same-project source mirrors, compiled-Schema consumers, authoring
+cost, and public/generated API cost before selecting a mechanism. A GDSL
+contribution must not claim a Builder or method the runtime would not use.
 Select only a mechanism whose visible Builder methods resolve to the real
 generated contract and whose script still configures the runtime Builder.
 Groovy compilation and the current GDSL unit stubs cannot establish IntelliJ
@@ -147,7 +153,7 @@ does not permit clients to implement or subclass its interfaces
 
 ## Smallest later tracer and acceptance
 
-Use one `@DSL Environment` with `String endpoint`, one keyed parent
+Reduce the Schelm use case to one `@DSL Environment` with `String endpoint`, one keyed parent
 `Deployment` with a `Map<String, Environment>` relationship, and a
 `Catalog.groovy` recipe containing `endpoint 'catalog'`. Exercise both
 `Environment.Create.From(Catalog)` and the parent's collection/active-session
@@ -197,15 +203,11 @@ BaseScript with compiled methods might be visible to both IDEs, but that is a
 hypothesis requiring an Eclipse editor fixture. Do not promise parity from the
 same IntelliJ proof. This matches the repository's [separate Eclipse decision](../../adr/0022-conservative-named-map-safety.md).
 
-The current [Convenience factories guide](../../user/Convenience-Factories.md)
-shows `@BaseScript DelegatingScript` without explaining that bare delegated-body
-completion remains incomplete, and its File/URL section claims complete
-completion from a “small dsld-snippet” without providing or testing one. Until
-#805 lands, add under **Delegating Scripts**: “DelegatingScript recipes run against
-the target's Builder, but IntelliJ does not yet infer that Builder for bare calls
-in the script body. For IDE completion, author a regular Model script using
-`Type.Create.With { ... }` and refresh the Schema's generated source mirrors (or
-depend on a compiled Schema). That regular script creates a root Model and is not
-interchangeable with a nested DelegatingScript recipe.” Replace the File/URL
-claim with a link to #805 and avoid an Eclipse completion promise. Cross-link from
-the [FAQ IDE section](../../user/FAQ.md) if the caveat needs greater visibility.
+The [Convenience factories guide](../../user/Convenience-Factories.md) now
+states that IntelliJ does not infer the runtime Builder for bare
+`DelegatingScript` calls, shows the supported ordinary typed-factory script
+path and its materialization boundary, and links #805. Its former File/URL
+claim of complete completion from a “small dsld-snippet” has been removed.
+No IntelliJ, Eclipse, or VS Code parity is claimed. The
+[FAQ IDE section](../../user/FAQ.md) can cross-link the caveat later if users
+need it more prominently.
