@@ -1,7 +1,7 @@
 # ADR 0024 implementation plan: Seeded relationship creation
 
 Planning only for [#342](https://github.com/klum-dsl/klum-ast/issues/342) and
-[proposed ADR 0024](../adr/0024-seeded-relationship-creation.md). No runtime/API change is delivered by this document.
+[accepted ADR 0024](../adr/0024-seeded-relationship-creation.md). No runtime/API change is delivered by this document.
 
 ## Authority and evidence checkpoint
 
@@ -10,7 +10,10 @@ clarification is authoritative: exactly one `relationship(seed) { refinement }` 
 Builder, or Template; the input only seeds a fresh Builder. Earlier bounded-default scoping is superseded. The subsequent
 maintainer direction fixes exactly two seed signatures at the relationship's highest DSL superclass: one Model and one
 public Builder input. Ancestors, descendants, and siblings inside that selected domain are accepted; unrelated domains
-are rejected statically. There is no broad marker or per-ancestor signature set.
+are rejected statically. There is no broad marker or per-ancestor signature set. The maintainer also accepts the keyed
+Template limitation: an existing Schema key provider or seed supplies any required construction key, otherwise a keyless
+Template fails before allocation. Explicit-key creation plus `copyFrom(template)` remains the route for a caller-supplied
+key. No product decision remains open in the planning scope.
 
 | Evidence | Confirmed fact / limit |
 | --- | --- |
@@ -46,7 +49,7 @@ journey uses an existing `copyFrom` path and is not itself a Template feature pr
 - Completed Models and Templates cannot be directly adopted into composition. The explicit seed argument is a copy
   request; one-argument setters continue enforcing existing ownership and LINK semantics.
 
-## Confirmed descriptor and remaining gate
+## Accepted descriptor and key boundary
 
 Let `D` be the relationship's highest DSL superclass, or the relationship type itself if it has no DSL ancestor.
 Let `R` be the declared relationship/element Model type. Generate exactly:
@@ -62,20 +65,22 @@ For `Bedroom` below highest DSL ancestor `HeatedRoom`, these are
 The Builder source wildcard is required for self-typed descendant Builder assignability; erased Builder seed type is
 `HeatedRoom_DSL.Builder`. Templates use the Model input. No `Object`, `KlumModelObject`, generic `KlumBuilder`, union
 marker, or per-ancestor fallback is generated. Accept siblings sharing `D`; recipient selection still respects `R`.
-Choosing/skipping technical or non-domain DSL ancestors belongs to a future interface/domain-modeling decision, outside
-#342. The highest DSL ancestor is used without semantic filtering.
+Choosing/skipping technical or non-domain DSL ancestors belongs to the future
+[#812 domain-boundary investigation](https://github.com/klum-dsl/klum-ast/issues/812), outside #342. The highest DSL
+ancestor is used without semantic filtering; #812 is not an implementation or publication dependency.
 
-**Remaining product gate — keyed Templates:** confirm that only a seed key or existing relationship key provider is
-sufficient for this first form. A keyed Template without such a source must fail; arbitrary key input is a later explicit
-design choice. No implementation slice is admitted while this choice remains open.
+**Accepted key boundary:** only a seed key or existing Schema relationship key provider can supply a required construction
+key in this form. A keyless Template without such a source fails before allocation. Use explicit-key creation followed by
+`copyFrom(template)` when the caller must supply the key. No extra key or Map seed overload belongs to #342.
 
-**Implementation acceptance — signature/collision proof:** inventory same-arity custom/converter methods and existing
-Class/Factory/Map/Closure families using the confirmed pair of descriptors. Record actual collisions and require a
-maintainer disposition if preserving both meanings is impossible; no present conflict has been established by this
-planning-only change. The chosen descriptor is no longer a product question.
+**SEED-0 implementation acceptance — signature/collision proof:** inventory same-arity custom/converter methods and
+existing Class/Factory/Map/Closure families using the confirmed pair of descriptors. Record actual collisions and require
+a maintainer disposition if preserving both meanings is impossible; no present conflict has been established by this
+planning-only change. This proof is required before dependent runtime implementation, not before design publication.
 
-Do not add speculative pending tests or treat the keyed recommendation as accepted API. The #342 issue can be synchronized
-after maintainer acceptance by its owner; this task changes no GitHub state, curation index, release gate, or milestone.
+Do not add speculative pending tests. The #342 issue can be synchronized through its owner's normal workflow; this task
+changes no issue state, curation index, release gate, or milestone. This accepted design and plan are ready for a planning
+PR with `Related: #342`; curation impact is none.
 
 ## Affected modules and generated seams
 
@@ -95,12 +100,14 @@ pre-package-migration links and is not a substitute for the present package tree
 
 ## Dependency-ordered tracer slices and reasoned commits
 
-### SEED-0 — Accept the contract and prove the generated seam
+### SEED-0 — Prove the accepted generated seam and signature compatibility
 
-Depends on the keyed-Template decision and signature/collision proof. Verify the confirmed descriptor pair before
-acceptance; do not publish a runtime feature to discover its product contract. Record the confirmed seed-domain and
-accepted key policy in ADR 0024 and #342 through the normal maintainer/Hive workflow. One reasoned documentation commit captures the final decision and narrowed plan. If a minimal
-compiler probe is needed, retain its evidence only when it tests the selected contract; no throwaway code becomes API.
+The accepted ADR and key policy are the starting contract. Verify the confirmed descriptor pair and collision inventory
+before dependent runtime implementation. The proof is SEED-0 executable acceptance, not an open product question or a
+blocker to publication of this planning PR. If a minimal compiler probe is needed, retain its evidence only when it tests
+the selected contract; no throwaway code becomes API. One reasoned evidence/test commit records the verified descriptor
+and collision result, including a maintainer disposition for any real compatibility conflict discovered. Do not broaden
+this accepted form in response to a collision without a separate decision.
 
 Acceptance: a descriptor table and representative calls show the same two-argument operation for all three seed states
 with exactly one highest-DSL Model input and its wildcarded public Builder input. Cover no-DSL-ancestor relationships,
@@ -189,8 +196,8 @@ need driving `@Issue`; only materially changed existing tests need traceability 
 actionable reason. Existing Spock fixtures and copy/ownership coverage should be extended rather than duplicated.
 
 This planning-only change needs Markdown relative-link/structure review and `git diff --check`; no Groovy lane is required
-because it alters no runtime/build/test source or executable fixture. Proposed snippets are illustrative and have not
-been compiled as a new feature. Review the local commit history before any publication; preserve reviewed commits later.
+because it alters no runtime/build/test source or executable fixture. Snippets illustrate the accepted syntax and have
+not been compiled as a new feature. Review the local commit history before any publication; preserve reviewed commits later.
 
 Issue-to-slice mapping: #342 → SEED-0 through SEED-3; #135, #431, #710/#737, and #658 are preserved contracts, not reopened
 implementation dependencies. #304 is separate root-layer work. No issue creation, label/milestone change, dependency edge,
@@ -198,12 +205,13 @@ or issue closure is authorized by this design task.
 
 ## Review risks and handoff
 
-The remaining product gate is keyed Template creation with only two arguments. Implementation risks are sibling
-copy-policy failures, source/overload collisions, and replacing an occupied owned Builder without leaking lifecycle
-participation. These are recorded as a gate or executable acceptance, not hidden implementation details. Fresh copy
-semantics and the two highest-DSL-domain seed descriptors are confirmed; broader cloning, arbitrary
-POJO seeds, new root APIs, mutation of completed Models, and Template registration changes are outside the contract.
+No product decision remains open in this accepted design. Implementation risks are sibling copy-policy failures,
+source/overload collisions, missing construction keys, and replacing an occupied owned Builder without leaking lifecycle
+participation. These are executable acceptance checks; signature/collision proof belongs to SEED-0 rather than a design
+publication gate. Broader cloning, arbitrary POJO seeds, new root APIs, mutation of completed Models, Template registration
+changes, and #812's future domain classification are outside the contract.
 
-A design handoff must state the exact worktree/branch, base/final commit, checks, remaining decision gates, no GitHub
-mutation, and retained delivery condition. Request Hive reconciliation rather than self-archiving. Do not publish this
-proposal as an Accepted decision or start runtime work while a substantive product choice remains unresolved.
+A design handoff states the exact worktree/branch, base/final commit, checks, tracker impact, and draft PR/CI state. The
+planning PR uses `Related: #342` and has curation impact none. No runtime feature is delivered, and #342 remains open for
+implementation. The task remains `(PR:open)` while review and merge are pending; request Hive reconciliation rather than
+self-archiving. A merged planning PR delivers this decision record, not the seeded relationship feature.

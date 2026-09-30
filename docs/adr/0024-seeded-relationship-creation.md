@@ -2,7 +2,7 @@
 
 Date: 2026-09-30
 
-Status: Proposed — fresh-copy operation and seed descriptors confirmed; keyed-Template boundary needs maintainer review
+Status: Accepted
 
 Implementation status: Design only; no runtime, compiler, or generated API implementation
 
@@ -26,7 +26,9 @@ retargets the issue to 4.1. Historical names and root overloads are not an accep
 The design investigation initially considered bounded default scoping. During this task, the maintainer narrowed the
 request to exactly one DSL setter form: one materialized Model, live Builder, or Template plus a refinement closure.
 The seed is never assigned as the relationship value; it contributes configuration to a newly created Builder. This
-later instruction is the authority for the proposal below. It supersedes this task's earlier scoped-default direction.
+later instruction is the authority for this decision. It supersedes this task's earlier scoped-default direction. The
+maintainer subsequently confirmed the highest-DSL seed descriptors and accepted the key limitation below; no product
+decision remains open in this design.
 
 Existing `copyFrom` already distinguishes values-only completed Models, marked Template recipes, and live same-session
 Builder snapshots. It does not choose a relationship target type or allocate its receiving Builder. Existing closure
@@ -51,7 +53,7 @@ class with marked identity, so it needs no separate public Template overload. Ex
 same two-argument language: one Model seed and one Builder seed, both based on the relationship's highest DSL superclass
 as specified below. They are two source-state signatures for one operation, not separate DSL forms.
 
-Illustrative direct-Schema use; this syntax is proposed, not available today:
+Illustrative direct-Schema use; this syntax is accepted for implementation and not available today:
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
@@ -184,9 +186,10 @@ policy: an accepted sibling seed can still fail a normal copy check when it cont
 `CopyHandler` currently defaults missing fields to `FAIL`. This descriptor decision does not silently discard sibling-only
 fields or change missing-field policy. A sibling with compatible configuration demonstrates the admitted domain.
 
-Choosing a different domain ancestor, or skipping a technical/non-domain DSL ancestor, is a future interface/domain-modeling
-concern explicitly outside #342. The highest DSL class is authoritative here even when its name or intended role seems
-technical; the generator must not guess which ancestor is a better domain boundary.
+Choosing a different domain ancestor, or skipping a technical/non-domain DSL ancestor, belongs to the future
+[#812 — domain-boundary classification](https://github.com/klum-dsl/klum-ast/issues/812) interface/domain-modeling
+investigation and is explicitly outside #342. The highest DSL class is authoritative here even when its name or intended
+role seems technical; the generator must not guess which ancestor is a better domain boundary.
 
 Illustrative syntax for the confirmed base-seed domain:
 
@@ -221,14 +224,15 @@ journey; the reduced example above isolates the source-domain and recipient-sele
 
 ## Key and failure boundaries
 
-Keys must be resolved before Builder allocation. Proposed minimal policy: retain an existing relationship key provider,
-otherwise use an available seed key when the selected recipient is keyed; map `keyMapping` remains the normal attachment
-rule. Never copy an Owner/Role from the seed. Marked Templates are unkeyed, so `(template, closure)` cannot supply a new
-arbitrary key to a keyed child. The refinement closure cannot repair that missing construction identity.
+Keys must be resolved before Builder allocation. The accepted policy retains an existing Schema relationship key
+provider, otherwise uses an available seed key when the selected recipient is keyed; map `keyMapping` remains the normal
+attachment rule. Never copy an Owner/Role from the seed. Marked Templates are unkeyed, so `(template, closure)` cannot
+supply a new arbitrary key to a keyed child. The refinement closure cannot repair that missing construction identity.
 
-Confirm whether accepting this limitation is sufficient for #342. If arbitrary keyed Template creation is required,
-stop: it would require a separately approved input convention beyond the chosen two-argument form. Do not add a key or
-map overload by inference. The established explicit-key creator with `copyFrom` remains the workaround.
+With exactly this two-argument form, a keyed child can be created only when the existing Schema key provider or seed
+supplies the key. A keyless Template without such a provider fails before allocation. The maintainer accepts that
+limitation for #342. Explicit-key creation plus `copyFrom(template)` remains the route when the caller must supply a key;
+do not add a key or Map seed overload. Arbitrary keyed Template input is outside this accepted form.
 
 Validate recipient mutability, non-null seed/closure, source category/session, type compatibility, and required key before
 user code or attachment. Use `KlumModelException` with relationship, source kind/type, and actionable guidance for domain
@@ -244,9 +248,10 @@ root Factory descriptors, TemplateScope state, or existing `copyFrom` behavior. 
 contract, and completed results retain neither the source Builder nor a new scope/recipe wrapper.
 
 Do not reinterpret existing one-argument setter calls or existing Map, Class, generated Factory-token, converter, and
-closure creators. Before acceptance, inventory two-argument signatures and custom Schema methods: an additive overload
-must not silently redirect a formerly valid converter/custom call. A real collision needs a maintainer compatibility
-choice or targeted Schema-compilation diagnostic. Generated public return/delegate types may advertise only the declared
+closure creators. SEED-0 implementation acceptance inventories two-argument signatures and custom Schema methods: an
+additive overload must not silently redirect a formerly valid converter/custom call. A real collision needs a maintainer compatibility
+choice or targeted Schema-compilation diagnostic during implementation. This proof is not a prerequisite for publishing
+the accepted design. Generated public return/delegate types may advertise only the declared
 relationship Builder (not a guaranteed runtime subtype); exact subtype completion is available through existing explicit
 Factory-token creation plus `copyFrom`. Java, static Groovy 3/4/5, source mirrors, generated Javadocs, and GDSL must agree.
 
@@ -260,9 +265,14 @@ Factory-token creation plus `copyFrom`. Java, static Groovy 3/4/5, source mirror
 - Additional root/list/Map/type/key convenience families: broaden the single chosen language and revive historical scope.
 - Duplicating recipe capture/copy machinery: creates a second source protocol and risks incompatible lifecycle semantics.
 
-## Acceptance and stopping boundary
+## Acceptance and implementation boundary
 
-The fresh-copy operation, one-seed-plus-closure language, and exactly two highest-DSL-domain source descriptors are
-confirmed. The keyed-Template limitation remains the product decision gate. This ADR must not be marked Accepted or
-implemented until that choice and signature collision evidence are reconciled. The accompanying plan maps all confirmed
-requirements and the proposed branches to small executable slices. Issue #342 stays open; this design document makes no release delivery claim.
+The fresh-copy operation, one-seed-plus-closure language, exactly two highest-DSL-domain source descriptors, and keyed
+Template limitation are accepted. No substantive product decision remains open, and the design can be published without
+runtime implementation. SEED-0 signature/collision proof remains executable implementation acceptance, not a blocker to
+design publication. A concrete collision discovered there needs its own compatibility disposition before the affected
+implementation proceeds; it does not make this decision provisional.
+
+The accompanying plan maps every confirmed requirement to small implementation slices and executable acceptance. Issue
+#342 remains open for implementation; this planning document makes no release delivery claim. Follow-up #812 does not
+block this accepted 4.1 scope.
