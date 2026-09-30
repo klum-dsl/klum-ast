@@ -360,13 +360,14 @@ class ConstraintValuesTest extends AbstractDSLSpec {
 
         where:
         description             | declaration | usage | expected
-        'a scalar target'       | bounds('{ Bounds b, Pool p -> true }') | '@Bounds String value' | 'must declare one non-static DSL relationship target'
-        'a collection target'   | bounds('{ Bounds b, Pool p -> true }') | '@Bounds List<Pool> values' | 'must declare one non-static DSL relationship target'
+        'a scalar target'       | bounds('{ Bounds b, Pool p -> true }') | '@Bounds String value' | 'must declare a non-static DSL relationship target'
+        'a scalar collection'   | bounds('{ Bounds b, Pool p -> true }') | '@Bounds List<String> values' | 'must declare a non-static DSL relationship target'
+        'a scalar map'          | bounds('{ Bounds b, Pool p -> true }') | '@Bounds Map<String, String> values' | 'must declare a non-static DSL relationship target'
         'a narrower target'     | bounds('{ Bounds b, KafkaPool p -> true }') | '@Bounds Pool value' | 'cannot accept declared relationship constraints.Pool'
         'a wrong first parameter' | bounds('{ String b, Pool p -> true }') | '@Bounds Pool value' | 'cannot accept annotation constraints.Bounds'
         'a one parameter callback' | bounds('{ Pool p -> true }') | '@Bounds Pool value' | 'exactly two authored parameters'
         'a non-closure callback' | bounds('String') | '@Bounds Pool value' | 'must denote a Groovy Closure'
-        'a static field'        | bounds('{ Bounds b, Pool p -> true }') | '@Bounds static Pool value' | 'must declare one non-static DSL relationship target'
+        'a static field'        | bounds('{ Bounds b, Pool p -> true }') | '@Bounds static Pool value' | 'must declare a non-static DSL relationship target'
     }
 
     def 'compiler requires runtime retention and field-only annotation placement'() {
