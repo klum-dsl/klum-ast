@@ -39,6 +39,37 @@ completed inheritance chain is materialized only after construction phases finis
 These typed methods are not generated, if the declared type is final. Likewise, if the declared type is abstract,
 *only* the typed methods are generated.
 
+## Instance storage names
+
+Since 4.1, each user-declared instance field/property name must be unique across a DSL inheritance hierarchy
+([#371](https://github.com/klum-dsl/klum-ast/issues/371)). Redeclaring an inherited name fails compilation at the descendant
+declaration with a message identifying both declarations. This includes ordinary fields/properties, `@Owner`,
+`@Default`, and construction-only `@Field(FieldType.BUILDER)` storage, including ancestors compiled separately.
+
+Configure the inherited property directly and declare only additional storage on the descendant.
+
+(See: `DslPropertyShadowingTest#'configures inherited storage without redeclaring it'`.)
+
+```groovy
+@DSL class Service {
+    String name
+    @Default(code = { 'https' }) String protocol
+}
+@DSL class WebService extends Service { Integer port }
+
+def service = WebService.Create.With {
+    name 'frontend'
+    port 443
+}
+assert service.name == 'frontend'
+assert service.protocol == 'https'
+assert service.port == 443
+```
+
+Static fields may shadow static ancestor fields: they remain class state and never become Builder storage. Ordinary
+method/getter overrides, a property implementing an abstract getter, Java ancestor fields, and generated fields are
+outside this diagnostic.
+
 ## Keyed inheritance
 
 This works identically with keyed objects.

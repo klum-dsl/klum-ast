@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- Compilation now rejects same-named user-declared instance fields/properties across a DSL inheritance hierarchy,
+  including owners, defaults, and construction-only Builder state. The diagnostic identifies both declarations and
+  points at the descendant declaration. Static field shadowing, method/getter overrides, abstract-getter implementations,
+  Java ancestor fields, and generated fields remain legal ([#371](https://github.com/klum-dsl/klum-ast/issues/371)).
+
 - Added a Tips and Tricks guide for explicitly named Builder relationship helpers using existing `@Builder.Method`,
   `@Builder.Input`, and `copyFrom` behavior. The executable example seeds a fresh owned subtype without changing an
   existing domain converter. Explicit Schema-owned helpers are the supported practical route in 4.1; automatic seeded

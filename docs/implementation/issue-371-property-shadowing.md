@@ -57,38 +57,50 @@ the Model; `moveSourceStateToBuilder` explicitly skips static fields. They do no
 This is a legitimate inheritance pattern already protected by executable coverage. The issue's general wording does not
 settle whether such static fields are outside the DSL-storage rule or intentionally prohibited for consistency.
 
-## Runnable handoff
+## Accepted decision and implementation
 
-The final branch adds investigation evidence only; the trial production diagnostic and release-facing edits were removed.
-Run the current-behavior probes plus the existing inheritance control with:
+The maintainer accepted **instance storage only**: reject same-named user-declared instance fields/properties in a DSL
+hierarchy, including owners, defaults, and construction-only `FieldType.BUILDER` state. Static fields remain legal because
+`moveSourceStateToBuilder` skips them. The original initializer-counter fixture in `BuilderFirstSpec` remains unchanged.
+This is a bounded source-compatibility tightening in 4.1, not a supported override capability removed from the Schema.
+
+`DSLASTTransformation` checks the descendant's declared instance fields before moving state to its Builder. It walks
+DSL ancestors and looks for declared storage with the same name. Ordinary source and binary Model fields are visible
+there; a transformed or binary ancestor's construction-only declaration is recovered from its copied Builder field and
+`FieldType.BUILDER` annotation. The diagnostic names the descendant and the ancestor Model declarations and attaches to
+the descendant FieldNode's source position.
+
+The predicate excludes static fields, JVM `ACC_SYNTHETIC` storage, and `@KlumGenerated` fields. Groovy's internal
+FieldNode synthetic flag is deliberately accepted: ordinary source properties use it for their backing fields.
+Only storage declarations are checked, so ordinary methods/getters and properties implementing abstract getters remain
+legal. Traversal stops outside the DSL hierarchy and does not police Java ancestor storage.
+
+## Acceptance coverage
+
+`DslPropertyShadowingTest` converts the defect probes into rejection tests and retains the static-counter and getter
+controls. Its declaration matrix checks ordinary properties, private/protected fields, collections, owners, defaults,
+ignored/transient storage, Builder-only storage, and mixed Builder/Model declarations with ancestor-first source,
+descendant-first source, and separately compiled binary ancestors. It checks the diagnostic's exact descendant line and
+column, and separately covers the original split lifecycle scenario and a distant ancestor.
+
+Legal controls cover static counters, inherited fields/defaults/owners, ordinary method/getter overrides, abstract-getter
+implementations, Java ancestor fields, Factory/Template behavior, KlumGenerated declarations on either side, and JVM
+synthetic ancestor storage in source and bytecode. Normal generated hierarchy storage is also exercised by the unchanged
+`BuilderFirstSpec#'generated Builders preserve DSL inheritance across compilation units'` fixture.
+
+The documentary happy path is `DslPropertyShadowingTest#'configures inherited storage without redeclaring it'`, linked to
+[Instance storage names](../user/Inheritance.md#instance-storage-names). Migration guidance is linked from the 4.1 section
+of [Migration](../user/Migration.md#unique-instance-storage-in-dsl-hierarchies), and the diagnostic is recorded in CHANGES.
+
+## Verification and delivery
+
+Focused command (repeat for `groovy4Tests` and `groovy5Tests`):
 
 ```shell
-./gradlew :klum-ast:test --tests com.blackbuild.klum.ast.DslPropertyShadowingProbeTest \
+./gradlew :klum-ast:test --tests com.blackbuild.klum.ast.DslPropertyShadowingTest \
   --tests 'com.blackbuild.klum.ast.BuilderFirstSpec.generated Builders preserve DSL inheritance across compilation units'
 ```
 
-All six selected Groovy 3 cases pass on unchanged production code. `licenseMain`, `licenseTest`, and `git diff --check`
-also pass. Groovy 4/5 were not reached in the trial full-suite run because its Groovy 3 lane failed; compatibility lanes
-remain required after the static-field decision and a settled implementation. The probes intentionally characterize the
-current defect and must be converted into rejection tests when the diagnostic is implemented.
-
-## Exact decision required
-
-Should #371 reject only user-declared **instance** fields/properties in DSL classes, leaving static field shadowing legal,
-or reject static fields too and deliberately migrate the existing initializer-counter fixture?
-
-- **Instance storage only (recommended):** reject ordinary instance properties/fields, owners, defaults, and
-  construction-only `FieldType.BUILDER` state. Keep independent class constants and counters legal because they never
-  enter Builder storage. Amend the issue acceptance wording to say instance fields/properties, and add a static-shadowing
-  success control.
-- **All user-declared fields:** explicitly accept the additional compatibility restriction on static constants/counters.
-  Rename the existing test counters while retaining its per-class initializer assertions; document the static restriction.
-
-Neither alternative changes ordinary method/getter overrides or a property implementing an abstract getter. The current
-Groovy 3 controls also establish legal inherited owners and fields, ordinary Java ancestor fields, and Factory/Template
-behavior. The instance-storage diagnostic must retain these controls.
-
-For either choice, exclude JVM synthetic storage and `@KlumGenerated` fields. Do not exclude Groovy's internal synthetic
-flag on source property backing FieldNodes. For `FieldType.BUILDER`, inspect the ancestor's copied Builder fields when
-construction-only state has already disappeared from its Model; this is needed for both transformed source and binary
-ancestors.
+Final suite, review, commit, and delivery evidence is recorded here once verification completes. Tracker impact is
+`Closes #371`, selected in the implementation assignment; this localized diagnostic has no release-gate or curation
+impact. An open draft PR still requires Hive reconciliation and merge and is not an archive-safe outcome.
