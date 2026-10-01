@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
 
-/** Installs the producer only. Consumer resolution and local editor refresh are separate seams. */
+/** Installs the producer and its local contribution; Models select the outgoing capability independently. */
 final class KlumSchemaGdslProducer {
     private KlumSchemaGdslProducer() {}
 
@@ -91,6 +91,12 @@ final class KlumSchemaGdslProducer {
                 task.setReproducibleFileOrder(true);
                 task.from(generate.flatMap(GenerateKlumGdslMetadata::getOutputDirectory));
                 task.getManifest().attributes(Map.of("Klum-Schema-Coordinates", coordinates, "Klum-Gdsl-Format", "1"));
+            });
+            KlumDslGdslMaterializationPlugin.materializationTask(project).configure(task -> {
+                task.dependsOn(jar);
+                task.getSchemaMetadataArtifacts().add(jar.flatMap(KlumGdslJar::getArchiveFile)
+                        .map(file -> new KlumGdslArtifactInput(file.getAsFile(), coordinates)));
+                task.getNormalSchemaCoordinates().add(coordinates);
             });
             Configuration elements = project.getConfigurations().create("klumGdslElements", configuration -> {
                 configuration.setCanBeResolved(false);

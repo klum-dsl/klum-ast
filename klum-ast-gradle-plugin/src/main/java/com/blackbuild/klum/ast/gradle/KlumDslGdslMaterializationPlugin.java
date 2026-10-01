@@ -29,6 +29,11 @@ import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.plugins.BasePlugin;
+import org.gradle.api.tasks.SourceSet;
 
 public class KlumDslGdslMaterializationPlugin implements Plugin<Project> {
 
@@ -41,12 +46,43 @@ public class KlumDslGdslMaterializationPlugin implements Plugin<Project> {
             throw new IllegalStateException("The Klum DSL GDSL materialization belongs to the root project.");
         }
 
+        project.getPluginManager().apply(BasePlugin.class);
         Provider<Directory> outputDirectory = outputDirectory(project);
         project.getTasks().register(TASK_NAME, KlumDslGdslMaterializationTask.class, task -> {
             task.setGroup("klum");
             task.setDescription("Materializes packaged IntelliJ GDSL contributors as root-owned IDE metadata.");
             task.getOutputDirectory().convention(outputDirectory);
         });
+        project.getGradle().projectsEvaluated(ignored -> registerParticipants(project));
+    }
+
+    static void registerParticipants(Project project) {
+        Project root = project.getRootProject();
+        var state = root.getExtensions().getExtraProperties();
+        String marker = "klumGdslParticipantsRegistered";
+        if (state.has(marker)) return;
+        state.set(marker, true);
+        root.getAllprojects().forEach(participant -> {
+            if (!participant.getPlugins().hasPlugin(KlumAstSchemaPlugin.class)
+                    && !participant.getPlugins().hasPlugin(KlumAstModelPlugin.class)) return;
+            Configuration normal = participant.getConfigurations().getByName("compileClasspath");
+            SourceSet main = participant.getExtensions().getByType(JavaPluginExtension.class)
+                    .getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+            materializationTask(project).configure(task -> {
+                if (participant.getPlugins().hasPlugin(KlumAstSchemaPlugin.class))
+                    task.getNormalSchemaCoordinates().add(participant.getGroup() + ":" + participant.getName() + ":" + participant.getVersion());
+                task.getNormalSchemaCoordinates().addAll(normal.getIncoming().getResolutionResult().getRootComponent()
+                        .map(component -> KlumModelGdslConsumer.normalCoordinates(component.getDependencies())));
+                task.getLegacyGdslSources().from(main.getAllSource().getSrcDirs().stream()
+                        .map(directory -> participant.fileTree(directory, pattern -> pattern.include("**/*.gdsl"))).toList());
+                // Project resources are inspected in source; resolving their library artifacts would compile Schemas.
+                task.getLegacyGdslClasspath().from(binaryClasspath(normal));
+            });
+        });
+    }
+
+    static FileCollection binaryClasspath(Configuration normal) {
+        return normal.getIncoming().artifactView(view -> view.componentFilter(id -> !(id instanceof ProjectComponentIdentifier))).getFiles();
     }
 
     public static Provider<Directory> outputDirectory(Project project) {
