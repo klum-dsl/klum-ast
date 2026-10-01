@@ -437,8 +437,12 @@ The normal graph supplies BOM/constraint/conflict/lock selection. Absent or excl
 substitution and local producer contribution remain GDSL-3. Classifier selection must preserve its exact authored GAV
 and match the selected normal Schema; dynamic/range requests are rejected rather than upgraded.
 
-The root task takes archive files, selected origin maps, and normal coordinates as inputs. Resolution is lazy and
-outside the task action; the action accesses no Project or Configuration. Each explicit selected origin must supply exactly one archive; zero or multiple advertised payloads fail before sync.
+The root task takes immutable archive/selected-GAV pairs and normal coordinates as inputs. Each
+`KlumGdslArtifactInput` contains only a `File` and coordinate string; the nested file input uses `PathSensitivity.NONE`
+and the paired coordinates are a scalar input. Resolver providers sort each mode's pairs by coordinates, without
+keying registration or lookup by archive basename. Resolution is lazy and outside the task action; the action accesses
+no Project, Configuration, or resolution objects. Each explicit selected origin must supply exactly one archive;
+zero or multiple advertised payloads fail before sync.
 It checks manifest identity/format,
 ZIP names, canonical catalog serialization, hashes, and exact v1 template bytes before sync. Output is only payloads
 under the ADR's hexadecimal group/artifact paths, with no catalog or envelope. The shared root keeps framework GDSL.
@@ -453,7 +457,14 @@ version and caches refresh'`. It uses separate producer/Model directories and an
 Controls cover GMM and POM-only selection, BOMs/constraints/conflicts, dependency locks, same/renamed-module substitution,
 configuration-cache reuse, unrelated Schema metadata not being scanned, missing/empty/multiple variant payloads or classifier, excluded normal
 Schema, stale independent GMM versions, dynamic/range classifier rejection, mismatched classifier versions, ordinary
-build laziness, and publication/classpath isolation. Archive tests cover empty metadata, duplicate ZIP names, unsafe
+build laziness, and publication/classpath isolation. The focused feature `binary Schemas with identical archive
+basenames retain independent identities in #mode mode` independently publishes `org.one:shared-schema:1.0` and
+`org.two:shared-schema:1.0`, both named `shared-schema-1.0-gdsl.jar`, with different Models and suffixes but the same
+mapping ID. GMM, POM-only classifier, and mixed selections prove both normal GAVs, both paired metadata inputs,
+manifest/catalog validation and exact contributor bytes under separate coordinate-derived paths. Each mode reuses
+the configuration cache and restores the root `FROM_CACHE` after relocating both the Model and resolved archive
+locations into a copied repository and fresh Gradle home. This hardens binary identity only; project-wide overlap,
+version conflicts, and legacy-copy handling remain GDSL-3. Archive tests cover empty metadata, duplicate ZIP names, unsafe
 paths, absent/extra entries, malformed JSON/fields, wrong format/origin/normal version, and hash/template tampering.
 
 The real binary-contract fixture compiles and publishes a real `@DSL Environment` independently with Groovy
@@ -481,3 +492,10 @@ with the right capability but zero files could silently succeed. The consumer no
 explicit selected origin in both modes; focused zero/two-payload controls pass, and the independent offline reproduction
 now fails before materialization. The follow-up Spec review reported no remaining findings. Commit-history review keeps
 the complete vertical implementation and its engineering evidence as separate reasoning steps before first publication.
+
+PR #820 identity-hardening follow-up (2026-10-01): the new equal-basename fixture reproduced rejection in both
+GMM and classifier modes and origin overwrite/mismatched-manifest failure in mixed mode before the change.
+The paired nested inputs pass all three modes, including configuration-cache reuse and relocation build-cache
+restoration. `:klum-ast-gradle-plugin:check` passed with 132 tests, license checks, `validatePlugins`, and the real
+Groovy-3/4/5 binary-contract fixtures. Reviewed GDSL-2 commits remain intact; this is an additive binary-identity
+follow-up with no GDSL-3 scope or tracker/release-state change.

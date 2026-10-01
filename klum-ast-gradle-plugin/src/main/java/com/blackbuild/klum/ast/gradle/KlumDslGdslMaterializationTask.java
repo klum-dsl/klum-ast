@@ -24,16 +24,12 @@
 package com.blackbuild.klum.ast.gradle;
 
 import org.gradle.api.DefaultTask;
-import org.gradle.api.GradleException;
-import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.PathSensitive;
-import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.api.tasks.Nested;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.LinkedHashSet;
 import org.gradle.api.file.ArchiveOperations;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
@@ -53,16 +49,12 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
     public abstract ConfigurableFileCollection getRuntimeClasspath();
 
     public KlumDslGdslMaterializationTask() {
-        getSchemaArchiveOrigins().convention(Map.of());
+        getSchemaMetadataArtifacts().convention(List.of());
         getNormalSchemaCoordinates().convention(List.of());
     }
 
-    @InputFiles
-    @PathSensitive(PathSensitivity.NONE)
-    public abstract ConfigurableFileCollection getSchemaArchives();
-
-    @Input
-    public abstract MapProperty<String, String> getSchemaArchiveOrigins();
+    @Nested
+    public abstract ListProperty<KlumGdslArtifactInput> getSchemaMetadataArtifacts();
 
     @Input
     public abstract ListProperty<String> getNormalSchemaCoordinates();
@@ -79,10 +71,9 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
     @TaskAction
     public void materialize() {
         List<KlumGdslArchive> archives = new ArrayList<>();
-        for (var file : getSchemaArchives().getFiles()) {
-            String origin = getSchemaArchiveOrigins().get().get(file.getName());
-            if (origin == null) throw new GradleException("Missing selected GDSL artifact origin for " + file);
-            archives.add(KlumGdslArchive.read(file, origin, getNormalSchemaCoordinates().get()));
+        // Repeated selections of the same archive and GAV contribute once.
+        for (var artifact : new LinkedHashSet<>(getSchemaMetadataArtifacts().get())) {
+            archives.add(KlumGdslArchive.read(artifact.getArchive(), artifact.getCoordinates(), getNormalSchemaCoordinates().get()));
         }
         getFileSystemOperations().sync(copy -> {
             copy.into(getOutputDirectory());

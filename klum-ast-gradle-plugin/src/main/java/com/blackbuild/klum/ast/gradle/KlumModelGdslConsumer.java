@@ -41,13 +41,12 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition;
 import org.gradle.plugins.ide.idea.IdeaPlugin;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.Comparator;
 
 /** Lazy binary consumer. No normal dependency scope inherits any metadata dependency. */
 final class KlumModelGdslConsumer {
@@ -135,10 +134,9 @@ final class KlumModelGdslConsumer {
         project.getRootProject().getPluginManager().apply(KlumDslGdslMaterializationPlugin.class);
         KlumDslGdslMaterializationPlugin.materializationTask(project).configure(task -> {
             task.getRuntimeClasspath().from(normal);
-            task.getSchemaArchives().from(variant, classifier);
-            task.getSchemaArchiveOrigins().putAll(variant.getIncoming().getArtifacts().getResolvedArtifacts().map(artifacts ->
+            task.getSchemaMetadataArtifacts().addAll(variant.getIncoming().getArtifacts().getResolvedArtifacts().map(artifacts ->
                     singleArchives(artifacts, selectedVariantOrigins.get(), "GMM")));
-            task.getSchemaArchiveOrigins().putAll(classifier.getIncoming().getArtifacts().getResolvedArtifacts().map(artifacts ->
+            task.getSchemaMetadataArtifacts().addAll(classifier.getIncoming().getArtifacts().getResolvedArtifacts().map(artifacts ->
                     singleArchives(artifacts, exactClassifierOrigins, "classifier")));
             task.getNormalSchemaCoordinates().addAll(normal.getIncoming().getResolutionResult().getRootComponent().map(root ->
                     normalCoordinates(root.getDependencies())));
@@ -160,29 +158,22 @@ final class KlumModelGdslConsumer {
                 && !version.matches(".*[\\[\\](),].*");
     }
 
-    private static Map<String, String> singleArchives(Set<ResolvedArtifactResult> artifacts, List<String> expectedOrigins, String mode) {
-        Map<String, String> selected = origins(artifacts);
+    private static List<KlumGdslArtifactInput> singleArchives(Set<ResolvedArtifactResult> artifacts, List<String> expectedOrigins, String mode) {
+        List<KlumGdslArtifactInput> selected = artifacts.stream().map(artifact -> {
+            if (!(artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier module))
+                throw new GradleException("GDSL-2 requires binary Schema metadata: " + artifact.getId());
+            return new KlumGdslArtifactInput(artifact.getFile(), coordinates(module));
+        }).sorted(Comparator.comparing(KlumGdslArtifactInput::getCoordinates)).toList();
         Set<String> expected = new HashSet<>(expectedOrigins);
-        if (!expected.containsAll(selected.values()))
-            throw new GradleException("GDSL " + mode + " selection changed requested Schema GAV: " + expected + " -> " + selected.values());
+        List<String> selectedOrigins = selected.stream().map(KlumGdslArtifactInput::getCoordinates).toList();
+        if (!expected.containsAll(selectedOrigins))
+            throw new GradleException("GDSL " + mode + " selection changed requested Schema GAV: " + expected + " -> " + selectedOrigins);
         for (String origin : expected) {
-            long count = artifacts.stream().filter(artifact -> selected.get(artifact.getFile().getName()).equals(origin)).count();
+            long count = selected.stream().filter(artifact -> artifact.getCoordinates().equals(origin)).count();
             if (count != 1)
                 throw new GradleException("GDSL " + mode + " requires exactly one metadata archive for " + origin + "; found " + count);
         }
         return selected;
-    }
-
-    private static Map<String, String> origins(Set<ResolvedArtifactResult> artifacts) {
-        Map<String, String> result = new TreeMap<>();
-        for (ResolvedArtifactResult artifact : artifacts) {
-            if (!(artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier module))
-                throw new GradleException("GDSL-2 requires binary Schema metadata: " + artifact.getId());
-            String previous = result.put(artifact.getFile().getName(), coordinates(module));
-            if (previous != null && !previous.equals(coordinates(module)))
-                throw new GradleException("Ambiguous GDSL archive name: " + artifact.getFile().getName());
-        }
-        return result;
     }
 
     private static List<String> normalCoordinates(Set<? extends DependencyResult> dependencies) {

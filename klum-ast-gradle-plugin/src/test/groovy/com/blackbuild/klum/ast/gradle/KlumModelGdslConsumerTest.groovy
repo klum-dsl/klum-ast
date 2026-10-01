@@ -45,15 +45,21 @@ class KlumModelGdslConsumerTest extends Specification {
 
     def setupSpec() {
         repository = new File(sharedDirectory, 'repository')
-        [['environment-schema', '1.0'], ['environment-schema', '2.0'], ['replacement-schema', '2.0']].each { publication ->
-            String artifact = publication[0]
-            String version = publication[1]
-            File producer = new File(sharedDirectory, "producer-$artifact-$version")
-            producer.mkdirs()
-            new File(producer, 'settings.gradle').text = "rootProject.name = '$artifact'"
-            new File(producer, 'build.gradle').text = """
+        [['environment-schema', '1.0'], ['environment-schema', '2.0'], ['replacement-schema', '2.0']].each {
+            publishSchema(it[0], it[1])
+        }
+        publishSchema('shared-schema', '1.0', 'org.one', '.one.groovy', 'example.FirstEnvironment')
+        publishSchema('shared-schema', '1.0', 'org.two', '.two.groovy', 'example.SecondEnvironment')
+    }
+
+    private void publishSchema(String artifact, String version, String group = 'org.example',
+                               String suffix = '.environment.groovy', String model = 'example.Environment') {
+        File producer = new File(sharedDirectory, "producer-$group-$artifact-$version")
+        producer.mkdirs()
+        new File(producer, 'settings.gradle').text = "rootProject.name = '$artifact'"
+        new File(producer, 'build.gradle').text = """
 plugins { id 'com.blackbuild.klum-ast-schema'; id 'maven-publish' }
-group = 'org.example'
+group = '$group'
 version = '$version'
 ['api', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 tasks.named('compileJava') { classpath = files() }
@@ -62,15 +68,15 @@ tasks.named('javadoc') { classpath = files() }
 tasks.named('createClassStubs') { referencedClassesClasspath.setFrom(files()) }
 klumSchema.gdsl {
     publish = true
-    mappings { environment { fileNameSuffix = '.environment.groovy'; modelType = 'example.Environment' } }
+    mappings { environment { fileNameSuffix = '$suffix'; modelType = '$model' } }
 }
 publishing.repositories { maven { name = 'fixture'; url = '${repository.toURI()}' } }
 """
-            File source = new File(producer, 'src/main/java/example/Environment.java')
-            source.parentFile.mkdirs()
-            source.text = 'package example; public class Environment {}'
-            runner(producer, 'publishMavenJavaPublicationToFixtureRepository').build()
-        }
+        String name = model.substring(model.lastIndexOf('.') + 1)
+        File source = new File(producer, "src/main/java/example/${name}.java")
+        source.parentFile.mkdirs()
+        source.text = "package example; public class $name {}"
+        runner(producer, 'publishMavenJavaPublicationToFixtureRepository').build()
     }
 
     def setup() {
@@ -382,7 +388,88 @@ configurations.configureEach {
         count << [0, 2]
     }
 
-    private void fixture(String selection, String normalExtra, boolean pomOnly = false) {
+    def "binary Schemas with identical archive basenames retain independent identities in #mode mode"() {
+        given:
+        String selections = ['org.one', 'org.two'].withIndex().collect { group, index ->
+            String classifier = mode == 'classifier' || (mode == 'mixed' && index == 1) ? ':1.0:gdsl@jar' : ''
+            "klumGdsl '$group:shared-schema$classifier'"
+        }.join('; ')
+        fixture(selections, '', mode == 'classifier', false)
+        File build = new File(consumer, 'build.gradle')
+        build.text = build.text.replace("schema 'org.example:environment-schema:1.0'",
+                "schema 'org.one:shared-schema:1.0'; schema 'org.two:shared-schema:1.0'")
+        build << """
+tasks.register('reportOrigins') {
+    def materialization = tasks.named('materializeKlumDslGdsl')
+    inputs.property('normalOrigins', materialization.flatMap { it.normalSchemaCoordinates })
+    inputs.property('metadataOrigins', materialization.flatMap { it.schemaMetadataArtifacts }.map { artifacts ->
+        artifacts.collect { it.archive.name + ':' + it.coordinates }
+    })
+    doLast {
+        println "normalOrigins=" + inputs.properties.normalOrigins
+        inputs.properties.metadataOrigins.each { println it }
+    }
+}
+"""
+        new File(consumer, 'settings.gradle') << "\nbuildCache { local { directory = '${new File(directory, 'identity-cache').absolutePath}' } }\n"
+
+        when:
+        def first = runner(consumer, 'materializeKlumDslGdsl', 'reportOrigins', '--configuration-cache', '--build-cache').build()
+        def reused = runner(consumer, 'materializeKlumDslGdsl', 'reportOrigins', '--configuration-cache', '--build-cache').build()
+
+        then:
+        first.task(':materializeKlumDslGdsl').outcome == TaskOutcome.SUCCESS
+        first.output.contains('normalOrigins=[org.one:shared-schema:1.0, org.two:shared-schema:1.0]')
+        first.output.readLines().findAll { it.startsWith('shared-schema-1.0-gdsl.jar:') }.sort() == [
+                'shared-schema-1.0-gdsl.jar:org.one:shared-schema:1.0',
+                'shared-schema-1.0-gdsl.jar:org.two:shared-schema:1.0'
+        ]
+        reused.output.contains('Configuration cache entry reused.')
+        reused.task(':materializeKlumDslGdsl').outcome == TaskOutcome.UP_TO_DATE
+        assertSharedPayloads(consumer)
+
+        when: 'both the Model directory and resolved archive locations move'
+        File relocated = new File(directory, 'relocated-model')
+        relocated.mkdirs()
+        File relocatedRepository = new File(directory, 'relocated-repository')
+        repository.eachFileRecurse { file ->
+            if (file.file) {
+                File copy = new File(relocatedRepository, repository.relativePath(file))
+                copy.parentFile.mkdirs()
+                copy.bytes = file.bytes
+            }
+        }
+        ['settings.gradle', 'build.gradle'].each { name ->
+            new File(relocated, name).text = new File(consumer, name).text.replace(
+                    repository.toURI().toString(), relocatedRepository.toURI().toString())
+        }
+        def restored = runner(relocated, 'materializeKlumDslGdsl', 'reportOrigins', '--configuration-cache', '--build-cache')
+                .withTestKitDir(new File(directory, 'relocated-gradle-home')).build()
+
+        then:
+        restored.task(':materializeKlumDslGdsl').outcome == TaskOutcome.FROM_CACHE
+        assertSharedPayloads(relocated)
+
+        where:
+        mode << ['GMM', 'classifier', 'mixed']
+    }
+
+    private static boolean assertSharedPayloads(File model) {
+        File root = new File(model, 'build/generated/klum-dsl-ide/gdsl/schema-owned')
+        ['org.one', 'org.two'].withIndex().each { group, index ->
+            File payload = new File(root, group.bytes.encodeHex().toString() + '/' +
+                    'shared-schema'.bytes.encodeHex() + '/environment.gdsl')
+            String suffix = index == 0 ? '.one.groovy' : '.two.groovy'
+            String type = index == 0 ? 'example.FirstEnvironment' : 'example.SecondEnvironment'
+            assert payload.text == KlumGdslMetadataFormat.payload(new KlumGdslMetadataFormat.Mapping('environment', suffix, type))
+        }
+        List<File> payloads = []
+        root.eachFileRecurse { if (it.file) payloads << it }
+        assert payloads.size() == 2
+        true
+    }
+
+    private void fixture(String selection, String normalExtra, boolean pomOnly = false, boolean logOrigins = true) {
         new File(consumer, 'build.gradle').text = """
 plugins { id 'com.blackbuild.klum-ast-model'; id 'maven-publish' }
 group = 'org.example.model'
@@ -396,7 +483,7 @@ klumModel {
 }
 dependencies { $selection; $normalExtra }
 publishing.repositories { maven { name = 'fixture'; url = layout.buildDirectory.dir('repository') } }
-gradle.projectsEvaluated { tasks.named('materializeKlumDslGdsl') { doLast { println schemaArchiveOrigins.get() } } }
+${logOrigins ? "gradle.projectsEvaluated { tasks.named('materializeKlumDslGdsl') { doLast { schemaMetadataArtifacts.get().each { artifact -> println artifact.archive.name + ':' + artifact.coordinates } } } }" : ''}
 
 tasks.register('assertIsolation') {
     doLast {
