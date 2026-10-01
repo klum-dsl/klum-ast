@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.gradle;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.Directory;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.language.jvm.tasks.ProcessResources;
@@ -42,6 +43,8 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
 
     @Override
     protected void additionalConfig() {
+        // Retain root cleanup ownership even after the last metadata consumer opts out.
+        project.getRootProject().getPluginManager().apply(BasePlugin.class);
         project.getConfigurations().getByName("api").extendsFrom(project.getConfigurations().getByName("schemas"));
         Provider<Directory> descriptorDir = project.getLayout().getBuildDirectory().dir("modelDescriptors");
         TaskProvider<CreateModelProperties> createModelDescriptors = project.getTasks().register("createModelDescriptors", CreateModelProperties.class, task -> {

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.gradle
 
+import groovy.json.JsonOutput
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
@@ -60,6 +61,7 @@ publishing.repositories { maven { name = 'fixture'; url = '${repository.toURI()}
     def "source authoring and two explicit project consumers share one root and one archive with #order evaluation"() {
         given:
         fixture(order)
+        write(directory, 'build.gradle', "evaluationDependsOn(':${order.split(',')[0]}')")
         write(directory, 'model/build.gradle', model("project(':schema')", "klumGdsl project(':schema')"))
         write(directory, 'other/build.gradle', model("project(':schema')", "klumGdsl project(':schema')"))
         new File(directory, 'schema/build.gradle') << '\ndependencies { api files(' +
@@ -222,6 +224,51 @@ publishing.repositories { maven { name = 'fixture'; url = '${repository.toURI()}
         then:
         result.task(':clean').outcome == TaskOutcome.SUCCESS
         !new File(directory, 'build/generated/klum-dsl-ide/gdsl').exists()
+    }
+
+    def "binary-only Model subproject retains root cleanup after its final opt-out"() {
+        given:
+        write(directory, 'settings.gradle', "rootProject.name = 'plain-root'; include 'model'")
+        write(directory, 'build.gradle', '')
+        write(directory, 'model/build.gradle', model("'org.binary:binary-schema:1.0'", "klumGdsl 'org.binary:binary-schema'"))
+        run(directory, 'materializeKlumDslGdsl')
+
+        when:
+        write(directory, 'model/build.gradle', model("'org.binary:binary-schema:1.0'", '', false))
+        def result = run(directory, 'clean')
+
+        then:
+        result.task(':clean').outcome == TaskOutcome.SUCCESS
+        !new File(directory, 'build/generated/klum-dsl-ide/gdsl').exists()
+    }
+
+    def "task-generated recognized resources preserve their provider dependencies for migration checks"() {
+        given:
+        fixture()
+        write(directory, 'model/build.gradle', model("project(':schema')", "klumGdsl project(':schema')") + """
+        def generatedRoot = layout.buildDirectory.dir('generated/legacy-resource')
+        def legacyPayload = ${JsonOutput.toJson(copy('legacy', '.source.groovy'))}
+        def generated = tasks.register('generateLegacyResource') {
+            outputs.dir(generatedRoot)
+            doLast {
+                def output = new File(generatedRoot.get().asFile, 'environment.gdsl')
+                output.parentFile.mkdirs()
+                output.text = legacyPayload
+            }
+        }
+        sourceSets.main.resources.srcDir(generated)
+""")
+
+        when:
+        def failed = runner(directory, 'materializeKlumDslGdsl').buildAndFail()
+
+        then:
+        failed.task(':model:generateLegacyResource').outcome == TaskOutcome.SUCCESS
+        failed.output.contains('Recognized legacy GDSL copy')
+        failed.output.contains('generated/legacy-resource/environment.gdsl')
+        payloads().empty
+        failed.task(':schema:compileGroovy') == null
+        failed.task(':model:processResources') == null
     }
 
     def "normal module-to-project substitution selects metadata through the project capability"() {

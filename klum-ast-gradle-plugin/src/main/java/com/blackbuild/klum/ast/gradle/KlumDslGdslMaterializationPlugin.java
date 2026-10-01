@@ -73,6 +73,9 @@ public class KlumDslGdslMaterializationPlugin implements Plugin<Project> {
                     task.getNormalSchemaCoordinates().add(participant.getGroup() + ":" + participant.getName() + ":" + participant.getVersion());
                 task.getNormalSchemaCoordinates().addAll(normal.getIncoming().getResolutionResult().getRootComponent()
                         .map(component -> KlumModelGdslConsumer.normalCoordinates(component.getDependencies())));
+                // The SourceDirectorySet retains dependencies on generated source/resource providers.
+                task.getLegacyGdslSources().from(main.getAllSource().matching(pattern -> pattern.include("**/*.gdsl")));
+                // Include .gdsl files in configured language roots even when their language filters exclude them.
                 task.getLegacyGdslSources().from(main.getAllSource().getSrcDirs().stream()
                         .map(directory -> participant.fileTree(directory, pattern -> pattern.include("**/*.gdsl"))).toList());
                 // Project resources are inspected in source; resolving their library artifacts would compile Schemas.
