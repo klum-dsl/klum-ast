@@ -536,11 +536,13 @@ mapping IDs, suffixes, archive locators, and a witness filename. Output order is
 All validation precedes sync; a failed refresh labels previously successful output stale and retains those bytes.
 
 Participants contribute configured main-source/resource GDSL files plus selected normal binary classpaths for migration
-inspection. Source projects are inspected from source, while normal artifact views exclude project components: refreshing
+inspection. The SourceDirectorySet retains dependencies on generated-resource tasks; additional raw directory trees
+cover GDSL in language roots whose Java/Groovy filters would otherwise omit it. Source projects are inspected from source, while normal artifact views exclude project components: refreshing
 metadata does not compile or package a source Schema. Ordinary build/publication paths do not run the root materializer,
-and normal SourceSets, classpaths, and archives remain unchanged. The root owner applies Gradle's base lifecycle so
-`clean` removes its output even when the root build has no Java/base plugin of its own. A binary-only last Model opt-out
-has no materializer; its ordinary root `clean` removes leftover output.
+and normal SourceSets, classpaths, and archives remain unchanged. The materializer and Model plugin retain Gradle's root base lifecycle so
+`clean` removes its output even when the root build has no Java/base plugin of its own. The Model plugin retains this
+cleanup owner after a binary-only last Model opt-out, including a Model subproject beneath a plain root with no
+materializer. No metadata resolver or refresh is added by disabled consumption.
 
 Recognition is deliberately bounded: exact canonical v1 generated payload bytes, including retired mappings, or the
 whole documented single-quoted #809 contributor structure with validated literal suffix and Model/Builder target.
@@ -561,3 +563,38 @@ cache and restores `FROM_CACHE` after deletion and relocation, retaining framewo
 GDSL-4 native IntelliJ discovery/activation/PSI and GDSL-5 end-user migration/release documentation are explicitly outside
 this slice. No generated/public/runtime contract or initial normal-GAV publication policy changes. Tracker impact is
 `Related: #805`; the issue and native release gate remain open. No curation or release-placement mutation is required.
+
+
+### GDSL-3 local review
+
+Standards: the initial two-axis review reported no documented violations or material smells. New tests have #805
+traceability, `Test` names, and the engineering documentary link required for this explicitly unreleased slice.
+
+Spec: the initial review reproduced two lifecycle gaps. Flattening configured source directories lost dependencies on
+a resource-generation task, allowing its recognized copy to escape validation. A binary-only Model subproject beneath
+a plain root also lost root cleanup when its final GDSL opt-in was disabled. The implementation now preserves the
+SourceDirectorySet dependency collection alongside raw scans and retains the Model root base lifecycle after disablement.
+Both regressions have executable TestKit controls and passed focused verification. The evaluation-order fixture now
+uses `evaluationDependsOn` to actually reverse Schema/Model configuration, rather than relying on settings include order.
+
+Commit-history review retains the vertical implementation, engineering contract, lifecycle review fixes, and final
+evidence as separate green reasoning steps. No unrelated work, public/generated/runtime contract change, new normal-GAV
+policy, tracker mutation, native IntelliJ claim, or broad release/user documentation is included.
+
+Both follow-up review axes reported no remaining findings on `0c0350b2`; no additional builds were run by reviewers.
+
+
+### GDSL-3 validation and delivery boundary
+
+Local validation on 2026-10-01: `:klum-ast-gradle-plugin:check` passed with 161 tests, license checks, `validatePlugins`,
+and the existing independent real Groovy-3/4/5 binary-contract fixtures. Focused source/provider/cleanup controls passed.
+The core `ConvenienceFactories*` and `AsBuilderSpec` selections passed 40 tests per `test`, `groovy4Tests`, and
+`groovy5Tests`, followed by `verifyTestLaneIsolation`; independent Script/migration controls also passed in all three
+lanes. Root `check` and full core suites were not repeated for this plugin-only slice. `git diff --check` and local ADR/
+plan links passed. The stable-worktree rerun supersedes a fixture-publication mismatch caused by changing repository
+clean/dirty version identity during an earlier verification run; no production failure was reproduced by that run.
+
+Git push and GitHub CLI repository-mutation channels were independently verified authorized for draft delivery.
+The assigned implementation is complete; draft publication remains related to #805 and does not deliver its native
+release gate. The Hive owns subsequent merge/archive reconciliation. This worker retains the worktree and never
+self-archives an open pull request.
