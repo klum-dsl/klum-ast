@@ -281,7 +281,9 @@ class DslPropertyShadowingTest extends AbstractDSLSpec {
         String marker = "@KlumGenerated(generator = 'test')"
         String parent = "@DSL class Service { ${generatedDeclaration == 'ancestor' ? marker : ''} String name }"
         String child = "@DSL class WebService extends Service { ${generatedDeclaration == 'descendant' ? marker : ''} String name }"
-        if (compilation == 'binary') createClass("package shadowing\n$parent")
+        if (compilation == 'binary') {
+            createClass("package shadowing\n$parent")
+        }
 
         when:
         createClass("package shadowing\n${compilation == 'binary' ? '' : parent}\n$child")
@@ -298,13 +300,16 @@ class DslPropertyShadowingTest extends AbstractDSLSpec {
         compilerConfiguration.addCompilationCustomizers(new CompilationCustomizer(CompilePhase.SEMANTIC_ANALYSIS) {
             @Override
             void call(SourceUnit source, GeneratorContext context, ClassNode classNode) {
-                if (classNode.name == 'shadowing.Service')
+                if (classNode.name == 'shadowing.Service') {
                     classNode.getDeclaredField('name').modifiers |= ACC_SYNTHETIC
+                }
             }
         })
         String parent = '@DSL class Service { String name }'
         String child = '@DSL class WebService extends Service { String name }'
-        if (compilation == 'binary') createClass("package shadowing\n$parent")
+        if (compilation == 'binary') {
+            createClass("package shadowing\n$parent")
+        }
 
         when:
         createClass("package shadowing\n${compilation == 'binary' ? '' : parent}\n$child")

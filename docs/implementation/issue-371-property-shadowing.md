@@ -111,6 +111,12 @@ found no actionable findings on either axis. Commit-history review retains the o
 self-contained diagnostic/acceptance-test change, release-facing documentation, and a final validation/audit record. `git diff --check` passes.
 
 Delivery authorization audit: Git transport `authorized` (dry run); gh CLI repository mutation category `authorized`
-(repository permission check). No connected GitHub App delivery channel is used. Tracker impact is
+(repository permission check). No connected GitHub App delivery channel is used.
+
+Draft [PR #821](https://github.com/klum-dsl/klum-ast/pull/821) uses `Closes #371`. Its first revision `e8c231a3` passed CI
+and the SonarCloud gate (94.7% new-code coverage, no security hotspots). Detailed analysis reported three missing-brace
+maintainability findings in test controls. An additive follow-up supplies those braces without changing production code
+or test semantics; all 50 acceptance cases plus the unchanged initializer control pass again in Groovy 3/4/5, along with
+`licenseTest` and `git diff --check`. Final remote revalidation is reported in the PR follow-up and Hive handoff. Tracker impact is
 `Closes #371`, selected in the implementation assignment; this localized diagnostic has no release-gate or curation
 impact. An open draft PR still requires Hive reconciliation and merge and is not an archive-safe outcome.
