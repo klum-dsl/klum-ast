@@ -122,19 +122,19 @@ KlumAST has no test source that imports a KlumCast type directly. Instead, the i
 schemas that use KlumAST annotations and asserting resulting diagnostics. Representative direct evidence includes:
 
 - core `@DSL`, `@Field`, and key/type/member rejections in
-  [`TransformSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TransformSpec.groovy#L309-L326) and
-  [`FixedKeySpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/FixedKeySpec.groovy#L114-L154);
+  [`TransformSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/TransformSpec.groovy#L309-L326) and
+  [`FixedKeySpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/FixedKeySpec.groovy#L114-L154);
 - owner parameter-count and conflicting annotation checks in
-  [`OwnerReferencesSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/OwnerReferencesSpec.groovy#L722-L775);
+  [`OwnerReferencesSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/OwnerReferencesSpec.groovy#L722-L775);
 - lifecycle signature checks in
-  [`LifecycleSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/LifecycleSpec.groovy#L55-L87);
+  [`LifecycleSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/LifecycleSpec.groovy#L55-L87);
 - `@Validate` signature, placement, constructor, and primitive-boolean checks in
-  [`ValidationSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy#L572-L608),
-  [`ValidationSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy#L765-L886), and
-  [`ValidationSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy#L1146-L1164);
+  [`ValidationSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ValidationSpec.groovy#L572-L608),
+  [`ValidationSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ValidationSpec.groovy#L765-L886), and
+  [`ValidationSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ValidationSpec.groovy#L1146-L1164);
 - `@Default` member exclusivity and `@DefaultValues` meta-annotation consistency in
-  [`DefaultValuesSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/DefaultValuesSpec.groovy#L211-L242) and
-  [`DefaultValuesSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/DefaultValuesSpec.groovy#L688-L746).
+  [`DefaultValuesSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/DefaultValuesSpec.groovy#L211-L242) and
+  [`DefaultValuesSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/DefaultValuesSpec.groovy#L688-L746).
 
 Those tests run through the repository's Groovy 3 baseline and Groovy 4/5 compatibility suites when their module uses the
 multi-Groovy convention; they do not isolate KlumCast diagnostics or artifact loading from the complete KlumAST transform.
@@ -143,12 +143,12 @@ Coverage of the eight custom check bindings is uneven:
 
 | Custom check seam | Current direct evidence or explicit gap |
 |---|---|
-| `CheckDslAnnotation` | `DefaultImplTest` proves a valid class-level `@DSL(defaultImpl=...)` path, but no focused rejection test for this check's subtype constraint was located ([test](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/DefaultImplTest.groovy#L151-L177)). |
-| `FieldAstValidator` | `DefaultImplTest` covers valid field, Collection, Map, and virtual-setter defaults; `TransformSpec` and `FixedKeySpec` cover rejected `members`, `key`, and `keyMapping` placements ([default implementations](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/DefaultImplTest.groovy#L31-L149), [`members`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TransformSpec.groovy#L1691-L1703), [fixed-key rejections](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/FixedKeySpec.groovy#L114-L155)). The individual invalid `defaultImpl` branches are not pinned by focused negative tests. |
-| `WriteAccessMethodCheck` | `LifecycleSpec` rejects private and parameterized lifecycle methods ([test](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/LifecycleSpec.groovy#L55-L87)). |
-| `CheckForPrimitiveBoolean` and `ValidateAnnotationCheck` | `ValidationSpec` rejects primitive-boolean fields, parameterized methods, illegal members/placements, and invalid validation inner classes ([method checks](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy#L572-L608), [placement/constructor checks](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy#L765-L886), [boolean check](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy#L1146-L1164)). |
-| `OverwriteSingleCheck` and `OverwriteMapCheck` | `OverwriteStrategyTest` exercises valid Single and Map strategy behavior, including DSL-object merge paths; no focused negative tests were located for the custom checks' invalid Collection/Map, `MERGE`, or `MERGE_VALUES` type constraints ([test](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/OverwriteStrategyTest.groovy#L58-L354)). |
-| `DefaultValuesCheck` | `DefaultValuesSpec` covers missing and valid `value`/`valueTarget` combinations ([test](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/DefaultValuesSpec.groovy#L688-L746)). |
+| `CheckDslAnnotation` | `DefaultImplTest` proves a valid class-level `@DSL(defaultImpl=...)` path, but no focused rejection test for this check's subtype constraint was located ([test](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/DefaultImplTest.groovy#L151-L177)). |
+| `FieldAstValidator` | `DefaultImplTest` covers valid field, Collection, Map, and virtual-setter defaults; `TransformSpec` and `FixedKeySpec` cover rejected `members`, `key`, and `keyMapping` placements ([default implementations](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/DefaultImplTest.groovy#L31-L149), [`members`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/TransformSpec.groovy#L1691-L1703), [fixed-key rejections](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/FixedKeySpec.groovy#L114-L155)). The individual invalid `defaultImpl` branches are not pinned by focused negative tests. |
+| `WriteAccessMethodCheck` | `LifecycleSpec` rejects private and parameterized lifecycle methods ([test](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/LifecycleSpec.groovy#L55-L87)). |
+| `CheckForPrimitiveBoolean` and `ValidateAnnotationCheck` | `ValidationSpec` rejects primitive-boolean fields, parameterized methods, illegal members/placements, and invalid validation inner classes ([method checks](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ValidationSpec.groovy#L572-L608), [placement/constructor checks](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ValidationSpec.groovy#L765-L886), [boolean check](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ValidationSpec.groovy#L1146-L1164)). |
+| `OverwriteSingleCheck` and `OverwriteMapCheck` | `OverwriteStrategyTest` exercises valid Single and Map strategy behavior, including DSL-object merge paths; no focused negative tests were located for the custom checks' invalid Collection/Map, `MERGE`, or `MERGE_VALUES` type constraints ([test](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/OverwriteStrategyTest.groovy#L58-L354)). |
+| `DefaultValuesCheck` | `DefaultValuesSpec` covers missing and valid `value`/`valueTarget` combinations ([test](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/DefaultValuesSpec.groovy#L688-L746)). |
 
 ### Current KlumCast-side limitations and questions
 
@@ -263,7 +263,7 @@ invalidation, absence from compilation/testing/Javadoc/publication/downstream in
 |---|---|
 | [`AnnoDocTest`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/compiler/internal/ast/AnnoDocTest.groovy#L105-L249) | Generated Builder/factory/converter documentation, copied schema docs, templated text, return/parameter tags, and overload behavior. |
 | [`GeneratedDslSupportSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupportSpec.groovy#L186-L204) | A compiled namespace produces a mirror containing the outer namespace, nested Factory/Builder/Collection/Cluster interfaces, and nested AnnoDoc. |
-| [`BuilderProjectionSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/BuilderProjectionSpec.groovy#L123-L177) | Projected Builder documentation preserves applicable source tags, changes return semantics, adds a source link, appears in the mirror, and remains absent from hidden twins. |
+| [`BuilderProjectionSpec`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/BuilderProjectionSpec.groovy#L123-L177) | Projected Builder documentation preserves applicable source tags, changes return semantics, adds a source link, appears in the mirror, and remains absent from hidden twins. |
 | [`CreateKlumDslSourceMirrorsTest`](../../../klum-ast-gradle-plugin/src/test/groovy/com/blackbuild/klum/ast/gradle/CreateKlumDslSourceMirrorsTest.groovy#L36-L63) | The local task removes stale output and generates only a direct top-level `_DSL` mirror. |
 | [`KlumDslSourceMirrorsIntegrationTest`](../../../klum-ast-gradle-plugin/src/test/groovy/com/blackbuild/klum/ast/gradle/KlumDslSourceMirrorsIntegrationTest.groovy#L53-L140) | Gradle/IDE isolation, ordering, cache behavior, configuration-cache limitation, archive/downstream exclusions, and documentation-only invalidation. |
 
