@@ -4,7 +4,8 @@ Date: 2026-10-01
 
 Status: Accepted
 
-Implementation status: Planning only. No plugin API, metadata variant, or new IntelliJ discovery lifecycle is implemented.
+Implementation status: GDSL-0 and the GDSL-1 Schema producer boundary are implemented. Model consumption,
+root-union materialization, migration controls, and native IntelliJ discovery remain later slices; #805 is not delivered.
 
 Tracking issue: [#805 — Restore IDE completion for DelegatingScripts](https://github.com/klum-dsl/klum-ast/issues/805)
 

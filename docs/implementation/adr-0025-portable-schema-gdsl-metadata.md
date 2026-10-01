@@ -1,6 +1,6 @@
 # ADR 0025 implementation — portable Schema GDSL
 
-Date: 2026-10-01. Status: planning only; no API or executable fixture introduced by this document.
+Date: 2026-10-01. Status: GDSL-0 and GDSL-1 producer boundary implemented; GDSL-2+ and release acceptance pending.
 
 Decision: [ADR 0025](../adr/0025-portable-schema-gdsl-metadata.md).
 Primary issue: [#805](https://github.com/klum-dsl/klum-ast/issues/805), immediate 4.1 QoL intent; release placement is
@@ -208,7 +208,7 @@ migration boundary, and standard-GAV-first identity policy. Portable-first binar
 conflict/overlap rejection are settled. Implementation starts at GDSL-1; no further maintainer confirmation is a
 prerequisite. Do not expand into arbitrary predicates or weaken rejection during implementation.
 
-### GDSL-1 — One Schema mapping to one selectable metadata artifact
+### GDSL-1 — One Schema mapping to one selectable metadata artifact (implemented)
 
 Depends on GDSL-0. One reasoned implementation commit adds managed declarations, catalog/generator validation,
 reproducible archive, custom outgoing variant and publication integration, with producer TestKit coverage. Tests prove
@@ -370,3 +370,51 @@ Planning delivery is a draft PR from an isolated issue branch, as authorized aft
 implementation, issue mutation, release, artifact publication, child task, or delegated review belongs to this
 assignment. The Hive receives the PR/commit-addressable handoff and performs reconciliation; an open PR remains
 `(PR:open)` until delivery is reconciled, and the worker does not self-archive.
+
+
+## GDSL-1 engineering contract and evidence
+
+The Schema extension is now `KlumSchemaExtension`, a subtype of the existing `KlumExtension`, with nested
+`KlumSchemaGdslExtension` and named `KlumGdslMapping` declarations. `publish` defaults to false. Disabled declarations
+attach no variant or publication artifact and register no metadata tasks. Enabled declarations are frozen and validated
+after all projects have been evaluated, before attaching the outgoing variant. This observes late project-GAV
+configuration as well as late publication overrides; it does not claim Isolated Projects support. Each mapping declares a Model qualified name;
+no compiled Model inspection, source scanning, or Schema compilation is needed to generate metadata. Declaration-shape
+validation rejects malformed names and public Builder names; actual missing/non-DSL Model and Builder PSI controls
+remain GDSL-4, as planned.
+
+`GenerateKlumGdslMetadata` accepts scalar maps of suffixes and Model names plus Schema coordinates as task inputs.
+Neither this task nor the publication-identity validator accesses Project or resolution objects in its action.
+`KlumGdslJar` is a cacheable Jar specialization with reproducible entry ordering and timestamps. Its source provider
+retains the generator dependency. It packages only the envelope and manifest; normal build tasks do not depend on it.
+The separate generator directory is `build/generated/klum-gdsl-metadata`, outside all SourceSets. No local contribution
+is wired into the root editor refresh in this producer slice.
+
+The exact canonical v1 catalog is a UTF-8 JSON object with one `mappings` array, terminated by a single LF. Entries are
+sorted by ASCII mapping ID, with keys in this fixed order: `id`, `fileNameSuffix`, `modelType`, `payloadSha256`.
+Suffixes use NFC and case-sensitive literal comparison. JSON escapes quotes and backslashes; the generated Groovy
+single-quoted strings escape quotes and backslashes. SHA-256 is lowercase hexadecimal over the generated payload's
+UTF-8 bytes. An empty catalog is exactly `{"mappings":[]}\n` (where `\n` denotes the terminal LF).
+`KlumGdslMetadataFormat` owns the fixed script-scoped template; there is no supplied-code or contributor-file input.
+It looks up the Model, checks its `@DSL` annotation, then looks up the real public `model.qualifiedName + '_DSL.Builder'`
+and delegates only when that class exists. This records template behavior, not native IntelliJ proof.
+
+`klumGdslElements` is consumable only, has only the custom `<group>:<artifact>-gdsl:<version>` capability and the
+attributes frozen above, and has no parents, dependencies, constraints, or library/JVM attributes. It is attached to
+`components.java` using optional/runtime Maven mapping. GMM contains the separate metadata variant; Maven receives the
+classifier archive with no additional POM dependency. `validateKlumGdslPublication` compares the final configured
+`mavenJava` GAV to the Schema identity before POM/GMM generation or publication, including late `afterEvaluate`
+publication overrides and late Schema identity changes. The producer requires an explicit Schema group and version.
+
+Executable evidence is in `KlumGdslMetadataFormatTest` and `KlumSchemaGdslProducerTest` (all new tests carry #805).
+The producer's documentary feature `metadata generation is lazy reproducible relocatable cacheable and supports empty
+retirement` is linked to this engineering plan while the complete user-facing feature remains unavailable.
+Coverage includes both plugin application orders, off/on artifact and metadata behavior, normal POM graph isolation,
+attribute-poor default-capability and sources/Javadoc selection, explicit custom-capability selection, malformed/duplicate
+IDs and Models, separator/control rejection, NFC overlap, same-target overlap, case sensitivity, literal code-shaped
+suffix data, empty retirement, byte identity across independent relocated regeneration, build-cache restoration of both
+tasks, configuration-cache reuse, all three publication-GAV override fields, late Schema identity changes with/without inconsistent publication overrides,
+and publication configuration-cache reuse.
+
+No consumer plugin API, metadata resolver, Model configuration, root-union lifecycle, migration detection, user page,
+release note, or native IDE evidence is added. The issue remains open and the release gate is unchanged.

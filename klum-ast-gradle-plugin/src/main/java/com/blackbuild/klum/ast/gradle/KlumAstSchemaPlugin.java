@@ -43,13 +43,13 @@ import org.gradle.plugins.ide.idea.model.IdeaModel;
 import java.util.Set;
 
 @NonNullApi
-public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
+public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumSchemaExtension> {
 
     private static final String MODULE_INFO = "**/module-info.java";
 
     @Override
     protected void registerExtension() {
-        extension = project.getExtensions().create("klumSchema", KlumExtension.class);
+        extension = project.getExtensions().create("klumSchema", KlumSchemaExtension.class);
     }
 
     protected void addDependentPlugins() {
@@ -66,6 +66,7 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
 
     @Override
     protected void additionalConfig() {
+        KlumSchemaGdslProducer.configure(project, extension.getGdsl());
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
         java.withSourcesJar();
         java.withJavadocJar();
