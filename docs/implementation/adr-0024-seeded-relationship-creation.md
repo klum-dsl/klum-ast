@@ -1,9 +1,29 @@
-# ADR 0024 implementation plan: Seeded relationship creation
+# ADR 0024 deferred implementation plan: Seeded relationship creation
 
-Planning only for [#342](https://github.com/klum-dsl/klum-ast/issues/342) and
-[accepted ADR 0024](../adr/0024-seeded-relationship-creation.md). No runtime/API change is delivered by this document.
+Status: SEED-0 through SEED-3 deferred beyond 4.1; no implementation release scheduled.
 
-## Authority and evidence checkpoint
+This preserves the researched implementation plan for [#342](https://github.com/klum-dsl/klum-ast/issues/342) and
+[ADR 0024](../adr/0024-seeded-relationship-creation.md). No automatic runtime/compiler/generated API is delivered by this
+document. The slices below are future reference, not active 4.1 work, a release commitment, or a release gate.
+
+## Current disposition
+
+The 2026-10-01 maintainer decision supersedes the original 4.1 implementation horizon. Overload collisions with converters
+and Schema-defined Builder methods, highest-DSL-domain and ancestor/sibling policy, runtime subtype versus declared
+refinement contracts, dynamic/static asymmetry, keyed Template identity, live Builder/session eligibility, and occupied
+relationship replacement/lifecycle behavior require additional policy/API work beyond the intended 4.1 QoL scope. See
+[ADR 0024's current disposition](../adr/0024-seeded-relationship-creation.md#current-disposition).
+
+**SEED-0 through SEED-3 are deferred beyond 4.1.** The design and acceptance details remain available for possible future
+implementation, without being rewritten as rejected decisions. #342 remains open for future reconsideration; #812 remains
+a separate future domain-boundary investigation. Resuming these slices requires a new maintainer decision on the remaining
+policy and compatibility work.
+
+4.1 provides the existing Builder QoL primitives and documents
+[explicit Schema-owned helpers](../user/Tips-and-Tricks.md#name-a-builder-helper-for-a-seeded-relationship) as the supported
+practical route. No automatic `relationship(seed) { refinement }` overload is delivered in 4.1.
+
+## Historical authority and evidence checkpoint
 
 KlumAST source base: `b747422ca5a149065cf612cae749563f9d92329d`, observed 2026-09-30. The maintainer's in-task
 clarification is authoritative: exactly one `relationship(seed) { refinement }` form accepts a materialized Model,
@@ -13,11 +33,11 @@ public Builder input. Ancestors, descendants, and siblings inside that selected 
 are rejected statically. There is no broad marker or per-ancestor signature set. The maintainer also accepts the keyed
 Template limitation: an existing Schema key provider or seed supplies any required construction key, otherwise a keyless
 Template fails before allocation. Explicit-key creation plus `copyFrom(template)` remains the route for a caller-supplied
-key. No product decision remains open in the planning scope.
+key. These choices are preserved design reference; the current deferral above governs implementation and release scope.
 
 | Evidence | Confirmed fact / limit |
 | --- | --- |
-| [#342 and its history](https://github.com/klum-dsl/klum-ast/issues/342) | Relationship syntax and synthetic/superclass type questions originated here; current maintainer comment records Schelm demand, 4.1 horizon |
+| [#342 and its history](https://github.com/klum-dsl/klum-ast/issues/342) | Relationship syntax and synthetic/superclass type questions originated here; the original Schelm demand and 4.1 horizon preceded the 2026-10-01 implementation deferral |
 | [#135](https://github.com/klum-dsl/klum-ast/issues/135), `CollectionFactoryTemplateExpansionTest`, `TemplatesDocumentaryTest` | Existing collection `withTemplates` expands one owned child per marked Template, not an ambient scope or arbitrary copy source |
 | ADRs 0003/0004, `CopySourceProtocolSpec` | Completed Models copy values; Templates replay recipes; live same-session unsealed Builders copy values plus pending-action snapshots |
 | ADRs 0016/0017, `TemplateScopeTest` | Generated application and test-support lifetime are already defined; their registration mechanisms stay unchanged |
@@ -75,12 +95,14 @@ key in this form. A keyless Template without such a source fails before allocati
 
 **SEED-0 implementation acceptance — signature/collision proof:** inventory same-arity custom/converter methods and
 existing Class/Factory/Map/Closure families using the confirmed pair of descriptors. Record actual collisions and require
-a maintainer disposition if preserving both meanings is impossible; no present conflict has been established by this
-planning-only change. This proof is required before dependent runtime implementation, not before design publication.
+a maintainer disposition if preserving both meanings is impossible. The initial planning-only change had not established
+collisions; subsequent investigation exposed converter/custom-method conflicts and prompted deferral. A compatibility-safe
+disposition is required before any future dependent runtime implementation; the original descriptor pair remains design
+reference rather than an approved resolution of those conflicts.
 
 Do not add speculative pending tests. The #342 issue can be synchronized through its owner's normal workflow; this task
-changes no issue state, curation index, release gate, or milestone. This accepted design and plan are ready for a planning
-PR with `Related: #342`; curation impact is none.
+changes no issue state, curation index, or milestone. This deferred plan establishes no 4.1 release commitment or gate;
+tracker reconciliation remains with the issue owner.
 
 ## Affected modules and generated seams
 
@@ -94,20 +116,23 @@ PR with `Related: #342`; curation impact is none.
 | IDE/docs | Source mirrors, existing GDSL, AnnoDocimal | Match actual generated overloads, required closure, freshness, source restrictions, and declared delegate |
 | User guidance | `docs/user/Templates.md`, relationship/copy guidance, Builder-first migration, `CHANGES.md` | Document delivered syntax, source distinctions, keys, freshness, scope precedence, and documentary traceability after implementation |
 
-No new annotations, serialization format, runtime registry, test-support artifact, or root composition coordinator is
-required. Check current source names at implementation time; the issue-curation architecture map includes historical
+The original plan proposed no new annotations, serialization format, runtime registry, test-support artifact, or root
+composition coordinator. A compatibility-safe API shape requires future reconsideration; this plan authorizes no new API.
+Check current source names if implementation resumes; the issue-curation architecture map includes historical
 pre-package-migration links and is not a substitute for the present package tree.
 
-## Dependency-ordered tracer slices and reasoned commits
+## Deferred dependency-ordered tracer slices and reasoned commits
+
+All four slices below are deferred beyond 4.1. Their dependencies and acceptance criteria are preserved for future
+reconsideration; none is scheduled implementation work or a 4.1 release gate.
 
 ### SEED-0 — Prove the accepted generated seam and signature compatibility
 
-The accepted ADR and key policy are the starting contract. Verify the confirmed descriptor pair and collision inventory
-before dependent runtime implementation. The proof is SEED-0 executable acceptance, not an open product question or a
-blocker to publication of this planning PR. If a minimal compiler probe is needed, retain its evidence only when it tests
-the selected contract; no throwaway code becomes API. One reasoned evidence/test commit records the verified descriptor
-and collision result, including a maintainer disposition for any real compatibility conflict discovered. Do not broaden
-this accepted form in response to a collision without a separate decision.
+The preserved ADR and key policy are the starting reference if implementation is reconsidered. SEED-0 must first establish
+compatibility-safe generation and obtain a maintainer disposition for converter/custom-method collisions before dependent
+runtime work. If a minimal compiler probe is needed, retain its evidence only when it tests the selected contract; no
+throwaway code becomes API. One reasoned evidence/test commit would record the verified descriptor and collision result.
+Do not broaden the preserved form in response to a collision without a separate decision.
 
 Acceptance: a descriptor table and representative calls show the same two-argument operation for all three seed states
 with exactly one highest-DSL Model input and its wildcarded public Builder input. Cover no-DSL-ancestor relationships,
@@ -210,15 +235,15 @@ Acceptance:
 - `SeededRelationshipsDocumentaryTest` carries `@Issue("342")`, `@Tag("documentary")`, and `@See` for the current
   `docs/user/` section. It shows completed Model, Template, and live Builder sources plus one genuine Layer 3 example.
 - Update Templates and relevant relationship/copy pages, Builder-first guidance, Migration navigation if a new guide is
-  introduced, `CHANGES.md` under the 4.1 development section, and generated public-surface inventory where applicable.
+  introduced, `CHANGES.md` under the eventual implementation release, and generated public-surface inventory where applicable.
   Current documentation must distinguish this fresh setter from existing occupied-child refinement and #135 expansion.
 - A later Catwalk/Schelm consumer exercise is useful demand validation if commissioned separately; it is not silently
   made a release gate or a cross-repository implementation assignment.
 
 ## Validation and delivery
 
-During implementation use focused Groovy 3 tests first, then affected runtime/AST suites. Run the Groovy 4 and Groovy 5
-compatibility lanes at the final feature tip because overload dispatch, delegate metadata, and generated bytecode are
+If future implementation is authorized, use focused Groovy 3 tests first, then affected runtime/AST suites. Run the
+Groovy 4 and Groovy 5 compatibility lanes at the final feature tip because overload dispatch, delegate metadata, and generated bytecode are
 version-sensitive. Check generated mirrors/Javadocs and representative Java/static Groovy consumers. Newly added tests
 need driving `@Issue`; only materially changed existing tests need traceability amendments. No ignored test without an
 actionable reason. Existing Spock fixtures and copy/ownership coverage should be extended rather than duplicated.
@@ -233,15 +258,15 @@ or issue closure is authorized by this design task.
 
 ## Review risks and handoff
 
-No product decision remains open in this accepted design. Dynamic descendant-only refinement is valid through normal
-runtime dispatch (option 1), while static/IDE refinement stays at the declared relationship Builder. Implementation risks
-include accidental metadata specialization or accidental runtime narrowing of that delegate, sibling copy-policy failures,
+The researched design preserves dynamic descendant-only refinement through normal runtime dispatch (option 1), while
+static/IDE refinement stays at the declared relationship Builder. This is future design, not delivered behavior. Remaining
+policy/API work and implementation risks include accidental metadata specialization or accidental runtime narrowing of that delegate, sibling copy-policy failures,
 source/overload collisions, missing construction keys, and replacing an occupied owned Builder without leaking lifecycle
 participation. These are executable acceptance checks; signature/collision proof belongs to SEED-0 rather than a design
 publication gate. Broader cloning, arbitrary POJO seeds, new root APIs, mutation of completed Models, Template registration
 changes, and #812's future domain classification are outside the contract.
 
-A design handoff states the exact worktree/branch, base/final commit, checks, tracker impact, and draft PR/CI state. The
-planning PR uses `Related: #342` and has curation impact none. No runtime feature is delivered, and #342 remains open for
-implementation. The task remains `(PR:open)` while review and merge are pending; request Hive reconciliation rather than
-self-archiving. A merged planning PR delivers this decision record, not the seeded relationship feature.
+A documentation handoff states the exact worktree/branch, base/final commit, checks, tracker impact, and PR/CI state.
+Use `Related: #342`; #342 remains open for future reconsideration and #812 remains a separate future investigation.
+No runtime feature is delivered. Merging the disposition documentation preserves the researched design and deferred plan;
+it does not deliver automatic seeded relationship overloads or make SEED-0 through SEED-3 a 4.1 commitment or gate.

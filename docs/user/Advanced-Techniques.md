@@ -36,6 +36,10 @@ generated Builder API. The spelling change does not alter receiver state, visibi
 timing. Do not combine both annotations on one method. See
 [Builder First Migration](Builder-First-Migration.md#mutator-to-buildermethod) for the mechanical migration.
 
+For a domain-named relationship helper that combines `@Builder.Method`, `@Builder.Input`, and `copyFrom`, see
+[Tips and Tricks](Tips-and-Tricks.md#name-a-builder-helper-for-a-seeded-relationship). This keeps a seeded-child shortcut
+distinct from an existing domain converter.
+
 ## Sharing a Pure Query with Builders
 
 Ordinary Model methods execute on completed DSL Objects. If a side-effect-free query is also meaningful during

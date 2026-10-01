@@ -2,11 +2,13 @@
 
 Date: 2026-09-30
 
-Status: Accepted
+Amended: 2026-10-01 (implementation deferred beyond the 4.1 QoL scope)
 
-Implementation status: Design only; no runtime, compiler, or generated API implementation
+Status: Accepted design retained for future reference; implementation deferred
 
-Target: 4.1
+Implementation status: SEED-0 through SEED-3 deferred beyond 4.1; no automatic runtime, compiler, or generated API delivered
+
+Target: Beyond 4.1; no implementation release scheduled
 
 Tracking issue: [#342 — Combine withTemplate and apply](https://github.com/klum-dsl/klum-ast/issues/342)
 
@@ -17,18 +19,43 @@ Parent decisions: [ADR 0003](0003-builder-first-materialization.md),
 [ADR 0015](0015-generated-schema-runtime-linkage.md), [ADR 0016](0016-template-creation-and-scoped-application.md),
 and [ADR 0017](0017-published-template-test-support.md).
 
-## Context and authority
+## Current disposition
+
+The 2026-10-01 maintainer decision defers **SEED-0 through SEED-3 beyond 4.1**. The researched automatic
+`relationship(seed) { refinement }` design and its implementation plan remain documented for possible future
+implementation. They are not a 4.1 release commitment or release gate, and no automatic seeded relationship overload is
+delivered in 4.1. This disposition supersedes the earlier 4.1 target without rejecting or deleting the design details below.
+
+The investigation exposed enough additional policy/API work and compatibility surface to exceed the intended 4.1 QoL scope:
+
+- Overload collisions with existing converters and Schema-defined Builder methods.
+- Highest-DSL-domain selection, ancestor/sibling admissibility, and the separate future #812 domain-boundary classification.
+- Concrete runtime subtype selection versus the declared static refinement surface, including dynamic/static refinement
+  asymmetry.
+- Keyed Template construction identity, live Builder/session eligibility, and occupied relationship replacement with its
+  lifecycle behavior.
+
+4.1 intentionally stops at the existing Builder QoL primitives. Schema authors can express explicit, domain-named helpers
+using `@Builder.Method`, `@Builder.Input`, and the existing `copyFrom` protocol; see
+[Tips and Tricks](../user/Tips-and-Tricks.md#name-a-builder-helper-for-a-seeded-relationship) for the supported practical route.
+[#342](https://github.com/klum-dsl/klum-ast/issues/342) remains open for future reconsideration.
+[#812](https://github.com/klum-dsl/klum-ast/issues/812) remains a separate future domain-boundary investigation, with no
+resolution implied by this deferral. Resuming automatic SEED implementation requires a new maintainer decision on the
+remaining policy and compatibility work. The following sections preserve the researched design as future reference.
+
+## Historical context and design authority
 
 Issue #342 originally suggested `bedroom(template) { ... }` and root factory conveniences, and asked about inferring a
-concrete type from a recipe. Its 2026-09-30 maintainer comment identifies current Schelm relationship-creation demand and
-retargets the issue to 4.1. Historical names and root overloads are not an accepted contract.
+concrete type from a recipe. Its 2026-09-30 maintainer comment recorded Schelm relationship-creation demand and
+originally retargeted the issue to 4.1; the current disposition above supersedes that implementation horizon. Historical
+names and root overloads are not an accepted contract.
 
 The design investigation initially considered bounded default scoping. During this task, the maintainer narrowed the
 request to exactly one DSL setter form: one materialized Model, live Builder, or Template plus a refinement closure.
 The seed is never assigned as the relationship value; it contributes configuration to a newly created Builder. This
 later instruction is the authority for this decision. It supersedes this task's earlier scoped-default direction. The
-maintainer subsequently confirmed the highest-DSL seed descriptors and accepted the key limitation below; no product
-decision remains open in this design.
+maintainer subsequently confirmed the highest-DSL seed descriptors and accepted the key limitation below. These
+selections remain design reference; further compatibility/API policy is required before future implementation.
 
 Existing `copyFrom` already distinguishes values-only completed Models, marked Template recipes, and live same-session
 Builder snapshots. It does not choose a relationship target type or allocate its receiving Builder. Existing closure
@@ -53,7 +80,7 @@ class with marked identity, so it needs no separate public Template overload. Ex
 same two-argument language: one Model seed and one Builder seed, both based on the relationship's highest DSL superclass
 as specified below. They are two source-state signatures for one operation, not separate DSL forms.
 
-Illustrative direct-Schema use; this syntax is accepted for implementation and not available today:
+Illustrative direct-Schema use from the preserved design; this automatic syntax is deferred and not available in 4.1:
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
@@ -339,14 +366,14 @@ Factory-token creation plus `copyFrom`. Java, static Groovy 3/4/5, source mirror
 - Additional root/list/Map/type/key convenience families: broaden the single chosen language and revive historical scope.
 - Duplicating recipe capture/copy machinery: creates a second source protocol and risks incompatible lifecycle semantics.
 
-## Acceptance and implementation boundary
+## Preserved acceptance and deferred implementation boundary
 
 The fresh-copy operation, one-seed-plus-closure language, exactly two highest-DSL-domain source descriptors, and keyed
-Template limitation are accepted. No substantive product decision remains open, and the design can be published without
-runtime implementation. SEED-0 signature/collision proof remains executable implementation acceptance, not a blocker to
-design publication. A concrete collision discovered there needs its own compatibility disposition before the affected
-implementation proceeds; it does not make this decision provisional.
+Template limitation remain recorded as accepted design details. They do not authorize 4.1 implementation. The subsequent
+collision investigation requires further compatibility/API decisions before any future automatic implementation proceeds;
+it does not discard the researched design. SEED-0's signature/collision criteria remain future implementation acceptance.
 
-The accompanying plan maps every confirmed requirement to small implementation slices and executable acceptance. Issue
-#342 remains open for implementation; this planning document makes no release delivery claim. Follow-up #812 does not
-block this accepted 4.1 scope.
+The accompanying deferred plan preserves the dependency order and executable acceptance for SEED-0 through SEED-3.
+All four slices are deferred beyond 4.1, with no release commitment or gate. #342 remains open for future reconsideration;
+#812 remains separate future domain-boundary work. The 4.1 outcome is the existing Builder primitives plus documented
+explicit Schema-owned helpers, not the automatic seeded relationship feature.
