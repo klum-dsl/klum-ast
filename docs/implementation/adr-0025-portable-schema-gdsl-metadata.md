@@ -14,6 +14,9 @@ The input report is `docs/implementation/evidence/issue-805-local-versus-portabl
 branch and report identify this commit unambiguously. Its proposals are inputs, not implemented APIs or native proof.
 Live read-only issue/PR checks confirmed #805/#269/#14 open and #809 merged. The maintainer's confirmed contract governs
 over the report's optional local-first path and its deferral of semantic overlap checks.
+The maintainer subsequently accepted the bounded suffix catalog/generated contributor, `gdsl` vocabulary,
+recognized-legacy-copy detection boundary, and standard-GAV-first publication policy, with `modelType` as the public
+mapping target. No product decision remains; the technical proof gates below remain unexecuted.
 
 | Current seam | Verified behavior / failure path | Planned responsibility |
 | --- | --- | --- |
@@ -34,8 +37,8 @@ Current wrapper is Gradle 8.14.4; plugin toolchain is Java 17. The plugin module
 `schemas { schema ... }`, `mavenJava`, `materializeKlumDslGdsl`, `generateAllKlumDslSourceMirrors`,
 `createKlumDslSourceMirrors`, and root `build/generated/klum-dsl-ide/gdsl`.
 
-**New names below are concrete proposals, not confirmed public spellings.** No new plugin ID/module is proposed.
-Confirm the bounded mapping format and this API together at GDSL-0; do not advertise them as available now.
+**New public names and the bounded mapping format below are accepted design, not yet implemented APIs.** No new plugin
+ID/module is introduced. GDSL-0 records the completed decision baseline; do not advertise this facility as available now.
 
 ```groovy
 // Schema build: Schema Developer owns and versions the reusable convention.
@@ -51,7 +54,7 @@ klumSchema {
         mappings {
             environment {
                 fileNameSuffix = '.environment.groovy'
-                builderType = 'example.Environment_DSL.Builder'
+                modelType = 'example.Environment'
             }
         }
     }
@@ -82,19 +85,22 @@ dependencies {
 }
 ```
 
-Proposed managed extension types in `com.blackbuild.klum.ast.gradle`: `KlumSchemaGdslExtension` (`publish`, default
+Managed extension types in `com.blackbuild.klum.ast.gradle`: `KlumSchemaGdslExtension` (`publish`, default
 false; named `mappings`), `KlumModelGdslExtension` (`enabled`, default false), and `KlumGdslMapping` (`fileNameSuffix`,
-`builderType`). Expose nested `gdsl(Action)` on the existing extensions; avoid an unrelated Groovy-version API change.
+`modelType`). Expose nested `gdsl(Action)` on the existing extensions; avoid an unrelated Groovy-version API change.
 Empty enabled producer metadata is intentional and retires mappings. Opted-in producers also contribute their own
 archive to local root refresh for source authoring, even without a Model module or Maven Publish. Model opt-in adds
 only explicit dependencies. Repeated local/project resolution of the same producer is deduplicated by origin/hash.
 
-The proposed deterministic contributor delegates only after resolving the real public contract:
+Schema authors name only the Model. The generated contributor resolves that Model and then its real public Builder
+using the generated-contract convention inside the adapter. This illustrative v1 contributor makes that separation clear:
 
 ```groovy
 contributor(context(scope: scriptScope())) {
     if (place.containingFile.name.endsWith('.environment.groovy')) {
-        def builder = findClass('example.Environment_DSL.Builder')
+        def model = findClass('example.Environment')
+        if (!model?.modifierList?.findAnnotation('com.blackbuild.klum.ast.DSL')) return
+        def builder = model ? findClass("${model.qualifiedName}_DSL.Builder") : null
         if (builder != null) delegatesTo(builder)
     }
 }
@@ -102,10 +108,13 @@ contributor(context(scope: scriptScope())) {
 
 Keep `scriptScope()` and the final-name suffix test: `extension: 'environment'` describes a different filename family.
 This generates editor metadata only; it adds no method catalog, Script class, or runtime dispatch rule.
+Verify the internal Model-to-Builder lookup against actual supported generated names and source/binary PSI; do not
+require users to spell or override the Builder name when resolution fails. Missing/non-DSL Models, missing Builders,
+and nested model names where supported are technical negative/compatibility controls.
 
-## Proposed publication and payload contract
+## Publication and payload contract
 
-| Surface | Proposed exact contract |
+| Surface | Accepted contract |
 | --- | --- |
 | `generateKlumGdslMetadata` | Cacheable generator of catalog and deterministic script-scoped GDSL, no supplied code execution. |
 | `klumGdslJar` | Reproducible metadata-only JAR, classifier `gdsl`; built from generator providers, not main output. |
@@ -116,22 +125,22 @@ This generates editor metadata only; it adds no method catalog, Script class, or
 | `klumGdslClasspath` | Resolvable only, non-transitive, matching metadata attributes/capability requests; GMM mode. |
 | `klumGdslClassifierClasspath` | Resolvable only, non-transitive, artifact-only mode; no capability requirement. |
 | Archive identity | Schema GAV and format `1` in manifest (`Klum-Schema-Coordinates`, `Klum-Gdsl-Format`); no independent editor version. |
-| Envelope | `META-INF/klum-ide/gdsl/v1/mappings.json` plus `<mapping-id>.gdsl` in that directory. Sorted catalog entries contain ID, suffix, Builder type, payload SHA-256. |
+| Envelope | `META-INF/klum-ide/gdsl/v1/mappings.json` plus `<mapping-id>.gdsl` in that directory. Sorted catalog entries contain ID, suffix, `modelType`, payload SHA-256; no author-supplied Builder name. |
 | Root destination | `schema-owned/<UTF-8-hex-group>/<UTF-8-hex-artifact>/<mapping-id>.gdsl`; version absent so refresh replaces rather than accumulates. |
 
-Canonical catalog serialization, generator/template compatibility, and portable ID rules must be frozen at GDSL-0.
-Recommend ASCII `[a-z][a-z0-9-]*` IDs and NFC-normalized case-sensitive suffixes; forbid separators/control characters
-and require a nonempty suffix ending in `.groovy`. Preserve Builder qualified names as data and escape generated
-strings. Consumer verifies envelope, identity, catalog/hash/entry correspondence, and that payload bytes match the v1
+Use canonical sorted catalog serialization, a fixed v1 generator template, ASCII `[a-z][a-z0-9-]*` IDs, and
+NFC-normalized case-sensitive suffixes; forbid separators/control characters and require a nonempty suffix ending in
+`.groovy`. Verify canonical serialization/template compatibility in GDSL-1. Preserve Model qualified names as data
+and escape generated strings. Consumer verifies envelope, identity, catalog/hash/entry correspondence, and that payload bytes match the v1
 generator template. No unchecked sidecar assertions beside arbitrary executable GDSL. Unsupported formats fail with
 origin and upgrade guidance. An empty catalog is valid; extra executable entries, duplicate ZIP entries, absolute/
 traversal paths, malformed/missing fields, and unsupported predicates fail before sync.
 
 Attach using `AdhocComponentWithVariants.addVariantsFromConfiguration`, not merely `publication.artifact(...)`.
 If Maven mapping is required, use optional/runtime mapping; empty dependencies mean the POM graph stays unchanged.
-`.module` gains only the opted-in metadata variant/capability/artifact. Proposed initial publication policy rejects
+`.module` gains only the opted-in metadata variant/capability/artifact. The accepted standard-GAV-first policy rejects
 `mavenJava` GAV overrides inconsistent with project identity before publication, rather than emitting misleading
-capabilities/manifests; supporting customized artifact IDs requires a separately verified identity provider.
+capabilities/manifests; broader customized artifact-ID support is outside this delivery.
 Test both Maven-Publish/plugin application orders. No external publication is needed for implementation tests.
 
 ## Alignment, conflicts, lifecycle, and migration
@@ -158,10 +167,11 @@ Test both Maven-Publish/plugin application orders. No external publication is ne
    establish Isolated Projects support.
 5. Migration acceptance starts with the exact #809 `src/main/resources/environment.gdsl`. Remove the old source copy
    and rebuild a new normal Schema/Model artifact before enabling the declaration. Check participating source/resource
-   inputs and selected normal Schema/Model archives for known legacy copies (matching payload or documented contributor
-   structure/target/suffix); reject duplicates and report both locators. Arbitrary code cannot be semantically compared:
-   unclassifiable custom GDSL affecting this family requires explicit removal and migration, not a false validation pass.
-   Freeze the precise detection boundary at GDSL-0 and document user responsibility for unrelated external contributors.
+   inputs and selected normal Schema/Model archives for recognized legacy copies (matching generated payload or the
+   documented #809 contributor structure/target/suffix); reject duplicates and report both locators. This accepted
+   automatic detection boundary does not cover arbitrary executable predicates. Users must remove custom external
+   contributors affecting the family; the new transport admits only generated catalog payloads. Test recognized-copy
+   detection in GDSL-3 and document the boundary without implying global semantic validation of external GDSL.
    Do not silently exclude/delete user files or extract mappings from normal library JARs as a fallback.
 
 ## Thin slices and reasoned commit boundaries
@@ -169,13 +179,13 @@ Test both Maven-Publish/plugin application orders. No external publication is ne
 All slices implement #805; no new issue or GitHub mutation is part of this plan. Each slice has a green local commit
 with meaningful coverage, then a focused evidence/docs commit if necessary. No intermediate producer-only release.
 
-### GDSL-0 — Confirm the enforceable mapping boundary
+### GDSL-0 — Accepted contract baseline (complete)
 
-Dependency: none. Maintainer review of proposed bounded suffix catalog, generation rather than raw-file transport,
-exact API/payload spellings, and legacy detection boundary. This is the remaining decision; portable-first, binary
-first-delivery, isolation, opt-in, and conflict/overlap rejection are already confirmed. Commit the confirmed refinement
-to this ADR/plan; do not create pending tests or product API before it is settled. If arbitrary predicates must be
-supported, return with an enforceable alternative; do not weaken the accepted gate to author responsibility alone.
+Dependency: none. This ADR/plan records the accepted bounded literal suffix catalog and generated contributor,
+`modelType` declaration with internal real-Builder resolution, `gdsl` Gradle vocabulary, recognized-legacy-copy
+migration boundary, and standard-GAV-first identity policy. Portable-first binary delivery, isolation, opt-in, and
+conflict/overlap rejection are settled. Implementation starts at GDSL-1; no further maintainer confirmation is a
+prerequisite. Do not expand into arbitrary predicates or weaken rejection during implementation.
 
 ### GDSL-1 — One Schema mapping to one selectable metadata artifact
 
@@ -183,8 +193,9 @@ Depends on GDSL-0. One reasoned implementation commit adds managed declarations,
 reproducible archive, custom outgoing variant and publication integration, with producer TestKit coverage. Tests prove
 off-by-default, empty opt-in, deterministic bytes/relocation/cache, safe provider wiring, local suffix overlap rejection,
 no code execution, exact GAV/capability/attributes, and enabled/disabled `.module`/POM/archives. Attribute-poor ordinary
-default-capability consumers must never select metadata; sources/Javadocs retain their own variants. This slice is a
-producer boundary only and cannot qualify delivery.
+default-capability consumers must never select metadata; sources/Javadocs retain their own variants. The catalog
+preserves `modelType`, and the generator template owns the internal Builder lookup. Actual source/binary resolution
+and missing/non-DSL target controls are proved at GDSL-4. This slice is a producer boundary only and cannot qualify delivery.
 
 ### GDSL-2 — Binary Schema metadata to a Model-only editor root
 
@@ -235,7 +246,7 @@ no test added here is implied to have passed.
 | Producer | Publish `mavenJava` to a temporary repository, with opt-in off/on/empty and both plugin orders. | Only on adds `gdsl`/GMM variant; ordinary POM dependencies and binary/source/Javadoc entry sets unchanged; archive/capability/origin versions agree; incompatible publication customization fails. |
 | Binary Model | Fresh consumer directory and Gradle home; capability request, then separate POM-only classifier request; run `materializeKlumDslGdsl`. | Correct archive/root bytes, matching normal Schema identity, no source checkout/mirrors; both modes pass independently; absent/wrong/unsupported archive fails usefully. |
 | Isolation | Run clean compile/test/JAR/source/Javadoc/publication and inspect inputs, task graph, all resolvable/output configurations. | No new metadata resolution/materialization on ordinary paths; no envelope/contributor/root/mirror in normal artifacts/classpaths/module path or exported Model deps. Enabled Schema publication builds metadata archive only as its intentional addition. |
-| Integrity/conflicts | Inject duplicate entries, path traversal, wrong manifest/hash/template, conflicting versions, matching suffixes, legacy resource copies. | Error identifies origins before sync; previous output is not reported current; no silent EXCLUDE or fallback. Normal non-opted-in Model version conflict is included. |
+| Integrity/conflicts | Inject duplicate entries, path traversal, wrong manifest/hash/template, conflicting versions, matching suffixes, recognized legacy resource copies. | Error identifies origins before sync; previous output is not reported current; no silent EXCLUDE or fallback. Normal non-opted-in Model version conflict is included; arbitrary external GDSL is outside automatic detection. |
 | Cache/lifecycle | Repeat, edit, rename, remove, empty publication, opt-out, relocate, restore cache; configuration-cache store/reuse. | Expected SUCCESS/UP_TO_DATE/FROM_CACHE, stale paths removed, framework kept, root physical identity unique; last-owner `clean` removes leftovers. |
 | Normal downstream | Publish the Model, resolve it in ordinary Java/Groovy and Model consumers. | No editor deps propagated; ordinary schemas/API unchanged; fresh later Model needs explicit opt-in. |
 | Runtime truth | Real transformed Environment plus Deployment child map; root `Environment.Create.From`, owned-child `AsBuilder().From`, ordinary `Create.With` control. | Expected region and one normal materialization/session; matching filename changes no runtime dispatch. Wrong receiver control retains existing failure rather than acquiring fictional operations. Keyed class/File/key-provider and classpath-marker defaults retained. |
@@ -252,6 +263,9 @@ links/anchors, documentary links, and the applicable user-doc renderer/crawl com
 Builder classes or refreshed mirrors, execute the actual generated GDSL, assert completion at `reg` and resolution of
 `region('eu')` to `Environment_DSL.Builder.region(String)`. Nonmatching suffix, same-suffix ordinary class, missing
 Builder and wrong method/argument are controls. A GroovyShell stub proves only generator dispatch logic.
+Assert the catalog and Schema DSL accept `modelType = 'example.Environment'`, and that editor resolution reaches its
+real generated Builder without any author-supplied Builder name. Missing/non-DSL Model and supported nested-type lookup
+controls must not produce phantom methods.
 
 **Native Gradle-import gate:** retain `docs/implementation/fixtures/portable-gdsl-ide/` with source-authoring,
 Schema-producer, and separate binary-Model builds plus a README/run matrix. Import through IntelliJ's Gradle importer
@@ -282,20 +296,20 @@ versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick
 | Requirement / risk | Owner / decision state | Slice and acceptance |
 | --- | --- | --- |
 | Portable opt-in includes binary Model first delivery | Confirmed maintainer contract | GDSL-1/2/4/5; fresh binary and native gates |
-| Explicit declarations, metadata capability/classifier fallback | Contract confirmed; exact new names proposed | GDSL-0/1/2; selection and missing-artifact controls |
+| Explicit declarations, metadata capability/classifier fallback | Accepted `gdsl` vocabulary; `modelType` names the Model, adapter resolves its Builder | GDSL-0/1/2/4; selection, missing-target and native resolution controls |
 | Normal artifact/classpath isolation | Confirmed | All slices; isolation/downstream gates |
 | Schema-versioned project-wide mappings | Confirmed; consistent-resolution mechanics require proof | GDSL-2/3; BOM/lock/version/nonconsumer conflict matrix |
-| Overlap/duplicate rejection | Confirmed; bounded suffix catalog/generation needs maintainer confirmation | GDSL-0/1/3; witness, payload/template and union controls |
-| Raw #809/custom predicates cannot be proved disjoint | Remaining maintainer refinement: accept bounded initial format and explicit migration/detection limits | GDSL-0/3/5; exact legacy recipe failure/migration control |
-| Publication customization and capability identity | Proposed initial reject-on-mismatch policy; broader customization not claimed | GDSL-0/1; publication identity test |
+| Overlap/duplicate rejection | Accepted bounded literal suffix catalog/generated contributor | GDSL-0/1/3; witness, payload/template and union controls |
+| Raw #809/custom predicates cannot be proved disjoint | Accepted recognized-legacy-copy detection boundary; arbitrary external GDSL remains user-managed | GDSL-0/3/5; exact legacy recipe failure/migration control |
+| Publication customization and capability identity | Accepted standard-GAV-first reject-on-mismatch policy; broader customization outside delivery | GDSL-0/1; publication identity test |
 | Native importer ignores generated root under build/ | Technical release risk, not permission to pollute resources | GDSL-4; actual Gradle import, stop for supported registration fix |
 | Included builds / Isolated Projects | Not claimed; future acceptance if required | GDSL-3 topology boundary |
 | Runtime suffix does not constrain receiving factory | Existing runtime boundary; #269 remains distinct | GDSL-4 runtime wrong-receiver control |
 | Eclipse/VS Code | #14/#808 distinct, no parity promise | GDSL-5 truthful user guidance |
 
-Further maintainer decisions remain on the enforceable predicate/API refinement, not on portable versus local delivery.
-Technical unknowns (alignment, import discovery, activation/cache behavior) must be resolved by the specified tests before
-publication. This plan neither asks the reader to trust unexecuted examples nor presents proposed mechanisms as results.
+No product or maintainer decision remains before implementation. Technical unknowns (Model-to-Builder resolution,
+alignment, catalog/template integrity, import discovery, activation/cache behavior, and recognized-copy detection)
+must be resolved by the specified tests before feature publication. Accepted design does not establish passed tests.
 
 ## Planning validation and handoff boundary
 
@@ -309,6 +323,7 @@ Public primary sources re-read for planning: [Gradle 8.14.4 custom publication](
 [pinned IntelliJ GDSL index](https://github.com/JetBrains/intellij-community/blob/4aee219fbbbc89d8497ebb02a7db8d61db3d99f6/plugins/groovy/groovy-psi/src/org/jetbrains/plugins/groovy/dsl/GroovyDslFileIndex.java).
 They support the architectural direction, not a passed custom-variant or native-import experiment.
 
-Delivery is a reviewed local commit in an isolated worktree. No implementation, issue mutation, push, PR, release,
-publication, child task, or delegated review belongs to this assignment. The Hive receives a commit-addressable handoff
-and performs reconciliation; the worker retains `(done)` and does not self-archive.
+Planning delivery is a draft PR from an isolated issue branch, as authorized after maintainer acceptance. No product
+implementation, issue mutation, release, artifact publication, child task, or delegated review belongs to this
+assignment. The Hive receives the PR/commit-addressable handoff and performs reconciliation; an open PR remains
+`(PR:open)` until delivery is reconciled, and the worker does not self-archive.

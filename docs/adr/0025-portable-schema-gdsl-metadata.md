@@ -2,7 +2,7 @@
 
 Date: 2026-10-01
 
-Status: Accepted delivery contract; proposed predicate representation and API spellings require confirmation
+Status: Accepted
 
 Implementation status: Planning only. No plugin API, metadata variant, or new IntelliJ discovery lifecycle is implemented.
 
@@ -36,7 +36,10 @@ The input comparison is the local report `docs/implementation/evidence/issue-805
 at `9f137a748018ac36c759acc0f87c31052774fdc6` (not in this branch's ancestry). It left overlap prevention to authors
 and deferred generated declarations. **The confirmed rejection requirement supersedes that part of the comparison.**
 Arbitrary executable GDSL cannot provide a decidable predicate-overlap contract simply by being namespaced or hashed.
-The plan therefore proposes a bounded declaration format; that refinement has not yet been approved.
+The maintainer accepted the bounded literal filename-suffix catalog and generated contributor, the `gdsl` Gradle
+vocabulary, recognized-legacy-copy migration boundary, and standard-GAV-first publication identity policy.
+Mappings declare `modelType`; the implementation resolves its real public Builder so Schema authors do not need
+generated Builder naming knowledge. These decisions are settled; executable implementation evidence remains pending.
 
 ## Decision
 
@@ -56,7 +59,9 @@ Schema; a classifier introduces no extra BOM module. Model artifacts do not repu
 
 Use a manually defined consumable metadata configuration on the Schema's Java component, with a custom metadata
 capability distinct from the normal library capability. It has no production dependencies or constraints and no
-fake Java feature/source set. The proposed attributes and exact names are listed in the implementation plan.
+fake Java feature/source set. The accepted attributes and exact names are listed in the implementation plan.
+The first delivery uses the standard project GAV. Reject `mavenJava` identity overrides that disagree with it before
+publication; broader artifact-ID customization is outside this delivery.
 
 Gradle Module Metadata carries the additional variant and its capability. Maven carries one explicitly enabled
 `gdsl` classifier JAR alongside the Schema's normal artifact, with the same GAV. A POM cannot describe this selection
@@ -87,11 +92,12 @@ origin, conflicting Schema versions, and overlapping rules are errors. Never use
 suffix as priority. Removal, upgrade to empty metadata, and disablement remove obsolete output on an executed refresh.
 Do not use `@SkipWhenEmpty`. A failed refresh leaves prior bytes as stale output, not as a valid new result.
 
-### Project-wide predicates: proposed enforceable v1
+### Project-wide predicates: enforceable v1
 
-**Proposal, requiring confirmation before implementation:** support a finite catalog of case-sensitive literal
-filename suffixes ending in `.groovy`, each paired with one public `*_DSL.Builder` qualified name and a stable
-Schema-local mapping ID. Generate the script-scoped GDSL from these declarations and publish the catalog with it.
+Support a finite catalog of case-sensitive literal filename suffixes ending in `.groovy`, each paired with a
+`modelType` qualified name and a stable Schema-local mapping ID. Generate the script-scoped GDSL from these declarations
+and publish the catalog with it. The implementation resolves the model's real public `*_DSL.Builder` from source
+mirrors or binary contracts; neither the Schema declaration nor the catalog requires an author-supplied Builder name.
 Gradle never executes supplied GDSL. Arbitrary predicates, raw contributor files, regular expressions, per-directory
 scopes, Model-local overrides, and transitive discovery are outside this first format.
 
@@ -102,18 +108,19 @@ The consumer validates every catalog in the root union, including the producer's
 Coordinates separate physical paths; they never restrict a contributor to one IDE module. Disabling one Model's opt-in
 does not guarantee that project-wide rules still supplied by another module cease to affect its scripts.
 
-The mapping supplies an editor hint, not a runtime type declaration. It must resolve the real public Builder; a missing
-class contributes no invented operations. Calling the recipe through another runtime factory remains an authoring
-error; this design introduces no runtime suffix check. Runtime truth is proved with the actual receiving factory and
+The mapping supplies an editor hint, not a runtime type declaration. It must resolve the declared Model and its real
+public Builder; a missing Model or Builder contributes no invented operations. Calling the recipe through another
+runtime factory remains an authoring error; this design introduces no runtime suffix check. Runtime truth is proved with the actual receiving factory and
 root/owned-child recipe paths. A need for enforceable runtime typing belongs to #269.
 
 ### Migration and native release gate
 
 Remove prior #809 manually copied resources before enabling the new transport: move the mapping to the approved
-declaration, remove its resource copy, rebuild/publish a new Schema version, then refresh/reimport IDEA. Reject known
-legacy copies in the participating normal inputs/artifacts during refresh; document the detection boundary for
-unrelated arbitrary GDSL. A raw contributor with an unrecognized predicate is not admitted through a waiver that
-would defeat overlap rejection. The implementation plan makes that migration boundary executable.
+declaration, remove its resource copy, rebuild/publish a new Schema version, then refresh/reimport IDEA. Automatic
+rejection covers recognized legacy copies in participating normal inputs/artifacts: matching generated payloads or
+the documented #809 contributor structure/target/suffix. It does not claim semantic analysis of arbitrary external
+GDSL; users own removal of custom contributors that could affect the family. Arbitrary raw contributors are never
+admitted into the new catalog transport. The implementation plan makes the recognized-copy boundary executable.
 
 Do not release this facility until fresh native IntelliJ Gradle-import evidence establishes discovery, activation,
 completion, and method resolution for source mirrors and a separate binary Schema consumer, including removal and
@@ -123,16 +130,16 @@ registration fix; adding metadata to production resources is not an acceptable r
 
 ## Consequences
 
-- The new public surface is Gradle configuration and a versioned editor payload format. Exact new spellings and the
-  bounded predicate format remain proposals; existing plugin IDs, extensions, and refresh task names remain stable.
+- The new public surface is the accepted `gdsl` Gradle configuration and a versioned editor payload format.
+  `modelType` keeps generated Builder naming inside the adapter; existing plugin IDs and refresh names remain stable.
 - No AST annotation, generated Script superclass, Builder interface implementation, compiler semantics, serialization,
   lifecycle phase, ownership rule, runtime ABI, or JPMS requirement changes. GDSL consumes the real generated contract.
 - Groovy 3/4/5 fixtures must compile and execute the same recipe behavior independently. The Gradle plugin's Spock suite
   remains Groovy 3; its external consumer fixtures select each supported generation explicitly.
 - Native IntelliJ evidence is version-specific. Eclipse DSLD (#14), VS Code (#808), typed script APIs (#269), and
   AnnoDocimal Quick Documentation remain distinct; none is implicitly delivered by this archive.
-- Implementers must stop before freezing the new API/format until the refinement is confirmed. The accepted portable
-  delivery, isolation, and rejection requirements do not need to be reopened to make that choice.
+- No product decision remains before implementation. Version alignment, Model-to-Builder resolution, catalog integrity,
+  and native import discovery still require the plan's technical proof gates before release.
 
 ## Rejected alternatives
 
@@ -148,7 +155,7 @@ lifecycles. A custom outgoing variant expresses the actual non-runtime contract.
 metadata, version drift, and project-wide ambiguity.
 
 **Raw arbitrary GDSL with only filename collision checks or author-declared predicate claims.** Physical names and
-hashes do not prove semantic disjointness or that executable predicates match their declaration. The proposed bounded
+hashes do not prove semantic disjointness or that executable predicates match their declaration. The accepted bounded
 format is the smallest identified way to make the confirmed overlap gate enforceable.
 
 **Generate a typed Script API or implement Builder on a script.** That broadens public/runtime contracts under #269
