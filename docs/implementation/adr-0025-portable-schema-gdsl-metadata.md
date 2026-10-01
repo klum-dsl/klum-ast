@@ -17,6 +17,8 @@ over the report's optional local-first path and its deferral of semantic overlap
 The maintainer subsequently accepted the bounded suffix catalog/generated contributor, `gdsl` vocabulary,
 recognized-legacy-copy detection boundary, and standard-GAV-first publication policy, with `modelType` as the public
 mapping target. No product decision remains; the technical proof gates below remain unexecuted.
+The consumer-UX clarification makes the normal Schema dependency authoritative for component/version selection;
+GDSL-2 must prove metadata consumption for that result without a second user-maintained GMM version choice.
 
 | Current seam | Verified behavior / failure path | Planned responsibility |
 | --- | --- | --- |
@@ -37,8 +39,16 @@ Current wrapper is Gradle 8.14.4; plugin toolchain is Java 17. The plugin module
 `schemas { schema ... }`, `mavenJava`, `materializeKlumDslGdsl`, `generateAllKlumDslSourceMirrors`,
 `createKlumDslSourceMirrors`, and root `build/generated/klum-dsl-ide/gdsl`.
 
-**New public names and the bounded mapping format below are accepted design, not yet implemented APIs.** No new plugin
-ID/module is introduced. GDSL-0 records the completed decision baseline; do not advertise this facility as available now.
+**The `gdsl` vocabulary and bounded mapping format are accepted design, not yet implemented APIs.** No new plugin
+ID/module is introduced. Exact Model-side GMM selection syntax remains subject to GDSL-2 proof; accepted configuration
+roles do not freeze an independently versioned metadata dependency spelling. GDSL-0 records the completed decision
+baseline; do not advertise this facility as available now.
+
+| `gdsl` role | Owner and purpose |
+| --- | --- |
+| Mapping declarations | Schema Developer declares suffix-to-`modelType` mappings. |
+| Metadata variant/archive | Schema publication exposes the optional, same-GAV editor payload. |
+| Consumption/dependency configuration | Model explicitly opts in and selects metadata for the normal selected Schema; no independent version authority. |
 
 ```groovy
 // Schema build: Schema Developer owns and versions the reusable convention.
@@ -62,28 +72,30 @@ klumSchema {
 ```
 
 ```groovy
-// Separate Model build: ordinary Schema binary and metadata are explicit.
+// Separate Model build: the normal Schema dependency selects the version.
 plugins { id 'com.blackbuild.klum-ast-model' version '<klum-version>' }
 klumModel {
     schemas { schema 'org.example:environment-schema:1.2.0' }
     gdsl { enabled = true }
 }
-dependencies {
-    klumGdsl('org.example:environment-schema:1.2.0') {
-        capabilities { requireCapability('org.example:environment-schema-gdsl') }
-    }
-}
+// Explicitly select metadata for that Schema as well; GMM syntax is proved in GDSL-2.
 ```
 
-Repository configuration is the consumer's normal responsibility. In one build replace both dependencies with
-`project(':schema')`, retaining the required metadata capability; do not name another project's outgoing configuration
-or reach into its task. For a POM-only/lossy repository, use **instead of** the capability declaration:
+The Model example intentionally leaves out the unproved GMM metadata-selection spelling: `enabled = true` alone
+does not identify a Schema or trigger arbitrary dependency scanning. Repository configuration is the consumer's normal
+responsibility. In one build the normal Schema dependency uses `project(':schema')`; explicit metadata selection must
+follow that selected component through its capability, without reaching into its outgoing configuration or task.
+For a POM-only/lossy repository, the accepted explicit fallback is:
 
 ```groovy
 dependencies {
     klumGdsl 'org.example:environment-schema:1.2.0:gdsl@jar'
 }
 ```
+
+This fallback intentionally repeats the exact Schema GAV because a POM cannot describe the capability relationship.
+It must match the normal selected identity/version, rejects dynamic/range versions, and never silently retries a
+classifier or falls back automatically. It is not the conceptual preferred GMM consumer workflow.
 
 Managed extension types in `com.blackbuild.klum.ast.gradle`: `KlumSchemaGdslExtension` (`publish`, default
 false; named `mappings`), `KlumModelGdslExtension` (`enabled`, default false), and `KlumGdslMapping` (`fileNameSuffix`,
@@ -145,11 +157,20 @@ Test both Maven-Publish/plugin application orders. No external publication is ne
 
 ## Alignment, conflicts, lifecycle, and migration
 
-1. Resolve normal Schema identities lazily for validation, without compiling them. The isolated GMM resolver may use
+1. The normal Schema dependency is the authoritative component/origin/version selection. Metadata is editor content
+   for that result, not a second version choice. Model opt-in and explicit identification/selection of the desired
+   Schema metadata are both required; no arbitrary dependency scanning. Prefer safely selecting the capability from
+   the already selected normal Schema component over repeating its version. Prove the least repetitive safe GMM syntax
+   in GDSL-2 rather than freezing a declaration here. Resolve normal Schema identities lazily, without compiling them.
+   The isolated GMM resolver may use
    `shouldResolveConsistentlyWith(compileClasspath)`; this is a **mechanism to prove**, not an accepted guarantee.
    Verify custom-capability selection, application BOM upgrades, locks, exclusions, project substitution, and selected
-   origin equality. Missing normal Schema identity or unequal selected versions fails. Do not import `api`/BOM
-   dependencies into metadata or silently select another version. Classifier mode requires an exact GAV matching the
+   origin equality. BOMs, constraints, locks, substitutions, upgrades, and conflicts select the normal Schema;
+   metadata follows that result without establishing another version decision. Missing normal Schema identity or
+   unequal selected versions fails. Do not import `api`/BOM dependencies into metadata or silently select another
+   version. If a safe nonduplicated declaration cannot be proved with this capability/variant model, record evidence
+   and return for a maintainer UX decision instead of silently settling on duplicated version declarations.
+   Classifier mode permits exact-GAV repetition as a lossy fallback limitation, requires it to match the
    selected binary Schema; reject dynamic/range versions and do not auto-upgrade its classifier.
 2. Root union covers all active producer/consumer mappings and normal Schema versions in imported projects where
    project-wide GDSL can affect scripts, including a non-opted-in Model with a conflicting normal Schema version.
@@ -204,6 +225,20 @@ root validated sync, IDEA registration, and an isolated Maven-repository produce
 plugin, producer project, mirror, attached contributor source, or compilation fallback in that consumer. Verify GMM
 capability consumption, explicit classifier against POM-only metadata sources, missing variant/classifier errors,
 wrong origin/version rejection, normal graph isolation, and configuration-cache reuse of resolution/materialization.
+The binary fixture must also prove the consumer-UX contract:
+
+- One authoritative normal Schema version selection, explicit GDSL opt-in, and explicit selection of its metadata;
+  the metadata resolves to exactly the selected normal Schema origin/version.
+- The least repetitive safe GMM syntax follows the normal selected component; users do not independently maintain
+  a Schema-GDSL version. Application BOM/constraint upgrades select matching metadata without a stale metadata version
+  declaration where the proven mechanism permits it. Opt-in does not scan other Schema dependencies.
+- Locks, substitutions, and version-conflict resolution preserve the same origin/version invariant. Deliberately
+  mismatched metadata fails clearly before materialization rather than supplying another Schema version's editor hints.
+- POM-only classifier mode is tested separately with repeated exact GAV, dynamic/range rejection, mismatch failure,
+  and no silent retry/automatic fallback.
+
+If Gradle cannot safely provide the nonduplicated GMM declaration, retain the executable evidence and return for a
+maintainer UX decision. Do not count duplicated version declarations as an accepted normal-workflow substitute.
 This is the first complete automated transport path; native release proof remains pending.
 
 ### GDSL-3 — Source authoring and project-wide conflicts/removal
@@ -228,6 +263,8 @@ needed before acceptance. Runtime tests use existing public root and owned-child
 Depends on GDSL-4. One final commit synchronizes `docs/user/Gradle-Plugins.md`, `Gradle-Onboarding.md`,
 `Convenience-Factories.md`, `FAQ.md`, Builder migration/navigation, and `CHANGES.md` with the confirmed surface,
 Schema versioning, explicit fallback, project-wide effects/conflicts, refresh/activation, #809 removal, and editor limits.
+Examples distinguish Schema mapping declarations, outgoing metadata variant/archive, and Model consumption configuration.
+Document the GMM syntax proved in GDSL-2 and exact-GAV repetition as a lossy fallback limitation.
 Add reciprocal documentary references. Reconcile issue/release documentation later under normal authorized delivery;
 this task changes neither tracker nor release state. Candidate verification uses one staged plugin marker/implementation/
 BOM version and Schema binary plus metadata, then a clean coordinate-only Model build. Release gate is complete transport
@@ -245,6 +282,8 @@ no test added here is implied to have passed.
 | --- | --- | --- |
 | Producer | Publish `mavenJava` to a temporary repository, with opt-in off/on/empty and both plugin orders. | Only on adds `gdsl`/GMM variant; ordinary POM dependencies and binary/source/Javadoc entry sets unchanged; archive/capability/origin versions agree; incompatible publication customization fails. |
 | Binary Model | Fresh consumer directory and Gradle home; capability request, then separate POM-only classifier request; run `materializeKlumDslGdsl`. | Correct archive/root bytes, matching normal Schema identity, no source checkout/mirrors; both modes pass independently; absent/wrong/unsupported archive fails usefully. |
+| GMM consumer UX | Use one authoritative normal Schema selection with explicit metadata opt-in/selection; upgrade via application BOM/constraint, then test locks, substitution and version conflicts. | Metadata follows exactly the selected normal origin/version without an independently maintained stale metadata version; mismatches fail clearly. Prove the least repetitive safe syntax or return evidence for a maintainer UX decision. |
+| Lossy fallback UX | Request the explicit exact-GAV `gdsl` classifier in a POM-only fixture, including dynamic/range and mismatched requests. | Exact GAV repetition is a fallback limitation; selected normal Schema identity/version matches; dynamic/range and mismatch requests fail; no silent retry or automatic fallback. |
 | Isolation | Run clean compile/test/JAR/source/Javadoc/publication and inspect inputs, task graph, all resolvable/output configurations. | No new metadata resolution/materialization on ordinary paths; no envelope/contributor/root/mirror in normal artifacts/classpaths/module path or exported Model deps. Enabled Schema publication builds metadata archive only as its intentional addition. |
 | Integrity/conflicts | Inject duplicate entries, path traversal, wrong manifest/hash/template, conflicting versions, matching suffixes, recognized legacy resource copies. | Error identifies origins before sync; previous output is not reported current; no silent EXCLUDE or fallback. Normal non-opted-in Model version conflict is included; arbitrary external GDSL is outside automatic detection. |
 | Cache/lifecycle | Repeat, edit, rename, remove, empty publication, opt-out, relocate, restore cache; configuration-cache store/reuse. | Expected SUCCESS/UP_TO_DATE/FROM_CACHE, stale paths removed, framework kept, root physical identity unique; last-owner `clean` removes leftovers. |
@@ -299,6 +338,8 @@ versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick
 | Explicit declarations, metadata capability/classifier fallback | Accepted `gdsl` vocabulary; `modelType` names the Model, adapter resolves its Builder | GDSL-0/1/2/4; selection, missing-target and native resolution controls |
 | Normal artifact/classpath isolation | Confirmed | All slices; isolation/downstream gates |
 | Schema-versioned project-wide mappings | Confirmed; consistent-resolution mechanics require proof | GDSL-2/3; BOM/lock/version/nonconsumer conflict matrix |
+| Authoritative normal Schema selection / consumer UX | Accepted invariant; least repetitive safe GMM syntax requires proof, not a frozen duplicate version declaration | GDSL-2; explicit selection, BOM/constraint upgrades, locks/substitution/conflicts and mismatch controls |
+| POM-only version repetition | Accepted lossy fallback limitation; exact selected GAV only | GDSL-2; dynamic/range/mismatch rejection, no retry/automatic fallback |
 | Overlap/duplicate rejection | Accepted bounded literal suffix catalog/generated contributor | GDSL-0/1/3; witness, payload/template and union controls |
 | Raw #809/custom predicates cannot be proved disjoint | Accepted recognized-legacy-copy detection boundary; arbitrary external GDSL remains user-managed | GDSL-0/3/5; exact legacy recipe failure/migration control |
 | Publication customization and capability identity | Accepted standard-GAV-first reject-on-mismatch policy; broader customization outside delivery | GDSL-0/1; publication identity test |
@@ -307,9 +348,11 @@ versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick
 | Runtime suffix does not constrain receiving factory | Existing runtime boundary; #269 remains distinct | GDSL-4 runtime wrong-receiver control |
 | Eclipse/VS Code | #14/#808 distinct, no parity promise | GDSL-5 truthful user guidance |
 
-No product or maintainer decision remains before implementation. Technical unknowns (Model-to-Builder resolution,
-alignment, catalog/template integrity, import discovery, activation/cache behavior, and recognized-copy detection)
-must be resolved by the specified tests before feature publication. Accepted design does not establish passed tests.
+No product or maintainer decision is a prerequisite to starting implementation. Technical unknowns (least repetitive
+safe GMM consumer syntax, Model-to-Builder resolution, alignment, catalog/template integrity, import discovery,
+activation/cache behavior, and recognized-copy detection) must be resolved by the specified tests before feature
+publication. Failure to prove the consumer UX invariant requires a maintainer decision supported by evidence;
+duplicated GMM version declarations must not become the default silently. Accepted design does not establish passed tests.
 
 ## Planning validation and handoff boundary
 

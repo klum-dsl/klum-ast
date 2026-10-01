@@ -55,6 +55,28 @@ Metadata has no independent release version. A mapping change, including removal
 Schema release notes. Released classifier bytes are immutable. The KlumAST BOM still versions KlumAST, not a user's
 Schema; a classifier introduces no extra BOM module. Model artifacts do not republish or propagate editor metadata.
 
+### Consumer UX: the normal Schema selection is authoritative
+
+The Model's normal Schema dependency is the authoritative component/origin/version selection. GDSL is editor metadata
+for that selected Schema, not a conceptually independent dependency/version choice. The Model explicitly opts into
+metadata and explicitly identifies which Schema metadata it wants; this never authorizes scanning arbitrary Schema
+dependencies. The metadata selection must resolve to exactly the normal selected Schema origin/version.
+
+For the preferred Gradle Module Metadata/capability path, users should not maintain two independently versioned Schema
+and GDSL declarations. Prefer safely deriving/selecting the metadata capability from the already selected normal Schema
+component over requiring its version again. Application BOMs, constraints, locks, substitutions, conflict resolution,
+and upgrades determine that normal selection; metadata follows the result without introducing another version decision.
+Explicit selection of the desired Schema metadata remains mandatory even when its version is derived.
+
+Freeze this user-facing invariant, not an unproved Gradle dependency spelling. GDSL-2 must prove the least repetitive
+safe syntax and the binary consumer experience as well as technical alignment. If the custom capability/variant model
+cannot safely avoid duplicated user-maintained version declarations, retain the evidence and return for a maintainer
+UX decision; do not silently make duplication the preferred workflow.
+
+The accepted `gdsl` vocabulary has three distinct roles: Schema-side **mapping declarations**, the outgoing
+**metadata variant/archive**, and Model-side **consumption/dependency configuration**. They do not establish separate
+Schema version authorities. The exact Model-side GMM selection syntax remains subject to GDSL-2 executable proof.
+
 ### Separate published variant and lossy-consumer fallback
 
 Use a manually defined consumable metadata configuration on the Schema's Java component, with a custom metadata
@@ -68,6 +90,9 @@ Gradle Module Metadata carries the additional variant and its capability. Maven 
 contract. Lossy/POM-only consumers must explicitly request the exact `gdsl` classifier; there is no automatic fallback
 to the ordinary JAR and no silent success when requested metadata is missing. Non-Gradle consumers resolve, extract,
 register, and activate this editor content manually; native Maven IDE integration is not promised.
+Repeating the exact Schema GAV is an intentional limitation of this lossy/POM-only fallback. Reject dynamic/range
+versions and require the classifier's origin/version to match the normal selected Schema. Version repetition is
+acceptable here; it is not the conceptual preferred GMM workflow. No silent classifier retry or automatic fallback occurs.
 
 Only enabled Schema metadata publication adds that archive/variant. Normal Schema/Model JARs, sources/Javadocs,
 `apiElements`/`runtimeElements`, and POM dependency graphs remain free of the new metadata. Existing framework GDSL
@@ -138,8 +163,9 @@ registration fix; adding metadata to production resources is not an acceptable r
   remains Groovy 3; its external consumer fixtures select each supported generation explicitly.
 - Native IntelliJ evidence is version-specific. Eclipse DSLD (#14), VS Code (#808), typed script APIs (#269), and
   AnnoDocimal Quick Documentation remain distinct; none is implicitly delivered by this archive.
-- No product decision remains before implementation. Version alignment, Model-to-Builder resolution, catalog integrity,
-  and native import discovery still require the plan's technical proof gates before release.
+- No product decision is a prerequisite to starting implementation. Authoritative Schema selection and the least
+  repetitive safe consumer syntax, Model-to-Builder resolution, catalog integrity, and native import discovery still
+  require technical proof before release. Failure to achieve the consumer UX invariant returns to the maintainer.
 
 ## Rejected alternatives
 
