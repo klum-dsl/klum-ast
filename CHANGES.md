@@ -2,7 +2,8 @@
 
 - Added a Tips and Tricks guide for explicitly named Builder relationship helpers using existing `@Builder.Method`,
   `@Builder.Input`, and `copyFrom` behavior. The executable example seeds a fresh owned subtype without changing an
-  existing domain converter; automatic seeded relationship overloads remain separate
+  existing domain converter. Explicit Schema-owned helpers are the supported practical route in 4.1; automatic seeded
+  relationship overloads (ADR 0024, SEED-0 through SEED-3) are deferred beyond this release
   ([#342](https://github.com/klum-dsl/klum-ast/issues/342)).
 
 - Documented an optional, Schema- or Model-owned IntelliJ GDSL recipe for `DelegatingScript` files with an intentional

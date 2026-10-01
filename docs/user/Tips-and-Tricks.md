@@ -94,19 +94,29 @@ completed-Model semantics. See [explicit inputs and results](Advanced-Techniques
 `@DelegatesToBuilder(Bedroom)` supplies IDE and static-checker hints for the forwarded closure. The helper returns
 `void` and attaches the child through the generated relationship creator, so it needs no `@Builder.Result`.
 
-The helper creates the relationship's declared `Bedroom` type, copies the donor's recipe before running `body`, and
-attaches the fresh child as owned composition. The donor remains a separate object. Normal Owner assignment, lifecycle,
-and graph-wide Materialization still apply; the documentary test also checks the Owner seen during `@PostTree` and one
+The helper creates the relationship's declared `Bedroom` type, applies the donor through the existing `copyFrom` protocol
+before running `body`, and attaches the fresh child as owned composition. The donor remains a separate object. Normal
+Owner assignment, lifecycle, and graph-wide Materialization still apply; the documentary test also checks the Owner seen during `@PostTree` and one
 lifecycle pass per child. This is copying, not a `LINK` relationship or adoption of the source Builder.
 
 The shown helper accepts a live ancestor-typed Builder in the same active Construction session. A sealed Builder or a
 Builder from another session is not a valid live copy source. A completed Model or marked Template needs a separately
 named helper with an ordinary, unannotated Model parameter, or the existing `bedroom(copyFrom: donor) { ... }` form.
-Marked Templates replay their recipe actions; ordinary completed Models contribute values only; a live Builder contributes
-current values and actions that have not run yet. Copying follows the configured overwrite strategies; it is not an
-unconditional clone. See [Copy Strategies](Copy-Strategies.md#copy-source-protocol) and [Templates](Templates.md#copyfrom).
+The source category determines the contribution:
+
+- An ordinary completed Model contributes values only.
+- A marked Template contributes values plus Template recipe replay.
+- An eligible live same-session Builder contributes current values plus the pending-action snapshot allowed by the
+  existing copy-source protocol.
+
+Copying follows the configured overwrite strategies; it is not an unconditional clone. See
+[Copy Strategies](Copy-Strategies.md#copy-source-protocol) and [Templates](Templates.md#copyfrom).
 
 The relationship fixes the target type: this helper does not infer a runtime subtype from the donor. It adds no automatic
 seeded overloads and does not implement [issue #342](https://github.com/klum-dsl/klum-ast/issues/342). Explicit helpers are
 useful precisely because the Schema author controls the name, input contract, target relationship, and copy policy while
-[Converters](Converters.md) retain their domain meaning.
+[Converters](Converters.md) retain their domain meaning. This is the supported practical route in 4.1. The automatic
+`relationship(seed) { ... }` design is preserved in
+[ADR 0024](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0024-seeded-relationship-creation.md#current-disposition)
+for future reconsideration; SEED-0 through SEED-3 are deferred beyond 4.1 and are neither a release commitment nor a
+release gate.
