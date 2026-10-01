@@ -257,7 +257,7 @@ remaining compiler errors with this guide.
 Use this order: update the schema module to the target KlumAST version, run the script, inspect the diff, then commit it
 as a deliberate migration starting point or revert it. Continue with the [Template migration guidance](Migration.md#template-creation-and-scoped-application), this checklist, and compilation. The
 canonical creation/application example is executable in
-[`TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`](../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TemplatesDocumentaryTest.groovy).
+[`TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/TemplatesDocumentaryTest.groovy).
 
 It rewrites public schema-annotation imports, changes the deprecated `@DelegatesToRW` spelling to
 `@DelegatesToBuilder`, migrates Layer 3 annotation imports such as `@AutoCreate`, copy annotations such as `@Overwrite`,
