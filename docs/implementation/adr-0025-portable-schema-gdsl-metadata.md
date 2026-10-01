@@ -1,6 +1,6 @@
 # ADR 0025 implementation — portable Schema GDSL
 
-Date: 2026-10-01. Status: GDSL-0/1 and GDSL-2 binary Model resolver/root implemented; GDSL-3+ and release acceptance pending.
+Date: 2026-10-01. Status: GDSL-0 through GDSL-3 implemented; GDSL-4/5 and release acceptance pending.
 
 Decision: [ADR 0025](../adr/0025-portable-schema-gdsl-metadata.md).
 Primary issue: [#805](https://github.com/klum-dsl/klum-ast/issues/805), immediate 4.1 QoL intent; release placement is
@@ -502,3 +502,62 @@ follow-up with no GDSL-3 scope or tracker/release-state change.
 Independent Standards and Spec reviews of the identity follow-up reported no findings. The full core
 Groovy-3/4/5 suites were rerun successfully (1,165 tests per lane), followed by `verifyTestLaneIsolation`.
 Git push and GitHub CLI repository-mutation channels were independently verified authorized for the existing PR.
+
+
+## GDSL-3 engineering contract and evidence
+
+Opted-in source Schemas now register their local `klumGdslJar` provider with the existing root materializer, including
+Schema-only authoring without Maven Publish. Models use the same explicit metadata scope as binary consumers:
+
+(See: `KlumGdslProjectWideValidationTest#'source authoring and two explicit project consumers share one root and one archive with #order evaluation'`.)
+
+```groovy
+klumModel {
+    schemas { schema project(':schema') }
+    gdsl { enabled = true }
+}
+dependencies { klumGdsl project(':schema') }
+```
+
+The Model selects the public metadata capability; it never reaches into the producer's task or outgoing configuration.
+Module-to-project substitutions follow the selected normal component too. The normal component identifier supplies
+origin equality, and its selected module version supplies the manifest GAV; neither archive basename nor a second
+user-maintained version identifies a source Schema. Origin data crosses the deferred artifact provider as scalar maps.
+Selected archive collections use `ArrayList` because Gradle 8.14.4 cannot reliably restore deferred immutable lists of
+records through its configuration-cache codec. Explicit producer/variant artifact dependencies preserve task ordering
+when those providers are converted to nested immutable `KlumGdslArtifactInput` values.
+
+The sole root sync validates all canonical envelopes, then the whole catalog union, then recognized normal-resource
+copies. Repeated selections of the same File/GAV are idempotent. Distinct files registering one GAV fail for duplicate
+payload identity or different payloads, even if they could have produced the same destination. Different active versions
+of one Schema fail against normal selections from every participating Schema/Model, including Models with GDSL disabled
+and local Schemas with metadata disabled. Case-sensitive suffix overlap fails regardless of targets, with both GAVs,
+mapping IDs, suffixes, archive locators, and a witness filename. Output order is deterministic and no priority applies.
+All validation precedes sync; a failed refresh labels previously successful output stale and retains those bytes.
+
+Participants contribute configured main-source/resource GDSL files plus selected normal binary classpaths for migration
+inspection. Source projects are inspected from source, while normal artifact views exclude project components: refreshing
+metadata does not compile or package a source Schema. Ordinary build/publication paths do not run the root materializer,
+and normal SourceSets, classpaths, and archives remain unchanged. The root owner applies Gradle's base lifecycle so
+`clean` removes its output even when the root build has no Java/base plugin of its own. A binary-only last Model opt-out
+has no materializer; its ordinary root `clean` removes leftover output.
+
+Recognition is deliberately bounded: exact canonical v1 generated payload bytes, including retired mappings, or the
+whole documented single-quoted #809 contributor structure with validated literal suffix and Model/Builder target.
+Only whitespace outside literals is ignored for the #809 form. Predicates, additional executable statements, and other
+custom contributor structures are neither evaluated nor blanket-rejected. Diagnostics identify the source or JAR-entry
+locator and active metadata origins, then instruct the author to move declarations, remove recognized copies, publish a
+new normal Schema/Model version, and refresh/reimport IDEA. The plugin never deletes user files or extracts metadata from
+normal artifacts as a fallback. An empty catalog still rejects recognized legacy resources that would retain old hints.
+
+Executable coverage is in `KlumGdslProjectWideValidationTest`, `KlumGdslProjectCatalogTest`, and
+`KlumGdslLegacyResourcesTest`, each marked `@Issue('805')`. TestKit proves source-only authoring, two source Schemas/two
+Models, source plus binary consumption, equal payload basenames, shared source archives, application/evaluation order,
+module-to-project substitution, disabled-Model version conflict, atomic overlap failure, edit/rename/remove/empty/opt-out
+cleanup, root clean, ordinary JAR/source-JAR/IDE model laziness, recognized source and binary migration with a new clean
+Schema version, and preservation of custom resources in normal Model artifacts. Root refresh reuses the configuration
+cache and restores `FROM_CACHE` after deletion and relocation, retaining framework GDSL once.
+
+GDSL-4 native IntelliJ discovery/activation/PSI and GDSL-5 end-user migration/release documentation are explicitly outside
+this slice. No generated/public/runtime contract or initial normal-GAV publication policy changes. Tracker impact is
+`Related: #805`; the issue and native release gate remain open. No curation or release-placement mutation is required.
