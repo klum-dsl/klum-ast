@@ -24,6 +24,16 @@
 package com.blackbuild.klum.ast.gradle;
 
 import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
+import org.gradle.api.provider.MapProperty;
+import org.gradle.api.provider.ListProperty;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.gradle.api.file.ArchiveOperations;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
@@ -42,6 +52,21 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
     @Classpath
     public abstract ConfigurableFileCollection getRuntimeClasspath();
 
+    public KlumDslGdslMaterializationTask() {
+        getSchemaArchiveOrigins().convention(Map.of());
+        getNormalSchemaCoordinates().convention(List.of());
+    }
+
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    public abstract ConfigurableFileCollection getSchemaArchives();
+
+    @Input
+    public abstract MapProperty<String, String> getSchemaArchiveOrigins();
+
+    @Input
+    public abstract ListProperty<String> getNormalSchemaCoordinates();
+
     @OutputDirectory
     public abstract DirectoryProperty getOutputDirectory();
 
@@ -53,12 +78,26 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
 
     @TaskAction
     public void materialize() {
+        List<KlumGdslArchive> archives = new ArrayList<>();
+        for (var file : getSchemaArchives().getFiles()) {
+            String origin = getSchemaArchiveOrigins().get().get(file.getName());
+            if (origin == null) throw new GradleException("Missing selected GDSL artifact origin for " + file);
+            archives.add(KlumGdslArchive.read(file, origin, getNormalSchemaCoordinates().get()));
+        }
         getFileSystemOperations().sync(copy -> {
             copy.into(getOutputDirectory());
             copy.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
             copy.from(getRuntimeClasspath().getFiles().stream()
                     .map(file -> file.isFile() ? getArchiveOperations().zipTree(file) : file)
                     .toList(), spec -> spec.include("com/blackbuild/klum/ast/gdsl/**/*.gdsl"));
+            for (var archive : archives) {
+                copy.from(getArchiveOperations().zipTree(archive.file()), spec -> {
+                    spec.include(KlumGdslMetadataFormat.ENVELOPE + "*.gdsl");
+                    spec.setIncludeEmptyDirs(false);
+                    spec.setDuplicatesStrategy(DuplicatesStrategy.FAIL);
+                    spec.eachFile(file -> file.setPath(archive.destination() + file.getName()));
+                });
+            }
         });
     }
 }

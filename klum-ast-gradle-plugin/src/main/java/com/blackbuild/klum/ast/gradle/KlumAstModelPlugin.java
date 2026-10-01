@@ -51,6 +51,8 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
         project.getTasks().named("processResources", ProcessResources.class, task ->
                 task.from(createModelDescriptors, copySpec -> copySpec.into("META-INF/klum-model")));
 
+        KlumModelGdslConsumer.configure(project, extension.getGdsl());
+
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
         java.withSourcesJar();
         // no javadoc, script only library
