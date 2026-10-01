@@ -28,4 +28,6 @@ import org.gradle.api.tasks.bundling.Jar;
 
 /** Small, deterministic metadata archives are worth reusing across relocated Schema builds. */
 @CacheableTask
+// Gradle's Jar hierarchy is fixed; this specialization supplies the cacheability annotation for metadata archives.
+@SuppressWarnings("java:S110")
 public abstract class KlumGdslJar extends Jar {}

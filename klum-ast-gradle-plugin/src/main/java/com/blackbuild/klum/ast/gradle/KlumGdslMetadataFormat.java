@@ -29,13 +29,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Fixed v1 wire format. Inputs are data; the only executable payload is this generator template. */
 final class KlumGdslMetadataFormat {
@@ -46,23 +46,39 @@ final class KlumGdslMetadataFormat {
     record Mapping(String id, String suffix, String modelType) {}
 
     static List<Mapping> validate(List<Map<String, String>> declarations, String coordinates) {
-        List<Mapping> result = new ArrayList<>();
         Set<String> ids = new HashSet<>();
-        for (Map<String, String> declaration : declarations) {
-            String id = declaration.get("id");
-            String suffix = declaration.get("fileNameSuffix");
-            String model = declaration.get("modelType");
-            if (id == null || !id.matches("[a-z][a-z0-9-]*") || !ids.add(id))
-                throw invalid(coordinates, id, "mapping ID must be unique and match [a-z][a-z0-9-]*");
-            if (suffix == null || !suffix.endsWith(".groovy") || suffix.codePoints().anyMatch(
-                    c -> c == '/' || c == '\\' || Character.isISOControl(c) || (c >= 0xD800 && c <= 0xDFFF)))
-                throw invalid(coordinates, id, "fileNameSuffix must be a literal filename suffix ending in .groovy without separators or controls");
-            suffix = Normalizer.normalize(suffix, Normalizer.Form.NFC);
-            if (!qualifiedName(model) || model.endsWith("_DSL.Builder"))
-                throw invalid(coordinates, id, "modelType must be a Model qualified name, not a Builder type");
-            result.add(new Mapping(id, suffix, model));
-        }
-        result.sort(Comparator.comparing(Mapping::id));
+        List<Mapping> result = declarations.stream()
+                .map(declaration -> validateMapping(declaration, ids, coordinates))
+                .sorted(Comparator.comparing(Mapping::id))
+                .toList();
+        rejectOverlaps(result, coordinates);
+        return result;
+    }
+
+    private static Mapping validateMapping(Map<String, String> declaration, Set<String> ids, String coordinates) {
+        String id = declaration.get("id");
+        if (id == null || !id.matches("[a-z][a-z0-9-]*") || !ids.add(id))
+            throw invalid(coordinates, id, "mapping ID must be unique and match [a-z][a-z0-9-]*");
+        String suffix = normalizeSuffix(declaration.get("fileNameSuffix"), coordinates, id);
+        String model = declaration.get("modelType");
+        if (!qualifiedName(model) || model.endsWith("_DSL.Builder"))
+            throw invalid(coordinates, id, "modelType must be a Model qualified name, not a Builder type");
+        return new Mapping(id, suffix, model);
+    }
+
+    private static String normalizeSuffix(String suffix, String coordinates, String id) {
+        if (suffix == null || !suffix.endsWith(".groovy")
+                || suffix.codePoints().anyMatch(KlumGdslMetadataFormat::invalidSuffixCharacter))
+            throw invalid(coordinates, id, "fileNameSuffix must be a literal filename suffix ending in .groovy without separators or controls");
+        return Normalizer.normalize(suffix, Normalizer.Form.NFC);
+    }
+
+    private static boolean invalidSuffixCharacter(int character) {
+        return character == '/' || character == '\\' || Character.isISOControl(character)
+                || (character >= 0xD800 && character <= 0xDFFF);
+    }
+
+    private static void rejectOverlaps(List<Mapping> result, String coordinates) {
         for (int i = 0; i < result.size(); i++) {
             Mapping left = result.get(i);
             for (int j = i + 1; j < result.size(); j++) {
@@ -75,7 +91,6 @@ final class KlumGdslMetadataFormat {
                 }
             }
         }
-        return List.copyOf(result);
     }
 
     private static boolean qualifiedName(String value) {
@@ -116,13 +131,14 @@ final class KlumGdslMetadataFormat {
     }
 
     static String catalog(List<Mapping> mappings) {
-        List<String> entries = new ArrayList<>();
-        for (Mapping mapping : mappings) {
-            entries.add("{\"id\":" + jsonString(mapping.id()) + ",\"fileNameSuffix\":" + jsonString(mapping.suffix())
-                    + ",\"modelType\":" + jsonString(mapping.modelType()) + ",\"payloadSha256\":"
-                    + jsonString(sha256(payload(mapping))) + "}");
-        }
-        return "{\"mappings\":[" + String.join(",", entries) + "]}\n";
+        return mappings.stream().map(KlumGdslMetadataFormat::catalogEntry)
+                .collect(Collectors.joining(",", "{\"mappings\":[", "]}\n"));
+    }
+
+    private static String catalogEntry(Mapping mapping) {
+        return "{\"id\":" + jsonString(mapping.id()) + ",\"fileNameSuffix\":" + jsonString(mapping.suffix())
+                + ",\"modelType\":" + jsonString(mapping.modelType()) + ",\"payloadSha256\":"
+                + jsonString(sha256(payload(mapping))) + "}";
     }
 
     private static String jsonString(String value) {

@@ -34,7 +34,9 @@ import javax.inject.Inject;
 public abstract class KlumSchemaGdslExtension {
     private final NamedDomainObjectContainer<KlumGdslMapping> mappings;
 
+    // Gradle 8.14's decorated ObjectFactory injection requires a public constructor.
     @Inject
+    @SuppressWarnings("java:S5993")
     public KlumSchemaGdslExtension(ObjectFactory objects) {
         getPublish().convention(false);
         mappings = objects.domainObjectContainer(KlumGdslMapping.class,

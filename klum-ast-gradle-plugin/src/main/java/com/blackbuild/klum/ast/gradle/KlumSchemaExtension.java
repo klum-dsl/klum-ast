@@ -32,7 +32,9 @@ import javax.inject.Inject;
 public abstract class KlumSchemaExtension extends KlumExtension {
     private final KlumSchemaGdslExtension gdsl;
 
+    // Gradle 8.14's decorated ObjectFactory injection requires a public constructor.
     @Inject
+    @SuppressWarnings("java:S5993")
     public KlumSchemaExtension(ObjectFactory objects) {
         gdsl = objects.newInstance(KlumSchemaGdslExtension.class);
     }

@@ -40,6 +40,7 @@ import java.util.jar.JarFile
 class KlumSchemaGdslProducerTest extends Specification {
     @TempDir File directory
     File projectDir
+    boolean standaloneGradle
 
     def setup() {
         projectDir = new File(directory, 'producer')
@@ -97,6 +98,7 @@ class KlumSchemaGdslProducerTest extends Specification {
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/adr-0025-portable-schema-gdsl-metadata.md#api-ledger-and-authoring-example')
     def "metadata generation is lazy reproducible relocatable cacheable and supports empty retirement"() {
         given:
+        standaloneGradle = true
         fixture(true, false)
 
         when:
@@ -441,7 +443,9 @@ tasks.register('assertProducerIsolation') {
     }
 
     private GradleRunner runner(String... arguments) {
+        // Record coverage in the test worker, retaining standalone Gradle JVMs for configuration-cache controls.
         GradleRunner.create().withProjectDir(projectDir).withPluginClasspath()
+                .withDebug(!standaloneGradle && !arguments.toList().contains('--configuration-cache'))
                 .withArguments(arguments.toList() + ['--stacktrace', '--console=plain', '--max-workers=2'])
     }
 }

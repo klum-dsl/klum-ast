@@ -32,7 +32,9 @@ import javax.inject.Inject;
 public abstract class KlumGdslMapping implements Named {
     private final String name;
 
+    // Gradle 8.14's decorated ObjectFactory injection requires a public constructor.
     @Inject
+    @SuppressWarnings("java:S5993")
     public KlumGdslMapping(String name) {
         this.name = name;
     }

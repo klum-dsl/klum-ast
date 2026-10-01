@@ -51,7 +51,7 @@ final class KlumSchemaGdslProducer {
         // Schema coordinates and publication identity must observe all project afterEvaluate callbacks.
         project.getGradle().projectsEvaluated(ignored -> {
             extension.getPublish().finalizeValue();
-            if (!extension.getPublish().get()) return;
+            if (!extension.getPublish().get().booleanValue()) return;
             String group = project.getGroup().toString();
             String artifact = project.getName();
             String version = project.getVersion().toString();
