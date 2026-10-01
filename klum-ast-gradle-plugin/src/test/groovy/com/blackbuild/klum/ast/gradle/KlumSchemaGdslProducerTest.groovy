@@ -149,6 +149,54 @@ class KlumSchemaGdslProducerTest extends Specification {
         assertEnvelope(new File(projectDir, 'build/libs/environment-schema-1.2.0-gdsl.jar'), true)
     }
 
+    def "mapping declaration order cannot change the canonical metadata archive"() {
+        given: 'otherwise identical producers in independent directories with reversed declarations'
+        String environment = declaration()
+        String deployment = "deployment { fileNameSuffix = '.deployment.groovy'; modelType = 'example.Deployment' }"
+        File forwardProducer = projectDir
+        fixture(true, false, environment + "\n" + deployment)
+        projectDir = new File(directory, 'reverse-producer')
+        projectDir.mkdirs()
+        fixture(true, false, deployment + "\n" + environment)
+
+        when: 'each producer generates its own archive without using the build cache'
+        def forward = runner('klumGdslJar', '--no-build-cache').withProjectDir(forwardProducer).build()
+        def reverse = run('klumGdslJar', '--no-build-cache')
+        String archivePath = 'build/libs/environment-schema-1.2.0-gdsl.jar'
+        File forwardArchive = new File(forwardProducer, archivePath)
+        File reverseArchive = new File(projectDir, archivePath)
+
+        then: 'both generators and archives execute independently and produce identical complete JARs'
+        forward.task(':generateKlumGdslMetadata').outcome == TaskOutcome.SUCCESS
+        reverse.task(':generateKlumGdslMetadata').outcome == TaskOutcome.SUCCESS
+        forward.task(':klumGdslJar').outcome == TaskOutcome.SUCCESS
+        reverse.task(':klumGdslJar').outcome == TaskOutcome.SUCCESS
+        forwardArchive.bytes == reverseArchive.bytes
+
+        and: 'published catalog and payload bytes have canonical IDs and identical verified hashes'
+        new JarFile(forwardArchive).withCloseable { forwardJar ->
+            new JarFile(reverseArchive).withCloseable { reverseJar ->
+                String envelope = 'META-INF/klum-ide/gdsl/v1/'
+                byte[] forwardCatalog = forwardJar.getInputStream(forwardJar.getJarEntry(envelope + 'mappings.json')).bytes
+                byte[] reverseCatalog = reverseJar.getInputStream(reverseJar.getJarEntry(envelope + 'mappings.json')).bytes
+                assert forwardCatalog == reverseCatalog
+                def forwardMappings = new JsonSlurper().parse(forwardCatalog).mappings
+                def reverseMappings = new JsonSlurper().parse(reverseCatalog).mappings
+                assert forwardMappings*.id == ['deployment', 'environment']
+                assert reverseMappings*.id == ['deployment', 'environment']
+                assert forwardMappings*.payloadSha256 == reverseMappings*.payloadSha256
+                forwardMappings.each { mapping ->
+                    String entry = envelope + mapping.id + '.gdsl'
+                    byte[] forwardPayload = forwardJar.getInputStream(forwardJar.getJarEntry(entry)).bytes
+                    byte[] reversePayload = reverseJar.getInputStream(reverseJar.getJarEntry(entry)).bytes
+                    assert forwardPayload == reversePayload
+                    assert mapping.payloadSha256 == MessageDigest.getInstance('SHA-256').digest(forwardPayload).encodeHex().toString()
+                }
+                true
+            }
+        }
+    }
+
     @Unroll
     def "publication rejects #field identity override"() {
         given:
@@ -315,7 +363,7 @@ afterEvaluate {
         !new File(projectDir, 'build/repository').exists()
     }
 
-    private void fixture(boolean enabled, boolean publishFirst) {
+    private void fixture(boolean enabled, boolean publishFirst, String mappingDeclarations = declaration()) {
         new File(projectDir, 'settings.gradle').text = """
 rootProject.name = 'environment-schema'
 buildCache { local { directory = '${new File(directory, 'cache').absolutePath}' } }
@@ -333,7 +381,7 @@ tasks.named('compileJava') { classpath = files() }
 tasks.named('compileGroovy') { classpath = files(); groovyClasspath = files(); astTransformationClasspath.setFrom(files()) }
 tasks.named('javadoc') { classpath = files() }
 tasks.named('createClassStubs') { referencedClassesClasspath.setFrom(files()) }
-klumSchema { gdsl { ${enabled ? 'publish = true' : ''}; mappings { ${declaration()} } } }
+klumSchema { gdsl { ${enabled ? 'publish = true' : ''}; mappings { ${mappingDeclarations} } } }
 publishing { repositories { maven { name = 'fixture'; url = layout.buildDirectory.dir('repository') } } }
 tasks.register('assertProducerIsolation') {
     doLast {
