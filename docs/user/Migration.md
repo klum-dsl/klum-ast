@@ -121,6 +121,16 @@ the deprecated compatibility adapter is only a temporary migration aid for exter
 
 ## To 4.1
 
+### Unique instance storage in DSL hierarchies
+
+Compilation now rejects a user-declared instance field/property that redeclares a DSL ancestor's storage name
+([#371](https://github.com/klum-dsl/klum-ast/issues/371)). Remove the descendant declaration and configure the inherited
+property, or give distinct storage a distinct name. The rule includes owners, defaults, and `FieldType.BUILDER` state.
+Static shadowing and ordinary method/getter overrides remain legal. Generated implementation fields that are excluded
+from Builder state remain legal; generation markers and synthetic flags do not exempt fields that still become DSL
+construction storage. See
+[Instance storage names](Inheritance.md#instance-storage-names) for the executable example and diagnostic boundaries.
+
 ### Canonical Builder-only methods
 
 Use `@Builder.Method` for methods that exist only during Builder construction. The 4.0 `@Mutator` spelling remains

@@ -181,6 +181,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         rejectReservedKlumNamespace(annotatedClass);
         checkFieldNames();
+        rejectShadowedInstanceStorage();
         rejectCompletedModelApplyMethods();
         rejectClientConstructors();
         rejectNonDslSubclasses();
@@ -244,6 +245,41 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         "DSL Objects cannot declare apply methods; configuration belongs to the generated Builder.",
                         method
                 ));
+    }
+
+    private void rejectShadowedInstanceStorage() {
+        annotatedClass.getFields().stream()
+                .filter(field -> field.getOwner().equals(annotatedClass))
+                .filter(DSLASTTransformation::isDslInstanceStorage)
+                .forEach(field -> {
+                    for (ClassNode ancestor = annotatedClass.getSuperClass(); isDSLObject(ancestor);
+                         ancestor = ancestor.getSuperClass()) {
+                        if (declaresInstanceStorage(ancestor, field.getName())) {
+                            addCompileError(sourceUnit,
+                                    "DSL instance field/property '" + annotatedClass.getName() + "." + field.getName()
+                                            + "' shadows '" + ancestor.getName() + "." + field.getName()
+                                            + "'. Declare this storage only once in the DSL hierarchy.", field);
+                            return;
+                        }
+                    }
+                });
+    }
+
+    private static boolean declaresInstanceStorage(ClassNode model, String name) {
+        if (isDslInstanceStorage(model.getDeclaredField(name))) return true;
+
+        // BUILDER fields disappear from transformed Models. Their copied annotations survive on the
+        // Builder, both in the current compilation and when the ancestor is loaded from bytecode.
+        ClassNode builder = getBuilderClassOf(model);
+        FieldNode builderField = builder.getDeclaredField(name);
+        return isDslInstanceStorage(builderField) && getFieldType(builderField) == FieldType.BUILDER;
+    }
+
+    private static boolean isDslInstanceStorage(FieldNode field) {
+        // Match the state moved to Builders: generation markers and synthetic flags do not prevent
+        // that move or name-based materialization. Only static and $-prefixed implementation fields
+        // stay outside construction storage and can safely be exempted from hierarchy collisions.
+        return field != null && !field.isStatic() && !field.getName().startsWith("$");
     }
 
     private void rejectClientConstructors() {
@@ -359,8 +395,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void moveSourceStateToBuilder() {
         new ArrayList<>(annotatedClass.getFields()).stream()
                 .filter(field -> field.getOwner().equals(annotatedClass))
-                .filter(field -> !field.isStatic())
-                .filter(field -> !field.getName().startsWith("$"))
+                .filter(DSLASTTransformation::isDslInstanceStorage)
                 .forEach(this::moveSingleFieldStateToBuilder);
         builderFields.values().forEach(this::retargetAnnotationClosuresToBuilder);
     }
