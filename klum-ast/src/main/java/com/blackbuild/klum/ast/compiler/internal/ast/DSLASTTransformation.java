@@ -181,6 +181,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         rejectReservedKlumNamespace(annotatedClass);
         checkFieldNames();
+        rejectShadowedInstanceStorage();
         rejectCompletedModelApplyMethods();
         rejectClientConstructors();
         rejectNonDslSubclasses();
@@ -244,6 +245,41 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         "DSL Objects cannot declare apply methods; configuration belongs to the generated Builder.",
                         method
                 ));
+    }
+
+    private void rejectShadowedInstanceStorage() {
+        annotatedClass.getFields().stream()
+                .filter(field -> field.getOwner().equals(annotatedClass))
+                .filter(DSLASTTransformation::isUserInstanceStorage)
+                .forEach(field -> {
+                    for (ClassNode ancestor = annotatedClass.getSuperClass(); isDSLObject(ancestor);
+                         ancestor = ancestor.getSuperClass()) {
+                        if (declaresInstanceStorage(ancestor, field.getName())) {
+                            addCompileError(sourceUnit,
+                                    "DSL instance field/property '" + annotatedClass.getName() + "." + field.getName()
+                                            + "' shadows '" + ancestor.getName() + "." + field.getName()
+                                            + "'. Declare this storage only once in the DSL hierarchy.", field);
+                            return;
+                        }
+                    }
+                });
+    }
+
+    private static boolean declaresInstanceStorage(ClassNode model, String name) {
+        if (isUserInstanceStorage(model.getDeclaredField(name))) return true;
+
+        // BUILDER fields disappear from transformed Models. Their copied annotations survive on the
+        // Builder, both in the current compilation and when the ancestor is loaded from bytecode.
+        ClassNode builder = getBuilderClassOf(model);
+        FieldNode builderField = builder.getDeclaredField(name);
+        return isUserInstanceStorage(builderField) && getFieldType(builderField) == FieldType.BUILDER;
+    }
+
+    private static boolean isUserInstanceStorage(FieldNode field) {
+        // Groovy marks source property backing FieldNodes synthetic internally; only the JVM modifier
+        // denotes compiler-generated storage and must be excluded here.
+        return field != null && !field.isStatic() && (field.getModifiers() & ACC_SYNTHETIC) == 0
+                && getAnnotation(field, KLUM_GENERATED_CLASSNODE) == null;
     }
 
     private void rejectClientConstructors() {
