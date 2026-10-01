@@ -70,8 +70,12 @@ there; a transformed or binary ancestor's construction-only declaration is recov
 `FieldType.BUILDER` annotation. The diagnostic names the descendant and the ancestor Model declarations and attaches to
 the descendant FieldNode's source position.
 
-The predicate excludes static fields, JVM `ACC_SYNTHETIC` storage, and `@KlumGenerated` fields. Groovy's internal
-FieldNode synthetic flag is deliberately accepted: ordinary source properties use it for their backing fields.
+The diagnostic and `moveSourceStateToBuilder` share the instance-storage predicate: non-static fields whose names do
+not start with `$`. Static and `$`-prefixed implementation fields do not become Builder slots or enter generated
+materialization; they can safely shadow one another. Neither `@KlumGenerated` nor a synthetic flag changes that state
+projection. A generated ordinary field name is therefore subject to the same collision check, including Builder-only
+state recovered from ancestor Builders. Groovy's internal synthetic flag on source property backing FieldNodes is
+also accepted.
 Only storage declarations are checked, so ordinary methods/getters and properties implementing abstract getters remain
 legal. Traversal stops outside the DSL hierarchy and does not police Java ancestor storage.
 
@@ -84,15 +88,48 @@ descendant-first source, and separately compiled binary ancestors. It checks the
 column, and separately covers the original split lifecycle scenario and a distant ancestor.
 
 Legal controls cover static counters, inherited fields/defaults/owners, ordinary method/getter overrides, abstract-getter
-implementations, Java ancestor fields, Factory/Template behavior, KlumGenerated declarations on either side, and JVM
-synthetic ancestor storage in source and bytecode. Normal generated hierarchy storage is also exercised by the unchanged
+implementations, Java ancestor fields, Factory/Template behavior, and semantically invisible `$`-prefixed implementation
+storage in source and bytecode. Generated-marker and synthetic ordinary-name controls now assert rejection when the
+fields still participate in construction storage. Normal generated hierarchy storage is also exercised by the unchanged
 `BuilderFirstSpec#'generated Builders preserve DSL inheritance across compilation units'` fixture.
 
 The documentary happy path is `DslPropertyShadowingTest#'configures inherited storage without redeclaring it'`, linked to
 [Instance storage names](../user/Inheritance.md#instance-storage-names). Migration guidance is linked from the 4.1 section
 of [Migration](../user/Migration.md#unique-instance-storage-in-dsl-hierarchies), and the diagnostic is recorded in CHANGES.
 
+## Generated-storage safety hardening
+
+The initial marker-only exemption was not semantically safe. The focused Groovy 3 loop
+`./gradlew :klum-ast:test --tests 'com.blackbuild.klum.ast.DslPropertyShadowingTest.KlumGenerated*'` reproduced all four
+ancestor/descendant marker placements with source and binary ancestors. Reflection showed both
+`WebService$Builder.name == 'configured'` and `Service$Builder.name == 'ancestor'`; the inherited `@PostTree` callback
+recorded `'ancestor'`, while the completed Model's `name` was `'configured'`.
+
+Ranked explanations were marker-based state omission, marker-based surface/materialization omission, and an exemption
+that required a more specific implementation-field category. Source inspection and the semantic probe confirmed the
+third: `@KlumGenerated` is documentation metadata, and state copying, configuration generation, and name-based
+materialization do not remove an ordinary field because of that marker. A JVM synthetic flag suppresses some
+configuration methods but likewise does not stop state movement or materialization. The previous synthetic ordinary-name
+compile-only success probe was also not a proof of invisible implementation state.
+
+The fix only hardens the #371 diagnostic. It reuses the unchanged state-projection eligibility rule; it does not alter
+`@KlumGenerated`, general generated-field handling, or the generated/runtime construction protocol. Marked ordinary,
+`@Default`, `@Owner`, and `FieldType.BUILDER` collisions are rejected with ancestor, descendant, and both declarations
+marked, across ancestor-first source, descendant-first source, and binary ancestors. Synthetic ordinary-name collisions
+are rejected as well.
+
+The positive semantic controls place same-named private `$implementationState` fields in both Models, using
+`@KlumGenerated`, JVM synthetic, and combined markings, with source and binary ancestors. They prove zero moved Builder
+slots and zero hidden/public Builder configuration operations for those artifacts. There is exactly one inherited
+`name` slot and public `name` configurator; reflection during configuration, materialization, both lifecycle callbacks,
+the physical Model field, the owner name observed by the inherited callback, owner identity, and inherited defaults agree. The independent private Model implementation values remain intact.
+Actual generated `$state`, `Create`, and `Template` fields are also checked: none becomes competing Builder state;
+`$state` is synthetic and the per-class factory/template fields are static and `@KlumGenerated`.
+
 ## Verification and delivery
+
+### Initial implementation validation
+
 
 Focused command (repeat for `groovy4Tests` and `groovy5Tests`):
 
@@ -120,3 +157,15 @@ or test semantics; all 50 acceptance cases plus the unchanged initializer contro
 `licenseTest` and `git diff --check`. Final remote revalidation is reported in the PR follow-up and Hive handoff. Tracker impact is
 `Closes #371`, selected in the implementation assignment; this localized diagnostic has no release-gate or curation
 impact. An open draft PR still requires Hive reconciliation and merge and is not an archive-safe outcome.
+
+
+### Generated-storage hardening validation
+
+The hardened predicate passed root `./gradlew check`, including 1,253 compiler tests in each Groovy 3/4/5 lane, with
+zero failures/errors and 15 pre-existing skips per lane. Downstream modules, coverage, renderer, licenses, and lane
+isolation also passed. The final strengthened fixture then passed the focused class and unchanged initializer control
+in all three lanes: 88 acceptance cases plus the existing control (89 per lane), with no skips or failures. The original
+initializer fixture and all previously reviewed commits are preserved. The generation marker and general state movement
+semantics are unchanged; only the diagnostic's exemption is corrected.
+
+Current review and remote delivery results are reported in PR #821's consolidated follow-up and Hive handoff.

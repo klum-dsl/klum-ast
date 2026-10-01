@@ -41,7 +41,7 @@ These typed methods are not generated, if the declared type is final. Likewise, 
 
 ## Instance storage names
 
-Since 4.1, each user-declared instance field/property name must be unique across a DSL inheritance hierarchy
+Since 4.1, each instance field/property name that participates in DSL construction storage must be unique across a DSL inheritance hierarchy
 ([#371](https://github.com/klum-dsl/klum-ast/issues/371)). Redeclaring an inherited name fails compilation at the descendant
 declaration with a message identifying both declarations. This includes ordinary fields/properties, `@Owner`,
 `@Default`, and construction-only `@Field(FieldType.BUILDER)` storage, including ancestors compiled separately.
@@ -66,9 +66,14 @@ assert service.protocol == 'https'
 assert service.port == 443
 ```
 
-Static fields may shadow static ancestor fields: they remain class state and never become Builder storage. Ordinary
-method/getter overrides, a property implementing an abstract getter, Java ancestor fields, and generated fields are
-outside this diagnostic.
+Static fields may shadow static ancestor fields: they remain class state and never become Builder storage. `$`-prefixed
+implementation fields are also outside the diagnostic because they are excluded from Builder storage, configuration,
+and materialization. A generation marker such as `@KlumGenerated`, or a JVM synthetic flag, does not by itself exempt
+an ordinary field name: that field can still become construction storage and conflict with an inherited declaration.
+Ordinary method/getter overrides, a property implementing an abstract getter, and Java ancestor fields remain legal.
+
+The implementation-field boundary and consistent inherited configuration, lifecycle, defaults, and owners are covered by
+`DslPropertyShadowingTest#'#category implementation fields are invisible to DSL storage with a #compilation ancestor'`.
 
 ## Keyed inheritance
 

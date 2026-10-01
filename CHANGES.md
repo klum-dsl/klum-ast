@@ -3,7 +3,8 @@
 - Compilation now rejects same-named user-declared instance fields/properties across a DSL inheritance hierarchy,
   including owners, defaults, and construction-only Builder state. The diagnostic identifies both declarations and
   points at the descendant declaration. Static field shadowing, method/getter overrides, abstract-getter implementations,
-  Java ancestor fields, and generated fields remain legal ([#371](https://github.com/klum-dsl/klum-ast/issues/371)).
+  Java ancestor fields, and implementation fields excluded from Builder storage remain legal. Generation markers and
+  synthetic flags do not exempt competing DSL storage ([#371](https://github.com/klum-dsl/klum-ast/issues/371)).
 
 - Added a Tips and Tricks guide for explicitly named Builder relationship helpers using existing `@Builder.Method`,
   `@Builder.Input`, and `copyFrom` behavior. The executable example seeds a fresh owned subtype without changing an

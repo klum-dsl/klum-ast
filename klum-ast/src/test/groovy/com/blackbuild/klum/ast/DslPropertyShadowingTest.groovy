@@ -35,6 +35,7 @@ import spock.lang.See
 import spock.lang.Tag
 
 import javax.tools.ToolProvider
+import java.lang.reflect.Modifier
 
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC
 
@@ -276,37 +277,50 @@ class DslPropertyShadowingTest extends AbstractDSLSpec {
         instance.name == 'frontend'
     }
 
-    def "KlumGenerated #generatedDeclaration fields do not define user storage with a #compilation ancestor"() {
+    def "KlumGenerated #generatedDeclaration #kind storage still conflicts with a #compilation ancestor"() {
         given:
         String marker = "@KlumGenerated(generator = 'test')"
-        String parent = "@DSL class Service { ${generatedDeclaration == 'ancestor' ? marker : ''} String name }"
-        String child = "@DSL class WebService extends Service { ${generatedDeclaration == 'descendant' ? marker : ''} String name }"
+        String parent = """@DSL class Service {
+            ${generatedDeclaration in ['ancestor', 'both'] ? marker : ''} $parentDeclaration
+            String fromParent
+            @PostTree void recordParent() { fromParent = name }
+        }"""
+        String child = """@DSL class WebService extends Service {
+            ${generatedDeclaration in ['descendant', 'both'] ? marker : ''} $childDeclaration
+        }"""
+        String source
         if (compilation == 'binary') {
             createClass("package shadowing\n$parent")
+            source = "package shadowing\n$child"
+        } else {
+            source = "package shadowing\n${compilation == 'child first' ? child : parent}\n${compilation == 'child first' ? parent : child}"
         }
 
         when:
-        createClass("package shadowing\n${compilation == 'binary' ? '' : parent}\n$child")
+        createClass(source)
 
         then:
-        notThrown(MultipleCompilationErrorsException)
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains("'shadowing.WebService.name' shadows 'shadowing.Service.name'")
 
         where:
-        [compilation, generatedDeclaration] << [['source', 'binary'], ['ancestor', 'descendant']].combinations()
+        [compilation, generatedDeclaration, kind, parentDeclaration, childDeclaration] << [
+                ['source', 'child first', 'binary'],
+                ['ancestor', 'descendant', 'both'],
+                [
+                        ['ordinary', "String name = 'ancestor'", "String name = 'descendant'"],
+                        ['default', "@Default(code = { 'ancestor-default' }) String name", "@Default(code = { 'descendant-default' }) String name"],
+                        ['owner', '@Owner Object name', '@Owner Object name'],
+                        ['Builder only', '@Field(FieldType.BUILDER) String name', '@Field(FieldType.BUILDER) String name']
+                ]
+        ].combinations().collect { mode, generated, declarations -> [mode, generated, *declarations] }
     }
 
-    def "JVM synthetic storage is excluded with a #compilation ancestor"() {
+    def "JVM synthetic flag does not exempt projected instance storage with a #compilation ancestor"() {
         given:
-        compilerConfiguration.addCompilationCustomizers(new CompilationCustomizer(CompilePhase.SEMANTIC_ANALYSIS) {
-            @Override
-            void call(SourceUnit source, GeneratorContext context, ClassNode classNode) {
-                if (classNode.name == 'shadowing.Service') {
-                    classNode.getDeclaredField('name').modifiers |= ACC_SYNTHETIC
-                }
-            }
-        })
-        String parent = '@DSL class Service { String name }'
-        String child = '@DSL class WebService extends Service { String name }'
+        markSyntheticField('name')
+        String parent = "@DSL class Service { String name = 'ancestor' }"
+        String child = "@DSL class WebService extends Service { String name = 'descendant' }"
         if (compilation == 'binary') {
             createClass("package shadowing\n$parent")
         }
@@ -315,9 +329,124 @@ class DslPropertyShadowingTest extends AbstractDSLSpec {
         createClass("package shadowing\n${compilation == 'binary' ? '' : parent}\n$child")
 
         then:
-        notThrown(MultipleCompilationErrorsException)
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains("'shadowing.WebService.name' shadows 'shadowing.Service.name'")
 
         where:
         compilation << ['source', 'binary']
+    }
+
+    def "#category implementation fields are invisible to DSL storage with a #compilation ancestor"() {
+        given:
+        String implementationName = '$implementationState'
+        String marker = category in ['KlumGenerated', 'both'] ? "@KlumGenerated(generator = 'test')" : ''
+        if (category in ['JVM synthetic', 'both']) {
+            markSyntheticField(implementationName)
+        }
+        String parent = """@DSL class Service {
+            $marker private String $implementationName = 'ancestor-implementation'
+            String name
+            @Default(code = { 'https' }) String protocol
+            @Owner Container container
+            String seenName
+            String seenProtocol
+            String seenContainerName
+            boolean seenOwner
+            @PostTree void recordParent() {
+                seenName = name
+                seenProtocol = protocol
+                seenContainerName = container.name
+                seenOwner = container != null
+            }
+        }
+        @DSL class Container {
+            String name
+            Service service
+        }
+        """
+        String child = """@DSL class WebService extends Service {
+            $marker private String $implementationName = 'descendant-implementation'
+            Integer port
+            String seenChildName
+            @PostTree void recordChild() { seenChildName = name }
+        }
+        """
+        if (compilation == 'binary') {
+            createClass("package shadowing\n$parent")
+        }
+        createClass("package shadowing\n${compilation == 'binary' ? '' : parent}\n$child")
+        List builderTypes = [getBuilderClass('shadowing.Service'), getBuilderClass('shadowing.WebService')]
+        List publicBuilderTypes = [getClass('shadowing.Service_DSL$Builder'), getClass('shadowing.WebService_DSL$Builder')]
+        List modelTypes = [Service, WebService]
+        def webServiceType = WebService
+        def parentName = builderTypes.first().getDeclaredField('name')
+        parentName.accessible = true
+        def modelName = Service.getDeclaredField('name')
+        modelName.accessible = true
+        String configuredStorage
+
+        when:
+        instance = Container.Create.With {
+            name 'root'
+            service(webServiceType) {
+                name 'frontend'
+                port 443
+                configuredStorage = parentName.get(delegate)
+            }
+        }
+
+        then: 'implementation fields never become Builder slots or configuration operations'
+        notThrown(MultipleCompilationErrorsException)
+        builderTypes.every { type ->
+            !type.declaredFields.any { it.name in [implementationName, '$state', 'Create', 'Template'] }
+        }
+        (builderTypes + publicBuilderTypes).every { type ->
+            !type.declaredMethods.any { it.name in [implementationName, 'implementationState', 'getImplementationState', 'setImplementationState'] }
+        }
+        builderTypes.collectMany { it.declaredFields.toList() }.count { it.name == 'name' } == 1
+        modelTypes.collectMany { it.declaredFields.toList() }.count { it.name == 'name' } == 1
+        publicBuilderTypes.collectMany { it.declaredMethods.toList() }.count { it.name == 'name' && it.parameterCount == 1 } == 1
+
+        and: 'the configured slot, materialized value, defaults, owners and both callbacks agree'
+        configuredStorage == 'frontend'
+        instance.service.name == configuredStorage
+        modelName.get(instance.service) == configuredStorage
+        instance.service.seenName == configuredStorage
+        instance.service.seenChildName == configuredStorage
+        instance.service.protocol == 'https'
+        instance.service.seenProtocol == instance.service.protocol
+        instance.service.container.is(instance)
+        instance.service.seenContainerName == instance.service.container.name
+        instance.service.seenContainerName == 'root'
+        instance.service.seenOwner
+
+        and: 'same-named implementation state remains private Model state'
+        modelTypes.collect { type ->
+            def field = type.getDeclaredField(implementationName)
+            field.accessible = true
+            field.get(instance.service)
+        } == ['ancestor-implementation', 'descendant-implementation']
+        modelTypes.every { type ->
+            ['Create', 'Template'].every { name ->
+                def field = type.getDeclaredField(name)
+                Modifier.isStatic(field.modifiers) && field.isAnnotationPresent(KlumGenerated)
+            }
+        }
+        Service.getDeclaredField('$state').synthetic
+
+        where:
+        [compilation, category] << [['source', 'binary'], ['KlumGenerated', 'JVM synthetic', 'both']].combinations()
+    }
+
+    private void markSyntheticField(String name) {
+        compilerConfiguration.addCompilationCustomizers(new CompilationCustomizer(CompilePhase.SEMANTIC_ANALYSIS) {
+            @Override
+            void call(SourceUnit source, GeneratorContext context, ClassNode classNode) {
+                def field = classNode.getDeclaredField(name)
+                if (field != null) {
+                    field.modifiers |= ACC_SYNTHETIC
+                }
+            }
+        })
     }
 }

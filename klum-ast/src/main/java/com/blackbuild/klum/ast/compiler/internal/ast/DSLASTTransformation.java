@@ -250,7 +250,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void rejectShadowedInstanceStorage() {
         annotatedClass.getFields().stream()
                 .filter(field -> field.getOwner().equals(annotatedClass))
-                .filter(DSLASTTransformation::isUserInstanceStorage)
+                .filter(DSLASTTransformation::isDslInstanceStorage)
                 .forEach(field -> {
                     for (ClassNode ancestor = annotatedClass.getSuperClass(); isDSLObject(ancestor);
                          ancestor = ancestor.getSuperClass()) {
@@ -266,20 +266,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private static boolean declaresInstanceStorage(ClassNode model, String name) {
-        if (isUserInstanceStorage(model.getDeclaredField(name))) return true;
+        if (isDslInstanceStorage(model.getDeclaredField(name))) return true;
 
         // BUILDER fields disappear from transformed Models. Their copied annotations survive on the
         // Builder, both in the current compilation and when the ancestor is loaded from bytecode.
         ClassNode builder = getBuilderClassOf(model);
         FieldNode builderField = builder.getDeclaredField(name);
-        return isUserInstanceStorage(builderField) && getFieldType(builderField) == FieldType.BUILDER;
+        return isDslInstanceStorage(builderField) && getFieldType(builderField) == FieldType.BUILDER;
     }
 
-    private static boolean isUserInstanceStorage(FieldNode field) {
-        // Groovy marks source property backing FieldNodes synthetic internally; only the JVM modifier
-        // denotes compiler-generated storage and must be excluded here.
-        return field != null && !field.isStatic() && (field.getModifiers() & ACC_SYNTHETIC) == 0
-                && getAnnotation(field, KLUM_GENERATED_CLASSNODE) == null;
+    private static boolean isDslInstanceStorage(FieldNode field) {
+        // Match the state moved to Builders: generation markers and synthetic flags do not prevent
+        // that move or name-based materialization. Only static and $-prefixed implementation fields
+        // stay outside construction storage and can safely be exempted from hierarchy collisions.
+        return field != null && !field.isStatic() && !field.getName().startsWith("$");
     }
 
     private void rejectClientConstructors() {
@@ -395,8 +395,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void moveSourceStateToBuilder() {
         new ArrayList<>(annotatedClass.getFields()).stream()
                 .filter(field -> field.getOwner().equals(annotatedClass))
-                .filter(field -> !field.isStatic())
-                .filter(field -> !field.getName().startsWith("$"))
+                .filter(DSLASTTransformation::isDslInstanceStorage)
                 .forEach(this::moveSingleFieldStateToBuilder);
         builderFields.values().forEach(this::retargetAnnotationClosuresToBuilder);
     }
