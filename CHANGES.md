@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- Added a Tips and Tricks guide for explicitly named Builder relationship helpers using existing `@Builder.Method`,
+  `@Builder.Input`, and `copyFrom` behavior. The executable example seeds a fresh owned subtype without changing an
+  existing domain converter; automatic seeded relationship overloads remain separate
+  ([#342](https://github.com/klum-dsl/klum-ast/issues/342)).
+
 - Documented an optional, Schema- or Model-owned IntelliJ GDSL recipe for `DelegatingScript` files with an intentional
   filename suffix. A Schema-owned resource normally travels in the Schema JAR to consuming Models, making its mapping an
   effective editor contract. The recipe delegates to the existing generated Builder and leaves script execution and
