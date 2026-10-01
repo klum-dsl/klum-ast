@@ -101,6 +101,16 @@ Focused command (repeat for `groovy4Tests` and `groovy5Tests`):
   --tests 'com.blackbuild.klum.ast.BuilderFirstSpec.generated Builders preserve DSL inheritance across compilation units'
 ```
 
-Final suite, review, commit, and delivery evidence is recorded here once verification completes. Tracker impact is
+Compiler-module `:klum-ast:check` passes: 1,215 tests in each of Groovy 3, 4, and 5, with zero failures/errors and 15
+pre-existing skips per lane. The 50-case acceptance class passes in every lane. License checks and test-lane isolation
+pass. The old static initializer fixture is unchanged. Root `./gradlew check` also passes, including downstream modules,
+coverage tasks, and documentation renderer checks. New documentation anchors and documentary links are verified.
+
+Independent local Standards and Spec review against base `8fd0847a` and implementation/documentation tip `25e6b970`
+found no actionable findings on either axis. Commit-history review retains the original evidence step followed by the
+self-contained diagnostic/acceptance-test change, release-facing documentation, and a final validation/audit record. `git diff --check` passes.
+
+Delivery authorization audit: Git transport `authorized` (dry run); gh CLI repository mutation category `authorized`
+(repository permission check). No connected GitHub App delivery channel is used. Tracker impact is
 `Closes #371`, selected in the implementation assignment; this localized diagnostic has no release-gate or curation
 impact. An open draft PR still requires Hive reconciliation and merge and is not an archive-safe outcome.
