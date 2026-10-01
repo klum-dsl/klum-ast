@@ -1,6 +1,6 @@
 # ADR 0025 implementation — portable Schema GDSL
 
-Date: 2026-10-01. Status: GDSL-0 and GDSL-1 producer boundary implemented; GDSL-2+ and release acceptance pending.
+Date: 2026-10-01. Status: GDSL-0/1 and GDSL-2 binary Model resolver/root implemented; GDSL-3+ and release acceptance pending.
 
 Decision: [ADR 0025](../adr/0025-portable-schema-gdsl-metadata.md).
 Primary issue: [#805](https://github.com/klum-dsl/klum-ast/issues/805), immediate 4.1 QoL intent; release placement is
@@ -39,9 +39,8 @@ Current wrapper is Gradle 8.14.4; plugin toolchain is Java 17. The plugin module
 `schemas { schema ... }`, `mavenJava`, `materializeKlumDslGdsl`, `generateAllKlumDslSourceMirrors`,
 `createKlumDslSourceMirrors`, and root `build/generated/klum-dsl-ide/gdsl`.
 
-**The `gdsl` vocabulary and bounded mapping format are accepted design, not yet implemented APIs.** No new plugin
-ID/module is introduced. Exact Model-side GMM selection syntax remains subject to GDSL-2 proof; accepted configuration
-roles do not freeze an independently versioned metadata dependency spelling. GDSL-0 records the completed decision
+**The producer and binary consumer `gdsl` APIs are implemented; the complete IDE feature is not yet released.** No new plugin
+ID/module is introduced. The binary GMM syntax is versionless explicit module selection; it follows the normal selected Schema identity. GDSL-0 records the completed decision
 baseline; do not advertise this facility as available now.
 
 | `gdsl` role | Owner and purpose |
@@ -78,14 +77,15 @@ klumModel {
     schemas { schema 'org.example:environment-schema:1.2.0' }
     gdsl { enabled = true }
 }
-// Explicitly select metadata for that Schema as well; GMM syntax is proved in GDSL-2.
+dependencies { klumGdsl 'org.example:environment-schema' }
 ```
 
-The Model example intentionally leaves out the unproved GMM metadata-selection spelling: `enabled = true` alone
-does not identify a Schema or trigger arbitrary dependency scanning. Repository configuration is the consumer's normal
+The versionless `klumGdsl` declaration explicitly selects the Schema metadata. `enabled = true` alone
+does not identify a Schema or trigger arbitrary dependency scanning. GMM declarations reject supplied versions;
+the normal dependency is the sole version authority. Repository configuration is the consumer's normal
 responsibility. In one build the normal Schema dependency uses `project(':schema')`; explicit metadata selection must
 follow that selected component through its capability, without reaching into its outgoing configuration or task.
-For a POM-only/lossy repository, the accepted explicit fallback is:
+For a POM-only/lossy repository, the explicit fallback is:
 
 ```groovy
 dependencies {
@@ -418,3 +418,87 @@ and publication configuration-cache reuse.
 
 No consumer plugin API, metadata resolver, Model configuration, root-union lifecycle, migration detection, user page,
 release note, or native IDE evidence is added. The issue remains open and the release gate is unchanged.
+
+
+## GDSL-2 engineering contract and evidence
+
+`KlumModelExtension.gdsl { enabled = true }` enables binary metadata consumption, with explicit selections in the
+new declarable `klumGdsl` scope. GMM selections use `klumGdsl 'group:artifact'` and reject independent version
+constraints. Exact `group:artifact:version:gdsl@jar` requests take the separate POM-only path. There is no metadata
+lookup without an explicit selection and no classifier retry. Disabled consumption adds no resolver, root task, or
+IDEA registration. Both resolvers are non-transitive and inherit only their private routed dependency scopes.
+No normal compile/runtime/test scope inherits editor dependencies; metadata is not exported by Model publications.
+
+GMM uses `shouldResolveConsistentlyWith(compileClasspath)` and `requireFeature('gdsl')`, available in the repository's
+Gradle 8.14.4. A plain Gradle module substitution resets capability selectors; the consumer therefore restores the
+metadata selection last, deriving the exact binary module identity from the selected normal dependency edge. This
+preserves same-module version changes and renamed-module substitutions without an author-maintained GDSL version.
+The normal graph supplies BOM/constraint/conflict/lock selection. Absent or excluded normal selections fail. Project
+substitution and local producer contribution remain GDSL-3. Classifier selection must preserve its exact authored GAV
+and match the selected normal Schema; dynamic/range requests are rejected rather than upgraded.
+
+The root task takes immutable archive/selected-GAV pairs and normal coordinates as inputs. Each
+`KlumGdslArtifactInput` contains only a `File` and coordinate string; the nested file input uses `PathSensitivity.NONE`
+and the paired coordinates are a scalar input. Resolver providers sort each mode's pairs by coordinates, without
+keying registration or lookup by archive basename. Resolution is lazy and outside the task action; the action accesses
+no Project, Configuration, or resolution objects. Each explicit selected origin must supply exactly one archive;
+zero or multiple advertised payloads fail before sync.
+It checks manifest identity/format,
+ZIP names, canonical catalog serialization, hashes, and exact v1 template bytes before sync. Output is only payloads
+under the ADR's hexadecimal group/artifact paths, with no catalog or envelope. The shared root keeps framework GDSL.
+IDEA generated-resource registration uses the existing root directory outside SourceSets. A failed refresh labels prior
+output stale; a previously successful root remains untouched by validation failure. Gradle may clean unowned output
+before a task's first execution, so this is not a promise to retain arbitrary manually planted files.
+
+Executable coverage lives in `KlumModelGdslConsumerTest`, `KlumGdslArchiveTest`, and
+`KlumModelGdslBinaryContractTest`, all carrying `@Issue('805')`. The consumer's happy path is marked documentary and
+linked here: `KlumModelGdslConsumerTest#'binary Model follows the normal Schema constraint without a second metadata
+version and caches refresh'`. It uses separate producer/Model directories and an isolated temporary Maven repository.
+Controls cover GMM and POM-only selection, BOMs/constraints/conflicts, dependency locks, same/renamed-module substitution,
+configuration-cache reuse, unrelated Schema metadata not being scanned, missing/empty/multiple variant payloads or classifier, excluded normal
+Schema, stale independent GMM versions, dynamic/range classifier rejection, mismatched classifier versions, ordinary
+build laziness, and publication/classpath isolation. The focused feature `binary Schemas with identical archive
+basenames retain independent identities in #mode mode` independently publishes `org.one:shared-schema:1.0` and
+`org.two:shared-schema:1.0`, both named `shared-schema-1.0-gdsl.jar`, with different Models and suffixes but the same
+mapping ID. GMM, POM-only classifier, and mixed selections prove both normal GAVs, both paired metadata inputs,
+manifest/catalog validation and exact contributor bytes under separate coordinate-derived paths. Each mode reuses
+the configuration cache and restores the root `FROM_CACHE` after relocating both the Model and resolved archive
+locations into a copied repository and fresh Gradle home. This hardens binary identity only; project-wide overlap,
+version conflicts, and legacy-copy handling remain GDSL-3. Archive tests cover empty metadata, duplicate ZIP names, unsafe
+paths, absent/extra entries, malformed JSON/fields, wrong format/origin/normal version, and hash/template tampering.
+
+The real binary-contract fixture compiles and publishes a real `@DSL Environment` independently with Groovy
+3.0.25, 4.0.32, and 5.0.6, then compiles and executes a separate Model with only the published Schema and framework
+binary libraries. Each generation has its own fixture/Gradle home and compiler outputs. The materialized contributor
+runs in a GroovyShell dispatch stub using reflection on the actual compiled Model/annotation/public generated Builder,
+checks `Environment_DSL.Builder.region(String)`, and executes `Environment.Create.From` with a DelegatingScript recipe
+plus the ordinary `Create.With` control. This proves the adapter spelling and binary contract, not native PSI or
+IntelliJ Gradle import. Native discovery, activation, navigation, negative PSI controls, and owned-child runtime coverage
+remain GDSL-4. Source-project union/conflicts/removal and recognized legacy-copy detection remain GDSL-3.
+
+This engineering slice changes no independently released user workflow: current user pages still describe the incomplete
+DelegatingScript IDE path. User documentation, migration guidance, and CHANGES stay with GDSL-5; no release claim is
+added here and issue #805 remains open.
+
+Local validation for GDSL-2 (2026-10-01): `:klum-ast-gradle-plugin:check` passed with 129 tests, license checks, and
+`validatePlugins`. This includes isolated real Groovy-3/4/5 binary fixtures, GMM/classifier configuration-cache reuse,
+and root `FROM_CACHE` restoration after deletion. Independent required/strict/preferred/rejected GMM version
+constraints are rejected so metadata cannot override normal selection. The repository's `:klum-ast:test`, `:klum-ast:groovy4Tests`, and `:klum-ast:groovy5Tests`
+passed their full 1,165-test suites, followed by `:klum-ast:verifyTestLaneIsolation`. Root `check` was not run for
+this plugin-only slice. `git diff --check` and ADR/plan local link checks passed. Native IntelliJ was not run.
+
+Local two-axis review: Standards reported no actionable violations or material smells. Spec found that a GMM variant
+with the right capability but zero files could silently succeed. The consumer now requires exactly one archive per
+explicit selected origin in both modes; focused zero/two-payload controls pass, and the independent offline reproduction
+now fails before materialization. The follow-up Spec review reported no remaining findings. Commit-history review keeps
+the complete vertical implementation and its engineering evidence as separate reasoning steps before first publication.
+
+PR #820 identity-hardening follow-up (2026-10-01): the new equal-basename fixture reproduced rejection in both
+GMM and classifier modes and origin overwrite/mismatched-manifest failure in mixed mode before the change.
+The paired nested inputs pass all three modes, including configuration-cache reuse and relocation build-cache
+restoration. `:klum-ast-gradle-plugin:check` passed with 132 tests, license checks, `validatePlugins`, and the real
+Groovy-3/4/5 binary-contract fixtures. Reviewed GDSL-2 commits remain intact; this is an additive binary-identity
+follow-up with no GDSL-3 scope or tracker/release-state change.
+Independent Standards and Spec reviews of the identity follow-up reported no findings. The full core
+Groovy-3/4/5 suites were rerun successfully (1,165 tests per lane), followed by `verifyTestLaneIsolation`.
+Git push and GitHub CLI repository-mutation channels were independently verified authorized for the existing PR.

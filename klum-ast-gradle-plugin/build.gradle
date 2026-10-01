@@ -72,3 +72,23 @@ publishing {
         pluginMaven(MavenPublication)
     }
 }
+
+// Independent binary GDSL fixtures use real transformed contracts and one Groovy runtime per generation.
+gradle.projectsEvaluated {
+    def compiler = project(':klum-ast')
+    def runtime = project(':klum-ast-runtime')
+    def compilerFiles = files(compiler.tasks.named('jar'), compiler.configurations.runtimeClasspath)
+            .filter { !it.name.startsWith('groovy-') }
+    def runtimeFiles = files(runtime.tasks.named('jar'), runtime.configurations.runtimeClasspath)
+            .filter { !it.name.startsWith('groovy-') }
+    tasks.named('test', Test) {
+        inputs.files(compilerFiles, runtimeFiles)
+        systemProperty 'gdslCompilerClasspath', compilerFiles.asPath
+        systemProperty 'gdslRuntimeClasspath', runtimeFiles.asPath
+        ['3': 'compileClasspath', '4': 'groovy4TestsCompileClasspath', '5': 'groovy5TestsCompileClasspath'].each { generation, configuration ->
+            def groovyJar = compiler.configurations[configuration].files.find { it.name ==~ /groovy-[345]\..*\.jar/ }
+            inputs.file(groovyJar)
+            systemProperty "gdslGroovy$generation", groovyJar.absolutePath
+        }
+    }
+}

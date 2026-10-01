@@ -23,42 +23,13 @@
  */
 package com.blackbuild.klum.ast.gradle;
 
-import org.gradle.api.Action;
-import org.gradle.api.model.ObjectFactory;
-import javax.inject.Inject;
-import org.gradle.api.provider.MapProperty;
-import org.gradle.api.tasks.Nested;
+import org.gradle.api.provider.Property;
 
-public abstract class KlumModelExtension extends KlumExtension {
-
-    private final KlumModelGdslExtension gdsl;
-
-    // Gradle decorates the injected ObjectFactory constructor.
-    @Inject
-    @SuppressWarnings("java:S5993")
-    public KlumModelExtension(ObjectFactory objects) {
-        gdsl = objects.newInstance(KlumModelGdslExtension.class);
+/** Explicit opt-in; klumGdsl dependencies select Schema metadata independently of build inputs. */
+public abstract class KlumModelGdslExtension {
+    public KlumModelGdslExtension() {
+        getEnabled().convention(false);
     }
 
-    public KlumModelGdslExtension getGdsl() {
-        return gdsl;
-    }
-
-    public void gdsl(Action<? super KlumModelGdslExtension> action) {
-        action.execute(gdsl);
-    }
-
-    @Nested
-    public abstract SchemaDependencies getSchemas();
-
-    public abstract MapProperty<String, String> getTopLevelScripts();
-
-    public void topLevelScript(String modelType, String script) {
-        getTopLevelScripts().put(modelType, script);
-    }
-
-    public void schemas(Action<? super SchemaDependencies> action) {
-        action.execute(getSchemas());
-    }
-
+    public abstract Property<Boolean> getEnabled();
 }
