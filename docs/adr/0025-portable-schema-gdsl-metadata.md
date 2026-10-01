@@ -4,8 +4,9 @@ Date: 2026-10-01
 
 Status: Accepted
 
-Implementation status: GDSL-0 and the GDSL-1 Schema producer boundary are implemented. Model consumption,
-root-union materialization, migration controls, and native IntelliJ discovery remain later slices; #805 is not delivered.
+Implementation status: GDSL-0, the GDSL-1 Schema producer boundary, and the GDSL-2 binary Model resolver/root
+are implemented. Source authoring, project-wide conflict/removal controls, migration detection, and native IntelliJ
+discovery remain later slices; #805 is not delivered.
 
 Tracking issue: [#805 — Restore IDE completion for DelegatingScripts](https://github.com/klum-dsl/klum-ast/issues/805)
 
