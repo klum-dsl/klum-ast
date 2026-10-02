@@ -15,8 +15,10 @@ branch and report identify this commit unambiguously. Its proposals are inputs, 
 Live read-only issue/PR checks confirmed #805/#269/#14 open and #809 merged. The maintainer's confirmed contract governs
 over the report's optional local-first path and its deferral of semantic overlap checks.
 The maintainer subsequently accepted the bounded suffix catalog/generated contributor, `gdsl` vocabulary,
-recognized-legacy-copy detection boundary, and standard-GAV-first publication policy, with `modelType` as the public
+managed-transport validation boundary, and standard-GAV-first publication policy, with `modelType` as the public
 mapping target. No product decision remains; the technical proof gates below remain unexecuted.
+The maintainer's 2026-10-02 scope correction removes migration analysis for the unreleased manual-resource approach
+and for copied generated contributors outside the portable transport. The current contract below reflects that boundary.
 The consumer-UX clarification makes the normal Schema dependency authoritative for component/version selection;
 GDSL-2 must prove metadata consumption for that result without a second user-maintained GMM version choice.
 
@@ -155,7 +157,7 @@ If Maven mapping is required, use optional/runtime mapping; empty dependencies m
 capabilities/manifests; broader customized artifact-ID support is outside this delivery.
 Test both Maven-Publish/plugin application orders. No external publication is needed for implementation tests.
 
-## Alignment, conflicts, lifecycle, and migration
+## Alignment, conflicts, lifecycle, and managed validation
 
 1. The normal Schema dependency is the authoritative component/origin/version selection. Metadata is editor content
    for that result, not a second version choice. Model opt-in and explicit identification/selection of the desired
@@ -186,14 +188,12 @@ Test both Maven-Publish/plugin application orders. No external publication is ne
    refresh; root `clean` owns root output. A disabled last Model with no other root owner requires `clean` to remove
    leftover output. Validate before sync and label failed refresh output stale. Configuration-cache reuse does not
    establish Isolated Projects support.
-5. Migration acceptance starts with the exact #809 `src/main/resources/environment.gdsl`. Remove the old source copy
-   and rebuild a new normal Schema/Model artifact before enabling the declaration. Check participating source/resource
-   inputs and selected normal Schema/Model archives for recognized legacy copies (matching generated payload or the
-   documented #809 contributor structure/target/suffix); reject duplicates and report both locators. This accepted
-   automatic detection boundary does not cover arbitrary executable predicates. Users must remove custom external
-   contributors affecting the family; the new transport admits only generated catalog payloads. Test recognized-copy
-   detection in GDSL-3 and document the boundary without implying global semantic validation of external GDSL.
-   Do not silently exclude/delete user files or extract mappings from normal library JARs as a fallback.
+5. KlumAST's project-wide validation covers only mappings delivered through the portable managed GDSL metadata
+   mechanism. Arbitrary `.gdsl` resources in source/resource roots or normal dependency artifacts remain user-owned
+   IntelliJ configuration and are not parsed, transported, rejected, or conflict-checked by KlumAST. Copied generated
+   contributors outside the managed transport are external resources too. Do not scan normal sources/resources/JARs,
+   infer mappings from executable contributors, or require removal/republication of normal artifacts. Existing
+   framework GDSL materialization is preserved independently of the Schema metadata transport.
 
 ## Thin slices and reasoned commit boundaries
 
@@ -203,8 +203,8 @@ with meaningful coverage, then a focused evidence/docs commit if necessary. No i
 ### GDSL-0 — Accepted contract baseline (complete)
 
 Dependency: none. This ADR/plan records the accepted bounded literal suffix catalog and generated contributor,
-`modelType` declaration with internal real-Builder resolution, `gdsl` Gradle vocabulary, recognized-legacy-copy
-migration boundary, and standard-GAV-first identity policy. Portable-first binary delivery, isolation, opt-in, and
+`modelType` declaration with internal real-Builder resolution, `gdsl` Gradle vocabulary, managed-transport
+validation boundary, and standard-GAV-first identity policy. Portable-first binary delivery, isolation, opt-in, and
 conflict/overlap rejection are settled. Implementation starts at GDSL-1; no further maintainer confirmation is a
 prerequisite. Do not expand into arbitrary predicates or weaken rejection during implementation.
 
@@ -244,11 +244,11 @@ This is the first complete automated transport path; native release proof remain
 ### GDSL-3 — Source authoring and project-wide conflicts/removal
 
 Depends on GDSL-2. One commit adds the producer's local archive-provider path and project dependency integration,
-root union validation across two Schemas/two Models, and lifecycle/migration controls. Acceptance includes plugin
+root union validation across two Schemas/two Models, and lifecycle/isolation controls. Acceptance includes plugin
 application order, one physical root, no second sync writer, equal basenames, idempotent shared artifact requests,
 distinct duplicate registrations/entries, hash/version/overlap failures before sync, BOM/lock/substitution cases,
-disabled nonconsumer conflict, and edit/rename/remove/empty/last-disable cleanup. Execute migrated #809 copies as
-failure controls. Framework GDSL still materializes once. Included/composite-build compatibility remains unclaimed
+disabled nonconsumer conflict, edit/rename/remove/empty/last-disable cleanup, and external-resource boundary controls.
+Framework GDSL still materializes once. Included/composite-build compatibility remains unclaimed
 unless a variant-based separate-owner fixture passes; never couple the two root tasks.
 
 ### GDSL-4 — Real generated contracts and native source/binary gate
@@ -262,7 +262,8 @@ needed before acceptance. Runtime tests use existing public root and owned-child
 
 Depends on GDSL-4. One final commit synchronizes `docs/user/Gradle-Plugins.md`, `Gradle-Onboarding.md`,
 `Convenience-Factories.md`, `FAQ.md`, Builder migration/navigation, and `CHANGES.md` with the confirmed surface,
-Schema versioning, explicit fallback, project-wide effects/conflicts, refresh/activation, #809 removal, and editor limits.
+Schema versioning, explicit fallback, project-wide effects/conflicts, refresh/activation, the managed-validation boundary,
+and editor limits.
 Examples distinguish Schema mapping declarations, outgoing metadata variant/archive, and Model consumption configuration.
 Document the GMM syntax proved in GDSL-2 and exact-GAV repetition as a lossy fallback limitation.
 Add reciprocal documentary references. Reconcile issue/release documentation later under normal authorized delivery;
@@ -285,7 +286,7 @@ no test added here is implied to have passed.
 | GMM consumer UX | Use one authoritative normal Schema selection with explicit metadata opt-in/selection; upgrade via application BOM/constraint, then test locks, substitution and version conflicts. | Metadata follows exactly the selected normal origin/version without an independently maintained stale metadata version; mismatches fail clearly. Prove the least repetitive safe syntax or return evidence for a maintainer UX decision. |
 | Lossy fallback UX | Request the explicit exact-GAV `gdsl` classifier in a POM-only fixture, including dynamic/range and mismatched requests. | Exact GAV repetition is a fallback limitation; selected normal Schema identity/version matches; dynamic/range and mismatch requests fail; no silent retry or automatic fallback. |
 | Isolation | Run clean compile/test/JAR/source/Javadoc/publication and inspect inputs, task graph, all resolvable/output configurations. | No new metadata resolution/materialization on ordinary paths; no envelope/contributor/root/mirror in normal artifacts/classpaths/module path or exported Model deps. Enabled Schema publication builds metadata archive only as its intentional addition. |
-| Integrity/conflicts | Inject duplicate entries, path traversal, wrong manifest/hash/template, conflicting versions, matching suffixes, recognized legacy resource copies. | Error identifies origins before sync; previous output is not reported current; no silent EXCLUDE or fallback. Normal non-opted-in Model version conflict is included; arbitrary external GDSL is outside automatic detection. |
+| Integrity/conflicts | Inject duplicate entries, path traversal, wrong manifest/hash/template, conflicting versions, matching suffixes among managed mappings. | Error identifies origins before sync; previous output is not reported current; no silent EXCLUDE or fallback. Normal non-opted-in Model version conflict is included; arbitrary external GDSL is outside managed validation. |
 | Cache/lifecycle | Repeat, edit, rename, remove, empty publication, opt-out, relocate, restore cache; configuration-cache store/reuse. | Expected SUCCESS/UP_TO_DATE/FROM_CACHE, stale paths removed, framework kept, root physical identity unique; last-owner `clean` removes leftovers. |
 | Normal downstream | Publish the Model, resolve it in ordinary Java/Groovy and Model consumers. | No editor deps propagated; ordinary schemas/API unchanged; fresh later Model needs explicit opt-in. |
 | Runtime truth | Real transformed Environment plus Deployment child map; root `Environment.Create.From`, owned-child `AsBuilder().From`, ordinary `Create.With` control. | Expected region and one normal materialization/session; matching filename changes no runtime dispatch. Wrong receiver control retains existing failure rather than acquiring fictional operations. Keyed class/File/key-provider and classpath-marker defaults retained. |
@@ -341,7 +342,7 @@ versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick
 | Authoritative normal Schema selection / consumer UX | Accepted invariant; least repetitive safe GMM syntax requires proof, not a frozen duplicate version declaration | GDSL-2; explicit selection, BOM/constraint upgrades, locks/substitution/conflicts and mismatch controls |
 | POM-only version repetition | Accepted lossy fallback limitation; exact selected GAV only | GDSL-2; dynamic/range/mismatch rejection, no retry/automatic fallback |
 | Overlap/duplicate rejection | Accepted bounded literal suffix catalog/generated contributor | GDSL-0/1/3; witness, payload/template and union controls |
-| Raw #809/custom predicates cannot be proved disjoint | Accepted recognized-legacy-copy detection boundary; arbitrary external GDSL remains user-managed | GDSL-0/3/5; exact legacy recipe failure/migration control |
+| External executable GDSL cannot be proved disjoint | Validation owns only the portable managed transport; external resources remain user/IDE-owned | GDSL-0/3/5; external resources neither interpreted nor transported; managed conflicts still fail |
 | Publication customization and capability identity | Accepted standard-GAV-first reject-on-mismatch policy; broader customization outside delivery | GDSL-0/1; publication identity test |
 | Native importer ignores generated root under build/ | Technical release risk, not permission to pollute resources | GDSL-4; actual Gradle import, stop for supported registration fix |
 | Included builds / Isolated Projects | Not claimed; future acceptance if required | GDSL-3 topology boundary |
@@ -350,7 +351,7 @@ versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick
 
 No product or maintainer decision is a prerequisite to starting implementation. Technical unknowns (least repetitive
 safe GMM consumer syntax, Model-to-Builder resolution, alignment, catalog/template integrity, import discovery,
-activation/cache behavior, and recognized-copy detection) must be resolved by the specified tests before feature
+activation/cache behavior, and managed-union validation) must be resolved by the specified tests before feature
 publication. Failure to prove the consumer UX invariant requires a maintainer decision supported by evidence;
 duplicated GMM version declarations must not become the default silently. Accepted design does not establish passed tests.
 
@@ -416,7 +417,7 @@ suffix data, empty retirement, byte identity across independent relocated regene
 tasks, configuration-cache reuse, all three publication-GAV override fields, late Schema identity changes with/without inconsistent publication overrides,
 and publication configuration-cache reuse.
 
-No consumer plugin API, metadata resolver, Model configuration, root-union lifecycle, migration detection, user page,
+No consumer plugin API, metadata resolver, Model configuration, root-union lifecycle, user page,
 release note, or native IDE evidence is added. The issue remains open and the release gate is unchanged.
 
 
@@ -464,7 +465,7 @@ mapping ID. GMM, POM-only classifier, and mixed selections prove both normal GAV
 manifest/catalog validation and exact contributor bytes under separate coordinate-derived paths. Each mode reuses
 the configuration cache and restores the root `FROM_CACHE` after relocating both the Model and resolved archive
 locations into a copied repository and fresh Gradle home. This hardens binary identity only; project-wide overlap,
-version conflicts, and legacy-copy handling remain GDSL-3. Archive tests cover empty metadata, duplicate ZIP names, unsafe
+and version conflicts remain GDSL-3. Archive tests cover empty metadata, duplicate ZIP names, unsafe
 paths, absent/extra entries, malformed JSON/fields, wrong format/origin/normal version, and hash/template tampering.
 
 The real binary-contract fixture compiles and publishes a real `@DSL Environment` independently with Groovy
@@ -474,7 +475,7 @@ runs in a GroovyShell dispatch stub using reflection on the actual compiled Mode
 checks `Environment_DSL.Builder.region(String)`, and executes `Environment.Create.From` with a DelegatingScript recipe
 plus the ordinary `Create.With` control. This proves the adapter spelling and binary contract, not native PSI or
 IntelliJ Gradle import. Native discovery, activation, navigation, negative PSI controls, and owned-child runtime coverage
-remain GDSL-4. Source-project union/conflicts/removal and recognized legacy-copy detection remain GDSL-3.
+remain GDSL-4. Source-project union/conflicts/removal and lifecycle isolation remain GDSL-3.
 
 This engineering slice changes no independently released user workflow: current user pages still describe the incomplete
 DelegatingScript IDE path. User documentation, migration guidance, and CHANGES stay with GDSL-5; no release claim is
@@ -527,19 +528,18 @@ Selected archive collections use `ArrayList` because Gradle 8.14.4 cannot reliab
 records through its configuration-cache codec. Explicit producer/variant artifact dependencies preserve task ordering
 when those providers are converted to nested immutable `KlumGdslArtifactInput` values.
 
-The sole root sync validates all canonical envelopes, then the whole catalog union, then recognized normal-resource
-copies. Repeated selections of the same File/GAV are idempotent. Distinct files registering one GAV fail for duplicate
+The sole root sync validates all canonical managed envelopes, then the whole managed catalog union. Repeated selections
+of the same File/GAV are idempotent. Distinct files registering one GAV fail for duplicate
 payload identity or different payloads, even if they could have produced the same destination. Different active versions
 of one Schema fail against normal selections from every participating Schema/Model, including Models with GDSL disabled
 and local Schemas with metadata disabled. Case-sensitive suffix overlap fails regardless of targets, with both GAVs,
 mapping IDs, suffixes, archive locators, and a witness filename. Output order is deterministic and no priority applies.
 All validation precedes sync; a failed refresh labels previously successful output stale and retains those bytes.
 
-Participants contribute configured main-source/resource GDSL files plus selected normal binary classpaths for migration
-inspection. The SourceDirectorySet retains dependencies on generated-resource tasks; additional raw directory trees
-cover GDSL in language roots whose Java/Groovy filters would otherwise omit it. Source projects are inspected from source, while normal artifact views exclude project components: refreshing
-metadata does not compile or package a source Schema. Ordinary build/publication paths do not run the root materializer,
-and normal SourceSets, classpaths, and archives remain unchanged.
+Participants contribute normal selected component coordinates for cross-project Schema-version checks, including
+nonconsuming Models. They do not contribute normal source/resource files or classpath artifacts for migration or
+conflict inspection. Refresh does not compile/package source Schemas or run normal resource generators. Ordinary
+build/publication paths do not run the root materializer, and normal SourceSets, classpaths, and archives remain unchanged.
 
 ### Root Base lifecycle ownership
 
@@ -567,22 +567,27 @@ and ordinary Model build/classpaths/publication with an intentionally unavailabl
 `#'binary-only Model subproject retains root cleanup after its final opt-out'` control retains the two-invocation cleanup
 proof after metadata was generated.
 
-### Recognized-copy migration and coverage
+### Managed validation boundary and coverage
 
-Recognition is deliberately bounded: exact canonical v1 generated payload bytes, including retired mappings, or the
-whole documented single-quoted #809 contributor structure with validated literal suffix and Model/Builder target.
-Only whitespace outside literals is ignored for the #809 form. Predicates, additional executable statements, and other
-custom contributor structures are neither evaluated nor blanket-rejected. Diagnostics identify the source or JAR-entry
-locator and active metadata origins, then instruct the author to move declarations, remove recognized copies, publish a
-new normal Schema/Model version, and refresh/reimport IDEA. The plugin never deletes user files or extracts metadata from
-normal artifacts as a fallback. An empty catalog still rejects recognized legacy resources that would retain old hints.
+KlumAST's project-wide validation covers only mappings delivered through the portable managed GDSL metadata
+mechanism. Arbitrary `.gdsl` resources in source/resource roots or normal dependency artifacts remain user-owned
+IntelliJ configuration and are not parsed, transported, rejected, or conflict-checked by KlumAST. Byte-identical copied
+generated contributors outside the managed transport have the same external boundary. Only canonical archives selected
+through the dedicated transport are admitted to the catalog union. Existing framework contributors still materialize
+from KlumAST's packaged framework namespace; that independent transport does not inspect external contributors for
+migration or conflicts.
 
-Executable coverage is in `KlumGdslProjectWideValidationTest`, `KlumGdslProjectCatalogTest`, and
-`KlumGdslLegacyResourcesTest`, each marked `@Issue('805')`. TestKit proves source-only authoring, two source Schemas/two
+The never-released #809 recipe establishes no compatibility obligation. Development-snapshot users who tried it
+should remove copied contributors when adopting the portable mechanism; no migration scanner, parser, or normal-artifact
+republication rule implements that history note.
+
+Executable coverage is in `KlumGdslProjectWideValidationTest` and `KlumGdslProjectCatalogTest`, each marked `@Issue('805')`.
+TestKit proves source-only authoring, two source Schemas/two
 Models, source plus binary consumption, equal payload basenames, shared source archives, application/evaluation order,
 module-to-project substitution, disabled-Model version conflict, atomic overlap failure, edit/rename/remove/empty/opt-out
-cleanup, root clean, ordinary JAR/source-JAR/IDE model laziness, recognized source and binary migration with a new clean
-Schema version, and preservation of custom resources in normal Model artifacts. Root refresh reuses the configuration
+cleanup, root clean, ordinary JAR/source-JAR/IDE model laziness, external source/resource/JAR isolation, and preservation
+of custom resources in normal Model artifacts. External source edits do not invalidate managed refresh or its configuration
+cache, and normal resource-generation tasks do not participate. Root refresh reuses the configuration
 cache and restores `FROM_CACHE` after deletion and relocation, retaining framework GDSL once.
 
 GDSL-4 native IntelliJ discovery/activation/PSI and GDSL-5 end-user migration/release documentation are explicitly outside
@@ -595,14 +600,13 @@ this slice. No generated/public/runtime contract or initial normal-GAV publicati
 Standards: the initial two-axis review reported no documented violations or material smells. New tests have #805
 traceability, `Test` names, and the engineering documentary link required for this explicitly unreleased slice.
 
-Spec: the initial review reproduced two lifecycle gaps. Flattening configured source directories lost dependencies on
-a resource-generation task, allowing its recognized copy to escape validation. A binary-only Model subproject beneath
-a plain root also lost root cleanup when its final GDSL opt-in was disabled. The implementation now preserves the
-SourceDirectorySet dependency collection alongside raw scans and retains the Model root base lifecycle after disablement.
-Both regressions have executable TestKit controls and passed focused verification. The evaluation-order fixture now
-uses `evaluationDependsOn` to actually reverse Schema/Model configuration, rather than relying on settings include order.
+Spec: the initial review reproduced a binary-only Model subproject's loss of root cleanup after final GDSL opt-out.
+The Model plugin retains the root Base lifecycle after disablement, with executable opt-out and never-enabled controls.
+The evaluation-order fixture uses `evaluationDependsOn` to reverse Schema/Model configuration rather than relying on
+settings include order. The earlier review also covered migration-source provider dependencies; that entire subsystem
+and its controls were subsequently removed by the maintainer's 2026-10-02 managed-transport-only scope correction.
 
-Commit-history review retains the vertical implementation, engineering contract, lifecycle review fixes, and final
+Commit-history review retains the vertical implementation, engineering contract, root lifecycle review fixes, and final
 evidence as separate green reasoning steps. No unrelated work, public/generated/runtime contract change, new normal-GAV
 policy, tracker mutation, native IntelliJ claim, or broad release/user documentation is included.
 
@@ -630,3 +634,20 @@ controls. `:klum-ast-gradle-plugin:check` passed with 162 tests, license checks,
 real Groovy-3/4/5 binary-contract fixtures. ADR link/anchor and test references plus `git diff --check` passed. Core
 compiler/runtime suites and root `check` were not repeated for this documentation, comment, and Gradle contract-test
 follow-up; production behavior remains unchanged.
+
+### GDSL-3 managed-transport scope correction
+
+The maintainer's explicitly authorized 2026-10-02 correction removes the unreleased #809/canonical-copy migration
+subsystem: recognizer/parser, migration diagnostics, normal source/resource/JAR scanning, task inputs, generated-resource
+provider plumbing, and migration-only tests/fixtures. Managed envelope/catalog validation, source/binary contribution,
+normal-coordinate version checks, deterministic sync, root Base ownership, cleanup, and isolation remain intact. The
+binary classpath view remains necessary for the existing framework GDSL transport and excludes project artifacts so
+refresh does not compile/package source Schemas; it no longer feeds any migration or conflict scanner.
+
+The external-resource boundary control proves copied generated and opaque external contributors remain untouched while
+the managed source/binary union materializes. Normal resource generators do not run, and external source edits preserve
+configuration-cache reuse and an up-to-date managed refresh. Focused GDSL-3/materialization validation passed 22 tests;
+`:klum-ast-gradle-plugin:check` passed 151 tests with no failures/skips, license checks, `validatePlugins`, and independent
+real Groovy-3/4/5 binary-contract fixtures. Local ADR/plan links and anchors plus `git diff --check` passed. Core suites and
+root `check` were not repeated for this Gradle-plugin-only scope correction. Earlier test counts above describe historical
+revisions, including the subsequently removed migration tests.

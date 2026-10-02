@@ -23,7 +23,6 @@
  */
 package com.blackbuild.klum.ast.gradle
 
-import groovy.json.JsonOutput
 import groovy.util.XmlSlurper
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
@@ -304,35 +303,6 @@ tasks.register('verifyModelClasspaths') {
                 [['org.binary', 'binary-schema', '1.0', 'compile']]
     }
 
-    def "task-generated recognized resources preserve their provider dependencies for migration checks"() {
-        given:
-        fixture()
-        write(directory, 'model/build.gradle', model("project(':schema')", "klumGdsl project(':schema')") + """
-        def generatedRoot = layout.buildDirectory.dir('generated/legacy-resource')
-        def legacyPayload = ${JsonOutput.toJson(copy('legacy', '.source.groovy'))}
-        def generated = tasks.register('generateLegacyResource') {
-            outputs.dir(generatedRoot)
-            doLast {
-                def output = new File(generatedRoot.get().asFile, 'environment.gdsl')
-                output.parentFile.mkdirs()
-                output.text = legacyPayload
-            }
-        }
-        sourceSets.main.resources.srcDir(generated)
-""")
-
-        when:
-        def failed = runner(directory, 'materializeKlumDslGdsl').buildAndFail()
-
-        then:
-        failed.task(':model:generateLegacyResource').outcome == TaskOutcome.SUCCESS
-        failed.output.contains('Recognized legacy GDSL copy')
-        failed.output.contains('generated/legacy-resource/environment.gdsl')
-        payloads().empty
-        failed.task(':schema:compileGroovy') == null
-        failed.task(':model:processResources') == null
-    }
-
     def "normal module-to-project substitution selects metadata through the project capability"() {
         given:
         fixture()
@@ -354,76 +324,54 @@ configurations.configureEach {
         reused.task(':schema:jar') == null
     }
 
-    def "recognized #kind source resources require explicit migration and custom contributors survive"() {
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0025-portable-schema-gdsl-metadata.md#managed-validation-boundary')
+    def "external GDSL resources stay outside the managed source and binary union"() {
         given:
         fixture()
-        write(directory, 'model/build.gradle', model("project(':schema')", "klumGdsl project(':schema')"))
-        File resource = write(directory, "model/src/main/$location/environment.gdsl", copy(kind, '.source.groovy'))
-
-        when:
-        def failed = runner(directory, 'materializeKlumDslGdsl').buildAndFail()
-
-        then:
-        failed.output.contains('Recognized legacy GDSL copy')
-        failed.output.contains(resource.path)
-        failed.output.contains('org.source:schema:1.0 / environment')
-        failed.output.contains('remove the copied resource')
-        resource.file
-        payloads().empty
-
-        when: 'the author removes the recognized copy and retains an arbitrary custom contributor'
-        resource.delete()
-        File custom = write(directory, 'model/src/main/resources/custom.gdsl', copy('legacy', '.source.groovy') + "println 'custom contributor'\n")
-        File external = write(directory, 'external.gdsl', custom.text)
-        new File(directory, 'schema/build.gradle') << "\ndependencies { api files('../external.gdsl') }\n"
-        run(directory, 'materializeKlumDslGdsl')
-
-        then:
-        external.file
-        custom.file
-        payloads().size() == 1
-
-        where:
-        kind        | location
-        'legacy'    | 'resources'
-        'generated' | 'resources'
-        'legacy'    | 'groovy'
-    }
-
-    def "recognized legacy binary resources require a rebuilt normal artifact"() {
-        given:
-        fixture()
-        File isolated = new File(directory, 'repository')
-        repository.eachFileRecurse { file ->
-            if (file.file) writeBytes(isolated, repository.relativePath(file), file.bytes)
-        }
-        File jar = new File(isolated, 'org/binary/binary-schema/1.0/binary-schema-1.0.jar')
-        File staging = new File(directory, 'staging')
-        write(staging, 'environment.gdsl', copy('legacy', '.binary.groovy'))
-        // An independent normal artifact with the copied contributor; metadata remains unchanged.
-        new ZipOutputStream(jar.newOutputStream()).withCloseable { zip ->
+        write(directory, 'model/build.gradle', model("project(':schema'); schema 'org.binary:binary-schema:1.0'",
+                "klumGdsl project(':schema'); klumGdsl 'org.binary:binary-schema'") + """
+dependencies { implementation files('../external.jar') }
+def generated = tasks.register('generateExternalGdsl') {
+    outputs.dir(layout.buildDirectory.dir('generated/external-resources'))
+    doLast { throw new GradleException('Metadata refresh must not generate normal resources') }
+}
+sourceSets.main.resources.srcDir(generated)
+""")
+        String copiedPayload = KlumGdslMetadataFormat.payload(new KlumGdslMetadataFormat.Mapping('environment', '.source.groovy', 'example.Environment'))
+        File copiedResource = write(directory, 'model/src/main/resources/environment.gdsl', copiedPayload)
+        File customSource = write(directory, 'model/src/main/groovy/custom.gdsl', "throw new AssertionError('User-owned GDSL must not execute')\n")
+        File schemaResource = write(directory, 'schema/src/main/resources/environment.gdsl', copiedPayload)
+        File externalJar = new File(directory, 'external.jar')
+        new ZipOutputStream(externalJar.newOutputStream()).withCloseable { zip ->
             zip.putNextEntry(new ZipEntry('environment.gdsl'))
-            zip.write(new File(staging, 'environment.gdsl').bytes)
+            zip.write(copiedPayload.getBytes('UTF-8'))
+            zip.closeEntry()
+            zip.putNextEntry(new ZipEntry('custom.gdsl'))
+            zip.write(customSource.bytes)
             zip.closeEntry()
         }
-        write(directory, 'model/build.gradle', model("'org.binary:binary-schema:1.0'", "klumGdsl 'org.binary:binary-schema:1.0:gdsl@jar'", true, isolated, true))
+        byte[] originalJar = externalJar.bytes
 
         when:
-        def failed = runner(directory, 'materializeKlumDslGdsl').buildAndFail()
+        def refreshed = run(directory, 'materializeKlumDslGdsl', '--configuration-cache')
+        customSource.text = "throw new AssertionError('External source edits do not invalidate managed metadata')\n"
+        def reused = run(directory, 'materializeKlumDslGdsl', '--configuration-cache')
 
         then:
-        failed.output.contains('binary-schema-1.0.jar!/environment.gdsl')
-        failed.output.contains('Recognized legacy GDSL copy')
-        failed.output.contains('org.binary:binary-schema:1.0 / environment')
-        payloads().empty
-        jar.file
-
-        when: 'the author selects a newly published normal Schema with no legacy resource'
-        write(directory, 'model/build.gradle', model("'org.binary:binary-schema:2.0'", "klumGdsl 'org.binary:binary-schema'"))
-        run(directory, 'materializeKlumDslGdsl')
-
-        then:
+        refreshed.task(':materializeKlumDslGdsl').outcome == TaskOutcome.SUCCESS
+        refreshed.task(':model:generateExternalGdsl') == null
+        refreshed.task(':model:processResources') == null
+        refreshed.task(':schema:jar') == null
+        refreshed.task(':schema:compileJava') == null
+        refreshed.task(':schema:compileGroovy') == null
+        reused.output.contains('Configuration cache entry reused.')
+        reused.task(':materializeKlumDslGdsl').outcome == TaskOutcome.UP_TO_DATE
         payloads().size() == 2
+        payloads().every { it.name == 'environment.gdsl' }
+        copiedResource.text == copiedPayload
+        schemaResource.text == copiedPayload
+        externalJar.bytes == originalJar
+        !new File(directory, 'build/generated/klum-dsl-ide/gdsl/custom.gdsl').exists()
     }
 
     def "ordinary source publication and Model build preserve normal outputs and never refresh metadata"() {
@@ -478,23 +426,14 @@ klumSchema.gdsl {
 """
     }
 
-    private String model(String normal, String selection, boolean enabled = true, File repo = repository, boolean pomOnly = false) {
+    private String model(String normal, String selection, boolean enabled = true) {
         """
 plugins { id 'com.blackbuild.klum-ast-model' }
 groovyDependencies.useSpock = false
 ['api', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
-repositories { maven { url = '${repo.toURI()}'; ${pomOnly ? 'metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }' : ''} } }
+repositories { maven { url = '${repository.toURI()}' } }
 klumModel { schemas { schema $normal }; gdsl { enabled = $enabled } }
 dependencies { $selection }
-"""
-    }
-
-    private static String copy(String kind, String suffix) {
-        if (kind == 'generated') return KlumGdslMetadataFormat.payload(new KlumGdslMetadataFormat.Mapping('environment', suffix, 'example.Environment'))
-        """contributor(context(scope: scriptScope())) {
-    if (place.containingFile.name.endsWith('$suffix'))
-        delegatesTo(findClass('example.Environment_DSL.Builder'))
-}
 """
     }
 
@@ -517,12 +456,6 @@ dependencies { $selection }
         file.parentFile.mkdirs()
         file.text = text
         file
-    }
-
-    private static void writeBytes(File root, String path, byte[] bytes) {
-        File file = new File(root, path)
-        file.parentFile.mkdirs()
-        file.bytes = bytes
     }
 
     private static def run(File project, String... arguments) { runner(project, arguments).build() }

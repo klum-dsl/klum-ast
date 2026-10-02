@@ -26,9 +26,6 @@ package com.blackbuild.klum.ast.gradle;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.PathSensitive;
-import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.Nested;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,15 +60,6 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
     @Input
     public abstract ListProperty<String> getNormalSchemaCoordinates();
 
-    @InputFiles
-    @PathSensitive(PathSensitivity.RELATIVE)
-    public abstract ConfigurableFileCollection getLegacyGdslSources();
-
-    // Resource bytes matter, including changes hidden by ordinary classpath ABI normalization.
-    @InputFiles
-    @PathSensitive(PathSensitivity.NONE)
-    public abstract ConfigurableFileCollection getLegacyGdslClasspath();
-
     @OutputDirectory
     public abstract DirectoryProperty getOutputDirectory();
 
@@ -90,7 +78,6 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
         }
         archives.sort(Comparator.comparing(KlumGdslArchive::coordinates).thenComparing(archive -> archive.file().getPath()));
         KlumGdslProjectValidation.validate(archives, getNormalSchemaCoordinates().get());
-        KlumGdslLegacyResources.validate(archives, getLegacyGdslSources().getFiles(), getLegacyGdslClasspath().getFiles());
         getFileSystemOperations().sync(copy -> {
             copy.into(getOutputDirectory());
             copy.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);

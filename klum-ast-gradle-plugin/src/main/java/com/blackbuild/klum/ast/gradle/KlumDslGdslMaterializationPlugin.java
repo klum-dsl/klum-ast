@@ -31,9 +31,7 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.BasePlugin;
-import org.gradle.api.tasks.SourceSet;
 
 public class KlumDslGdslMaterializationPlugin implements Plugin<Project> {
 
@@ -66,20 +64,11 @@ public class KlumDslGdslMaterializationPlugin implements Plugin<Project> {
             if (!participant.getPlugins().hasPlugin(KlumAstSchemaPlugin.class)
                     && !participant.getPlugins().hasPlugin(KlumAstModelPlugin.class)) return;
             Configuration normal = participant.getConfigurations().getByName("compileClasspath");
-            SourceSet main = participant.getExtensions().getByType(JavaPluginExtension.class)
-                    .getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
             materializationTask(project).configure(task -> {
                 if (participant.getPlugins().hasPlugin(KlumAstSchemaPlugin.class))
                     task.getNormalSchemaCoordinates().add(participant.getGroup() + ":" + participant.getName() + ":" + participant.getVersion());
                 task.getNormalSchemaCoordinates().addAll(normal.getIncoming().getResolutionResult().getRootComponent()
                         .map(component -> KlumModelGdslConsumer.normalCoordinates(component.getDependencies())));
-                // The SourceDirectorySet retains dependencies on generated source/resource providers.
-                task.getLegacyGdslSources().from(main.getAllSource().matching(pattern -> pattern.include("**/*.gdsl")));
-                // Include .gdsl files in configured language roots even when their language filters exclude them.
-                task.getLegacyGdslSources().from(main.getAllSource().getSrcDirs().stream()
-                        .map(directory -> participant.fileTree(directory, pattern -> pattern.include("**/*.gdsl"))).toList());
-                // Project resources are inspected in source; resolving their library artifacts would compile Schemas.
-                task.getLegacyGdslClasspath().from(binaryClasspath(normal));
             });
         });
     }
