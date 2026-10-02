@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.gradle
 
 import groovy.json.JsonOutput
+import groovy.util.XmlSlurper
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
@@ -240,6 +241,67 @@ publishing.repositories { maven { name = 'fixture'; url = '${repository.toURI()}
         then:
         result.task(':clean').outcome == TaskOutcome.SUCCESS
         !new File(directory, 'build/generated/klum-dsl-ide/gdsl').exists()
+    }
+
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/adr-0025-portable-schema-gdsl-metadata.md#root-base-lifecycle-ownership')
+    def "a never-enabled Model beneath a plain root adds only the root Base lifecycle"() {
+        given:
+        write(directory, 'settings.gradle', "rootProject.name = 'plain-root'; include 'model'")
+        write(directory, 'build.gradle', """
+tasks.register('verifyRootLifecycle') {
+    doLast {
+        assert plugins.hasPlugin('base')
+        assert ['clean', 'assemble', 'check', 'build'].every { tasks.findByName(it) != null }
+        assert !plugins.hasPlugin('java')
+        assert !plugins.hasPlugin('com.blackbuild.klum-ast-model')
+        assert project.extensions.findByName('java') == null
+        assert project.extensions.findByName('sourceSets') == null
+        assert ['compileJava', 'compileGroovy', 'jar', 'materializeKlumDslGdsl'].every { tasks.findByName(it) == null }
+        assert ['compileClasspath', 'runtimeClasspath'].every { configurations.findByName(it) == null }
+        assert configurations.every { it.dependencies.empty }
+    }
+}
+""")
+        write(directory, 'model/build.gradle', model("'org.binary:binary-schema:1.0'", "klumGdsl 'org.binary:absent-schema'", false) + """
+apply plugin: 'maven-publish'
+group = 'org.model'
+version = '1.0'
+publishing.repositories { maven { name = 'fixture'; url = layout.buildDirectory.dir('repository') } }
+configurations.configureEach {
+    if (name.startsWith('klumGdsl')) incoming.beforeResolve { throw new GradleException('Unexpected GDSL resolution') }
+}
+tasks.register('verifyModelClasspaths') {
+    doLast {
+        assert configurations.findAll { it.name.startsWith('klumGdsl') }*.name == ['klumGdsl']
+        assert !configurations.klumGdsl.canBeResolved
+        assert configurations.klumGdsl.dependencies*.name == ['absent-schema']
+        assert configurations.compileClasspath.files*.name == ['binary-schema-1.0.jar']
+        assert configurations.runtimeClasspath.files*.name == ['binary-schema-1.0.jar']
+        assert tasks.findByName('materializeKlumDslGdsl') == null
+    }
+}
+""")
+        write(directory, 'model/src/main/resources/model.txt', 'ordinary Model resource')
+
+        when:
+        def result = run(directory, ':clean', ':verifyRootLifecycle', ':model:verifyModelClasspaths',
+                ':model:build', ':model:publishMavenJavaPublicationToFixtureRepository')
+
+        then:
+        result.task(':clean').outcome == TaskOutcome.UP_TO_DATE
+        result.task(':verifyRootLifecycle').outcome == TaskOutcome.SUCCESS
+        result.task(':model:build').outcome == TaskOutcome.SUCCESS
+        result.task(':model:publishMavenJavaPublicationToFixtureRepository').outcome == TaskOutcome.SUCCESS
+        result.tasks.every { !it.path.endsWith(':materializeKlumDslGdsl') }
+        !new File(directory, 'build/generated/klum-dsl-ide/gdsl').exists()
+        new JarFile(new File(directory, 'model/build/libs/model-1.0.jar')).withCloseable { jar ->
+            assert jar.getEntry('model.txt')
+            assert !jar.entries().toList()*.name.any { it.endsWith('.gdsl') }
+            true
+        }
+        def pom = new XmlSlurper().parse(new File(directory, 'model/build/repository/org/model/model/1.0/model-1.0.pom'))
+        pom.dependencies.dependency.collect { [it.groupId.text(), it.artifactId.text(), it.version.text(), it.scope.text()] } ==
+                [['org.binary', 'binary-schema', '1.0', 'compile']]
     }
 
     def "task-generated recognized resources preserve their provider dependencies for migration checks"() {

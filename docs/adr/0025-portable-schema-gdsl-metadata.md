@@ -113,6 +113,13 @@ Schema metadata. Each participating Schema/Model module registers that shared ro
 outside all Gradle SourceSets. Source mirrors remain local Schema-owned IDE projections; external Schemas use real
 compiled public Builder contracts. An included build never writes into another build's root output.
 
+Any build containing the Model plugin ensures that the root has Gradle's standard Base lifecycle, including its normal
+cleanup surface. This intentional lifecycle ownership adds no root Java/Model project, SourceSets, compilation model, or
+compile/runtime dependencies; it does not itself enable GDSL, create metadata selections/resolvers, resolve metadata, or
+run materialization. Root `clean` must remove stale root-owned IDE output across separate invocations after the final
+consumer opts out, even beneath a plain root. See the [root Base lifecycle engineering contract](../implementation/adr-0025-portable-schema-gdsl-metadata.md#root-base-lifecycle-ownership)
+and its never-enabled and opt-out compatibility controls.
+
 Validate the complete input union before changing output. Repeated references to the same component/artifact across
 Models are idempotent; distinct duplicate payload registrations, duplicate archive entries, different payloads for one
 origin, conflicting Schema versions, and overlapping rules are errors. Never use copy order, an override, or longest

@@ -43,7 +43,8 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
 
     @Override
     protected void additionalConfig() {
-        // Retain root cleanup ownership even after the last metadata consumer opts out.
+        // ADR-0025: root-owned IDE state always has the standard Base lifecycle owner,
+        // including after the last GDSL consumer opts out. This does not enable GDSL or root Java support.
         project.getRootProject().getPluginManager().apply(BasePlugin.class);
         project.getConfigurations().getByName("api").extendsFrom(project.getConfigurations().getByName("schemas"));
         Provider<Directory> descriptorDir = project.getLayout().getBuildDirectory().dir("modelDescriptors");

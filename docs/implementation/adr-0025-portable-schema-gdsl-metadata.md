@@ -539,10 +539,35 @@ Participants contribute configured main-source/resource GDSL files plus selected
 inspection. The SourceDirectorySet retains dependencies on generated-resource tasks; additional raw directory trees
 cover GDSL in language roots whose Java/Groovy filters would otherwise omit it. Source projects are inspected from source, while normal artifact views exclude project components: refreshing
 metadata does not compile or package a source Schema. Ordinary build/publication paths do not run the root materializer,
-and normal SourceSets, classpaths, and archives remain unchanged. The materializer and Model plugin retain Gradle's root base lifecycle so
-`clean` removes its output even when the root build has no Java/base plugin of its own. The Model plugin retains this
-cleanup owner after a binary-only last Model opt-out, including a Model subproject beneath a plain root with no
-materializer. No metadata resolver or refresh is added by disabled consumption.
+and normal SourceSets, classpaths, and archives remain unchanged.
+
+### Root Base lifecycle ownership
+
+A build containing the KlumAST Model plugin ensures that its root project has Gradle's standard Base lifecycle through
+`project.getRootProject().getPluginManager().apply(BasePlugin.class)`. This intentionally adds the normal root lifecycle
+and cleanup surface (`assemble`, `check`, `build`, and `clean`), even for a plain root whose Model subproject has never
+enabled GDSL. It does not apply the Java plugin, add SourceSets or Java compilation tasks, add compile/runtime
+dependencies, or otherwise turn the root into a Java or Model project. Ordinary Model build, classpath, and publication
+behavior remains unchanged.
+
+Base lifecycle ownership does not itself enable GDSL consumption, create metadata selections, introduce a metadata
+resolver or `materializeKlumDslGdsl` task, resolve metadata, or run materialization. The disabled Model's declarable
+`klumGdsl` dependency scope remains inert, including when the build author explicitly declares a metadata dependency.
+
+The shared generated IDE state is deliberately root-owned at `<root>/build/generated/klum-dsl-ide/gdsl/` and therefore
+needs a stable root lifecycle owner. In one invocation an enabled Model generates editor metadata; in a later invocation
+the final Model opts out, so the GDSL materializer/resolvers no longer participate while previous output still exists.
+Root `clean` must still remove that stale metadata. Model plugin application establishes this ownership deterministically,
+independently of stale filesystem state; individual Model subprojects do not own cleanup of the shared root directory.
+
+The never-enabled compatibility control is
+`KlumGdslProjectWideValidationTest#'a never-enabled Model beneath a plain root adds only the root Base lifecycle'`.
+It checks root lifecycle availability without a Java model, absence of materializer/resolvers and metadata resolution,
+and ordinary Model build/classpaths/publication with an intentionally unavailable metadata dependency. The separate
+`#'binary-only Model subproject retains root cleanup after its final opt-out'` control retains the two-invocation cleanup
+proof after metadata was generated.
+
+### Recognized-copy migration and coverage
 
 Recognition is deliberately bounded: exact canonical v1 generated payload bytes, including retired mappings, or the
 whole documented single-quoted #809 contributor structure with validated literal suffix and Model/Builder target.
@@ -598,3 +623,10 @@ Git push and GitHub CLI repository-mutation channels were independently verified
 The assigned implementation is complete; draft publication remains related to #805 and does not deliver its native
 release gate. The Hive owns subsequent merge/archive reconciliation. This worker retains the worktree and never
 self-archives an open pull request.
+
+PR #822 root-lifecycle contract hardening on 2026-10-02 preserves the existing deterministic Base plugin application
+and both final-opt-out cleanup controls. The new plain-root/never-enabled control passed alongside those cleanup
+controls. `:klum-ast-gradle-plugin:check` passed with 162 tests, license checks, `validatePlugins`, and the independent
+real Groovy-3/4/5 binary-contract fixtures. ADR link/anchor and test references plus `git diff --check` passed. Core
+compiler/runtime suites and root `check` were not repeated for this documentation, comment, and Gradle contract-test
+follow-up; production behavior remains unchanged.
