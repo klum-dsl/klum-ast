@@ -741,3 +741,24 @@ labels its original #825 transfer as historical and links the immutable PR #824 
 are unchanged. The user guide now ties its ordinary-class boundary directly to the generated contributor's script
 scope. Editor-only suffix semantics, runtime receivers, managed/external GDSL boundaries, and qualification limits
 are unchanged. No production/test-body/fixture-code change or additional native run is included.
+
+
+### GDSL-6 standalone Grape evidence incorporated into GDSL-5
+
+The supplied GDSL-6 investigation at production base `0cf65018` verified paired ordinary Schema and named/compact
+`gdsl` classifier grabs with actual published Schemas across independent Groovy 3.0.25, 4.0.32, and 5.0.6 processes.
+Its 54-process expected-outcome matrix also verified the shared-runtime-closure failure when the classifier annotation
+sets `transitive=false` after the ordinary request, and separate metadata-only `Grape.resolve`/extraction without loader
+attachment. These are supplied GDSL-6 results, not probes rerun by this documentation slice.
+
+The [standalone guide](../user/Grab-Model-Scripts.md#standalone-scripts-and-portable-gdsl-metadata) now distinguishes
+classifier retrieval on the script loader from a separate, manual editor-root preparation. The portable guide links
+that fallback. Grape does not select the GMM capability or inherit managed origin/version/overlap validation; no native
+Grape-project completion or additional editor support is claimed. The normal runtime declaration, managed transport,
+public APIs, and source/binary qualification boundary are unchanged. The supplied local GDSL-6 report and probe
+results were read for this incorporation; this slice records their conclusion without publishing or rerunning those
+probe files. The source evidence path subsequently became unavailable, so reviewers checked the documentation against
+the captured supplied conclusions and public source contracts rather than independently inspecting the raw process logs.
+
+Nested tracking remains reconciled: #826 is the canonical open investigation, #825 is closed as superseded, and only
+explicit historical evidence/reconciliation references retain #825. No further tracker mutation is needed.

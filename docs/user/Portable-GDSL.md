@@ -151,6 +151,9 @@ A POM cannot describe the metadata capability, so this fallback intentionally re
 It must match the normal selected Schema identity/version; dynamic or range versions are rejected. Update it when the
 normal Schema selection changes. KlumAST never retries this classifier automatically. Non-Gradle consumers must
 resolve, extract, and register editor content themselves; native Maven IDE integration is not qualified here.
+For standalone `@Grab` Models, see [Grape classifier retrieval and separate manual editor preparation](Grab-Model-Scripts.md#standalone-scripts-and-portable-gdsl-metadata).
+Paired grabs attach metadata to the script loader; they do not provide this managed editor-only transport, and native
+Grape-project completion is not qualified.
 
 ## Write and execute the recipe
 
