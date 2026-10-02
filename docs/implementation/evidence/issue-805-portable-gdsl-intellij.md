@@ -155,8 +155,7 @@ Nested native lookup remains unqualified at fixture preparation: the existing mi
 namespace, and normal Schema publication fails in class-stub projection as described above. The retained optional
 nested fixture makes this boundary reproducible. No pinned native PSI automation harness was added.
 
-This slice does not expand into compiler, source-projection, or publication changes. Keep GDSL-4 and the complete
-feature release gate pending at nested qualification; do not widen claims to other IDEA builds, Eclipse, VS Code,
-Quick Documentation, or runtime filename dispatch. The dedicated branch stops unpublished at `ready:PR` for Hive
-reconciliation of the nested preparation boundary. No draft PR is opened as if the complete requested native gate
-had passed.
+This slice does not expand into compiler, source-projection, or publication changes. Keep the complete feature release
+gate pending at nested qualification; do not widen claims to other IDEA builds, Eclipse, VS Code, Quick Documentation,
+or runtime filename dispatch. Draft PR #824 retains this evidence and leaves #805 open rather than presenting the
+complete native qualification gate as passed.
