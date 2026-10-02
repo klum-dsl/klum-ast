@@ -31,7 +31,7 @@ import org.gradle.api.tasks.PathSensitivity;
 import java.io.File;
 import java.io.Serializable;
 
-/** A resolved binary artifact paired with its selected Schema identity, without resolution state. */
+/** A local or resolved artifact paired with its selected Schema identity, without resolution state. */
 public record KlumGdslArtifactInput(File archive, String coordinates) implements Serializable {
     @InputFile
     @PathSensitive(PathSensitivity.NONE)

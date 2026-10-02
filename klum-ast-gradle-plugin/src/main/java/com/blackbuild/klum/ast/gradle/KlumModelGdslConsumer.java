@@ -28,6 +28,12 @@ import org.gradle.api.Project;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ExternalModuleDependency;
+import org.gradle.api.artifacts.ModuleDependency;
+import org.gradle.api.artifacts.ProjectDependency;
+import org.gradle.api.artifacts.component.ComponentSelector;
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
+import org.gradle.api.artifacts.component.ProjectComponentSelector;
+import org.gradle.api.artifacts.result.ResolvedComponentResult;
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
 import org.gradle.api.artifacts.component.ModuleComponentSelector;
 import org.gradle.api.artifacts.result.ResolvedArtifactResult;
@@ -41,6 +47,8 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition;
 import org.gradle.plugins.ide.idea.IdeaPlugin;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
@@ -48,7 +56,7 @@ import java.util.TreeSet;
 import java.util.Set;
 import java.util.Comparator;
 
-/** Lazy binary consumer. No normal dependency scope inherits any metadata dependency. */
+/** Lazy source/binary consumer. No normal dependency scope inherits any metadata dependency. */
 final class KlumModelGdslConsumer {
     private KlumModelGdslConsumer() {}
 
@@ -69,7 +77,8 @@ final class KlumModelGdslConsumer {
             classifier.extendsFrom(classifierDependencies);
             List<String> exactClassifierOrigins = routeDependencies(declarations, variantDependencies, classifierDependencies);
             List<String> variantModules = variantDependencies.getDependencies().stream()
-                    .map(dependency -> dependency.getGroup() + ":" + dependency.getName()).toList();
+                    .map(dependency -> dependency instanceof ProjectDependency source ? source.getPath()
+                            : dependency.getGroup() + ":" + dependency.getName()).toList();
             registerIdeRoot(project, normal, variant, classifier, exactClassifierOrigins, variantModules);
         });
     }
@@ -86,12 +95,20 @@ final class KlumModelGdslConsumer {
         // A plain user substitution resets capability selectors. Restore the metadata selection last,
         // using the selected normal result, including substituted module identity, as the authority.
         variant.getResolutionStrategy().dependencySubstitution(substitutions -> substitutions.all(details -> {
-            if (!(details.getRequested() instanceof ModuleComponentSelector requested)) return;
-            String selected = selectedSchema(normal.getIncoming().getResolutionResult().getRootComponent().get().getDependencies(),
-                    requested.getGroup(), requested.getModule(), new HashSet<>());
-            if (selected == null)
-                throw new GradleException("No selected normal Schema for requested GDSL " + requested.getGroup() + ":" + requested.getModule());
-            details.useTarget(substitutions.variant(substitutions.module(selected),
+            ComponentSelector requested = details.getRequested();
+            String key;
+            if (requested instanceof ModuleComponentSelector module) key = module.getGroup() + ":" + module.getModule();
+            else if (requested instanceof ProjectComponentSelector source) key = source.getProjectPath();
+            else return;
+            ResolvedComponentResult selected = selectedSchema(normal.getIncoming().getResolutionResult().getRootComponent().get().getDependencies(),
+                    key, new HashSet<>());
+            if (selected == null) throw new GradleException("No selected normal Schema for requested GDSL " + key);
+            ComponentSelector target;
+            if (selected.getId() instanceof ProjectComponentIdentifier source) {
+                if (!source.getBuild().isCurrentBuild()) throw new GradleException("Included-build GDSL selection is not supported: " + source);
+                target = substitutions.project(source.getProjectPath());
+            } else target = substitutions.module(coordinates(selected));
+            details.useTarget(substitutions.variant(target,
                     selection -> selection.capabilities(capabilities -> capabilities.requireFeature("gdsl"))));
         }));
     }
@@ -100,14 +117,16 @@ final class KlumModelGdslConsumer {
                                                    Configuration classifierDependencies) {
         List<String> exactClassifierOrigins = new ArrayList<>();
         declarations.getDependencies().forEach(dependency -> {
-            if (!(dependency instanceof ExternalModuleDependency module))
-                throw new GradleException("GDSL-2 requires an explicit binary Schema module in klumGdsl");
-            ExternalModuleDependency request = module.copy();
+            if (!(dependency instanceof ModuleDependency module))
+                throw new GradleException("GDSL requires an explicit Schema module or project in klumGdsl");
+            ModuleDependency request = module.copy();
             if (request.getArtifacts().isEmpty()) {
-                var version = request.getVersionConstraint();
-                if (!version.getRequiredVersion().isEmpty() || !version.getStrictVersion().isEmpty() || !version.getPreferredVersion().isEmpty()
-                        || !version.getRejectedVersions().isEmpty())
-                    throw new GradleException("GMM GDSL selections must omit the version; the normal Schema dependency is authoritative");
+                if (request instanceof ExternalModuleDependency external) {
+                    var version = external.getVersionConstraint();
+                    if (!version.getRequiredVersion().isEmpty() || !version.getStrictVersion().isEmpty() || !version.getPreferredVersion().isEmpty()
+                            || !version.getRejectedVersions().isEmpty())
+                        throw new GradleException("GMM GDSL selections must omit the version; the normal Schema dependency is authoritative");
+                }
                 request.capabilities(capabilities -> capabilities.requireFeature("gdsl"));
                 variantDependencies.getDependencies().add(request);
             } else {
@@ -123,23 +142,25 @@ final class KlumModelGdslConsumer {
 
     private static void registerIdeRoot(Project project, Configuration normal, Configuration variant,
                                         Configuration classifier, List<String> exactClassifierOrigins, List<String> variantModules) {
-        Provider<List<String>> selectedVariantOrigins = normal.getIncoming().getResolutionResult().getRootComponent().map(root ->
-                variantModules.stream().map(module -> {
-                    String[] identity = module.split(":", -1);
-                    String selected = selectedSchema(root.getDependencies(), identity[0], identity[1], new HashSet<>());
-                    if (selected == null) throw new GradleException("No selected normal Schema for requested GDSL " + module);
-                    return selected;
-                }).toList());
+        Provider<Map<String, String>> selectedVariantOrigins = project.provider(() -> {
+            Map<String, String> result = new LinkedHashMap<>();
+            for (String module : variantModules) {
+                var selected = selectedSchema(normal.getIncoming().getResolutionResult().getRootComponent().get().getDependencies(), module, new HashSet<>());
+                if (selected == null) throw new GradleException("No selected normal Schema for requested GDSL " + module);
+                result.put(selected.getId().getDisplayName(), coordinates(selected));
+            }
+            return result;
+        });
         project.getPluginManager().apply(IdeaPlugin.class);
         project.getRootProject().getPluginManager().apply(KlumDslGdslMaterializationPlugin.class);
+        KlumDslGdslMaterializationPlugin.registerParticipants(project);
         KlumDslGdslMaterializationPlugin.materializationTask(project).configure(task -> {
-            task.getRuntimeClasspath().from(normal);
-            task.getSchemaMetadataArtifacts().addAll(variant.getIncoming().getArtifacts().getResolvedArtifacts().map(artifacts ->
-                    singleArchives(artifacts, selectedVariantOrigins.get(), "GMM")));
+            task.dependsOn(variant.getIncoming().getArtifacts().getArtifactFiles(), classifier.getIncoming().getArtifacts().getArtifactFiles());
+            task.getRuntimeClasspath().from(KlumDslGdslMaterializationPlugin.binaryClasspath(normal));
+            task.getSchemaMetadataArtifacts().addAll(variant.getIncoming().getArtifacts().getResolvedArtifacts().zip(selectedVariantOrigins,
+                    KlumModelGdslConsumer::singleVariantArchives));
             task.getSchemaMetadataArtifacts().addAll(classifier.getIncoming().getArtifacts().getResolvedArtifacts().map(artifacts ->
                     singleArchives(artifacts, exactClassifierOrigins, "classifier")));
-            task.getNormalSchemaCoordinates().addAll(normal.getIncoming().getResolutionResult().getRootComponent().map(root ->
-                    normalCoordinates(root.getDependencies())));
         });
         IdeaModel idea = project.getExtensions().getByType(IdeaModel.class);
         var output = KlumDslGdslMaterializationPlugin.outputDirectory(project).get().getAsFile();
@@ -158,13 +179,26 @@ final class KlumModelGdslConsumer {
                 && !version.matches(".*[\\[\\](),].*");
     }
 
+    private static List<KlumGdslArtifactInput> singleVariantArchives(Set<ResolvedArtifactResult> artifacts, Map<String, String> expected) {
+        List<KlumGdslArtifactInput> selected = artifacts.stream().map(artifact -> {
+            String origin = expected.get(artifact.getId().getComponentIdentifier().getDisplayName());
+            if (origin == null) throw new GradleException("GDSL metadata origin differs from normal Schema: " + artifact.getId());
+            return new KlumGdslArtifactInput(artifact.getFile(), origin);
+        }).sorted(Comparator.comparing(KlumGdslArtifactInput::getCoordinates)).toList();
+        return validateArchiveCounts(selected, List.copyOf(expected.values()), "GMM");
+    }
+
     private static List<KlumGdslArtifactInput> singleArchives(Set<ResolvedArtifactResult> artifacts, List<String> expectedOrigins, String mode) {
         List<KlumGdslArtifactInput> selected = artifacts.stream().map(artifact -> {
             if (!(artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier module))
-                throw new GradleException("GDSL-2 requires binary Schema metadata: " + artifact.getId());
+                throw new GradleException("Classifier GDSL requires binary Schema metadata: " + artifact.getId());
             return new KlumGdslArtifactInput(artifact.getFile(), coordinates(module));
         }).sorted(Comparator.comparing(KlumGdslArtifactInput::getCoordinates)).toList();
-        Set<String> expected = new HashSet<>(expectedOrigins);
+        return validateArchiveCounts(selected, expectedOrigins, mode);
+    }
+
+    private static List<KlumGdslArtifactInput> validateArchiveCounts(List<KlumGdslArtifactInput> selected, List<String> expectedOrigins, String mode) {
+        Set<String> expected = new TreeSet<>(expectedOrigins);
         List<String> selectedOrigins = selected.stream().map(KlumGdslArtifactInput::getCoordinates).toList();
         if (!expected.containsAll(selectedOrigins))
             throw new GradleException("GDSL " + mode + " selection changed requested Schema GAV: " + expected + " -> " + selectedOrigins);
@@ -173,10 +207,10 @@ final class KlumModelGdslConsumer {
             if (count != 1)
                 throw new GradleException("GDSL " + mode + " requires exactly one metadata archive for " + origin + "; found " + count);
         }
-        return selected;
+        return new ArrayList<>(selected);
     }
 
-    private static List<String> normalCoordinates(Set<? extends DependencyResult> dependencies) {
+    static List<String> normalCoordinates(Set<? extends DependencyResult> dependencies) {
         // The authoritative result includes selected transitive Schemas and platform-controlled versions.
         Set<String> result = new TreeSet<>();
         collectCoordinates(dependencies, result, new HashSet<>());
@@ -189,28 +223,32 @@ final class KlumModelGdslConsumer {
             if (dependency instanceof ResolvedDependencyResult resolved) {
                 var selected = resolved.getSelected();
                 if (!visited.add(selected.getId().getDisplayName())) continue;
-                if (selected.getId() instanceof ModuleComponentIdentifier module) result.add(coordinates(module));
+                if (selected.getModuleVersion() != null) result.add(coordinates(selected));
                 collectCoordinates(selected.getDependencies(), result, visited);
             }
         }
     }
 
-    private static String selectedSchema(Set<? extends DependencyResult> dependencies, String group, String name, Set<String> visited) {
+    private static ResolvedComponentResult selectedSchema(Set<? extends DependencyResult> dependencies, String key, Set<String> visited) {
         for (var dependency : dependencies) {
             if (!(dependency instanceof ResolvedDependencyResult resolved)) continue;
             var selected = resolved.getSelected();
-            if (resolved.getRequested() instanceof ModuleComponentSelector requested
-                    && group.equals(requested.getGroup()) && name.equals(requested.getModule())
-                    && selected.getId() instanceof ModuleComponentIdentifier module) return coordinates(module);
-            // Consistent resolution also contributes a constraint under the substituted identity.
-            if (selected.getId() instanceof ModuleComponentIdentifier module
-                    && group.equals(module.getGroup()) && name.equals(module.getModule())) return coordinates(module);
+            ComponentSelector requested = resolved.getRequested();
+            if (requested instanceof ModuleComponentSelector module && key.equals(module.getGroup() + ":" + module.getModule())) return selected;
+            if (requested instanceof ProjectComponentSelector source && key.equals(source.getProjectPath())) return selected;
+            if (selected.getModuleVersion() != null && key.equals(selected.getModuleVersion().getGroup() + ":" + selected.getModuleVersion().getName())) return selected;
             if (visited.add(selected.getId().getDisplayName())) {
-                String nested = selectedSchema(selected.getDependencies(), group, name, visited);
+                var nested = selectedSchema(selected.getDependencies(), key, visited);
                 if (nested != null) return nested;
             }
         }
         return null;
+    }
+
+    private static String coordinates(ResolvedComponentResult component) {
+        var module = component.getModuleVersion();
+        if (module == null) throw new GradleException("Schema has no normal GAV: " + component.getId());
+        return module.getGroup() + ":" + module.getName() + ":" + module.getVersion();
     }
 
     private static String coordinates(ModuleComponentIdentifier module) {

@@ -105,7 +105,8 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumSchemaExtension>
                 });
         project.getRootProject().getPluginManager().apply(KlumDslSourceMirrorsAggregationPlugin.class);
         project.getRootProject().getPluginManager().apply(KlumDslGdslMaterializationPlugin.class);
-        KlumDslGdslMaterializationPlugin.addRuntimeGdslSource(project, main.getCompileClasspath());
+        KlumDslGdslMaterializationPlugin.addRuntimeGdslSource(project,
+                KlumDslGdslMaterializationPlugin.binaryClasspath(project.getConfigurations().getByName("compileClasspath")));
         project.getRootProject().getTasks()
                 .named(KlumDslSourceMirrorsAggregationPlugin.TASK_NAME)
                 .configure(task -> task.dependsOn(createMirrors));

@@ -29,6 +29,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Nested;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import org.gradle.api.file.ArchiveOperations;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -75,10 +76,13 @@ public abstract class KlumDslGdslMaterializationTask extends DefaultTask {
         for (var artifact : new LinkedHashSet<>(getSchemaMetadataArtifacts().get())) {
             archives.add(KlumGdslArchive.read(artifact.getArchive(), artifact.getCoordinates(), getNormalSchemaCoordinates().get()));
         }
+        archives.sort(Comparator.comparing(KlumGdslArchive::coordinates).thenComparing(archive -> archive.file().getPath()));
+        KlumGdslProjectValidation.validate(archives, getNormalSchemaCoordinates().get());
         getFileSystemOperations().sync(copy -> {
             copy.into(getOutputDirectory());
             copy.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
             copy.from(getRuntimeClasspath().getFiles().stream()
+                    .filter(file -> !file.isFile() || !file.getName().endsWith(".gdsl"))
                     .map(file -> file.isFile() ? getArchiveOperations().zipTree(file) : file)
                     .toList(), spec -> spec.include("com/blackbuild/klum/ast/gdsl/**/*.gdsl"));
             for (var archive : archives) {

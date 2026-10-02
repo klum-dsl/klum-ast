@@ -4,9 +4,12 @@ Date: 2026-10-01
 
 Status: Accepted
 
-Implementation status: GDSL-0, the GDSL-1 Schema producer boundary, and the GDSL-2 binary Model resolver/root
-are implemented. Source authoring, project-wide conflict/removal controls, migration detection, and native IntelliJ
-discovery remain later slices; #805 is not delivered.
+Scope clarification (2026-10-02): validation owns only the portable managed metadata transport. The unreleased
+manual-resource approach creates no migration or compatibility obligation.
+
+Implementation status: GDSL-0 through GDSL-3 are implemented: producer transport, binary/source Model selection,
+source-authoring contribution, managed root-union validation, and lifecycle/cleanup controls. Native IntelliJ verification
+and broad user documentation remain GDSL-4/5; #805 is not delivered.
 
 Tracking issue: [#805 — Restore IDE completion for DelegatingScripts](https://github.com/klum-dsl/klum-ast/issues/805)
 
@@ -39,7 +42,7 @@ at `9f137a748018ac36c759acc0f87c31052774fdc6` (not in this branch's ancestry). I
 and deferred generated declarations. **The confirmed rejection requirement supersedes that part of the comparison.**
 Arbitrary executable GDSL cannot provide a decidable predicate-overlap contract simply by being namespaced or hashed.
 The maintainer accepted the bounded literal filename-suffix catalog and generated contributor, the `gdsl` Gradle
-vocabulary, recognized-legacy-copy migration boundary, and standard-GAV-first publication identity policy.
+vocabulary, managed-transport validation boundary, and standard-GAV-first publication identity policy.
 Mappings declare `modelType`; the implementation resolves its real public Builder so Schema authors do not need
 generated Builder naming knowledge. These decisions are settled; executable implementation evidence remains pending.
 
@@ -113,6 +116,13 @@ Schema metadata. Each participating Schema/Model module registers that shared ro
 outside all Gradle SourceSets. Source mirrors remain local Schema-owned IDE projections; external Schemas use real
 compiled public Builder contracts. An included build never writes into another build's root output.
 
+Any build containing the Model plugin ensures that the root has Gradle's standard Base lifecycle, including its normal
+cleanup surface. This intentional lifecycle ownership adds no root Java/Model project, SourceSets, compilation model, or
+compile/runtime dependencies; it does not itself enable GDSL, create metadata selections/resolvers, resolve metadata, or
+run materialization. Root `clean` must remove stale root-owned IDE output across separate invocations after the final
+consumer opts out, even beneath a plain root. See the [root Base lifecycle engineering contract](../implementation/adr-0025-portable-schema-gdsl-metadata.md#root-base-lifecycle-ownership)
+and its never-enabled and opt-out compatibility controls.
+
 Validate the complete input union before changing output. Repeated references to the same component/artifact across
 Models are idempotent; distinct duplicate payload registrations, duplicate archive entries, different payloads for one
 origin, conflicting Schema versions, and overlapping rules are errors. Never use copy order, an override, or longest
@@ -140,14 +150,20 @@ public Builder; a missing Model or Builder contributes no invented operations. C
 runtime factory remains an authoring error; this design introduces no runtime suffix check. Runtime truth is proved with the actual receiving factory and
 root/owned-child recipe paths. A need for enforceable runtime typing belongs to #269.
 
-### Migration and native release gate
+### Managed validation boundary
 
-Remove prior #809 manually copied resources before enabling the new transport: move the mapping to the approved
-declaration, remove its resource copy, rebuild/publish a new Schema version, then refresh/reimport IDEA. Automatic
-rejection covers recognized legacy copies in participating normal inputs/artifacts: matching generated payloads or
-the documented #809 contributor structure/target/suffix. It does not claim semantic analysis of arbitrary external
-GDSL; users own removal of custom contributors that could affect the family. Arbitrary raw contributors are never
-admitted into the new catalog transport. The implementation plan makes the recognized-copy boundary executable.
+KlumAST's project-wide validation covers only mappings delivered through the portable managed GDSL metadata
+mechanism. Arbitrary `.gdsl` resources in source/resource roots or normal dependency artifacts remain user-owned
+IntelliJ configuration and are not parsed, transported, rejected, or conflict-checked by KlumAST. This includes copied
+generated contributors outside the managed metadata transport. Recognizing selected external copies would not prove
+uniqueness against arbitrary executable GDSL and is not part of this contract. Existing framework GDSL packaged by
+KlumAST remains part of the root materialization.
+
+Development-history note: the manual #809 recipe was never released. Users who experimented with it in development
+snapshots should remove copied contributors when adopting the final portable mechanism. This note requires no
+runtime migration machinery or normal-artifact republication contract.
+
+### Native release gate
 
 Do not release this facility until fresh native IntelliJ Gradle-import evidence establishes discovery, activation,
 completion, and method resolution for source mirrors and a separate binary Schema consumer, including removal and
