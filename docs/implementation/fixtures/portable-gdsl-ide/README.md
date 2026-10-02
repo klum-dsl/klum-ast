@@ -1,8 +1,14 @@
 # Portable GDSL native acceptance fixture — issue #805
 
 This engineering fixture exercises ADR 0025 against real generated Schema contracts. It is not a user onboarding guide
-or a release claim. See [the recorded native run](../../evidence/issue-805-portable-gdsl-intellij.md) for observed results
-and outstanding gates. Source and binary builds are independent; do not import their common parent as an IDEA project.
+or a release claim. See [the recorded native run](../../evidence/issue-805-portable-gdsl-intellij.md) for the completed
+GDSL-4 qualification on the supported source/binary topologies represented here. GDSL-5 user documentation, migration,
+and release integration remains. Source and binary builds are independent; do not import their common parent as an
+IDEA project.
+
+Portable GDSL must work for a Model whose public Builder is available through the normal supported source-Schema or
+published-binary Schema topology. It does not independently guarantee shapes/topologies those prerequisite mechanisms
+do not support. The optional nested-Model discovery below is outside #805 and its portable-GDSL release gate.
 
 ## Stage one candidate in an isolated Maven repository
 
@@ -114,15 +120,20 @@ window and record the failure/stale-output message. Gradle Sync alone need not r
 leaves previous descriptors on disk; existing editor hints are stale, not a silently accepted conflict. Remove the
 control property, refresh successfully, and resync/reload IDEA to restore the positive state.
 
-## Nested-Model preparation boundary
+## Adjacent nested-Model discovery — issue #825
 
-The retained optional `schema/src/nested/groovy/gdslacceptance/Outer.groovy` contains the real supported runtime Model:
+The retained optional `schema/src/nested/groovy/gdslacceptance/Outer.groovy` contains the nested probe:
 
 ```groovy
 class Outer {
     @DSL static class Inner { String region }
 }
 ```
+
+Nested Models are not an established KlumAST compatibility guarantee. This adjacent limitation is transferred to
+[#825](https://github.com/klum-dsl/klum-ast/issues/825) to investigate and define the supported boundary before any
+implementation decision. It is outside #805 and the portable-GDSL release gate, not a failed GDSL-4 criterion.
+No support or 4.1 implementation commitment is made.
 
 On a separate scratch copy, enable `nestedModel` to include that source directory. Reproduce the current editor and
 publication preparation boundary through normal tasks:
@@ -135,12 +146,15 @@ publication preparation boundary through normal tasks:
   :schema:publishMavenJavaPublicationToFixtureRepository
 ```
 
-The real public `Outer$Inner_DSL$Builder` compiles, but the mirror task's `**/*$*` exclusion produces no source mirror.
-Normal publication currently fails in `createClassStubs` projecting Outer (`'$I'` argument error). These are preparation
+The real public `Outer$Inner_DSL$Builder` compiles and the recorded runtime probe constructs `region == 'eu'`.
+The mirror task's `**/*$*` exclusion produces no source mirror. Normal publication currently fails in `createClassStubs`:
+`SourceProjectionException: Could not project selected declaration gdslacceptance.Outer`, caused by
+`IllegalArgumentException: index 1 for '$I' not in range (received 0 arguments)`. These are prerequisite preparation
 limits, not native lookup results. Do not bypass projection/publication or supply a hand-written Builder mirror to
 claim a native pass. Remove the flag and run clean/refresh to return that scratch copy to the ordinary fixture.
 
 The repository has no pinned headless native PSI test harness for this contribution. This manual importer procedure is
 the native seam. The real binary TestKit contract covers Groovy 3/4/5 and runtime dispatch, while its GroovyShell adapter
-remains a non-native control. The recorded guided clean-profile/restart/conflict checks passed; native nested lookup
-remains unqualified at the preparation boundary. Full ADR release qualification remains pending.
+remains a non-native control. The recorded native matrix, including guided clean-profile/restart/conflict checks,
+qualifies GDSL-4 on the supported source/binary fixture topologies. Nested runtime/generated binary behavior and
+unqualified mirror/publication behavior are tracked independently in #825. GDSL-5 is the remaining #805 slice.

@@ -2,8 +2,11 @@
 
 Date: 2026-10-02. Outcome: actual source and binary Gradle imports resolve the mapped public Builder. The guided clean-profile
 completion, navigation, restart, retirement, non-DSL guard, and managed-conflict/version controls passed.
-**Qualification remains partial**: native nested-Model lookup is blocked at fixture preparation as described below. No editor-registration defect was found and no production code changed. GDSL-5 user documentation and
-release qualification remain separate.
+**GDSL-4 is qualified on the supported source/binary Model topologies represented by the acceptance fixture.**
+No accepted GDSL-4 criterion remains outstanding. The adjacent nested-Model discovery is transferred to
+[#825](https://github.com/klum-dsl/klum-ast/issues/825), outside #805 and the portable-GDSL release gate.
+No editor-registration defect was found and no production code changed. GDSL-5 user documentation, migration, and
+release integration remains the next #805 slice.
 
 Authority: [ADR 0025](../../adr/0025-portable-schema-gdsl-metadata.md),
 [implementation plan](../adr-0025-portable-schema-gdsl-metadata.md),
@@ -29,7 +32,7 @@ Related: [#805](https://github.com/klum-dsl/klum-ast/issues/805); this slice doe
   explicitly; Enter accepted its proposal, declaration navigation and Parameter Info checked the actual Builder.
   Inline AI ghost text was not counted as a native proposal. Fresh projects do **not** establish a clean-profile run.
 - The materialized descriptors appeared in the imported root, with no activation banner observed. This observation
-  is limited to the existing profile; cache/first-use activation and full restart are still unqualified.
+  is limited to the initial existing-profile run; the later guided clean-profile/restart evidence appears below.
 
 ## Actual native observations
 
@@ -129,7 +132,12 @@ class-stub failure. The ordinary source fixture was restored after that negative
 and runtime tests. Relative links and `git diff --check` passed. No additional plugin/core production code changed;
 the earlier plugin check and real Groovy 3/4/5 contract results remain the module validation for this branch.
 
-## Nested-Model preparation boundary
+## Adjacent nested-Model discovery — transferred to #825
+
+Nested Models are not an established KlumAST compatibility guarantee. This discovery is independent of #805 and
+outside the portable-GDSL release gate; it is not evidence of a failed GDSL-4 acceptance criterion. Issue
+[#825](https://github.com/klum-dsl/klum-ast/issues/825) investigates and defines the supported boundary before any
+implementation decision. No commitment to nested-Model support or required 4.1 work is made.
 
 A separate scratch Schema at `/private/tmp/gdsl4-nested-gmu6iq8e` compiled a real
 `gdslacceptance.Outer.Inner` Model (`@DSL static class Inner { String region }`) and produced the public
@@ -141,21 +149,30 @@ Normal Schema publication for the unique candidate `805.3` failed before publica
 
 This prevents preparing the native nested lookup check through the current source-mirror or normal publication path.
 No source mirror was hand-written, projection task bypassed, or public generated contract changed to manufacture a pass.
-The supported runtime contract and unsupported editor/publication preparation are recorded separately; native nested
-lookup is unqualified. Reproduction uses the normal fixture plus the Outer class, `mappingModel=gdslacceptance.Outer.Inner`,
+The observed working runtime/generated binary behavior and unsupported or unqualified mirror/publication behavior
+are recorded separately; native nested lookup is unqualified. Reproduction uses the normal fixture plus the Outer
+class, `mappingModel=gdslacceptance.Outer.Inner`,
 and `schemaVersion=805.3`; run aggregate mirrors and normal `:schema:publishMavenJavaPublicationToFixtureRepository`.
 
-## Remaining native gate and delivery boundary
+## Qualified acceptance and remaining delivery boundary
 
-All runnable guided checks passed: clean-profile source/binary discovery, generated mirror/compiled Builder navigation,
-positive and retired states across restart, independent non-DSL guard, and native managed overlap/normal-version
-rejection with stale-output warnings. No descriptor activation was necessary in the guided runs.
+Portable GDSL must work for a Model whose public Builder is available through the normal supported source-Schema or
+published-binary Schema topology. GDSL does not independently guarantee Model shapes/topologies that those prerequisite
+mechanisms do not support.
 
-Nested native lookup remains unqualified at fixture preparation: the existing mirror exclusion suppresses its
-namespace, and normal Schema publication fails in class-stub projection as described above. The retained optional
-nested fixture makes this boundary reproducible. No pinned native PSI automation harness was added.
+The recorded matrix qualifies GDSL-4 on those supported topologies: clean-profile source/binary discovery, Basic
+Completion, source-mirror and compiled/decompiled Builder navigation, Parameter Info, restart persistence, source rename
+and binary opt-out retirement, nonmatching filename, script-scope guard, missing Model/Builder, independent non-DSL
+guard, wrong-argument diagnostics, managed suffix-overlap and normal Schema-version rejection, stale-output behavior,
+explicit classifier fallback, and runtime receiver controls. No descriptor activation was necessary in the guided runs.
 
-This slice does not expand into compiler, source-projection, or publication changes. Keep the complete feature release
-gate pending at nested qualification; do not widen claims to other IDEA builds, Eclipse, VS Code, Quick Documentation,
-or runtime filename dispatch. Draft PR #824 retains this evidence and leaves #805 open rather than presenting the
-complete native qualification gate as passed.
+The optional nested reproduction remains useful evidence for #825, independent of this qualification. No pinned native
+PSI automation harness was added; the repeatable manual procedure is the native seam. No compiler, source-projection,
+or publication fix is included. Claims remain limited to the pinned IDEA build and fixture topologies; they do not
+extend to Eclipse, VS Code, Quick Documentation, unknown-method inspection parity, or runtime filename dispatch.
+PR #824 retains the completed GDSL-4 qualification. #805 stays open for GDSL-5 user documentation, migration, and
+release integration; that is the remaining feature delivery boundary.
+
+The 2026-10-02 scope reconciliation changes only ADR/plan/evidence/fixture prose. Local documentation links/anchors
+and `git diff --check` passed; no test, fixture code, or production behavior changed. The previously recorded plugin
+check, independent Groovy 3/4/5 contract lanes, runtime fixtures, and native observations remain the validation evidence.
