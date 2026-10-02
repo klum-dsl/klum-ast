@@ -1,0 +1,22 @@
+plugins { id 'com.blackbuild.klum-ast-schema'; id 'maven-publish' }
+repositories {
+    maven { url = uri(rootProject.file(klumRepository)) }
+    mavenCentral()
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+klumSchema {
+    groovyVersion = groovyGeneration
+    gdsl {
+        publish = !providers.gradleProperty('disableGdsl').isPresent()
+        mappings {
+            if (!providers.gradleProperty('emptyMappings').isPresent()) {
+                environment {
+                    fileNameSuffix = providers.gradleProperty('mappingSuffix').getOrElse('.environment.groovy')
+                    modelType = providers.gradleProperty('mappingModel').getOrElse('gdslacceptance.Environment')
+                }
+            }
+        }
+    }
+}
+publishing.repositories.maven { name = 'Fixture'; url = uri(rootProject.file(klumRepository)) }

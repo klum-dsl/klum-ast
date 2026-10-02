@@ -1,0 +1,17 @@
+plugins { id 'com.blackbuild.klum-ast-model'; id 'maven-publish' }
+repositories {
+    maven { url = uri(rootProject.file(klumRepository)) }
+    mavenCentral()
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+klumModel {
+    groovyVersion = groovyGeneration
+    schemas { schema project(':schema') }
+    gdsl { enabled = !providers.gradleProperty('disableGdsl').isPresent() }
+}
+dependencies {
+    if (!providers.gradleProperty('disableGdsl').isPresent()) {
+        klumGdsl project(':schema')
+    }
+}

@@ -651,3 +651,12 @@ configuration-cache reuse and an up-to-date managed refresh. Focused GDSL-3/mate
 real Groovy-3/4/5 binary-contract fixtures. Local ADR/plan links and anchors plus `git diff --check` passed. Core suites and
 root `check` were not repeated for this Gradle-plugin-only scope correction. Earlier test counts above describe historical
 revisions, including the subsequently removed migration tests.
+
+## GDSL-4 qualification progress (2026-10-02)
+
+[Native source/binary observations](evidence/issue-805-portable-gdsl-intellij.md) and a
+[retained real Schema/Model fixture](fixtures/portable-gdsl-ide/README.md) now record Gradle-import discovery, public
+Builder navigation, wrong arguments/receivers, target guards, rename/empty/opt-out retirement, and explicit classifier
+fallback. Real binary runtime coverage includes root File and owned-child recipe paths on Groovy 3/4/5. No production
+registration change was needed. GDSL-4 remains partial: clean-profile activation, full restart, the native conflict
+matrix, and nested-type qualification remain unfilled. GDSL-5 and feature publication are not qualified by this run.
