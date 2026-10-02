@@ -702,3 +702,25 @@ state is changed. Historical native records referring to the earlier #825 locato
 PR #824 already retained the single staged candidate, coordinate-only binary Model, runtime controls, and native
 source/binary proof. This slice uses that qualification; it does not claim a new native run or publish a release.
 Tracker impact is `Related: #805`; final release qualification and Hive acceptance/reconciliation remain pending.
+
+GDSL-5 validation on 2026-10-02:
+
+- Existing producer, binary-consumer, and source-union documentary selections passed four cases (including both source
+  evaluation orders), zero failures/errors/skips. Only their `@See` targets changed.
+- `renderLocalDocumentation -PdocumentationVersion=4.1.0-tracer` rendered the committed guide and passed its site crawl;
+  rendered-content checks confirmed opt-in, selection/refresh syntax, non-nested qualification, and the pinned IDE build.
+- `verifyVersionedDocumentationRenderer` passed separately with its expected default properties. The renderer rejected
+  the initial custom candidate label, and its default-property fixture rejected the combined 4.1 override; these were
+  invocation corrections, not documentation or production changes.
+- Local Markdown fences and 125 local links/anchors (including documentary targets) plus `git diff --check` passed.
+- Independent Standards and Spec reviews of `0cf65018...64dbc660` each reported zero findings. History review retains
+  one coherent documentation/traceability commit and this additive validation record.
+- Full plugin/core suites, Groovy compatibility lanes, and root `check` were not repeated: no executable test body,
+  build input, generated output, or runtime behavior changed. Prior GDSL-4 independent Groovy 3/4/5 and native evidence
+  remains the behavior qualification; this slice adds no new native claim.
+- Delivery audit: Git push channel `authorized` by dedicated-branch dry run; GitHub CLI repository-mutation channel
+  `authorized` by its repository capability check. No credentials or raw authentication diagnostics were retained.
+
+Assigned documentation execution is complete. Draft publication remains related to #805; final CI/review, merge,
+release qualification, issue-state reconciliation, and archive reconciliation are subsequent delivery conditions.
+The Hive retains ownership of acceptance and archive reconciliation; no curation or release-placement change is made.
