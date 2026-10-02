@@ -1,8 +1,8 @@
 # Issue #805 — GDSL-4 native IntelliJ evidence
 
-Date: 2026-10-02. Outcome: actual source and binary Gradle imports resolve the mapped public Builder, with negative and
-retirement controls. **Qualification remains partial**: the complete clean-profile/restart/conflict matrix below has
-not passed. No editor-registration defect was found and no production code changed. GDSL-5 user documentation and
+Date: 2026-10-02. Outcome: actual source and binary Gradle imports resolve the mapped public Builder. The guided clean-profile
+completion, navigation, restart, retirement, non-DSL guard, and managed-conflict/version controls passed.
+**Qualification remains partial**: native nested-Model lookup is blocked at fixture preparation as described below. No editor-registration defect was found and no production code changed. GDSL-5 user documentation and
 release qualification remain separate.
 
 Authority: [ADR 0025](../../adr/0025-portable-schema-gdsl-metadata.md),
@@ -77,18 +77,86 @@ GroovyShell contributor adapter verifies dispatch/real contract shape; **it is n
 No production compiler/runtime/generated API changed. Normal-artifact, metadata graph, root union, and conflict
 coverage remains in the merged GDSL-1/2/3 suites; successful transport tests are not substituted for missing native runs.
 
+## Guided clean-profile run (maintainer-reported, 2026-10-02)
+
+Fresh copies of the retained fixture at `b1402f62` were prepared under
+`/private/tmp/gdsl4-manual-32w3xfh6`, with separate IDEA configuration, system, plugins, and log directories.
+The source and binary runtime tests passed before native import. The launcher points to the same pinned IDEA installation;
+Gradle uses the configured Temurin 17 JVM and staged local candidate repository.
+
+The maintainer reports the binary GMM first-import checks all passed: native Basic Completion supplied the mapped
+`region` operation, and Command-B opened the compiled DSL class in the decompiler. No descriptor activation was necessary.
+Source artifacts were not attached, so decompiler navigation is the expected positive result for this binary topology;
+it does not establish source-mirror navigation. This is human-observed native evidence, separate from the earlier
+computer-use observations. The maintainer subsequently confirmed native binary completion and compiled Builder
+navigation still worked after fully quitting and relaunching the isolated IDEA instance; no reactivation was needed.
+The maintainer also confirmed retirement in the binary topology: after `disableGdsl=true`, root `clean`, Gradle Sync,
+and disk reload, the mapped operation disappeared from native completion and declaration navigation. It remained absent
+after fully quitting and relaunching the isolated IDEA instance.
+
+For source authoring, a separate fresh `source-profile` was prepared through `idea-source.properties`
+under the same manual fixture directory. The maintainer confirmed the source-plus-in-build-Model checks passed: native completion,
+Command-B navigation to the generated `Environment_DSL.java` mirror, imported generated-source/resource roots, and
+completion/navigation after fully quitting and relaunching. No descriptor activation or reactivation was necessary.
+The maintainer then confirmed Schema-only authoring and rename retirement: after excluding the Model module and
+refreshing the `.renamed.groovy` mapping, the new filename completed/navigated to the generated mirror, while the old
+`.environment.groovy` filename no longer supplied the mapped operation. Both outcomes persisted across a full restart.
+No activation was reported for the guided source run.
+
+The first non-DSL guard attempt is not counted as a failure: the maintainer reported that
+`mappingModel` was absent and the effective target remained Environment. The prepared manual copy's properties and
+materialized descriptor were checked on disk and both target PlainModel; UI inspection exposed the older
+`/private/tmp/gdsl4-source-authoring` copy, whose properties have no override. Confirming the active project path is a
+prerequisite to repeating this guard control. After selecting the prepared manual project and confirming its PlainModel
+override/descriptor, the maintainer confirmed that the mapped operation disappeared while the real Environment mirror
+remained available. The independent non-DSL guard control therefore passed.
+
+The maintainer confirmed the imported managed-overlap scenario: the valid `.renamed.groovy` Environment mapping was
+restored, then `managedConflict=true` included a second Schema (`org.example.gdsl4:clash-schema:805.1`) declaring
+`.groovy`. Running root `materializeKlumDslGdsl` from IDEA's Gradle tool window failed with both Schema origins/mapping
+IDs/suffixes, witness filename `recipe.renamed.groovy`, and `previous IDE output is stale`. The failed refresh was not
+counted as accepted current metadata. The maintainer also confirmed the normal-version control after replacing the
+clash Schema with `version-model`: the local Schema stayed at `805.1`, while the new Model normally selected published
+Schema `805.2` without GDSL opt-in. Native Gradle execution rejected `[org.example.gdsl4:schema:805.1,
+org.example.gdsl4:schema:805.2]` and labelled previous output stale. This verifies the root union includes the normal
+Schema selection of a non-opted-in Model. The positive fixture properties/recipes were subsequently restored and
+command-line refresh/runtime tests were rerun; a final native resync is needed to show the restored baseline in IDEA.
+
+The retained fixture now includes optional `clash-schema`, `version-model`, and nested source controls. Final local
+verification passed normal source mirror refresh/publication and both Model runtime fixtures (two tests each, Groovy 3),
+reproduced both intended managed-conflict rejections with stale-output warnings, and reproduced the exact nested
+class-stub failure. The ordinary source fixture was restored after that negative probe and again passed publication
+and runtime tests. Relative links and `git diff --check` passed. No additional plugin/core production code changed;
+the earlier plugin check and real Groovy 3/4/5 contract results remain the module validation for this branch.
+
+## Nested-Model preparation boundary
+
+A separate scratch Schema at `/private/tmp/gdsl4-nested-gmu6iq8e` compiled a real
+`gdslacceptance.Outer.Inner` Model (`@DSL static class Inner { String region }`) and produced the public
+`Outer$Inner_DSL$Builder` class. A runtime probe returned `nested-runtime=eu` through `Outer.Inner.Create.With`.
+The existing mirror task explicitly excludes `**/*$*`, so it emitted no nested namespace source mirror.
+Normal Schema publication for the unique candidate `805.3` failed before publication in `:schema:createClassStubs`:
+`SourceProjectionException: Could not project selected declaration gdslacceptance.Outer`, caused by
+`IllegalArgumentException: index 1 for '$I' not in range (received 0 arguments)`.
+
+This prevents preparing the native nested lookup check through the current source-mirror or normal publication path.
+No source mirror was hand-written, projection task bypassed, or public generated contract changed to manufacture a pass.
+The supported runtime contract and unsupported editor/publication preparation are recorded separately; native nested
+lookup is unqualified. Reproduction uses the normal fixture plus the Outer class, `mappingModel=gdslacceptance.Outer.Inner`,
+and `schemaVersion=805.3`; run aggregate mirrors and normal `:schema:publishMavenJavaPublicationToFixtureRepository`.
+
 ## Remaining native gate and delivery boundary
 
-The current run proves actual discovery in both topologies on the pinned IDEA build, but leaves these exact conditions
-unfilled:
+All runnable guided checks passed: clean-profile source/binary discovery, generated mirror/compiled Builder navigation,
+positive and retired states across restart, independent non-DSL guard, and native managed overlap/normal-version
+rejection with stale-output warnings. No descriptor activation was necessary in the guided runs.
 
-1. Repeat in a dedicated clean trusted profile without AI/custom plugins and record first-use descriptor activation.
-2. Full IDEA restart in that profile for both positive and retired states; no whole-product restart was performed here.
-3. Native imported project-wide managed conflict/version-failure run with stale output explicitly rejected as current.
-4. Native supported nested Model-name lookup (if supported by the generated contract), and an independent non-DSL guard
-   control with unrelated mirrors available. No pinned native PSI automation harness was added.
+Nested native lookup remains unqualified at fixture preparation: the existing mirror exclusion suppresses its
+namespace, and normal Schema publication fails in class-stub projection as described above. The retained optional
+nested fixture makes this boundary reproducible. No pinned native PSI automation harness was added.
 
-These are evidence gaps, not a reproduced production defect or a new design decision. The fixture makes the missing
-checks reviewable and repeatable. Keep GDSL-4 and the feature release gate pending; do not widen claims to other IDEA
-builds, Eclipse, VS Code, Quick Documentation, or runtime filename dispatch. The dedicated branch stops at the local
-`ready:PR` boundary for Hive reconciliation; no draft PR is opened as if the requested native gate were complete.
+This slice does not expand into compiler, source-projection, or publication changes. Keep GDSL-4 and the complete
+feature release gate pending at nested qualification; do not widen claims to other IDEA builds, Eclipse, VS Code,
+Quick Documentation, or runtime filename dispatch. The dedicated branch stops unpublished at `ready:PR` for Hive
+reconciliation of the nested preparation boundary. No draft PR is opened as if the complete requested native gate
+had passed.

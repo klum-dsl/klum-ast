@@ -658,5 +658,10 @@ revisions, including the subsequently removed migration tests.
 [retained real Schema/Model fixture](fixtures/portable-gdsl-ide/README.md) now record Gradle-import discovery, public
 Builder navigation, wrong arguments/receivers, target guards, rename/empty/opt-out retirement, and explicit classifier
 fallback. Real binary runtime coverage includes root File and owned-child recipe paths on Groovy 3/4/5. No production
-registration change was needed. GDSL-4 remains partial: clean-profile activation, full restart, the native conflict
-matrix, and nested-type qualification remain unfilled. GDSL-5 and feature publication are not qualified by this run.
+registration change was needed. The maintainer subsequently confirmed clean-profile source/binary import and
+restart, source rename and binary opt-out retirement across restart, the independent non-DSL guard, and native
+managed overlap/normal-version rejection with stale-output warnings. No descriptor activation was necessary.
+GDSL-4 remains partial at nested-type qualification: the existing mirror task excludes nested namespace names, and
+normal Schema publication fails in class-stub projection of the nested Model outer class. The reproducible boundary
+is recorded in the evidence and optional fixture; no generated/public contract was changed to bypass it.
+GDSL-5 and complete feature publication remain unqualified.

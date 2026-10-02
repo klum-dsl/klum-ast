@@ -93,13 +93,54 @@ recorded run. Do not report output retained after a failed refresh as current ac
 | Removed mapping / empty upgrade | Remove source suffix/target overrides; set `emptyMappings=true`, `schemaVersion=805.2`; publish Schema. Binary: `schemaVersion=805.2`; refresh | Only framework descriptors remain; old suffix operation disappears |
 | Last owner disabled / dependency removed | Binary: `disableGdsl=true` excludes both opt-in and metadata request; run `clean` | Root output removed; reimport retires mapped operation |
 | Restart | Repeat positive and retired states after a full IDEA restart in the dedicated profile | Same resolution/retirement, record any reactivation |
-| Managed overlap/version conflict | Add a second active Schema mapping `.groovy`, or a second normal Schema version in the imported multi-project build; refresh | Fail before sync, with origins and stale-output warning; no accepted current state |
+| Managed overlap | `managedConflict=true` includes `clash-schema` with `.groovy`; refresh | Fail before sync, with both origins/suffixes, witness filename, and stale-output warning |
+| Normal version conflict | Stage empty Schema `805.2`; `managedVersionConflict=true` includes a non-opted-in `version-model` selecting it beside local Schema `805.1`; refresh | Reject both normal versions and label previous output stale |
 
 Remove presence-based flags entirely to re-enable them (`flag=false` still counts as present). After each control restore
 normal properties, mirror/metadata refresh, disk reload, valid recipe text, and the runtime tests. Do not remove or
 reinterpret arbitrary external GDSL; these fixtures exercise only managed portable metadata.
 
+The two conflict modules are optional retained fixtures, enabled only by their presence-based properties. Use them
+one at a time and keep the source root's normal `schemaVersion` at its default `805.1` for the version conflict.
+Stage the other normal Schema version before enabling that control:
+
+```sh
+./gradlew -p "$fixture_root/source-authoring" -PschemaVersion=805.2 -PemptyMappings \
+  :schema:publishMavenJavaPublicationToFixtureRepository
+```
+
+In IDEA, first import the optional module with Gradle Sync, then run root `materializeKlumDslGdsl` from its Gradle tool
+window and record the failure/stale-output message. Gradle Sync alone need not run the materializer. A failed refresh
+leaves previous descriptors on disk; existing editor hints are stale, not a silently accepted conflict. Remove the
+control property, refresh successfully, and resync/reload IDEA to restore the positive state.
+
+## Nested-Model preparation boundary
+
+The retained optional `schema/src/nested/groovy/gdslacceptance/Outer.groovy` contains the real supported runtime Model:
+
+```groovy
+class Outer {
+    @DSL static class Inner { String region }
+}
+```
+
+On a separate scratch copy, enable `nestedModel` to include that source directory. Reproduce the current editor and
+publication preparation boundary through normal tasks:
+
+```sh
+./gradlew -p "$fixture_root/source-authoring" -PschemaOnly -PnestedModel \
+  -PmappingModel=gdslacceptance.Outer.Inner -PschemaVersion=805.3 generateAllKlumDslSourceMirrors
+./gradlew -p "$fixture_root/source-authoring" -PschemaOnly -PnestedModel \
+  -PmappingModel=gdslacceptance.Outer.Inner -PschemaVersion=805.3 \
+  :schema:publishMavenJavaPublicationToFixtureRepository
+```
+
+The real public `Outer$Inner_DSL$Builder` compiles, but the mirror task's `**/*$*` exclusion produces no source mirror.
+Normal publication currently fails in `createClassStubs` projecting Outer (`'$I'` argument error). These are preparation
+limits, not native lookup results. Do not bypass projection/publication or supply a hand-written Builder mirror to
+claim a native pass. Remove the flag and run clean/refresh to return that scratch copy to the ordinary fixture.
+
 The repository has no pinned headless native PSI test harness for this contribution. This manual importer procedure is
 the native seam. The real binary TestKit contract covers Groovy 3/4/5 and runtime dispatch, while its GroovyShell adapter
-remains a non-native control. Nested generated Model names, dedicated-profile activation, full restart, and the native
-conflict matrix require explicit outcomes before declaring the complete ADR release gate passed.
+remains a non-native control. The recorded guided clean-profile/restart/conflict checks passed; native nested lookup
+remains unqualified at the preparation boundary. Full ADR release qualification remains pending.

@@ -11,3 +11,7 @@ pluginManagement {
 rootProject.name = 'portable-gdsl-source-authoring'
 include 'schema'
 if (!providers.gradleProperty('schemaOnly').isPresent()) include 'model'
+
+if (providers.gradleProperty('managedConflict').isPresent()) include 'clash-schema'
+
+if (providers.gradleProperty('managedVersionConflict').isPresent()) include 'version-model'

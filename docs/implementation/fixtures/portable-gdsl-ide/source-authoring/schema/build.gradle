@@ -20,3 +20,7 @@ klumSchema {
     }
 }
 publishing.repositories.maven { name = 'Fixture'; url = uri(rootProject.file(klumRepository)) }
+
+if (providers.gradleProperty('nestedModel').isPresent()) {
+    sourceSets.main.groovy.srcDir('src/nested/groovy')
+}
