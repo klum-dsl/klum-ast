@@ -62,6 +62,11 @@ package example
 import com.blackbuild.klum.ast.DSL
 @DSL class Environment { String region }
 ''')
+        source(producer, 'src/main/groovy/example/Deployment.groovy', '''
+package example
+import com.blackbuild.klum.ast.DSL
+@DSL class Deployment { List<Environment> environments }
+''')
         runner(producer, 'publishMavenJavaPublicationToFixtureRepository').build()
         // Consumer has only published Schema bytes and framework binary libraries; no producer plugin or mirrors.
         new File(consumer, 'settings.gradle').text = "rootProject.name = 'catalog-model'"
@@ -126,6 +131,19 @@ class Verify {
         """, 'catalog.environment.groovy')
         def model = Environment.Create.From(recipe)
         assert model.region == 'eu'
+        File recipeFile = new File('catalog.environment.groovy')
+        recipeFile.text = "region 'eu'"
+        assert Environment.Create.From(recipeFile).region == 'eu'
+        def deployment = Deployment.Create.With {
+            environment(Environment.Create.AsBuilder().From(recipe))
+        }
+        assert deployment.environments*.region == ['eu']
+        try {
+            Deployment.Create.From(recipe)
+            assert false: 'A filename mapping must not change the receiving runtime Builder'
+        } catch (MissingMethodException expected) {
+            assert expected.method == 'region'
+        }
         assert Environment.Create.With { region 'control' }.region == 'control'
         println "real-builder=${resolvedBuilder.name}; region=${model.region}; groovy=${GroovySystem.version}"
     }
