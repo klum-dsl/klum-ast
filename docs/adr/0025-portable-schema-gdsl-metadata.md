@@ -7,15 +7,14 @@ Status: Accepted
 Scope clarification (2026-10-02): validation owns only the portable managed metadata transport. The unreleased
 manual-resource approach creates no migration or compatibility obligation.
 
-Implementation status: GDSL-0 through GDSL-4 are complete: producer transport, binary/source Model selection,
-source-authoring contribution, managed root-union validation, lifecycle/cleanup controls, and native IntelliJ
-qualification on the supported source/binary Model topologies represented by the acceptance fixture.
-GDSL-5 user documentation, migration, and release integration remain; #805 is not delivered.
+Implementation status: GDSL-0 through GDSL-4 are complete on the supported source/binary Model topologies represented
+by the acceptance fixture. GDSL-5 supplies the [user workflow](../user/Portable-GDSL.md), migration, and release-facing
+documentation for the regular non-nested contract. #805 remains open for final release qualification; neither this
+documentation nor native evidence announces a published 4.1 release.
 
-Qualification scope clarification (2026-10-02): nested Models are not an established KlumAST compatibility guarantee
-or part of #805's required acceptance. The adjacent mirror/publication discovery is tracked independently in
-[#825](https://github.com/klum-dsl/klum-ast/issues/825), outside the portable-GDSL release gate and without a support
-or 4.1 implementation commitment.
+Qualification scope: nested Models are not an established compatibility guarantee or part of #805's acceptance.
+Their source-mirror/publication limitation is tracked in [#826](https://github.com/klum-dsl/klum-ast/issues/826),
+without a support or 4.1 implementation commitment.
 
 Tracking issue: [#805 — Restore IDE completion for DelegatingScripts](https://github.com/klum-dsl/klum-ast/issues/805)
 
@@ -51,7 +50,8 @@ The maintainer accepted the bounded literal filename-suffix catalog and generate
 vocabulary, managed-transport validation boundary, and standard-GAV-first publication identity policy.
 Mappings declare `modelType`; the implementation resolves its real public Builder so Schema authors do not need
 generated Builder naming knowledge. These decisions are settled; transport, runtime, and native qualification evidence
-is recorded in the implementation plan. Final user documentation and release integration remain GDSL-5.
+is recorded in the implementation plan. GDSL-5 documents the qualified workflow; final #805 release qualification
+remains pending.
 
 ## Decision
 
@@ -175,7 +175,7 @@ runtime migration machinery or normal-artifact republication contract.
 Portable GDSL must work for a Model whose public Builder is available through the normal supported source-Schema or
 published-binary Schema topology. GDSL does not independently guarantee Model shapes/topologies that those prerequisite
 mechanisms do not support. Nested runtime/generated binary behavior observed during qualification does not establish
-source-mirror or normal-publication support; that boundary belongs to #825, not a failed GDSL-4 criterion.
+source-mirror or normal-publication support; that boundary belongs to #826, not a failed GDSL-4 criterion.
 
 Do not release this facility until fresh native IntelliJ Gradle-import evidence establishes discovery, activation,
 completion, and method resolution for source mirrors and a separate binary Schema consumer, including removal and
@@ -187,7 +187,7 @@ GDSL-4 satisfies this gate for the supported topologies on the pinned IDEA build
 [native evidence](../implementation/evidence/issue-805-portable-gdsl-intellij.md). The retained manual native procedure
 qualifies actual completion, method resolution, Parameter Info, negative controls, and lifecycle behavior; no descriptor
 activation was required in the guided clean-profile runs. A pinned headless native PSI harness was not added.
-GDSL-5 remains the next slice before complete #805 delivery.
+The GDSL-5 user guide describes this qualified workflow. Issue #805 remains open for final release qualification.
 
 ## Consequences
 
@@ -200,8 +200,9 @@ GDSL-5 remains the next slice before complete #805 delivery.
 - Native IntelliJ evidence is version-specific. Eclipse DSLD (#14), VS Code (#808), typed script APIs (#269), and
   AnnoDocimal Quick Documentation remain distinct; none is implicitly delivered by this archive.
 - Authoritative Schema selection and the least repetitive safe consumer syntax, Model-to-Builder resolution, catalog
-  integrity, and native import discovery have qualification evidence in GDSL-0 through GDSL-4. Final user documentation,
-  migration, and release integration remain GDSL-5; nested-Model support decisions remain independent in #825.
+  integrity, and native import discovery have qualification evidence in GDSL-0 through GDSL-4. GDSL-5 supplies user
+  documentation, migration, and release integration; final release qualification remains with #805, and nested-Model
+  support decisions remain independent in #826.
 
 ## Rejected alternatives
 

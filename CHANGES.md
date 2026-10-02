@@ -12,10 +12,14 @@
   relationship overloads (ADR 0024, SEED-0 through SEED-3) are deferred beyond this release
   ([#342](https://github.com/klum-dsl/klum-ast/issues/342)).
 
-- Documented an optional, Schema- or Model-owned IntelliJ GDSL recipe for `DelegatingScript` files with an intentional
-  filename suffix. A Schema-owned resource normally travels in the Schema JAR to consuming Models, making its mapping an
-  effective editor contract. The recipe delegates to the existing generated Builder and leaves script execution and
-  generated/public APIs unchanged ([#805](https://github.com/klum-dsl/klum-ast/issues/805)).
+- Added opt-in, Schema-owned portable IntelliJ GDSL metadata for regular non-nested `DelegatingScript` recipes with
+  intentional `.groovy` filename suffixes. Source authoring uses refreshed public Builder mirrors; binary Models
+  explicitly select a separate same-Schema-version metadata variant, with an exact classifier fallback for POM-only
+  repositories. One editor-only root refresh validates managed mappings, rejects suffix/version conflicts, and retires
+  stale contributions. Native IntelliJ IDEA Ultimate 2026.2.3 completion, Builder navigation, and Parameter Info are
+  qualified; runtime receivers and generated APIs retain their behavior. Nested Model mirror/publication limitations
+  remain separate in [#826](https://github.com/klum-dsl/klum-ast/issues/826)
+  ([#805](https://github.com/klum-dsl/klum-ast/issues/805)).
 
 - Added `@RelationshipConstraint` for domain-defined constraints on owned, `LINK`, and `OPTIONAL_LINK` DSL relationship fields,
   including collection and map entries. Typed callbacks inspect completed values during validation; failures belong to

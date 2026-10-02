@@ -95,7 +95,7 @@ class KlumSchemaGdslProducerTest extends Specification {
     }
 
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/adr-0025-portable-schema-gdsl-metadata.md#api-ledger-and-authoring-example')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Portable-GDSL.md#declare-the-schema-mapping')
     def "metadata generation is lazy reproducible relocatable cacheable and supports empty retirement"() {
         given:
         standaloneGradle = true

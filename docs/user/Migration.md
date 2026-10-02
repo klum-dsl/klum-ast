@@ -1,5 +1,21 @@
 # Migration
 
+## To 4.1
+
+### Opting in to portable DelegatingScript IDE metadata
+
+The [IntelliJ DelegatingScript workflow](Portable-GDSL.md) is additive: existing factory calls, script bases,
+compiled script-class names, key derivation, and runtime receivers retain their behavior. The Schema owns and versions
+a literal suffix-to-Model mapping; Model projects explicitly opt in and select separate editor metadata. The preferred
+GMM selection follows the normal Schema version without repeating it; POM-only consumers repeat the exact GAV in the
+explicit `gdsl` classifier request. Refresh metadata and reload IntelliJ when mappings or Schema versions change.
+
+If you experimented with the unreleased copied-resource recipe from PR #809, remove those copied contributors and
+adopt the Schema declaration. There is no migration scanner or automatic deletion of arbitrary external GDSL. The
+qualified contract covers regular non-nested Models; nested mirror/publication preparation is separately tracked in
+[#826](https://github.com/klum-dsl/klum-ast/issues/826). Issue [#805](https://github.com/klum-dsl/klum-ast/issues/805)
+remains open for release qualification.
+
 ## To 4.0
 
 4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits. Templates now have persistent graph-wide recipe identity separate from ordinary models; marked Templates cannot be relationship values or ordinary Jackson export values, and deferred Builder actions cannot be scheduled at phase 40 or later. Jackson is an asymmetric external-format integration rather than Klum persistence and adds no wire metadata.

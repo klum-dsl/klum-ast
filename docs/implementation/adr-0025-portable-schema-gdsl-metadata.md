@@ -1,7 +1,8 @@
 # ADR 0025 implementation — portable Schema GDSL
 
 Date: 2026-10-01. Status (reconciled 2026-10-02): GDSL-0 through GDSL-4 complete on supported source/binary
-Model topologies; GDSL-5 user documentation/migration/release integration remains.
+Model topologies; GDSL-5 user documentation/migration/release integration is prepared in the documentation slice.
+Issue #805 remains open for final release qualification.
 
 Decision: [ADR 0025](../adr/0025-portable-schema-gdsl-metadata.md).
 Primary issue: [#805](https://github.com/klum-dsl/klum-ast/issues/805), immediate 4.1 QoL intent; release placement is
@@ -26,7 +27,7 @@ The maintainer's 2026-10-02 qualification correction bounds portable GDSL to exi
 a Model's public Builder must be available through the normal supported source-Schema or published-binary Schema
 topology. GDSL does not independently guarantee shapes/topologies those prerequisites do not support. Nested Models
 are not an established compatibility guarantee. Their adjacent mirror/publication limitations are transferred to
-[#825](https://github.com/klum-dsl/klum-ast/issues/825), outside #805 and its release gate, with no support or 4.1 commitment.
+[#826](https://github.com/klum-dsl/klum-ast/issues/826), outside #805 and its release gate, with no support or 4.1 commitment.
 
 | Current seam | Verified behavior / failure path | Planned responsibility |
 | --- | --- | --- |
@@ -48,8 +49,9 @@ Current wrapper is Gradle 8.14.4; plugin toolchain is Java 17. The plugin module
 `createKlumDslSourceMirrors`, and root `build/generated/klum-dsl-ide/gdsl`.
 
 **The producer and binary consumer `gdsl` APIs are implemented; the complete IDE feature is not yet released.** No new plugin
-ID/module is introduced. The binary GMM syntax is versionless explicit module selection; it follows the normal selected Schema identity. GDSL-0 records the completed decision
-baseline; do not advertise this facility as available now.
+ID/module is introduced. The binary GMM syntax is versionless explicit module selection; it follows the normal
+selected Schema identity. The [user guide](../user/Portable-GDSL.md) describes the unreleased 4.1 candidate;
+do not imply availability in 4.0.1.
 
 | `gdsl` role | Owner and purpose |
 | --- | --- |
@@ -268,7 +270,7 @@ and actual outcomes, including failures/limits. The native importer must be fixe
 needed before acceptance. Runtime tests use existing public root and owned-child factories; no compiler/runtime change.
 The retained manual native procedure and recorded clean-profile runs provide native qualification; automated
 GroovyShell dispatch coverage is complementary and is not native PSI evidence. The adjacent nested-Model experiment
-is retained as the #825 reproduction, outside #805 and this gate.
+is retained as the #826 reproduction, outside #805 and this gate.
 
 ### GDSL-5 — Document migration and qualify the complete candidate
 
@@ -341,7 +343,7 @@ coordinates/repository, IDEA build, bundled Groovy plugin, JDK/Gradle, and activ
    An existing #809 native PSI result or #797 `.iml`/editor evidence is a control, not proof of this new import path.
 
 Release is blocked if either supported native topology lacks discovery after the documented lifecycle. Model shapes
-whose mirrors or normal publication are unsupported do not independently expand this gate; #825 retains the nested
+whose mirrors or normal publication are unsupported do not independently expand this gate; #826 retains the nested
 discovery for a separate supported-contract decision. Pin the tested editor
 versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick Documentation.
 
@@ -676,10 +678,27 @@ registration change was needed. The maintainer subsequently confirmed clean-prof
 restart, source rename and binary opt-out retirement across restart, the independent non-DSL guard, and native
 managed overlap/normal-version rejection with stale-output warnings. No descriptor activation was necessary.
 All accepted GDSL-4 criteria have evidence for the supported source/binary topologies represented by the fixture.
-The adjacent nested-Model discovery is transferred to #825: the existing mirror task excludes nested namespace names,
+The adjacent nested-Model discovery is transferred to #826: the existing mirror task excludes nested namespace names,
 and normal Schema publication fails in class-stub projection of the outer class despite observed runtime/generated
 binary behavior. The reproduction remains in the evidence and optional fixture. Nested Models are not an established
 compatibility guarantee; this is outside #805 and its portable-GDSL release gate, not a failed GDSL-4 criterion.
 No nested mirror/source-projection fix or support commitment is included in PR #824.
-GDSL-5 user documentation, migration, and release integration is the remaining #805 slice; complete feature delivery
-still requires that slice.
+GDSL-5 supplies the user workflow, migration, and release-facing documentation below. Final release qualification
+and tracker reconciliation remain with #805.
+
+
+## GDSL-5 user documentation and delivery boundary
+
+The [IntelliJ DelegatingScript guide](../user/Portable-GDSL.md) documents Schema-owned declarations, source and binary
+consumption, normal-Schema version authority, explicit classifier fallback, project-wide managed validation, refresh
+and retirement, and the version-specific IDE boundary. Gradle guides, factories, FAQ, Builder migration/navigation,
+and the unreleased 4.1 changelog link that workflow and replace the interim manual-resource recipe.
+The existing producer, binary-consumer, and source-union documentary scenarios now link directly to their user-guide
+sections through `@See`; their executable bodies and #805 traceability are unchanged.
+
+This slice changes documentation and documentary link annotations only. It changes no compiler/runtime/plugin behavior,
+generated API, transport, or nested-Model support. Nested mirror/publication limitations are linked to #826; no issue
+state is changed. Historical native records referring to the earlier #825 locator remain evidence of that run.
+PR #824 already retained the single staged candidate, coordinate-only binary Model, runtime controls, and native
+source/binary proof. This slice uses that qualification; it does not claim a new native run or publish a release.
+Tracker impact is `Related: #805`; final release qualification and Hive acceptance/reconciliation remain pending.

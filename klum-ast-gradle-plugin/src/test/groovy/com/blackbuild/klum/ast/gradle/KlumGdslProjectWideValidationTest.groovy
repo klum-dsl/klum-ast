@@ -57,7 +57,7 @@ publishing.repositories { maven { name = 'fixture'; url = '${repository.toURI()}
     }
 
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/adr-0025-portable-schema-gdsl-metadata.md#gdsl-3-engineering-contract-and-evidence')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Portable-GDSL.md#consume-a-source-schema')
     def "source authoring and two explicit project consumers share one root and one archive with #order evaluation"() {
         given:
         fixture(order)
