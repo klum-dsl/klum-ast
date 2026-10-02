@@ -1,0 +1,13 @@
+// Local-only staging for the native acceptance fixture. Never publish to Maven Local.
+allprojects {
+    plugins.withId('maven-publish') {
+        def acceptanceRepository = providers.gradleProperty('gdslAcceptanceRepository').orNull
+        if (!acceptanceRepository) {
+            throw new GradleException('Supply -PgdslAcceptanceRepository=<absolute local repository path>')
+        }
+        publishing.repositories.maven {
+            name = 'GdslAcceptance'
+            url = uri(acceptanceRepository)
+        }
+    }
+}

@@ -1,0 +1,1 @@
+allprojects { group = 'org.example.gdsl4'; version = providers.gradleProperty('schemaVersion').getOrElse('805.1') }

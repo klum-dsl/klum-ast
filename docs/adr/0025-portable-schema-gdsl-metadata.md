@@ -7,9 +7,15 @@ Status: Accepted
 Scope clarification (2026-10-02): validation owns only the portable managed metadata transport. The unreleased
 manual-resource approach creates no migration or compatibility obligation.
 
-Implementation status: GDSL-0 through GDSL-3 are implemented: producer transport, binary/source Model selection,
-source-authoring contribution, managed root-union validation, and lifecycle/cleanup controls. Native IntelliJ verification
-and broad user documentation remain GDSL-4/5; #805 is not delivered.
+Implementation status: GDSL-0 through GDSL-4 are complete: producer transport, binary/source Model selection,
+source-authoring contribution, managed root-union validation, lifecycle/cleanup controls, and native IntelliJ
+qualification on the supported source/binary Model topologies represented by the acceptance fixture.
+GDSL-5 user documentation, migration, and release integration remain; #805 is not delivered.
+
+Qualification scope clarification (2026-10-02): nested Models are not an established KlumAST compatibility guarantee
+or part of #805's required acceptance. The adjacent mirror/publication discovery is tracked independently in
+[#825](https://github.com/klum-dsl/klum-ast/issues/825), outside the portable-GDSL release gate and without a support
+or 4.1 implementation commitment.
 
 Tracking issue: [#805 — Restore IDE completion for DelegatingScripts](https://github.com/klum-dsl/klum-ast/issues/805)
 
@@ -44,7 +50,8 @@ Arbitrary executable GDSL cannot provide a decidable predicate-overlap contract 
 The maintainer accepted the bounded literal filename-suffix catalog and generated contributor, the `gdsl` Gradle
 vocabulary, managed-transport validation boundary, and standard-GAV-first publication identity policy.
 Mappings declare `modelType`; the implementation resolves its real public Builder so Schema authors do not need
-generated Builder naming knowledge. These decisions are settled; executable implementation evidence remains pending.
+generated Builder naming knowledge. These decisions are settled; transport, runtime, and native qualification evidence
+is recorded in the implementation plan. Final user documentation and release integration remain GDSL-5.
 
 ## Decision
 
@@ -165,11 +172,22 @@ runtime migration machinery or normal-artifact republication contract.
 
 ### Native release gate
 
+Portable GDSL must work for a Model whose public Builder is available through the normal supported source-Schema or
+published-binary Schema topology. GDSL does not independently guarantee Model shapes/topologies that those prerequisite
+mechanisms do not support. Nested runtime/generated binary behavior observed during qualification does not establish
+source-mirror or normal-publication support; that boundary belongs to #825, not a failed GDSL-4 criterion.
+
 Do not release this facility until fresh native IntelliJ Gradle-import evidence establishes discovery, activation,
 completion, and method resolution for source mirrors and a separate binary Schema consumer, including removal and
 negative controls. `.iml` checks, GroovyShell stubs, and native PSI contributor-logic tests complement this gate but
 cannot replace the import test. If root `build/` exclusion defeats registration, propose a supported editor-only
 registration fix; adding metadata to production resources is not an acceptable remedy.
+
+GDSL-4 satisfies this gate for the supported topologies on the pinned IDEA build in the
+[native evidence](../implementation/evidence/issue-805-portable-gdsl-intellij.md). The retained manual native procedure
+qualifies actual completion, method resolution, Parameter Info, negative controls, and lifecycle behavior; no descriptor
+activation was required in the guided clean-profile runs. A pinned headless native PSI harness was not added.
+GDSL-5 remains the next slice before complete #805 delivery.
 
 ## Consequences
 
@@ -181,9 +199,9 @@ registration fix; adding metadata to production resources is not an acceptable r
   remains Groovy 3; its external consumer fixtures select each supported generation explicitly.
 - Native IntelliJ evidence is version-specific. Eclipse DSLD (#14), VS Code (#808), typed script APIs (#269), and
   AnnoDocimal Quick Documentation remain distinct; none is implicitly delivered by this archive.
-- No product decision is a prerequisite to starting implementation. Authoritative Schema selection and the least
-  repetitive safe consumer syntax, Model-to-Builder resolution, catalog integrity, and native import discovery still
-  require technical proof before release. Failure to achieve the consumer UX invariant returns to the maintainer.
+- Authoritative Schema selection and the least repetitive safe consumer syntax, Model-to-Builder resolution, catalog
+  integrity, and native import discovery have qualification evidence in GDSL-0 through GDSL-4. Final user documentation,
+  migration, and release integration remain GDSL-5; nested-Model support decisions remain independent in #825.
 
 ## Rejected alternatives
 

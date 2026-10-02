@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        maven { url = uri(klumRepository) }
+        gradlePluginPortal()
+    }
+    plugins {
+        id 'com.blackbuild.klum-ast-schema' version klumPluginVersion
+        id 'com.blackbuild.klum-ast-model' version klumPluginVersion
+    }
+}
+rootProject.name = 'portable-gdsl-source-authoring'
+include 'schema'
+if (!providers.gradleProperty('schemaOnly').isPresent()) include 'model'
+
+if (providers.gradleProperty('managedConflict').isPresent()) include 'clash-schema'
+
+if (providers.gradleProperty('managedVersionConflict').isPresent()) include 'version-model'

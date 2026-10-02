@@ -1,6 +1,7 @@
 # ADR 0025 implementation — portable Schema GDSL
 
-Date: 2026-10-01. Status: GDSL-0 through GDSL-3 implemented; GDSL-4/5 and release acceptance pending.
+Date: 2026-10-01. Status (reconciled 2026-10-02): GDSL-0 through GDSL-4 complete on supported source/binary
+Model topologies; GDSL-5 user documentation/migration/release integration remains.
 
 Decision: [ADR 0025](../adr/0025-portable-schema-gdsl-metadata.md).
 Primary issue: [#805](https://github.com/klum-dsl/klum-ast/issues/805), immediate 4.1 QoL intent; release placement is
@@ -16,11 +17,16 @@ Live read-only issue/PR checks confirmed #805/#269/#14 open and #809 merged. The
 over the report's optional local-first path and its deferral of semantic overlap checks.
 The maintainer subsequently accepted the bounded suffix catalog/generated contributor, `gdsl` vocabulary,
 managed-transport validation boundary, and standard-GAV-first publication policy, with `modelType` as the public
-mapping target. No product decision remains; the technical proof gates below remain unexecuted.
+mapping target. The executable boundaries below define the plan; the progress records document completed slices.
 The maintainer's 2026-10-02 scope correction removes migration analysis for the unreleased manual-resource approach
 and for copied generated contributors outside the portable transport. The current contract below reflects that boundary.
 The consumer-UX clarification makes the normal Schema dependency authoritative for component/version selection;
 GDSL-2 must prove metadata consumption for that result without a second user-maintained GMM version choice.
+The maintainer's 2026-10-02 qualification correction bounds portable GDSL to existing supported normal Schema delivery:
+a Model's public Builder must be available through the normal supported source-Schema or published-binary Schema
+topology. GDSL does not independently guarantee shapes/topologies those prerequisites do not support. Nested Models
+are not an established compatibility guarantee. Their adjacent mirror/publication limitations are transferred to
+[#825](https://github.com/klum-dsl/klum-ast/issues/825), outside #805 and its release gate, with no support or 4.1 commitment.
 
 | Current seam | Verified behavior / failure path | Planned responsibility |
 | --- | --- | --- |
@@ -123,8 +129,9 @@ contributor(context(scope: scriptScope())) {
 Keep `scriptScope()` and the final-name suffix test: `extension: 'environment'` describes a different filename family.
 This generates editor metadata only; it adds no method catalog, Script class, or runtime dispatch rule.
 Verify the internal Model-to-Builder lookup against actual supported generated names and source/binary PSI; do not
-require users to spell or override the Builder name when resolution fails. Missing/non-DSL Models, missing Builders,
-and nested model names where supported are technical negative/compatibility controls.
+require users to spell or override the Builder name when resolution fails. Missing/non-DSL Models and missing Builders
+are technical negative controls. Model-shape compatibility is bounded by the supported prerequisite delivery paths;
+nested-Model qualification is not a required portable-GDSL control.
 
 ## Publication and payload contract
 
@@ -253,10 +260,15 @@ unless a variant-based separate-owner fixture passes; never couple the two root 
 
 ### GDSL-4 — Real generated contracts and native source/binary gate
 
+**Complete on the supported source/binary Model topologies represented by the acceptance fixture.**
+
 Depends on GDSL-3. Retain a minimal real Schema/runtime fixture and native contributor tests with negative controls;
 then record the native Gradle-import runs below. A separate reasoned commit stores reproducible fixture instructions
 and actual outcomes, including failures/limits. The native importer must be fixed through editor-only registration if
 needed before acceptance. Runtime tests use existing public root and owned-child factories; no compiler/runtime change.
+The retained manual native procedure and recorded clean-profile runs provide native qualification; automated
+GroovyShell dispatch coverage is complementary and is not native PSI evidence. The adjacent nested-Model experiment
+is retained as the #825 reproduction, outside #805 and this gate.
 
 ### GDSL-5 — Document migration and qualify the complete candidate
 
@@ -297,15 +309,15 @@ repository modules' actual `test`, `groovy4Tests`, and `groovy5Tests` lanes for 
 invent plugin compatibility task names or share compiled fixtures between generations. `git diff --check`, local
 links/anchors, documentary links, and the applicable user-doc renderer/crawl complete documentation checks.
 
-### Native IntelliJ: two kinds of proof, neither substituting for the other
+### Native IntelliJ: actual import qualification and complementary automation
 
-**Automated native PSI contributor test:** use a pinned IntelliJ Platform/Groovy plugin fixture with real generated
-Builder classes or refreshed mirrors, execute the actual generated GDSL, assert completion at `reg` and resolution of
-`region('eu')` to `Environment_DSL.Builder.region(String)`. Nonmatching suffix, same-suffix ordinary class, missing
-Builder and wrong method/argument are controls. A GroovyShell stub proves only generator dispatch logic.
-Assert the catalog and Schema DSL accept `modelType = 'example.Environment'`, and that editor resolution reaches its
-real generated Builder without any author-supplied Builder name. Missing/non-DSL Model and supported nested-type lookup
-controls must not produce phantom methods.
+**Contributor automation:** real generated contracts and a GroovyShell adapter prove contract shape and generator
+dispatch across Groovy 3/4/5; the adapter does not prove native PSI behavior. A pinned IntelliJ Platform/Groovy plugin
+harness would complement the retained manual native procedure, but was not added and is not an outstanding GDSL-4
+criterion. Native completion at `reg`, resolution of `region('eu')` to `Environment_DSL.Builder.region(String)`,
+Parameter Info, nonmatching suffix, same-suffix ordinary class, missing/non-DSL Model, missing Builder, and wrong
+argument controls are qualified through actual imported projects below. Unknown-method navigation and inspection
+are recorded separately; inspection parity is not claimed. Authors supply `modelType`, never a Builder name.
 
 **Native Gradle-import gate:** retain `docs/implementation/fixtures/portable-gdsl-ide/` with source-authoring,
 Schema-producer, and separate binary-Model builds plus a README/run matrix. Import through IntelliJ's Gradle importer
@@ -328,7 +340,9 @@ coordinates/repository, IDEA build, bundled Groovy plugin, JDK/Gradle, and activ
 5. Run the real recipe via root and owned-child paths and record configured values alongside editor evidence.
    An existing #809 native PSI result or #797 `.iml`/editor evidence is a control, not proof of this new import path.
 
-Release is blocked if either native topology lacks discovery after the documented lifecycle. Pin the tested editor
+Release is blocked if either supported native topology lacks discovery after the documented lifecycle. Model shapes
+whose mirrors or normal publication are unsupported do not independently expand this gate; #825 retains the nested
+discovery for a separate supported-contract decision. Pin the tested editor
 versions; do not extrapolate to Eclipse, VS Code, future IDEA versions, or Quick Documentation.
 
 ## Risks, decisions, and requirement traceability
@@ -651,3 +665,21 @@ configuration-cache reuse and an up-to-date managed refresh. Focused GDSL-3/mate
 real Groovy-3/4/5 binary-contract fixtures. Local ADR/plan links and anchors plus `git diff --check` passed. Core suites and
 root `check` were not repeated for this Gradle-plugin-only scope correction. Earlier test counts above describe historical
 revisions, including the subsequently removed migration tests.
+
+## GDSL-4 qualification complete on supported topologies (2026-10-02)
+
+[Native source/binary observations](evidence/issue-805-portable-gdsl-intellij.md) and a
+[retained real Schema/Model fixture](fixtures/portable-gdsl-ide/README.md) now record Gradle-import discovery, public
+Builder navigation, wrong arguments/receivers, target guards, rename/empty/opt-out retirement, and explicit classifier
+fallback. Real binary runtime coverage includes root File and owned-child recipe paths on Groovy 3/4/5. No production
+registration change was needed. The maintainer subsequently confirmed clean-profile source/binary import and
+restart, source rename and binary opt-out retirement across restart, the independent non-DSL guard, and native
+managed overlap/normal-version rejection with stale-output warnings. No descriptor activation was necessary.
+All accepted GDSL-4 criteria have evidence for the supported source/binary topologies represented by the fixture.
+The adjacent nested-Model discovery is transferred to #825: the existing mirror task excludes nested namespace names,
+and normal Schema publication fails in class-stub projection of the outer class despite observed runtime/generated
+binary behavior. The reproduction remains in the evidence and optional fixture. Nested Models are not an established
+compatibility guarantee; this is outside #805 and its portable-GDSL release gate, not a failed GDSL-4 criterion.
+No nested mirror/source-projection fix or support commitment is included in PR #824.
+GDSL-5 user documentation, migration, and release integration is the remaining #805 slice; complete feature delivery
+still requires that slice.
