@@ -2,9 +2,9 @@
 
 This engineering fixture exercises ADR 0025 against real generated Schema contracts. It is not a user onboarding guide
 or a release claim. See [the recorded native run](../../evidence/issue-805-portable-gdsl-intellij.md) for the completed
-GDSL-4 qualification on the supported source/binary topologies represented here. GDSL-5 user documentation, migration,
-and release integration remains. Source and binary builds are independent; do not import their common parent as an
-IDEA project.
+GDSL-4 qualification on the supported source/binary topologies represented here. The
+[user workflow](../../../user/Portable-GDSL.md) supplies GDSL-5 documentation; final release qualification remains with
+#805. Source and binary builds are independent; do not import their common parent as an IDEA project.
 
 Portable GDSL must work for a Model whose public Builder is available through the normal supported source-Schema or
 published-binary Schema topology. It does not independently guarantee shapes/topologies those prerequisite mechanisms
@@ -120,7 +120,7 @@ window and record the failure/stale-output message. Gradle Sync alone need not r
 leaves previous descriptors on disk; existing editor hints are stale, not a silently accepted conflict. Remove the
 control property, refresh successfully, and resync/reload IDEA to restore the positive state.
 
-## Adjacent nested-Model discovery — issue #825
+## Adjacent nested-Model discovery — issue #826
 
 The retained optional `schema/src/nested/groovy/gdslacceptance/Outer.groovy` contains the nested probe:
 
@@ -131,7 +131,7 @@ class Outer {
 ```
 
 Nested Models are not an established KlumAST compatibility guarantee. This adjacent limitation is transferred to
-[#825](https://github.com/klum-dsl/klum-ast/issues/825) to investigate and define the supported boundary before any
+[#826](https://github.com/klum-dsl/klum-ast/issues/826) to investigate and define the supported boundary before any
 implementation decision. It is outside #805 and the portable-GDSL release gate, not a failed GDSL-4 criterion.
 No support or 4.1 implementation commitment is made.
 
@@ -157,4 +157,6 @@ The repository has no pinned headless native PSI test harness for this contribut
 the native seam. The real binary TestKit contract covers Groovy 3/4/5 and runtime dispatch, while its GroovyShell adapter
 remains a non-native control. The recorded native matrix, including guided clean-profile/restart/conflict checks,
 qualifies GDSL-4 on the supported source/binary fixture topologies. Nested runtime/generated binary behavior and
-unqualified mirror/publication behavior are tracked independently in #825. GDSL-5 is the remaining #805 slice.
+unqualified mirror/publication behavior are tracked independently in #826. The
+[user guide](../../../user/Portable-GDSL.md) documents the qualified regular contract; final #805 release qualification
+remains.

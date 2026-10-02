@@ -214,8 +214,8 @@ does not create a root Java/Model project or enable metadata consumption.
 
 IntelliJ mappings are project-wide, even though the files have Schema-specific paths. A Model opting out does not
 isolate its scripts from a mapping still supplied by another module. Keep the target Model and its public Builder
-visible; a missing/non-DSL Model or missing Builder contributes no invented operations. Ordinary classes in files
-with the suffix do not acquire script operations.
+visible; a missing/non-DSL Model or missing Builder contributes no invented operations. The generated contributor
+is scoped to scripts; ordinary classes in files with the suffix do not receive the mapped Builder operations.
 
 The refresh validates all managed mappings before changing output. It rejects conflicting Schema versions across
 participating projects, including normal Schema selections in Models that did not opt into GDSL, distinct duplicate

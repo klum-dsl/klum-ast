@@ -3,8 +3,8 @@
 Date: 2026-10-02. Outcome: actual source and binary Gradle imports resolve the mapped public Builder. The guided clean-profile
 completion, navigation, restart, retirement, non-DSL guard, and managed-conflict/version controls passed.
 **GDSL-4 is qualified on the supported source/binary Model topologies represented by the acceptance fixture.**
-No accepted GDSL-4 criterion remains outstanding. The adjacent nested-Model discovery is transferred to
-[#825](https://github.com/klum-dsl/klum-ast/issues/825), outside #805 and the portable-GDSL release gate.
+No accepted GDSL-4 criterion remains outstanding. The adjacent nested-Model discovery is tracked canonically in
+[#826](https://github.com/klum-dsl/klum-ast/issues/826), outside #805 and the portable-GDSL release gate.
 No editor-registration defect was found and no production code changed. GDSL-5 user documentation, migration, and
 release integration remains the next #805 slice.
 
@@ -12,6 +12,14 @@ Authority: [ADR 0025](../../adr/0025-portable-schema-gdsl-metadata.md),
 [implementation plan](../adr-0025-portable-schema-gdsl-metadata.md),
 [repeatable fixture/procedure](../fixtures/portable-gdsl-ide/README.md).
 Related: [#805](https://github.com/klum-dsl/klum-ast/issues/805); this slice does not complete that issue.
+
+## Tracker reconciliation (2026-10-02)
+
+The original [PR #824 handoff](https://github.com/klum-dsl/klum-ast/blob/0cf650184461b1a3bde92824a2dc16c536c38c7c/docs/implementation/evidence/issue-805-portable-gdsl-intellij.md)
+transferred the nested discovery to [#825](https://github.com/klum-dsl/klum-ast/issues/825). That locator is historical:
+#825 is superseded by the single canonical [#826](https://github.com/klum-dsl/klum-ast/issues/826), which preserves its
+investigation scope and exact retained reproduction. This annotation and the current tracker pointers change no run
+identity, native observation, runtime result, or support decision. No additional native run was performed.
 
 ## Reproduction identity
 
@@ -132,12 +140,12 @@ class-stub failure. The ordinary source fixture was restored after that negative
 and runtime tests. Relative links and `git diff --check` passed. No additional plugin/core production code changed;
 the earlier plugin check and real Groovy 3/4/5 contract results remain the module validation for this branch.
 
-## Adjacent nested-Model discovery — transferred to #825
+## Adjacent nested-Model discovery — historical transfer to #825
 
 Nested Models are not an established KlumAST compatibility guarantee. This discovery is independent of #805 and
 outside the portable-GDSL release gate; it is not evidence of a failed GDSL-4 acceptance criterion. Issue
-[#825](https://github.com/klum-dsl/klum-ast/issues/825) investigates and defines the supported boundary before any
-implementation decision. No commitment to nested-Model support or required 4.1 work is made.
+[#826](https://github.com/klum-dsl/klum-ast/issues/826) now owns investigation and definition of the supported boundary
+before any implementation decision. No commitment to nested-Model support or required 4.1 work is made.
 
 A separate scratch Schema at `/private/tmp/gdsl4-nested-gmu6iq8e` compiled a real
 `gdslacceptance.Outer.Inner` Model (`@DSL static class Inner { String region }`) and produced the public
@@ -166,8 +174,8 @@ and binary opt-out retirement, nonmatching filename, script-scope guard, missing
 guard, wrong-argument diagnostics, managed suffix-overlap and normal Schema-version rejection, stale-output behavior,
 explicit classifier fallback, and runtime receiver controls. No descriptor activation was necessary in the guided runs.
 
-The optional nested reproduction remains useful evidence for #825, independent of this qualification. No pinned native
-PSI automation harness was added; the repeatable manual procedure is the native seam. No compiler, source-projection,
+The optional nested reproduction remains useful evidence for canonical #826, independent of this qualification.
+No pinned native PSI automation harness was added; the repeatable manual procedure is the native seam. No compiler, source-projection,
 or publication fix is included. Claims remain limited to the pinned IDEA build and fixture topologies; they do not
 extend to Eclipse, VS Code, Quick Documentation, unknown-method inspection parity, or runtime filename dispatch.
 PR #824 retains the completed GDSL-4 qualification. #805 stays open for GDSL-5 user documentation, migration, and

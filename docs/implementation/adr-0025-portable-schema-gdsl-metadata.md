@@ -696,9 +696,10 @@ and the unreleased 4.1 changelog link that workflow and replace the interim manu
 The existing producer, binary-consumer, and source-union documentary scenarios now link directly to their user-guide
 sections through `@See`; their executable bodies and #805 traceability are unchanged.
 
-This slice changes documentation and documentary link annotations only. It changes no compiler/runtime/plugin behavior,
+The initial GDSL-5 slice changes documentation and documentary link annotations only. It changes no compiler/runtime/plugin behavior,
 generated API, transport, or nested-Model support. Nested mirror/publication limitations are linked to #826; no issue
-state is changed. Historical native records referring to the earlier #825 locator remain evidence of that run.
+state was changed by the initial slice. The reconciliation below supersedes its tracker status; the native record
+annotates the original #825 handoff as historical.
 PR #824 already retained the single staged candidate, coordinate-only binary Model, runtime controls, and native
 source/binary proof. This slice uses that qualification; it does not claim a new native run or publish a release.
 Tracker impact is `Related: #805`; final release qualification and Hive acceptance/reconciliation remain pending.
@@ -724,3 +725,19 @@ GDSL-5 validation on 2026-10-02:
 Assigned documentation execution is complete. Draft publication remains related to #805; final CI/review, merge,
 release qualification, issue-state reconciliation, and archive reconciliation are subsequent delivery conditions.
 The Hive retains ownership of acceptance and archive reconciliation; no curation or release-placement change is made.
+
+
+### PR #827 nested-tracker and script-scope reconciliation
+
+Live issue bodies and timelines showed #825 was created first and referenced by PR #824; #826 was created later and
+selected by current #805 and GDSL-5 guidance. Both remained open and neither recorded supersession. This follow-up
+consolidates the overlapping investigation in canonical #826, preserving #825's complete investigation-first decision
+boundary, exact PR #824 reproduction, observed generated/runtime behavior, and use-case record. The original #826
+mirror/publication/Java-nested-type acceptance is retained conditionally on an adopted support decision. #825 is closed
+as superseded with a pointer to #826. This tracker reconciliation creates no nested-Model support or 4.1 commitment.
+
+Current ADR, plan, user/migration guides, changelog, and fixture documentation use #826. The native record explicitly
+labels its original #825 transfer as historical and links the immutable PR #824 evidence; run identity and outcomes
+are unchanged. The user guide now ties its ordinary-class boundary directly to the generated contributor's script
+scope. Editor-only suffix semantics, runtime receivers, managed/external GDSL boundaries, and qualification limits
+are unchanged. No production/test-body/fixture-code change or additional native run is included.
