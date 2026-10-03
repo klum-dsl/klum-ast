@@ -35,7 +35,12 @@ property accesses and getter calls for declared managed fields. This preserves a
 respects exclusions and annotation ordering, and avoids reimplementing Groovy selection rules.
 
 The diagnostic does not analyze handwritten equality or delegated superclass equality, and explicit includes always
-remain silent. Compiler coverage in `CustomEqualityDiagnosticTest` runs unchanged in all three isolated Groovy lanes;
+remain silent. Each class owns diagnostics for its locally generated selection: `callSuper=true` does not duplicate a
+superclass warning on its descendant. The feature “superclass owns its selected-state warning when child equality calls
+super” verifies one warning for `ParentRecord.parent` and compares child equality/hash codes against equivalent plain
+Groovy classes. The existing ordinary Klum-superclass delegation control remains silent.
+
+Compiler coverage in `CustomEqualityDiagnosticTest` runs unchanged in all three isolated Groovy lanes;
 it covers owner/transient state, private and `$` fields, generated storage, ordering, exclusions, includes, getters,
 inheritance, handwritten methods, and the documentary remediation example. Groovy's own synthetic hash cache does
 not trigger this diagnostic; `cache=true` still receives the pre-existing completed-Model mutation error. Supporting

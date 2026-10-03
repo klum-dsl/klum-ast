@@ -208,8 +208,9 @@ If not yet present, the `equals()` method is generated using the default `@Equal
 can customize it by using Groovy's `@EqualsAndHashCode`. KlumAST leaves your annotation and equality semantics unchanged.
 
 A compiler warning identifies owner, transient, or `$` implementation fields that your generated equality or hash code
-actually selects. Groovy includes owner and transient **properties** by default; private fields require `includeFields`,
-and `$` names require `allNames`. Use `excludes` to remove unwanted state, or deliberate `includes` to own the selection
+actually selects. Groovy’s default generated equality can include properties that KlumAST treats as owner or transient
+state. Private fields require `includeFields`, and `$` names require `allNames`. Use `excludes` to remove unwanted state,
+or deliberate `includes` to own the selection
 (explicit includes, including an empty list, always remain silent). Handwritten equality methods remain unchanged.
 
 Place `@EqualsAndHashCode` before `@DSL` when selecting source properties. If it runs after `@DSL`, ordinary properties

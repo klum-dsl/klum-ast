@@ -164,6 +164,76 @@ class CustomEqualityDiagnosticTest extends AbstractDSLSpec {
         !warnings(unit)
     }
 
+    def "superclass owns its selected-state warning when child equality calls super"() {
+        given:
+        def source = '''
+            import groovy.transform.EqualsAndHashCode
+
+            @EqualsAndHashCode
+            @DSL
+            class ParentRecord {
+                String name
+                @Owner Object parent
+            }
+
+            @EqualsAndHashCode(callSuper = true)
+            @DSL
+            class ChildRecord extends ParentRecord {
+                String description
+            }
+
+            @EqualsAndHashCode
+            class ReferenceParent {
+                String name
+                Object parent
+            }
+
+            @EqualsAndHashCode(callSuper = true)
+            class ReferenceChild extends ReferenceParent {
+                String description
+            }
+        '''
+        def unit = compile(source)
+        createClass(source)
+        def child = getClass('ChildRecord')
+        def reference = getClass('ReferenceChild')
+        def values = [
+                [name: 'guide', parent: 'team-a', description: 'overview'],
+                [name: 'guide', parent: 'team-a', description: 'overview'],
+                [name: 'guide', parent: 'team-b', description: 'overview'],
+                [name: 'manual', parent: 'team-a', description: 'overview'],
+                [name: 'guide', parent: 'team-a', description: 'details']
+        ]
+
+        when:
+        def children = values.collect {
+            child.Create.With(name: it.name, setParent: it.parent, description: it.description)
+        }
+        def references = values.collect { reference.newInstance(it) }
+
+        then:
+        warnings(unit).size() == 1
+        warnings(unit)[0].contains("on 'ParentRecord'")
+        warnings(unit)[0].contains('fields: parent.')
+        !warnings(unit)[0].contains('ChildRecord')
+        unit.ast.classes.find { it.name == 'ChildRecord' }.annotations.find {
+            it.classNode.name == 'groovy.transform.EqualsAndHashCode'
+        }.members.collectEntries { name, expression -> [name, expression.value] } == [callSuper: true]
+
+        and: 'both superclass state and local child state still participate'
+        children[0] == children[1]
+        children[0] != children[2]
+        children[0] != children[3]
+        children[0] != children[4]
+        children*.parent == values*.parent
+
+        and: 'the diagnostic preserves plain Groovy equality and hash-code results'
+        children.indices.every {
+            children[0].equals(children[it]) == references[0].equals(references[it])
+        }
+        children*.hashCode() == references*.hashCode()
+    }
+
     @Tag("documentary")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Basics.md#equals-method")
     def "chooses equality state explicitly while ignoring ownership and transient metadata"() {
