@@ -77,7 +77,7 @@ public final class CustomEqualityDiagnostic extends CodeVisitorSupport {
                             + ". Use explicit excludes or deliberate includes to choose equality state.", annotation);
     }
 
-    private void record(String name) {
+    private void recordManagedField(String name) {
         // Groovy's own synthetic hash cache is deliberate support for cache=true, not Klum state.
         FieldNode field = model.getDeclaredField(name);
         if (field != null && !field.isStatic() && ((field.getName().startsWith("$")
@@ -90,19 +90,19 @@ public final class CustomEqualityDiagnostic extends CodeVisitorSupport {
     @Override
     public void visitVariableExpression(VariableExpression expression) {
         if (expression.getAccessedVariable() instanceof FieldNode)
-            record(expression.getName());
+            recordManagedField(expression.getName());
         super.visitVariableExpression(expression);
     }
 
     @Override
     public void visitFieldExpression(FieldExpression expression) {
-        record(expression.getFieldName());
+        recordManagedField(expression.getFieldName());
         super.visitFieldExpression(expression);
     }
 
     @Override
     public void visitPropertyExpression(PropertyExpression expression) {
-        record(expression.getPropertyAsString());
+        recordManagedField(expression.getPropertyAsString());
         super.visitPropertyExpression(expression);
     }
 
@@ -113,7 +113,7 @@ public final class CustomEqualityDiagnostic extends CodeVisitorSupport {
         for (FieldNode field : model.getFields()) {
             String name = field.getName();
             if (getGetterName(name).equals(method) || getBooleanGetterName(name).equals(method))
-                record(name);
+                recordManagedField(name);
         }
         super.visitMethodCallExpression(expression);
     }
