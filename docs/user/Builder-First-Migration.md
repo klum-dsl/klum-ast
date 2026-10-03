@@ -83,6 +83,12 @@ internal GDSL bridge described in [Gradle Onboarding](Gradle-Onboarding.md#intel
 not add bytecode or independent read-only semantics. This is IDE metadata only: neither the GDSL root nor mirrors become
 compiler, package, or downstream inputs.
 
+For bare Builder calls in `DelegatingScript` recipes, the additive 4.1
+[Schema-owned suffix mapping](Portable-GDSL.md) supplies IntelliJ context through that same public Builder.
+Source consumers refresh mirrors; binary consumers use compiled Builders and the explicit metadata materializer.
+The mapping does not alter Construction sessions, key derivation, or runtime receivers, and qualification excludes
+nested DSL Models pending [#826](https://github.com/klum-dsl/klum-ast/issues/826).
+
 ```groovy
 // Schema.groovy
 @DSL

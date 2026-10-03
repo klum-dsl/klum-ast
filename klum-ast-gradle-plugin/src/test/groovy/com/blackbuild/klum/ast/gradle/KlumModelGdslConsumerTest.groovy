@@ -86,7 +86,7 @@ publishing.repositories { maven { name = 'fixture'; url = '${repository.toURI()}
     }
 
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/adr-0025-portable-schema-gdsl-metadata.md#gdsl-2-engineering-contract-and-evidence')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Portable-GDSL.md#consume-a-published-binary-schema')
     def "binary Model follows the normal Schema constraint without a second metadata version and caches refresh"() {
         given:
         fixture("klumGdsl 'org.example:environment-schema'", "constraints { api 'org.example:environment-schema:2.0' }")

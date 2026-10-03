@@ -85,6 +85,64 @@ groovy catalog.groovy
 The first connected run resolves the exact Schema dependency closure from Grape's configured repositories and stores it
 in Grape's cache. A normal Grape installation uses `~/.groovy/grapes`; this is separate from Gradle's dependency cache.
 
+## Standalone scripts and portable GDSL metadata
+
+The [4.1 portable GDSL workflow](Portable-GDSL.md) publishes an optional Schema-owned editor archive. The normal
+Schema `@Grab` above retrieves the Schema and its runtime closure; it does not select that archive. Groovy supports
+an explicit classifier request with the same exact Schema coordinate:
+
+```groovy
+@Grab('com.example.platform:deployment-schema:1.4.2')
+@Grab(group='com.example.platform', module='deployment-schema',
+      version='1.4.2', classifier='gdsl')
+import com.example.platform.Deployment
+```
+
+The second annotation can also be written as `@Grab('com.example.platform:deployment-schema:1.4.2:gdsl@jar')` or
+`@Grab('com.example.platform:deployment-schema:1.4.2:gdsl')`; see the
+[Groovy Grab API](https://docs.groovy-lang.org/docs/groovy-4.0.31/html/api/groovy/lang/Grab.html).
+The Schema owner must have enabled and published the classifier; a missing classifier fails resolution. Keep the
+ordinary Schema declaration because the classifier contains editor metadata rather than Schema classes.
+
+Paired ordinary/classifier declarations were verified with real published Schemas and DelegatingScript recipes on
+Groovy 3.0.25, 4.0.32, and 5.0.6. Keep both annotations' default transitivity. A classifier annotation with
+`transitive=false` after the ordinary request suppresses the shared Schema runtime dependency closure in the verified
+lanes; mixing transitivity settings is declaration-order sensitive.
+
+Both annotations add their resolved JARs to Groovy's compiling/running classloader. This is artifact retrieval, not
+KlumAST's editor-only managed transport: Grape does not select the Gradle metadata capability or provide managed
+origin/version/overlap validation. Terminal execution or a JAR in the Grape cache does not register an IntelliJ root.
+
+### Separate manual editor preparation
+
+For a non-Gradle fallback that keeps metadata out of the Model's runtime loader, retain only the normal Schema
+`@Grab` in the Model. In a separate preparation script, resolve the matching classifier without adding it to the
+classloader:
+
+```groovy
+import groovy.grape.Grape
+
+def metadata = Grape.resolve([autoDownload: true],
+    [group: 'com.example.platform', module: 'deployment-schema',
+     version: '1.4.2', classifier: 'gdsl', transitive: false])
+assert metadata.size() == 1
+println metadata[0]
+```
+
+Here `transitive=false` belongs to a separate metadata-only resolution, not a paired annotation request.
+Inspect the archive's Schema coordinates, format, catalog, and payload correspondence; extract the catalog's generated
+`.gdsl` contributors from `META-INF/klum-ide/gdsl/v1/` into a dedicated IntelliJ source/resource content root.
+Register the normal Schema/runtime libraries separately so the contributor can resolve the actual public Model and
+Builder. Keep the editor root outside build resources, execution classpaths, and published artifacts in the project's
+actual build/run configuration. Refresh or remove it when changing Schema versions or disabling the mapping, then
+reload/activate contributors if IntelliJ requires it. Attaching the archive only as library sources is unsuitable for
+GDSL discovery.
+
+These extracted files are user-owned editor configuration, outside KlumAST's managed transport and its validation.
+Native standalone Grape-project completion has not been qualified. Use the Model Gradle plugin for the
+[qualified regular source/binary consumer path](Portable-GDSL.md), managed refresh, and conflict checks. The suffix
+still supplies editor context only; it does not choose or change the runtime receiving Builder.
+
 ## Prepare a controlled cache for disconnected use
 
 Prepare the cache on a connected staging machine before moving it across the network boundary. Use the same account

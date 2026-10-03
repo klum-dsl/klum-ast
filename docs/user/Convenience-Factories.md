@@ -33,16 +33,22 @@ name 'Klaus'
 
 or configure `GroovyClassLoader` / `GroovyShell` with a `BaseScript` (see the Javadoc of `DelegatingScript` for details).
 
-A `DelegatingScript` executes its bare configuration calls against the target's Builder at runtime. IntelliJ currently
-does not infer that concrete Builder for bare calls in the script body, so completion and navigation there are incomplete.
-This improvement is tracked in [#805](https://github.com/klum-dsl/klum-ast/issues/805).
+A `DelegatingScript` executes its bare configuration calls against the receiving factory's Builder at runtime.
+For IntelliJ completion and navigation, KlumAST 4.1 provides an explicit Schema-owned suffix mapping and a separate
+editor-only metadata path. Follow [IntelliJ completion for DelegatingScripts](Portable-GDSL.md) for source and binary
+consumers, refresh tasks, and the qualified IDE boundary. A bare `DelegatingScript` without that opt-in still does not
+identify its concrete Builder to IntelliJ.
 
 ### Optional IntelliJ completion for one script family
 
-If your project owns a filename convention for scripts that configure one Schema type, you can add an IntelliJ GDSL file
-under `src/main/resources` in either the Schema or Model project. This is optional Schema- or Model-owned IntelliJ
-configuration; KlumAST does not install this contributor for every `DelegatingScript`. For example, given
-`src/main/groovy/example/Environment.groovy`:
+Declare the intentional `.environment.groovy` suffix for `example.Environment` in the Schema's `klumSchema.gdsl`
+configuration; Model consumers opt in and explicitly select that Schema's metadata. This replaces the unreleased
+manual copied-resource recipe. Use the [portable mapping workflow](Portable-GDSL.md#declare-the-schema-mapping)
+instead of placing a contributor in ordinary Schema or Model resources. The qualified path uses regular non-nested
+Models; nested mirror/publication preparation is separately tracked in
+[#826](https://github.com/klum-dsl/klum-ast/issues/826).
+
+For example, the Schema's Model is deliberately unkeyed:
 
 ```groovy
 package example
@@ -52,27 +58,6 @@ import com.blackbuild.klum.ast.DSL
 @DSL
 class Environment {
     String region
-}
-```
-
-Put this **`src/main/resources/environment.gdsl`** in the chosen project and enable it if IntelliJ prompts you.
-IntelliJ needs the GDSL on its classpath for reliable discovery. Choose its owner according to the convention:
-
-- **Schema-owned:** keep it in the Schema project's resources when all consuming Models should use the same
-  filename-to-Builder mapping. Gradle's standard resource processing normally packages it in the Schema JAR, making it
-  available to Model projects that consume that Schema. That propagation is intentional: the mapping becomes part of
-  the Schema's effective editor contract.
-- **Model-owned:** keep it in the Model project's resources when the naming convention belongs only to that Model
-  project. Resource processing may package it in the Model JAR, but it does not propagate with the reusable Schema.
-
-Replace `example.Environment_DSL.Builder` with the real generated Builder contract for your Schema. Use a stable,
-intentional suffix, update a Schema-owned contributor when its Schema type or convention changes, and avoid a suffix that
-could match scripts for another target type:
-
-```groovy
-contributor(context(scope: scriptScope())) {
-    if (place.containingFile.name.endsWith('.environment.groovy'))
-        delegatesTo(findClass('example.Environment_DSL.Builder'))
 }
 ```
 
@@ -105,31 +90,23 @@ If you compile the recipe and use `Create.FromClasspath()`, put a marker at
 The marker names the **actual compiled script class**, not `catalog.environment.groovy`; the dotted filename produced
 `example.catalog_environment` in Groovy 3, 4, and 5. Keep the marker in the classpath that loads that script.
 
-IntelliJ uses the GDSL only to offer and resolve operations from the existing `Environment_DSL.Builder`; it does not
-change Groovy compilation or `DelegatingScript` runtime dispatch. The generated contract must be visible to the IDE,
-either through refreshed Schema source mirrors or compiled Schema classes. After renaming the Schema or changing its
-operations, refresh the mirrors and update this Schema- or Model-owned GDSL as needed.
+IntelliJ resolves operations from the actual public `Environment_DSL.Builder`, through refreshed source mirrors
+or compiled Schema classes. The suffix is an editor hint: it does not choose the runtime factory or alter dispatch.
+A matching recipe executed against another Model can still fail. See the
+[project-wide mapping and failure rules](Portable-GDSL.md#project-wide-mappings-and-failures) before changing suffixes
+or Schema versions.
 
-Check the boundary in IntelliJ: `catalog.environment.groovy` should offer `region` and navigate to the generated Builder
-contract, while `catalog.other.groovy` should not gain that completion from this contributor. A script with the matching
-suffix that actually runs against another Schema type would receive misleading suggestions; use a separate suffix and
-contributor for that type. This example is specific to IntelliJ GDSL and does not claim editor support elsewhere.
-
-This manual recipe is an interim option under [#805](https://github.com/klum-dsl/klum-ast/issues/805). A future
-KlumAST Gradle-plugin facility could generate, materialize, and register a contributor from an explicit Schema
-declaration, but its design needs a separate decision under that issue.
-
-For the currently supported IntelliJ completion and navigation path, an ordinary Model script uses a typed factory call:
+An ordinary Model script can also use a typed factory call:
 
 ```groovy
-Deployment.Create.With {
-    environment 'production'
+Environment.Create.With {
+    region 'eu'
 }
 ```
 
-That call exposes the generated Builder contract through refreshed source mirrors in a Schema project or compiled Schema
-classes in a separate consumer. It creates a completed Model; it is not interchangeable with a `DelegatingScript` recipe
-that configures a Builder inside an active Construction session.
+That call exposes the generated Builder through source mirrors or compiled Schema classes and creates a completed
+Model. A `DelegatingScript` recipe can instead configure a Builder inside an active Construction session through the
+existing Builder-producing factory route below.
 
 For a [Usage#schema---model---consumer](Usage.md#schema---model---consumer) setup, the most convenient solution is to configure the Model project with a
 compiler customizer.
@@ -209,7 +186,7 @@ If no class loader is given, the current context class loader is used.
 
 Instead of text, a `File` or `URL` can be given; for a keyed object, the key is derived from the filename
 (the first segment, in the example above, the key would be "bla"). The same
-[`DelegatingScript` IDE limitation](#delegating-scripts) applies to these scripts.
+[opt-in IntelliJ suffix mapping](Portable-GDSL.md) also applies to these recipe files.
 
 This allows splitting configurations into different files, which might be automatically resolved by something like:
 

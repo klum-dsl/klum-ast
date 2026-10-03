@@ -12,6 +12,7 @@
   * [Usage](Usage.md)
   * [Gradle Plugins](Gradle-Plugins.md)
   * [Gradle Onboarding](Gradle-Onboarding.md)
+  * [IntelliJ completion for DelegatingScripts](Portable-GDSL.md)
   * [Testing Models and Schemas](Testing-Models-and-Schemas.md)
   * [Standalone Model scripts with `@Grab`](Grab-Model-Scripts.md)
   * [Domain First Modeling](Domain-First-Modeling.md)
