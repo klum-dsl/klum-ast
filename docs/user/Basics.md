@@ -205,7 +205,30 @@ owned composition. [Copy Strategies](Copy-Strategies.md) describes the available
 ## `equals()` Method
 
 If not yet present, the `equals()` method is generated using the default `@EqualsAndHashCode` ASTTransformations. You
-can customize it by using the original ASTTransformation.
+can customize it by using Groovy's `@EqualsAndHashCode`. KlumAST leaves your annotation and equality semantics unchanged.
+
+A compiler warning identifies owner, transient, or `$` implementation fields that your generated equality or hash code
+actually selects. Groovy includes owner and transient **properties** by default; private fields require `includeFields`,
+and `$` names require `allNames`. Use `excludes` to remove unwanted state, or deliberate `includes` to own the selection
+(explicit includes, including an empty list, always remain silent). Handwritten equality methods remain unchanged.
+
+Place `@EqualsAndHashCode` before `@DSL` when selecting source properties. If it runs after `@DSL`, ordinary properties
+have already become read-only getters; transient properties remain, and `includeFields` / `allProperties` may select
+additional state. The warning follows the methods Groovy actually generates, including annotation order.
+
+(See: `CustomEqualityDiagnosticTest#'chooses equality state explicitly while ignoring ownership and transient metadata'`.)
+
+```groovy
+@EqualsAndHashCode(excludes = ['parent', 'metadata'])
+@DSL
+class Document {
+    String name
+    @Owner Object parent
+    @Field(FieldType.TRANSIENT) String metadata
+}
+
+// Alternatively: @EqualsAndHashCode(includes = ['name'])
+```
 
 ## `hashCode()`
 A barebone hashCode is created, with a constant 0 for non-keyed objects, and the hashcode of
