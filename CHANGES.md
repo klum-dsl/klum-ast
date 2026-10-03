@@ -1,5 +1,9 @@
 # 4.1.0 (unreleased)
 
+- Custom Groovy `@EqualsAndHashCode` now warns when generated equality/hash code selects owner, transient, or `$`
+  implementation fields. Explicit `includes` and handwritten equality remain silent; annotation configuration and
+  equality semantics are unchanged ([#240](https://github.com/klum-dsl/klum-ast/issues/240)).
+
 - Compilation now rejects same-named user-declared instance fields/properties across a DSL inheritance hierarchy,
   including owners, defaults, and construction-only Builder state. The diagnostic identifies both declarations and
   points at the descendant declaration. Static field shadowing, method/getter overrides, abstract-getter implementations,
