@@ -181,8 +181,12 @@ class BuilderDispatchDiagnosticTest extends AbstractDSLSpec {
         error.method == missing
         error.type.name in ['FailingConfig', 'FailingConfig$Builder']
         !error.type.interface
-        if (missing in ['fail', 'withoutStack']) assert error.is(clazz.recorded)
-        if (missing == 'withoutStack') assert error.stackTrace.length == 0
+        if (missing in ['fail', 'withoutStack']) {
+            assert error.is(clazz.recorded)
+        }
+        if (missing == 'withoutStack') {
+            assert error.stackTrace.length == 0
+        }
 
         where:
         path | source | missing

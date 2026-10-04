@@ -48,6 +48,7 @@ public final class BuilderDispatchSupport {
     }
 
     private static final ThreadLocal<DispatchContext> CURRENT = new ThreadLocal<>();
+    private static final String METHOD_MISSING = "methodMissing";
 
     public static <T> T call(Closure<T> body) {
         return execute(body.getDelegate(), body.getClass(), "doCall", body::call);
@@ -77,7 +78,7 @@ public final class BuilderDispatchSupport {
 
     static void recordInvocation(Object receiver, String method) {
         DispatchContext context = CURRENT.get();
-        if (context != null && context.delegate == receiver && !method.equals("methodMissing") && !method.equals("getClass"))
+        if (context != null && context.delegate == receiver && !method.equals(METHOD_MISSING) && !method.equals("getClass"))
             context.method = method;
     }
 
@@ -125,33 +126,56 @@ public final class BuilderDispatchSupport {
         boolean generatedBridge = false;
         boolean groovyDispatch = false;
         for (StackTraceElement frame : failure.getStackTrace()) {
-            String name = frame.getClassName();
-            if (name.equals(ClosureMetaMethod.class.getName())) return false;
-            if (name.equals(OmittedProjectionSupport.class.getName())
-                    || name.equals(GeneratedOmittedProjectionSupport.class.getName()))
-                continue;
-            if (name.startsWith("org.codehaus.groovy.") || name.startsWith("groovy.lang.")
-                    || name.equals(DelegatingScript.class.getName())) {
-                if ((name.equals(MetaClassImpl.class.getName()) || name.equals(GroovyObject.class.getName()))
-                        && frame.getMethodName().startsWith("invoke")
-                        && !frame.getMethodName().equals("invokeConstructor")) groovyDispatch = true;
-                continue;
+            switch (classifyFrame(frame, delegate.getClass(), source, entryMethod)) {
+                case USER_CODE -> { return false; }
+                case GROOVY_DISPATCH -> groovyDispatch = true;
+                case GENERATED_BRIDGE -> generatedBridge = true;
+                case NESTED_CLOSURE -> {
+                    if (!groovyDispatch) return false;
+                }
+                case SOURCE -> {
+                    return groovyDispatch && (!schemaReceiver || generatedBridge)
+                            && (!generatedBridge || !hasStaticFallback(delegate, failure));
+                }
+                case INFRASTRUCTURE -> { /* Keep looking for the configuration entry point. */ }
             }
-            if (name.startsWith("java.") || name.startsWith("jdk.")) continue;
-            if (name.equals(delegate.getClass().getName()) && frame.getMethodName().equals("methodMissing")
-                    && isSyntheticMissingBridge(delegate.getClass())) {
-                generatedBridge = true;
-                continue;
-            }
-            if (frame.getMethodName().equals("doCall") && isNestedClosure(name, source)) {
-                if (!groovyDispatch) return false;
-                continue;
-            }
-            return groovyDispatch && name.equals(source.getName()) && frame.getMethodName().equals(entryMethod)
-                    && (!schemaReceiver || generatedBridge)
-                    && (!generatedBridge || !hasStaticFallback(delegate, failure));
         }
         return false;
+    }
+
+    private enum DispatchFrame {
+        USER_CODE, GROOVY_DISPATCH, GENERATED_BRIDGE, NESTED_CLOSURE, SOURCE, INFRASTRUCTURE
+    }
+
+    private static DispatchFrame classifyFrame(StackTraceElement frame, Class<?> delegate,
+                                               Class<?> source, String entryMethod) {
+        String name = frame.getClassName();
+        if (name.equals(ClosureMetaMethod.class.getName())) return DispatchFrame.USER_CODE;
+        if (name.equals(OmittedProjectionSupport.class.getName())
+                || name.equals(GeneratedOmittedProjectionSupport.class.getName())
+                || name.startsWith("java.") || name.startsWith("jdk."))
+            return DispatchFrame.INFRASTRUCTURE;
+        if (isGroovyInfrastructure(name))
+            return isGroovyDispatch(frame) ? DispatchFrame.GROOVY_DISPATCH : DispatchFrame.INFRASTRUCTURE;
+        if (name.equals(delegate.getName()) && frame.getMethodName().equals(METHOD_MISSING)
+                && isSyntheticMissingBridge(delegate))
+            return DispatchFrame.GENERATED_BRIDGE;
+        if (frame.getMethodName().equals("doCall") && isNestedClosure(name, source))
+            return DispatchFrame.NESTED_CLOSURE;
+        if (name.equals(source.getName()) && frame.getMethodName().equals(entryMethod))
+            return DispatchFrame.SOURCE;
+        return DispatchFrame.USER_CODE;
+    }
+
+    private static boolean isGroovyInfrastructure(String name) {
+        return name.startsWith("org.codehaus.groovy.") || name.startsWith("groovy.lang.")
+                || name.equals(DelegatingScript.class.getName());
+    }
+
+    private static boolean isGroovyDispatch(StackTraceElement frame) {
+        String name = frame.getClassName();
+        return (name.equals(MetaClassImpl.class.getName()) || name.equals(GroovyObject.class.getName()))
+                && frame.getMethodName().startsWith("invoke") && !frame.getMethodName().equals("invokeConstructor");
     }
 
     private static boolean isNestedClosure(String name, Class<?> source) {
@@ -175,7 +199,7 @@ public final class BuilderDispatchSupport {
 
     private static boolean isSyntheticMissingBridge(Class<?> type) {
         try {
-            Method method = type.getDeclaredMethod("methodMissing", String.class, Object.class);
+            Method method = type.getDeclaredMethod(METHOD_MISSING, String.class, Object.class);
             return method.isSynthetic();
         } catch (NoSuchMethodException ignored) {
             return false;
@@ -183,6 +207,7 @@ public final class BuilderDispatchSupport {
     }
 
     /** Groovy's interface MetaClass omits abstract methods, so rank the actual public contract instead. */
+    @SuppressWarnings("java:S110") // MissingMethodException catchability requires Groovy/JDK's existing exception ancestry.
     private static final class BuilderMissingMethodException extends MissingMethodException {
         private static final long serialVersionUID = 1L;
 
