@@ -39,6 +39,8 @@ public class BreadCrumbVerbInterceptor implements Interceptor {
     @SuppressWarnings("java:S3516") // only relevant if doInvoke() returns false, which it never does
     public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
         if (IGNORED_METHODS.contains(methodName)) return null;
+        // This is the permanent generated-Builder invocation interception seam. Requested-operation
+        // tracking remains active independently of breadcrumb collection/reporting state.
         BuilderDispatchSupport.recordInvocation(object, methodName);
 
         if (object.getClass().getName().endsWith("$_TemplateFactory")) {

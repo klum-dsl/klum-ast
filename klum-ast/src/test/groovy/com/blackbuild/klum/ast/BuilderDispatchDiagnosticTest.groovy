@@ -23,6 +23,9 @@
  */
 package com.blackbuild.klum.ast
 
+import com.blackbuild.klum.ast.runtime.internal.BreadCrumbVerbInterceptor
+import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
+import groovy.lang.ProxyMetaClass
 import groovy.util.DelegatingScript
 import spock.lang.Issue
 
@@ -76,6 +79,34 @@ class BuilderDispatchDiagnosticTest extends AbstractDSLSpec {
         'nested' | 'Container.Create.With { element { vlaue("x") } }' | 'Element_DSL$Builder' | 'vlaue' | 'value('
         'collection factory' | 'Container.Create.With { elements { elment() } }' | 'Container_DSL$Builder$CollectionFactory_elements' | 'elment' | 'element('
         'collection element' | 'Container.Create.With { elements { element { vlaue("x") } } }' | 'Element_DSL$Builder' | 'vlaue' | 'value('
+    }
+
+    def "Builder invocation interception and diagnostics survive empty breadcrumb path reporting"() {
+        given:
+        Class script = createSecondaryClass('''
+            import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
+
+            Container.Create.With {
+                assert BreadcrumbCollector.instance.fullPath == ''
+                elment()
+            }
+        ''')
+
+        when: 'the existing scoped override suppresses path reporting while collection remains active'
+        BreadcrumbCollector.withFullPathOverride('') {
+            script.getDeclaredConstructor().newInstance().run()
+        }
+
+        then:
+        def error = thrown(MissingMethodException)
+        error.type == getClass('Container_DSL$Builder')
+        error.method == 'elment'
+        error.message.contains('element(')
+
+        and: 'generated Builder invocation interception is structurally installed'
+        def builderMetaClass = GroovySystem.metaClassRegistry.getMetaClass(getBuilderClass('Container'))
+        builderMetaClass instanceof ProxyMetaClass
+        builderMetaClass.interceptor instanceof BreadCrumbVerbInterceptor
     }
 
     def "DelegatingScript failures use the public Builder contract"() {
@@ -145,7 +176,7 @@ class BuilderDispatchDiagnosticTest extends AbstractDSLSpec {
         result == 'custom'
     }
 
-    def "user-code failure from #path retains its receiver and stack"() {
+    def "user-code failure from #path retains its receiver and stack with breadcrumb reporting suppressed"() {
         given:
         createClass '''
             import groovy.transform.TypeChecked
@@ -174,7 +205,9 @@ class BuilderDispatchDiagnosticTest extends AbstractDSLSpec {
         Class script = createSecondaryClass(source)
 
         when:
-        script.getDeclaredConstructor().newInstance().run()
+        BreadcrumbCollector.withFullPathOverride('') {
+            script.getDeclaredConstructor().newInstance().run()
+        }
 
         then:
         def error = thrown(MissingMethodException)
