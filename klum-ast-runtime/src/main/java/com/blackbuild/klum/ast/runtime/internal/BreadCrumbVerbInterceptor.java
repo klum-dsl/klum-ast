@@ -39,6 +39,7 @@ public class BreadCrumbVerbInterceptor implements Interceptor {
     @SuppressWarnings("java:S3516") // only relevant if doInvoke() returns false, which it never does
     public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
         if (IGNORED_METHODS.contains(methodName)) return null;
+        BuilderDispatchSupport.recordInvocation(object, methodName);
 
         if (object.getClass().getName().endsWith("$_TemplateFactory")) {
             BreadcrumbCollector.getInstance().setVerb(DslHelper.shortNameFor(object.getClass().getDeclaringClass()) + ".Template");
