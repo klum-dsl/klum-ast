@@ -320,10 +320,7 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     private static <T> T createFromDelegatingScript(Class<T> type, @Nullable String key, DelegatingScript script) {
-        Consumer<InternalKlumBuilder<T>> apply = builder -> {
-            script.setDelegate(builder);
-            script.run();
-        };
+        Consumer<InternalKlumBuilder<T>> apply = builder -> BuilderDispatchSupport.run(script, builder);
 
         if (DslHelper.isKeyed(type))
             return doCreate(key, () -> createBuilder(type, key), apply);
@@ -482,8 +479,7 @@ public class FactoryHelper extends GroovyObjectSupport {
                 builder.copyFromTemplate();
 
                 DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
-                script.setDelegate(builder);
-                script.run();
+                BuilderDispatchSupport.run(script, builder);
                 return (T) InternalKlumBuilder.materializeGraph(builder);
             })
         );
@@ -579,8 +575,7 @@ public class FactoryHelper extends GroovyObjectSupport {
                 DslHelper.shortNameFor(type) + ".AsBuilder().From", "script", scriptName,
                 () -> prepareNestedBuilder(type, key, template, builder -> {
                     DelegatingScript script = (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null);
-                    script.setDelegate(builder);
-                    script.run();
+                    BuilderDispatchSupport.run(script, builder);
                 }));
     }
 

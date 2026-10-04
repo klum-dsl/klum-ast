@@ -42,7 +42,7 @@ import java.util.jar.JarOutputStream
 @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Grab-Model-Scripts.md#run-a-connected-local-model")
 class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
 
-    @Issue("794")
+    @Issue(["794", "205"])
     def "runs a standalone Model script against a separately compiled Schema"() {
         given:
         createClass '''
@@ -101,6 +101,22 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
                 assert error.message.contains("Unknown named-map Builder call 'nmae'")
                 assert error.message.contains('Model com.example.platform.Service')
                 assert error.cause.class.name == 'groovy.lang.MissingMethodException'
+            }
+            // These dynamic closures compile successfully; the diagnostic is runtime-only.
+            [
+                { Deployment.Create.With('typo') { environmnt('production') } },
+                { Deployment.Create.With('typo') { service { imge('catalog:1.0') } } }
+            ].eachWithIndex { configuration, index ->
+                try {
+                    configuration()
+                    assert false: 'a terminal closure typo must fail at runtime'
+                } catch (MissingMethodException error) {
+                    assert error.type.name == (index == 0
+                            ? 'com.example.platform.Deployment_DSL$Builder'
+                            : 'com.example.platform.Service_DSL$Builder')
+                    assert !error.static
+                    assert error.message.contains(index == 0 ? 'environment(' : 'image(')
+                }
             }
             println "STANDALONE_GRAB_OK:${deployment.name}:${deployment.service.image}"
         '''

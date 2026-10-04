@@ -605,7 +605,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             return;
         body.setDelegate(this);
         body.setResolveStrategy(Closure.DELEGATE_ONLY);
-        body.call();
+        BuilderDispatchSupport.call(body);
     }
 
     private void applyNamedParameters(Map<String, ?> values) {
