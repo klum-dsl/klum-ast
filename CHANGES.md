@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- Terminal dynamic Builder-closure and `DelegatingScript` typos now identify the public generated Builder or collection
+  factory contract and suggest its actual operations consistently across Groovy 3, 4, and 5. The error remains catchable
+  as `MissingMethodException`; successful dynamic fallbacks, user-code failures, and named-map diagnostics retain their
+  behavior ([#205](https://github.com/klum-dsl/klum-ast/issues/205)).
+
 - Custom Groovy `@EqualsAndHashCode` now warns when generated equality/hash code selects owner, transient, or `$`
   implementation fields. Explicit `includes` and handwritten equality remain silent; annotation configuration and
   equality semantics are unchanged ([#240](https://github.com/klum-dsl/klum-ast/issues/240)).
