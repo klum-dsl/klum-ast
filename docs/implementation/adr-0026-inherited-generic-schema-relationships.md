@@ -66,17 +66,55 @@ seams in [GeneratedDslSupportSpec](../../klum-ast/src/test/groovy/com/blackbuild
 shared incremental loader alone cannot prove JAR-only consumption. Extend a narrow fixture with packaging/fresh loaders
 or keep the binary test separate; no broad harness refactor is required.
 
+GEN-0 tests consumer-visible effective typing, not mandatory physical leaf redeclaration. For completed Models, ordinary
+generic inheritance is an accepted encoding when base/leaf class-file Signatures and inheritance substitution express the
+exact single/Collection/Map types. Require Java and static Groovy assignments without unchecked casts, correct concrete
+runtime values and no duplicate Model storage. Do not generate specialized leaf getters/bridges solely to flatten generic
+members. A physical Model override is acceptable only if the chosen mechanism requires it and the tracer proves it truthful
+and compatibility-safe; physically declared leaf getters are not an acceptance criterion by themselves.
+
+The Java binary consumer must compile and execute these assignments, whether the getters are inherited or leaf-declared:
+
+```java
+import java.util.List;
+import java.util.Map;
+
+// provider is an OrderEnvironmentProvider.
+OrderEnvironment primary = provider.getPrimary();
+List<OrderEnvironment> backups = provider.getBackups();
+Map<String, OrderEnvironment> environments = provider.getEnvironments();
+```
+
+Static Groovy proves equivalent typed assignments; dynamic Groovy proves the corresponding concrete runtime values.
+For each inspected member, the bytecode evidence records:
+
+- its physical declaring class;
+- erased descriptor;
+- generic Signature;
+- inheritance substitution in the downstream leaf context;
+- any generated override/bridge, if present, with its necessity and compatibility evidence.
+
+Correctness follows from the resulting public contract, with no preference for flattened leaf bytecode. The separate
+Builder problem is representing `T -> OrderEnvironment -> OrderEnvironment_DSL.Builder<OrderEnvironment>` across the
+JAR boundary for creators, storage/accessors, returns and delegates. Model substitution alone does not establish that
+projection. GEN-0 keeps parameterized inheritance versus specialized overrides/bridges open for the Builder surface.
+
+Mirror acceptance repeats consumer compilation/type checks against the mirror/public contract in an isolated fixture and
+compares effective typing with binary consumers. Inherited specialization need not become invented leaf members; any
+Builder overrides/bridges or added generic structure must be represented truthfully by the resulting public bytecode and
+mirrors. This isolated test does not add mirrors to production or downstream Schema inputs.
+
 **Every dimension below belongs in this first tracer, across single, Collection and Map relationships:**
 
 | Dimension | Executable acceptance |
 | --- | --- |
 | Runtime creation | Closure-only keyed creators create OrderEnvironment, return its public Builder and attach it once; child-only orderQueue works; materialized subtype and Map keys are exact |
-| Storage/accessors and bytecode | Construction reads expose child Builders and typed List/Map values; completed reads expose Models; inspect Signatures/descriptors, inherited context and bridges; generic base descriptors may remain erased, with no duplicate storage |
+| Storage/accessors and bytecode | Construction reads expose effective public child Builder and List/Map types; completed reads expose exact effective Model types through inherited substitution or necessary overrides; record declaring class, erased descriptor, Signature, substitution and any override/bridge; no duplicate Builder or Model storage, no mandatory leaf getter generation |
 | Factories/closure delegates | Leaf root return and active-session AsBuilder return are exact; child returns/parameters and DELEGATE_ONLY metadata name the specialized public contract, with no hidden implementation leaks |
-| Java binary consumer | Assign creators/getters, completed getters and container elements without unchecked casts; exercise public leaf Builder and correctly parameterized base view, compile and execute, using a closure callback where needed |
-| Static Groovy binary consumer | Compile/execute child-only members in creator closures and exact Builder/Model/container assignments for all shapes; bound-only delegate cannot satisfy this positive control |
+| Java binary consumer | Compile/execute exact public Builder creator/accessor assignments and the completed-Model assignments above without unchecked casts, regardless of physical getter declaration; exercise public leaf Builder and correctly parameterized base view, with a closure callback where needed |
+| Static Groovy binary consumer | Compile/execute child-only members in creator closures and exact effective Builder/Model/container assignments without unchecked casts for all shapes, allowing inherited generic Model getters; bound-only delegate cannot satisfy this positive control |
 | Dynamic Groovy binary consumer | Execute normal DSL; assert delegate identity, child subtype values and completed results |
-| Mirrors | Generate base/leaf Foo_DSL mirrors from class files; compare effective inherited types/returns/delegates with bytecode; any syntax compilation is isolated testing, never a production/downstream Schema input |
+| Mirrors | Generate base/leaf Foo_DSL mirrors from class files; isolated consumer compilation observes the same effective types/returns/delegates as binary consumers; preserve truthful inheritance or required emitted Builder structure without invented flattened leaf members; never a production/downstream Schema input |
 | Intermediate inheritance | Direct and RegionalProvider paths agree with renamed U; two distinct concrete specializations reject shared-cache contamination |
 | Raw/unresolved diagnostics | Raw leaf and still-generic instantiable leaf fail with member/parameter/specialization guidance before child allocation/initializer side effects; abstract generic base still compiles |
 | Resolved abstract targets | Existing default implementation works; without a default, existing explicit subtype works and unsupported implicit creation retains its rejection |
@@ -93,7 +131,8 @@ needed design revision. Map-only or source-only success does not admit GEN-1.
 ### GEN-1 — Complete the existing relationship surface
 
 Extend proven substitution to closure-only/named-value/key-provider creators, dynamic Class selection, typed Factory
-selection, Collection/Map factory forwarding, compatible selected-subtype returns and inherited Model accessors.
+selection, Collection/Map factory forwarding, compatible selected-subtype returns and effective inherited Model accessor
+typing; this does not require flattening Model getters onto the leaf.
 Cover supported List/Set/sorted interfaces and Map/sorted Map values without new container forms. Exercise field/type
 default implementations after substitution, protected inherited visibility, member naming, existing duplicate/reconfiguration
 semantics, deeper intermediates and shadowed parameter names. Keep existing factory/converter behavior on these surfaces;
@@ -158,7 +197,7 @@ useful. #180 stays open until every criterion is reconciled.
 ## Open mechanics, risks and evidence gates
 
 The six [ADR mechanics](../adr/0026-inherited-generic-schema-relationships.md#mechanics-deliberately-left-to-the-tracer)
-remain open: Model-to-Builder variable representation; inheritance/override/bridge encoding; runtime target resolution;
+remain open: Model-to-Builder variable representation; Builder inheritance/override/bridge encoding; runtime target resolution;
 persistent binary metadata; substitution identity/cache boundaries; diagnostic stage/guards. GEN-0 records selections and
 rejected alternatives before expansion. Java container invariance can make a seemingly covariant Builder getter illegal;
 a Model parameter alone cannot be assumed to name its concrete child Builder. Closure annotation class literals cannot
@@ -177,6 +216,7 @@ Markdown-structure and diff checks, standards/spec review and commit-history rev
 Tracker impact: `Related: #180`; no closing relationship, new issue or release-gate mutation.
 
 Every GEN slice is pending. GEN-0's future evidence records compiler inputs, base JAR identity, KlumAST/Groovy revisions,
-exact lane commands/results, public signatures/delegates, runtime subtype/state assertions, diagnostics, mirror
-comparison/isolation and chosen mechanics. Documentation review does not establish ADR acceptance, tracer success,
+exact lane commands/results, public signatures/delegates, physical declaring classes, erased descriptors, inheritance
+substitutions and any overrides/bridges with necessity/compatibility evidence, runtime subtype/state assertions, diagnostics,
+mirror consumer equivalence/isolation and chosen mechanics. Documentation review does not establish ADR acceptance, tracer success,
 feature delivery or a 4.1 release commitment.

@@ -85,11 +85,59 @@ The leaf root factory returns `OrderEnvironmentProvider`; its active-session fac
 `OrderEnvironment`, `List<OrderEnvironment>` and `Map<String, OrderEnvironment>` in the leaf's effective type context.
 The child-only `orderQueue` operation exposes bound-type leakage to static consumers.
 
-Class-file Signatures, effective inherited types, delegate annotations, runtime values and mirrors must agree. An inherited
-field can retain its generic declaration and erased JVM descriptor; reflection on the base field alone need not report a
-concrete child. GEN-0 settles whether parameterized inheritance or specialized overrides/bridges supply exact public
-access to binary Java/static Groovy consumers. Hidden storage must be coherent with that effective type and must not
-create two independent values for one inherited relationship.
+### Completed Model acceptance concerns effective typing, not leaf redeclaration
+
+Java, static Groovy, dynamic Groovy and mirrors must observe the exact effective specialized relationship types in the
+downstream leaf context. Ordinary JVM generic inheritance is explicitly permitted when it expresses that specialization
+truthfully. It need not physically redeclare a member on the leaf. For example, with the Schema above, a Java consumer
+must be able to make these assignments without unchecked casts:
+
+```java
+import java.util.List;
+import java.util.Map;
+
+// provider is an OrderEnvironmentProvider.
+OrderEnvironment primary = provider.getPrimary();
+List<OrderEnvironment> backups = provider.getBackups();
+Map<String, OrderEnvironment> environments = provider.getEnvironments();
+```
+
+These assignments may resolve inherited `EnvironmentProvider<T>` getters through `T -> OrderEnvironment`, without any
+getter physically declared on `OrderEnvironmentProvider`. Completed Model acceptance requires the exact effective
+single/Collection/Map types, Java and static Groovy assignments without unchecked casts, correct class-file generic
+inheritance/Signatures, correct concrete runtime values, and no duplicate Model storage. No specialized leaf override
+or bridge is required merely to flatten an inherited generic member. A physical Model-side override is acceptable only
+when the chosen mechanism actually needs one and GEN-0 proves it truthful and compatibility-safe.
+
+Inspect where each member is physically declared, its erased descriptor and generic Signature, inheritance substitution,
+and any generated override/bridge that exists. Judge the resulting public contract, without preferring flattened leaf
+bytecode. An inherited field or getter can retain its generic declaration and erased JVM descriptor; reflection on the
+base declaration alone need not report a concrete child.
+
+### Builder projection is a distinct unresolved mechanism
+
+Ordinary Java substitution can express `T -> OrderEnvironment` on an inherited Model member. It does not automatically
+establish KlumAST's construction-state projection:
+
+```text
+T
+  -> effective Model type: OrderEnvironment
+  -> effective construction type: OrderEnvironment_DSL.Builder<OrderEnvironment>
+```
+
+GEN-0 must determine how that Model-variable-to-public-Builder-contract projection is represented across the separately
+compiled binary boundary for inherited relationship creators, Builder storage/accessors, returns and closure delegates.
+Parameterized inheritance and specialized Builder overrides/bridges remain open alternatives; neither is selected here.
+Hidden storage must agree with the effective construction type and must not create independent values for one relationship.
+
+### Mirrors preserve the actual public contract, including inherited specialization
+
+Source mirrors remain truthful projections of actual public bytecode. If normal generic inheritance supplies the effective
+`OrderEnvironment`, `List<OrderEnvironment>` and `Map<String, OrderEnvironment>` types, mirrors need not invent flattened
+leaf members to spell those types. Consumers compiling against the mirror/public contract must observe the same effective
+types as consumers compiling against bytecode. If Builder specialization requires emitted leaf overrides/bridges or added
+generic structure, the resulting public contract must be represented truthfully in both bytecode and mirrors. Class-file
+Signatures, inheritance, delegate annotations and runtime values must agree with that contract.
 
 ### Unresolved construction fails; resolved abstract targets retain existing rules
 
@@ -131,7 +179,7 @@ and downstream build inputs.
 | Open mechanic | Evidence needed before selection |
 | --- | --- |
 | Generic-base representation of a Model variable and its child Builder counterpart | Binary assignments for all three shapes; invariant container types remain coherent; one leaf SELF; no blanket Model/Builder substitutability |
-| Parameterized inheritance versus leaf overrides/bridges | Class-file Signatures/descriptors and overload dispatch for base-typed and leaf-typed consumers; no illegal return override or duplicate state |
+| Builder parameterized inheritance versus leaf overrides/bridges | Record declaring members, Signatures/descriptors, substitutions and any overrides/bridges; prove effective typing and overload dispatch for base/leaf consumers without illegal overrides or duplicate state; Model-side flattening is not an acceptance criterion |
 | Runtime concrete target resolution | JAR-only base without source AST metadata; exact child subtype and abstract/default rules through intermediate inheritance |
 | Standard signatures/annotations versus persistent generated metadata | Fresh downstream compiler/runtime loaders, truthful mirrors/delegates; inventory every added emitted linkage if metadata is needed |
 | Substitution identity and caching boundary | Renamed/shadowed parameters and two concrete leaves of the same base without AST/reflection cache contamination |
