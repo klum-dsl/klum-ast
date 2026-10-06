@@ -81,7 +81,10 @@ public abstract class AbstractFactoryBuilder {
     }
 
     private void createInnerClass(String name) {
-        collectionFactory = new InnerClassNode(targetClass, targetClass.getName() + "$_" + name, ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
+        collectionFactory = new InnerClassNode(targetClass,
+                DslAstHelper.checkedGeneratedInnerClassName(targetClass, targetClass.getName() + "$_" + name,
+                        "collection/Cluster factory implementations"),
+                ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
         ClassNode builderType = builderClass.getPlainNodeReference();
         collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, builderType, null);
         collectionFactory.addConstructor(ACC_PUBLIC,

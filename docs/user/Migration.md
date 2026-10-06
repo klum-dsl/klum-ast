@@ -79,12 +79,25 @@ DSL superclass. The hidden abstract Template implementation now has a distinct n
 `Template` field in Groovy class-literal expressions. Generated public factory and scope interfaces keep their names.
 See [Templates in a class hierarchy](Templates.md#templates-in-a-class-hierarchy) for the supported usage.
 
-The nested name `_TemplateModel` is reserved only where KlumAST generates an abstract Template implementation. An abstract
-DSL class declaring its own nested `_TemplateModel` receives a source-positioned compiler error asking it to rename that
-type. Other underscore-prefixed nested types remain permitted.
-
 Regenerate previously Java-serialized abstract Templates from their source recipes after recompiling: serialization
 records the hidden implementation's binary name and is not a cross-version persistence format.
+
+### Generated inner-name collisions (4.1)
+
+A nested Schema type cannot occupy the same binary name as a KlumAST implementation generated directly inside that DSL
+class. Compilation reports the conflicting type at its declaration and asks you to rename it, before Groovy reports a
+low-level duplicate-class error ([#837](https://github.com/klum-dsl/klum-ast/issues/837)). The exact names are:
+
+- `Builder`, `_Factory`, `_Template`, and `_TemplateFactory` for generated Builder, factory, and Template adapters;
+- `_TemplateModel` only when an abstract DSL class needs a generated Template implementation;
+- `_<fieldName>` only when a DSL collection field generates a collection factory;
+- `_<clusterName>` only when a Cluster selects fields and generates a Cluster factory;
+- `_<fieldName>_converterClosures` only when a field declares converter closures.
+
+Only names actually generated for that class are reserved. Other underscore-prefixed nested types, such as `_Recipe`,
+remain valid. A concrete DSL class can still declare `_TemplateModel`, and a field without converter closures does not
+reserve its corresponding converter implementation name. These are compiler constraints; broader Schema style
+recommendations are tracked separately in [#838](https://github.com/klum-dsl/klum-ast/issues/838).
 
 ### Named modules and Groovy
 
