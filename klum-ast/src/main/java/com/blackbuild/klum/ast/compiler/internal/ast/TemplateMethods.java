@@ -334,7 +334,9 @@ class TemplateMethods {
     private void createTemplateClass() {
         templateClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$Template",
+                // A nested class named Template wins over the same-named static field in
+                // Groovy class-literal expressions, including on concrete descendants.
+                annotatedClass.getName() + "$_TemplateModel",
                 ACC_STATIC | ACC_SYNTHETIC | ACC_PUBLIC,
                 newClass(annotatedClass));
 

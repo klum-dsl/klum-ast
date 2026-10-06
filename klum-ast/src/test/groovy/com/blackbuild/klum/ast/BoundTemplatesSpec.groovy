@@ -286,14 +286,14 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        getClass('pk.Parent$Template') != null
+        getClass('pk.Parent$_TemplateModel') != null
 
         when:
         def template = clazz.Template.Create(name: 'Dieter')
 
         then:
         notThrown(InstantiationException)
-        getClass('pk.Parent$Template').isInstance(template)
+        getClass('pk.Parent$_TemplateModel').isInstance(template)
         template.name == 'Dieter'
 
         when:
@@ -323,14 +323,14 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        getClass('pk.Parent$Template') != null
+        getClass('pk.Parent$_TemplateModel') != null
 
         when:
         instance = getClass("pk.Parent").Template.Create()
 
         then:
         notThrown(InstantiationException)
-        getClass('pk.Parent$Template').isInstance(instance)
+        getClass('pk.Parent$_TemplateModel').isInstance(instance)
     }
 
     def "abstract keyed class creates a artificial implementation"() {
@@ -345,7 +345,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        getClass('pk.Parent$Template') != null
+        getClass('pk.Parent$_TemplateModel') != null
 
         when:
         getClass("pk.Parent").Template.Create()
