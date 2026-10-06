@@ -70,6 +70,39 @@ concise lifecycle pattern and both dependency paths are in
 def template = ServiceConfiguration.Create.Template.From(new File('service-template.groovy'))
 ```
 
+## Templates in a class hierarchy
+
+Ordinary Groovy property syntax selects the receiver's generated `Create` factory and `Template` scope, including
+when an abstract DSL superclass also has a Template implementation. Use the same syntax for dynamic Groovy, static
+Groovy, and Java callers. Unrelated user-defined static properties keep their ordinary inheritance behavior.
+
+(See: `StaticEntryPointInheritanceTest#'applies child Templates below an abstract application'`.)
+
+```groovy
+@DSL
+abstract class Application {
+    String name
+}
+
+@DSL
+class OrderApplication extends Application {
+    String orderQueue
+}
+
+def parentTemplate = Application.Create.Template.With { name 'shared' }
+def childTemplate = OrderApplication.Create.Template.With { orderQueue 'orders' }
+
+def application = Application.Template.With(parentTemplate) {
+    OrderApplication.Template.With(childTemplate) {
+        OrderApplication.Create.One()
+    }
+}
+
+assert application.name == 'shared'
+assert application.orderQueue == 'orders'
+```
+
+
 ## Loading Templates from the classpath
 
 `Create.Template.FromClasspath()` loads the same conventional configuration as `Create.FromClasspath()`:

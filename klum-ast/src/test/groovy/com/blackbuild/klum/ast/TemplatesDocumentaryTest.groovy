@@ -364,7 +364,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         }
 
         then:
-        getClass('pk.RetryPolicy$Template').isInstance(template)
+        getClass('pk.RetryPolicy$_TemplateModel').isInstance(template)
         template.name == 'resilient'
     }
 

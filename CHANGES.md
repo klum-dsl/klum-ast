@@ -1,5 +1,12 @@
 # 4.1.0 (unreleased)
 
+- Dynamic Groovy `Child.Template` now selects the generated child scope below abstract DSL superclasses. The hidden
+  abstract Template implementation has a distinct name, avoiding Groovy's nested-class/property collision while keeping
+  generated public `Create`/`Template` contracts and ordinary user-defined static inheritance intact. Recompile affected
+  Schemas and regenerate serialized abstract Templates from source recipes. User nested types colliding with the hidden
+  implementation now receive an actionable rename diagnostic at their declaration
+  ([#835](https://github.com/klum-dsl/klum-ast/issues/835)).
+
 - Added `Create.Template.FromClasspath()` and its `ClassLoader` overload using the existing classpath marker convention
   and diagnostics. Delegating scripts create replayable Templates directly; ordinary scripts may return an existing
   Template or a Model that is copied into a value-only Template snapshot after its normal lifecycle. Already-executed

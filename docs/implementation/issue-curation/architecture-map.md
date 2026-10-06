@@ -45,7 +45,7 @@ Confirmed generated artifacts:
 - `isModelOrBuilder`, `isBuilder`, and exact identity-preserving `narrowBuilder` operations on each generated factory token;
 - a public static `Template` handler, collection-local factory types, closure delegate metadata, converters, alternatives, copy methods, and lifecycle/mutator methods on the Builder;
 - an internal model constructor guarded by opaque `GeneratedMaterializationToken` linkage, plus generated allocation/relationship-assignment hooks;
-- an artificial `$Template` implementation when an abstract DSL type needs a materializable recipe.
+- an artificial `$_TemplateModel` implementation when an abstract DSL type needs a materializable recipe.
 
 The supported client interface is the schema annotations plus generated `Foo_DSL` interfaces (`Factory`, `Builder`, and
 nested Collection/Cluster factories). Clients may name but not construct, implement, or subclass these interfaces. `$_RW`

@@ -53,6 +53,7 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 @SuppressWarnings("java:S1192")
 class TemplateMethods {
     public static final String TEMPLATE_FIELD_NAME = "Template";
+    private static final String TEMPLATE_MODEL_CLASS_NAME = "_TemplateModel";
     public static final ClassNode TEMPLATE_SUPPORT_TYPE = make(GeneratedTemplateSupport.class);
     public static final ClassNode TEMPLATE_FACTORY_SUPPORT_TYPE = make(GeneratedTemplateFactorySupport.class);
 
@@ -348,9 +349,21 @@ class TemplateMethods {
      }
 
     private void createTemplateClass() {
+        // Underscore-prefixed source types are otherwise legal. Reserve only the
+        // implementation name this abstract model is about to generate.
+        ClassNode conflictingType = CommonAstHelper.getInnerClass(annotatedClass, TEMPLATE_MODEL_CLASS_NAME);
+        if (conflictingType != null) {
+            CommonAstHelper.addCompileError(
+                    "Nested type '" + conflictingType.getName()
+                            + "' is reserved for generated KlumAST abstract Template implementations. Rename this nested type.",
+                    conflictingType
+            );
+        }
         templateClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$Template",
+                // A nested class named Template wins over the same-named static field in
+                // Groovy class-literal expressions, including on concrete descendants.
+                annotatedClass.getName() + "$" + TEMPLATE_MODEL_CLASS_NAME,
                 ACC_STATIC | ACC_SYNTHETIC | ACC_PUBLIC,
                 newClass(annotatedClass));
 
