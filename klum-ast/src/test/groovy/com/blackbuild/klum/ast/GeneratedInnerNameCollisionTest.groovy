@@ -116,4 +116,104 @@ class GeneratedInnerNameCollisionTest extends AbstractDSLSpec {
         getClass('pk.Application$Helpers$_Factory') != null
         getClass('pk.Application$_dates_converterClosures') != null
     }
+
+    @Unroll
+    def "generated overlap between #scenario is not a user nested-type collision"() {
+        when:
+        createClass("""
+            package pk
+            import com.blackbuild.klum.ast.layer3.Cluster
+            @DSL $modifier class Application { $members }
+            @DSL class Service { String name }
+        """)
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        // A generated/generated conflict keeps its compiler rejection without claiming a source declaration.
+        error.message.contains('Invalid duplicate class definition')
+        error.message.contains('pk.Application$' + innerName)
+        !error.message.contains('Rename this nested type')
+        !error.message.contains('reserved for generated KlumAST')
+
+        where:
+        scenario                         | innerName                  | modifier   | members
+        'collection and Cluster'         | '_services'                | ''         | 'List<Service> services; Service primary; @Cluster Map<String, Service> services() { null }'
+        'collection and Cluster getter'  | '_services'                | ''         | 'List<Service> services; Service primary; @Cluster Map<String, Service> getServices() { null }'
+        'collection after converter'     | '_dates_converterClosures' | ''         | '@Field(converters = [{long value -> new Date(value)}]) List<Date> dates; List<Service> dates_converterClosures'
+        'converter after collection'     | '_dates_converterClosures' | ''         | 'List<Service> dates_converterClosures; @Field(converters = [{long value -> new Date(value)}]) List<Date> dates'
+        'Cluster after converter'        | '_dates_converterClosures' | ''         | '@Field(converters = [{long value -> new Date(value)}]) List<Date> dates; Service primary; @Cluster Map<String, Service> dates_converterClosures() { null }'
+        'collection and factory'         | '_Factory'                 | ''         | 'List<Service> Factory'
+        'collection and Template'        | '_Template'                | ''         | 'List<Service> Template'
+        'collection and TemplateFactory' | '_TemplateFactory'         | ''         | 'List<Service> TemplateFactory'
+        'collection and TemplateModel'   | '_TemplateModel'           | 'abstract' | 'List<Service> TemplateModel'
+        'two Cluster methods'            | '_services'                | ''         | 'Service primary; @Cluster Map<String, Service> services() { null }; @Cluster Map<String, Service> getServices() { null }'
+    }
+
+    def "source-written generated annotation does not exempt a nested declaration"() {
+        when:
+        createClass("""
+            package pk
+            @DSL class Application {
+                @KlumGenerated(generator = 'schema')
+                static class _services { }
+                List<Service> services
+            }
+            @DSL class Service { String name }
+        """)
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.errorCollector.errorCount == 1
+        error.message.contains('pk.Application$_services')
+        error.message.contains('Rename this nested type')
+        error.message.contains('@ line 4, column 17')
+        !error.message.contains('Invalid duplicate class definition')
+    }
+
+    def "collection and Cluster factories coexist under different binary names"() {
+        when:
+        createClass("""
+            package pk
+            import com.blackbuild.klum.ast.layer3.Cluster
+            @DSL class Application {
+                List<Service> services
+                Service primary
+                @Cluster Map<String, Service> roles() { null }
+            }
+            @DSL class Service { String name }
+        """)
+        def application = create('pk.Application') {
+            services { service { name 'collection' } }
+            roles { primary { name 'cluster' } }
+        }
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        application.services*.name == ['collection']
+        application.primary.name == 'cluster'
+        getClass('pk.Application$_services').declaringClass == getClass('pk.Application')
+        getClass('pk.Application$_roles').declaringClass == getClass('pk.Application')
+    }
+
+    def "an empty Cluster leaves its collection namesake factory available"() {
+        when:
+        createClass("""
+            package pk
+            import com.blackbuild.klum.ast.layer3.Cluster
+            @DSL class Application {
+                List<Service> services
+                @Cluster Map<String, Date> services() { null }
+            }
+            @DSL class Service { String name }
+        """)
+        def application = create('pk.Application') {
+            services { service { name 'collection' } }
+        }
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        application.services*.name == ['collection']
+        application.services() == [:]
+        getClass('pk.Application$_services').declaringClass == getClass('pk.Application')
+    }
 }

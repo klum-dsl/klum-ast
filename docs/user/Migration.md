@@ -94,6 +94,10 @@ low-level duplicate-class error ([#837](https://github.com/klum-dsl/klum-ast/iss
 - `_<clusterName>` only when a Cluster selects fields and generates a Cluster factory;
 - `_<fieldName>_converterClosures` only when a field declares converter closures.
 
+The rename diagnostic applies to source-declared nested types. Conflicts between generated implementations retain the
+compiler's duplicate-class rejection. For example, a collection factory and a nonempty Cluster both named `services`
+request the same implementation name; this is a generator conflict, not a nested type declaration to rename.
+
 Only names actually generated for that class are reserved. Other underscore-prefixed nested types, such as `_Recipe`,
 remain valid. A concrete DSL class can still declare `_TemplateModel`, and a field without converter closures does not
 reserve its corresponding converter implementation name. These are compiler constraints; broader Schema style

@@ -66,13 +66,17 @@ public class DslAstHelper {
     /**
      * Checks only the exact binary name a generator is about to emit. Other nested
      * names, including underscore-prefixed helpers, remain available to schemas.
+     * Generator-added KlumGenerated annotations have no source position; their
+     * types retain existing generator-interaction checks rather than a source
+     * rename diagnostic. A source-written annotation does not exempt a declaration.
      */
     public static String checkedGeneratedInnerClassName(ClassNode owner, String binaryName, String purpose) {
         owner.getInnerClasses().forEachRemaining(inner -> {
-            if (inner.getName().equals(binaryName)) {
-                addCompileError("Nested type '" + binaryName + "' is reserved for generated KlumAST "
-                        + purpose + ". Rename this nested type.", inner);
-            }
+            if (!inner.getName().equals(binaryName)) return;
+            AnnotationNode generated = getAnnotation(inner, KLUM_GENERATED_CLASSNODE);
+            if (generated != null && generated.getLineNumber() < 0) return;
+            addCompileError("Nested type '" + binaryName + "' is reserved for generated KlumAST "
+                    + purpose + ". Rename this nested type.", inner);
         });
         return binaryName;
     }
