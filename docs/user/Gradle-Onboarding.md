@@ -23,6 +23,9 @@ is explained in [Layer 3](Layer3.md).
 
 ## Create the Gradle project
 
+For naming, package layout, validation, tests, and property documentation, use the
+[Schema Style Guide](Schema-Style-Guide.md). It separates framework constraints from readability recommendations.
+
 Apply the schema plugin to a Schema project. It supplies the KlumAST BOM, compiler/runtime dependencies, Groovy convention, and sources/Javadocs.
 
 ```groovy

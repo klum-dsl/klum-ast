@@ -1,5 +1,8 @@
 # Javadoc for models
 
+For advice on where short property and method comments improve readability, see the
+[Schema Style Guide](Schema-Style-Guide.md#document-the-meaning-not-the-obvious-spelling).
+
 KlumAST uses the [AnnoDocimal](https://github.com/blackbuild/anno-docimal) library to generate natural Javadocs for
 factories and generated Builders. Their base documentation comes from the corresponding classes and methods in
 `klum-ast-runtime`, especially `KlumBuilder`, and is adapted to each generated method.

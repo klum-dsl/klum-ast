@@ -1,5 +1,8 @@
 # Validation
 
+For concise Schema conventions and the distinction between required behavior and readability preferences, see the
+[Schema Style Guide](Schema-Style-Guide.md#choose-the-smallest-validation-form-that-expresses-the-rule).
+
 Completed DSL Objects can be validated automatically. Builder phases may record provisional issues, which are transferred
 to the completed Model companion during [`INSTANTIATE`](Model-Phases.md#instantiate-40); `@Validate` methods and external
 `InstanceValidator`s then run on the completed object. Each `InstanceValidator` type is memoized once per completed model.
