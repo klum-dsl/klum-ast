@@ -173,6 +173,8 @@ class TemplateMethods {
         addTemplateFactoryMethod("From", params(param(make(File.class), "scriptFile"), param(CLASSLOADER_TYPE, "loader")), support);
         addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl")), support);
         addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl"), param(CLASSLOADER_TYPE, "loader")), support);
+        addTemplateFactoryMethod("FromClasspath", Parameter.EMPTY_ARRAY, support);
+        addTemplateFactoryMethod("FromClasspath", params(param(CLASSLOADER_TYPE, "loader")), support);
     }
 
     private Parameter configurationParameter() {
@@ -285,6 +287,16 @@ class TemplateMethods {
                 else if (parameter.getName().equals("configuration"))
                     documentation.param(parameter.getName(), "the Builder configuration for the Template");
             }
+        } else if (name.equals("FromClasspath")) {
+            documentation.title("Creates a Template from the conventional classpath model script.")
+                    .p("Reads META-INF/klum-model/" + annotatedClass.getName() + ".properties and loads its model-class entry.")
+                    .p("DelegatingScript inputs retain Template recipes without running ordinary lifecycle callbacks. "
+                            + "Ordinary scripts execute normally: a returned Template is preserved, while a returned Model "
+                            + "is copied as a value-only Template snapshot; completed deferred actions are not retained for replay.");
+            if (method.getParameters().length == 0)
+                documentation.p("Uses the current thread context class loader for the marker and script class.");
+            else
+                documentation.param("loader", "the class loader used to load the marker and script class");
         } else {
             documentation.title("Creates a reusable Template model from a script source.");
             for (Parameter parameter : method.getParameters()) {
