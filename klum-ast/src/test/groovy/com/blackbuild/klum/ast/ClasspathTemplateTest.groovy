@@ -343,6 +343,52 @@ class ClasspathTemplateTest extends AbstractDSLSpec {
         'validation'    | "package recipes; Environment.Create.With('seed', region: 'invalid')" | 'invalid'
     }
 
+    def "rejects an unrelated Model through the normal requested-root contract before snapshotting"() {
+        given:
+        createSecondaryClass '''
+            package recipes
+            @DSL class Unrelated { String value }
+            class UnrelatedResult { static Unrelated value }
+        '''
+        createSecondaryClass '''
+            package recipes
+            UnrelatedResult.value = Unrelated.Create.With {
+                value 'wrong'
+            }
+            UnrelatedResult.value
+        ''', 'DefaultEnvironment.groovy'
+        def snapshot = null
+
+        when:
+        snapshot = Environment.Create.Template.FromClasspath(loader)
+
+        then:
+        def templateError = thrown(KlumModelException)
+        templateError.message.contains('Could not read model from recipes.DefaultEnvironment')
+        templateError.cause instanceof KlumModelException
+        templateError.cause.message.startsWith('Script recipes.DefaultEnvironment did not return an instance of recipes.Environment at ')
+        snapshot == null
+
+        and: 'the incompatible ordinary result remains a completed Model with no Template identity'
+        def templateSource = UnrelatedResult.value
+        templateSource.class == Unrelated
+        templateSource.value == 'wrong'
+        !TemplateManager.isTemplate(templateSource)
+
+        when:
+        Environment.Create.FromClasspath(loader)
+
+        then: 'ordinary and Template loading enforce the same requested-root result-type validation'
+        def modelError = thrown(KlumModelException)
+        modelError.message == templateError.message
+        modelError.cause.class == templateError.cause.class
+        modelError.cause.message == templateError.cause.message
+        UnrelatedResult.value.class == Unrelated
+        UnrelatedResult.value.value == 'wrong'
+        !TemplateManager.isTemplate(UnrelatedResult.value)
+        !TemplateManager.isTemplate(templateSource)
+    }
+
     def "snapshots the concrete subtype returned for an abstract root"() {
         given:
         createClass '''
