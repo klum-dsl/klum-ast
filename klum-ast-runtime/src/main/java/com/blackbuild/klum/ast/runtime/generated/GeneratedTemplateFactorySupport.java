@@ -78,4 +78,13 @@ public final class GeneratedTemplateFactorySupport<T> {
     public T From(URL scriptUrl, ClassLoader loader) {
         return FactoryHelper.createAsTemplate(type, scriptUrl, loader);
     }
+
+    public T FromClasspath() {
+        return FromClasspath(Thread.currentThread().getContextClassLoader());
+    }
+
+    public T FromClasspath(ClassLoader loader) {
+        return FactoryHelper.createTemplateFromClasspath(type, loader);
+    }
+
 }

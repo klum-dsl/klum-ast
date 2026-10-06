@@ -61,6 +61,7 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     public static final String MODEL_CLASS_KEY = "model-class";
     private static final String TYPE_HINT = "@type";
+    private static final String SCRIPT_SOURCE_TYPE = "script";
 
     static {
         BreadCrumbVerbInterceptor.registerClass(FactoryHelper.class);
@@ -247,6 +248,16 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createFromClasspath(Class<T> type, ClassLoader loader) {
+        return createFromClasspath(type, loader, scriptType -> createFrom(type, scriptType));
+    }
+
+    /** Loads the conventional classpath script as a Template recipe or a value-only Model snapshot. */
+    public static <T> T createTemplateFromClasspath(Class<T> type, ClassLoader loader) {
+        return createFromClasspath(type, loader, scriptType -> createTemplateFromScript(type, scriptType));
+    }
+
+    private static <T> T createFromClasspath(Class<T> type, ClassLoader loader,
+                                            Function<Class<? extends Script>, T> createFromScript) {
         BreadcrumbCollector.getInstance().setType("classpath");
         String path = "META-INF/klum-model/" + type.getName() + ".properties";
 
@@ -255,7 +266,7 @@ public class FactoryHelper extends GroovyObjectSupport {
 
             String configModelClassName = readModelClass(path, stream);
 
-            return createModelFrom(type, loader, path, configModelClassName);
+            return createModelFrom(loader, path, configModelClassName, createFromScript);
 
         } catch (IOException e) {
             throw new KlumModelException("Error while reading marker properties.", e);
@@ -277,10 +288,11 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
+    private static <T> T createModelFrom(ClassLoader loader, String path, String configModelClassName,
+                                         Function<Class<? extends Script>, T> createFromScript) {
         try {
             Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
-            return createFrom(type, modelClass);
+            return createFromScript.apply(modelClass);
         } catch (ClassNotFoundException e) {
             throw new KlumModelException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
         } catch (Exception e) {
@@ -309,7 +321,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
-        BreadcrumbCollector.getInstance().setType("script").setQualifier(DslHelper.shortNameFor(scriptType));
+        BreadcrumbCollector.getInstance().setType(SCRIPT_SOURCE_TYPE).setQualifier(DslHelper.shortNameFor(scriptType));
         if (DelegatingScript.class.isAssignableFrom(scriptType))
             return createFromDelegatingScript(type, scriptType.getSimpleName(), (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
         Object result = InvokerHelper.runScript(scriptType, null);
@@ -317,6 +329,20 @@ public class FactoryHelper extends GroovyObjectSupport {
             throw new KlumModelException("Script " + scriptType.getName() + " did not return an instance of " + type.getName());
         //noinspection unchecked
         return (T) result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T createTemplateFromScript(Class<T> type, Class<? extends Script> scriptType) {
+        BreadcrumbCollector.getInstance().setType(SCRIPT_SOURCE_TYPE).setQualifier(DslHelper.shortNameFor(scriptType));
+        if (DelegatingScript.class.isAssignableFrom(scriptType)) {
+            return doCreateTemplate(type, builder -> BuilderDispatchSupport.run(
+                    (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null), builder));
+        }
+        T result = createFrom(type, scriptType);
+        if (TemplateManager.isTemplate(result))
+            return result;
+        // Ordinary scripts have already completed their lifecycle; only their values can be copied.
+        return doCreateTemplate((Class<T>) result.getClass(), builder -> builder.copyFrom(result));
     }
 
     private static <T> T createFromDelegatingScript(Class<T> type, @Nullable String key, DelegatingScript script) {
@@ -452,7 +478,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>        The type to create
      * @return The created instance
      */
-    public static <T> T createAsTemplate(Class<T> type, File scriptFile, ClassLoader loader) {
+    public static <T> T createAsTemplate(Class<T> type, File scriptFile, @Nullable ClassLoader loader) {
         try {
             return createAsTemplate(type, ResourceGroovyMethods.getText(scriptFile), loader);
         } catch (IOException e) {
@@ -472,17 +498,11 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
-        return BreadcrumbCollector.withBreadcrumb(() ->
-            withTemplateDefinition(() -> {
-                InternalKlumBuilder<T> builder = createTemplateBuilder(type);
-                builder.copyFromTemplate();
-
-                DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
-                BuilderDispatchSupport.run(script, builder);
-                return (T) InternalKlumBuilder.materializeGraph(builder);
-            })
-        );
+    public static <T> T createAsTemplate(Class<T> type, String text, @Nullable ClassLoader loader) {
+        return doCreateTemplate(type, builder -> {
+            DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
+            BuilderDispatchSupport.run(script, builder);
+        });
     }
 
     /**
@@ -497,7 +517,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>    The type to create
      * @return The created instance
      */
-    public static <T> T createAsTemplate(Class<T> type, URL script, ClassLoader loader) {
+    public static <T> T createAsTemplate(Class<T> type, URL script, @Nullable ClassLoader loader) {
         try {
             return createAsTemplate(type, ResourceGroovyMethods.getText(script), loader);
         } catch (IOException e) {
@@ -519,12 +539,16 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>     The type to create
      * @return The created instance
      */
-    public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, @Nullable Closure<?> closure) {
+    public static <T> T createAsTemplate(Class<T> type, @Nullable Map<String, ?> values, @Nullable Closure<?> closure) {
+        return doCreateTemplate(type, builder -> builder.applyOnly(values, closure));
+    }
+
+    private static <T> T doCreateTemplate(Class<T> type, Consumer<InternalKlumBuilder<T>> configuration) {
         return BreadcrumbCollector.withBreadcrumb(() ->
             withTemplateDefinition(() -> {
                 InternalKlumBuilder<T> builder = createTemplateBuilder(type);
                 builder.copyFromTemplate();
-                builder.applyOnly(values, closure);
+                configuration.accept(builder);
                 return (T) InternalKlumBuilder.materializeGraph(builder);
             })
         );
@@ -572,7 +596,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         String key = DslHelper.isKeyed(type) ? scriptType.getSimpleName() : null;
         String scriptName = DslHelper.shortNameFor(scriptType);
         return BreadcrumbCollector.withBreadcrumb(
-                DslHelper.shortNameFor(type) + ".AsBuilder().From", "script", scriptName,
+                DslHelper.shortNameFor(type) + ".AsBuilder().From", SCRIPT_SOURCE_TYPE, scriptName,
                 () -> prepareNestedBuilder(type, key, template, builder -> {
                     DelegatingScript script = (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null);
                     BuilderDispatchSupport.run(script, builder);
