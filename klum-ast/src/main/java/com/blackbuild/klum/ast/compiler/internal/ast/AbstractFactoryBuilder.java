@@ -30,6 +30,7 @@ import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getBuilderClassOf;
@@ -43,8 +44,8 @@ public abstract class AbstractFactoryBuilder {
     protected InnerClassNode collectionFactory;
 
     protected AbstractFactoryBuilder(ClassNode targetClass) {
-        this.targetClass = targetClass;
-        this.builderClass = getBuilderClassOf(targetClass);
+        this.targetClass = Objects.requireNonNull(targetClass, "A collection/Cluster factory requires its owning DSL class");
+        this.builderClass = getBuilderClassOf(this.targetClass);
     }
 
     protected void createDelegateMethods(MethodNode targetMethod) {
