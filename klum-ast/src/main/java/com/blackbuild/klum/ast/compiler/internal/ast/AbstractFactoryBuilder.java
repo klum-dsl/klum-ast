@@ -82,8 +82,9 @@ public abstract class AbstractFactoryBuilder {
     }
 
     private void createInnerClass(String name) {
-        collectionFactory = new InnerClassNode(targetClass,
-                DslAstHelper.checkedGeneratedInnerClassName(targetClass, targetClass.getName() + "$_" + name,
+        ClassNode owner = Objects.requireNonNull(targetClass, "Factory generation requires its owning DSL class");
+        collectionFactory = new InnerClassNode(owner,
+                DslAstHelper.checkedGeneratedInnerClassName(owner, owner.getName() + "$_" + name,
                         "collection/Cluster factory implementations"),
                 ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
         ClassNode builderType = builderClass.getPlainNodeReference();
@@ -98,6 +99,6 @@ public abstract class AbstractFactoryBuilder {
         DslAstHelper.registerAsVerbProvider(collectionFactory);
 
         collectionFactory.addAnnotation(createGeneratedAnnotation(getClass()));
-        targetClass.getModule().addClass(collectionFactory);
+        owner.getModule().addClass(collectionFactory);
     }
 }
