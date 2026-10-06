@@ -137,6 +137,23 @@ descriptors must name only `Foo_DSL.Factory.Template`, `Foo_DSL.TemplateScope`, 
 `Foo_DSL.Factory.Template` is a supported generated hook: callers may name it as a receiver/parameter/return type but
 must not implement or subclass it.
 
+### Classpath Template inputs (4.1 extension)
+
+Issue [#833](https://github.com/klum-dsl/klum-ast/issues/833) adds `Create.Template.FromClasspath()` and
+`Create.Template.FromClasspath(ClassLoader)` using the ordinary root factory's marker naming, loader selection, and
+diagnostics. The maintainer confirmed that ordinary scripts remain supported, with their behavior explicitly documented:
+
+- A `DelegatingScript` configures a Template directly with the existing Template-definition composition semantics.
+- An ordinary script runs normally. If it returns a marked Template, that Template and its recipe state are preserved.
+- If an ordinary script returns a completed Model, its normal lifecycle and validation have already run. An explicit,
+  fresh Template snapshot copies the Model with the existing value-only `copyFrom` protocol; it retains the concrete
+  subtype and never relabels or modifies the original Model. Executed deferred actions cannot be recovered for replay.
+
+This is an intentional exception to lifecycle-free Template input evaluation, not a change to recipe replay or scoped
+application. The resulting snapshot has graph-wide Template identity on owned nodes; ordinary `LINK` targets remain
+ordinary Models. No new public conversion operation or `From(Class)` overload is introduced. The documentary examples
+and the distinctions above live in [Templates](../user/Templates.md#loading-templates-from-the-classpath).
+
 ## Alternatives considered
 
 ### Keep `Foo.Template.Create` as the canonical creation route

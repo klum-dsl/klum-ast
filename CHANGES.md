@@ -7,6 +7,11 @@
   implementation now receive an actionable rename diagnostic at their declaration
   ([#835](https://github.com/klum-dsl/klum-ast/issues/835)).
 
+- Added `Create.Template.FromClasspath()` and its `ClassLoader` overload using the existing classpath marker convention
+  and diagnostics. Delegating scripts create replayable Templates directly; ordinary scripts may return an existing
+  Template or a Model that is copied into a value-only Template snapshot after its normal lifecycle. Already-executed
+  deferred actions are not retained for replay ([#833](https://github.com/klum-dsl/klum-ast/issues/833)).
+
 - Terminal dynamic Builder-closure and `DelegatingScript` typos now identify the public generated Builder or collection
   factory contract and suggest its actual operations consistently across Groovy 3, 4, and 5. The error remains catchable
   as `MissingMethodException`; successful dynamic fallbacks, user-code failures, and named-map diagnostics retain their

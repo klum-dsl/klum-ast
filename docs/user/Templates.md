@@ -18,7 +18,9 @@ Construction sessions, active Template scopes, and mutable recipe collections ar
 
 Ignorable fields of the template (key, owner, transient, or marked as `FieldType.Ignore`) are never copied over. Root
 creation lives below `Create`: use `Create.Template.With` for a map and/or configuration closure, and
-`Create.Template.From` for a DelegatingScript file or URL. The result behaves like a normal factory result with these
+`Create.Template.From` for a DelegatingScript file or URL. Classpath loading through `Create.Template.FromClasspath`
+accepts both delegating and ordinary scripts, as described [below](#loading-templates-from-the-classpath). Direct Template
+definition behaves like a normal factory result with these
 differences:
  
  - the result is always unkeyed (setting the key to null in case of a keyed class)
@@ -99,6 +101,113 @@ def application = Application.Template.With(parentTemplate) {
 assert application.name == 'shared'
 assert application.orderQueue == 'orders'
 ```
+
+
+## Loading Templates from the classpath
+
+`Create.Template.FromClasspath()` loads the same conventional configuration as `Create.FromClasspath()`:
+`META-INF/klum-model/<fully-qualified-model-type>.properties` must contain a `model-class` entry naming the compiled
+Groovy script class. For example, `META-INF/klum-model/recipes.Environment.properties` contains:
+
+```properties
+model-class=recipes.DefaultEnvironment
+```
+
+The no-argument overload uses the current thread context class loader. The `ClassLoader` overload uses the supplied
+loader for both the marker and script class. Missing markers, missing `model-class` entries, unavailable script classes,
+and script failures retain the ordinary classpath factory's diagnostics and causes.
+
+Java clients can name the generated public Template factory contract:
+
+```java
+Environment_DSL.Factory.Template factory = Environment.Create.Template;
+Environment defaults = factory.FromClasspath();
+Environment loadedWith = factory.FromClasspath(loader);
+```
+
+Groovy uses the same operations, including under `@CompileStatic`:
+
+```groovy
+def defaults = Environment.Create.Template.FromClasspath()
+def loadedWith = Environment.Create.Template.FromClasspath(loader)
+```
+
+The script form determines how the Template is created:
+
+| Script result/form | Behavior |
+| --- | --- |
+| `DelegatingScript` | Configures a Template directly, without ordinary lifecycle callbacks, graph phases, or validation. Deferred actions remain recipes for replay. |
+| Ordinary script returning a marked Template | Executes the script and returns that Template unchanged, including its recipe state. |
+| Ordinary script returning an ordinary Model | Executes the script normally, then copies its completed Model into a fresh value-only Template snapshot. |
+
+For a delegating script, the following abbreviated example defines `recipes.DefaultEnvironment`. The Schema's
+`Environment` has a keyed `name`, `region`, and `identifier`.
+
+(See: `ClasspathTemplateTest#'loads a classpath recipe and replays it into fresh environments'`.)
+
+```groovy
+// Compiled classpath script: recipes.DefaultEnvironment
+package recipes
+
+import groovy.transform.BaseScript
+@BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+region 'eu-central'
+applyLater { identifier name.toUpperCase() }
+```
+
+Consumer code:
+
+```groovy
+def defaults = Environment.Create.Template.FromClasspath()
+def catalog = Environment.Template.With(defaults) {
+    Environment.Create.With('catalog') { }
+}
+assert catalog.identifier == 'CATALOG'
+```
+
+### Ordinary scripts produce value snapshots
+
+An ordinary script can return a Model created with `Create.With`, `Create.One`, or another ordinary factory. Its normal
+lifecycle, phases, deferred actions, and validation run before snapshot conversion. If the script or validation fails,
+loading fails with the existing classpath factory diagnostic; conversion does not bypass that failure.
+
+The snapshot uses the existing `copyFrom` rules: it copies eligible values and owned composition into fresh graph-wide
+Template nodes, ignores the original root key and other excluded fields, preserves the concrete Model subtype, and
+retains ordinary `LINK` targets by identity. Copy strategies, Schema field initializers, and active Template defaults
+still apply, as with `Create.Template.With { copyFrom model }`. Value-only describes the ordinary source: an active
+Template scope can independently contribute its own deferred recipes to the new Template. The original Model remains
+an ordinary Model.
+
+Completed deferred actions cannot be recovered as recipes. Their resulting values may be copied, but those actions do
+not replay for recipients. Lifecycle-derived values may also be copied; each recipient then runs its own normal lifecycle.
+For example, the identifier computed from `seed` stays `SEED` when a recipient is named `catalog`:
+
+(See: `ClasspathTemplateTest#'snapshots an ordinary script after its lifecycle without retaining deferred actions'`.)
+
+```groovy
+// Ordinary compiled classpath script: recipes.DefaultEnvironment
+package recipes
+
+Environment.Create.With('seed') {
+    region 'eu-central'
+    applyLater { identifier name.toUpperCase() }
+}
+```
+
+Consumer code:
+
+```groovy
+def defaults = Environment.Create.Template.FromClasspath(loader)
+def catalog = Environment.Template.With(defaults) {
+    Environment.Create.With('catalog') { }
+}
+assert defaults.name == null
+assert catalog.identifier == 'SEED'
+```
+
+When the ordinary script should retain deferred recipes, explicitly return `Environment.Create.Template.With { ... }`
+instead. That returned Template is preserved unchanged. Classpath loading does not change `Template.With`/`WithAll`
+application scope or the behavior of `Create.Template.From(File|URL)`.
 
 ## Nested Builder composition
 
