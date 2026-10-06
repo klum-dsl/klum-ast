@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Dynamic Groovy `Child.Template` now selects the generated child scope below abstract DSL superclasses. The hidden
+  abstract Template implementation has a distinct name, avoiding Groovy's nested-class/property collision while keeping
+  generated public `Create`/`Template` contracts and ordinary user-defined static inheritance intact. Recompile affected
+  Schemas and regenerate serialized abstract Templates from source recipes
+  ([#835](https://github.com/klum-dsl/klum-ast/issues/835)).
+
 - Terminal dynamic Builder-closure and `DelegatingScript` typos now identify the public generated Builder or collection
   factory contract and suggest its actual operations consistently across Groovy 3, 4, and 5. The error remains catchable
   as `MissingMethodException`; successful dynamic fallbacks, user-code failures, and named-map diagnostics retain their

@@ -72,6 +72,16 @@ and treat the completed-model export as a separately owned external projection. 
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
 owns source-neutral composition.
 
+### Dynamic Template lookup in abstract hierarchies (4.1)
+
+Recompile Schemas with the corrected 4.1 compiler to use ordinary `Child.Template` property syntax below an abstract
+DSL superclass. The hidden abstract Template implementation now has a distinct name so it cannot shadow the generated
+`Template` field in Groovy class-literal expressions. Generated public factory and scope interfaces keep their names.
+See [Templates in a class hierarchy](Templates.md#templates-in-a-class-hierarchy) for the supported usage.
+
+Regenerate previously Java-serialized abstract Templates from their source recipes after recompiling: serialization
+records the hidden implementation's binary name and is not a cross-version persistence format.
+
 ### Named modules and Groovy
 
 Groovy 3 remains an ordinary-classpath configuration. Do not add a KlumAST
