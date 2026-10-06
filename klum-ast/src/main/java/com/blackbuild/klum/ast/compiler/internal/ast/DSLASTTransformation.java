@@ -358,7 +358,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         builderClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + BUILDER_CLASS_SUFFIX,
+                checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + BUILDER_CLASS_SUFFIX, "Builder implementations"),
                 ACC_PUBLIC | ACC_STATIC,
                 builderBase,
                 new ClassNode[] { make(Serializable.class) },
@@ -1722,7 +1722,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         InnerClassNode factoryClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_Factory",
+                checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_Factory", "factory implementations"),
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );

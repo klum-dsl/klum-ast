@@ -127,7 +127,9 @@ class ConverterBuilder {
 
         InnerClassNode converterClass = new InnerClassNode(
                 transformation.annotatedClass,
-                transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
+                DslAstHelper.checkedGeneratedInnerClassName(transformation.annotatedClass,
+                        transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
+                        "converter closure implementations"),
                 ACC_PUBLIC | ACC_STATIC,
                 ClassHelper.OBJECT_TYPE);
         converterClass.addAnnotation(createGeneratedAnnotation(ConverterBuilder.class));

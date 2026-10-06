@@ -97,7 +97,7 @@ class TemplateMethods {
     private void createTemplateAdapter() {
         templateAdapter = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_Template",
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_Template", "Template scope adapters"),
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
                 OBJECT_TYPE,
                 new ClassNode[] { GeneratedDslSupport.of(annotatedClass).getTemplateInterface() },
@@ -148,7 +148,7 @@ class TemplateMethods {
     private void createTemplateFactoryAdapter() {
         templateFactoryAdapter = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_TemplateFactory",
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_TemplateFactory", "Template factory adapters"),
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
                 OBJECT_TYPE,
                 new ClassNode[] { GeneratedDslSupport.of(annotatedClass).getTemplateFactoryInterface() },
@@ -349,21 +349,12 @@ class TemplateMethods {
      }
 
     private void createTemplateClass() {
-        // Underscore-prefixed source types are otherwise legal. Reserve only the
-        // implementation name this abstract model is about to generate.
-        ClassNode conflictingType = CommonAstHelper.getInnerClass(annotatedClass, TEMPLATE_MODEL_CLASS_NAME);
-        if (conflictingType != null) {
-            CommonAstHelper.addCompileError(
-                    "Nested type '" + conflictingType.getName()
-                            + "' is reserved for generated KlumAST abstract Template implementations. Rename this nested type.",
-                    conflictingType
-            );
-        }
         templateClass = new InnerClassNode(
                 annotatedClass,
                 // A nested class named Template wins over the same-named static field in
                 // Groovy class-literal expressions, including on concrete descendants.
-                annotatedClass.getName() + "$" + TEMPLATE_MODEL_CLASS_NAME,
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$" + TEMPLATE_MODEL_CLASS_NAME,
+                        "abstract Template implementations"),
                 ACC_STATIC | ACC_SYNTHETIC | ACC_PUBLIC,
                 newClass(annotatedClass));
 
