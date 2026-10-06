@@ -3,7 +3,8 @@
 - Dynamic Groovy `Child.Template` now selects the generated child scope below abstract DSL superclasses. The hidden
   abstract Template implementation has a distinct name, avoiding Groovy's nested-class/property collision while keeping
   generated public `Create`/`Template` contracts and ordinary user-defined static inheritance intact. Recompile affected
-  Schemas and regenerate serialized abstract Templates from source recipes
+  Schemas and regenerate serialized abstract Templates from source recipes. User nested types colliding with the hidden
+  implementation now receive an actionable rename diagnostic at their declaration
   ([#835](https://github.com/klum-dsl/klum-ast/issues/835)).
 
 - Terminal dynamic Builder-closure and `DelegatingScript` typos now identify the public generated Builder or collection

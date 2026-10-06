@@ -79,6 +79,10 @@ DSL superclass. The hidden abstract Template implementation now has a distinct n
 `Template` field in Groovy class-literal expressions. Generated public factory and scope interfaces keep their names.
 See [Templates in a class hierarchy](Templates.md#templates-in-a-class-hierarchy) for the supported usage.
 
+The nested name `_TemplateModel` is reserved only where KlumAST generates an abstract Template implementation. An abstract
+DSL class declaring its own nested `_TemplateModel` receives a source-positioned compiler error asking it to rename that
+type. Other underscore-prefixed nested types remain permitted.
+
 Regenerate previously Java-serialized abstract Templates from their source recipes after recompiling: serialization
 records the hidden implementation's binary name and is not a cross-version persistence format.
 

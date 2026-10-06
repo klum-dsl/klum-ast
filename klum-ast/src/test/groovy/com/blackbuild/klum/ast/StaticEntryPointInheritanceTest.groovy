@@ -25,6 +25,7 @@
 //file:noinspection GroovyVariableNotAssigned
 package com.blackbuild.klum.ast
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -180,6 +181,43 @@ class StaticEntryPointInheritanceTest extends AbstractDSLSpec {
         consumer.scope().is(entry(loader, 'OrderApplication', 'Template'))
     }
 
+    def "rejects a user nested type colliding with the abstract Template implementation"() {
+        when:
+        createClass("""
+            package pk
+            @DSL abstract class Application {
+                static class _TemplateModel { }
+            }
+        """)
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains("reserved for generated KlumAST")
+        error.message.contains('pk.Application$_TemplateModel')
+        error.message.contains('Rename this nested type')
+        error.message.contains('@ line 4, column 17')
+        error.errorCollector.errorCount == 1
+        !error.message.contains('Invalid duplicate class definition')
+    }
+
+    def "permits underscore nested types outside the abstract Template implementation name"() {
+        when:
+        createClass("""
+            package pk
+            @DSL abstract class Application {
+                static class _Recipe { }
+            }
+            @DSL class OrderApplication extends Application {
+                static class _TemplateModel { }
+            }
+        """)
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        getClass('pk.Application$_Recipe') != null
+        getClass('pk.OrderApplication$_TemplateModel') != null
+    }
+
     private GroovyClassLoader hierarchy(String parentKind, String childKind, String loading) {
         String parentModifier = parentKind == 'abstract' ? 'abstract' : ''
         String childModifier = childKind == 'abstract' ? 'abstract' : ''
@@ -197,7 +235,9 @@ class StaticEntryPointInheritanceTest extends AbstractDSLSpec {
             }
             @DSL class PriorityOrderApplication extends OrderApplication { }
         """)
-        if (loading == 'source') return loader
+        if (loading == 'source') {
+            return loader
+        }
         def runtimeLoader = new GroovyClassLoader(getClass().classLoader)
         runtimeLoader.addClasspath(compilerConfiguration.targetDirectory.absolutePath)
         runtimeLoader
