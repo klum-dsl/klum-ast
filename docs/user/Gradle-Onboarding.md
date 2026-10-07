@@ -23,6 +23,9 @@ is explained in [Layer 3](Layer3.md).
 
 ## Create the Gradle project
 
+For a cohesive example of a readable Schema and the reasoning behind its design, see the
+[Schema Style Guide](Schema-Style-Guide.md).
+
 Apply the schema plugin to a Schema project. It supplies the KlumAST BOM, compiler/runtime dependencies, Groovy convention, and sources/Javadocs.
 
 ```groovy
