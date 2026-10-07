@@ -48,6 +48,7 @@ import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
+import org.codehaus.groovy.runtime.metaclass.MethodSelectionException;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
@@ -602,7 +603,48 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     private void applyNamedParameters(Map<String, ?> values) {
         if (values != null)
-            values.forEach((key, value) -> InvokerHelper.invokeMethod(this, key, value));
+            values.forEach(this::applyNamedParameter);
+    }
+
+    private void applyNamedParameter(String key, Object value) {
+        if (value == null)
+            relationshipField(key).filter(this::isDirectRelationship)
+                    .ifPresent(field -> checkNullRelationshipSelection(key, field));
+        InvokerHelper.invokeMethod(this, key, value);
+    }
+
+    private void checkNullRelationshipSelection(String key, Field field) {
+        // InvokerHelper converts a bare null argument to EMPTY_ARGS. Use that exact selection input.
+        // Select outside the invocation: failures inside a selected mutator are not map diagnostics.
+        try {
+            getMetaClass().getMetaMethod(key, InvokerHelper.EMPTY_ARGS);
+        } catch (MethodSelectionException failure) {
+            String setter = "set" + Character.toUpperCase(field.getName().charAt(0)) + field.getName().substring(1);
+            throw new KlumModelException(format(
+                    "Explicit null for Builder operation/key '%s' on Model %s is ambiguous. "
+                            + "Omit the key to preserve existing configuration, or use an explicitly typed setter "
+                            + "inside a Builder closure to deliberately clear the relationship (for example, %s((%s) null)). "
+                            + "Construction path: %s",
+                    key, modelType.getName(), setter, field.getType().getSimpleName(), getBreadcrumbPath()), failure);
+        }
+    }
+
+    private boolean isDirectRelationship(Field field) {
+        if (!isDslType(field.getType()) || isOwner(field))
+            return false;
+        FieldType type = getKlumFieldType(field);
+        return type == FieldType.DEFAULT || type == FieldType.PROTECTED
+                || type == FieldType.LINK || type == FieldType.OPTIONAL_LINK;
+    }
+
+    private Optional<Field> relationshipField(String key) {
+        Optional<Field> direct = DslHelper.getField(modelType, key);
+        if (direct.isPresent() || !key.startsWith("set") || key.length() <= 3)
+            return direct;
+        String name = key.substring(3);
+        if (name.length() < 2 || !Character.isUpperCase(name.charAt(1)))
+            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+        return DslHelper.getField(modelType, name);
     }
 
     /**
