@@ -1,5 +1,16 @@
 # Migration
 
+## To 4.0.2
+
+### Custom Factory closure forwarding
+
+Recompile source Schemas and regenerate IDE mirrors to receive the corrected custom Factory closure metadata.
+A typed Factory method can forward `@DelegatesToBuilder(Model) Closure<?>` directly to `With` with static checking.
+Existing uncast `super.With(..., applicationInput)` and explicitly cast forwarding forms remain valid under both
+`@TypeChecked` and `@CompileStatic`; no forwarding syntax change is required when upgrading from 4.0.1.
+The public contract exposes the exact Builder delegate with `DELEGATE_ONLY`, matching runtime execution.
+See [Factory classes](Factory-Classes.md#forwarding-builder-closures).
+
 ## To 4.0
 
 4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits. Templates now have persistent graph-wide recipe identity separate from ordinary models; marked Templates cannot be relationship values or ordinary Jackson export values, and deferred Builder actions cannot be scheduled at phase 40 or later. Jackson is an asymmetric external-format integration rather than Klum persistence and adds no wire metadata.

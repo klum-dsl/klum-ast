@@ -1,5 +1,10 @@
 # 4.0.2 (unreleased)
 
+- Statically checked custom typed factories can forward `@DelegatesToBuilder` closures directly to `With`. Source and
+  generated Factory contracts now agree on the public Builder delegate and `DELEGATE_ONLY` strategy, while custom
+  delegate subtypes and method return types remain intact. Existing uncast `super.With` and explicitly cast forwarding
+  remain valid under both `@TypeChecked` and `@CompileStatic`
+  ([#842](https://github.com/klum-dsl/klum-ast/issues/842)).
 - Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK,
   retaining getter fallback for properties without storage and ordinary property access for completed-model and other
   providers. Owner paths, relationship identity, and materialization timing remain unchanged
