@@ -24,11 +24,13 @@
 package com.blackbuild.klum.ast.runtime.internal.layer3
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import groovy.lang.MissingPropertyException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
+import spock.lang.Unroll
 
 @Issue("841")
 class LinkToBuilderFieldTest extends AbstractDSLSpec {
@@ -379,6 +381,88 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
         property << ['alias', 'missingMessaging']
     }
 
+    def "completed LINK reads depend on wrapper state across configuration Builder methods and PostTree"() {
+        given:
+        createSealedOrderSchema('messaging', 'linkedTopic = PropertyReader.alias(application.environment)')
+        def facts = topic == null ? null : getClass('MessagingFacts').newInstance(topic)
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { messaging facts }
+        def wrapper
+        def configurationFacts
+        def configurationAlias
+        def customFacts
+        def customAlias
+
+        when:
+        instance = clazz.Create.With {
+            environment(completedEnvironment)
+            wrapper = delegate.environment
+            configurationFacts = delegate.environment.messaging
+            configurationAlias = delegate.environment.alias
+            customFacts = delegate.readEnvironmentFacts()
+            customAlias = delegate.readEnvironmentAlias()
+            kafka()
+            imperativeKafka()
+        }
+
+        then:
+        configurationFacts.is(facts)
+        configurationAlias == topic
+        customFacts.is(facts)
+        customAlias == topic
+        instance.kafka.facts.is(facts)
+        instance.kafka.aliasTopic == topic
+        instance.kafka.postTreeFacts.is(facts)
+        instance.kafka.postTreeAlias == topic
+        instance.imperativeKafka.linkedTopic == topic
+        instance.environment.is(completedEnvironment)
+        instance.kafka.application.is(instance)
+        instance.imperativeKafka.application.is(instance)
+        completedEnvironment.application == null
+        completedEnvironment.postTreeRuns == 1
+        wrapper.completedModel.is(completedEnvironment)
+        wrapper.postTreeRuns == 1
+        wrapper.getInstanceAttribute('messaging') == null
+
+        where:
+        topic << ['orders', null]
+    }
+
+    @Unroll("#featureName [#path]")
+    def "completed LINK property forwarding preserves supported sealed mutation rejection"() {
+        given:
+        createSealedOrderSchema()
+        def facts = getClass('MessagingFacts').newInstance('orders')
+        def replacement = getClass('MessagingFacts').newInstance('replacement')
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { messaging facts }
+        def wrapper
+
+        when:
+        clazz.Create.With {
+            environment(completedEnvironment)
+            wrapper = delegate.environment
+            mutate(wrapper, replacement)
+        }
+
+        then:
+        KlumModelException error = thrown()
+        error.message.contains('sealed Builder cannot be configured')
+        completedEnvironment.messaging.is(facts)
+        wrapper.completedModel.is(completedEnvironment)
+        wrapper.messaging.is(facts)
+        wrapper.alias == 'orders'
+        wrapper.getInstanceAttribute('messaging') == null
+
+        where:
+        path                   | mutate
+        'property setter'      | { builder, candidate -> builder.messaging = candidate }
+        'explicit setter'      | { builder, candidate -> builder.setMessaging(candidate) }
+        'DSL configurator'     | { builder, candidate -> builder.messaging(candidate) }
+        'configuration map'    | { builder, candidate -> builder.apply([messaging: candidate]) }
+        'configuration closure'| { builder, candidate -> builder.apply { messaging candidate } }
+        'attribute helper'     | { builder, candidate -> builder.setInstanceAttribute('messaging', candidate) }
+        'field helper'         | { builder, candidate -> builder.setSingleField('messaging', candidate) }
+    }
+
     private void createSealedOrderSchema(String fieldName = 'messaging',
                                          String autoLinkBody = 'facts = application.environment.messaging') {
         createClass """
@@ -395,9 +479,14 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
                 @Field(FieldType.LINK) OrderEnvironment environment
                 OrderKafka kafka
                 ImperativeOrderKafka imperativeKafka
+                @Mutator MessagingFacts readEnvironmentFacts() { environment.messaging }
+                @Mutator String readEnvironmentAlias() { PropertyReader.alias(environment) }
             }
             @DSL class OrderEnvironment {
+                @Owner OrderApplication application
                 MessagingFacts messaging
+                int postTreeRuns
+                @PostTree void countPostTree() { postTreeRuns++ }
                 String getAlias() { messaging?.topic }
                 String getModelType() { 'domain-model-type' }
                 @Mutator String getBuilderOnly() { 'builder-only' }
@@ -410,7 +499,13 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
                 @LinkTo(provider = { application.environment }, field = 'alias')
                 String aliasTopic
                 String linkedTopic
-                @PostTree void captureLink() { linkedTopic = facts?.topic }
+                MessagingFacts postTreeFacts
+                String postTreeAlias
+                @PostTree void captureLink() {
+                    linkedTopic = facts?.topic
+                    postTreeFacts = application.environment.messaging
+                    postTreeAlias = PropertyReader.alias(application.environment)
+                }
             }
             @DSL class ImperativeOrderKafka {
                 @Owner OrderApplication application

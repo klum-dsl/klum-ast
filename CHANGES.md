@@ -7,10 +7,10 @@
   ([#842](https://github.com/klum-dsl/klum-ast/issues/842)).
 - Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK,
   retaining getter fallback for properties without storage. Sealed wrappers around completed `LINK` models read the
-  completed value for both explicit `@LinkTo` fields and imperative `@AutoLink` property reads; ordinary completed-model
-  and other providers retain property access. Dynamic wrapper reads also support getter-only Model properties when no
+  completed domain value consistently during construction, including explicit `@LinkTo` fields, configuration closures,
+  custom Builder methods, and lifecycle property reads; ordinary completed-model and other providers retain property access. Dynamic wrapper reads also support getter-only Model properties when no
   existing Builder property owns the name; Builder infrastructure and the statically known Builder contract are preserved.
-  Owner paths, relationship identity, and materialization timing remain unchanged
+  Existing sealed mutation guards, Owner paths, relationship identity, and materialization timing remain unchanged
   ([#841](https://github.com/klum-dsl/klum-ast/issues/841)).
 
 # 4.0.1
