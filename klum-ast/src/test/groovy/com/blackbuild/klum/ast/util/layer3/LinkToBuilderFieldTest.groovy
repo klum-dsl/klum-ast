@@ -132,7 +132,9 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             kafka()
-            if (configureEnvironment) environment()
+            if (configureEnvironment) {
+                environment()
+            }
         }
 
         then:
