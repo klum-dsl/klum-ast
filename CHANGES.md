@@ -147,6 +147,17 @@
 
 ## Bugfixes
 
+- Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK, retaining
+  getter fallback for properties without storage and ordinary property access for completed-model and other providers.
+  Owner paths, relationship identity, and materialization timing are unchanged
+  ([#841](https://github.com/klum-dsl/klum-ast/issues/841)).
+
+- Statically checked custom typed factories can forward `@DelegatesToBuilder` closures directly to `With`. Source and
+  generated Factory contracts now agree on the public Builder delegate and `DELEGATE_ONLY` strategy, while custom
+  delegate subtypes and method return types remain intact. Existing uncast `super.With` and explicitly cast forwarding
+  remain valid under both `@TypeChecked` and `@CompileStatic`
+  ([#842](https://github.com/klum-dsl/klum-ast/issues/842)).
+
 - `@Cluster` properties and getters declared by `@DSL` interfaces now fail during Schema compilation with guidance to use
   an abstract DSL base class. Supported class and abstract-class Cluster projections are unchanged; first-class interface
   projection remains future work ([#786](https://github.com/klum-dsl/klum-ast/issues/786)).
