@@ -44,6 +44,41 @@ class MyClass {
 
 This allows creating instances of `MyClass` via `MyClass.Create.Baker("Klaus")`.
 
+## Forwarding Builder closures
+
+A custom Factory can accept `@DelegatesToBuilder(Model) Closure<?>` and forward it directly to `With` under
+`@TypeChecked` or `@CompileStatic`. The annotation expands to the exact public `Model_DSL.Builder` delegate with
+`DELEGATE_ONLY`, and source-visible typed factories receive matching inherited `With` contracts. Generated public
+Factory methods retain the chosen delegate, including a different Model subtype, and the declared return type.
+
+(See: `FactoryClosureDelegationTest#'forwards a Builder closure directly through a statically checked custom Factory'`.)
+
+```groovy
+@DSL
+class OrderApplication {
+    String environment
+    String name
+
+    @CompileStatic
+    static class Factory extends KlumFactory.Unkeyed<OrderApplication> {
+        protected Factory() { super(OrderApplication) }
+
+        OrderApplication ForEnvironment(String environment,
+                @DelegatesToBuilder(OrderApplication) Closure<?> applicationInput) {
+            With(environment: environment, applicationInput)
+        }
+    }
+}
+
+OrderApplication.Create.ForEnvironment('production') {
+    name 'orders'
+}
+```
+
+Omitting the annotation's Model value selects the owning DSL Object. The deprecated `@DelegatesToRW` alias keeps the
+same behavior. Factory configuration still executes with `DELEGATE_ONLY`; incorrect Builder operations remain static
+compilation errors. See [issue #842](https://github.com/klum-dsl/klum-ast/issues/842).
+
 ## Creator Methods and Collection Factories
 
 When using the collection factory closure methods (as opposed to calling the element methods directly), all creator class methods are available as well. This is a more powerful alternative to the regular

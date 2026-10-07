@@ -1,3 +1,10 @@
+# 4.0.2 (unreleased)
+
+- Statically checked custom typed factories can forward `@DelegatesToBuilder` closures directly to `With`. Source and
+  generated Factory contracts now agree on the public Builder delegate and `DELEGATE_ONLY` strategy, while custom
+  delegate subtypes and method return types remain intact
+  ([#842](https://github.com/klum-dsl/klum-ast/issues/842)).
+
 # 4.0.1 (unreleased)
 
 - Qualified [AnnoDocimal 1.0.1](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.1) for Schema projects.
