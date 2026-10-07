@@ -1,8 +1,5 @@
 # Testing Models and Schemas
 
-The [Schema Style Guide](Schema-Style-Guide.md#test-completed-models-and-domain-outcomes) summarizes test and assertion
-conventions alongside naming, validation, and documentation advice.
-
 Schema tests are focused, local tests for the completed Models your Schema constructs. They give a Schema Developer a
 fast feedback loop for defaults, relationships, and domain rules without contacting a deployment target. They complement
 integration and acceptance tests: keep those outer tests for target contracts, adapters, and environment behavior.

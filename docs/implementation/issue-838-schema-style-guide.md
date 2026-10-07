@@ -1,63 +1,75 @@
-# Issue #838: Schema Style Guide authority
+# Issue #838: Schema Style Guide evidence
 
-Related: [#838](https://github.com/klum-dsl/klum-ast/issues/838).
+Related: [#838](https://github.com/klum-dsl/klum-ast/issues/838), [PR #840](https://github.com/klum-dsl/klum-ast/pull/840).
 
-## Recommendation evidence
+## Delivery to Schema authors
 
-The user-facing [Schema Style Guide](../user/Schema-Style-Guide.md) collects conventions without changing behavior.
-Its framework statements and documented practices come from:
+The [Schema Style Guide](../user/Schema-Style-Guide.md) answers what makes an idiomatic, readable Schema and why. Its
+cohesive Deployment/Capacity example connects domain names, typed relationships, nearby constraints, a small derived
+query, and semantic property documentation. The principles are design preferences; exact compiler and annotation
+contracts remain in their detailed pages. Onboarding and sidebar links make the guide an entry point. The added
+Validation/Javadoc/Testing backlinks were removed during audience review because their detailed pages already have
+clear purposes and the guide links outward to them.
 
-- [GeneratedInnerNameCollisionTest](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/GeneratedInnerNameCollisionTest.groovy)
-  and the [#837 audit](evidence/issue-837-generated-inner-overlap.md): deterministic implementation names, exact
-  collision diagnostics, and legal unrelated underscore-prefixed types. The broader naming preference is explicitly
-  a recommendation, not a new reservation policy.
-- [Gradle Onboarding](../user/Gradle-Onboarding.md): Schema/test source roots, matching Spock setup, small feedback loop,
-  and independent architecture choices. Named packages, matching directories, file organization, and simple imported
-  names are labeled readability conventions.
+No runtime, API, compiler restriction, testing policy, or architecture decision changes. In particular, #837/#839's
+actual-collision boundary is unchanged, and no leading-underscore ban is introduced. Domain-first, target-contract,
+direct-schema, and Layer 3 choices remain independent of these readability principles.
+
+## Provenance
+
+- [Static Models](../user/Static-Models.md), [Gradle Onboarding](../user/Gradle-Onboarding.md#choose-the-model-shape-first),
+  and [Layer 3](../user/Layer3.md) ground completed-state queries, downstream behavior, and consumer boundaries. The
+  preference for obvious structure and meaningful names is readability advice, not a new architecture contract.
 - [Validation](../user/Validation.md#choose-a-validation-form),
   [Required.java](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/Required.java), and
-  [Validate.java](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/Validate.java): presence/closure/method
-  choices, Groovy-truth and Boolean boundaries, validation targets, and relationship constraints. The small Deployment
-  example is abbreviated from the existing validation guide; this change adds no DSL feature or executable input.
-- [Testing Models and Schemas](../user/Testing-Models-and-Schemas.md): completed-state assertions, canonical validation
-  exception, and semantic message fragments. Its existing Spock examples use native conditions.
-- [Javadoc for models](../user/Javadoc.md): property/accessor projection and method documentation. Comments that explain
-  domain meaning rather than repeat spelling are a readability preference.
+  [Validate.java](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/Validate.java) ground the choice of
+  presence/truth rules, local predicates, and named cross-field methods. The example combines already supported forms.
+- [Migration's exact collision rules](../user/Migration.md#generated-inner-name-collisions-41),
+  [GeneratedInnerNameCollisionTest](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/GeneratedInnerNameCollisionTest.groovy),
+  and the [#837 audit](evidence/issue-837-generated-inner-overlap.md) ground the narrow naming constraint. Public prose
+  intentionally omits the implementation-name inventory.
+- [Testing Models and Schemas](../user/Testing-Models-and-Schemas.md) grounds public construction and domain-state tests.
+  [Javadoc for models](../user/Javadoc.md) grounds property documentation projection and accessor precedence.
 
-## Installed bootstrap skill boundary
+## Preserved input for future adopter guidance
 
-The installed `klumast-schema-adopter-bootstrap` skill and its `references/rc23-authority.md` and
-`references/rc23-validation-error-contract.md` were inspected for this issue. Neither that skill nor its authority
-records are tracked in this repository. The tracked `agent-skills/start-klum-project` is a different distribution,
-frozen to public 4.0.1; replacing its authority with current 4.1 prose would break its version selection.
+The research also identified useful operational recommendations. They are retained here as candidates for separate
+agent guidance, rather than as a checklist in human documentation:
 
-The intended style-authority reference is
-[`docs/user/Schema-Style-Guide.md`](../user/Schema-Style-Guide.md), published with the matching documentation release.
-For a future frozen adopter record, select that page at the same immutable release tag/commit as its imports, plugin,
-Builder, and validation sources. Link to the page rather than copying its recommendations. Current source location:
-[Schema Style Guide on master](https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Schema-Style-Guide.md).
-That moving source link is for maintainers; it must not replace a frozen record's release-matched authority.
+| Candidate recommendation | Authority or rationale |
+| --- | --- |
+| Choose `@Required` for default presence/truth, a field closure for a small local rule, and a method for cross-field, reused, or substantial rules. | [Validation](../user/Validation.md#choose-a-validation-form). `@Required` is not universal non-nullness: Groovy-false values fail, boxed Boolean checks non-nullness, primitive boolean is unsupported, and it cannot accompany `@Validate`. |
+| Keep validation closures to one expression or an `assert`, handling null deliberately. | [Field validation](../user/Validation.md#on-fields) and the annotation contracts above. |
+| Reuse the established test framework and start with one small Gradle test feedback loop. | [Gradle Onboarding](../user/Gradle-Onboarding.md#create-the-gradle-project) and [Testing Models and Schemas](../user/Testing-Models-and-Schemas.md). A new Schema-plugin project has matching Spock setup. |
+| Use native Spock conditions; omit redundant `assert` in `then:`/`expect:`. | Existing examples in [Testing Models and Schemas](../user/Testing-Models-and-Schemas.md). Assertions inside validation methods serve a separate purpose. |
+| Expect `KlumValidationException` and assert an explicit message's distinctive semantic fragment. Avoid complete diagnostic/path/order/power-assert rendering unless that diagnostic is itself under test. | [Validation-failure example](../user/Testing-Models-and-Schemas.md#assert-a-validation-failure); canonical exception import: `com.blackbuild.klum.ast.runtime.validation.KlumValidationException`. |
+| Prefer descriptive helpers over generated-looking names; do not infer an underscore ban. | Readability preference plus [exact collision rules](../user/Migration.md#generated-inner-name-collisions-41). |
+| Keep comments semantic: meaning, units, constraints, and non-obvious relationships. | Readability preference plus [documentation projection](../user/Javadoc.md). |
+| Follow source/test roots, named packages and matching package directories; import types by simple name. | [Onboarding source roots](../user/Gradle-Onboarding.md#create-the-gradle-project); the remaining choices are ordinary Groovy/JVM readability conventions, not KlumAST compiler restrictions. |
 
-Updating the external installed skill and selecting its next authority record remain separate owner work. RC.23 and
-4.0.1 do not contain this new page; neither existing frozen record is changed by this documentation slice. The scope is
-KlumAST-specific user guidance, so no engineering-baseline change is needed.
+The inspected installed `klumast-schema-adopter-bootstrap` skill is external and untracked. A future owner update may
+reference the release-matched public guide for principles and examples, the detailed public pages for contracts, and
+additional agent-specific policy for operational rules. The distinct tracked `start-klum-project` distribution remains
+frozen to 4.0.1. Neither skill nor its authority records are changed here; selecting their next authority belongs to
+separate work. This is KlumAST-specific guidance and requires no engineering-baseline change.
 
-## Delivery scope
+## Validation and delivery boundary
 
-This change adds current user documentation, discoverability links, and the 4.1 changelog entry. It changes no runtime,
-API, build configuration, executable example, or test fixture. The documentation-only exemption in
-[testing policy](../agents/testing.md) applies; use rendering, internal-link/site crawling, and diff checks.
-No migration guidance or release-curation decision changes. Tracker relationship: `Related: #838`, because the external
-skill integration still requires separate ownership and the Hive owns final acceptance reconciliation.
+Only Markdown changes. The [documentation-only testing exemption](../agents/testing.md) applies: rendering,
+internal-link/fragment crawling, and diff checks replace the Groovy compatibility lanes. The cohesive code blocks are
+illustrations of existing behavior, not new compiled fixtures or DSL features.
 
-## Local validation
+Initial delivery at `d52fbf79` passed Java 17 `renderLocalDocumentation -PdocumentationVersion=4.1.0-tracer`, the internal
+page/asset/fragment crawl (633 generated outputs), diff checks, and separate Standards/Spec reviews. That revision's CI
+build, JUnit report, and SonarCloud checks passed with no new issues. The audience revision requires its own rendering
+and review evidence before publication; final revision/check results are recorded in PR #840's updated description and
+consolidated follow-up.
 
-- `renderLocalDocumentation -PdocumentationVersion=4.1.0-tracer` passed with Java 17: the immutable-revision renderer,
-  module Javadoc generation, and `verifyLocalDocumentationSite` internal page/asset/fragment crawl completed. The
-  manifest includes the new Schema page among 633 generated outputs. Existing Javadoc and Gradle warnings remain.
-- `git diff 2f448ca7...HEAD --check` passed. The dedicated branch starts at current master `2f448ca7`, the merge of
-  #837's PR #839.
-- Separate Standards and Spec reviews found no findings. Commit-history review retains one focused documentation
-  commit; no code/test change requires a new documentary test or Groovy 3/4/5 lane.
-- Delivery authorization audit: authenticated GitHub CLI repository access is authorized; Git branch transport is
-  authorized for this assigned push. No GitHub App delivery channel is used.
+The audience revision's two Groovy blocks were extracted from the Markdown and exercised with the existing Groovy 3
+compiler/runtime through a temporary verification task outside the repository. Construction, default values, the
+derived query, the local range violation, the cross-field violation, and an empty required image all passed. No permanent
+test fixture or build task was added.
+
+The dedicated branch starts at master `2f448ca7` (#839). Preserve the reviewed initial commit and add the audience
+revision as a follow-up commit. Tracker relationship remains `Related: #838`; Hive acceptance reconciliation and any
+external adopter-skill integration remain separate. No release-curation decision changes.

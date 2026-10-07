@@ -1,8 +1,9 @@
 # 4.1.0 (unreleased)
 
 - Added an opinionated [Schema Style Guide](docs/user/Schema-Style-Guide.md), reachable from onboarding and navigation,
-  covering naming, source layout, validation, testing, and documentation. It distinguishes framework constraints from
-  readability recommendations ([#838](https://github.com/klum-dsl/klum-ast/issues/838)).
+  with a cohesive example of domain types, clear relationships, nearby constraints, small derived queries, and semantic
+  documentation. Design guidance links to the detailed framework contracts
+  ([#838](https://github.com/klum-dsl/klum-ast/issues/838)).
 
 - Nested Schema types colliding with generated Builder, factory, Template adapter, collection/Cluster factory, or
   converter closure implementations now receive a source-positioned rename diagnostic before Groovy's duplicate-class
