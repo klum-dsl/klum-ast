@@ -5,9 +5,9 @@ Related: [#838](https://github.com/klum-dsl/klum-ast/issues/838), [PR #840](http
 ## Delivery to Schema authors
 
 The [Schema Style Guide](../user/Schema-Style-Guide.md) answers what makes an idiomatic, readable Schema and why. Its
-cohesive Deployment/Capacity example connects domain names, typed relationships, nearby constraints, a small derived
-query, and semantic property documentation. The principles are design preferences; exact compiler and annotation
-contracts remain in their detailed pages. Onboarding and sidebar links make the guide an entry point. The added
+cohesive Model/Deployment/Capacity/Image example connects an early DSL sketch with domain types, convenient conversion,
+nearby constraints, a small derived query, and semantic documentation. The principles are design preferences; exact
+compiler and annotation contracts remain in their detailed pages. Onboarding and sidebar links make the guide an entry point. The added
 Validation/Javadoc/Testing backlinks were removed during audience review because their detailed pages already have
 clear purposes and the guide links outward to them.
 
@@ -19,7 +19,9 @@ direct-schema, and Layer 3 choices remain independent of these readability princ
 
 - [Static Models](../user/Static-Models.md), [Gradle Onboarding](../user/Gradle-Onboarding.md#choose-the-model-shape-first),
   and [Layer 3](../user/Layer3.md) ground completed-state queries, downstream behavior, and consumer boundaries. The
-  preference for obvious structure and meaningful names is readability advice, not a new architecture contract.
+  preference for obvious structure and meaningful names is readability advice, not a new architecture contract. The
+  maintainer's review adds the design practice of sketching a Model DSL, ideally in a test, before implementing the
+  Schema and iterating both together; it does not prescribe a modeling architecture.
 - [Validation](../user/Validation.md#choose-a-validation-form),
   [Required.java](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/Required.java), and
   [Validate.java](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/Validate.java) ground the choice of
@@ -28,6 +30,12 @@ direct-schema, and Layer 3 choices remain independent of these readability princ
   [GeneratedInnerNameCollisionTest](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/GeneratedInnerNameCollisionTest.groovy),
   and the [#837 audit](evidence/issue-837-generated-inner-overlap.md) ground the narrow naming constraint. Public prose
   intentionally omits the implementation-name inventory.
+- [Converters](../user/Converters.md#factory-method-converters) and `ConverterSpec#'convention named factories are
+  automatically included'` ground discovery of a non-DSL value's `fromString` factory. The final Image class has final
+  String properties, constructor checks, and a deliberately narrow `name:tag` parser. This demonstrates immediate
+  value validation, distinct from the [completed-tree validation phase](../user/Validation.md#validation-of-nested-objects).
+  Considering immutable client-facing value types and enforcing contracts before documenting them are maintainer design
+  guidance; this example adds no container-image-format contract to KlumAST.
 - [Testing Models and Schemas](../user/Testing-Models-and-Schemas.md) grounds public construction and domain-state tests.
   [Javadoc for models](../user/Javadoc.md) grounds property documentation projection and accessor precedence.
 
@@ -38,6 +46,8 @@ agent guidance, rather than as a checklist in human documentation:
 
 | Candidate recommendation | Authority or rationale |
 | --- | --- |
+| Sketch representative Model DSL syntax early, preferably in a test; evolve Schema and syntax together. | Maintainer readability/design guidance; [public construction tests](../user/Testing-Models-and-Schemas.md#assert-a-completed-model) provide the feedback surface. |
+| Consider immutable client-facing domain values with converters/factory methods rather than making clients parse Strings. Validate self-contained values at construction and tree-dependent rules during Model validation. | Maintainer design guidance plus [Converters](../user/Converters.md#factory-method-converters) and [Validation timing](../user/Validation.md#validation-of-nested-objects). |
 | Choose `@Required` for default presence/truth, a field closure for a small local rule, and a method for cross-field, reused, or substantial rules. | [Validation](../user/Validation.md#choose-a-validation-form). `@Required` is not universal non-nullness: Groovy-false values fail, boxed Boolean checks non-nullness, primitive boolean is unsupported, and it cannot accompany `@Validate`. |
 | Keep validation closures to one expression or an `assert`, handling null deliberately. | [Field validation](../user/Validation.md#on-fields) and the annotation contracts above. |
 | Reuse the established test framework and start with one small Gradle test feedback loop. | [Gradle Onboarding](../user/Gradle-Onboarding.md#create-the-gradle-project) and [Testing Models and Schemas](../user/Testing-Models-and-Schemas.md). A new Schema-plugin project has matching Spock setup. |
@@ -69,6 +79,11 @@ The audience revision's two Groovy blocks were extracted from the Markdown and e
 compiler/runtime through a temporary verification task outside the repository. Construction, default values, the
 derived query, the local range violation, the cross-field violation, and an empty required image all passed. No permanent
 test fixture or build task was added.
+
+The later DSL-first/value-object revision keeps that same human audience. Its actual Model/Schema/Image blocks are
+verified together for converter discovery, typed/direct value assignment, immutability, immediate rejection of malformed
+values, default/query behavior, and normal Schema validation. Current rendering, reviews, and CI evidence remain in the
+PR description and consolidated follow-up; the earlier String-image example's checks are historical evidence only.
 
 The dedicated branch starts at master `2f448ca7` (#839). Preserve the reviewed initial commit and add the audience
 revision as a follow-up commit. Tracker relationship remains `Related: #838`; Hive acceptance reconciliation and any
