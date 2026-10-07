@@ -358,6 +358,9 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
         wrapper.completedModel.is(completedEnvironment)
         wrapper.sealed
         wrapper.builderOnly == 'builder-only'
+        wrapper.getInstanceAttributeOrGetter('modelType').is(getClass('OrderEnvironment'))
+        wrapper.getInstanceProperty('builderOnly') == 'builder-only'
+        wrapper.getInstanceAttributeOrGetter('completedModel').is(completedEnvironment)
         !wrapper.class.is(completedEnvironment.class)
         wrapper.getInstanceAttribute('messaging') == null
         wrapper.getMetaClass().getProperty(wrapper, 'messaging').is(facts)

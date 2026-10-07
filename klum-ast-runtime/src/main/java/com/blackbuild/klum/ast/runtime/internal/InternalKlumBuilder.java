@@ -419,7 +419,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     public <T> T getInstanceAttributeOrGetter(String attributeName) {
         if (wrapsCompletedModel)
-            return (T) InvokerHelper.getProperty(completedModel, attributeName);
+            return (T) InvokerHelper.getProperty(this, attributeName);
         Optional<Field> field = DslHelper.getField(getClass(), attributeName);
         if (field.isPresent())
             return (T) getFieldValue(this, field.get());
