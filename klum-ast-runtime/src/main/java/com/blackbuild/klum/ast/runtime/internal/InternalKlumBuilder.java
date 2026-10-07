@@ -162,16 +162,24 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         setMetaClass(new DelegatingMetaClass(getMetaClass()) {
             @Override
             public Object getProperty(Object object, String property) {
-                if (DslHelper.getField(modelType, property).isPresent())
+                if (isCompletedModelProperty(property))
                     return InvokerHelper.getProperty(existingModel, property);
                 return super.getProperty(object, property);
             }
 
             @Override
             public Object getProperty(Class sender, Object receiver, String property, boolean useSuper, boolean fromInsideClass) {
-                if (!useSuper && DslHelper.getField(modelType, property).isPresent())
+                if (!useSuper && isCompletedModelProperty(property))
                     return InvokerHelper.getProperty(existingModel, property);
                 return super.getProperty(sender, receiver, property, useSuper, fromInsideClass);
+            }
+
+            private boolean isCompletedModelProperty(String property) {
+                // Generated field accessors wrap empty storage. Getter-only Model properties
+                // are forwarded only when no existing Builder property owns that name.
+                return DslHelper.getField(modelType, property).isPresent()
+                        || (super.getMetaProperty(property) == null
+                            && InvokerHelper.getMetaClass(existingModel).getMetaProperty(property) != null);
             }
         });
     }

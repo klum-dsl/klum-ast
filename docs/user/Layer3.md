@@ -296,12 +296,20 @@ An explicit `@LinkTo` provider may follow the owner graph to another active Buil
 Builder storage during AUTO_LINK, before `@PostTree` and materialization. If no storage field exists, ordinary property
 access provides the getter fallback. A completed `LINK` provider is represented by a sealed Builder wrapper;
 explicit field lookup and an `@AutoLink` method such as `facts = application.environment.messaging` read its completed
-model property rather than the wrapper's empty storage. Builders sealed after their own materialization retain their
+model property rather than the wrapper's empty storage. Dynamic property access also reads computed/getter-only Model
+properties when no existing Builder property has that name. Ordinary wrapper access retains existing Builder properties,
+including infrastructure such as `modelType` and `completedModel`. Model-only getters are not added to the generated
+Builder contract, so direct statically checked Builder access to those names remains unsupported.
+Use `@LinkTo(field = "alias")` or a dynamic property reader called by an `@AutoLink` method to read such a Model getter.
+Unknown properties
+retain the missing-property diagnostic. Builders sealed after their own materialization retain their
 construction storage behavior. Completed-model and other providers keep ordinary property access. A null provider
 or null target leaves the relationship unset; a missing Map key also leaves it unset, while a missing object property
 retains Groovy's missing-property diagnostic.
 
-(See: `LinkToBuilderFieldTest#'explicit provider field links through the owner environment during construction'`.)
+(See: `LinkToBuilderFieldTest#'explicit provider field links through the owner environment during construction'`,
+`LinkToBuilderFieldTest#'sealed LINK provider exposes a getter-only completed Model property'`, and
+`LinkToBuilderFieldTest#'imperative auto link rejects an unknown property on a sealed LINK provider'`.)
 
 ```groovy
 @DSL class OrderApplication {

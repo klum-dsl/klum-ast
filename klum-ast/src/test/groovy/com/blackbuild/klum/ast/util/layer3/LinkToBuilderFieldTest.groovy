@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.runtime.internal.layer3
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import groovy.lang.MissingPropertyException
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -286,7 +287,100 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
 
     }
 
-    private void createSealedOrderSchema(String fieldName = 'messaging') {
+    def "imperative auto link rejects an unknown property on a sealed LINK provider"() {
+        given:
+        createSealedOrderSchema('messaging', 'facts = PropertyReader.missingMessaging(application.environment)')
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { }
+        def wrapper
+
+        when:
+        clazz.Create.With {
+            environment(completedEnvironment)
+            wrapper = delegate.environment
+            imperativeKafka()
+        }
+
+        then:
+        KlumVisitorException error = thrown()
+        error.cause instanceof MissingPropertyException
+        error.cause.property == 'missingMessaging'
+        wrapper.isSealed()
+        wrapper.getMetaClass().getMetaProperty('missingMessaging') == null
+        completedEnvironment.metaClass.getMetaProperty('missingMessaging') == null
+    }
+
+    def "sealed LINK provider exposes a getter-only completed Model property"() {
+        given:
+        createSealedOrderSchema('messaging', 'linkedTopic = PropertyReader.alias(application.environment)')
+        def facts = topic == null ? null : getClass('MessagingFacts').newInstance(topic)
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { messaging facts }
+        def wrapper
+
+        when:
+        instance = clazz.Create.With {
+            environment(completedEnvironment)
+            wrapper = delegate.environment
+            kafka()
+            imperativeKafka()
+        }
+
+        then:
+        completedEnvironment.alias == topic
+        !wrapper.class.methods.any { it.name == 'getAlias' }
+        wrapper.alias == topic
+        wrapper.getInstanceAttributeOrGetter('alias') == topic
+        instance.imperativeKafka.linkedTopic == topic
+        instance.kafka.aliasTopic == topic
+
+        where:
+        topic << ['orders', null]
+    }
+
+    def "sealed LINK property forwarding preserves Builder infrastructure and super reads"() {
+        given:
+        createSealedOrderSchema()
+        def facts = getClass('MessagingFacts').newInstance('orders')
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { messaging facts }
+        def wrapper
+
+        when:
+        instance = clazz.Create.With {
+            environment(completedEnvironment)
+            wrapper = delegate.environment
+            imperativeKafka()
+        }
+
+        then:
+        completedEnvironment.modelType == 'domain-model-type'
+        wrapper.modelType.is(getClass('OrderEnvironment'))
+        wrapper.completedModel.is(completedEnvironment)
+        wrapper.sealed
+        wrapper.builderOnly == 'builder-only'
+        !wrapper.class.is(completedEnvironment.class)
+        wrapper.getInstanceAttribute('messaging') == null
+        wrapper.getMetaClass().getProperty(wrapper, 'messaging').is(facts)
+        wrapper.getMetaClass().getProperty(wrapper, 'alias') == 'orders'
+        wrapper.getMetaClass().getProperty(wrapper, 'builderOnly') == 'builder-only'
+        wrapper.getMetaClass().getProperty(wrapper.class, wrapper, 'alias', false, false) == 'orders'
+        wrapper.getMetaClass().getProperty(wrapper.class, wrapper, 'modelType', false, false).is(getClass('OrderEnvironment'))
+        wrapper.getMetaClass().getProperty(wrapper.class, wrapper, 'messaging', true, false) == null
+    }
+
+    def "Model-only and unknown properties do not expand the generated Builder contract"() {
+        when:
+        createSealedOrderSchema('messaging', "linkedTopic = application.environment.$property")
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains("No such property: $property")
+        error.message.contains('OrderEnvironment_DSL$Builder')
+
+        where:
+        property << ['alias', 'missingMessaging']
+    }
+
+    private void createSealedOrderSchema(String fieldName = 'messaging',
+                                         String autoLinkBody = 'facts = application.environment.messaging') {
         createClass """
             package pk
 
@@ -294,6 +388,7 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.Owner
             import com.blackbuild.klum.ast.PostTree
             import com.blackbuild.klum.ast.layer3.AutoLink
+            import com.blackbuild.klum.ast.Mutator
             import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class OrderApplication {
@@ -303,12 +398,17 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
             }
             @DSL class OrderEnvironment {
                 MessagingFacts messaging
+                String getAlias() { messaging?.topic }
+                String getModelType() { 'domain-model-type' }
+                @Mutator String getBuilderOnly() { 'builder-only' }
             }
             @DSL class OrderKafka {
                 @Owner OrderApplication application
                 @Field(FieldType.LINK)
                 @LinkTo(provider = { application.environment }, field = '$fieldName')
                 MessagingFacts facts
+                @LinkTo(provider = { application.environment }, field = 'alias')
+                String aliasTopic
                 String linkedTopic
                 @PostTree void captureLink() { linkedTopic = facts?.topic }
             }
@@ -316,11 +416,17 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
                 @Owner OrderApplication application
                 @Field(FieldType.LINK) MessagingFacts facts
                 String linkedTopic
-                @AutoLink void linkFacts() { facts = application.environment.messaging }
-                @PostTree void captureLink() { linkedTopic = facts?.topic }
+                @AutoLink void linkFacts() { $autoLinkBody }
+                @PostTree void captureLink() { if (facts != null) linkedTopic = facts.topic }
             }
             @Immutable class MessagingFacts {
                 String topic
+            }
+            // Deliberately dynamic: unknown and Model-only properties are absent from the
+            // generated Builder contract, so the lifecycle verifier rejects direct typed access.
+            class PropertyReader {
+                static MessagingFacts missingMessaging(Object environment) { environment.missingMessaging }
+                static String alias(Object environment) { environment.alias }
             }
         """
     }
