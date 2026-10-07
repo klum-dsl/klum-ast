@@ -1,4 +1,11 @@
-# 4.0.1 (unreleased)
+# 4.0.2 (unreleased)
+
+- Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK,
+  retaining getter fallback for properties without storage and ordinary property access for completed-model and other
+  providers. Owner paths, relationship identity, and materialization timing remain unchanged
+  ([#841](https://github.com/klum-dsl/klum-ast/issues/841)).
+
+# 4.0.1
 
 - Qualified [AnnoDocimal 1.0.1](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.1) for Schema projects.
   Its default Javadoc-stub task now resolves public nested types from the compile classpath, and source projection plus
