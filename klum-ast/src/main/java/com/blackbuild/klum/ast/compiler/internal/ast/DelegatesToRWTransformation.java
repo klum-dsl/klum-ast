@@ -58,10 +58,18 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
         visitor = new Visitor();
         visitor.visitClass(model);
         visitor.visitClass(getBuilderClassOf(model));
-        // model.getInnerClasses().forEachRemaining(this::visitInnerClass);
     }
 
-    private void visitInnerClass(ClassNode innerClass) {
+    /** Expands source factory parameters before their generated overrides and Builder twins copy metadata. */
+    static void normalizeFactory(ClassNode model, ClassNode factory, SourceUnit source) {
+        DelegatesToRWTransformation transformation = new DelegatesToRWTransformation();
+        transformation.model = model;
+        transformation.sourceUnit = source;
+        transformation.visitor = transformation.new Visitor(true);
+        transformation.visitSourceHierarchy(factory);
+    }
+
+    private void visitSourceHierarchy(ClassNode innerClass) {
         while (innerClass != null && !innerClass.isResolved()) {
             visitor.visitClass(innerClass);
             innerClass = innerClass.getSuperClass();
@@ -69,6 +77,16 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
     }
 
     class Visitor extends ClassCodeVisitorSupport {
+
+        private final boolean usePublicBuilder;
+
+        Visitor() {
+            this(false);
+        }
+
+        Visitor(boolean usePublicBuilder) {
+            this.usePublicBuilder = usePublicBuilder;
+        }
 
         @Override
         protected SourceUnit getSourceUnit() {
@@ -100,14 +118,21 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
                 return;
             }
 
-            addDelegatesToAnnotation(target, node);
+            if (usePublicBuilder)
+                addDelegatesToAnnotationForType(GeneratedDslSupport.builderTypeFor(target), node);
+            else
+                addDelegatesToAnnotation(target, node);
         }
 
     }
 
     static void addDelegatesToAnnotation(ClassNode modelClass, AnnotatedNode node) {
+        addDelegatesToAnnotationForType(getBuilderClassOf(modelClass), node);
+    }
+
+    private static void addDelegatesToAnnotationForType(ClassNode delegateType, AnnotatedNode node) {
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_TYPE);
-        delegatesTo.addMember("value", new ClassExpression(getBuilderClassOf(modelClass)));
+        delegatesTo.addMember("value", new ClassExpression(delegateType));
         delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
         node.addAnnotation(delegatesTo);
     }
