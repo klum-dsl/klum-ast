@@ -232,6 +232,11 @@ Use `@Field(FieldType.LINK) @LinkTo` when the field must be aggregation-only. Or
 composition-only and reject completed or already claimed Builders. Custom `@AutoLink` code that previously overwrote a
 configured value must use `builder.link(fieldName, target)` for an explicit non-destructive fallback instead.
 
+Since 4.0.2, explicit `@LinkTo(..., field = '...')` reads configured storage when the provider is an active Builder, even if a
+Builder-specific getter exposes a different value. Getter-only properties retain their fallback behavior; completed-model
+providers still use ordinary property access. Existing Schema declarations need no syntax changes. See
+[Automatic creation and linking](Layer3.md#automatic-creation-and-linking).
+
 ## Deprecation: Validation annotation -> Validate
 
 `@Validation.mode()` is replaced by phases and thus ignored. `Validation.Option.IGNORE_UNMARKED` is default anyway, so

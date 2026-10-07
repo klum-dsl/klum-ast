@@ -292,6 +292,41 @@ relationship, declare `@Field(FieldType.LINK) @LinkTo`; a normal unannotated rel
 See `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries`
 for the executable example.
 
+An explicit `@LinkTo` provider may follow the owner graph to another active Builder. Its `field` name selects configured
+Builder storage during AUTO_LINK, before `@PostTree` and materialization. If no storage field exists, ordinary property
+access provides the getter fallback. Completed-model and other providers keep ordinary property access. A null provider
+or null target leaves the relationship unset; a missing Map key also leaves it unset, while a missing object property
+retains Groovy's missing-property diagnostic.
+
+(See: `LinkToBuilderFieldTest#'explicit provider field links through the owner environment during construction'`.)
+
+```groovy
+@DSL class OrderApplication {
+    OrderEnvironment environment
+    OrderKafka kafka
+}
+@DSL class OrderEnvironment {
+    MessagingFacts messaging
+}
+@DSL class OrderKafka {
+    @Owner OrderApplication application
+    @Field(FieldType.LINK)
+    @LinkTo(provider = { application.environment }, field = 'messaging')
+    MessagingFacts facts
+}
+@Immutable class MessagingFacts {
+    String topic
+}
+
+// AUTO_LINK runs after the complete configuration, even with kafka configured first.
+def messagingFacts = new MessagingFacts('orders')
+def order = OrderApplication.Create.With {
+    kafka()
+    environment { messaging messagingFacts }
+}
+assert order.kafka.facts.is(messagingFacts)
+```
+
 ### Role fields
 
 Fields can be annotated with `@Role` to indicate that they are used for a specific role as seen from their owner. 
