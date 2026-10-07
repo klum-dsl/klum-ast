@@ -88,6 +88,43 @@ Config.Create.With(name: 'Dieter', age: 15)
 
 Of course, named parameters and regular calls inside the closure can be combined ad lib.
 
+### Explicit null relationship values
+
+Named maps keep normal Builder-method dispatch. An explicit null for a direct `LINK`, `OPTIONAL_LINK`, or composition
+relationship (including `setX` keys) can fail overload selection. The `KlumModelException` identifies the Model, Builder
+operation/key, and construction path, with the original `MethodSelectionException` as its direct cause.
+
+Omit the key to preserve the Builder's existing configuration. For deliberate clearing, use an explicitly typed setter
+inside a Builder closure. Custom mutators that accept null retain their normal behavior.
+
+(See: `NamedMapNullRelationshipTest#'omission preserves configuration and typed setters deliberately clear it'`.)
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Field
+import com.blackbuild.klum.ast.FieldType
+
+@DSL class Graph {
+    @Field(FieldType.LINK) Node linked
+}
+@DSL class Node { String name }
+
+def existing = Node.Create.With { name 'existing' }
+def preserved = Graph.Create.With {
+    linked existing
+    apply([:]) // linked omitted: preserve existing configuration
+}
+def cleared = Graph.Create.With {
+    linked existing
+    apply([:]) { setLinked((Node) null) } // deliberate clearing
+}
+assert preserved.linked.is(existing)
+assert cleared.linked == null
+```
+
+`Graph.Create.With(linked: null)` still fails; it neither clears the relationship nor silently omits the key.
+
+
 For example, a keyed deployment and its owned service can be configured together:
 
 ```groovy

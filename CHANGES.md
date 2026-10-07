@@ -1,5 +1,10 @@
 # 4.0.2 (unreleased)
 
+- Ambiguous explicit-null direct relationship values in named maps now report an actionable `KlumModelException` with
+  the Model, Builder operation/key, and construction path, retaining the original `MethodSelectionException` as direct
+  cause. Dispatch remains unchanged: omit the key to preserve configuration, or use an explicitly typed setter inside
+  a Builder closure to deliberately clear a relationship ([#846](https://github.com/klum-dsl/klum-ast/issues/846)).
+
 - Statically checked custom typed factories can forward `@DelegatesToBuilder` closures directly to `With`. Source and
   generated Factory contracts now agree on the public Builder delegate and `DELEGATE_ONLY` strategy, while custom
   delegate subtypes and method return types remain intact. Existing uncast `super.With` and explicitly cast forwarding
