@@ -75,6 +75,16 @@ OrderApplication.Create.ForEnvironment('production') {
 }
 ```
 
+Existing explicit-super forwarding is also supported under both checking modes:
+
+(See: `FactoryClosureDelegationTest#'retains legacy super and cast forwarding forms'`.)
+
+```groovy
+super.With(environment: environment, applicationInput)
+```
+
+An explicit `(Closure<?>) applicationInput` cast remains valid, but is not required for upgrading from 4.0.1.
+
 Omitting the annotation's Model value selects the owning DSL Object. The deprecated `@DelegatesToRW` alias keeps the
 same behavior. Factory configuration still executes with `DELEGATE_ONLY`; incorrect Builder operations remain static
 compilation errors. See [issue #842](https://github.com/klum-dsl/klum-ast/issues/842).

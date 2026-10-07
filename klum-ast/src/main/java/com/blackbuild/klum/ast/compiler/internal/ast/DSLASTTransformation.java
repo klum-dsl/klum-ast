@@ -119,6 +119,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
 
+    private static final String SOURCE_SUPER_WITH = "$klum$superWith";
+    private static final ClassNode DELEGATES_TO_BUILDER_TYPE = ClassHelper.make(DelegatesToBuilder.class);
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
 
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
@@ -1715,9 +1717,77 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void specializeSourceFactoryWithMethods(ClassNode factoryType, ClassNode defaultImpl) {
-        // A shared generic factory cannot be specialized to one Schema's Builder contract.
-        if (factoryType.isResolved() || factoryType.redirect().getGenericsTypes() != null) return;
-        overrideFactoryMethods(factoryType, defaultImpl, true);
+        // Specialize contracts and preserve calls at the declaring source class, including inherited methods.
+        ClassNode current = factoryType;
+        while (current != null && !current.isResolved()) {
+            overrideFactoryMethods(current, defaultImpl, true);
+            preserveSourceSuperWithCalls(current);
+            current = current.getUnresolvedSuperClass();
+        }
+    }
+
+    // Groovy compares delegation strategies when forwarding a closure parameter. A normalized source
+    // parameter cannot be passed directly to the unannotated runtime superclass. The synthetic bridge
+    // supplies the matching source contract while retaining the original superclass dispatch.
+    private void preserveSourceSuperWithCalls(ClassNode factoryType) {
+        ClassCodeExpressionTransformer transformer = new ClassCodeExpressionTransformer() {
+            @Override
+            protected SourceUnit getSourceUnit() {
+                return sourceUnit;
+            }
+
+            @Override
+            public Expression transform(Expression expression) {
+                if (expression instanceof MethodCallExpression call
+                        && "With".equals(call.getMethodAsString())
+                        && call.getObjectExpression() instanceof VariableExpression receiver
+                        && receiver.isSuperExpression()
+                        && call.getArguments() instanceof TupleExpression arguments
+                        && !arguments.getExpressions().isEmpty()) {
+                    Expression last = arguments.getExpression(arguments.getExpressions().size() - 1);
+                    if (last instanceof VariableExpression variable
+                            && variable.getAccessedVariable() instanceof Parameter parameter
+                            && (getAnnotation(parameter, DELEGATES_TO_BUILDER_TYPE) != null
+                            || getAnnotation(parameter, DELEGATES_TO_RW_TYPE) != null)) {
+                        call.setObjectExpression(VariableExpression.THIS_EXPRESSION);
+                        call.setMethod(constX(sourceSuperWithName(factoryType)));
+                        call.setImplicitThis(false);
+                    }
+                }
+                return super.transform(expression);
+            }
+        };
+        new ArrayList<>(factoryType.getMethods()).stream()
+                .filter(method -> method.getDeclaringClass().equals(factoryType) && !method.isSynthetic())
+                .forEach(transformer::visitMethod);
+    }
+
+    private static String sourceSuperWithName(ClassNode factoryType) {
+        // Distinct names prevent a subclass bridge from redirecting its parent's explicit-super call.
+        return SOURCE_SUPER_WITH + "$" + factoryType.getName().replace('.', '$');
+    }
+
+    private void createSourceSuperWithBridge(ClassNode factoryType, MethodNode source) {
+        Parameter[] parameters = cloneFactoryParameters(source);
+        String bridgeName = sourceSuperWithName(factoryType);
+        if (factoryType.getDeclaredMethod(bridgeName, parameters) != null) return;
+        Parameter closure = parameters[parameters.length - 1];
+        if (getAnnotation(closure, DELEGATES_TO_ANNOTATION) == null) {
+            AnnotationNode delegation = new AnnotationNode(DELEGATES_TO_ANNOTATION);
+            // The implementation bridge for a shared generic Factory must not bind to one Model.
+            ClassNode delegate = factoryType.redirect().getGenericsTypes() == null
+                    ? GeneratedDslSupport.builderTypeFor(annotatedClass) : PUBLIC_KLUM_BUILDER;
+            delegation.setMember("value", classX(delegate));
+            delegation.setMember("strategy", constX(Closure.DELEGATE_ONLY));
+            closure.addAnnotation(delegation);
+        }
+        // Protected visibility also permits Groovy's generated access paths for external static Factories.
+        // Synthetic methods are excluded from the public Factory projection.
+        MethodNode bridge = new MethodNode(bridgeName, ACC_PROTECTED | ACC_SYNTHETIC,
+                source.getReturnType(), parameters, source.getExceptions(),
+                returnS(callSuperX("With", args(parameters))));
+        bridge.setSynthetic(true);
+        factoryType.addMethod(bridge);
     }
 
     private void overrideFactoryMethods(ClassNode factoryClass, ClassNode defaultImpl, boolean withClosuresOnly) {
@@ -1739,8 +1809,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(method -> !withClosuresOnly || method.getName().equals("With")
                             && method.getParameters().length > 0
                             && method.getParameters()[method.getParameters().length - 1].getType().equals(CLOSURE_TYPE))
-                    .map(method -> correctFactoryMethod(currentSpec, method))
-                    .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
+                    .forEach(source -> {
+                        MethodNode method = correctFactoryMethod(currentSpec, source);
+                        // Only the hidden implementation bridge can specialize a shared generic Factory.
+                        if (!withClosuresOnly || factoryClass.redirect().getGenericsTypes() == null)
+                            overrideFactoryMethod(factoryClass, defaultImpl, method);
+                        if (withClosuresOnly && !declaringClass.redirect().equals(factoryClass.redirect()))
+                            createSourceSuperWithBridge(factoryClass, method);
+                    });
             currentLevel = currentLevel.getUnresolvedSuperClass();
         }
     }

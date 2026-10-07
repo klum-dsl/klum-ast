@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast
 
+import java.lang.reflect.Modifier
+
 import groovy.lang.DelegatesTo
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
@@ -82,7 +84,7 @@ class FactoryClosureDelegationTest extends AbstractDSLSpec {
         checking << ['TypeChecked', 'CompileStatic']
     }
 
-    def "retains cast forwarding controls"() {
+    def "retains legacy super and cast forwarding forms"() {
         given:
         createClass """
             import com.blackbuild.klum.ast.runtime.KlumFactory
@@ -107,16 +109,207 @@ class FactoryClosureDelegationTest extends AbstractDSLSpec {
         """
 
         when:
-        instance = clazz.Create.ForEnvironment('production') { name 'orders' }
+        def client = createSecondaryClass '''
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class Client {
+                static OrderApplication create() {
+                    OrderApplication.Create.ForEnvironment('production') {
+                        name 'orders'
+                        assert resolveStrategy == Closure.DELEGATE_ONLY
+                    }
+                }
+            }
+        '''
+        instance = client.create()
 
         then:
         instance.environment == 'production'
         instance.name == 'orders'
 
         where:
-        checking       | forwarding
-        'TypeChecked'  | 'With(environment: environment, (Closure<?>) applicationInput)'
-        'CompileStatic'| 'With(environment: environment, (Closure<?>) applicationInput)'
+        checking        | forwarding
+        'TypeChecked'   | 'With(environment: environment, (Closure<?>) applicationInput)'
+        'CompileStatic' | 'With(environment: environment, (Closure<?>) applicationInput)'
+        'TypeChecked'   | 'super.With(environment: environment, applicationInput)'
+        'CompileStatic' | 'super.With(environment: environment, applicationInput)'
+        'TypeChecked'   | 'super.With(environment: environment, (Closure<?>) applicationInput)'
+        'CompileStatic' | 'super.With(environment: environment, (Closure<?>) applicationInput)'
+    }
+
+    def "legacy super forwarding bypasses custom With overrides and supports the closure-only overload"() {
+        given:
+        createClass """
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+            import groovy.transform.TypeChecked
+            import groovy.transform.CompileStatic
+
+            @DSL
+            class OrderApplication {
+                String environment
+                String name
+
+                @$checking
+                static class Factory extends KlumFactory.Unkeyed<OrderApplication> {
+                    protected Factory() { super(OrderApplication) }
+
+                    @Override
+                    OrderApplication With(Map<String, ?> values,
+                            @DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                        super.With(environment: 'override', body)
+                    }
+
+                    OrderApplication ForEnvironment(String environment,
+                            @DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                        super.With(environment: environment, body)
+                    }
+
+                    OrderApplication WithoutValues(@DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                        super.With(body)
+                    }
+                }
+            }
+        """
+
+        when:
+        def client = createSecondaryClass '''
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class Client {
+                static List<OrderApplication> create() {
+                    [OrderApplication.Create.ForEnvironment('production') {
+                        name 'orders'
+                        assert resolveStrategy == Closure.DELEGATE_ONLY
+                    }, OrderApplication.Create.With(environment: 'production') { name 'orders' },
+                    OrderApplication.Create.WithoutValues { name 'orders' }]
+                }
+            }
+        '''
+        def applications = client.create()
+
+        then:
+        applications*.environment == ['production', 'override', null]
+        applications*.name == ['orders', 'orders', 'orders']
+        getClass('OrderApplication_DSL$Factory').declaredMethods.every { !it.name.startsWith('$klum$superWith$') }
+        def bridges = getClass('OrderApplication$Factory').declaredMethods.findAll { it.name.startsWith('$klum$superWith$') }
+        bridges.size() == 2
+        bridges.every {
+            it.synthetic && Modifier.isProtected(it.modifiers)
+        }
+
+        where:
+        checking << ['TypeChecked', 'CompileStatic']
+    }
+
+    def "preserves superclass dispatch from an inherited source Factory method"() {
+        given:
+        createClass """
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+            import groovy.transform.TypeChecked
+            import groovy.transform.CompileStatic
+
+            @DSL
+            class OrderApplication {
+                String environment
+                String name
+
+                @$checking
+                static class ParentFactory extends KlumFactory.Unkeyed<OrderApplication> {
+                    protected ParentFactory() { super(OrderApplication) }
+
+                    @Override
+                    OrderApplication With(Map<String, ?> values,
+                            @DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                        super.With(environment: 'parent override', body)
+                    }
+
+                    OrderApplication ForEnvironment(String environment,
+                            @DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                        super.With(environment: environment, body)
+                    }
+                }
+
+                @$checking
+                static class Factory extends ParentFactory {
+                    @Override
+                    OrderApplication With(Map<String, ?> values,
+                            @DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                        super.With(environment: 'child override', body)
+                    }
+                }
+            }
+        """
+
+        when:
+        def client = createSecondaryClass '''
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class Client {
+                static List<OrderApplication> create() {
+                    [OrderApplication.Create.ForEnvironment('production') {
+                        name 'orders'
+                        assert resolveStrategy == Closure.DELEGATE_ONLY
+                    }, OrderApplication.Create.With(environment: 'production') { name 'orders' }]
+                }
+            }
+        '''
+        def applications = client.create()
+
+        then:
+        applications*.environment == ['production', 'parent override']
+        applications*.name == ['orders', 'orders']
+
+        where:
+        checking << ['TypeChecked', 'CompileStatic']
+    }
+
+    def "preserves legacy super forwarding inherited from a generic source Factory"() {
+        given:
+        createClass """
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+            import groovy.transform.TypeChecked
+            import groovy.transform.CompileStatic
+
+            @DSL(factory = OrderFactory)
+            class OrderApplication {
+                String environment
+                String name
+            }
+
+            @$checking
+            class ParentFactory<T> extends KlumFactory.Unkeyed<T> {
+                protected ParentFactory(Class<T> type) { super(type) }
+
+                T ForEnvironment(String environment,
+                        @DelegatesToBuilder(OrderApplication) Closure<?> body) {
+                    super.With(environment: environment, body)
+                }
+            }
+
+            class OrderFactory extends ParentFactory<OrderApplication> {
+                protected OrderFactory() { super(OrderApplication) }
+            }
+        """
+
+        when:
+        instance = clazz.Create.ForEnvironment('production') {
+            name 'orders'
+            assert resolveStrategy == Closure.DELEGATE_ONLY
+        }
+        def method = getClass('OrderApplication_DSL$Factory').getMethod('ForEnvironment', String, Closure)
+
+        then:
+        instance.environment == 'production'
+        instance.name == 'orders'
+        method.returnType == clazz
+        method.parameters.last().getAnnotation(DelegatesTo).value() == getClass('OrderApplication_DSL$Builder')
+        method.parameters.last().getAnnotation(DelegatesTo).strategy() == Closure.DELEGATE_ONLY
+
+        where:
+        checking << ['TypeChecked', 'CompileStatic']
     }
 
     def "custom and standard public factory closure annotations agree"() {
@@ -160,8 +353,9 @@ class FactoryClosureDelegationTest extends AbstractDSLSpec {
 
     def "forwards a Builder closure in an external keyed Factory"() {
         given:
-        createClass '''
+        createClass """
             import com.blackbuild.klum.ast.runtime.KlumFactory
+            import groovy.transform.TypeChecked
             import groovy.transform.CompileStatic
 
             @DSL(factory = OrderFactory)
@@ -171,24 +365,33 @@ class FactoryClosureDelegationTest extends AbstractDSLSpec {
                 String name
             }
 
-            @CompileStatic
+            @$checking
             class OrderFactory extends KlumFactory.Keyed<OrderApplication> {
                 protected OrderFactory() { super(OrderApplication) }
 
                 OrderApplication ForEnvironment(String key, String environment,
                         @DelegatesToBuilder(OrderApplication) Closure<?> applicationInput) {
-                    With(environment: environment, key, applicationInput)
+                    $forwarding
                 }
             }
-        '''
+        """
 
         when:
         instance = clazz.Create.ForEnvironment('orders', 'production') { name 'checkout' }
 
         then:
         instance.id == 'orders'
-        instance.environment == 'production'
+        instance.environment == (forwarding.contains('environment:') ? 'production' : null)
         instance.name == 'checkout'
+
+        where:
+        checking        | forwarding
+        'TypeChecked'   | 'With(environment: environment, key, applicationInput)'
+        'CompileStatic' | 'With(environment: environment, key, applicationInput)'
+        'TypeChecked'   | 'super.With(environment: environment, key, applicationInput)'
+        'CompileStatic' | 'super.With(environment: environment, key, applicationInput)'
+        'TypeChecked'   | 'super.With(key, applicationInput)'
+        'CompileStatic' | 'super.With(key, applicationInput)'
     }
 
     def "preserves a custom closure delegate and return subtype on the public Factory"() {

@@ -5,11 +5,11 @@
 ### Custom Factory closure forwarding
 
 Recompile source Schemas and regenerate IDE mirrors to receive the corrected custom Factory closure metadata.
-A typed Factory method can forward `@DelegatesToBuilder(Model) Closure<?>` directly to `With` with static checking;
-replace previous casts or `super.With` workarounds with direct `With` forwarding. Uncast `super.With` calls still
-target the unannotated runtime superclass and can fail strategy checking after recompilation; use direct `With`
-or retain an explicit `Closure<?>` cast on that legacy path. The public Builder delegate and runtime
-`DELEGATE_ONLY` behavior are preserved. See [Factory classes](Factory-Classes.md#forwarding-builder-closures).
+A typed Factory method can forward `@DelegatesToBuilder(Model) Closure<?>` directly to `With` with static checking.
+Existing uncast `super.With(..., applicationInput)` and explicitly cast forwarding forms remain valid under both
+`@TypeChecked` and `@CompileStatic`; no forwarding syntax change is required when upgrading from 4.0.1.
+The public contract exposes the exact Builder delegate with `DELEGATE_ONLY`, matching runtime execution.
+See [Factory classes](Factory-Classes.md#forwarding-builder-closures).
 
 ## To 4.0
 

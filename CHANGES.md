@@ -2,7 +2,8 @@
 
 - Statically checked custom typed factories can forward `@DelegatesToBuilder` closures directly to `With`. Source and
   generated Factory contracts now agree on the public Builder delegate and `DELEGATE_ONLY` strategy, while custom
-  delegate subtypes and method return types remain intact
+  delegate subtypes and method return types remain intact. Existing uncast `super.With` and explicitly cast forwarding
+  remain valid under both `@TypeChecked` and `@CompileStatic`
   ([#842](https://github.com/klum-dsl/klum-ast/issues/842)).
 
 # 4.0.1 (unreleased)
