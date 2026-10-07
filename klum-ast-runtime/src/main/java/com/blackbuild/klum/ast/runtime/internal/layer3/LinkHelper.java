@@ -86,7 +86,9 @@ public class LinkHelper {
         if (providerObject == null) return null;
 
         if (!linkTo.field().isEmpty())
-            return InvokerHelper.getProperty(providerObject, linkTo.field());
+            return providerObject instanceof InternalKlumBuilder
+                    ? ((InternalKlumBuilder<?>) providerObject).getInstanceAttributeOrGetter(linkTo.field())
+                    : InvokerHelper.getProperty(providerObject, linkTo.field());
 
         if (!linkTo.fieldId().isEmpty())
             return getSingleValueOrFail(providerObject, fieldToFill.getType(), it -> isLinkSourceWithId(it, linkTo.fieldId()));
