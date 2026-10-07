@@ -223,6 +223,108 @@ class LinkToBuilderFieldTest extends AbstractDSLSpec {
         getClass('MessagingFacts').isInstance(instance.kafka.facts)
     }
 
+    def "sealed LINK provider exposes completed facts to declarative and imperative auto link"() {
+        given:
+        createSealedOrderSchema()
+        def facts = getClass('MessagingFacts').newInstance('orders')
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { messaging facts }
+        def wrapper
+
+        when:
+        instance = clazz.Create.With {
+            environment(completedEnvironment)
+            wrapper = delegate.environment
+            kafka()
+            imperativeKafka()
+        }
+
+        then:
+        wrapper.isSealed()
+        wrapper.completedModel.is(completedEnvironment)
+        instance.environment.is(completedEnvironment)
+        instance[selectedKafka].facts.is(facts)
+        instance[selectedKafka].linkedTopic == 'orders'
+        instance[selectedKafka].application.is(instance)
+
+        where:
+        selectedKafka << ['kafka', 'imperativeKafka']
+    }
+
+    def "sealed LINK provider retains null completed properties"() {
+        given:
+        createSealedOrderSchema()
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { }
+
+        when:
+        instance = clazz.Create.With {
+            environment(completedEnvironment)
+            kafka()
+            imperativeKafka()
+        }
+
+        then:
+        instance.kafka.facts == null
+        instance.imperativeKafka.facts == null
+        instance.environment.is(completedEnvironment)
+    }
+
+    def "sealed LINK provider retains missing property diagnostics"() {
+        given:
+        createSealedOrderSchema('missingMessaging')
+        def completedEnvironment = getClass('OrderEnvironment').Create.With { }
+
+        when:
+        clazz.Create.With {
+            environment(completedEnvironment)
+            kafka()
+        }
+
+        then:
+        KlumVisitorException error = thrown()
+        error.cause instanceof MissingPropertyException
+        error.cause.property == 'missingMessaging'
+
+    }
+
+    private void createSealedOrderSchema(String fieldName = 'messaging') {
+        createClass """
+            package pk
+
+            import groovy.transform.Immutable
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.PostTree
+            import com.blackbuild.klum.ast.layer3.AutoLink
+            import com.blackbuild.klum.ast.layer3.LinkTo
+
+            @DSL class OrderApplication {
+                @Field(FieldType.LINK) OrderEnvironment environment
+                OrderKafka kafka
+                ImperativeOrderKafka imperativeKafka
+            }
+            @DSL class OrderEnvironment {
+                MessagingFacts messaging
+            }
+            @DSL class OrderKafka {
+                @Owner OrderApplication application
+                @Field(FieldType.LINK)
+                @LinkTo(provider = { application.environment }, field = '$fieldName')
+                MessagingFacts facts
+                String linkedTopic
+                @PostTree void captureLink() { linkedTopic = facts?.topic }
+            }
+            @DSL class ImperativeOrderKafka {
+                @Owner OrderApplication application
+                @Field(FieldType.LINK) MessagingFacts facts
+                String linkedTopic
+                @AutoLink void linkFacts() { facts = application.environment.messaging }
+                @PostTree void captureLink() { linkedTopic = facts?.topic }
+            }
+            @Immutable class MessagingFacts {
+                String topic
+            }
+        """
+    }
+
     private void createOrderSchema(String provider = 'application.environment', String fieldName = 'messaging',
                                    boolean maskMessaging = true) {
         createClass """

@@ -294,7 +294,10 @@ for the executable example.
 
 An explicit `@LinkTo` provider may follow the owner graph to another active Builder. Its `field` name selects configured
 Builder storage during AUTO_LINK, before `@PostTree` and materialization. If no storage field exists, ordinary property
-access provides the getter fallback. Completed-model and other providers keep ordinary property access. A null provider
+access provides the getter fallback. A completed `LINK` provider is represented by a sealed Builder wrapper;
+explicit field lookup and an `@AutoLink` method such as `facts = application.environment.messaging` read its completed
+model property rather than the wrapper's empty storage. Builders sealed after their own materialization retain their
+construction storage behavior. Completed-model and other providers keep ordinary property access. A null provider
 or null target leaves the relationship unset; a missing Map key also leaves it unset, while a missing object property
 retains Groovy's missing-property diagnostic.
 

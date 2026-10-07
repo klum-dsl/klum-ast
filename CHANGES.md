@@ -6,8 +6,9 @@
   remain valid under both `@TypeChecked` and `@CompileStatic`
   ([#842](https://github.com/klum-dsl/klum-ast/issues/842)).
 - Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK,
-  retaining getter fallback for properties without storage and ordinary property access for completed-model and other
-  providers. Owner paths, relationship identity, and materialization timing remain unchanged
+  retaining getter fallback for properties without storage. Sealed wrappers around completed `LINK` models read the
+  completed value for both explicit `@LinkTo` fields and imperative `@AutoLink` property reads; ordinary completed-model
+  and other providers retain property access. Owner paths, relationship identity, and materialization timing remain unchanged
   ([#841](https://github.com/klum-dsl/klum-ast/issues/841)).
 
 # 4.0.1
