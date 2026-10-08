@@ -82,11 +82,7 @@ class CopyCompositionCharacterizationTest extends AbstractDSLSpec {
         when:
         def result = graphType.Create.With {
             if (kind == 'Builder') {
-                source = graphType.Create.AsBuilder().With {
-                    nodes = [nodeType.Create.AsBuilder().With { value 'source'; applyLater { replays++ } }]
-                    unique = [nodeType.Create.AsBuilder().With { value 'source' }]
-                    indexed = [source: nodeType.Create.AsBuilder().With { value 'source' }]
-                }
+                source = this.builderDonor(graphType, nodeType)
             }
             sourceEntry = fieldName == 'indexed' ? source.indexed.source : source."$fieldName".first()
             copyFrom(source)
@@ -148,8 +144,9 @@ class CopyCompositionCharacterizationTest extends AbstractDSLSpec {
         def existing
         def observedIdentity
         BuilderRelationshipLifetimeTest.observe(16) {
-            if (observedIdentity.is(existing))
+            if (observedIdentity.is(existing)) {
                 assert KlumBuilderSupport.of(existing).structure.owningRelationship.orElseThrow().name == 'indexed'
+            }
         }
 
         when:
@@ -252,7 +249,9 @@ class CopyCompositionCharacterizationTest extends AbstractDSLSpec {
         when:
         def result = getClass('Graph').Create.With {
             source = nodeType.Create.AsBuilder().With { value 'source'; applyLater { replays++ } }
-            if (claimed) direct = source
+            if (claimed) {
+                direct = source
+            }
             copyFrom([nodes: [source, source]])
             copied = delegate.nodes[0]
         }
@@ -413,6 +412,14 @@ class CopyCompositionCharacterizationTest extends AbstractDSLSpec {
         result.links[0].is(result.direct)
         result.links[1].is(result.direct)
         KlumObjectSupport.of(result.links[0]).structure.owningRelationship.orElseThrow().name == 'direct'
+    }
+
+    private Object builderDonor(Class<?> graphType, Class<?> nodeType) {
+        graphType.Create.AsBuilder().With {
+            nodes = [nodeType.Create.AsBuilder().With { value 'source'; applyLater { replays++ } }]
+            unique = [nodeType.Create.AsBuilder().With { value 'source' }]
+            indexed = [source: nodeType.Create.AsBuilder().With { value 'source' }]
+        }
     }
 
     private void schema(String collectionMode = 'REPLACE', String mapMode = 'FULL_REPLACE', String singleMode = 'MERGE') {

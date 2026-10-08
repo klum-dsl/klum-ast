@@ -142,3 +142,31 @@ Git transport dry-run and GitHub CLI delivery audits returned `authorized`; no G
 release targeting or curation changes. RM-4 final acceptance remains pending. No production, generated/public API,
 serialization representation, lifecycle, module descriptor or annotation artifact is changed. The existing RM-3 binary/JPMS
 and same-version persistence contract remains intact; no historical compatibility promise follows.
+
+
+### Stable-head result and Sonar follow-up
+
+Full repository `check` passed on clean `8153820ceb09e256df97c2cb20ac196632f0e629` in 8m 21s with no edits during
+validation. It includes the complete existing copy/Template/OPTIONAL_LINK, serialization, lifetime, binary/JPMS,
+license, lane-isolation, plugin and documentation-renderer checks. All reports have zero failures/errors:
+
+| Module | G3 tests / skips | G4 tests / skips | G5 tests / skips |
+| --- | ---: | ---: | ---: |
+| AST | 1608 / 15 | 1608 / 15 | 1608 / 15 |
+| Runtime | 73 / 1 | 73 / 1 | 73 / 1 |
+| Jackson | 77 / 0 | 75 / 0 | 75 / 0 |
+| Bean validation | 10 / 0 | 10 / 0 | 10 / 0 |
+| Test support | 7 / 0 | 6 / 0 | 6 / 0 |
+| Annotations | 20 / 0 | Not configured | Not configured |
+| Gradle plugin | 151 / 0 | Not configured | Not configured |
+
+Draft [PR #864](https://github.com/klum-dsl/klum-ast/pull/864) was created and attached, with #856 verified open.
+The [first exact-head CI run](https://github.com/klum-dsl/klum-ast/actions/runs/37834572757) passed on `8153820c`, as did
+JUnit reporting and both Sonar checks. Sonar's quality gate was OK, with zero security hotspots, but its findings API
+reported five maintainability issues in the new characterization fixture: three excessive-nesting warnings in the live
+Builder donor setup and two missing-brace warnings.
+
+Those five findings are addressed together in an additive follow-up: extract the same-session Builder fixture creation
+into a private helper called inside the existing active session, and brace the two conditions. No assertion, scenario,
+production code or adoption/identity/lifecycle behavior changes. Reviewed commits remain intact. The focused 47 cases pass in each G3/G4/G5 lane again with zero failures/errors/skips, and license validation passes; the new head's CI/Sonar findings and consolidated disposition are verified in the final
+PR/handoff rather than inferred from the earlier green quality gate.
