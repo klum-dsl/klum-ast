@@ -332,6 +332,7 @@ class ConverterBuilder {
                 .returning(BuilderMethodProjection.projectedBuilderType(builderProducer.getReturnType(), elementType))
                 .params(parameters)
                 .sourceLinkTo(sourceMethod)
+                .callMethod(target, "$klum$assertMutable")
                 .doReturn(attachCall);
         BuilderMethodProjection.documentComposition(method, sourceMethod, builderProducer.getReturnType());
         method.addTo(builderClass);

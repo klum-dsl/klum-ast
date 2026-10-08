@@ -354,6 +354,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .params(BuilderMethodProjection.projectedParameters(
                         parameterSource,
                         BuilderMethodProjection.concreteModelFor(builderProducer, elementType)))
+                .callMethod("rw", "$klum$assertMutable")
                 .doReturn(callX(
                         varX("rw"),
                         attachmentMethodFor(returnType),

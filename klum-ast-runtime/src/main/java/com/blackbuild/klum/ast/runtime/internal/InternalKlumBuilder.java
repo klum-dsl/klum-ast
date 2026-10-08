@@ -946,6 +946,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        assertMutable();
         return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -988,6 +989,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        assertMutable();
         return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -1182,6 +1184,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <K, V> V addElementToMapViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, K key, Object... args) {
+        assertMutable();
         return addElementToMap(fieldOrMethodName, key, createObjectViaConverter(converterType, converterMethod, args));
     }
 

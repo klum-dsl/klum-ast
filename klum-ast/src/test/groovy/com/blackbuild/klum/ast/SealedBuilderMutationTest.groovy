@@ -125,13 +125,91 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         }
     }
 
+    def "sealed #state rejects #operation before invoking a converter"() {
+        given:
+        createSchema()
+        def pair = sealedPair(state)
+        def probe = getClass('Probe')
+        def allocations = probe.allocations
+        def configurations = probe.configurations
+
+        when:
+        convert(pair.builder)
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains(state == 'normal' ? 'Construction session has completed' : 'sealed Builder cannot be configured')
+        probe.allocations == allocations
+        probe.configurations == configurations
+        pair.builder.getInstanceAttribute('children').empty
+        pair.builder.getInstanceAttribute('values').empty
+        pair.builder.getInstanceAttribute('namedValues').isEmpty()
+        pair.model.primary == null
+        pair.model.entries.existing.value == 'original'
+
+        where:
+        [state, operation, convert] << ['normal', 'wrapper'].collectMany { state ->
+            [
+                ['single value', { b -> b.singleValue('late') }],
+                ['collection value', { b -> b.value('late') }],
+                ['Map value', { b -> b.namedValue('late', 'value') }],
+                ['single Builder', { b -> b.primary(new URI('late')) }],
+                ['collection Builder', { b -> b.child(new URI('late')) }],
+                ['Map Builder', { b -> b.entry(new URI('late')) }]
+            ].collect { [state, it[0], it[1]] }
+        }
+    }
+
+    def "retained #relationship factory rejects #operation before producing children in a new session"() {
+        given:
+        createSchema()
+        def factory
+        def receiver
+        def completed = clazz.Create.With {
+            receiver = delegate
+            delegate."$relationship" { factory = delegate }
+        }
+        def probe = getClass('Probe')
+        def allocations = probe.allocations
+        boolean configured = false
+        def body = { configured = true }
+
+        when:
+        clazz.Create.With { produce(factory, body) }
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains('Construction session has completed')
+        !configured
+        probe.configurations == 0
+        probe.allocations == allocations
+        receiver.getInstanceAttribute(relationship).isEmpty()
+        completed.children.empty
+        completed.entries.isEmpty()
+
+        where:
+        [relationship, operation, produce] << ['children', 'entries'].collectMany { relationship ->
+            [
+                ['projected collection', { f, configure -> f.batch('late') }],
+                ['projected Map', { f, configure -> f.mapped('late') }],
+                ['projected converter', { f, configure -> f.entry(new URI('late')) }]
+            ].collect { [relationship, it[0], it[1]] }
+        }
+    }
+
     private void createSchema() {
         createClass('''
             package preflight
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import java.net.URI
             @DSL class Registry {
                 String host
                 List<String> labels
                 Map<String, String> settings
+                Value singleValue
+                List<Value> values
+                Map<String, Value> namedValues
                 Entry primary
                 @Field(members = "child") List<Entry> children
                 Map<String, Entry> entries
@@ -144,6 +222,28 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
                 @Owner Registry registry
                 int visits
                 @PostTree void visit() { visits++ }
+                static Entry fromUri(URI uri) {
+                    Probe.configurations++
+                    return Entry.Create.With(uri.toString(), value: 'converted')
+                }
+                static class Factory extends KlumFactory.Keyed<Entry> {
+                    Factory() { super(Entry) }
+                    List<KlumBuilder<Entry>> batch(String key) {
+                        Probe.configurations++
+                        return [(KlumBuilder<Entry>) (Object) AsBuilder().With(key, value: 'batch')]
+                    }
+                    Map<String, KlumBuilder<Entry>> mapped(String key) {
+                        Probe.configurations++
+                        return [(key): (KlumBuilder<Entry>) (Object) AsBuilder().With(key, value: 'mapped')]
+                    }
+                }
+            }
+            class Value {
+                String text
+                static Value fromString(String text) {
+                    Probe.configurations++
+                    return new Value(text: text)
+                }
             }
         ''')
     }
