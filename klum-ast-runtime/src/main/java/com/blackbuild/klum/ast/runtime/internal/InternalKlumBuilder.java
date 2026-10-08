@@ -44,6 +44,7 @@ import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
+import groovy.lang.DelegatingMetaClass;
 import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
@@ -92,6 +93,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
     private M completedModel;
     private boolean sealed;
+    private boolean wrapsCompletedModel;
     private boolean template;
     private transient ConstructionSession constructionSession;
     private transient boolean constructionSessionActive;
@@ -154,7 +156,33 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         if (!modelType.isInstance(existingModel))
             throw new KlumModelException(format("Cannot seal Builder for %s to %s", modelType.getName(), existingModel.getClass().getName()));
         completedModel = existingModel;
+        wrapsCompletedModel = true;
         sealed = true;
+        // Keep completed LINK reads local to this wrapper; a getProperty override on the
+        // Builder type would alter Groovy's static inference for unrelated properties.
+        setMetaClass(new DelegatingMetaClass(getMetaClass()) {
+            @Override
+            public Object getProperty(Object object, String property) {
+                if (isCompletedModelProperty(property))
+                    return InvokerHelper.getProperty(existingModel, property);
+                return super.getProperty(object, property);
+            }
+
+            @Override
+            public Object getProperty(Class sender, Object receiver, String property, boolean useSuper, boolean fromInsideClass) {
+                if (!useSuper && isCompletedModelProperty(property))
+                    return InvokerHelper.getProperty(existingModel, property);
+                return super.getProperty(sender, receiver, property, useSuper, fromInsideClass);
+            }
+
+            private boolean isCompletedModelProperty(String property) {
+                // Generated field accessors wrap empty storage. Getter-only Model properties
+                // are forwarded only when no existing Builder property owns that name.
+                return DslHelper.getField(modelType, property).isPresent()
+                        || (super.getMetaProperty(property) == null
+                            && InvokerHelper.getMetaClass(existingModel).getMetaProperty(property) != null);
+            }
+        });
     }
 
     /** Identifies the generated model implementation. Allocation remains private to graph materialization. */
@@ -391,6 +419,8 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T getInstanceAttributeOrGetter(String attributeName) {
+        if (wrapsCompletedModel)
+            return (T) InvokerHelper.getProperty(this, attributeName);
         Optional<Field> field = DslHelper.getField(getClass(), attributeName);
         if (field.isPresent())
             return (T) getFieldValue(this, field.get());
