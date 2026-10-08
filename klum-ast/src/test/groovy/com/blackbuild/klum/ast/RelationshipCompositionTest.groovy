@@ -28,6 +28,10 @@ import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import spock.lang.Issue
 
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+
 @Issue('856')
 class RelationshipCompositionTest extends AbstractDSLSpec {
     def 'normalized #fieldName entries retain their inherited containing declaration through sealing'() {
@@ -178,6 +182,77 @@ class RelationshipCompositionTest extends AbstractDSLSpec {
         observed == KlumObjectSupport.of(instance.nodes[0]).structure.owningRelationship.orElseThrow()
     }
 
+    def 'rejected attachment to a different owner preserves the original declaration and leaves the recipient empty'() {
+        given:
+        schema()
+        def view
+        def rejection
+        BuilderRelationshipLifetimeTest.observe(16) {
+            assert view.owningRelationship.orElseThrow().name == 'direct'
+        }
+
+        when:
+        def result = create('Workspace') {
+            def child
+            source { child = direct { name 'source' } }
+            view = KlumBuilderSupport.of(child).structure
+            recipient {
+                rejection = RelationshipCompositionTest.failureOf { delegate.other = child }
+            }
+        }
+
+        then:
+        rejection instanceof KlumModelException
+        rejection.message.contains('already claimed')
+        result.recipient.other == null
+        result.source.direct.name == 'source'
+        declaration(result.source.direct) == 'direct'
+    }
+
+    def 'foreign active-session attachment is rejected without altering either graph declaration'() {
+        given:
+        schema()
+        def graphType = getClass('Graph')
+        def sourceBuilder = new AtomicReference<Object>()
+        def sourceModel = new AtomicReference<Object>()
+        def sourceError = new AtomicReference<Throwable>()
+        def ready = new CountDownLatch(1)
+        def release = new CountDownLatch(1)
+        def sourceThread = new Thread({
+            try {
+                sourceModel.set(graphType.Create.With {
+                    sourceBuilder.set(direct { name 'foreign' })
+                    ready.countDown()
+                    assert release.await(10, TimeUnit.SECONDS)
+                })
+            } catch (Throwable error) { sourceError.set(error); ready.countDown() }
+        } as Runnable)
+        sourceThread.start()
+        assert ready.await(10, TimeUnit.SECONDS)
+        def rejection
+
+        when:
+        def recipient = graphType.Create.With {
+            rejection = RelationshipCompositionTest.failureOf { delegate.other = sourceBuilder.get() }
+        }
+        release.countDown()
+        sourceThread.join(10000)
+
+        then:
+        !sourceThread.alive
+        sourceError.get() == null
+        rejection instanceof KlumModelException
+        rejection.message.contains('different Construction session')
+        recipient.other == null
+        KlumObjectSupport.of(recipient).structure.owningRelationship.empty
+        sourceModel.get().direct.name == 'foreign'
+        declaration(sourceModel.get().direct) == 'direct'
+
+        cleanup:
+        release.countDown()
+        sourceThread?.join(10000)
+    }
+
     private void schema() {
         createNonDslClass '''
             package metadata
@@ -197,6 +272,7 @@ class RelationshipCompositionTest extends AbstractDSLSpec {
                 @Field(value = FieldType.OPTIONAL_LINK, keyMapping = { it.name }) Map<String, Node> optionalMap
             }
             @DSL class Graph extends GraphBase {}
+            @DSL class Workspace { Graph source; Graph recipient }
         '''
     }
 

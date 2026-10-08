@@ -169,12 +169,17 @@ class RelationshipSerializationTest extends AbstractDSLSpec {
     }
 
     def 'serialized companion fields contain only declaration identity plus existing ordinary or recipe state'() {
-        expect:
-        ObjectStreamClass.lookup(SchemaRelationshipDeclaration).fields*.name == ['declaringClass', 'name']
-        ObjectStreamClass.lookup(SchemaRelationshipDeclaration).serialVersionUID == 1L
-        ObjectStreamClass.lookup(KlumModelProxy).fields*.name ==
+        when:
+        def declarationForm = ObjectStreamClass.lookup(SchemaRelationshipDeclaration)
+        def modelForm = ObjectStreamClass.lookup(KlumModelProxy)
+        def templateForm = ObjectStreamClass.lookup(KlumTemplateProxy)
+
+        then:
+        declarationForm.fields*.name == ['declaringClass', 'name']
+        declarationForm.serialVersionUID == 1L
+        modelForm.fields*.name ==
             ['breadcrumbPath', 'executedValidators', 'metadata', 'model', 'modelPath', 'owningRelationship']
-        ObjectStreamClass.lookup(KlumTemplateProxy).fields*.name ==
+        templateForm.fields*.name ==
             ['breadcrumbPath', 'modelPath', 'object', 'owningRelationship', 'recipeState']
 
         cleanup:
