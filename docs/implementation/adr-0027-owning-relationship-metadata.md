@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: RM-1 ordinary tracer implemented under approved D1/D4/D6; RM-2–RM-4 pending
+Status: RM-1 and approved bounded RM-2 implemented; D5, RM-3 and RM-4 remain open
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
@@ -13,7 +13,8 @@ Tracking issue: [#856](https://github.com/klum-dsl/klum-ast/issues/856), open, t
 D1's exact descriptors/equality/errors, D4 placement in 4.1, and D6 lifetime are approved. Separate authorization delivers
 RM-1's direct/inherited ordinary tracer, documented in [the RM-1 evidence](issue-856-rm1-evidence.md).
 Retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a`, with 33 characterization cases.
-D2/D3/D5 remain explicit RM-2 gates. The source-audit tables below retain their historical planning bases; the RM-1 report
+D2 accepted-definition Template retention/recipient recapture and D3 same-version serialization are explicitly approved
+for bounded RM-2 in [the decision record](issue-856-rm2-decisions.md). D5 repairs remain excluded and unresolved. The source-audit tables below retain their historical planning bases; the RM-1 report
 identifies which acceptance rows now have executable public-API evidence. Initial guidance is delivered with this seam;
 full RM-4 documentation/qualification remains pending.
 
@@ -307,6 +308,15 @@ Use TemplatesSpec/TemplateRecipeStateTest and existing KlumJacksonImporterSpec/C
 Acceptance: complete A04/A06–A09/A12–A16/A18/A19/A24 and extended A10/A11/A26. D2/D3/D5 cannot be bypassed by a successful
 RM-1 tracer. No feature-release claim is made before these persistence/graph qualifications pass.
 
+### Authorized RM-2 subset after D2/D3 approval
+
+The maintainer accepted internal declaration retention for existing Template-definition claims and same-version-only Java
+serialization. Qualify accepted normal container construction/imports, direct single-field copies and nested merges into
+already claimed recipients. Copied-container direct insertion, conflicting cross-field recipe aliases, and OPTIONAL_LINK
+copy repairs are excluded. No historical byte fixture is promised. The full original RM-2/A24 contract remains open at D5;
+only the bounded subset may be reported delivered. See [the RM-2 evidence](issue-856-rm2-evidence.md). Preserve the source-audit evidence and distinguish normal container
+attachment from CopyHandler bypasses. No RM-3/RM-4 work follows from this authorization.
+
 ### RM-3 — complete Java/Groovy binary and JPMS qualification
 
 Compile real runtime/Schema artifacts before their separate consumers. Expand initial RM-1 binary checks to Java 17 and
@@ -407,8 +417,8 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 | Risk/decision | Bound or approval required | Evidence owner |
 | --- | --- | --- |
 | D1 bounded implementation/details approval | Accepted facade/shared descriptor/Optional and consumer-policy separation stay fixed; finalize generics/equality/errors and authorize bounded work | Approved; RM-0/RM-1 separately authorized |
-| D2 Template retention | Approve internal definition-edge retention and recipient recapture with public rejection; any direct inspection requires separate support/gating decision | Maintainer before RM-2 |
-| D3 historical stream compatibility | RM-0 audits representation risk; RM-2 qualifies approved same-version scope or specifically named old-version fixtures; no arbitrary promise | Maintainer/RM-2 |
+| D2 Template retention | Approved internal accepted-definition retention and recipient recapture with public rejection; direct inspection remains separately gated | Approved for bounded RM-2 |
+| D3 historical stream compatibility | Approved same-version-only ordinary/Template scope; no named historical streams or guessed UID | Approved for bounded RM-2 |
 | D4 scheduling and release | Approved for 4.1; RM-1 delivered separately, later slices need explicit authorization | Approved; Hive owns release reconciliation |
 | D5 copied-container ambiguity | RM-0 inventories bypasses/conflicts; decision gates RM-2 copy qualification, not direct-field RM-1; broader ownership repair needs separate approval | Maintainer before RM-2 |
 | D6 read-only lifetime revision | Approve active same-session + phase >15 + authoritative source, removing unsealed/<40 checks; include normal sealing and LINK wrappers, preserve post-exit/abort rejection | Approved; RM-1 guard implemented |
@@ -419,7 +429,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Issue/decision | Relationship to this plan |
 | --- | --- |
-| #856 / ADR 0027 | RM-1 is implemented; RM-2–RM-4 remain gated; parent remains open for maintainer reconciliation |
+| #856 / ADR 0027 | RM-1 and bounded RM-2 are implemented; D5, RM-3/RM-4 and parent acceptance remain open for maintainer reconciliation |
 | #390 / ADR 0006 | Extend completed Structure without weakening its object/companion boundary |
 | #431 / ADR 0004 | Preserve active-session composition, Template/copy protocol and serialization scope |
 | #391 / ADRs 0014/0015 | Reuse module and generated-linkage acceptance; no new public internal access |

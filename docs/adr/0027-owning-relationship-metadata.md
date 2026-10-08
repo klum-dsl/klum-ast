@@ -2,9 +2,9 @@
 
 Date: 2026-10-08
 
-Status: Accepted D1/D4/D6 for bounded RM-1; D2/D3/D5 remain implementation gates
+Status: Accepted D1/D2/D3/D4/D6; D5 copied-container/alias policy remains gated
 
-Implementation status: RM-1 ordinary metadata/consumer tracer implemented; RM-2–RM-4 release qualification remains pending
+Implementation status: RM-1 and the approved bounded RM-2 subset implemented; D5 and RM-3/RM-4 acceptance remain pending
 
 Target: 4.1 (D4 approved)
 
@@ -27,8 +27,10 @@ and D6's read-only lifetime revision. RM-1 was then separately authorized from c
 and bounded implementation are recorded in [the RM-1 report](../implementation/issue-856-rm1-evidence.md).
 The retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a` on
 `codex/issue-856-rm0-proof`, including its report and 33 characterization cases.
-D2 Template retention, D3 historical serialization scope, and D5 copied-container/alias policy remain undecided and gate
-RM-2. Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
+The maintainer approved D2 internal accepted-definition retention with recipient recapture and D3 same-version-only
+serialization before bounded RM-2 implementation; see [the decision record](../implementation/issue-856-rm2-decisions.md).
+D5 copied-container/alias repairs are explicitly excluded from that assignment and remain an acceptance gap.
+The implemented subset and validation are recorded in [the RM-2 evidence](../implementation/issue-856-rm2-evidence.md). Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
 
 ## Context and authority
 
@@ -147,16 +149,16 @@ Completed Objects support queries anywhere, including VALIDATE and outside a lif
 their original declaration, even when the original owner is not serialized with them. An external root remains without
 an owning declaration. Rehydrated Template/copy nodes describe the recipient graph's actual composition fields;
 source graph metadata is not an instruction to adopt an old owner. A standalone copied root has no owning relationship.
-The proposed Template policy is to retain the definition graph's own declarations internally, then recapture recipient
-declarations during application (approval gate D2). Current `KlumObjectSupport.of` accepts ordinary completed Objects
+The approved D2 policy retains existing accepted definition-edge declarations internally, then recaptures recipient
+declarations during application. It does not repair CopyHandler placements that bypass claims or decide conflicting aliases. Current `KlumObjectSupport.of` accepts ordinary completed Objects
 and rejects marked Templates through `requireCompletedModel`; preserve that gate. Direct public Template inspection
 would require a separate decision, not an accidental widening of the facade to read the new record.
 
 Same-version ordinary/Template Java serialization must preserve declaration identity and relationship graph identity.
 If an otherwise compatible stream lacks this record, return empty; do not claim it is necessarily a root. ADR 0004 makes
 no arbitrary cross-version serialization guarantee. Changing companion state must audit computed serialVersionUIDs and
-must not silently introduce a historical-stream promise. A promise to load particular older versions requires an explicit
-versioned fixture and maintainer decision (D3). Jackson remains foreign-format import/export, not companion persistence:
+must not silently introduce a historical-stream promise. D3 explicitly chooses same-version serialization only. No
+particular older stream is promised; any later historical support would require named versioned fixtures and a new maintainer decision. Jackson remains foreign-format import/export, not companion persistence:
 new owned imports capture their new edges, reference imports preserve linked targets, and no wire metadata is added.
 
 ### Separate mutation eligibility from metadata authority
@@ -261,7 +263,7 @@ when implementation is delivered. RM-1 leaves #856 open for its later 4.1 qualif
 - Let KlumObjectSupport accept Builders: weakens the completed-state boundary of ADR 0006.
 - Implement every Structure traversal/navigation twin now: exceeds the metadata use case and creates more lifetime contracts.
 
-## Maintainer decisions still required
+## Maintainer decision dispositions
 
 The entrypoints, shared immutable relationship type, Optional absence, per-operation checks and separation from consumer
 selection are accepted. The first implementation milestone is the ScHelm vertical tracer in RM-1, immediately after
@@ -274,12 +276,13 @@ Decision dispositions (later slices still require explicit authorization):
 
 1. **D1 — approved.** Exact generic shape, Class/member equality, Optional absence and error categories are frozen by
    RM-0; RM-1 has separate implementation authorization. See its report for the exact signatures.
-2. **D2 — approve Template retention semantics.** Confirm internal definition-edge retention and application/copy
-   recipient-edge recapture while preserving public Template rejection. If direct Template inspection is required,
-   decide its separate support/gating contract before expanding this plan.
-3. **D3 — choose historical serialization scope.** Retain ADR 0004's same-version contract and empty lookup for a compatible
-   absent record, or name specific old versions whose stream loading must be supported and proved.
-4. **D4 — approved for 4.1.** RM-0 and RM-1 are authorized; parent #856 remains open for later gates and Hive reconciliation.
+2. **D2 — approved.** Retain declarations from accepted Template-definition claims internally and recapture recipient
+   claims during application/copy. Preserve public Template rejection. Copied-container/alias repairs remain excluded;
+   direct Template inspection requires its own decision.
+3. **D3 — approved, same-version only.** Qualify ordinary/Template serialization with compatible available Schema
+   definitions and empty lookup for otherwise readable absent metadata. No historical streams or Schema evolution are
+   promised; audit changed companion UIDs without pinning old values.
+4. **D4 — approved for 4.1.** RM-0, RM-1, and bounded RM-2 are authorized; parent #856 remains open for later gates and Hive reconciliation.
 5. **D5 — settle copied-container ownership ambiguity.** RM-0 must characterize CopyHandler's direct list/map insertion
    and repeated recipe identity across distinct owned fields. Approve how an unclaimed copied node gains an authoritative
    declaration and how genuinely conflicting declarations fail or are represented, while preserving LINK/OPTIONAL_LINK

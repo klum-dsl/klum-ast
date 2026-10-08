@@ -359,6 +359,14 @@ captured recipe values must be serializable so the detached recipe remains seria
 Template companion and immutable recipe state, but never Builders, Construction sessions, scopes, or mutable recipe
 collections. Ordinary completed models retain no deferred actions.
 
+Owning-declaration metadata is recaptured from accepted recipient claims when applying Templates or copying single
+children; the source declaration never adopts an old owner. Templates retain accepted definition declarations internally
+and remain rejected by public Object support. Java persistence is qualified only within the same KlumAST version with
+compatible available Schema definitions. Regenerate old serialized Models/Templates from source configuration/recipes
+on upgrade; no historical stream or Schema-evolution compatibility is promised. CopyHandler container bypasses and
+conflicting recipe aliases remain separate qualification gaps; see
+[Completed Object Support](Completed-Object-Support.md#templates-copies-and-imports).
+
 The internal generated `$proxy` field uses a sealed common Model/Template companion solely for cross-package generated
 linkage. It is not client API. Use `KlumObjectSupport.of(object)` for supported completed-object paths, structure, and
 stored validation; do not build integrations on companion classes or raw metadata. The supported construction-string
