@@ -99,15 +99,14 @@ class LinkToModelTargetTest extends AbstractDSLSpec {
 
         then:
         KlumVisitorException error = thrown()
-        error.message.contains('OrderKafka')
-        error.message.contains('#facts')
-        error.message.contains(targetType)
-        error.message.contains('not compatible with the field type')
-        error.message.contains('MessagingFacts_DSL$Builder')
+        error.message.contains('LinkTo annotation on pk.OrderKafka#facts')
+        error.message.contains("targets $targetType")
+        error.message.contains('not compatible with the declared field type pk.MessagingFacts')
+        !error.message.contains('MessagingFacts_DSL$Builder')
 
         where:
         targetField | targetType
-        'unrelated' | 'OtherFacts'
+        'unrelated' | 'pk.OtherFacts'
         'label'     | 'java.lang.String'
     }
 
