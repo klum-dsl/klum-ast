@@ -199,6 +199,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .linkToField(fieldNode)
                 .param(newClass(MAP_TYPE), templateMapVarName)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .callThis("$klum$assertMutable")
                 .statement(
                         callX(
                                 propX(classX(elementType), TemplateMethods.TEMPLATE_FIELD_NAME),
@@ -221,6 +222,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .linkToField(fieldNode)
                 .param(elementType, templateVarName)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .callThis("$klum$assertMutable")
                 .statement(
                         callX(
                                 propX(classX(elementType), TemplateMethods.TEMPLATE_FIELD_NAME),

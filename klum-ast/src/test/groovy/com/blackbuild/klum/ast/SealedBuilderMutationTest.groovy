@@ -197,12 +197,48 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         }
     }
 
+    def "sealed #state rejects #operation before preparing templates or scripts"() {
+        given:
+        createSchema()
+        def recipe = getClass('EntryRecipe')
+        def pair = sealedPair(state)
+        def probe = getClass('Probe')
+        def allocations = probe.allocations
+        boolean configured = false
+        def body = { configured = true }
+
+        when:
+        clazz.Create.With { mutate(pair.builder, recipe, body) }
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains(state == 'normal' ? 'Construction session has completed' : 'sealed Builder cannot be configured')
+        !configured
+        probe.allocations == allocations
+        probe.configurations == 0
+        pair.model.children.empty
+        pair.model.entries.existing.value == 'original'
+
+        where:
+        [state, operation, mutate] << ['normal', 'wrapper'].collectMany { state ->
+            [
+                ['collection template Map', { b, script, configure -> b.children([value: 'template'], configure) }],
+                ['Map template Map', { b, script, configure -> b.entries([value: 'template'], configure) }],
+                ['collection scripts', { b, script, configure -> b.children([script] as Class[]) }],
+                ['Map scripts', { b, script, configure -> b.entries([script] as Class[]) }],
+                ['empty collection scripts', { b, script, configure -> b.children([] as Class[]) }],
+                ['empty Map scripts', { b, script, configure -> b.entries([] as Class[]) }]
+            ].collect { [state, it[0], it[1]] }
+        }
+    }
+
     private void createSchema() {
         createClass('''
             package preflight
             import com.blackbuild.klum.ast.runtime.KlumFactory
             import com.blackbuild.klum.ast.runtime.KlumBuilder
             import java.net.URI
+            import groovy.util.DelegatingScript
             @DSL class Registry {
                 String host
                 List<String> labels
@@ -236,6 +272,13 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
                         Probe.configurations++
                         return [(key): (KlumBuilder<Entry>) (Object) AsBuilder().With(key, value: 'mapped')]
                     }
+                }
+            }
+            class EntryRecipe extends DelegatingScript {
+                Object run() {
+                    Probe.configurations++
+                    value 'script'
+                    return null
                 }
             }
             class Value {
