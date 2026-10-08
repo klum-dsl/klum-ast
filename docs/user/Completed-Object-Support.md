@@ -195,10 +195,49 @@ Null receivers and annotation Classes throw `NullPointerException` naming the ar
 that cannot resolve throws `KlumSchemaException` naming the Schema and field. Marked Templates retain their existing
 public rejection, and this capability adds no mutation, Builder traversal, or Model extraction.
 
-This initial tracer qualifies ordinary normalized composition and inherited consumer selection. Template definition and
-recipient capture, serialization compatibility, copied containers/conflicting aliases, import qualification, and the
-full binary/JPMS matrix remain explicit later release gates under #856. Do not use this initial seam as a promise for
-those paths.
+Normal direct, List, Set, and Map composition retains the containing Schema declaration, including inherited fields.
+Repeated LINK/OPTIONAL_LINK aliases retain the target's original declaration. Container position and map key do not change
+declaration identity.
+
+### Templates, copies, and imports
+
+(See: `RelationshipTemplateCopyTest#'a Template child is recaptured under the recipient field on each application'`.)
+
+```groovy
+@DSL class Node { String value }
+@DSL class Definition { Node child }
+@DSL class Recipient { Node actual }
+
+def recipe = Definition.Create.Template.With {
+    child { value 'configured' }
+}
+def result = Recipient.Create.With {
+    actual { copyFrom recipe.child }
+}
+
+assert KlumObjectSupport.of(result.actual).structure.owningRelationship.orElseThrow().name == 'actual'
+```
+
+Templates retain accepted definition declarations internally, while public Object support still rejects marked Templates
+and their owned nodes. Application/copy captures fresh recipient claims; it never adopts donor metadata as an owning
+edge. Standalone copy roots have no owning declaration. Single-field copies from ordinary Models, Templates, Maps and
+active same-session Builders, and merges into already claimed children, retain the recipient placement.
+
+CopyHandler's direct copied-container insertions and conflicting recipe aliases remain unqualified under
+[#856](https://github.com/klum-dsl/klum-ast/issues/856). An absent copied-node record is not an instruction to infer ownership
+from its traversal path. Copied OPTIONAL_LINK container identity/materialization repairs remain separate work.
+
+Managed Jackson root, Builder, and apply-to-Builder imports retain new owned declarations; explicit references retain the
+original target's declaration and identity. Value-only Template imports retain their accepted definition edges internally
+without running a lifecycle. Jackson export adds no declaration/companion wire metadata, and normal export still rejects
+Templates. JSON/YAML projections do not establish a persistence round trip.
+
+Java serialization is qualified within the same KlumAST version with compatible available Schema definitions. Ordinary
+graph identity, Template recipe replay, and retained declarations survive that round trip; metadata does not retain the
+old owner instance. Historical streams and Schema evolution are not promised. Empty lookup applies only to otherwise
+readable absent metadata. Companion serialized forms may change; regenerate old serialized models/Templates from their
+source configuration or recipes when upgrading. Full binary/JPMS qualification and final feature-release acceptance
+remain later #856 gates.
 
 ## Stored validation
 

@@ -14,6 +14,13 @@ closures are detached and their captured graph is checked when the Template mate
 non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
 Construction sessions, active Template scopes, and mutable recipe collections are not serialized.
 
+Accepted Template-definition relationship declarations are retained internally. Applying a Template or copying a single
+child captures the recipient's owning field afresh; public `KlumObjectSupport` still rejects the Template and its owned
+nodes. See [owning declarations for Templates/copies](Completed-Object-Support.md#templates-copies-and-imports), including
+the current copied-container/alias qualification limits. Java-serialized Template identity, recipes and accepted
+declarations are qualified within the same KlumAST version with compatible available Schema definitions. Historical
+serialized forms are not promised; regenerate serialized Templates from source recipes when upgrading.
+
 ## Creating Templates
 
 Ignorable fields of the template (key, owner, transient, or marked as `FieldType.Ignore`) are never copied over. Root

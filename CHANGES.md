@@ -5,8 +5,12 @@
   annotation queries independent of Owner values. Each Builder request requires its current active session and a phase
   after OWNER(15), including normal sealed receivers and completed LINK wrappers. Consumer-owned AUTO_LINK policy can
   select an existing completed target by identity; framework LinkTo selection is unchanged. Null completed Object
-  receivers now throw `NullPointerException`. Template/copy/persistence/import and full binary/JPMS qualification remain
-  later [#856](https://github.com/klum-dsl/klum-ast/issues/856) release gates.
+  receivers now throw `NullPointerException`. Accepted Template-definition declarations are retained internally, with
+  fresh recipient capture for single-field copy/application and normal managed imports. Same-version Java serialization
+  preserves declarations and graph/recipe identity; historical streams are not promised and serialized Templates should
+  be regenerated on upgrade. Public Template rejection remains intact. Copied-container/conflicting-alias repairs, full
+  binary/JPMS qualification and final acceptance remain later
+  [#856](https://github.com/klum-dsl/klum-ast/issues/856) release gates.
 
 - Sealed Builders now reject framework collection/Map additions and child, converter, producer, Template, and script
   factory operations before value normalization, child lookup/allocation, callbacks, or attachment. This also covers empty
