@@ -94,9 +94,9 @@ with decisive existing classloader/lifetime/generated-support/Jackson coverage. 
 serialization promise is introduced. The broad validation result below supports the qualification claims.
 
 Commit-history review retains one coherent qualification commit plus the dependent evidence/status synchronization.
-No unrelated edits, production/API changes, build changes or new user-documentation navigation are included. Migration
-and the existing CHANGES entry remove their stale binary/JPMS gate and state the qualified behavior; no new behavioral
-entry or documentary example is introduced. CONTEXT and ADR/plan status are synchronized while retaining D5/RM-4 gates.
+No unrelated edits, production/API changes, build changes or new user-documentation navigation are included. Migration,
+Completed Object Support and the existing CHANGES entry remove their stale binary/JPMS gate and state the qualified
+behavior; no new behavioral entry or documentary example is introduced. CONTEXT and ADR/plan status are synchronized while retaining D5/RM-4 gates.
 
 Repository-wide `check` passed on executable tip `2d0e8c03`: 130 tasks, 64 executed and 66 up-to-date, in 8m 40s.
 It includes all configured suites, named-module/package checks, Java consumers, license checks, lane isolation, plugin
@@ -120,7 +120,8 @@ git diff df433708...HEAD --check
 ```
 
 All new fixture cases pass without skips in every lane. The 15 AST and one runtime skip per lane are pre-existing;
-qualification adds no suppression. Standards and Spec each report zero actionable findings.
+qualification adds no suppression. The final documentation review identified one stale binary/JPMS gate in Completed Object Support; it is synchronized
+with Migration and CHANGES in a documentation-only follow-up. Spec found no issues. No actionable finding remains.
 
 ## Delivery and remaining work
 
