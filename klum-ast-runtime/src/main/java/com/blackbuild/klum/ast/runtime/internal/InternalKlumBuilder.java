@@ -376,6 +376,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return Collections.unmodifiableMap(copy);
     }
 
+    SchemaRelationshipDeclaration readOwningRelationship() {
+        if (wrapsCompletedModel)
+            return InternalKlumObjectSupport.getOwningRelationship(completedModel);
+        return owningRelationship;
+    }
+
     final ModelState exportModelState() {
         return new ModelState(getBreadcrumbPath(), modelPath, metadata, owningRelationship);
     }
