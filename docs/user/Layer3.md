@@ -272,6 +272,72 @@ class DirectEnvironment {
 This can be the right design, but it is direct-schema modeling. Splitting it across packages or projects does not make it
 Layer 3 because it has no distinct abstract API and no Cluster projection.
 
+### Builder-backed `@LinkTo` providers
+
+An explicit `@LinkTo` provider may follow the owner graph to another active Builder. Its `field` name selects configured
+Builder storage before materialization. If no storage field exists, ordinary property access provides the getter fallback.
+
+Completed `LINK` providers appear during construction as sealed Builder wrappers. Their domain-property reads depend on
+the Builder's state, not the caller or lifecycle phase:
+
+| State | Read semantics |
+| --- | --- |
+| Active Builder | Existing construction storage and property/getter behavior. |
+| Builder sealed by normal materialization | Existing construction semantics remain intact. |
+| Wrapper sealed to an existing completed Model | The completed Model supplies domain-property values. |
+
+The same wrapper can be read from a configuration closure, a custom Builder method, `@AutoLink`, or a later owned
+Builder callback such as `@PostTree`. Domain fields expose the completed Model's values rather than the wrapper's empty
+storage. Dynamic property access also reads computed/getter-only Model properties when no existing Builder property
+owns that name. Existing Builder properties retain their meaning, including infrastructure such as `modelType` and
+`completedModel`.
+
+Model-only getters are not added to the generated Builder contract, so direct statically checked Builder access to
+those names remains unsupported. Use `@LinkTo(field = "alias")` or a dynamic property reader called from the Builder
+code to read such a Model getter. This typed-access boundary is independent of the lifecycle phase.
+
+The completed `LINK` provider remains aggregation: its wrapper does not join the consuming composition lifecycle or
+re-own the completed Model. An owned consumer callback can reach the wrapper through its Owner graph; `@Validate` and
+later Model phases instead read completed Models. Generated setters, field configurators, and configuration entry
+points retain their existing sealed-state guards. Forwarding reads does not route writes to the completed Model.
+
+Completed-model and Map providers retain ordinary property access. A null provider or null completed value leaves the
+link unset; a missing Map key also leaves it unset. An unknown object property retains Groovy's missing-property
+diagnostic, including when an imperative lifecycle read fails through the lifecycle exception.
+
+(See: `LinkToBuilderFieldTest#'explicit provider field links through the owner environment during construction'`,
+`LinkToBuilderFieldTest#'sealed LINK provider exposes a getter-only completed Model property'`, and
+`LinkToBuilderFieldTest#'imperative auto link rejects an unknown property on a sealed LINK provider'`,
+`LinkToBuilderFieldTest#'completed LINK reads depend on wrapper state across configuration Builder methods and PostTree'`,
+and `LinkToBuilderFieldTest#'completed LINK property forwarding preserves supported sealed mutation rejection'`.)
+
+```groovy
+@DSL class OrderApplication {
+    OrderEnvironment environment
+    OrderKafka kafka
+}
+@DSL class OrderEnvironment {
+    MessagingFacts messaging
+}
+@DSL class OrderKafka {
+    @Owner OrderApplication application
+    @Field(FieldType.LINK)
+    @LinkTo(provider = { application.environment }, field = 'messaging')
+    MessagingFacts facts
+}
+@Immutable class MessagingFacts {
+    String topic
+}
+
+// AUTO_LINK runs after the complete configuration, even with kafka configured first.
+def messagingFacts = new MessagingFacts('orders')
+def order = OrderApplication.Create.With {
+    kafka()
+    environment { messaging messagingFacts }
+}
+assert order.kafka.facts.is(messagingFacts)
+```
+
 ### Interface-only boundary
 
 An interface can help communicate a border:

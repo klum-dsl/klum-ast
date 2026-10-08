@@ -41,14 +41,19 @@ import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.KlumPhase;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
 import groovy.lang.Closure;
+import groovy.lang.DelegatingMetaClass;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingMethodException;
 import groovy.lang.MissingPropertyException;
+import groovy.lang.MetaClass;
+import groovy.lang.MetaClassImpl;
+import groovy.lang.ProxyMetaClass;
 import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
+import org.codehaus.groovy.runtime.metaclass.MethodSelectionException;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
@@ -93,6 +98,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
     private M completedModel;
     private boolean sealed;
+    private boolean wrapsCompletedModel;
     private boolean template;
     private transient ConstructionSession constructionSession;
     private transient boolean constructionSessionActive;
@@ -155,7 +161,33 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         if (!modelType.isInstance(existingModel))
             throw new KlumModelException(format("Cannot seal Builder for %s to %s", modelType.getName(), existingModel.getClass().getName()));
         completedModel = existingModel;
+        wrapsCompletedModel = true;
         sealed = true;
+        // Keep completed LINK reads local to this wrapper; a getProperty override on the
+        // Builder type would alter Groovy's static inference for unrelated properties.
+        setMetaClass(new DelegatingMetaClass(getMetaClass()) {
+            @Override
+            public Object getProperty(Object object, String property) {
+                if (isCompletedModelProperty(property))
+                    return InvokerHelper.getProperty(existingModel, property);
+                return super.getProperty(object, property);
+            }
+
+            @Override
+            public Object getProperty(Class sender, Object receiver, String property, boolean useSuper, boolean fromInsideClass) {
+                if (!useSuper && isCompletedModelProperty(property))
+                    return InvokerHelper.getProperty(existingModel, property);
+                return super.getProperty(sender, receiver, property, useSuper, fromInsideClass);
+            }
+
+            private boolean isCompletedModelProperty(String property) {
+                // Generated field accessors wrap empty storage. Getter-only Model properties
+                // are forwarded only when no existing Builder property owns that name.
+                return DslHelper.getField(modelType, property).isPresent()
+                        || (super.getMetaProperty(property) == null
+                            && InvokerHelper.getMetaClass(existingModel).getMetaProperty(property) != null);
+            }
+        });
     }
 
     /** Identifies the generated model implementation. Allocation remains private to graph materialization. */
@@ -392,6 +424,8 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T getInstanceAttributeOrGetter(String attributeName) {
+        if (wrapsCompletedModel)
+            return (T) InvokerHelper.getProperty(this, attributeName);
         Optional<Field> field = DslHelper.getField(getClass(), attributeName);
         if (field.isPresent())
             return (T) getFieldValue(this, field.get());
@@ -616,6 +650,9 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private void applyNamedParameter(String key, Object value) {
+        if (value == null)
+            relationshipField(key).filter(this::isDirectRelationship)
+                    .ifPresent(field -> checkNullRelationshipSelection(key, field));
         try {
             InvokerHelper.invokeMethod(this, key, value);
         } catch (RuntimeException exception) {
@@ -680,6 +717,54 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             if (current.getName().equals(MissingMethodException.class.getName()))
                 return current;
         return null;
+    }
+
+    private void checkNullRelationshipSelection(String key, Field field) {
+        // Dynamic MetaClasses may resolve invocation differently from ordinary method lookup.
+        if (!usesStandardMethodSelection())
+            return;
+        // InvokerHelper converts a bare null argument to EMPTY_ARGS. Use that exact selection input.
+        // Select outside the invocation: failures inside a selected mutator are not map diagnostics.
+        try {
+            getMetaClass().getMetaMethod(key, InvokerHelper.EMPTY_ARGS);
+        } catch (MethodSelectionException failure) {
+            String setter = "set" + Character.toUpperCase(field.getName().charAt(0)) + field.getName().substring(1);
+            throw new KlumModelException(format(
+                    "Explicit null for Builder operation/key '%s' on Model %s is ambiguous. "
+                            + "Omit the key to preserve existing configuration, or use an explicitly typed setter "
+                            + "inside a Builder closure to deliberately clear the relationship (for example, %s((%s) null)). "
+                            + "Construction path: %s",
+                    key, modelType.getName(), setter, field.getType().getSimpleName(), getBreadcrumbPath()), failure);
+        }
+    }
+
+    private boolean usesStandardMethodSelection() {
+        MetaClass metaClass = getMetaClass();
+        if (metaClass.getClass() == ProxyMetaClass.class) {
+            ProxyMetaClass proxy = (ProxyMetaClass) metaClass;
+            return proxy.getInterceptor() != null
+                    && proxy.getInterceptor().getClass() == BreadCrumbVerbInterceptor.class
+                    && proxy.getAdaptee().getClass() == MetaClassImpl.class;
+        }
+        return metaClass.getClass() == MetaClassImpl.class;
+    }
+
+    private boolean isDirectRelationship(Field field) {
+        if (!isDslType(field.getType()) || isOwner(field))
+            return false;
+        FieldType type = getKlumFieldType(field);
+        return type == FieldType.DEFAULT || type == FieldType.PROTECTED
+                || type == FieldType.LINK || type == FieldType.OPTIONAL_LINK;
+    }
+
+    private Optional<Field> relationshipField(String key) {
+        Optional<Field> direct = DslHelper.getField(modelType, key);
+        if (direct.isPresent() || !key.startsWith("set") || key.length() <= 3)
+            return direct;
+        String name = key.substring(3);
+        if (name.length() < 2 || !Character.isUpperCase(name.charAt(1)))
+            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+        return DslHelper.getField(modelType, name);
     }
 
     /**
