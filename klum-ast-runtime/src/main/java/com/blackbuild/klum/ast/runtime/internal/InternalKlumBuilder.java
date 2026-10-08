@@ -628,6 +628,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             throw new KlumModelException("A sealed Builder cannot be configured");
     }
 
+    /** Reserved linkage bridge so Schema Builder helpers can retain the name {@code assertMutable}. */
+    protected void $klum$assertMutable() {
+        assertMutable();
+    }
+
     private void assertConstructionSessionActive() {
         if (constructionSession != null && !constructionSessionActive)
             throw new KlumModelException("Cannot use a Builder after its Construction session has completed. "
@@ -866,6 +871,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
                                     BuilderFactoryProvider<?, ?> factory,
                                     String key, Closure<?> body) {
+        assertMutable();
         return createSingleChild(namedParams, fieldOrMethodName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
@@ -945,6 +951,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        assertMutable();
         return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -977,6 +984,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the added element
      */
     public <T> T addElementToCollection(String fieldName, T element) {
+        assertMutable();
         Field schemaField = getModelField(fieldName);
         Object stored = DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, element) : forceCastClosure(element, DslHelper.getElementType(schemaField));
         Collection<Object> target = getInstanceAttribute(fieldName);
@@ -986,6 +994,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        assertMutable();
         return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -1001,6 +1010,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
             addElementToCollection(collectionName, created);
@@ -1013,6 +1023,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
                                                 BuilderFactoryProvider<?, ?> factory,
                                                 String key, Closure<?> body) {
+        assertMutable();
         return addNewDslElementToCollection(namedParams, collectionName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
@@ -1027,6 +1038,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @param elements the elements to add
      */
     public void addElementsToCollection(String fieldName, Object... elements) {
+        assertMutable();
         Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
     }
 
@@ -1036,6 +1048,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @param elements the elements to add
      */
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
+        assertMutable();
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
@@ -1064,6 +1077,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <K, V> void addElementsToMap(String fieldName, Map<K, V> values) {
+        assertMutable();
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
     }
 
@@ -1082,10 +1096,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
+        assertMutable();
         values.forEach(value -> addElementToMap(fieldName, null, value));
     }
 
     public void addElementsToMap(String fieldName, Object... values) {
+        assertMutable();
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
     }
 
@@ -1101,6 +1117,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     private void addTemplates(String fieldName, Iterable<?> templates, Closure<?> configuration,
                               Consumer<InternalKlumBuilder<?>> attachment) {
+        assertMutable();
         Objects.requireNonNull(configuration, "configuration");
         Class<?> declaredType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
         List<Object> validatedTemplates = validatedTemplateSnapshot(fieldName, declaredType, templates);
@@ -1110,7 +1127,6 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private List<Object> validatedTemplateSnapshot(String fieldName, Class<?> declaredType, Iterable<?> templates) {
-        assertMutable();
         List<Object> snapshot = new ArrayList<>();
         templates.forEach(snapshot::add);
         for (Object template : snapshot) {
@@ -1140,6 +1156,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> existing = ((Map<String, InternalKlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
@@ -1160,16 +1177,19 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
                                          BuilderFactoryProvider<?, ?> factory,
                                          String key, Closure<?> body) {
+        assertMutable();
         return addNewDslElementToMap(namedParams, mapName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
 
     public <K, V> V addElementToMap(String fieldName, K key, V value) {
+        assertMutable();
         doAddElementToMap(fieldName, key, value);
         return value;
     }
 
     public <K, V> V addElementToMapViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, K key, Object... args) {
+        assertMutable();
         return addElementToMap(fieldOrMethodName, key, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -1217,6 +1237,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
+        assertMutable();
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
         Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(builderFactory, "From", script)));
@@ -1224,6 +1245,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
+        assertMutable();
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
         Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(builderFactory, "From", script)));

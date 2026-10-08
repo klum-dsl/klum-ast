@@ -46,6 +46,16 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         super(modelType);
     }
 
+    /**
+     * The reserved {@code $klum$} name keeps Schema helpers such as {@code assertMutable()} independent and legal.
+     * This override is final so generated factory/converter preflights through Builder receivers always reach
+     * the framework's sealed-state enforcement.
+     */
+    @Override
+    public final void $klum$assertMutable() {
+        super.$klum$assertMutable();
+    }
+
     @Override
     protected void $assignRelationships() {
         super.$assignRelationships();
