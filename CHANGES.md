@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- Sealed Builders now reject framework collection/Map additions and child, converter, producer, Template, and script
+  factory operations before value normalization, child lookup/allocation, callbacks, or attachment. This also covers empty
+  bulk inputs and completed-Model `LINK` wrappers; active construction and wrapper reads retain their behavior
+  ([#855](https://github.com/klum-dsl/klum-ast/issues/855)).
+
 - Added an opinionated [Schema Style Guide](docs/user/Schema-Style-Guide.md), reachable from onboarding and navigation,
   with a cohesive example of designing the Model DSL and Schema together, immutable domain values with convenient
   converters, clear relationships, nearby constraints, small derived queries, and semantic documentation. Design
