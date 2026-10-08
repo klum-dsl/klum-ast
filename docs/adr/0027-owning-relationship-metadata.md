@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: Proposed; entrypoint direction frozen by the maintainer, implementation not approved
+Status: Public API direction and consumer-policy separation accepted; lifetime revision proposed, implementation not approved
 
 Implementation status: Planning only; no runtime/API changes
 
@@ -42,7 +42,9 @@ KlumObjectSupport.of(model).getStructure();
 
 Both Structure views expose a shared immutable `KlumSchemaRelationship`; absence-oriented relationship and annotation
 queries return Optional. Builder ownership requests recheck the active session and a phase strictly after OWNER(15)
-at operation time. These are planning constraints, not authorization to implement. This ADR replaces the local
+at operation time. The public direction and separation from consumer selection policy are accepted; this follow-up does
+not reopen them. The earlier unsealed/phase-before-40 restrictions remain an unimplemented proposal whose revision now
+requires explicit approval under D6. These are planning constraints, not authorization to implement. This ADR replaces the local
 investigation's candidate `KlumBuilderStructure.of(...)` spelling. Remaining proposals and approval gates are explicit
 below and in the plan; no capability described here is currently shipped.
 
@@ -149,27 +151,65 @@ must not silently introduce a historical-stream promise. A promise to load parti
 versioned fixture and maintainer decision (D3). Jackson remains foreign-format import/export, not companion persistence:
 new owned imports capture their new edges, reference imports preserve linked targets, and no wire metadata is added.
 
-### Guard each live Builder ownership request
+### Separate mutation eligibility from metadata authority
 
-Each request first checks that the receiver is a supported, unsealed Builder in the current active Construction session
-on this thread. It then checks the current numeric phase is strictly greater than OWNER(15) and strictly less than
-INSTANTIATE(40). Only then may it read composition ownership or return an empty result. A numeric comparison is necessary
-for custom phases. AUTO_LINK(20) is the first standard eligible phase; custom phase 16 is also eligible.
+The source audit at `513cfcdd` provides no ownership-authority reason for the earlier numeric upper bound or blanket sealed
+receiver rejection. InternalKlumBuilder.allocateModel sets completedModel and sealed; it neither clears the composition
+claim nor completes the Construction session. Materialization collects the graph, allocates all Models, then assigns
+relationships. InstantiatePhase replaces the phase root only after both passes. PhaseDriver retains the registered
+Builders and their active session membership through later actions, including COMPLETE; its outer lifecycle finally
+calls leave/completeConstructionSession on success or exception. CleanupPhase does not clear Builder ownership.
 
-Construction/no executable phase, APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), and every custom phase at or below 15 reject,
-even for a root, an absent annotation, or a known claim. INSTANTIATE and later reject regardless of session liveness or
-whether a particular Builder has already been allocated. Sealed wrappers around completed LINK targets reject as Builder
-receivers; the completed target is queried through `KlumObjectSupport`. Template-definition Builders with no Construction
-session reject. A view created early is allowed to be retained, but acquisition never grants lifetime authority: every
-query rechecks. Views used after completion, abort, across sessions, or from another thread reject. Repeated queries during
-phase changes cannot reuse a cached eligibility result or skip the guard because metadata was read before.
+Mutation preflight is a separate check: assertMutable rejects sealed or closed-session Builders. BuilderVisitingPhaseAction
+also forbids traversal actions at/after 40 and skips sealed receivers. These are mutable traversal rules, not evidence
+that a retained receiver's declaration becomes unreliable. Later ModelVisitingPhaseAction callbacks receive Models,
+not Builders; a Builder can nevertheless remain an active-session metadata receiver when retained by a closure or
+extension. This proposal adds no late Builder callback, traversal, creation, or mutation capability.
+
+At phase 40 an action ordered before InstantiatePhase still has a Builder graph. During allocation, individual Models
+and their companions become available internally, but the relationship graph is incomplete until the second pass ends.
+A facade over an already allocated ordinary Model can pass the current completed-companion gate; that gate alone does
+not establish graph completion. After InstantiatePhase returns, the completed Model root is available to later actions
+at that number and to phases above 40. Neither partial allocation nor the availability of a Model invalidates declaration
+metadata retained on its Builder. Clients should normally use Model support in later Model callbacks and after the root
+factory returns. No Model extraction operation is added to Builder support.
+
+FactoryHelper.wrapCompletedModel uses createBuilder, which attaches the wrapper to the current session, then sealTo.
+That wrapper has no composition claim for the importing LINK edge. Its authoritative declaration, when present, belongs
+to the completed target's stored original owning field. It must never be inferred from wrapper storage, the importing
+relationship, Owner members, or a traversal alias. Existing completed target support is already usable before the
+receiver's AUTO_LINK; querying through a wrapper is a read-only adaptation, not new ownership.
+
+### Proposed read-only lifetime revision — approval D6 required
+
+Recommend allowing each Builder metadata request when the genuine receiver belongs to the current thread's active
+Construction session, the current numeric phase is strictly after OWNER(15), and the declaration source is authoritative.
+There is no numeric upper bound and no unsealed requirement. For an ordinary construction Builder, read the current
+accepted declaration record, preserving its identity through normal allocation/sealing; for a completed LINK wrapper,
+read the target's retained declaration internally. Valid root/missing-annotation/historical-record absence returns empty;
+an unresolved explicit record or conflicting ownership remains an error, subject to D5. Mutation preflight must not be
+used to authorize these reads. D6 proposes changing the earlier proposed `15 < phase < 40`/unsealed contract; it is not
+accepted or implemented by this document update.
+
+Construction/no phase, APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), and custom phases at or below 15 still reject, including
+roots and absent annotations. Custom phase 16, AUTO_LINK, DEFAULT, POST_TREE, actions at 40 before/after materialization,
+custom phases above 40, VALIDATE, VERIFY and COMPLETE can read only while the same session is active and the declaration
+source is authoritative. Same-number phase-40 acceptance must test actual action ordering, not assume graph completion.
+An internally allocated but partially assigned Model does not require or justify a Builder metadata rejection.
+
+After session completion or abort, on another thread or in another session, the live Builder view rejects even though
+its fields may still be present. After success, use KlumObjectSupport on the returned ordinary Model. An aborted build
+does not promise a publishable completed Model, even if some objects were allocated. Template-definition Builders have
+no valid Construction session and still reject; public Template inspection remains excluded. Acquiring a view early
+or reading it successfully never grants permanent access: every query rechecks session, phase, and declaration authority.
+Retained immutable descriptors are detached Schema metadata and remain readable after the live view expires.
 
 Use `KlumModelException` for invalid live Builder state and `KlumSchemaException` for an unresolvable retained Schema
 declaration, subject to D1 descriptor review. Diagnostics identify the operation, receiver Schema type, current phase or
 absence of an active session, and required state; include only safely available path context. For premature access:
 
 ```text
-getOwningRelationshipAnnotation requires an active Builder phase after OWNER(15) and before INSTANTIATE(40); current phase: OWNER(15); receiver: Consumer
+getOwningRelationshipAnnotation requires the current active Construction session and a phase after OWNER(15); current phase: OWNER(15); receiver: Consumer
 ```
 
 Do not read guarded ownership to enrich a rejection diagnostic. Session/state rejection precedes absence and declaration
@@ -216,12 +256,18 @@ when implementation is delivered. This ADR/plan PR leaves #856 open and untarget
 
 ## Maintainer decisions still required
 
-The entrypoints, shared immutable relationship type, Optional absence, per-operation guard, and selection deferral are
-frozen for planning. The following decisions remain; no implementation slice starts by inference from this PR:
+The entrypoints, shared immutable relationship type, Optional absence, per-operation checks and separation from consumer
+selection are accepted. The first implementation milestone is the ScHelm vertical tracer in RM-1, immediately after
+bounded RM-0 ownership/representation proof. It joins completed provider metadata and inherited AUTO_LINK Builder reads
+through these public facades, then preserves the selected target's identity through the existing typed relationship
+operation. Template/copy/persistence and full binary/module qualification are later gates, not prerequisites to exercising
+that core path. No slice is release-ready until all approved eventual acceptance passes.
 
-1. **D1 — approve the full metadata contract and implementation start.** Confirm exact query/descriptor signatures,
-   generic shape, equality and failure categories, metadata-only initial Builder Structure, and rejection of sealed and
-   Template-definition Builders under the proposed lifetime rules.
+The following decisions remain; no implementation slice starts by inference from this PR:
+
+1. **D1 — authorize implementation and settle remaining descriptor details.** Finalize generic shape, equality and failure
+   categories, and authorize the bounded RM-0/RM-1 work. Do not reopen the accepted
+   facades, shared descriptor/Optional direction or consumer/framework responsibility split.
 2. **D2 — approve Template retention semantics.** Confirm internal definition-edge retention and application/copy
    recipient-edge recapture while preserving public Template rejection. If direct Template inspection is required,
    decide its separate support/gating contract before expanding this plan.
@@ -234,3 +280,7 @@ frozen for planning. The following decisions remain; no implementation slice sta
    declaration and how genuinely conflicting declarations fail or are represented, while preserving LINK/OPTIONAL_LINK
    semantics. Repeated positions within one field share its declaration; they do not require a unique path. No traversal
    order tie-breaker or unrelated ownership repair is approved by this plan.
+6. **D6 — approve the evidenced read-only lifetime revision.** Replace the earlier unsealed/phase-before-40 gate with
+   active same-session, phase-after-OWNER, authoritative-declaration checks, including normal materialization/sealing and
+   completed LINK wrappers. Preserve per-request checks and post-completion/abort rejection. Until approved, both the
+   older restriction and this recommended revision remain planning proposals; no runtime contract is changed.

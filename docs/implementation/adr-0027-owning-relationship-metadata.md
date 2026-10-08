@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: Reviewable plan; implementation not authorized
+Status: Accepted public direction; read-only lifetime revision and revised tracer sequence proposed; implementation not authorized
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
@@ -14,12 +14,16 @@ The maintainer accepts the structural-metadata investigation direction and freez
 `KlumBuilderSupport.of(builder).getStructure()` alongside `KlumObjectSupport.of(model).getStructure()`, a shared immutable
 `KlumSchemaRelationship`, Optional absence, and an operation-time active-session/after-OWNER guard. Structure is the only
 Builder support capability now. This plan schedules no implementation and invents no LinkTo selection algorithm.
-ADR decisions D1–D5 distinguish remaining approvals from frozen direction.
+ADR decisions D1–D6 distinguish remaining approvals from accepted direction. The follow-up accepts the public facade and
+consumer-selection separation, requests source-backed reconsideration of the unsealed/phase-before-40 restriction, and
+puts the ScHelm vertical tracer first. D6 is a proposed contract change, not an implementation authorization.
 
 Input is the completed local investigation on `codex/issue-856-link-binding-investigation`:
 
 - `763e122dbc45b735a13170d741220c6eb0d90938`: 685-line `LinkBindingInvestigationTest`, 39 characterization/fallback cases.
 - `1715eab6`: investigation report and candidate ADR 0027. This ADR supersedes that candidate spelling and conditional plan.
+- PR #860 original planning tip: `16ebdcd9`; this planning follow-up preserves that published history and adds a focused
+  revision. Lifecycle source below was rechecked at unchanged `513cfcdd`; no new API test is claimed.
 - Investigation/master base: `5a04605d27e678ca69814861665823650780ff67`.
 - Final refreshed planning base on 2026-10-08: `513cfcddb2ca7b7dc652c9a57fa1b20be35a7ee4`. Master advanced during review
   through merged PR #857/#855. The planning branch was rebased before publication. That change adds sealed mutability
@@ -111,129 +115,216 @@ OWNER must work through the existing ownership initialization seam without chang
 The final snapshot is taken before or during internal allocation/companion creation and is available by VALIDATE. Two-pass
 allocation and relationship assignment retain cycles/self-links, immutable collection snapshots, and target identities.
 
-For every public Builder ownership query, perform these checks in order before any ownership read:
+## Lifecycle evidence and proposed read-only contract
 
-1. Validate supported Builder receiver; reject null, completed Model, unsupported marker implementation, and sealed Builder.
+This is source-backed analysis of existing lifecycle behavior, not an execution of the proposed support API. The phase-40
+cutoff in the original plan followed mutable traversal/materialization boundaries; the audit does not show a metadata
+invalidation at that number. Acceptance below proposes changing that restriction under **D6**, retaining the lower bound.
+
+| Inspected source at `513cfcdd` | Observed behavior | Authority implication |
+| --- | --- | --- |
+| [InternalKlumBuilder](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/InternalKlumBuilder.java).allocateModel/materializeGraph | Allocation sets completedModel and sealed, then a second pass assigns relationships; claim fields are not cleared | Mutation stops on sealed receivers, while known declaration identity survives; partially allocated Models are not a complete graph |
+| InternalKlumBuilder.$completeConstructionSession/$isInActiveConstructionSession | Completion sets an active flag false; sealing does not | Active context and mutability are independent |
+| [PhaseDriver](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/process/PhaseDriver.java).withBuilderLifecycle/executeIfReady/leave/completeConstructionSession | Registered Builders remain session members through phase execution; finally deactivates them and removes the thread-local driver on return/exception | Retained references can be same-session receivers during/after 40, but must reject after completion/abort or on a different thread/session |
+| [InstantiatePhase](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/InstantiatePhase.java).doExecute | Replaces the Builder root only after both materialization passes return | A phase-40 action before it sees a Builder root; one after it sees a completed root; the same number cannot determine Model availability |
+| [CleanupPhase](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/CleanupPhase.java).doVisit | No Builder ownership cleanup; runs before lifecycle finally | COMPLETE(100) does not by itself deactivate the session |
+| [BuilderVisitingPhaseAction](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/BuilderVisitingPhaseAction.java) / [ModelVisitingPhaseAction](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/ModelVisitingPhaseAction.java) | Builder traversal rejects phase ≥40/skips sealed values; Model traversal requires >40 and receives Models | Read policy must not add late Builder traversal/callbacks; metadata receiver can instead be a retained Builder |
+| InternalKlumBuilder.assertMutable / [AsBuilderSpec](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/AsBuilderSpec.groovy) | Mutations reject sealed/closed-session state; existing tests retain Builder references after factory return | Physical retention is real; mutation rejection is not proof of declaration loss |
+| [FactoryHelper](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/FactoryHelper.java).wrapCompletedModel/createBuilder and InternalKlumBuilder.sealTo | A wrapper created in a root lifecycle joins that session and is immediately sealed around the existing Model | Wrapper metadata source must be the completed target's original stored declaration, never its importing LINK edge |
+| [InternalKlumObjectSupport](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/InternalKlumObjectSupport.java).requireCompletedModel | Checks ordinary Model companion presence; does not certify two-pass graph completion | Individual allocated Models may pass the facade gate during allocation; supported graph work waits for InstantiatePhase to finish |
+
+Before 40, accepted ordinary composition claims can still change through existing permitted transfer/late attachment;
+read the current authoritative declaration, not a cached early result. Normal allocation/sealing leaves the accepted
+claim unchanged. The proposed capture record must match the completed snapshot; these fields are not erased at 40 or
+COMPLETE. Source presence after session exit does not grant read authority. Copy paths without a qualified declaration
+remain D5 cases; the lifetime proposal does not bless them or repair ownership.
+
+Recommended per-request checks, pending D6:
+
+1. Validate a genuine supported Builder receiver; reject null, completed Model and unsupported marker implementations.
+   Do not call mutation preflight or reject merely because sealed.
 2. Require membership in the current thread's active Construction session; reject closed/aborted, foreign-session,
-   off-thread, and Template-definition state.
-3. Require an actual current phase number `15 < phase < 40`; construction with no executable phase does not qualify.
-4. Read the current composition declaration and answer the relationship/annotation query, including valid absence.
+   off-thread and Template-definition state.
+3. Require current numeric phase `phase > 15`; construction with no phase and custom phases ≤15 reject. No upper bound.
+4. Resolve authoritative metadata: current accepted/qualified declaration for normal Builders (including normally sealed
+   ones), original completed-target record for LINK wrappers; return empty only for valid absence. Fail explicit invalid
+   records/ownership conflicts. Never use LINK alias, Owner members, Role or paths as substitutes.
 
-`of`/`getStructure` may acquire a view early for a supported Builder; no metadata operation is authorized by acquisition.
-Every metadata request rechecks; even a previously successful lookup cannot authorize a later lookup. Return a detached
-immutable descriptor whose annotation queries remain usable after construction. Completed Structure has no live phase
-requirement, but still requires a completed Object. Do not retrofit existing completed validation/path queries to Optional.
+Acquisition can happen early, including for a genuine sealed wrapper, but every query rechecks eligibility and source
+identity. A cached successful read cannot authorize another call. Preserve the detached immutable descriptor's independent
+lifetime; no public Model extraction is added. After success/cleanup use KlumObjectSupport on the returned Model; abort
+provides no publishable Model guarantee, even if allocation had started. Never change existing mutation/scheduling limits.
 
-| Phase/state at request time | Owning relationship and annotation result |
-| --- | --- |
-| Construction/PostCreate/PostApply, no executable phase | Reject before ownership read |
-| APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), custom phases ≤15 | Reject, including root and missing annotation |
-| Custom phase 16, AUTO_LINK(20), DEFAULT(25), POST_TREE(30), custom phases 16–39 | Read in active unsealed same-session Builder; Optional.empty for genuine absence |
-| INSTANTIATE(40), custom phases ≥40, VALIDATE(50), COMPLETE(100) | Reject Builder view even if the Construction session remains active |
-| Sealed completed LINK wrapper | Reject Builder view; query the completed Object through KlumObjectSupport |
-| No session, aborted session, other session/thread, Template-definition Builder | Reject regardless of apparent phase/claim |
-| Completed Object at VALIDATE or outside lifecycle | Read stored identity; no Builder/session requirement |
-| Descriptor captured from a successful lookup | Read immutable Schema metadata at any time |
+| Phase/state at request time | Proposed metadata result after D6 | Model availability / qualification |
+| --- | --- | --- |
+| Construction/PostCreate/PostApply, no phase; APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), custom ≤15 | Reject before declaration read, including root/missing annotation | External completed provider Models can already be queried through their own facade |
+| Custom 16, AUTO_LINK(20), DEFAULT(25), POST_TREE(30), custom 16–39 | Same-session authoritative declaration read; genuine absence is empty | Current graph remains Builder-based; completed external candidates are independent |
+| Action at 40 before InstantiatePhase | Read authoritative Builder record while session valid | Current graph has not yet materialized; test actual same-number ordering |
+| During normal allocation/sealing and relationship assignment | No sealing/number-based rejection; metadata identity is stable | Individual companions may exist; no public promise of complete Model graph until both passes finish |
+| Action at 40 after InstantiatePhase; custom >40; VALIDATE(50), VERIFY(80), COMPLETE(100) | Retained same-session Builder view reads authoritative record even when sealed | Completed root is available; ordinary phase callbacks use Model support; no late Builder visitor introduced |
+| Session exit after COMPLETE or successful factory return | Live Builder view rejects; detached descriptor still readable | Returned ordinary Model support is the consumer path |
+| Exception before/within/after materialization, once lifecycle finally runs | Retained view rejects after abort; no resurrection in a later session | Allocated objects do not constitute promised successful factory output |
+| Same-session sealed LINK wrapper, phase >15 | Read completed target's original retained declaration, including valid empty | Target Model facade was already available; never report the importing field as ownership |
+| No session, foreign session/thread, Template-definition Builder | Reject regardless of number, sealing or retained fields | No new public Template inspection |
+| Completed ordinary Object at VALIDATE or outside lifecycle | Read retained declaration with no Builder session requirement | Keep current ordinary-Model gate and absence/error semantics |
 
-Diagnostics name operation, receiver type, phase/state and remedy; unsafe owner reads cannot be used to decorate an
-early rejection. Use a counting/failing internal declaration-reader seam in guard tests, or an equivalent observable
-fixture, to prove rejected calls never reach ownership lookup. A root returning empty in a premature phase is a failure.
+Custom 40 actions before and after InstantiatePhase need ordered low-level PhaseAction fixtures: BuilderVisitingPhaseAction
+cannot be used at that number and ModelVisitingPhaseAction requires >40. The ordinary boundary probe must observe
+allocation/assignment state without adding a production callback. Also characterize driver phase sources:
+PhaseDriver.getCurrentPhase tracks currentPhase (last action), while AbstractPhaseAction clears Context.phase on exit.
+Post-phase closures retain the last action number. Guard fixtures must record and define the existing phase semantics
+instead of treating Context.instance as session membership or inventing a new scheduler/phase API.
+
+Diagnostics name operation, receiver type, phase/session or invalid-declaration reason; unsafe owner reads cannot decorate
+an early rejection. Use a counting/failing internal declaration-reader seam or equivalent observable fixture to prove
+rejected calls do not reach ownership lookup. A premature root returning empty is a failure. There is no production
+metadata API yet, so the above is a proposed future guard contract, not evidence of passing support tests.
 
 ## Tracer-bullet slices and reasoned commits
 
-All slices are conditional on the applicable D1–D5 gates. Execute in order: **RM-0 → RM-1 → RM-2 → RM-3 → RM-4**. No slice adds a target
-selection algorithm, changes #856's milestone, or independently completes the issue's wider investigation criteria.
+Revised dependency order: **RM-0 → RM-1 (ScHelm vertical tracer) → RM-2 (extended graph/persistence/import qualification)
+→ RM-3 (full binary/JPMS qualification) → RM-4 (delivery documentation and final gate)**. RM-1 combines the previous
+completed-metadata and live-Builder slices so the motivating use case runs before the extended matrix. These milestones
+are conditional plans, not authorization to implement or create child issues.
 
-### RM-0 — pin approved descriptors and retention qualification
+D1/D4 approve bounded RM-0/RM-1 work; D6 approves the read-only lifetime change before the corresponding guard is built.
+D2/D3/D5 gate their later qualification work, not the ordinary direct-field tracer. RM-0 identifies representation risks
+and copy-path ambiguity, but does not require resolving every Template or historical stream case before RM-1. No milestone
+alone is release-ready; all approved final acceptance remains required. Consumer provider-selection policy is never
+production KlumAST work.
 
-Approve ADR gates and establish one smallest end-to-end fixture: runtime-retained field annotation, an inherited owning
-field without redeclaration, and a completed child with no Owner. Record the exact API signatures in this plan after D1.
-Audit the serialization form/computed UIDs of both companions before adding fields. If D3 names historical versions,
-capture reproducible old-byte fixtures and define a supported reader migration before proceeding.
-Characterize ordinary Model and Template list/map copy insertion separately from generated setters, including ADD/REPLACE
-and map merge/set-if-missing strategies, repeated aliases within a field and across distinct fields, and OPTIONAL_LINK
-mixed entries. Identify which entries actually reach materialization/traversal without a claim. Use this evidence to
-settle D5 and select a capture hook that preserves the copy/aggregation contract; do not assume OWNER installs claims.
+### RM-0 — prove authoritative capture and identify representation risks
 
-This is a bounded non-shipping characterization/proof step. One commit carries source-backed contract/serialization
-characterization and its evidence; do not commit tests that assume absent production APIs. Prefer existing
-KlumObjectSupportSpec, OptionalLinkRelationshipTest, TemplatesSpec, and JpmsPackageBoundaryTest seams. No public probe
-class or guessed UID becomes production design. Exit when capture at claim/transfer and allocation works for ordinary
-and Template paths without changing generated client interfaces; settle D5 from copy-path evidence and return for a
-decision if the proof contradicts D1–D3.
+Use the smallest direct owned-field/inherited-declaration fixture with no Owner backreference to prove the exact Schema
+Class/member can be captured at accepted attachment, observed after OWNER, and transferred through ordinary allocation.
+Audit normal sealing/session cleanup and same-number phase-40 ordering from the lifecycle section. Prove declaration
+identity can survive materialization without keeping Builder/session/owner graph pointers or changing public generated
+interfaces. Pin exact descriptor implementation details under D1; do not reopen the accepted facade shape.
 
-Acceptance: A01–A04 and A24 existing-path characterization, A16 UID/old-fixture audit, A20 binary fixture feasibility. Bring over
-only relevant investigation cases if needed, preserving @Issue and the original observed-contract meaning.
+Investigate CopyHandler list/map direct insertion, recipe identity reuse, overwrite strategies, OPTIONAL_LINK mix and
+same-field versus conflicting-field aliases. Record which routes bypass claims and what D5 must settle. Audit both
+companions' current serialization form/computed UIDs as representation risks, with historical guarantees still controlled
+by D3. A risk inventory and safe ordinary-path record boundary suffice here; complete Template handling, serialization
+round trips, imports and JPMS are later gates. If the ordinary representation itself cannot be sound without a D2/D3/D5
+choice, explain that concrete dependency to the maintainer; never add a blanket dependency speculatively.
 
-### RM-1 — completed metadata vertical slice
+One bounded non-shipping characterization/proof commit carries the source-backed capture/lifetime/copy-seam evidence.
+Do not commit tests against absent public APIs or a test-only provider resolver as framework design. Prefer existing
+KlumObjectSupportSpec, AsBuilderSpec, OptionalLinkRelationshipTest, TemplatesSpec and JpmsPackageBoundaryTest seams;
+bring over only relevant investigation cases with their @Issue provenance. Exit with a viable direct-field record design,
+D6 evidence, and a precise deferred-risk list. No public probe class, guessed UID or ownership repair is introduced.
 
-Add KlumSchemaRelationship, the typed private declaration record, exact claim capture/update, materialization transfer,
-and the two completed Structure queries. Include ordinary direct/list/map/inherited/no-Owner and LINK/OPTIONAL_LINK cases
-in the same passing commit. A test must compare declaring Class/name and annotation values before/after materialization,
-not infer success solely from a path. Do not expose annotation proxies as serializable retained state.
+Acceptance: ordinary-path characterization for A01/A02/A03; lifecycle boundary evidence for A10/A11/A26; A16 UID audit,
+A24 copy-path inventory. Complete A16/A24 qualification remains with RM-2.
 
-One reasoned commit: **Expose completed owning Schema declarations without ownership backreferences (#856)**. Pair the
-API, capture/transfer, and green end-to-end tests. If private generated linkage must change, document it under ADR 0015
-and include its test in this commit; do not change generated public signatures. Exit when VALIDATE sees the exact
-declaration and aliases/cycles do not change it.
+### RM-1 — first executable ScHelm vertical tracer
 
-Acceptance: A01–A09 and A17; regression coverage includes existing KlumObjectSupportSpec and OptionalLinkRelationshipTest.
+This is the first meaningful implementation milestone after bounded RM-0, once implementation is separately authorized.
+Use neutral executable fixture vocabulary for the ScHelm scenario. Declare consumer-owned runtime field annotations
+Binding, Source and a default marker in the test consumer, never in KlumAST. A receiver base declares its Facts LINK once
+and owns an inherited AUTO_LINK callback. A concrete Application field owns the concrete receiver and carries Binding;
+an inherited owning field on a concrete Application subclass is a second fixture without redeclaration. A provider
+Environment is completed independently beforehand and owns Facts candidates on annotated Schema fields. At least one
+Facts child has no Owner backreference. No DefaultValues transport or receiver binding property is used.
 
-### RM-2 — qualify templates, copies, import, and serialization
+Implement/test this exact public route as one coherent vertical milestone:
 
-Extend typed internal retention to Template companion creation/import paths under approved D2, while preserving
-KlumObjectSupport's direct Template rejection. Ensure Template application and
-all supported copy sources create recipient-edge metadata, while existing linked targets preserve their original records.
-Qualify ordinary/Template Java serialization, subtrees serialized without an owner backreference, and compatible absent
-records under D3. Use the approved compatibility policy; do not add broad old-stream guarantees.
+1. Completed provider candidate → KlumObjectSupport.of(candidate).getStructure() → exact declaring Schema field and
+   Source/default annotation. Add KlumSchemaRelationship, the typed private ordinary record and materialization transfer.
+2. Owned callback receiver at AUTO_LINK → KlumBuilderSupport.of(receiver).getStructure() → exact owning field and Binding.
+   Add only Builder Structure metadata operations and per-request checks under D6; normal root/missing annotation and
+   phase/session/retained-view tests accompany the behavior rather than waiting for final qualification.
+3. Test-local consumer policy reads those annotations, selects a completed Facts value, and calls the existing typed
+   Facts relationship operation. Assert identity with the independently completed target, unchanged target ownership,
+   no target mutation/revalidation/copy, explicit override preservation and no generated interface change.
 
-First reasoned commit: **Retain declaration identity across Template and copy materialization (#856)** with graph-wide
-Template identity, fresh recipient metadata, ordinary value-only and same-session Builder copy tests. Second commit if
-separable: **Qualify relationship metadata across import and serialization (#856)** with passing serialization/Jackson
-boundary tests and any required narrow runtime fixes. Keep failing-test/fix pairs together. No Jackson wire metadata.
+Illustrative callback fragment, with completedCandidates supplied by the consuming fixture's existing provider-access
+mechanism; this sketches a future test, not executable shipped code or a new framework candidate API:
 
-Acceptance: A12–A18 and A24. Use TemplatesSpec/TemplateRecipeStateTest, and existing Jackson KlumJacksonImporterSpec,
-ConfigurationReplaySpec and LinkIdentitySpec seams rather than building a second import engine.
+```groovy
+@AutoLink void bindFacts() {
+    if (facts != null) return
+    def binding = KlumBuilderSupport.of(this).structure
+        .getOwningRelationshipAnnotation(Binding).orElseThrow()
+    Facts selected = ConsumerPolicy.choose(binding, completedCandidates) { candidate ->
+        KlumObjectSupport.of(candidate).structure.getOwningRelationshipAnnotation(Source)
+    }
+    facts selected
+}
+```
 
-### RM-3 — active Builder support vertical slice
+The policy/default reader is application-owned and can read a consumer default marker through the same Optional query.
+It is not a LinkTo/AutoLink algorithm, a public enumeration helper or a mandatory precedence standard. Selection here
+exists solely to prove that metadata composes with the existing generated relationship method and exact target identity.
+Use the investigation's viable completed-Model access route; do not fix static Cluster projection/subtype-Builder typing.
 
-Add KlumBuilderSupport with only getStructure, and a metadata-only nested Structure whose public inputs/results mention
-only supported types. Internally validate the marker's genuine runtime implementation; no client can gain authority by
-implementing KlumBuilder. Compose the guard once and apply it independently to both query operations. Read the same
-Schema descriptor as completed Structure without materializing anything. Keep existing internal phase traversal separate.
+Suggested reasoning commits within RM-1: **Expose ordinary completed owning declarations for provider metadata (#856)**
+with the minimal completed lookup/capture tests, then **Complete the inherited AUTO_LINK metadata tracer through public
+Builder support (#856)** with the live facade/guard and consumer acceptance. Keep each behavior and passing tests together;
+the completed-only preparatory commit is not the RM-1 success milestone. Any private generated linkage adjustment needs
+ADR 0015 evidence in its behavior commit and cannot change public Builder signatures.
 
-One reasoned commit: **Expose Builder relationship metadata with per-request lifecycle checks (#856)**. Pair the facade
-and guard with a table-driven phase/state matrix, root/missing-annotation negative cases, early acquisition then late
-success, success then expiration, multiple requests across phases, custom phase 16/15/40 boundaries, same-phase OWNER
-actions, and failure-before-read proof. Include callback-on-inherited-receiver AUTO_LINK success before DEFAULT transport.
-Test retained views after successful completion and exceptions, sealed wrappers, foreign sessions/threads, and
-Template-definition Builders; no phase-only check is sufficient.
+Run the inherited callback and owning-declaration examples in G3/G4/G5. Separately compile consumer annotations and base
+Schema types, then the leaf/Writer, using existing fixtures where feasible; include static Java/Groovy facade signature
+smoke checks. If a particular binary harness needs later work, record that exact gap and fixture rather than blocking
+all use-case feedback on complete JPMS/classloader coverage. The full binary contract still gates RM-3/release readiness.
 
-Acceptance: A01–A11 and A19. Exit when declaration equivalence across live/completed views holds, guards run even for
-absence/cached results, and a retained descriptor remains safe while a retained live view rejects.
+Exit only when the two public facade paths, consumer selection, identity preservation and operation-time guards all
+work together. Acceptance: A01/A02/A03/A05/A06/A17/A25 plus initial A20 and core A10/A11/A26. No Template/copy/import or
+serialization completion is required to demonstrate this milestone; those remain mandatory before final qualification.
 
-### RM-4 — qualify public consumers and document delivery
+### RM-2 — extended graph, Template/copy, persistence and import qualification
 
-Compile real runtime/Schema artifacts first, then consumers against binaries in separate source sets/projects. Use Java 17,
-dynamic Groovy, and @CompileStatic Groovy; annotations and inherited Schema bases must be separately compiled, including
-a private field and a base declaration in a different package. Compile a Java extension/callback fixture accepting the
-public generated Builder interface and using KlumBuilderSupport at an eligible phase; do not compile against the hidden
-Builder implementation. Check generic return signatures, Optional types, and unchanged Foo_DSL interfaces/source mirrors.
+Apply the RM-1 ordinary record to direct/list/set/map graphs, repeated identities, self/cyclic links, OPTIONAL_LINK mixed
+entries, accepted claim transfer and existing late attachment. Do not infer declaration from paths/Owner values or
+change the ownership engine. Qualify the D6 lifetime across these already-supported construction routes.
 
-Run classpath consumers in G3/G4/G5, and named Schema/annotation/consumer modules in G4/G5 using the existing
-JpmsPackageBoundaryTest fixture. Compare module descriptors and ensure the existing public runtime export suffices.
-Schema annotation resolution must respect its classloader; include separate classloaders with same-named declarations
-to prevent a name-only metadata cache. No new broad exports/opens, command-line add-opens workaround, or runtime dependency
-from the annotations artifact. Any actual access gap returns for a narrow architectural decision.
+Under D2, retain Template definition declarations internally while preserving direct public Template rejection, and
+recapture recipient fields on application. Under D5, qualify CopyHandler direct container insertion and conflicting
+recipe aliases using the approved bounded mechanism; do not normalize aggregation into ownership or duplicate targets
+for convenience. Ordinary Model/Map and same-session Builder copy paths retain their existing semantics.
 
-First reasoned commit: **Qualify Java and Groovy relationship support across binary and module boundaries (#856)**,
-including any narrow fixes plus the passing consumer tests. Second commit: **Document approved relationship Structure
-support and its lifetime (#856)** with a metadata-only documentary example, current user pages, migration/navigation,
-CHANGES and acceptance evidence. Do not publish a consuming resolver as framework behavior. The plan/ADR status changes
-only to reflect approved and actually delivered slices.
+Under D3, qualify same-version ordinary/Template serialization, linked cycles, subtrees without owner backreferences and
+compatible absent metadata. Particular old-byte fixtures are required only for specifically approved historical support;
+no arbitrary compatibility promise or guessed UID. Jackson root/in-session/apply/reference and value-only Template imports
+capture new owned edges while preserving original linked targets and export policy; no companion wire metadata.
 
-Acceptance: A20–A23 plus the full matrix regression. Review local code/commit sequence, run the final Groovy compatibility
-lanes once after focused G3 work, inspect CI/Sonar at the exact PR head, and satisfy the normal publication boundary.
+Reasoned boundaries, each green with its needed behavior fixes: **Qualify extended composition declaration metadata (#856)**,
+**Qualify Template/copy declaration retention under the approved policies (#856)**,
+**Qualify declaration serialization under the approved version boundary (#856)** and
+**Qualify owning declarations across managed import (#856)**. Split or combine only when it clarifies the behavior dependency.
+Use TemplatesSpec/TemplateRecipeStateTest and existing KlumJacksonImporterSpec/ConfigurationReplaySpec/LinkIdentitySpec.
+
+Acceptance: complete A04/A06–A09/A12–A16/A18/A19/A24 and extended A10/A11/A26. D2/D3/D5 cannot be bypassed by a successful
+RM-1 tracer. No feature-release claim is made before these persistence/graph qualifications pass.
+
+### RM-3 — complete Java/Groovy binary and JPMS qualification
+
+Compile real runtime/Schema artifacts before their separate consumers. Expand initial RM-1 binary checks to Java 17 and
+static/dynamic G3/G4/G5, inherited bases/private annotated fields in separate packages, separately compiled annotation
+types and concrete callbacks using public generated Builder contracts only. Verify generic/Optional descriptors,
+unchanged Foo_DSL signatures/AnnoDocimal mirrors and no internal type in public signatures.
+
+Run G4/G5 named Schema/annotation/consumer modules through JpmsPackageBoundaryTest. G3 remains classpath-only. Existing
+runtime export/schema opens must suffice; no broad exports/opens or add-opens workaround. Exercise separate classloaders
+with same-named declarations to prevent name-only caches. No runtime dependency from the annotations artifact. Any access
+or linkage gap returns for a narrow decision rather than expanding module/ownership boundaries implicitly.
+
+One reasoned qualification commit pairs the real consumers and any required bounded fixes:
+**Qualify relationship support across Java/Groovy binary and module boundaries (#856)**.
+Acceptance: full A20–A22 and lifetime/tracer regression in the qualified modes. Initial separately compiled tracer proof
+is retained; same-source Spock alone or G3 classpath never substitutes for this gate.
+
+### RM-4 — delivery documentation and final acceptance
+
+Add the metadata-only documentary example using the RM-1 route, lifecycle/Template/persistence guidance, migration and
+navigation, CHANGES and exact evidence. Keep consumer selection illustrative and consumer-owned. Link @Issue/@Tag/@See,
+issue and current user source to one another. Mark only delivered/approved slices as implemented in ADR/plan status.
+
+One reasoned final documentation commit: **Document approved relationship Structure support and its lifetime (#856)**.
+Acceptance: A23 and all A01–A26 approved requirements green, D1–D6 dispositions explicit, focused baseline plus final
+G3/G4/G5 qualification, exact-head CI/Sonar review and normal publication authorization. A successful RM-1 tracer does
+not imply release readiness, parent issue completion or authorization to target/close #856.
 
 ## Executable acceptance matrix
 
@@ -243,17 +334,17 @@ ADR gates. New test classes use the Test suffix and @Issue("856") or the assigne
 
 | ID | Fixture/input | Expected result/assertion | Slice |
 | --- | --- | --- | --- |
-| A01 | Direct owned child with Binding; eligible callback and completed lookup | Same exact Schema declaring Class/member and annotation values from both views; no callback transport property | RM-1/RM-3 |
-| A02 | Inherited owning field on concrete owner, child with inherited callback, no field redeclaration | Original base Schema declaration retained; callback can read its owning binding in AUTO_LINK | RM-0/RM-1/RM-3 |
-| A03 | Child has no Owner; alternate fixtures with several/transitive/converted Owner values | Actual owning declaration independent of Owner values; existing getSingleOwner ambiguity unchanged | RM-0/RM-1/RM-3 |
-| A04 | Owned list/set/map values including repeats and map keys requiring escaping | Containing field annotation; no index/key in declaration identity; no new unique-path contract | RM-0/RM-1 |
-| A05 | Eligible root, unattached same-session Builder, missing annotation, metadata-absent completed Object | Optional.empty; absence does not imply historical object is a root | RM-1/RM-3 |
-| A06 | LINK alias to same-root owned child and external completed child/root | Original declaration/empty root result preserved; no receiver-edge adoption or target copy/mutation | RM-1 |
-| A07 | OPTIONAL_LINK single/list/map mixing fresh owned, claimed and completed entries | Only owned claim captures receiver declaration; aggregate entries keep originals; existing traversal filtering | RM-1 |
-| A08 | Permitted self-OPTIONAL_LINK claim transfer; rejected cross-owner/cross-session composition | Final accepted declaring field wins; rejected attachment does not overwrite metadata | RM-1 |
-| A09 | Self/cyclic links and two references to one target; VALIDATE callback | Graph identity retained; descriptor readable by VALIDATE; no Builder/session retained in completed state | RM-1 |
-| A10 | Early-created facade; OWNER/≤15/custom 15 requests on child/root/missing annotation, then phase 16/20 | Each early call throws before declaration read; subsequent eligible call succeeds; no cached eligibility | RM-3 |
-| A11 | Retained view at 40/50/100, after completion/abort, foreign session/thread, sealed wrapper, Template Builder | State/session/phase-specific rejection; active session at 50 does not permit Builder query | RM-3 |
+| A01 | Direct owned child with Binding; eligible callback and completed lookup | Same exact Schema declaring Class/member and annotation values from both views; no callback transport property | RM-1 |
+| A02 | Inherited owning field on concrete owner, child with inherited callback, no field redeclaration | Original base Schema declaration retained; callback can read its owning binding in AUTO_LINK | RM-0/RM-1 |
+| A03 | Child has no Owner; alternate fixtures with several/transitive/converted Owner values | Actual owning declaration independent of Owner values; existing getSingleOwner ambiguity unchanged | RM-0/RM-1 |
+| A04 | Owned list/set/map values including repeats and map keys requiring escaping | Containing field annotation; no index/key in declaration identity; no new unique-path contract | RM-2 |
+| A05 | Eligible root, unattached same-session Builder, missing annotation, metadata-absent completed Object | Optional.empty; absence does not imply historical object is a root | RM-1 |
+| A06 | LINK alias to same-root owned child and external completed child/root | Original declaration/empty root result preserved; no receiver-edge adoption or target copy/mutation | RM-1/RM-2 |
+| A07 | OPTIONAL_LINK single/list/map mixing fresh owned, claimed and completed entries | Only owned claim captures receiver declaration; aggregate entries keep originals; existing traversal filtering | RM-2 |
+| A08 | Permitted self-OPTIONAL_LINK claim transfer; rejected cross-owner/cross-session composition | Final accepted declaring field wins; rejected attachment does not overwrite metadata | RM-2 |
+| A09 | Self/cyclic links and two references to one target; VALIDATE callback | Graph identity retained; descriptor readable by VALIDATE; no Builder/session retained in completed state | RM-2 |
+| A10 | Early-created facade; OWNER/≤15/custom 15 requests on child/root/missing annotation, then phase 16/20 and later phases | Each early call throws before declaration read; eligible calls recheck session/phase/source on every request, including cached-result paths | RM-1/RM-2 |
+| A11 | Retained views after completion/abort, foreign session/thread, Template-definition Builder; fresh lookup in a different lifecycle | Reject before declaration read despite retained fields/old success; no session resurrection; completed ordinary Model lookup and detached descriptor remain independent | RM-1/RM-2 |
 | A12 | Marked Template root and owned nodes, including value-only imported Template; D2 policy | Internal definition-edge record for owned nodes/root absence; public completed facade still rejects Templates; no public live Builder access without session | RM-2 |
 | A13 | Template applied under a different recipient field; same template applied twice | Fresh graphs each expose recipient-edge metadata, not source edge; recipe and linked identities unchanged | RM-2 |
 | A14 | copyFrom ordinary Model/Map/same-session Builder; nested copy and standalone root copy | Recipient claims recaptured; no old owner adoption; standalone root empty; existing sealed/cross-session rejection | RM-2 |
@@ -261,12 +352,14 @@ ADR gates. New test classes use the Test suffix and @Issue("856") or the assigne
 | A16 | Compatible absent record; invalid retained declaration; specific historical stream only if D3 authorizes | Absent yields empty; explicit bad record fails with Schema/member; UID compatibility proved for each claimed version | RM-0/RM-2 |
 | A17 | Exact/missing annotation and null Class; retained descriptor after Builder expires | Typed Optional values, empty for absence, null rejected; immutable descriptor usable without live session | RM-1 |
 | A18 | Jackson root/in-session/apply import and reference targets; export ordinary Objects | New owned edges recorded, references retain originals, no wire field; Template export rejection and importer lifecycle unchanged | RM-2 |
-| A19 | Child attached after OWNER through existing late-subtree initialization | Accepted claim recorded immediately; eligible callback sees field; no duplicate lifecycle or guessed traversal edge | RM-3 |
-| A20 | Java 17 and static/dynamic G3/G4/G5 consumers of separately compiled inherited Schema/annotations | Public facades only; no unchecked internal casts; exact generic/Optional descriptors and concrete annotation identity | RM-4 |
-| A21 | G4/G5 named modules; private field annotation; separate annotation module; same names in separate classloaders | Public export sufficient, existing schema opens baseline; no extra broad opens/exports; cache respects Class identity | RM-4 |
-| A22 | Inspect KlumBuilder, Foo_DSL signatures, Model properties, AnnoDocimal mirrors, wire output | Marker remains zero-operation; no added generated interface/mirror/Model/wire property; no internal type in public signatures | RM-4 |
+| A19 | Child attached after OWNER through existing late-subtree initialization | Accepted claim recorded immediately; eligible callback sees field; no duplicate lifecycle or guessed traversal edge | RM-1/RM-2 |
+| A20 | Java 17 and static/dynamic G3/G4/G5 consumers of separately compiled inherited Schema/annotations | Initial binary tracer in RM-1 where feasible, then full consumer gate: public facades only, exact generic/Optional descriptors and concrete annotation identity | RM-1/RM-3 |
+| A21 | G4/G5 named modules; private field annotation; separate annotation module; same names in separate classloaders | Public export sufficient, existing schema opens baseline; no extra broad opens/exports; cache respects Class identity | RM-3 |
+| A22 | Inspect KlumBuilder, Foo_DSL signatures, Model properties, AnnoDocimal mirrors, wire output | Marker remains zero-operation; no added generated interface/mirror/Model/wire property; no internal type in public signatures | RM-3 |
 | A23 | Documentary Builder callback and completed annotation read; release guidance | Example matches executable test; @Issue/@Tag/@See and issue/docs traceability; feature only documented as delivered when green | RM-4 |
 | A24 | Ordinary Model/Template list/map copies through direct CopyHandler insertion; overwrite strategies; repeated recipe aliases and OPTIONAL_LINK entries | Characterize current claims/materialization in RM-0; after D5, capture the approved recipient declaration without arbitrary traversal tie-breaking, target duplication, or aggregation changes | RM-0/RM-2 |
+| A25 | ScHelm tracer: inherited receiver Facts relationship/AUTO_LINK, owning Binding; independently completed owned provider candidates with Source/default markers; separately compiled bases/annotations where feasible | Both public facades expose exact owning declarations and typed Optional annotations; test-local consumer policy calls existing typed relationship operation; exact completed-target identity/ownership and explicit override preserved; no transport or internal API | RM-1 |
+| A26 | D6 lifetime: normal allocation/sealing, phase-40 actions before/after InstantiatePhase, custom >40, 50/80/100; same-session LINK wrapper; repeated calls then exit/abort | Authoritative declaration remains readable while context valid, even sealed; wrapper yields original target declaration/absence; no mutation or partial-graph promise; exit/abort rejects; both query methods recheck every call | RM-0/RM-1/RM-2 |
 
 ## Compatibility qualification and documentation delivery
 
@@ -304,13 +397,14 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Risk/decision | Bound or approval required | Evidence owner |
 | --- | --- | --- |
-| D1 descriptors/initial helper scope and implementation authorization | Review exact methods, generics, equality, exception categories, sealed/Template Builder policy; frozen facade/Optional/guard direction remains | Maintainer before RM-0/RM-1/RM-3 |
+| D1 bounded implementation/details approval | Accepted facade/shared descriptor/Optional and consumer-policy separation stay fixed; finalize generics/equality/errors and authorize bounded work | Maintainer before RM-0/RM-1 |
 | D2 Template retention | Approve internal definition-edge retention and recipient recapture with public rejection; any direct inspection requires separate support/gating decision | Maintainer before RM-2 |
-| D3 historical stream compatibility | No arbitrary promise; audit computed UIDs, name any supported old versions, prove them with fixtures | Maintainer/RM-0/RM-2 |
+| D3 historical stream compatibility | RM-0 audits representation risk; RM-2 qualifies approved same-version scope or specifically named old-version fixtures; no arbitrary promise | Maintainer/RM-2 |
 | D4 scheduling and release | Keep #856 untargeted; choose child issue/work order only after design acceptance | Maintainer/Hive |
-| D5 copied-container ambiguity | Decide declaration capture for claim-bypassing insertion and conflicting owned-field aliases using RM-0 evidence; broader ownership repair needs separate approval | Maintainer/RM-0 before RM-2 |
-| Claim transfer/late attachment versus traversal | Derive from authoritative claim, update atomically; do not cache a first traversal alias | RM-1/RM-3 |
-| Reflection/classloader/JPMS | Direct annotation metadata needs no value access; prove private fields and Class identity, return for narrow decision on access gaps | RM-4 |
+| D5 copied-container ambiguity | RM-0 inventories bypasses/conflicts; decision gates RM-2 copy qualification, not direct-field RM-1; broader ownership repair needs separate approval | Maintainer before RM-2 |
+| D6 read-only lifetime revision | Approve active same-session + phase >15 + authoritative source, removing unsealed/<40 checks; include normal sealing and LINK wrappers, preserve post-exit/abort rejection | Maintainer before RM-1 guard implementation |
+| Claim transfer/late attachment versus traversal | Derive from authoritative claim, update atomically; do not cache a first traversal alias | RM-1/RM-2 |
+| Reflection/classloader/JPMS | Direct annotation metadata needs no value access; prove private fields and Class identity, return for narrow decision on access gaps | RM-3 |
 | Completed graph retention | Store declaration only; serialization must not pull in old owner graph or construction state | RM-1/RM-2 |
 | Scope drift to LinkTo or query projection | Keep provider enumeration, default/null/ambiguity policy, Cluster Builder projections and subtype setter improvements separate | All slices |
 
@@ -335,7 +429,8 @@ not required for planning documents that affect no compilation, runtime, or test
 [testing policy](../agents/testing.md).
 
 Tracker impact: **Related: #856**, no closing syntax; no issue edits, release targeting, or curation status changes.
-The explicit assignment authorizes pushing this decision/plan branch and opening a draft PR despite unresolved design
-approvals. It authorizes no implementation, ready-for-review transition, merge, or new issue. After publication report the
-PR link, D1–D5, source/evidence base and validation to Hive, request delivery/archive reconciliation, and retain `(PR:open)`
+The original assignment authorized this draft decision/plan PR; the follow-up authorizes updating it with an additive
+review-fix commit and one consolidated response despite unresolved implementation approvals. It authorizes no implementation,
+ready-for-review transition, merge, or new issue. After publication report the
+PR link, D1–D6, source/evidence base and validation to Hive, request delivery/archive reconciliation, and retain `(PR:open)`
 until merge is verified. A completed planning assignment is not an archive-safe repository delivery.
