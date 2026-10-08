@@ -44,6 +44,9 @@ import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
+import groovy.lang.MetaClass;
+import groovy.lang.MetaClassImpl;
+import groovy.lang.ProxyMetaClass;
 import groovy.lang.DelegatingMetaClass;
 import groovy.lang.Reference;
 import groovy.lang.Script;
@@ -644,6 +647,9 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private void checkNullRelationshipSelection(String key, Field field) {
+        // Dynamic MetaClasses may resolve invocation differently from ordinary method lookup.
+        if (!usesStandardMethodSelection())
+            return;
         // InvokerHelper converts a bare null argument to EMPTY_ARGS. Use that exact selection input.
         // Select outside the invocation: failures inside a selected mutator are not map diagnostics.
         try {
@@ -657,6 +663,17 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                             + "Construction path: %s",
                     key, modelType.getName(), setter, field.getType().getSimpleName(), getBreadcrumbPath()), failure);
         }
+    }
+
+    private boolean usesStandardMethodSelection() {
+        MetaClass metaClass = getMetaClass();
+        if (metaClass.getClass() == ProxyMetaClass.class) {
+            ProxyMetaClass proxy = (ProxyMetaClass) metaClass;
+            return proxy.getInterceptor() != null
+                    && proxy.getInterceptor().getClass() == BreadCrumbVerbInterceptor.class
+                    && proxy.getAdaptee().getClass() == MetaClassImpl.class;
+        }
+        return metaClass.getClass() == MetaClassImpl.class;
     }
 
     private boolean isDirectRelationship(Field field) {

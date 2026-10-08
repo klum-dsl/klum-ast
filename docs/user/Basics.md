@@ -95,7 +95,8 @@ relationship (including `setX` keys) can fail overload selection. The `KlumModel
 operation/key, and construction path, with the original `MethodSelectionException` as its direct cause.
 
 Omit the key to preserve the Builder's existing configuration. For deliberate clearing, use an explicitly typed setter
-inside a Builder closure. Custom mutators that accept null retain their normal behavior.
+inside a Builder closure. Custom mutators that accept null retain their normal behavior. Custom MetaClasses retain
+their own dispatch and exceptions; ordinary method lookup is not used to preflight those handlers.
 
 (See: `NamedMapNullRelationshipTest#'omission preserves configuration and typed setters deliberately clear it'`.)
 
