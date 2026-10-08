@@ -236,8 +236,11 @@ Java serialization is qualified within the same KlumAST version with compatible 
 graph identity, Template recipe replay, and retained declarations survive that round trip; metadata does not retain the
 old owner instance. Historical streams and Schema evolution are not promised. Empty lookup applies only to otherwise
 readable absent metadata. Companion serialized forms may change; regenerate old serialized models/Templates from their
-source configuration or recipes when upgrading. Full binary/JPMS qualification and final feature-release acceptance
-remain later #856 gates.
+source configuration or recipes when upgrading.
+
+Java 17 and dynamic/static Groovy 3/4/5 consumers are qualified against separately compiled Schema/annotation artifacts.
+Groovy 4/5 named modules use the existing qualified construction opens; annotation lookup needs no additional opens.
+Copied-container/conflicting-alias repairs and final feature-release acceptance remain later #856 gates.
 
 ## Stored validation
 

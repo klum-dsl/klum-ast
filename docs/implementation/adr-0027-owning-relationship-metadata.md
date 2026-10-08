@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: RM-1 and approved bounded RM-2 implemented; D5, RM-3 and RM-4 remain open
+Status: RM-1, approved bounded RM-2 and RM-3 compatibility qualification implemented; D5 and RM-4 remain open
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
@@ -16,7 +16,8 @@ Retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a`, wit
 D2 accepted-definition Template retention/recipient recapture and D3 same-version serialization are explicitly approved
 for bounded RM-2 in [the decision record](issue-856-rm2-decisions.md). D5 repairs remain excluded and unresolved. The source-audit tables below retain their historical planning bases; the RM-1 report
 identifies which acceptance rows now have executable public-API evidence. Initial guidance is delivered with this seam;
-full RM-4 documentation/qualification remains pending.
+RM-3 is separately authorized and its artifact-consumer/JPMS qualification is recorded in
+[the RM-3 evidence](issue-856-rm3-evidence.md). Full RM-4 documentation/acceptance remains pending.
 
 ## Authority, scope, and evidence provenance
 
@@ -324,7 +325,8 @@ static/dynamic G3/G4/G5, inherited bases/private annotated fields in separate pa
 types and concrete callbacks using public generated Builder contracts only. Verify generic/Optional descriptors,
 unchanged Foo_DSL signatures/AnnoDocimal mirrors and no internal type in public signatures.
 
-Run G4/G5 named Schema/annotation/consumer modules through JpmsPackageBoundaryTest. G3 remains classpath-only. Existing
+Run G4/G5 named Schema/annotation/consumer modules through the dedicated RelationshipMetadataConsumerTest alongside
+JpmsPackageBoundaryTest. G3 remains classpath-only. Existing
 runtime export/schema opens must suffice; no broad exports/opens or add-opens workaround. Exercise separate classloaders
 with same-named declarations to prevent name-only caches. No runtime dependency from the annotations artifact. Any access
 or linkage gap returns for a narrow decision rather than expanding module/ownership boundaries implicitly.
@@ -429,7 +431,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Issue/decision | Relationship to this plan |
 | --- | --- |
-| #856 / ADR 0027 | RM-1 and bounded RM-2 are implemented; D5, RM-3/RM-4 and parent acceptance remain open for maintainer reconciliation |
+| #856 / ADR 0027 | RM-1, bounded RM-2 and RM-3 are implemented; D5, RM-4 and parent acceptance remain open for maintainer reconciliation |
 | #390 / ADR 0006 | Extend completed Structure without weakening its object/companion boundary |
 | #431 / ADR 0004 | Preserve active-session composition, Template/copy protocol and serialization scope |
 | #391 / ADRs 0014/0015 | Reuse module and generated-linkage acceptance; no new public internal access |
