@@ -39,7 +39,7 @@ import java.lang.reflect.Modifier
 class OwningRelationshipTracerTest extends AbstractDSLSpec {
 
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Structure.md#owning-schema-declarations')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Completed-Object-Support.md#owning-schema-declarations')
     def 'inherited AUTO_LINK selects a completed provider through consumer-owned annotations'() {
         given: 'runtime annotations and base Schemas are binary inputs to the leaf and consumer'
         annotation('Binding', 'String value();')

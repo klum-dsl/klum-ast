@@ -1,5 +1,13 @@
 # 4.1.0 (unreleased)
 
+- Added the initial read-only owning Schema declaration tracer through `KlumBuilderSupport.of(builder).getStructure()`
+  and completed `KlumObjectSupport` Structure. Both expose immutable `KlumSchemaRelationship` and typed Optional
+  annotation queries independent of Owner values. Each Builder request requires its current active session and a phase
+  after OWNER(15), including normal sealed receivers and completed LINK wrappers. Consumer-owned AUTO_LINK policy can
+  select an existing completed target by identity; framework LinkTo selection is unchanged. Null completed Object
+  receivers now throw `NullPointerException`. Template/copy/persistence/import and full binary/JPMS qualification remain
+  later [#856](https://github.com/klum-dsl/klum-ast/issues/856) release gates.
+
 - Sealed Builders now reject framework collection/Map additions and child, converter, producer, Template, and script
   factory operations before value normalization, child lookup/allocation, callbacks, or attachment. This also covers empty
   bulk inputs and completed-Model `LINK` wrappers; active construction and wrapper reads retain their behavior

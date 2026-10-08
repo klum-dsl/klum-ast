@@ -71,6 +71,7 @@ public final class KlumObjectSupport<T> {
      * @param object a completed DSL Object or subtree
      * @param <T> the completed DSL Object type
      * @return support for {@code object}
+     * @throws NullPointerException if {@code object} is null
      * @throws KlumException if {@code object} is not a completed DSL Object
      */
     public static <T> KlumObjectSupport<T> of(T object) {

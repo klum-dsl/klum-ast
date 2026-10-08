@@ -2,21 +2,30 @@
 
 Date: 2026-10-08
 
-Status: Accepted public direction; read-only lifetime revision and revised tracer sequence proposed; implementation not authorized
+Status: RM-1 ordinary tracer implemented under approved D1/D4/D6; RM-2–RM-4 pending
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
-Tracking issue: [#856](https://github.com/klum-dsl/klum-ast/issues/856), open and untargeted
+Tracking issue: [#856](https://github.com/klum-dsl/klum-ast/issues/856), open, target 4.1
+
+## Current execution boundary
+
+D1's exact descriptors/equality/errors, D4 placement in 4.1, and D6 lifetime are approved. Separate authorization delivers
+RM-1's direct/inherited ordinary tracer, documented in [the RM-1 evidence](issue-856-rm1-evidence.md).
+Retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a`, with 33 characterization cases.
+D2/D3/D5 remain explicit RM-2 gates. The source-audit tables below retain their historical planning bases; the RM-1 report
+identifies which acceptance rows now have executable public-API evidence. Initial guidance is delivered with this seam;
+full RM-4 documentation/qualification remains pending.
 
 ## Authority, scope, and evidence provenance
 
 The maintainer accepts the structural-metadata investigation direction and freezes
 `KlumBuilderSupport.of(builder).getStructure()` alongside `KlumObjectSupport.of(model).getStructure()`, a shared immutable
 `KlumSchemaRelationship`, Optional absence, and an operation-time active-session/after-OWNER guard. Structure is the only
-Builder support capability now. This plan schedules no implementation and invents no LinkTo selection algorithm.
+Builder support capability now. RM-1 implements that narrow metadata seam and invents no LinkTo selection algorithm.
 ADR decisions D1–D6 distinguish remaining approvals from accepted direction. The follow-up accepts the public facade and
 consumer-selection separation, requests source-backed reconsideration of the unsealed/phase-before-40 restriction, and
-puts the ScHelm vertical tracer first. D6 is a proposed contract change, not an implementation authorization.
+puts the ScHelm vertical tracer first. D6 is now approved; the separate RM-1 assignment supplies implementation authorization.
 
 Input is the completed local investigation on `codex/issue-856-link-binding-investigation`:
 
@@ -115,11 +124,11 @@ OWNER must work through the existing ownership initialization seam without chang
 The final snapshot is taken before or during internal allocation/companion creation and is available by VALIDATE. Two-pass
 allocation and relationship assignment retain cycles/self-links, immutable collection snapshots, and target identities.
 
-## Lifecycle evidence and proposed read-only contract
+## Lifecycle evidence and approved read-only contract
 
 This is source-backed analysis of existing lifecycle behavior, not an execution of the proposed support API. The phase-40
 cutoff in the original plan followed mutable traversal/materialization boundaries; the audit does not show a metadata
-invalidation at that number. Acceptance below proposes changing that restriction under **D6**, retaining the lower bound.
+invalidation at that number. Approved **D6** changes that restriction, retaining the lower bound.
 
 | Inspected source at `513cfcdd` | Observed behavior | Authority implication |
 | --- | --- | --- |
@@ -139,7 +148,7 @@ claim unchanged. The proposed capture record must match the completed snapshot; 
 COMPLETE. Source presence after session exit does not grant read authority. Copy paths without a qualified declaration
 remain D5 cases; the lifetime proposal does not bless them or repair ownership.
 
-Recommended per-request checks, pending D6:
+Approved per-request checks under D6:
 
 1. Validate a genuine supported Builder receiver; reject null, completed Model and unsupported marker implementations.
    Do not call mutation preflight or reject merely because sealed.
@@ -155,7 +164,7 @@ identity. A cached successful read cannot authorize another call. Preserve the d
 lifetime; no public Model extraction is added. After success/cleanup use KlumObjectSupport on the returned Model; abort
 provides no publishable Model guarantee, even if allocation had started. Never change existing mutation/scheduling limits.
 
-| Phase/state at request time | Proposed metadata result after D6 | Model availability / qualification |
+| Phase/state at request time | Approved metadata result under D6 | Model availability / qualification |
 | --- | --- | --- |
 | Construction/PostCreate/PostApply, no phase; APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), custom ≤15 | Reject before declaration read, including root/missing annotation | External completed provider Models can already be queried through their own facade |
 | Custom 16, AUTO_LINK(20), DEFAULT(25), POST_TREE(30), custom 16–39 | Same-session authoritative declaration read; genuine absence is empty | Current graph remains Builder-based; completed external candidates are independent |
@@ -178,7 +187,7 @@ instead of treating Context.instance as session membership or inventing a new sc
 Diagnostics name operation, receiver type, phase/session or invalid-declaration reason; unsafe owner reads cannot decorate
 an early rejection. Use a counting/failing internal declaration-reader seam or equivalent observable fixture to prove
 rejected calls do not reach ownership lookup. A premature root returning empty is a failure. There is no production
-metadata API yet, so the above is a proposed future guard contract, not evidence of passing support tests.
+metadata API at that planning base. Current public-API results are recorded separately in the RM-1 report.
 
 ## Tracer-bullet slices and reasoned commits
 
@@ -328,7 +337,7 @@ not imply release readiness, parent issue completion or authorization to target/
 
 ## Executable acceptance matrix
 
-The expected results below are future requirements, not current passing API tests. Proposed semantics depend on the named
+The table below is the full eventual acceptance contract; RM-1 results are mapped in its report. Proposed semantics depend on the named
 ADR gates. New test classes use the Test suffix and @Issue("856") or the assigned child issue; documentary tests use
 @Tag("documentary") and @See to the current user-documentation source. No pending test is added by this planning PR.
 
@@ -397,12 +406,12 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Risk/decision | Bound or approval required | Evidence owner |
 | --- | --- | --- |
-| D1 bounded implementation/details approval | Accepted facade/shared descriptor/Optional and consumer-policy separation stay fixed; finalize generics/equality/errors and authorize bounded work | Maintainer before RM-0/RM-1 |
+| D1 bounded implementation/details approval | Accepted facade/shared descriptor/Optional and consumer-policy separation stay fixed; finalize generics/equality/errors and authorize bounded work | Approved; RM-0/RM-1 separately authorized |
 | D2 Template retention | Approve internal definition-edge retention and recipient recapture with public rejection; any direct inspection requires separate support/gating decision | Maintainer before RM-2 |
 | D3 historical stream compatibility | RM-0 audits representation risk; RM-2 qualifies approved same-version scope or specifically named old-version fixtures; no arbitrary promise | Maintainer/RM-2 |
-| D4 scheduling and release | Keep #856 untargeted; choose child issue/work order only after design acceptance | Maintainer/Hive |
+| D4 scheduling and release | Approved for 4.1; RM-1 delivered separately, later slices need explicit authorization | Approved; Hive owns release reconciliation |
 | D5 copied-container ambiguity | RM-0 inventories bypasses/conflicts; decision gates RM-2 copy qualification, not direct-field RM-1; broader ownership repair needs separate approval | Maintainer before RM-2 |
-| D6 read-only lifetime revision | Approve active same-session + phase >15 + authoritative source, removing unsealed/<40 checks; include normal sealing and LINK wrappers, preserve post-exit/abort rejection | Maintainer before RM-1 guard implementation |
+| D6 read-only lifetime revision | Approve active same-session + phase >15 + authoritative source, removing unsealed/<40 checks; include normal sealing and LINK wrappers, preserve post-exit/abort rejection | Approved; RM-1 guard implemented |
 | Claim transfer/late attachment versus traversal | Derive from authoritative claim, update atomically; do not cache a first traversal alias | RM-1/RM-2 |
 | Reflection/classloader/JPMS | Direct annotation metadata needs no value access; prove private fields and Class identity, return for narrow decision on access gaps | RM-3 |
 | Completed graph retention | Store declaration only; serialization must not pull in old owner graph or construction state | RM-1/RM-2 |
@@ -410,7 +419,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Issue/decision | Relationship to this plan |
 | --- | --- |
-| #856 / ADR 0027 | RM-0–RM-4 are proposed metadata delivery slices; parent remains open for maintainer reconciliation |
+| #856 / ADR 0027 | RM-1 is implemented; RM-2–RM-4 remain gated; parent remains open for maintainer reconciliation |
 | #390 / ADR 0006 | Extend completed Structure without weakening its object/companion boundary |
 | #431 / ADR 0004 | Preserve active-session composition, Template/copy protocol and serialization scope |
 | #391 / ADRs 0014/0015 | Reuse module and generated-linkage acceptance; no new public internal access |

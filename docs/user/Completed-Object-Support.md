@@ -112,6 +112,94 @@ assert KlumObjectSupport.of(deployment.api).structure.singleOwner.get().is(deplo
 assert structure.findAll(Service).keySet() == ['<root>.api', '<root>.services[0]']
 ```
 
+## Owning Schema declarations
+
+The first [#856](https://github.com/klum-dsl/klum-ast/issues/856) tracer for 4.1 adds read-only declaration queries to both
+completed Object Structure and active Builder Structure. The declaration identifies the actual owning Schema field,
+including its original declaring class when inherited. It works without an `@Owner` backreference.
+
+```java
+import java.util.Optional;
+import com.blackbuild.klum.ast.runtime.KlumBuilderSupport;
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+import com.blackbuild.klum.ast.runtime.KlumSchemaRelationship;
+
+// receiver is a Builder in an active callback after OWNER(15).
+Optional<Binding> binding = KlumBuilderSupport.of(receiver).getStructure()
+    .getOwningRelationshipAnnotation(Binding.class);
+// candidate is an independently completed Model.
+Optional<Source> source = KlumObjectSupport.of(candidate).getStructure()
+    .getOwningRelationshipAnnotation(Source.class);
+Optional<KlumSchemaRelationship> declaration = KlumObjectSupport.of(candidate).getStructure()
+    .getOwningRelationship();
+```
+
+`Binding`, `Source`, and `DefaultSource` in this example are consumer-defined, runtime-retained field annotations.
+KlumAST supplies no provider-selection rules. A consuming Schema may use these annotations in its inherited AUTO_LINK
+callback and pass the selected completed value to the existing typed relationship method.
+
+(See: `OwningRelationshipTracerTest#'inherited AUTO_LINK selects a completed provider through consumer-owned annotations'`.)
+
+```groovy
+@DSL class Facts { String topic }
+@DSL class ProviderBase {
+    @Source('primary') @DefaultSource(Facts) Facts primary
+    @Source('secondary') Facts secondary
+}
+@DSL class Provider extends ProviderBase {}
+@DSL class ReceiverBase {
+    @Field(FieldType.LINK) Facts facts
+    @AutoLink void bindFacts() {
+        if (facts != null) return
+        def binding = KlumBuilderSupport.of(this).structure
+            .getOwningRelationshipAnnotation(Binding).orElseThrow()
+        facts Policy.choose(binding.value(), Facts)
+    }
+}
+@DSL class Receiver extends ReceiverBase {}
+@DSL class ApplicationBase { @Binding('secondary') Receiver receiver }
+@DSL class Application extends ApplicationBase {}
+
+// Policy belongs to this Schema. Its completed candidates are supplied before construction.
+def provider = Provider.Create.With {
+    primary { topic 'main' }
+    secondary { topic 'alternative' }
+}
+Policy.candidates = [provider.primary, provider.secondary]
+def application = Application.Create.With { receiver {} }
+assert application.receiver.facts.is(provider.secondary)
+assert KlumObjectSupport.of(provider.secondary).structure
+    .getOwningRelationshipAnnotation(Source).orElseThrow().value() == 'secondary'
+```
+
+The executable example's `Policy.choose` reads Source/default markers through completed Object Structure. Its explicit
+binding and requested-type default behavior is example consumer policy, not a framework precedence contract. An explicit
+`facts` value remains selected by the callback's own early return.
+
+Both views provide `getOwningRelationship()` and `<A extends Annotation> getOwningRelationshipAnnotation(Class<A>)`.
+An eligible root, absent retained declaration, or missing annotation yields `Optional.empty()`. Absence means no known
+declaration; it does not prove that an object is a root. A descriptor exposes `getDeclaringClass()`, `getName()` and
+`getAnnotation(Class<A>)`. Equality uses declaring Class identity and field name, independent of receiver or path.
+Annotation lookup reads only annotations directly present on the field, including private fields, without reading the
+field value or expanding repeatable/meta-annotations.
+
+A Builder Structure view can be acquired during configuration, but **each ownership query** requires that Builder to
+belong to the current thread's active Construction session and the current numeric phase to be strictly after
+`OWNER(15)`. Configuration and phases at or below 15 throw `KlumModelException`, including root and missing-annotation
+queries. Normal sealing during materialization does not end this read lifetime: same-session queries remain eligible
+through phase 40 and later phases. Completed LINK wrappers read their target's original retained declaration, not the
+importing LINK field. After completion/abort, on another thread, or in another session, the live view rejects. Retained
+immutable descriptors remain readable. Use completed Object support for normal work after construction returns.
+
+Null receivers and annotation Classes throw `NullPointerException` naming the argument. An explicit retained declaration
+that cannot resolve throws `KlumSchemaException` naming the Schema and field. Marked Templates retain their existing
+public rejection, and this capability adds no mutation, Builder traversal, or Model extraction.
+
+This initial tracer qualifies ordinary normalized composition and inherited consumer selection. Template definition and
+recipient capture, serialization compatibility, copied containers/conflicting aliases, import qualification, and the
+full binary/JPMS matrix remain explicit later release gates under #856. Do not use this initial seam as a promise for
+those paths.
+
 ## Stored validation
 
 (See: `CompletedObjectSupportDocumentaryTest#'reads stored validation results for a completed deployment'`.)
