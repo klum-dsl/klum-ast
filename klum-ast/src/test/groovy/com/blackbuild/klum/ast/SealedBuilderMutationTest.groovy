@@ -27,6 +27,9 @@ import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
 import spock.lang.Issue
 
+import javax.tools.ToolProvider
+import java.lang.reflect.InvocationTargetException
+
 /** Receiver-preflight regressions derived from the current-master #850 investigation. */
 @Issue('855')
 class SealedBuilderMutationTest extends AbstractDSLSpec {
@@ -171,16 +174,12 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         }
         def probe = getClass('Probe')
         def allocations = probe.allocations
-        boolean configured = false
-        def body = { configured = true }
-
         when:
-        clazz.Create.With { produce(factory, body) }
+        clazz.Create.With { produce(factory) }
 
         then:
         def error = thrown(KlumModelException)
         error.message.contains('Construction session has completed')
-        !configured
         probe.configurations == 0
         probe.allocations == allocations
         receiver.getInstanceAttribute(relationship).isEmpty()
@@ -190,9 +189,9 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         where:
         [relationship, operation, produce] << ['children', 'entries'].collectMany { relationship ->
             [
-                ['projected collection', { f, configure -> f.batch('late') }],
-                ['projected Map', { f, configure -> f.mapped('late') }],
-                ['projected converter', { f, configure -> f.entry(new URI('late')) }]
+                ['projected collection', { f -> f.batch('late') }],
+                ['projected Map', { f -> f.mapped('late') }],
+                ['projected converter', { f -> f.entry(new URI('late')) }]
             ].collect { [relationship, it[0], it[1]] }
         }
     }
@@ -250,20 +249,178 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         def factory
         clazz.Create.With { delegate."$relationship" { factory = delegate } }
         def probe = getClass('Probe')
-        boolean configured = false
-        def body = { configured = true; value 'late' }
-
         when:
         clazz.Create.With { factory.FromMap([key: 'late', value: 'late']) }
 
         then:
         def error = thrown(KlumModelException)
         error.message.contains('Construction session has completed')
-        !configured
         probe.allocations == 0
 
         where:
         relationship << ['records', 'indexedRecords']
+    }
+
+    def "active Builders preserve collection Map converter producer template and script behavior"() {
+        given:
+        createSchema()
+        def recipe = getClass('EntryRecipe')
+        def entryType = getClass('Entry')
+
+        when:
+        def model = clazz.Create.With {
+            labels(['first', 'second'])
+            settings([mode: 'active'])
+            singleValue 'single'
+            value 'listed'
+            namedValue 'mapped', 'map value'
+            primary(entryType.Create, 'primary') { value 'selected' }
+            child 'direct', { value 'direct' }
+            entries {
+                batch('batch')
+                mapped('mapped')
+            }
+            child new URI('converted')
+            entry('batch') { value 'reconfigured' }
+            children([value: 'template']) { child 'templated' }
+            children([recipe] as Class[])
+        }
+
+        then:
+        model.labels == ['first', 'second']
+        model.settings == [mode: 'active']
+        model.singleValue.text == 'single'
+        model.values*.text == ['listed']
+        model.namedValues.mapped.text == 'map value'
+        model.primary.value == 'selected'
+        model.children*.value == ['direct', 'converted', 'template', 'script']
+        model.entries.batch.value == 'reconfigured'
+        model.entries.mapped.value == 'mapped'
+        model.children.every { it.registry.is(model) && it.visits == 1 }
+        model.entries.values().every { it.registry.is(model) && it.visits == 1 }
+        model.primary.registry.is(model)
+    }
+
+    def "a nested LINK wrapper rejects before claiming a fresh child and keeps completed reads"() {
+        given:
+        createSchema()
+        def completed = clazz.Create.With(host: 'external') {
+            entry('existing') { value 'external child' }
+        }
+        def entryType = getClass('Entry')
+        def probe = getClass('Probe')
+        def rejected
+        def wrapper
+        def candidate
+
+        when:
+        def consumer = clazz.Create.With {
+            linked(completed)
+            wrapper = linked
+            candidate = entryType.Create.AsBuilder().With('fresh', value: 'fresh')
+            def allocations = probe.allocations
+            try {
+                wrapper.child(candidate)
+            } catch (KlumModelException error) {
+                rejected = error
+            }
+            assert probe.allocations == allocations
+            child(candidate)
+        }
+
+        then:
+        rejected.message.contains('sealed Builder cannot be configured')
+        consumer.linked.is(completed)
+        consumer.children[0].key == 'fresh'
+        consumer.children[0].registry.is(consumer)
+        consumer.children[0].visits == 1
+        wrapper.host == 'external'
+        wrapper.entries.existing.is(completed.entries.existing)
+        wrapper.getHost() == null
+        wrapper.getInstanceAttribute('host') == null
+        wrapper.getInstanceAttribute('children').empty
+        completed.children.empty
+        completed.entries.existing.registry.is(completed)
+        completed.entries.existing.visits == 1
+    }
+
+    def "#language public Builder calls reject sealed #state before #operation side effects"() {
+        given:
+        createSchema()
+        def pair = sealedPair(state)
+        def consumer = language == 'Java' ? compileJavaConsumer() : createSecondaryClass('''
+            package preflight
+            import groovy.transform.CompileStatic
+            import java.net.URI
+            @CompileStatic class StaticConsumer {
+                static void add(Registry_DSL.Builder<Registry> builder, Closure<?> body) { builder.label('late') }
+                static void convert(Registry_DSL.Builder<Registry> builder, Closure<?> body) { builder.child(URI.create('late')) }
+                static void configure(Registry_DSL.Builder<Registry> builder, @DelegatesTo(strategy = Closure.DELEGATE_ONLY) Closure<?> body) { builder.children(body) }
+            }
+        ''')
+        def probe = getClass('Probe')
+        def allocations = probe.allocations
+        boolean configured = false
+        def body = { configured = true }
+
+        when:
+        consumer.getMethod(operation, getClass('Registry_DSL$Builder'), Closure).invoke(null, pair.builder, body)
+
+        then:
+        def error = thrown(InvocationTargetException)
+        error.cause instanceof KlumModelException
+        error.cause.message.contains(state == 'normal' ? 'Construction session has completed' : 'sealed Builder cannot be configured')
+        !configured
+        probe.allocations == allocations
+        probe.configurations == 0
+        pair.model.labels == ['initial']
+        pair.model.children.empty
+
+        where:
+        [language, state, operation] << ['Java', 'static Groovy'].collectMany { language ->
+            ['normal', 'wrapper'].collectMany { state ->
+                ['add', 'convert', 'configure'].collect { [language, state, it] }
+            }
+        }
+    }
+
+    private Class compileJavaConsumer() {
+        File source = new File(tempFolder.root, 'preflight/JavaConsumer.java')
+        source.parentFile.mkdirs()
+        source.text = '''
+            package preflight;
+            import groovy.lang.Closure;
+            import java.net.URI;
+            public final class JavaConsumer {
+                public static void add(Registry_DSL.Builder<Registry> builder, Closure<?> body) { builder.label("late"); }
+                public static void convert(Registry_DSL.Builder<Registry> builder, Closure<?> body) { builder.child(URI.create("late")); }
+                public static void configure(Registry_DSL.Builder<Registry> builder, Closure<?> body) { builder.children(body); }
+            }
+        '''.stripIndent()
+        ByteArrayOutputStream errors = new ByteArrayOutputStream()
+        int result = ToolProvider.systemJavaCompiler.run(null, null, errors,
+                '-classpath', [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath].join(File.pathSeparator),
+                '-d', compilerConfiguration.targetDirectory.absolutePath, source.absolutePath)
+        assert result == 0: errors.toString()
+        loader.addClasspath(compilerConfiguration.targetDirectory.absolutePath)
+        loader.loadClass('preflight.JavaConsumer')
+    }
+
+    def "sealed template expansion preflights before validating configuration for #relationship"() {
+        given:
+        createSchema()
+        def factory
+        clazz.Create.With { delegate."$relationship" { factory = delegate } }
+
+        when:
+        factory.withTemplates([], null)
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains('Construction session has completed')
+
+        where:
+        relationship << ['children', 'entries']
     }
 
     private void createSchema() {
@@ -274,6 +431,7 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
             import java.net.URI
             import groovy.util.DelegatingScript
             @DSL class Registry {
+                @Field(FieldType.LINK) Registry linked
                 String host
                 List<String> labels
                 Map<String, String> settings
