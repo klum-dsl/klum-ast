@@ -31,6 +31,7 @@ import com.blackbuild.klum.ast.runtime.internal.layer3.StructuralPath;
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
@@ -73,8 +74,7 @@ public final class KlumObjectSupport<T> {
      * @throws KlumException if {@code object} is not a completed DSL Object
      */
     public static <T> KlumObjectSupport<T> of(T object) {
-        if (object == null)
-            throw new KlumException("KlumObjectSupport requires a non-null completed DSL Object");
+        Objects.requireNonNull(object, "object");
         if (InternalKlumObjectSupport.isModelProxy(object))
             throw new KlumException("Object of type " + object.getClass().getName() + " is not a completed DSL Object");
         InternalKlumObjectSupport.requireCompletedModel(object);
@@ -171,6 +171,21 @@ public final class KlumObjectSupport<T> {
 
         private Structure(T object) {
             this.object = object;
+        }
+
+        /**
+         * Returns the retained owning Schema declaration, or empty when no declaration is known.
+         * This is independent of explicit Owner values and does not infer ownership from a path.
+         * @throws KlumSchemaException if a retained declaration cannot be resolved
+         */
+        public Optional<KlumSchemaRelationship> getOwningRelationship() {
+            return KlumSchemaRelationship.fromDeclaration(InternalKlumObjectSupport.getOwningRelationship(object));
+        }
+
+        /** Returns an annotation on the owning declaration, or empty for an absent declaration/annotation. */
+        public <A extends Annotation> Optional<A> getOwningRelationshipAnnotation(Class<A> annotationType) {
+            Objects.requireNonNull(annotationType, "annotationType");
+            return getOwningRelationship().flatMap(relationship -> relationship.getAnnotation(annotationType));
         }
 
         /** Returns the non-transitive, non-root owners directly assigned to this object. */

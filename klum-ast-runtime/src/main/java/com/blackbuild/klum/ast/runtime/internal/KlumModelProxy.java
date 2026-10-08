@@ -56,6 +56,7 @@ final class KlumModelProxy implements KlumObjectCompanion {
     @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
     private final GroovyObject model;
     private final String breadcrumbPath;
+    private final SchemaRelationshipDeclaration owningRelationship;
     private String modelPath;
     private final Map<String, Serializable> metadata;
     private final Set<Class<?>> executedValidators = new HashSet<>();
@@ -63,6 +64,7 @@ final class KlumModelProxy implements KlumObjectCompanion {
     KlumModelProxy(GroovyObject model, InternalKlumBuilder.ModelState state) {
         this.model = model;
         this.breadcrumbPath = state.getBreadcrumbPath();
+        this.owningRelationship = state.getOwningRelationship();
         this.modelPath = state.getModelPath();
         this.metadata = new HashMap<>(state.getMetadata());
     }
@@ -102,6 +104,10 @@ final class KlumModelProxy implements KlumObjectCompanion {
     void setModelPathIfAbsent(String path) {
         if (modelPath == null)
             modelPath = path;
+    }
+
+    SchemaRelationshipDeclaration getOwningRelationship() {
+        return owningRelationship;
     }
 
     boolean hasMetaData(String key) {
