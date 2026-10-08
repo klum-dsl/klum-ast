@@ -4,7 +4,7 @@ Date: 2026-10-08
 
 Status: Accepted D1/D2/D3/D4/D6; D5 copied-container/alias policy remains gated
 
-Implementation status: RM-1 ordinary metadata/consumer tracer implemented; RM-2–RM-4 release qualification remains pending
+Implementation status: RM-1 and the approved bounded RM-2 subset implemented; D5 and RM-3/RM-4 acceptance remain pending
 
 Target: 4.1 (D4 approved)
 
@@ -29,7 +29,8 @@ The retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a` 
 `codex/issue-856-rm0-proof`, including its report and 33 characterization cases.
 The maintainer approved D2 internal accepted-definition retention with recipient recapture and D3 same-version-only
 serialization before bounded RM-2 implementation; see [the decision record](../implementation/issue-856-rm2-decisions.md).
-D5 copied-container/alias repairs are explicitly excluded from that assignment and remain an acceptance gap. Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
+D5 copied-container/alias repairs are explicitly excluded from that assignment and remain an acceptance gap.
+The implemented subset and validation are recorded in [the RM-2 evidence](../implementation/issue-856-rm2-evidence.md). Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
 
 ## Context and authority
 
@@ -156,8 +157,8 @@ would require a separate decision, not an accidental widening of the facade to r
 Same-version ordinary/Template Java serialization must preserve declaration identity and relationship graph identity.
 If an otherwise compatible stream lacks this record, return empty; do not claim it is necessarily a root. ADR 0004 makes
 no arbitrary cross-version serialization guarantee. Changing companion state must audit computed serialVersionUIDs and
-must not silently introduce a historical-stream promise. D3 explicitly chooses same-version serialization only. No particular older stream is promised; any later historical
-support would require named versioned fixtures and a new maintainer decision. Jackson remains foreign-format import/export, not companion persistence:
+must not silently introduce a historical-stream promise. D3 explicitly chooses same-version serialization only. No
+particular older stream is promised; any later historical support would require named versioned fixtures and a new maintainer decision. Jackson remains foreign-format import/export, not companion persistence:
 new owned imports capture their new edges, reference imports preserve linked targets, and no wire metadata is added.
 
 ### Separate mutation eligibility from metadata authority

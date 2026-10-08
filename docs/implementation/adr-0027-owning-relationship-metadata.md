@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: RM-1 ordinary tracer implemented under approved D1/D4/D6; RM-2–RM-4 pending
+Status: RM-1 and approved bounded RM-2 implemented; D5, RM-3 and RM-4 remain open
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
@@ -314,7 +314,7 @@ The maintainer accepted internal declaration retention for existing Template-def
 serialization. Qualify accepted normal container construction/imports, direct single-field copies and nested merges into
 already claimed recipients. Copied-container direct insertion, conflicting cross-field recipe aliases, and OPTIONAL_LINK
 copy repairs are excluded. No historical byte fixture is promised. The full original RM-2/A24 contract remains open at D5;
-only the bounded subset may be reported delivered. Preserve the source-audit evidence and distinguish normal container
+only the bounded subset may be reported delivered. See [the RM-2 evidence](issue-856-rm2-evidence.md). Preserve the source-audit evidence and distinguish normal container
 attachment from CopyHandler bypasses. No RM-3/RM-4 work follows from this authorization.
 
 ### RM-3 — complete Java/Groovy binary and JPMS qualification
@@ -429,7 +429,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Issue/decision | Relationship to this plan |
 | --- | --- |
-| #856 / ADR 0027 | RM-1 is implemented; RM-2–RM-4 remain gated; parent remains open for maintainer reconciliation |
+| #856 / ADR 0027 | RM-1 and bounded RM-2 are implemented; D5, RM-3/RM-4 and parent acceptance remain open for maintainer reconciliation |
 | #390 / ADR 0006 | Extend completed Structure without weakening its object/companion boundary |
 | #431 / ADR 0004 | Preserve active-session composition, Template/copy protocol and serialization scope |
 | #391 / ADRs 0014/0015 | Reuse module and generated-linkage acceptance; no new public internal access |

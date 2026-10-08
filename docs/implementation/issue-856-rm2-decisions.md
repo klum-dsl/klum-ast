@@ -2,7 +2,8 @@
 
 Date: 2026-10-08
 
-Status: D2/D3 explicitly approved by the maintainer on 2026-10-08; bounded implementation in progress.
+Status: D2/D3 explicitly approved by the maintainer on 2026-10-08; bounded implementation delivered locally.
+Validation and remaining gates: [RM-2 evidence](issue-856-rm2-evidence.md).
 
 Authority: the RM-2 assignment, [#856](https://github.com/klum-dsl/klum-ast/issues/856),
 [ADR 0027](../adr/0027-owning-relationship-metadata.md), and its
@@ -20,8 +21,8 @@ D1, D4=4.1, and D6 are already approved and are not reopened.
   `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a`, branch `codex/issue-856-rm0-proof`.
   The report was read through Git; neither its tests nor its baseline assertions were cherry-picked.
 
-Source was inspected at the base above; no new behavioral test result is claimed. Runtime, API, compiler, and test files
-remain unchanged at this decision boundary.
+The original brief inspected source at the base above and changed only this planning file. The later approval authorized
+the bounded implementation and tests, recorded separately in the evidence report.
 
 ## D2: internally retain definition declarations and recapture recipient declarations
 
@@ -39,7 +40,7 @@ The payload remains declaring Class plus member name. Retention adds no Owner in
 Field, Optional, annotation proxy, callback, or facade reference. Existing Template recipe closure rules remain in force.
 The new field may change the Template companion's computed serialVersionUID; D3 approves same-version persistence only.
 
-Illustrative Schema/Model syntax, not new API and not yet an executable RM-2 result:
+Schema/Model syntax exercised by `RelationshipTemplateCopyTest#'a Template child is recaptured under the recipient field on each application'`:
 
 ```groovy
 @DSL class Node { String value }
@@ -65,11 +66,11 @@ relationship values including LINK, and normal Jackson export still rejects Temp
 operation or guard bypass follows from internal retention. Value-only Template imports must retain accepted definition
 edges without relying on OWNER callbacks, because they run no ordinary lifecycle.
 
-Alternative: defer internal Template retention. This avoids changing the Template companion's serialized form now, while
+Rejected alternative during the decision: defer internal Template retention. This avoids changing the Template companion's serialized form now, while
 existing accepted recipient claims can still supply ordinary result metadata. It leaves A12 and the Template portion of
 A15 unresolved and requires the ADR/plan to state that deferral. Direct public Template inspection is outside either option.
 
-## D3: choose the serialized-stream promise
+## D3: same-version serialized-stream promise
 
 Approved decision: qualify Java serialization within the same KlumAST version, with the required Schema
 classes available and compatible. This follows [ADR 0004](../adr/0004-asbuilder-composition-protocol.md). It adds no Schema
@@ -154,5 +155,5 @@ The maintainer explicitly followed both recommendations and instructed continuat
 implementation above, preserving the D5 exclusion. Hive owns final delivery/archive reconciliation.
 
 Decision-brief validation: four local Markdown destinations exist, code fences are balanced, and staged whitespace and
-file-scope checks pass. Groovy lanes are not required for this planning-only change. Master was fetched successfully at
-the recorded base; a later remote-tip refresh was unavailable, so recheck it before implementation/delivery reconciliation.
+file-scope checks pass. Groovy lanes are not required for this planning-only change. Master was fetched successfully at the recorded base and refreshed successfully before implementation; no new master
+commit was observed at that refresh. Recheck it before delivery reconciliation.
