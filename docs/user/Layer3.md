@@ -356,6 +356,44 @@ def order = OrderApplication.Create.With {
 assert order.kafka.facts.is(messagingFacts)
 ```
 
+The selected relationship target may itself be a completed DSL Model of the Schema field's type, or a compatible
+Builder during active construction. A completed target retains its identity and existing Owner; it is not re-owned or
+processed again by the consuming lifecycle. Unrelated target types remain rejected with a diagnostic identifying the
+declaring Model, relationship field, actual target type, and declared Schema field type
+([#853](https://github.com/klum-dsl/klum-ast/issues/853)).
+
+(See: `LinkToModelTargetTest#'declarative link accepts a completed DSL Model through a sealed LINK provider'`.)
+
+```groovy
+@DSL class OrderApplication {
+    @Field(FieldType.LINK) OrderEnvironment environment
+    OrderKafka kafka
+}
+@DSL class OrderEnvironment {
+    MessagingFacts messaging
+}
+@DSL class MessagingFacts {
+    @Owner OrderEnvironment environment
+    String topic
+}
+@DSL class OrderKafka {
+    @Owner OrderApplication application
+    @Field(FieldType.LINK)
+    @LinkTo(provider = { application.environment }, field = 'messaging')
+    MessagingFacts facts
+}
+
+def completedEnvironment = OrderEnvironment.Create.With {
+    messaging { topic 'orders' }
+}
+def order = OrderApplication.Create.With {
+    environment(completedEnvironment)
+    kafka()
+}
+assert order.kafka.facts.is(completedEnvironment.messaging)
+assert order.kafka.facts.environment.is(completedEnvironment)
+```
+
 ### Role fields
 
 Fields can be annotated with `@Role` to indicate that they are used for a specific role as seen from their owner. 
