@@ -66,7 +66,7 @@ public class LinkHelper {
         if (value == null) return;
         Field schemaField = DslHelper.getField(builder.getModelType(), field.getName()).orElse(field);
 
-        if (!field.getType().isAssignableFrom(value.getClass()))
+        if (!field.getType().isInstance(value) && !schemaField.getType().isInstance(value))
             throw new KlumVisitorException(String.format("LinkTo annotation on %s#%s targets %s, which is not compatible with the field type %s",
                     field.getDeclaringClass().getName(), field.getName(), value.getClass().getName(), field.getType().getName()), builder);
 
