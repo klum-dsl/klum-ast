@@ -977,6 +977,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the added element
      */
     public <T> T addElementToCollection(String fieldName, T element) {
+        assertMutable();
         Field schemaField = getModelField(fieldName);
         Object stored = DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, element) : forceCastClosure(element, DslHelper.getElementType(schemaField));
         Collection<Object> target = getInstanceAttribute(fieldName);
@@ -1027,6 +1028,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @param elements the elements to add
      */
     public void addElementsToCollection(String fieldName, Object... elements) {
+        assertMutable();
         Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
     }
 
@@ -1036,6 +1038,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @param elements the elements to add
      */
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
+        assertMutable();
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
@@ -1064,6 +1067,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <K, V> void addElementsToMap(String fieldName, Map<K, V> values) {
+        assertMutable();
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
     }
 
@@ -1082,10 +1086,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
+        assertMutable();
         values.forEach(value -> addElementToMap(fieldName, null, value));
     }
 
     public void addElementsToMap(String fieldName, Object... values) {
+        assertMutable();
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
     }
 
@@ -1165,6 +1171,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <K, V> V addElementToMap(String fieldName, K key, V value) {
+        assertMutable();
         doAddElementToMap(fieldName, key, value);
         return value;
     }
