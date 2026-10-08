@@ -177,6 +177,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .callThis("$klum$assertMutable")
                 .assignS(propX(varX(closureVarName), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
                         propX(varX(closureVarName), "resolveStrategy"),

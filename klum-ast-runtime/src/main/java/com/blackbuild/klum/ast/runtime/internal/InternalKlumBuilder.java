@@ -622,7 +622,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         applyClosure(body);
     }
 
-    private void assertMutable() {
+    protected final void assertMutable() {
         assertConstructionSessionActive();
         if (sealed)
             throw new KlumModelException("A sealed Builder cannot be configured");

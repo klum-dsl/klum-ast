@@ -46,6 +46,11 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         super(modelType);
     }
 
+    /** Preflights generated configuration before evaluating a factory, converter, or closure. */
+    public final void $klum$assertMutable() {
+        super.assertMutable();
+    }
+
     @Override
     protected void $assignRelationships() {
         super.$assignRelationships();

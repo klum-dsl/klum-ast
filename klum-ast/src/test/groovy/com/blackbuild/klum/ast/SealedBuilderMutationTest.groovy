@@ -102,6 +102,29 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         }
     }
 
+    def "sealed #state rejects the #relationship factory block before invoking its closure"() {
+        given:
+        createSchema()
+        def pair = sealedPair(state)
+        boolean configured = false
+        def body = { configured = true }
+
+        when:
+        pair.builder."$relationship"(body)
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains(state == 'normal' ? 'Construction session has completed' : 'sealed Builder cannot be configured')
+        !configured
+        body.delegate.is(this)
+        body.resolveStrategy == Closure.OWNER_FIRST
+
+        where:
+        [state, relationship] << ['normal', 'wrapper'].collectMany { state ->
+            ['children', 'entries'].collect { [state, it] }
+        }
+    }
+
     private void createSchema() {
         createClass('''
             package preflight
