@@ -10,7 +10,8 @@
   preserves declarations and graph/recipe identity; historical streams are not promised and serialized Templates should
   be regenerated on upgrade. Public Template rejection remains intact. Java 17 and static/dynamic Groovy 3/4/5
   artifact consumers and Groovy 4/5 JPMS consumers are qualified without new module exports or broad opens.
-  Copied-container/conflicting-alias repairs and final acceptance remain later
+  Copy qualification preserves existing aliases and returns empty metadata when no authoritative claim exists, even
+  for unique container placements; consumer AUTO_LINK examples handle absence explicitly. Final acceptance remains a later
   [#856](https://github.com/klum-dsl/klum-ast/issues/856) release gates.
 
 - Sealed Builders now reject framework collection/Map additions and child, converter, producer, Template, and script

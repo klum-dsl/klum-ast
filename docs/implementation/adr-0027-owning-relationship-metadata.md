@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: RM-1, approved bounded RM-2 and RM-3 compatibility qualification implemented; D5 and RM-4 remain open
+Status: RM-1, bounded RM-2, RM-3 and revised D5 qualification implemented; RM-4 remains open
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
@@ -14,7 +14,9 @@ D1's exact descriptors/equality/errors, D4 placement in 4.1, and D6 lifetime are
 RM-1's direct/inherited ordinary tracer, documented in [the RM-1 evidence](issue-856-rm1-evidence.md).
 Retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a`, with 33 characterization cases.
 D2 accepted-definition Template retention/recipient recapture and D3 same-version serialization are explicitly approved
-for bounded RM-2 in [the decision record](issue-856-rm2-decisions.md). D5 repairs remain excluded and unresolved. The source-audit tables below retain their historical planning bases; the RM-1 report
+for bounded RM-2 in [the decision record](issue-856-rm2-decisions.md). Revised D5 now preserves copied aliases and
+qualifies authoritative declarations versus truthful Optional absence, without a runtime repair; see the
+[D5 evidence](issue-856-d5-conflict-evidence.md) and revised decision linked there. The source-audit tables below retain their historical planning bases; the RM-1 report
 identifies which acceptance rows now have executable public-API evidence. Initial guidance is delivered with this seam;
 RM-3 is separately authorized and its artifact-consumer/JPMS qualification is recorded in
 [the RM-3 evidence](issue-856-rm3-evidence.md). Full RM-4 documentation/acceptance remains pending.
@@ -94,7 +96,7 @@ is not an implemented generic specialization dependency.
 | --- | --- | --- |
 | `klum-ast-runtime`, public runtime package | KlumBuilderSupport and nested Structure; shared KlumSchemaRelationship; additive completed Structure queries | No public raw Field, internal Builder, companion, session, or Model extraction |
 | InternalKlumBuilder relationship normalization/claim, late attachment, ModelState and companion creation | Private declaring-class/member identity; transfer final claim into completed state | LINK never owns; per-entry OPTIONAL_LINK semantics; no retained Builder/owner graph pointer |
-| CopyHandler single/collection/map insertion and rehydrated recipe identity map | Capture qualified recipient owning declaration for copied owned entries, including direct collection/map insertion | Preserve LINK identity, overwrite strategies and alias identity; no blanket normalization that changes OPTIONAL_LINK behavior |
+| CopyHandler single/collection/map insertion and rehydrated recipe identity map | Qualify existing claim capture and truthful absence for direct container insertion; no new runtime hook | Preserve copy identity, overwrite strategies, aliases and OPTIONAL_LINK behavior; never create claims to fill metadata |
 | Internal Model/Template companions and InternalKlumObjectSupport | Typed internal read/transfer seam and serialization audit | No arbitrary public metadata; no Optional/annotation/Field serialization |
 | PhaseDriver and existing Builder state checks | Compose receiver/session checks with operation-time numeric phase guard | Never create a session, reorder phases, or cache lifetime eligibility |
 | CompositionTraversal/BuilderStructureSupport/OwnerPhase | Reuse declaration resolution/traversal context only as needed, including late subtree initialization | Existing traversal filtering, Owner semantics, and paths stay unchanged |
@@ -114,13 +116,13 @@ An explicit retained record that fails resolution throws with declaring Schema/m
 back to a path or Optional.empty(). Runtime annotation lookup does not require making a field value accessible; field
 visibility and JPMS access must be qualified, including a private annotated owning declaration.
 
-At normalized attachment, capture from the claim that normalization accepts. Rejected composition inputs cannot install metadata.
-For direct CopyHandler collection/map insertion, qualify a separate owned-placement hook or reconcile accepted edges before
-snapshotting; current code does not guarantee a claim for these entries. RM-0/D5 must establish the supported mechanism
-and behavior for reused recipe identities across distinct fields. Do not choose an arbitrary first visit, duplicate a
-copied target to make metadata simpler, or change aggregate entries into composition. Same-field repeated entries share
-the same declaration. If the existing graph has genuinely conflicting owned declarations, return for D5 rather than
-silently promising unique ownership. A generic ownership repair outside this metadata seam remains separately scoped.
+At normalized attachment, capture the claim that normalization already accepts. Rejected inputs cannot install metadata.
+Revised D5 preserves valid copied aliases within/across fields. Direct CopyHandler collection/map insertion establishes
+no claim, even when the placement is unique; return Optional.empty() instead of adding ownership, reconciling traversal
+edges or choosing first/last. An alias of an already claimed recipient reads that existing declaration. A repeated entry
+has no index/key declaration identity. Empty metadata does not identify a root. Existing input rejection remains intact;
+metadata qualification cannot introduce new rejection, cloning or aggregation conversion. See the D5 matrix for precise
+copy/normal-attachment and OPTIONAL_LINK materialization boundaries.
 A permitted self-OPTIONAL_LINK-to-composition transfer updates the claim/declaration together. Late attachment after
 OWNER must work through the existing ownership initialization seam without changing when ordinary Owner callbacks run.
 The final snapshot is taken before or during internal allocation/companion creation and is available by VALIDATE. Two-pass
@@ -148,7 +150,7 @@ Before 40, accepted ordinary composition claims can still change through existin
 read the current authoritative declaration, not a cached early result. Normal allocation/sealing leaves the accepted
 claim unchanged. The proposed capture record must match the completed snapshot; these fields are not erased at 40 or
 COMPLETE. Source presence after session exit does not grant read authority. Copy paths without a qualified declaration
-remain D5 cases; the lifetime proposal does not bless them or repair ownership.
+are qualified by revised D5 as valid absence; the lifetime policy does not add or repair ownership.
 
 Approved per-request checks under D6:
 
@@ -159,7 +161,8 @@ Approved per-request checks under D6:
 3. Require current numeric phase `phase > 15`; construction with no phase and custom phases ≤15 reject. No upper bound.
 4. Resolve authoritative metadata: current accepted/qualified declaration for normal Builders (including normally sealed
    ones), original completed-target record for LINK wrappers; return empty only for valid absence. Fail explicit invalid
-   records/ownership conflicts. Never use LINK alias, Owner members, Role or paths as substitutes.
+   records. Existing input rejection remains unchanged; copied aliases without authority return empty under revised D5.
+   Never use LINK alias, Owner members, Role or paths as substitutes.
 
 Acquisition can happen early, including for a genuine sealed wrapper, but every query rechecks eligibility and source
 identity. A cached successful read cannot authorize another call. Preserve the detached immutable descriptor's independent
@@ -291,8 +294,8 @@ entries, accepted claim transfer and existing late attachment. Do not infer decl
 change the ownership engine. Qualify the D6 lifetime across these already-supported construction routes.
 
 Under D2, retain Template definition declarations internally while preserving direct public Template rejection, and
-recapture recipient fields on application. Under D5, qualify CopyHandler direct container insertion and conflicting
-recipe aliases using the approved bounded mechanism; do not normalize aggregation into ownership or duplicate targets
+recapture accepted recipient fields on application. Under revised D5, qualify direct CopyHandler container insertion
+and preserved recipe aliases with truthful absence where no authoritative claim exists; do not normalize aggregation into ownership or duplicate targets
 for convenience. Ordinary Model/Map and same-session Builder copy paths retain their existing semantics.
 
 Under D3, qualify same-version ordinary/Template serialization, linked cycles, subtrees without owner backreferences and
@@ -309,13 +312,13 @@ Use TemplatesSpec/TemplateRecipeStateTest and existing KlumJacksonImporterSpec/C
 Acceptance: complete A04/A06–A09/A12–A16/A18/A19/A24 and extended A10/A11/A26. D2/D3/D5 cannot be bypassed by a successful
 RM-1 tracer. No feature-release claim is made before these persistence/graph qualifications pass.
 
-### Authorized RM-2 subset after D2/D3 approval
+### Historical bounded RM-2 authorization after D2/D3 approval
 
 The maintainer accepted internal declaration retention for existing Template-definition claims and same-version-only Java
 serialization. Qualify accepted normal container construction/imports, direct single-field copies and nested merges into
 already claimed recipients. Copied-container direct insertion, conflicting cross-field recipe aliases, and OPTIONAL_LINK
 copy repairs are excluded. No historical byte fixture is promised. The full original RM-2/A24 contract remains open at D5;
-only the bounded subset may be reported delivered. See [the RM-2 evidence](issue-856-rm2-evidence.md). Preserve the source-audit evidence and distinguish normal container
+that was the bounded RM-2 delivery boundary, subsequently superseded for A24 by revised D5 qualification. See [the RM-2 evidence](issue-856-rm2-evidence.md). Preserve the source-audit evidence and distinguish normal container
 attachment from CopyHandler bypasses. No RM-3/RM-4 work follows from this authorization.
 
 ### RM-3 — complete Java/Groovy binary and JPMS qualification
@@ -368,7 +371,7 @@ ADR gates. New test classes use the Test suffix and @Issue("856") or the assigne
 | A11 | Retained views after completion/abort, foreign session/thread, Template-definition Builder; fresh lookup in a different lifecycle | Reject before declaration read despite retained fields/old success; no session resurrection; completed ordinary Model lookup and detached descriptor remain independent | RM-1/RM-2 |
 | A12 | Marked Template root and owned nodes, including value-only imported Template; D2 policy | Internal definition-edge record for owned nodes/root absence; public completed facade still rejects Templates; no public live Builder access without session | RM-2 |
 | A13 | Template applied under a different recipient field; same template applied twice | Fresh graphs each expose recipient-edge metadata, not source edge; recipe and linked identities unchanged | RM-2 |
-| A14 | copyFrom ordinary Model/Map/same-session Builder; nested copy and standalone root copy | Recipient claims recaptured; no old owner adoption; standalone root empty; existing sealed/cross-session rejection | RM-2 |
+| A14 | copyFrom ordinary Model/Map/same-session Builder; nested copy and standalone root copy | Existing recipient claims retained/recaptured; claimless containers remain empty; no old owner adoption; standalone root empty; sealed/cross-session rejection unchanged | RM-2/revised D5 |
 | A15 | Ordinary/Template Java serialization; linked cycles; subtree without Owner | Same-version declaration/annotation and graph identities restored; no owner graph pulled in by metadata; no Field/Optional/session/Builder state serialized | RM-2 |
 | A16 | Compatible absent record; invalid retained declaration; specific historical stream only if D3 authorizes | Absent yields empty; explicit bad record fails with Schema/member; UID compatibility proved for each claimed version | RM-0/RM-2 |
 | A17 | Exact/missing annotation and null Class; retained descriptor after Builder expires | Typed Optional values, empty for absence, null rejected; immutable descriptor usable without live session | RM-1 |
@@ -378,7 +381,7 @@ ADR gates. New test classes use the Test suffix and @Issue("856") or the assigne
 | A21 | G4/G5 named modules; private field annotation; separate annotation module; same names in separate classloaders | Public export sufficient, existing schema opens baseline; no extra broad opens/exports; cache respects Class identity | RM-3 |
 | A22 | Inspect KlumBuilder, Foo_DSL signatures, Model properties, AnnoDocimal mirrors, wire output | Marker remains zero-operation; no added generated interface/mirror/Model/wire property; no internal type in public signatures | RM-3 |
 | A23 | Documentary Builder callback and completed annotation read; release guidance | Example matches executable test; @Issue/@Tag/@See and issue/docs traceability; feature only documented as delivered when green | RM-4 |
-| A24 | Ordinary Model/Template list/map copies through direct CopyHandler insertion; overwrite strategies; repeated recipe aliases and OPTIONAL_LINK entries | Characterize current claims/materialization in RM-0; after D5, capture the approved recipient declaration without arbitrary traversal tie-breaking, target duplication, or aggregation changes | RM-0/RM-2 |
+| A24 | Model/Template/Map/same-session Builder List/Set/Map copies; overwrite modes; repeated aliases and OPTIONAL_LINK entries | Preserve identity, claims and materialization; expose existing authoritative declarations; otherwise Optional.empty(), including unique placements; no new claims or tie-breaking | RM-0/RM-2/revised D5 |
 | A25 | ScHelm tracer: inherited receiver Facts relationship/AUTO_LINK, owning Binding; independently completed owned provider candidates with Source/default markers; separately compiled bases/annotations where feasible | Both public facades expose exact owning declarations and typed Optional annotations; test-local consumer policy calls existing typed relationship operation; exact completed-target identity/ownership and explicit override preserved; no transport or internal API | RM-1 |
 | A26 | D6 lifetime: normal allocation/sealing, phase-40 actions before/after InstantiatePhase, custom >40, 50/80/100; same-session LINK wrapper; repeated calls then exit/abort | Authoritative declaration remains readable while context valid, even sealed; wrapper yields original target declaration/absence; no mutation or partial-graph promise; exit/abort rejects; both query methods recheck every call | RM-0/RM-1/RM-2 |
 
@@ -422,7 +425,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 | D2 Template retention | Approved internal accepted-definition retention and recipient recapture with public rejection; direct inspection remains separately gated | Approved for bounded RM-2 |
 | D3 historical stream compatibility | Approved same-version-only ordinary/Template scope; no named historical streams or guessed UID | Approved for bounded RM-2 |
 | D4 scheduling and release | Approved for 4.1; RM-1 delivered separately, later slices need explicit authorization | Approved; Hive owns release reconciliation |
-| D5 copied-container ambiguity | RM-0 inventories bypasses/conflicts; decision gates RM-2 copy qualification, not direct-field RM-1; broader ownership repair needs separate approval | Maintainer before RM-2 |
+| D5 copied-container authority | Revised decision accepts valid aliases and truthful Optional absence; completed matrix and inherited consumer regression require no runtime repair | Approved; D5 qualification delivered |
 | D6 read-only lifetime revision | Approve active same-session + phase >15 + authoritative source, removing unsealed/<40 checks; include normal sealing and LINK wrappers, preserve post-exit/abort rejection | Approved; RM-1 guard implemented |
 | Claim transfer/late attachment versus traversal | Derive from authoritative claim, update atomically; do not cache a first traversal alias | RM-1/RM-2 |
 | Reflection/classloader/JPMS | Direct annotation metadata needs no value access; prove private fields and Class identity, return for narrow decision on access gaps | RM-3 |
@@ -431,7 +434,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Issue/decision | Relationship to this plan |
 | --- | --- |
-| #856 / ADR 0027 | RM-1, bounded RM-2 and RM-3 are implemented; D5, RM-4 and parent acceptance remain open for maintainer reconciliation |
+| #856 / ADR 0027 | RM-1, bounded RM-2, RM-3 and revised D5 qualification are implemented; RM-4 and parent acceptance remain open for maintainer reconciliation |
 | #390 / ADR 0006 | Extend completed Structure without weakening its object/companion boundary |
 | #431 / ADR 0004 | Preserve active-session composition, Template/copy protocol and serialization scope |
 | #391 / ADRs 0014/0015 | Reuse module and generated-linkage acceptance; no new public internal access |
