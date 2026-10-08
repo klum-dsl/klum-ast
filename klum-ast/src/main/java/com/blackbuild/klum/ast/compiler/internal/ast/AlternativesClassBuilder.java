@@ -398,6 +398,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .returning(GeneratedDslSupport.publicType(getBuilderClassOf(returnType)))
                 .optional()
                 .cloneParamsFrom(methodNode)
+                .callMethod("rw", "$klum$assertMutable")
                 .callThis(memberName, builderCall);
         BuilderMethodProjection.documentComposition(method, methodNode, returnType);
         method.addTo(collectionFactory);

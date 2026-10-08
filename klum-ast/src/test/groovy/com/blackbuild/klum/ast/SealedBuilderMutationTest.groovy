@@ -232,6 +232,40 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         }
     }
 
+    def "retained built-in #relationship factory preflights before Map import"() {
+        given:
+        createClass('''
+            package preflight
+            @DSL class Directory {
+                List<Record> records
+                Map<String, Record> indexedRecords
+            }
+            class Probe { static int allocations }
+            @DSL class Record {
+                @Key String key
+                String value
+                int allocation = ++Probe.allocations
+            }
+        ''')
+        def factory
+        clazz.Create.With { delegate."$relationship" { factory = delegate } }
+        def probe = getClass('Probe')
+        boolean configured = false
+        def body = { configured = true; value 'late' }
+
+        when:
+        clazz.Create.With { factory.FromMap([key: 'late', value: 'late']) }
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains('Construction session has completed')
+        !configured
+        probe.allocations == 0
+
+        where:
+        relationship << ['records', 'indexedRecords']
+    }
+
     private void createSchema() {
         createClass('''
             package preflight
