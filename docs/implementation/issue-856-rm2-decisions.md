@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: Decision-ready; D2/D3 await explicit maintainer decisions. No implementation is authorized by this brief.
+Status: D2/D3 explicitly approved by the maintainer on 2026-10-08; bounded implementation in progress.
 
 Authority: the RM-2 assignment, [#856](https://github.com/klum-dsl/klum-ast/issues/856),
 [ADR 0027](../adr/0027-owning-relationship-metadata.md), and its
@@ -25,7 +25,7 @@ remain unchanged at this decision boundary.
 
 ## D2: internally retain definition declarations and recapture recipient declarations
 
-Recommended decision, still pending: retain a nullable `SchemaRelationshipDeclaration` in the internal Template companion
+Approved decision: retain a nullable `SchemaRelationshipDeclaration` in the internal Template companion
 for each existing accepted composition claim. The root has no owning declaration. Preserve the original declaring Schema
 Class/member for inherited fields. Applying or copying a Template creates fresh Builders and captures their accepted
 recipient edges; source metadata must never be copied as an instruction to adopt the source owner.
@@ -37,7 +37,7 @@ the generated `$createCompanion` descriptor and public/generated contracts need 
 
 The payload remains declaring Class plus member name. Retention adds no Owner instance, Builder, session, path, reflection
 Field, Optional, annotation proxy, callback, or facade reference. Existing Template recipe closure rules remain in force.
-The new field may change the Template companion's computed serialVersionUID; D3 must settle the persistence promise first.
+The new field may change the Template companion's computed serialVersionUID; D3 approves same-version persistence only.
 
 Illustrative Schema/Model syntax, not new API and not yet an executable RM-2 result:
 
@@ -71,7 +71,7 @@ A15 unresolved and requires the ADR/plan to state that deferral. Direct public T
 
 ## D3: choose the serialized-stream promise
 
-Recommended decision, still pending: qualify Java serialization within the same KlumAST version, with the required Schema
+Approved decision: qualify Java serialization within the same KlumAST version, with the required Schema
 classes available and compatible. This follows [ADR 0004](../adr/0004-asbuilder-composition-protocol.md). It adds no Schema
 evolution promise, arbitrary cross-version compatibility, or JSON/YAML persistence format.
 
@@ -117,12 +117,12 @@ The original full RM-2 matrix includes D5-dependent coverage. Completing this bo
 full RM-2/A24 or feature-release acceptance; copied-container/alias qualification remains open for a later explicit decision.
 If a permitted case requires such a repair, stop that case with concrete evidence and retain the limitation.
 
-## Proposed implementation after explicit decisions
+## Approved bounded implementation
 
 1. Qualify accepted direct/list/set/map attachments, LINK/OPTIONAL_LINK mixed entries, repeated aggregate identities,
    claim transfer/rejection, cycles, and late attachment through both state-specific views. Reuse the approved D6 guard;
    preserve #847/#855 sealed-Builder mutation behavior.
-2. If D2 retention is approved, extend only internal Template companion transfer, and qualify definition claims, public
+2. Under approved D2, extend only internal Template companion transfer, and qualify definition claims, public
    rejection, fresh recipient fields, repeated applications, standalone-root absence, and the permitted copy-source routes.
 3. Under the chosen D3 promise, qualify same-version graph/declaration/annotation identity, detached subtrees, recipe replay,
    metadata absence/corruption, serialized field/UID audits, and exclusion of construction state from the new payload.
@@ -144,14 +144,14 @@ Push/draft PR only after the explicitly accepted bounded scope is complete, vali
 | Gate | Current disposition | Required next input |
 | --- | --- | --- |
 | D1 | Approved | None; preserve RM-1 descriptors/equality/errors |
-| D2 | Pending | Approve internal accepted-definition retention with recipient recapture, or defer Template retention |
-| D3 | Pending | Same-version only, or named historical producer/fixture set with explicit compatibility criteria |
+| D2 | Approved | Retain existing accepted definition declarations internally and recapture recipient edges |
+| D3 | Approved | Same-version only; no historical producer/fixture promise |
 | D4 | Approved, 4.1 | None; no new release-readiness claim |
 | D5 | Repair excluded by assignment; broader policy unresolved | No repair in this task; retain the acceptance gap |
 | D6 | Approved | None; preserve per-operation active-session and phase >15 reads |
 
-No implementation follows from the task start, this brief, a suggested choice, or elapsed time. Await explicit D2/D3
-decisions before changing runtime/API/compiler or implementation tests. Hive owns final delivery/archive reconciliation.
+The maintainer explicitly followed both recommendations and instructed continuation. This authorizes the bounded
+implementation above, preserving the D5 exclusion. Hive owns final delivery/archive reconciliation.
 
 Decision-brief validation: four local Markdown destinations exist, code fences are balanced, and staged whitespace and
 file-scope checks pass. Groovy lanes are not required for this planning-only change. Master was fetched successfully at

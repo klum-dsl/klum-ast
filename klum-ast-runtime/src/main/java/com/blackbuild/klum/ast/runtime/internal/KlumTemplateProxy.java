@@ -36,13 +36,15 @@ public final class KlumTemplateProxy implements KlumObjectCompanion {
     private final String breadcrumbPath;
     private final String modelPath;
     private final TemplateRecipeState recipeState;
+    private final SchemaRelationshipDeclaration owningRelationship;
 
     KlumTemplateProxy(GroovyObject object, String breadcrumbPath, String modelPath,
-                      TemplateRecipeState recipeState) {
+                      TemplateRecipeState recipeState, SchemaRelationshipDeclaration owningRelationship) {
         this.object = Objects.requireNonNull(object);
         this.breadcrumbPath = breadcrumbPath;
         this.modelPath = modelPath;
         this.recipeState = Objects.requireNonNull(recipeState);
+        this.owningRelationship = owningRelationship;
     }
 
     @Override

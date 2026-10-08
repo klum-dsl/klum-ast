@@ -396,7 +396,8 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                     model,
                     getBreadcrumbPath(),
                     modelPath,
-                    TemplateRecipeState.capture(applyLaterClosures)
+                    TemplateRecipeState.capture(applyLaterClosures),
+                    owningRelationship
             );
         return new KlumModelProxy(model, exportModelState());
     }
