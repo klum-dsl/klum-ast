@@ -139,7 +139,13 @@ These terms are sourced from the user documentation and consolidated here. Use t
   the object, construction path, structural model path, and grouped composition structure traversal without exposing
   the internal companion. Its Structure helper is composition-only and identity-cycle-safe; it skips Owner and LINK edges.
   Completed-model phase traversal uses this helper directly, while Builder phases use a separate internal Builder structure
-  helper. The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
+  helper. Both completed Structure and `KlumBuilderSupport.of(builder).getStructure()` now read retained owning Schema
+  declarations through immutable `KlumSchemaRelationship` and typed Optional annotation queries. The declaration is
+  independent of Owner values and identifies the original declaring Schema field. Each Builder ownership request
+  requires its current active same-thread Construction session strictly after OWNER(15); normal sealing permits reads
+  while that session remains active. LINK wrappers read the completed target's original record. The initial #856 tracer
+  leaves Template/copy/persistence/import and full binary/JPMS qualification gated.
+  The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
 
   Its Validation helper (`getValidation`) reads stored target/subtree results and verifies them without rerunning validators
   or mutating lifecycle issue state. Completed-model validation readers do not access the companion directly.

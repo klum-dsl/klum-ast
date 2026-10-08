@@ -2,6 +2,16 @@
 
 ## To 4.1
 
+### Reading owning Schema declarations
+
+The initial [owning-declaration support](Completed-Object-Support.md#owning-schema-declarations) is additive. Use
+`KlumBuilderSupport.of(builder).getStructure()` in the current active session after OWNER, and
+`KlumObjectSupport.of(model).getStructure()` for completed Objects. No Schema recompilation or generated-interface
+change is required solely for the facade. Existing `LinkTo`/`LinkSource` selection remains unchanged. Null completed
+Object receivers now throw `NullPointerException("object")`, matching the new Builder and annotation-query contract.
+Template/copy/persistence and full binary/JPMS qualification remain later #856 gates; no historical serialization promise
+is introduced by this tracer.
+
 ### Opting in to portable DelegatingScript IDE metadata
 
 The [IntelliJ DelegatingScript workflow](Portable-GDSL.md) is additive: existing factory calls, script bases,

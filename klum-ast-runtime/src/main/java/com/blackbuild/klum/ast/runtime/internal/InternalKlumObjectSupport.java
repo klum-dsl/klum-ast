@@ -57,6 +57,11 @@ public final class InternalKlumObjectSupport {
         KlumModelProxy.getProxyFor(instance);
     }
 
+    /** Returns retained declaration identity without exposing the completed companion. */
+    public static SchemaRelationshipDeclaration getOwningRelationship(Object instance) {
+        return KlumModelProxy.getProxyFor(instance).getOwningRelationship();
+    }
+
     /** Returns the direct owners recorded for an ordinary completed DSL Object. */
     public static Set<Object> getOwners(Object instance) {
         return KlumModelProxy.getProxyFor(instance).getOwners();

@@ -104,6 +104,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     private transient boolean constructionSessionActive;
     private transient InternalKlumBuilder<?> compositionOwner;
     private transient String compositionFieldName;
+    private transient SchemaRelationshipDeclaration owningRelationship;
 
     private String breadcrumbPath;
     private String modelPath;
@@ -375,8 +376,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return Collections.unmodifiableMap(copy);
     }
 
+    SchemaRelationshipDeclaration readOwningRelationship() {
+        if (wrapsCompletedModel)
+            return InternalKlumObjectSupport.getOwningRelationship(completedModel);
+        return owningRelationship;
+    }
+
     final ModelState exportModelState() {
-        return new ModelState(getBreadcrumbPath(), modelPath, metadata);
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata, owningRelationship);
     }
 
     /**
@@ -398,11 +405,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         private final String breadcrumbPath;
         private final String modelPath;
         private final Map<String, Serializable> metadata;
+        private final SchemaRelationshipDeclaration owningRelationship;
 
-        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata) {
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata,
+                           SchemaRelationshipDeclaration owningRelationship) {
             this.breadcrumbPath = breadcrumbPath;
             this.modelPath = modelPath;
             this.metadata = new HashMap<>(metadata);
+            this.owningRelationship = owningRelationship;
         }
 
         String getBreadcrumbPath() {
@@ -411,6 +421,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
         String getModelPath() {
             return modelPath;
+        }
+
+        SchemaRelationshipDeclaration getOwningRelationship() {
+            return owningRelationship;
         }
 
         Map<String, Serializable> getMetadata() {
@@ -517,15 +531,13 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         }
         if (DslHelper.isOptionalLink(schemaField)) {
             if (child.compositionOwner == null) {
-                child.compositionOwner = this;
-                child.compositionFieldName = schemaField.getName();
+                claimComposition(schemaField, child);
             }
             return;
         }
         if (child.compositionOwner == child
                 && DslHelper.isOptionalLink(child.getModelField(child.compositionFieldName))) {
-            child.compositionOwner = this;
-            child.compositionFieldName = schemaField.getName();
+            claimComposition(schemaField, child);
             return;
         }
         if (child.compositionOwner != null)
@@ -533,8 +545,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                     "Builder for %s is already claimed by composition relationship %s.%s and cannot be attached to composition relationship %s.%s",
                     child.modelType.getName(), child.compositionOwner.modelType.getName(), child.compositionFieldName,
                     modelType.getName(), schemaField.getName()));
+        claimComposition(schemaField, child);
+    }
+
+    private void claimComposition(Field schemaField, InternalKlumBuilder<?> child) {
+        SchemaRelationshipDeclaration declaration = new SchemaRelationshipDeclaration(schemaField);
         child.compositionOwner = this;
         child.compositionFieldName = schemaField.getName();
+        child.owningRelationship = declaration;
     }
 
     private static boolean isCompositionClaimedBy(InternalKlumBuilder<?> parent, String fieldName, Object value) {

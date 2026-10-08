@@ -2,11 +2,11 @@
 
 Date: 2026-10-08
 
-Status: Public API direction and consumer-policy separation accepted; lifetime revision proposed, implementation not approved
+Status: Accepted D1/D4/D6 for bounded RM-1; D2/D3/D5 remain implementation gates
 
-Implementation status: Planning only; no runtime/API changes
+Implementation status: RM-1 ordinary metadata/consumer tracer implemented; RM-2–RM-4 release qualification remains pending
 
-Target: Untargeted
+Target: 4.1 (D4 approved)
 
 Tracking issue: [#856](https://github.com/klum-dsl/klum-ast/issues/856)
 
@@ -19,6 +19,16 @@ Parent decisions: [ADR 0003](0003-builder-first-materialization.md),
 [ADR 0011](0011-shared-multi-groovy-compatibility-contract.md),
 [ADR 0014](0014-groovy4-jpms-boundary.md), [ADR 0015](0015-generated-schema-runtime-linkage.md),
 and [ADR 0020](0020-explicit-shared-model-builder-capabilities.md).
+
+## Approval and current evidence
+
+The maintainer approved D1's exact generic/equality/error contract in the RM-0 decision session, D4 placement in 4.1,
+and D6's read-only lifetime revision. RM-1 was then separately authorized from current master. Its executable evidence
+and bounded implementation are recorded in [the RM-1 report](../implementation/issue-856-rm1-evidence.md).
+The retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a` on
+`codex/issue-856-rm0-proof`, including its report and 33 characterization cases.
+D2 Template retention, D3 historical serialization scope, and D5 copied-container/alias policy remain undecided and gate
+RM-2. Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
 
 ## Context and authority
 
@@ -42,11 +52,9 @@ KlumObjectSupport.of(model).getStructure();
 
 Both Structure views expose a shared immutable `KlumSchemaRelationship`; absence-oriented relationship and annotation
 queries return Optional. Builder ownership requests recheck the active session and a phase strictly after OWNER(15)
-at operation time. The public direction and separation from consumer selection policy are accepted; this follow-up does
-not reopen them. The earlier unsealed/phase-before-40 restrictions remain an unimplemented proposal whose revision now
-requires explicit approval under D6. These are planning constraints, not authorization to implement. This ADR replaces the local
-investigation's candidate `KlumBuilderStructure.of(...)` spelling. Remaining proposals and approval gates are explicit
-below and in the plan; no capability described here is currently shipped.
+at operation time. D1 and D6 approve the exact descriptor and per-request read lifetime for the bounded ordinary tracer.
+The earlier unsealed/phase-before-40 restriction is superseded. This ADR replaces the local investigation's candidate
+`KlumBuilderStructure.of(...)` spelling. Remaining graph/persistence policies and release gates stay explicit below.
 
 ## Decision direction
 
@@ -89,21 +97,21 @@ def source = KlumObjectSupport.of(facts).structure.getOwningRelationshipAnnotati
 ```
 
 `Binding` and `Source` are consumer-owned, runtime-retained field annotations, not new KlumAST annotations. These
-fragments show the proposed client contract, not executable examples of a delivered feature.
+fragments show the approved client contract; the RM-1 documentary tracer exercises both routes.
 
 ### Describe the declaration, separately from its location
 
-Propose these query signatures on both Structure views:
+Use these query signatures on both Structure views:
 
 ```java
 Optional<KlumSchemaRelationship> getOwningRelationship();
 <A extends Annotation> Optional<A> getOwningRelationshipAnnotation(Class<A> annotationType);
 ```
 
-Propose `KlumSchemaRelationship` as a final framework-created immutable value with `getDeclaringClass(): Class<?>`,
-`getName(): String`, and `<A extends Annotation> Optional<A> getAnnotation(Class<A>)`. Exact descriptors, including
-the Builder facade/helper generic declarations and descriptor equality, remain approval gate D1. The recommended equality
-is declaring Class identity plus member name, never path or receiver identity. No public constructor is needed.
+Provide `KlumSchemaRelationship` as a final framework-created immutable value with `getDeclaringClass(): Class<?>`,
+`getName(): String`, and `<A extends Annotation> Optional<A> getAnnotation(Class<A>)`. D1 approves the Builder facade as
+`KlumBuilderSupport<T>.of(KlumBuilder<T>)` returning `Structure<T>`; the completed facade keeps its existing generic shape.
+Equality is declaring Class identity plus member name, never path or receiver identity. No public constructor is needed.
 
 The declaration is the field on the owning Schema Model type, including the original declaring class for an inherited
 field. It is never a field inferred from the child's type or a generated Builder storage field. List/collection elements
@@ -180,16 +188,15 @@ to the completed target's stored original owning field. It must never be inferre
 relationship, Owner members, or a traversal alias. Existing completed target support is already usable before the
 receiver's AUTO_LINK; querying through a wrapper is a read-only adaptation, not new ownership.
 
-### Proposed read-only lifetime revision — approval D6 required
+### Accepted read-only lifetime revision — D6
 
-Recommend allowing each Builder metadata request when the genuine receiver belongs to the current thread's active
+Allow each Builder metadata request when the genuine receiver belongs to the current thread's active
 Construction session, the current numeric phase is strictly after OWNER(15), and the declaration source is authoritative.
 There is no numeric upper bound and no unsealed requirement. For an ordinary construction Builder, read the current
 accepted declaration record, preserving its identity through normal allocation/sealing; for a completed LINK wrapper,
 read the target's retained declaration internally. Valid root/missing-annotation/historical-record absence returns empty;
 an unresolved explicit record or conflicting ownership remains an error, subject to D5. Mutation preflight must not be
-used to authorize these reads. D6 proposes changing the earlier proposed `15 < phase < 40`/unsealed contract; it is not
-accepted or implemented by this document update.
+used to authorize these reads. D6 replaces the earlier `15 < phase < 40`/unsealed proposal; RM-1 implements this read lifetime.
 
 Construction/no phase, APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), and custom phases at or below 15 still reject, including
 roots and absent annotations. Custom phase 16, AUTO_LINK, DEFAULT, POST_TREE, actions at 40 before/after materialization,
@@ -205,7 +212,7 @@ or reading it successfully never grants permanent access: every query rechecks s
 Retained immutable descriptors are detached Schema metadata and remain readable after the live view expires.
 
 Use `KlumModelException` for invalid live Builder state and `KlumSchemaException` for an unresolvable retained Schema
-declaration, subject to D1 descriptor review. Diagnostics identify the operation, receiver Schema type, current phase or
+declaration, as approved under D1. Diagnostics identify the operation, receiver Schema type, current phase or
 absence of an active session, and required state; include only safely available path context. For premature access:
 
 ```text
@@ -231,7 +238,7 @@ declaration context; no cross-project request is a demonstrated prerequisite.
 
 ## Consequences and acceptance boundary
 
-The proposed public API is additive in the exported runtime package; private companion state changes require explicit
+The approved public API is additive in the exported runtime package; private companion state changes require explicit
 qualification. Generated Factory/Builder signatures and IDE source mirrors stay unchanged. Existing direct-Owner queries,
 paths, composition traversal, immutable Model data, lifecycle ordering, and LINK identity must retain their contracts.
 The old ADR 0010 paragraph describing a dynamic `KlumBuilder.link` capability is historical and inconsistent with the
@@ -241,7 +248,7 @@ Require Java 17, dynamic/static Groovy 3/4/5 classpath, separately compiled inhe
 Groovy 4/5 JPMS named modules without expanding internal exports or requiring new broad opens. Existing schema-module
 openings needed for construction remain the baseline. Runtime metadata lookup must not need private-field value access.
 The annotations artifact gains no dependency on the runtime. Documentation and release notes describe the feature only
-when implementation is delivered. This ADR/plan PR leaves #856 open and untargeted.
+when implementation is delivered. RM-1 leaves #856 open for its later 4.1 qualification gates.
 
 ## Rejected alternatives
 
@@ -263,24 +270,20 @@ through these public facades, then preserves the selected target's identity thro
 operation. Template/copy/persistence and full binary/module qualification are later gates, not prerequisites to exercising
 that core path. No slice is release-ready until all approved eventual acceptance passes.
 
-The following decisions remain; no implementation slice starts by inference from this PR:
+Decision dispositions (later slices still require explicit authorization):
 
-1. **D1 — authorize implementation and settle remaining descriptor details.** Finalize generic shape, equality and failure
-   categories, and authorize the bounded RM-0/RM-1 work. Do not reopen the accepted
-   facades, shared descriptor/Optional direction or consumer/framework responsibility split.
+1. **D1 — approved.** Exact generic shape, Class/member equality, Optional absence and error categories are frozen by
+   RM-0; RM-1 has separate implementation authorization. See its report for the exact signatures.
 2. **D2 — approve Template retention semantics.** Confirm internal definition-edge retention and application/copy
    recipient-edge recapture while preserving public Template rejection. If direct Template inspection is required,
    decide its separate support/gating contract before expanding this plan.
 3. **D3 — choose historical serialization scope.** Retain ADR 0004's same-version contract and empty lookup for a compatible
    absent record, or name specific old versions whose stream loading must be supported and proved.
-4. **D4 — authorize scheduling/release placement.** Decide whether/when to start the dependent slices and whether metadata
-   delivery is a child issue of #856. No evidence currently warrants a release milestone or closing the parent issue.
+4. **D4 — approved for 4.1.** RM-0 and RM-1 are authorized; parent #856 remains open for later gates and Hive reconciliation.
 5. **D5 — settle copied-container ownership ambiguity.** RM-0 must characterize CopyHandler's direct list/map insertion
    and repeated recipe identity across distinct owned fields. Approve how an unclaimed copied node gains an authoritative
    declaration and how genuinely conflicting declarations fail or are represented, while preserving LINK/OPTIONAL_LINK
    semantics. Repeated positions within one field share its declaration; they do not require a unique path. No traversal
    order tie-breaker or unrelated ownership repair is approved by this plan.
-6. **D6 — approve the evidenced read-only lifetime revision.** Replace the earlier unsealed/phase-before-40 gate with
-   active same-session, phase-after-OWNER, authoritative-declaration checks, including normal materialization/sealing and
-   completed LINK wrappers. Preserve per-request checks and post-completion/abort rejection. Until approved, both the
-   older restriction and this recommended revision remain planning proposals; no runtime contract is changed.
+6. **D6 — approved and implemented by RM-1.** Active same-session plus phase-after-OWNER checks include normal sealing
+   and completed LINK wrappers. Every request rechecks state; completion/abort and foreign contexts reject.
