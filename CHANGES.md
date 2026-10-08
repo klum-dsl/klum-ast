@@ -147,10 +147,20 @@
 
 ## Bugfixes
 
-- Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK, retaining
-  getter fallback for properties without storage and ordinary property access for completed-model and other providers.
-  Owner paths, relationship identity, and materialization timing are unchanged
+- Explicit `@LinkTo(provider = { ... }, field = "...")` now reads configured Builder storage during AUTO_LINK,
+  retaining getter fallback for properties without storage. Sealed wrappers around completed `LINK` models read the
+  completed domain value consistently during construction, including explicit `@LinkTo` fields, configuration closures,
+  custom Builder methods, and lifecycle property reads; ordinary completed-model and other providers retain property
+  access. Dynamic wrapper reads also support getter-only Model properties when no existing Builder property owns the
+  name; Builder infrastructure and the statically known Builder contract are preserved. Existing sealed mutation
+  guards, Owner paths, relationship identity, and materialization timing remain unchanged
   ([#841](https://github.com/klum-dsl/klum-ast/issues/841)).
+
+- Ambiguous explicit-null direct relationship values in named maps now report an actionable `KlumModelException` with
+  the Model, Builder operation/key, and construction path, retaining the original `MethodSelectionException` as direct
+  cause. Custom MetaClass dispatch and handler exceptions remain unchanged. Omit the key to preserve configuration,
+  or use an explicitly typed setter inside a Builder closure to deliberately clear a relationship
+  ([#846](https://github.com/klum-dsl/klum-ast/issues/846)).
 
 - Statically checked custom typed factories can forward `@DelegatesToBuilder` closures directly to `With`. Source and
   generated Factory contracts now agree on the public Builder delegate and `DELEGATE_ONLY` strategy, while custom
