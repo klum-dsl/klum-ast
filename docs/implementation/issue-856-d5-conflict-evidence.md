@@ -113,7 +113,32 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew 
   --console=plain
 ```
 
-Repository checks and parallel Standards/Spec review are recorded before draft delivery. Tracker impact: **Related: #856**; no issue closure,
+### Standards
+
+Read-only parallel review of `276c749c...130b9067` found two minor documentary alignment issues: move the See reference
+immediately before its example and retain the executable callback's Binding lookup in the abbreviated example. Both
+were corrected and the reviewer verified zero remaining findings. No actionable fixture duplication or code-standard
+violation was found.
+
+### Spec
+
+Read-only parallel review of the same fixed diff against the revised maintainer decision found **zero findings**. It
+confirmed the bounded matrix, consumer absence/identity regression, unchanged runtime and protected-contract coverage.
+No additional test is required for those contracts already exercised by existing regressions.
+
+### Repository check boundary
+
+The first root `check` attempt on `130b9067` passed all three complete AST lanes: **1608 tests per lane, 15 existing skips,
+zero failures/errors**. It failed 11 Gradle-plugin fixture cases because documentary review edits during the running build
+made the nested publisher derive `.uncommitted` while the outer plugin marker retained the clean version. The missing
+artifact was the version-mismatched local development BOM; no product defect was implicated. The fix is a clean stable
+validation head, not a plugin/source change. Documentary fixes and this evidence are committed before rerunning root
+`check`, with no edits during validation. The final root result, exact commit, counts and CI/Sonar state are recorded in
+the draft PR and handoff. No final successful root result is claimed by this paragraph before that run completes.
+
+Markdown links/fences and whitespace checks pass. Commit-history review retains the original stop-gate characterization,
+revised-policy qualification and documentary review/evidence as coherent reasoning steps; no history rewrite is needed.
+Git transport dry-run and GitHub CLI delivery audits returned `authorized`; no GitHub App delivery channel is used. Tracker impact: **Related: #856**; no issue closure,
 release targeting or curation changes. RM-4 final acceptance remains pending. No production, generated/public API,
 serialization representation, lifecycle, module descriptor or annotation artifact is changed. The existing RM-3 binary/JPMS
 and same-version persistence contract remains intact; no historical compatibility promise follows.

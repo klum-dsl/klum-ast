@@ -247,10 +247,10 @@ remains with #856 RM-4.
 
 ### Copied providers and absent authority
 
-(See: `CopyOwnershipConsumerDocumentaryTest#'inherited AUTO_LINK skips providers without authoritative declarations and preserves selected identity'`.)
-
 Consumer code must handle absent metadata. This example policy skips candidates whose Source annotation is unavailable;
 another consumer may choose a different fallback. KlumAST supplies no selection rule.
+
+(See: `CopyOwnershipConsumerDocumentaryTest#'inherited AUTO_LINK skips providers without authoritative declarations and preserves selected identity'`.)
 
 ```groovy
 @DSL class ProviderBase {
@@ -261,7 +261,9 @@ another consumer may choose a different fallback. KlumAST supplies no selection 
     @Field(FieldType.LINK) Facts facts
     @AutoLink void bind() {
         if (facts != null) return
-        def selected = Policy.choose('secondary')
+        def binding = KlumBuilderSupport.of(this).structure
+            .getOwningRelationshipAnnotation(Binding).map { it.value() }.orElse('secondary')
+        def selected = Policy.choose(binding)
         if (selected != null) facts selected
     }
 }
