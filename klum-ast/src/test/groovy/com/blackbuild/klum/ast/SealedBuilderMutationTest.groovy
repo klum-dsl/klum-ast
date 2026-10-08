@@ -63,6 +63,45 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         }
     }
 
+    def "sealed #state rejects #operation before allocating or configuring a child"() {
+        given:
+        createSchema()
+        def pair = sealedPair(state)
+        def children = new ArrayList(pair.builder.getInstanceAttribute('children'))
+        def entries = new LinkedHashMap(pair.builder.getInstanceAttribute('entries'))
+        def probe = getClass('Probe')
+        def allocations = probe.allocations
+        boolean configured = false
+        def body = { configured = true; value 'late' }
+
+        when:
+        mutate(pair.builder, getClass('Entry'), body)
+
+        then:
+        def error = thrown(KlumModelException)
+        error.message.contains(state == 'normal' ? 'Construction session has completed' : 'sealed Builder cannot be configured')
+        !configured
+        probe.allocations == allocations
+        pair.builder.getInstanceAttribute('children') == children
+        pair.builder.getInstanceAttribute('entries') == entries
+        pair.model.children.empty
+        pair.model.entries.existing.value == 'original'
+        pair.model.entries.existing.registry.is(pair.model)
+        pair.model.entries.existing.visits == 1
+
+        where:
+        [state, operation, mutate] << ['normal', 'wrapper'].collectMany { state ->
+            [
+                ['collection child', { b, type, configure -> b.child('late', configure) }],
+                ['map child', { b, type, configure -> b.entry('late', configure) }],
+                ['existing map child', { b, type, configure -> b.entry('existing', configure) }],
+                ['selected collection child', { b, type, configure -> b.child(type.Create, 'late', configure) }],
+                ['selected map child', { b, type, configure -> b.entry(type.Create, 'late', configure) }],
+                ['selected single child', { b, type, configure -> b.primary(type.Create, 'late', configure) }]
+            ].collect { [state, it[0], it[1]] }
+        }
+    }
+
     private void createSchema() {
         createClass('''
             package preflight
@@ -70,6 +109,18 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
                 String host
                 List<String> labels
                 Map<String, String> settings
+                Entry primary
+                @Field(members = "child") List<Entry> children
+                Map<String, Entry> entries
+            }
+            class Probe { static int allocations; static int configurations }
+            @DSL class Entry {
+                @Key String key
+                String value
+                int allocation = ++Probe.allocations
+                @Owner Registry registry
+                int visits
+                @PostTree void visit() { visits++ }
             }
         ''')
     }
@@ -81,6 +132,7 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
             host 'original'
             label 'initial'
             setting 'mode', 'initial'
+            entry('existing') { value 'original' }
         }
         if (state == 'wrapper') {
             builder = FactoryHelper.createBuilder(clazz, null)

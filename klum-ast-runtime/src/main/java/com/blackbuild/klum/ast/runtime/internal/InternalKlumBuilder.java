@@ -866,6 +866,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
                                     BuilderFactoryProvider<?, ?> factory,
                                     String key, Closure<?> body) {
+        assertMutable();
         return createSingleChild(namedParams, fieldOrMethodName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
@@ -1002,6 +1003,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
             addElementToCollection(collectionName, created);
@@ -1014,6 +1016,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
                                                 BuilderFactoryProvider<?, ?> factory,
                                                 String key, Closure<?> body) {
+        assertMutable();
         return addNewDslElementToCollection(namedParams, collectionName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
@@ -1146,6 +1149,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> existing = ((Map<String, InternalKlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
@@ -1166,6 +1170,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
                                          BuilderFactoryProvider<?, ?> factory,
                                          String key, Closure<?> body) {
+        assertMutable();
         return addNewDslElementToMap(namedParams, mapName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
