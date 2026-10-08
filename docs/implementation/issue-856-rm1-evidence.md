@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: Implementation and focused acceptance complete; final compatibility/review/delivery evidence being reconciled
+Status: RM-1 implementation and validation complete; draft delivery is recorded by the attached PR and handoff
 
 Authority: [#856](https://github.com/klum-dsl/klum-ast/issues/856),
 [ADR 0027](../adr/0027-owning-relationship-metadata.md), its
@@ -62,7 +62,7 @@ All new/meaningful coverage carries `@Issue('856')`, uses the `Test` suffix, and
 | BuilderRelationshipLifetimeTest | 8 | Early-acquired views, both queries on roots/owned/unattached/unannotated receivers at 1/10/14/15 and 16/20/25/30/41/50/80/100, ordered before/after phase-40 actions, post-phase closure, completion/abort, foreign thread/session, sealed completed LINK wrappers/original root absence, Template rejection, and late attachment at 16 |
 | OwningRelationshipTracerTest | 7 | Six consumer-owned Source/default/explicit-override scenarios with dynamic/static Writers and inherited callback; separately compiled Java annotations/base Schemas; Java17 and static Groovy generic/Optional consumer execution and zero-operation marker |
 
-The provider Environment is independently completed before consumer construction. Its Facts have no Owner backreference.
+The Provider graph is independently completed before consumer construction. Its Facts have no Owner backreference.
 The consuming relationship and AUTO_LINK callback are inherited; the owning Application field is also inherited without
 redeclaration. Policy is test-local, reads Binding/Source/default annotations through public facades and calls the existing
 typed Facts method. Assertions verify exact target identity, original provider declaration, unchanged single PostTree run,
@@ -111,15 +111,49 @@ invent a new effective-phase definition. This is a later scheduler concern, not 
 
 Focused red-to-green runs reproduced the absent completed query, approved null exception change, and absent Builder
 facade before the corresponding implementations. All 22 focused Groovy3 cases passed after implementation.
-Full affected-module/repository lane and final review results are recorded below when reconciliation finishes.
+Full qualification ran on the stable clean implementation/documentation tip `3c8262cd`. Final evidence reconciliation
+is documentation only and receives Markdown/diff checks; production and executable test inputs remain unchanged.
+Versions: Java 17.0.3, Gradle 8.14.4, Groovy 3.0.25 / 4.0.32 / 5.0.6, matching Spock 2.4 lanes.
 
-The first broad root check ran while documentation was edited. Its outer clean version and nested `.uncommitted` version
-diverged, causing publication-fixture missing-coordinate failures. This run is not claimed green and will be rerun at a
-stable clean commit. An independent Gradle plugin cache-outcome assertion also needs a stable rerun/baseline comparison.
+| Module | G3 tests / skips | G4 tests / skips | G5 tests / skips | Failures / errors |
+| --- | ---: | ---: | ---: | --- |
+| klum-ast | 1537 / 15 | 1537 / 15 | 1537 / 15 | 0 / 0 throughout |
+| klum-ast-runtime | 73 / 1 | 73 / 1 | 73 / 1 | 0 / 0 throughout |
+| klum-ast-jackson | 71 / 0 | 69 / 0 | 69 / 0 | 0 / 0 throughout |
+| klum-ast-bean-validation | 10 / 0 | 10 / 0 | 10 / 0 | 0 / 0 throughout |
+| klum-ast-test-support | 7 / 0 | 6 / 0 | 6 / 0 | 0 / 0 throughout |
+
+The Gradle plugin's G3 suite passed all 151 tests with no failures/errors/skips. Root `check` passed, including all
+configured Groovy lanes, test-lane isolation, applicable licenses, plugin validation, documentation renderer verification
+and other root checks. All 22 RM-1 cases pass with zero skips in each G3/G4/G5 lane.
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew \
+  :klum-ast:test :klum-ast:groovy4Tests :klum-ast:groovy5Tests \
+  :klum-ast:verifyTestLaneIsolation :klum-ast:licenseTest --console=plain
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew \
+  --no-daemon --max-workers=1 check --console=plain
+git diff --check
+```
+
+The first broad check ran while documentation was edited: its outer clean version and nested `.uncommitted` version
+diverged, causing publication-fixture missing-coordinate failures. Stable reruns removed that version drift. Two plugin
+cache-outcome assertions also failed in reused-daemon/full-suite contexts while their isolated runs passed. The exact-master
+full plugin suite passed in a disposable baseline checkout, so those failures were not labelled pre-existing. The current
+full plugin suite and final root check both passed with a fresh outer daemon and one worker. No plugin source or cache
+expectation was changed. The disposable clean baseline checkout was removed after capturing the comparison.
+
+Local code-review Standards and Spec agents reviewed from fixed base `b57a025` through the implementation and final
+contract/docs. Standards found one stale D4 untargeted row, corrected in `3c8262cd`; the final Standards report has no
+substantive findings or actionable smells. Spec has no missing, incorrect or broadened RM-1 requirement. Both reconciled
+the evidence and later gates. Commit-history review retains the two coherent green behavior steps, the contract/documentary
+step and final validation evidence; no history rewrite is needed. Local Markdown destinations and fences, and whitespace,
+were checked. CI/Sonar results are not inferred from these local passes; inspect them on the draft PR revision.
 
 ## Delivery and tracker impact
 
-RM-1 is a partial slice of #856; the parent remains open. Proposed PR relationship: `Related: #856`, with no closing
+RM-1 is a partial slice of #856; the parent remains open. PR relationship for this explicitly partial assignment: `Related: #856`, with no closing
 keyword. No milestone, label, closure, curation index, or later-gate approval is changed by this worker.
-A draft PR is authorized only after implementation/review settle; no ready-for-review or merge action is authorized.
+Git transport dry-run and GitHub CLI repository capability audits are authorized; no GitHub App channel is used.
+Implementation/review are settled and draft delivery is authorized; no ready-for-review or merge action is authorized.
 Hive owns final delivery/archive reconciliation and the parent issue's acceptance links.
