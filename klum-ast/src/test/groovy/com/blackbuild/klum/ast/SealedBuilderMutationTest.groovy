@@ -423,6 +423,35 @@ class SealedBuilderMutationTest extends AbstractDSLSpec {
         relationship << ['children', 'entries']
     }
 
+    def "receiver preflight preserves a Schema Builder helper named assertMutable"() {
+        given:
+        createClass('''
+            @DSL class Registry {
+                List<String> labels
+                @Builder.Method String assertMutable() { 'schema helper' }
+            }
+        ''')
+        def builder
+        def model = clazz.Create.With {
+            builder = delegate
+            assert assertMutable() == 'schema helper'
+            label 'active'
+        }
+
+        when:
+        def helper = builder.assertMutable()
+
+        then:
+        helper == 'schema helper'
+
+        when:
+        builder.label('late')
+
+        then:
+        thrown(KlumModelException)
+        model.labels == ['active']
+    }
+
     private void createSchema() {
         createClass('''
             package preflight

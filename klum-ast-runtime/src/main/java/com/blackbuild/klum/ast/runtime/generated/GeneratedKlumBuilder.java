@@ -47,8 +47,9 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
     }
 
     /** Preflights generated configuration before evaluating a factory, converter, or closure. */
+    @Override
     public final void $klum$assertMutable() {
-        super.assertMutable();
+        super.$klum$assertMutable();
     }
 
     @Override
