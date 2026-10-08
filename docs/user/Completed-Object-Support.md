@@ -223,9 +223,11 @@ and their owned nodes. Application/copy captures fresh recipient claims; it neve
 edge. Standalone copy roots have no owning declaration. Single-field copies from ordinary Models, Templates, Maps and
 active same-session Builders, and merges into already claimed children, retain the recipient placement.
 
-CopyHandler's direct copied-container insertions and conflicting recipe aliases remain unqualified under
-[#856](https://github.com/klum-dsl/klum-ast/issues/856). An absent copied-node record is not an instruction to infer ownership
-from its traversal path. Copied OPTIONAL_LINK container identity/materialization repairs remain separate work.
+Direct copied-container insertions preserve existing alias identity but establish no authoritative owning claim, even
+for a unique placement. Their metadata remains empty. A copied container alias of an already claimed child retains that
+accepted declaration. Empty metadata does not identify a root and is not an instruction to infer ownership from a path,
+Owner or occurrence order. Existing OPTIONAL_LINK container copy materialization behavior is preserved; its repair is
+outside this metadata capability.
 
 Managed Jackson root, Builder, and apply-to-Builder imports retain new owned declarations; explicit references retain the
 original target's declaration and identity. Value-only Template imports retain their accepted definition edges internally
@@ -240,7 +242,52 @@ source configuration or recipes when upgrading.
 
 Java 17 and dynamic/static Groovy 3/4/5 consumers are qualified against separately compiled Schema/annotation artifacts.
 Groovy 4/5 named modules use the existing qualified construction opens; annotation lookup needs no additional opens.
-Copied-container/conflicting-alias repairs and final feature-release acceptance remain later #856 gates.
+The revised copied-container authority policy is qualified without a runtime change. Final feature-release acceptance
+remains with #856 RM-4.
+
+### Copied providers and absent authority
+
+Consumer code must handle absent metadata. This example policy skips candidates whose Source annotation is unavailable;
+another consumer may choose a different fallback. KlumAST supplies no selection rule.
+
+(See: `CopyOwnershipConsumerDocumentaryTest#'inherited AUTO_LINK skips providers without authoritative declarations and preserves selected identity'`.)
+
+```groovy
+@DSL class ProviderBase {
+    @Source('primary') List<Facts> primary
+    @Source('secondary') @Field(keyMapping = { it.topic }) Map<String, Facts> secondary
+}
+@DSL class ReceiverBase {
+    @Field(FieldType.LINK) Facts facts
+    @AutoLink void bind() {
+        if (facts != null) return
+        def binding = KlumBuilderSupport.of(this).structure
+            .getOwningRelationshipAnnotation(Binding).map { it.value() }.orElse('secondary')
+        def selected = Policy.choose(binding)
+        if (selected != null) facts selected
+    }
+}
+class Policy {
+    static List<Facts> candidates
+    static Facts choose(String binding) {
+        candidates.find { candidate ->
+            KlumObjectSupport.of(candidate).structure.getOwningRelationshipAnnotation(Source)
+                .map { it.value() == binding }.orElse(false)
+        }
+    }
+}
+
+// provider was built with normal List/Map attachment; copied providers lack those claims.
+def copied = Provider.Create.With { copyFrom provider }
+Policy.candidates = copied.primary + copied.secondary.values() + provider.primary + provider.secondary.values()
+def application = Application.Create.With { receiver {} }
+assert application.receiver.facts.is(provider.secondary.chosen)
+assert KlumObjectSupport.of(copied.secondary.chosen).structure.owningRelationship.empty
+```
+
+Source and Binding annotations in the executable example belong to its consumer Schema. It also verifies the case where
+all candidates lack authority: the callback leaves `facts` absent instead of treating missing metadata as a root marker
+or inventing an annotation. The selected target keeps its original declaration and identity.
 
 ## Stored validation
 

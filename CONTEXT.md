@@ -145,8 +145,9 @@ These terms are sourced from the user documentation and consolidated here. Use t
   requires its current active same-thread Construction session strictly after OWNER(15); normal sealing permits reads
   while that session remains active. LINK wrappers read the completed target's original record. Accepted Template
   definition claims retain declarations internally; recipient claims recapture them. Bounded copies/imports and same-version
-  serialization are qualified, as are Java/static/dynamic Groovy 3/4/5 artifact consumers and Groovy 4/5 JPMS. Copied-container/
-  alias/OPTIONAL_LINK copy repairs and final #856 release acceptance remain gated.
+  serialization are qualified, as are Java/static/dynamic Groovy 3/4/5 artifact consumers and Groovy 4/5 JPMS. Copied container
+  placements preserve aliases and return empty metadata without authoritative claims; absence does not identify a root.
+  OPTIONAL_LINK copy materialization is preserved, and final #856 release acceptance remains with RM-4.
   The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
 
   Its Validation helper (`getValidation`) reads stored target/subtree results and verifies them without rerunning validators

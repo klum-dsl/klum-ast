@@ -2,9 +2,9 @@
 
 Date: 2026-10-08
 
-Status: Accepted D1/D2/D3/D4/D6; D5 copied-container/alias policy remains gated
+Status: Accepted D1–D6, including revised D5 authoritative metadata without copy-semantic change
 
-Implementation status: RM-1, approved bounded RM-2 and RM-3 compatibility qualification implemented; D5 and RM-4 acceptance remain pending
+Implementation status: RM-1, bounded RM-2, RM-3 and revised D5 qualification implemented; RM-4 final acceptance remains pending
 
 Target: 4.1 (D4 approved)
 
@@ -29,7 +29,12 @@ The retained RM-0 authority is local `6c7d2efab4b10bbc6ee92d3932c8731a6c46cd5a` 
 `codex/issue-856-rm0-proof`, including its report and 33 characterization cases.
 The maintainer approved D2 internal accepted-definition retention with recipient recapture and D3 same-version-only
 serialization before bounded RM-2 implementation; see [the decision record](../implementation/issue-856-rm2-decisions.md).
-D5 copied-container/alias repairs are explicitly excluded from that assignment and remain an acceptance gap.
+D5 copied-container/alias repairs were excluded from bounded RM-2. The initial D5 rejection rule stopped at
+`0fd554da` because one recipe could produce one shared resulting child in two composition fields without a claim.
+The [revised maintainer decision](https://github.com/klum-dsl/klum-ast/issues/856#issuecomment-6067212507)
+accepts that compatibility baseline and supersedes the earlier rejection rule. The
+[D5 matrix and consumer evidence](../implementation/issue-856-d5-conflict-evidence.md) qualify truthful absence without
+changing runtime behavior.
 The implemented subset and validation are recorded in [the RM-2 evidence](../implementation/issue-856-rm2-evidence.md).
 RM-3 artifact-consumer/JPMS qualification is recorded in [the RM-3 evidence](../implementation/issue-856-rm3-evidence.md).
 Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
@@ -119,7 +124,8 @@ Equality is declaring Class identity plus member name, never path or receiver id
 
 The declaration is the field on the owning Schema Model type, including the original declaring class for an inherited
 field. It is never a field inferred from the child's type or a generated Builder storage field. List/collection elements
-and map values report their containing field's declaration; index/key belongs to structural or traversal location.
+and map values report their containing field's declaration when an authoritative claim exists; index/key belongs to
+structural or traversal location.
 Do not add cardinality, candidate enumeration, annotation scanning, repeatable/meta-annotation expansion, or effective
 generic target typing here. Requested runtime annotations use direct field lookup consistent with `Field.getAnnotation`;
 missing annotations and valid objects without retained owning declarations return Optional.empty(). Null query arguments
@@ -133,8 +139,8 @@ container does not create a distinct declaration per position or guarantee a uni
 ### Retain identity through materialization without retaining construction state
 
 Capture the exact owning Schema declaring type/member from the accepted composition claim or a qualified owned-copy
-placement. Current CopyHandler list/map insertion can bypass claim normalization, so claim capture alone is not complete.
-Qualify these paths before selecting the capture mechanism; do not invent an owner from first traversal order or blindly
+placement whose authority exists independently of metadata. CopyHandler list/map insertion can bypass claim normalization;
+those copied placements remain valid without a declaration. Never create a claim merely to populate metadata; do not invent an owner from first traversal order or blindly
 normalize aggregation/copy inputs in a way that changes their semantics. Transfer that identity through
 the private Builder ModelState/companion creation seam before completed validators run. Retain a small internal
 serializable record, reconstructing the public view from the declaration. Do not serialize Optional, reflection Field,
@@ -149,7 +155,7 @@ Builder guard to be bypassed. Completed queries never reconstruct a guessed decl
 
 Completed Objects support queries anywhere, including VALIDATE and outside a lifecycle. External linked Objects retain
 their original declaration, even when the original owner is not serialized with them. An external root remains without
-an owning declaration. Rehydrated Template/copy nodes describe the recipient graph's actual composition fields;
+an owning declaration. Rehydrated Template/copy nodes with accepted recipient claims describe those fields;
 source graph metadata is not an instruction to adopt an old owner. A standalone copied root has no owning relationship.
 The approved D2 policy retains existing accepted definition-edge declarations internally, then recaptures recipient
 declarations during application. It does not repair CopyHandler placements that bypass claims or decide conflicting aliases. Current `KlumObjectSupport.of` accepts ordinary completed Objects
@@ -162,6 +168,38 @@ no arbitrary cross-version serialization guarantee. Changing companion state mus
 must not silently introduce a historical-stream promise. D3 explicitly chooses same-version serialization only. No
 particular older stream is promised; any later historical support would require named versioned fixtures and a new maintainer decision. Jackson remains foreign-format import/export, not companion persistence:
 new owned imports capture their new edges, reference imports preserve linked targets, and no wire metadata is added.
+
+### Revised D5: authoritative metadata without changing copy semantics
+
+Metadata records authoritative ownership, not every graph occurrence. The earlier requirement to reject every copied
+cross-field composition alias is superseded. Preserve existing identity, aliasing, copy depth, overwrite/merge, Template
+replay, lifecycle, Builder/session and insertion behavior. No contextual descriptor or new public API follows.
+
+| Situation | Metadata result |
+| --- | --- |
+| Existing authoritative composition claim, including permitted transfer | Its accepted Schema declaration |
+| Copied placement with independently established authority | Recipient declaration captured at existing accepted adoption |
+| Repeated aliases within one field or across fields | Existing identity and behavior preserved; no arbitrary owner |
+| LINK / OPTIONAL_LINK aggregation | Original target declaration and exact identity |
+| No authoritative declaration | Optional.empty(); this does not identify a root |
+
+Single-field copying already uses accepted relationship normalization; nested merges retain existing recipient claims.
+Direct CopyHandler container insertions establish no claim, even for a unique resulting placement. There is no safe
+metadata-only correction there: calling claim machinery would add ownership semantics and can reject accepted aliases
+or change OPTIONAL_LINK traversal/materialization. Retain absence instead. A copied container alias of a child already
+accepted by a single-field adoption reads that existing declaration; this is claim authority, not occurrence precedence.
+Existing normal composition input rejection remains intact; permitted copy aliases are not new conflicting claims.
+
+Completed ordinary LINK values are aggregation targets. An OPTIONAL_LINK **copy input** is currently rehydrated as a
+recipe, rather than accepted as the original aggregation target. Unclaimed copied OPTIONAL_LINK container entries retain
+their established materialization behavior; metadata qualification does not repair or reinterpret it. Normal generated
+OPTIONAL_LINK attachments still preserve completed/claimed aggregation targets and adopt fresh same-session Builders.
+These routes must not be conflated.
+
+Consumers must handle missing annotation/declaration authority explicitly. The inherited AUTO_LINK container-provider
+example reads authoritative Source annotations through completed Object support, skips candidates without them by
+consumer policy, and uses the existing typed relationship operation to preserve the selected completed target's identity.
+No default/ambiguity algorithm, ScHelm annotation or LinkTo selection policy is installed.
 
 ### Separate mutation eligibility from metadata authority
 
@@ -199,7 +237,8 @@ Construction session, the current numeric phase is strictly after OWNER(15), and
 There is no numeric upper bound and no unsealed requirement. For an ordinary construction Builder, read the current
 accepted declaration record, preserving its identity through normal allocation/sealing; for a completed LINK wrapper,
 read the target's retained declaration internally. Valid root/missing-annotation/historical-record absence returns empty;
-an unresolved explicit record or conflicting ownership remains an error, subject to D5. Mutation preflight must not be
+an unresolved explicit record remains an error. Existing relationship-input rejection remains unchanged; valid copied
+aliases without authoritative metadata yield empty under revised D5. Mutation preflight must not be
 used to authorize these reads. D6 replaces the earlier `15 < phase < 40`/unsealed proposal; RM-1 implements this read lifetime.
 
 Construction/no phase, APPLY_LATER(1), AUTO_CREATE(10), OWNER(15), and custom phases at or below 15 still reject, including
@@ -285,10 +324,10 @@ Decision dispositions (later slices still require explicit authorization):
    definitions and empty lookup for otherwise readable absent metadata. No historical streams or Schema evolution are
    promised; audit changed companion UIDs without pinning old values.
 4. **D4 — approved for 4.1.** RM-0, RM-1, and bounded RM-2 are authorized; parent #856 remains open for later gates and Hive reconciliation.
-5. **D5 — settle copied-container ownership ambiguity.** RM-0 must characterize CopyHandler's direct list/map insertion
-   and repeated recipe identity across distinct owned fields. Approve how an unclaimed copied node gains an authoritative
-   declaration and how genuinely conflicting declarations fail or are represented, while preserving LINK/OPTIONAL_LINK
-   semantics. Repeated positions within one field share its declaration; they do not require a unique path. No traversal
-   order tie-breaker or unrelated ownership repair is approved by this plan.
+5. **D5 — approved, revised authoritative-metadata policy.** Preserve valid copied aliases within/across fields and
+   existing copy identity/graph/lifecycle behavior. Capture only at existing authoritative adoption; direct container
+   insertions remain empty even when unambiguous. Do not create claims, infer from traversal/Owner or reject accepted
+   aliases merely to populate metadata. The preserved `0fd554da` counterexample and completed matrix qualify this policy.
+   Consumers explicitly handle absent authority. Existing relationship-input rejection remains unchanged.
 6. **D6 — approved and implemented by RM-1.** Active same-session plus phase-after-OWNER checks include normal sealing
    and completed LINK wrappers. Every request rechecks state; completion/abort and foreign contexts reject.
