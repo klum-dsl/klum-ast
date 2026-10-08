@@ -8,8 +8,9 @@
   receivers now throw `NullPointerException`. Accepted Template-definition declarations are retained internally, with
   fresh recipient capture for single-field copy/application and normal managed imports. Same-version Java serialization
   preserves declarations and graph/recipe identity; historical streams are not promised and serialized Templates should
-  be regenerated on upgrade. Public Template rejection remains intact. Copied-container/conflicting-alias repairs, full
-  binary/JPMS qualification and final acceptance remain later
+  be regenerated on upgrade. Public Template rejection remains intact. Java 17 and static/dynamic Groovy 3/4/5
+  artifact consumers and Groovy 4/5 JPMS consumers are qualified without new module exports or broad opens.
+  Copied-container/conflicting-alias repairs and final acceptance remain later
   [#856](https://github.com/klum-dsl/klum-ast/issues/856) release gates.
 
 - Sealed Builders now reject framework collection/Map additions and child, converter, producer, Template, and script

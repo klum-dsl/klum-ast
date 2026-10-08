@@ -9,8 +9,10 @@ The initial [owning-declaration support](Completed-Object-Support.md#owning-sche
 `KlumObjectSupport.of(model).getStructure()` for completed Objects. No Schema recompilation or generated-interface
 change is required solely for the facade. Existing `LinkTo`/`LinkSource` selection remains unchanged. Null completed
 Object receivers now throw `NullPointerException("object")`, matching the new Builder and annotation-query contract.
-Template/copy/persistence and full binary/JPMS qualification remain later #856 gates; no historical serialization promise
-is introduced by this tracer.
+The [bounded Template/copy/import behavior](Completed-Object-Support.md#templates-copies-and-imports) and same-version
+serialization are qualified, as are Java 17 and dynamic/static Groovy 3/4/5 artifact consumers and Groovy 4/5 named modules.
+Existing qualified Schema package opens suffice; annotation lookup adds no field-value access requirement. Copied-container/
+conflicting-alias repairs and final #856 acceptance remain gated. No historical serialization promise is introduced.
 
 ### Opting in to portable DelegatingScript IDE metadata
 
