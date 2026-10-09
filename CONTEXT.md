@@ -147,7 +147,9 @@ These terms are sourced from the user documentation and consolidated here. Use t
   definition claims retain declarations internally; recipient claims recapture them. Bounded copies/imports and same-version
   serialization are qualified, as are Java/static/dynamic Groovy 3/4/5 artifact consumers and Groovy 4/5 JPMS. Copied container
   placements preserve aliases and return empty metadata without authoritative claims; absence does not identify a root.
-  OPTIONAL_LINK copy materialization is preserved, and final #856 release acceptance remains with RM-4.
+  OPTIONAL_LINK recipe-copy materialization is preserved separately from normal aggregation attachment; unclaimed copied
+  container entries can remain null. [RM-4 acceptance](docs/implementation/issue-856-rm4-evidence.md) consolidates the
+  delivered contract and qualification; Hive owns parent-issue and release reconciliation.
   The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
 
   Its Validation helper (`getValidation`) reads stored target/subtree results and verifies them without rerunning validators

@@ -11,8 +11,12 @@ change is required solely for the facade. Existing `LinkTo`/`LinkSource` selecti
 Object receivers now throw `NullPointerException("object")`, matching the new Builder and annotation-query contract.
 The [bounded Template/copy/import behavior](Completed-Object-Support.md#templates-copies-and-imports) and same-version
 serialization are qualified, as are Java 17 and dynamic/static Groovy 3/4/5 artifact consumers and Groovy 4/5 named modules.
-Existing qualified Schema package opens suffice; annotation lookup adds no field-value access requirement. Copied-container/
-conflicting-alias repairs and final #856 acceptance remain gated. No historical serialization promise is introduced.
+Existing qualified Schema package opens suffice; annotation lookup adds no field-value access requirement. Copied aliases
+retain their existing identity and behavior. Direct copied-container placements without authoritative claims return
+`Optional.empty()`, even when their location is unique; absence does not prove that an Object is a root. Normal
+OPTIONAL_LINK aggregation and recipe copying remain distinct existing routes; see
+[their copy boundary](Completed-Object-Support.md#templates-copies-and-imports). No copy-semantic repair or historical
+serialization promise is introduced.
 
 ### Opting in to portable DelegatingScript IDE metadata
 

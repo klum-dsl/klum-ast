@@ -1,6 +1,6 @@
 # 4.1.0 (unreleased)
 
-- Added the initial read-only owning Schema declaration tracer through `KlumBuilderSupport.of(builder).getStructure()`
+- Added read-only owning Schema declaration queries through `KlumBuilderSupport.of(builder).getStructure()`
   and completed `KlumObjectSupport` Structure. Both expose immutable `KlumSchemaRelationship` and typed Optional
   annotation queries independent of Owner values. Each Builder request requires its current active session and a phase
   after OWNER(15), including normal sealed receivers and completed LINK wrappers. Consumer-owned AUTO_LINK policy can
@@ -11,8 +11,9 @@
   be regenerated on upgrade. Public Template rejection remains intact. Java 17 and static/dynamic Groovy 3/4/5
   artifact consumers and Groovy 4/5 JPMS consumers are qualified without new module exports or broad opens.
   Copy qualification preserves existing aliases and returns empty metadata when no authoritative claim exists, even
-  for unique container placements; consumer AUTO_LINK examples handle absence explicitly. Final acceptance remains a later
-  [#856](https://github.com/klum-dsl/klum-ast/issues/856) release gates.
+  for unique container placements. Empty metadata can describe a root or valid unavailable ownership; consumer AUTO_LINK
+  examples handle absence explicitly. Normal OPTIONAL_LINK aggregation and existing recipe-copy materialization remain
+  distinct and unchanged ([#856](https://github.com/klum-dsl/klum-ast/issues/856)).
 
 - Sealed Builders now reject framework collection/Map additions and child, converter, producer, Template, and script
   factory operations before value normalization, child lookup/allocation, callbacks, or attachment. This also covers empty

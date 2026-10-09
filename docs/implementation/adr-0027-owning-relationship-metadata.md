@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: RM-1, bounded RM-2, RM-3 and revised D5 qualification implemented; RM-4 remains open
+Status: RM-1, bounded RM-2, RM-3 and revised D5 qualification implemented; RM-4 acceptance recorded
 
 Decision: [ADR 0027](../adr/0027-owning-relationship-metadata.md)
 
@@ -19,7 +19,8 @@ qualifies authoritative declarations versus truthful Optional absence, without a
 [D5 evidence](issue-856-d5-conflict-evidence.md) and revised decision linked there. The source-audit tables below retain their historical planning bases; the RM-1 report
 identifies which acceptance rows now have executable public-API evidence. Initial guidance is delivered with this seam;
 RM-3 is separately authorized and its artifact-consumer/JPMS qualification is recorded in
-[the RM-3 evidence](issue-856-rm3-evidence.md). Full RM-4 documentation/acceptance remains pending.
+[the RM-3 evidence](issue-856-rm3-evidence.md). [RM-4 acceptance](issue-856-rm4-evidence.md) consolidates the delivered
+contract, A01–A26 evidence and final qualification. Hive retains parent-issue/release reconciliation after delivery.
 
 ## Authority, scope, and evidence provenance
 
@@ -434,7 +435,7 @@ changelog, release curation, or GitHub milestone is changed by this planning PR.
 
 | Issue/decision | Relationship to this plan |
 | --- | --- |
-| #856 / ADR 0027 | RM-1, bounded RM-2, RM-3 and revised D5 qualification are implemented; RM-4 and parent acceptance remain open for maintainer reconciliation |
+| #856 / ADR 0027 | RM-1, bounded RM-2, RM-3 and revised D5 qualification are implemented; RM-4 acceptance is recorded; Hive owns parent-issue/release reconciliation after documentation delivery |
 | #390 / ADR 0006 | Extend completed Structure without weakening its object/companion boundary |
 | #431 / ADR 0004 | Preserve active-session composition, Template/copy protocol and serialization scope |
 | #391 / ADRs 0014/0015 | Reuse module and generated-linkage acceptance; no new public internal access |

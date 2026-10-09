@@ -45,6 +45,18 @@ Fields are marked with one of the following annotations, depending on the type:
 
 Also, fields, the class or the package can be annotated with `@Overwrite` to apply the strategy to all fields in the class or package.
 
+## Owning declarations during copying
+
+[Owning Schema metadata](Completed-Object-Support.md#templates-copies-and-imports) reports accepted composition claims.
+Single-field adoption and merges into an already claimed child retain the recipient declaration. Direct copied-container
+insertions establish no authoritative claim, even for a unique placement, so their metadata remains empty. Aliases within
+or across fields preserve existing identity; a copied alias of an already claimed child reads that accepted declaration.
+Empty metadata does not prove that a child is a root.
+
+Normal OPTIONAL_LINK attachment preserves completed aggregation targets, while OPTIONAL_LINK recipe copying follows its
+existing rehydration/materialization behavior, including possible `null` entries for unclaimed copied container values.
+The metadata capability changes neither route; see the linked copy boundary before choosing an aggregation operation.
+
 ## Single Object
 
 Single object strategies handle how a single object field is copied from a donor recipe. The behaviour differs for DSL

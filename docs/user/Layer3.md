@@ -274,6 +274,12 @@ Layer 3 because it has no distinct abstract API and no Cluster projection.
 
 ### Builder-backed `@LinkTo` providers
 
+Schemas that implement their own provider policy may inspect
+[owning Schema declarations](Completed-Object-Support.md#owning-schema-declarations) through Builder and completed Object
+Structure. The [copied-provider example](Completed-Object-Support.md#copied-providers-and-absent-authority) handles absent
+authority explicitly. These metadata queries preserve existing `@LinkTo`/`@LinkSource` behavior; binding, default,
+ambiguity, and fallback decisions belong to the consuming Schema.
+
 An explicit `@LinkTo` provider may follow the owner graph to another active Builder. Its `field` name selects configured
 Builder storage before materialization. If no storage field exists, ordinary property access provides the getter fallback.
 
