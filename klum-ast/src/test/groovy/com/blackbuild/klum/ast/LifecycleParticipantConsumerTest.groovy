@@ -43,7 +43,7 @@ class LifecycleParticipantConsumerTest extends Specification {
         output.trim() == 'participant-consumers=true'
     }
 
-    def 'runtime rejects a precompiled handler replaced after Schema compilation (#signature)'() {
+    def 'runtime rejects a precompiled declaration replaced after Schema compilation (#signature)'() {
         when:
         String output = qualify(signature)
 
@@ -51,7 +51,91 @@ class LifecycleParticipantConsumerTest extends Specification {
         output.trim() == 'binary-defense=true'
 
         where:
-        signature << ['mismatch', 'raw', 'unresolved']
+        signature << ['mismatch', 'raw', 'unresolved', 'creators']
+    }
+
+    def 'qualifies #form composition in a compiled #author annotation library with separate Schema and consumer'() {
+        given:
+        Path root = temporaryFolder.newFolder().toPath()
+        Path sources = Files.createDirectories(root.resolve('sources'))
+        Path classes = Files.createDirectories(root.resolve('classes'))
+        List<Path> jars = runtimeAndCompilerJars()
+        ['Composition.java', 'CompositionDomain.groovy', 'CompositionApplication.groovy', 'CompositionMain.java'].each { file ->
+            getClass().getResourceAsStream('/lifecycle-participants/' + file).withCloseable {
+                Files.copy(it, sources.resolve(file))
+            }
+        }
+        compileGroovy(sources, classes, jars, ['CompositionDomain.groovy'])
+        Path domain = jar(root, classes, 'domain.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        String declaration = Files.readString(sources.resolve('Composition.java'))
+        if (form == 'container') {
+            declaration = declaration.replace('@LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class)\n    @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)',
+                    '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class), @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
+            if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
+        }
+        if (form == 'mixed') {
+            declaration = declaration.replace('@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)',
+                    '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
+            if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
+        }
+        String librarySource = author == 'Java'  ? 'Composition.java' : 'Composition.groovy'
+        Files.writeString(sources.resolve(librarySource), declaration)
+        if (author == 'Java') compileJava(sources, classes, jars + [domain], [librarySource])
+        else compileGroovy(sources, classes, jars + [domain], [librarySource])
+        Path library = jar(root, classes, 'annotations.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        compileGroovy(sources, classes, jars + [domain, library], ['CompositionApplication.groovy'])
+        Path schema = jar(root, classes, 'schema.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        if (form == 'mixed') {
+            Path main = sources.resolve('CompositionMain.java')
+            String consumerSource = Files.readString(main)
+            // Mixed singular/container relative order is unspecified; only both mutations after creation are required.
+            consumerSource = consumerSource.replace('!result.getSupplied().getValue().equals("created:first:second")',
+                    '!(result.getSupplied().getValue().equals("created:first:second") || result.getSupplied().getValue().equals("created:second:first"))')
+                    .replace('!result.getExisting().getValue().equals("configured:first:second")',
+                    '!(result.getExisting().getValue().equals("configured:first:second") || result.getExisting().getValue().equals("configured:second:first"))')
+            Files.writeString(main, consumerSource)
+        }
+        compileJava(sources, classes, jars + [domain, library, schema], ['CompositionMain.java'])
+        Path consumer = jar(root, classes, 'consumer.jar')
+        classes.toFile().deleteDir()
+        sources.toFile().deleteDir()
+
+        when:
+        String output = execute([javaTool('java'), '--class-path', pathString(runtimeJars(jars) + [domain, library, schema, consumer]),
+                                 'participant.fixture.CompositionMain'])
+
+        then:
+        output.trim() == 'compiled-composition=true'
+
+        where:
+        author   | form
+        'Java'   | 'repeated'
+        'Java'   | 'container'
+        'Groovy' | 'repeated'
+        'Groovy' | 'container'
+        'Java'   | 'mixed'
+        'Groovy' | 'mixed'
+    }
+
+    private static Path jar(Path root, Path classes, String name) {
+        Path artifact = root.resolve(name)
+        execute([javaTool('jar'), '--create', '--file', artifact.toString(), '-C', classes.toString(), '.'])
+        artifact
+    }
+
+    private static List<Path> runtimeJars(List<Path> jars) {
+        jars.findAll { path ->
+            path != Path.of(System.getProperty('klumCompilerJar')) &&
+                    !path.fileName.toString().startsWith('anno-docimal-ast-') &&
+                    !path.fileName.toString().startsWith('anno-docimal-global-ast-') &&
+                    !path.fileName.toString().startsWith('klum-cast-compile-')
+        }
     }
 
     private String qualify(String signature) {
@@ -70,7 +154,17 @@ class LifecycleParticipantConsumerTest extends Specification {
         compileJava(sources, classes, jars, ['Binding.java', 'BindFacts.java', 'SupplyDomain.java'])
         compileGroovy(sources, classes, jars, ['Application.groovy', 'Writers.groovy'])
         compileJava(sources, classes, jars, ['Main.java'])
-        if (signature != 'valid') {
+        if (signature == 'creators') {
+            Path binding = sources.resolve('Binding.java')
+            String declaration = Files.readString(binding).replace(
+                    '@LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class)',
+                    '@LifecycleCreator.List({@LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class), @LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class)})')
+            Files.writeString(binding, declaration)
+            compileJava(sources, classes, jars, ['Binding.java'])
+            Path main = sources.resolve('Main.java')
+            Files.writeString(main, Files.readString(main).replace('annotation parameter must resolve exactly', 'Competing lifecycle creators'))
+            compileJava(sources, classes, jars, ['Main.java'])
+        } else if (signature != 'valid') {
             getClass().getResourceAsStream('/lifecycle-participants/InvalidBindFacts.java').withCloseable {
                 String invalid = it.text
                 if (signature == 'raw') invalid = invalid.replace('LifecycleMutationHandler<Deprecated>', 'LifecycleMutationHandler').replace('LifecycleMutationContext<Deprecated>', 'LifecycleMutationContext')
@@ -83,12 +177,7 @@ class LifecycleParticipantConsumerTest extends Specification {
         execute([javaTool('jar'), '--create', '--file', artifact.toString(), '-C', classes.toString(), '.'])
         sources.toFile().deleteDir()
         classes.toFile().deleteDir()
-        List<Path> runtime = jars.findAll { path ->
-            path != Path.of(System.getProperty('klumCompilerJar')) &&
-                    !path.fileName.toString().startsWith('anno-docimal-ast-') &&
-                    !path.fileName.toString().startsWith('anno-docimal-global-ast-') &&
-                    !path.fileName.toString().startsWith('klum-cast-compile-')
-        } + [artifact]
+        List<Path> runtime = runtimeJars(jars) + [artifact]
         execute([javaTool('java'), '--class-path', pathString(runtime), 'participant.fixture.Main'] +
                 (signature != 'valid' ? ['invalid'] : []))
     }

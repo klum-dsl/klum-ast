@@ -48,8 +48,8 @@ public final class LifecycleParticipants {
 
     public static boolean hasParticipant(AnnotatedElement field) {
         for (Annotation annotation : field.getDeclaredAnnotations()) {
-            if (annotation.annotationType().isAnnotationPresent(LifecycleCreator.class)
-                    || annotation.annotationType().isAnnotationPresent(LifecycleMutator.class)) return true;
+            if (annotation.annotationType().getAnnotationsByType(LifecycleCreator.class).length != 0
+                    || annotation.annotationType().getAnnotationsByType(LifecycleMutator.class).length != 0) return true;
         }
         return false;
     }
@@ -61,14 +61,16 @@ public final class LifecycleParticipants {
         try {
             PhaseDriver.setCurrentMember(name);
             for (Annotation annotation : field.getDeclaredAnnotations()) {
-                LifecycleCreator marker = annotation.annotationType().getAnnotation(LifecycleCreator.class);
-                if (marker != null && containing.getInstanceAttribute(name) == null)
-                    create(containing, field, annotation, marker);
+                for (LifecycleCreator marker : annotation.annotationType().getAnnotationsByType(LifecycleCreator.class)) {
+                    if (containing.getInstanceAttribute(name) == null)
+                        create(containing, field, annotation, marker);
+                }
             }
             for (Annotation annotation : field.getDeclaredAnnotations()) {
-                LifecycleMutator marker = annotation.annotationType().getAnnotation(LifecycleMutator.class);
-                if (marker != null && containing.getInstanceAttribute(name) != null)
-                    mutate(containing, field, annotation, marker);
+                for (LifecycleMutator marker : annotation.annotationType().getAnnotationsByType(LifecycleMutator.class)) {
+                    if (containing.getInstanceAttribute(name) != null)
+                        mutate(containing, field, annotation, marker);
+                }
             }
         } finally {
             PhaseDriver.setCurrentMember(previousMember);

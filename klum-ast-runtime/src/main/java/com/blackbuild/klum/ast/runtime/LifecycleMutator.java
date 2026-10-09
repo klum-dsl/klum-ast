@@ -26,17 +26,21 @@ package com.blackbuild.klum.ast.runtime;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
  * Opts a domain field annotation into external Builder mutation.
  * The LP-1 qualification supports only direct DSL fields in AutoLink; other phases remain unqualified.
+ * Repeated mutations execute in declaration order, or explicit List value order.
+ * Relative order of a singular marker mixed with List, and of different domain annotations, is unspecified.
  * Each invocation constructs a fresh public concrete handler with a public no-arg constructor.
  * Names and signatures are provisional until issue #867 qualification completes.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
+@Repeatable(LifecycleMutator.List.class)
 public @interface LifecycleMutator {
     /** The existing lifecycle annotation class; LP-1 supports AutoLink only. */
     Class<? extends Annotation> phase();
@@ -45,4 +49,10 @@ public @interface LifecycleMutator {
     // Class literals cannot express the relationship to the annotated annotation type; checked by compiler/runtime.
     @SuppressWarnings("rawtypes")
     Class<? extends LifecycleMutationHandler> handler();
+    /** Repeatable declarations on one domain annotation, in container value order. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.ANNOTATION_TYPE)
+    @interface List {
+        LifecycleMutator[] value();
+    }
 }
