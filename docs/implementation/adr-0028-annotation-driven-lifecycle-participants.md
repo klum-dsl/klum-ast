@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Proposed plan; confirmed semantics, no feature implementation authorization.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional; no implementation authorization.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -27,6 +27,27 @@ Modules: runtime owns new public extension types/dispatch/helper; compiler owns 
 checks and annotation Closure integration. Existing annotations are phase vocabulary only,
 with no reverse dependency. Tests, public API inventory and user docs change when delivered.
 Templates/imports retain their existing routes and require compatibility coverage.
+Validation participation already uses KlumSchemaSupport/KlumValidationReporter at this baseline
+(the maintainer's KlumValidationSupport capability); it is not a missing architecture/API gate.
+Validate Closure strong typing and Model/Builder annotation retargeting are LP-6 reuse starting
+points, not a new compiler framework.
+
+## Core, optional capabilities and early probes
+
+Mandatory: LP-0 prerequisite, LP-1 minimum direct-field mutator/creator vertical tracer, LP-2
+composition and actual ordering contract, LP-3 four-phase integration, LP-4 FAIL/SKIP and graph/
+session/Template/import checks, LP-8 errors/existing validation/public typing/Java/Groovy/JPMS/docs.
+ScHelm's Application → @Binding Domain → Facts mutation case comes first.
+
+LP-5, LP-6, LP-4 HANDLE and LP-7 container support are desirable, independently deferrable if
+substantial complexity appears. Attempt straightforward compatible delivery; no public contracts
+for deferred capabilities. LP-7 support-or-reject before release is mandatory, support is not.
+LP-1 success alone is not release readiness. Keep one cohesive feature; separate issues/PRs only
+if Hive chooses them.
+
+Run LP-2 ordering and LP-6 Closure feasibility probes early, alongside/before LP-1 signature
+freeze. Numbering expresses implementation slices, not a reason to delay feasibility assessment.
+Optional probe failure cannot hold core delivery hostage.
 
 ## Thin dependency-ordered slices
 
@@ -46,10 +67,11 @@ retain original declaration and actual subtype receiver. Preserve shadowing reje
 Commits: independently owned getter; separate #867 baseline characterization.
 Gate: no ownership or general metadata API inferred from internal helpers.
 
-### LP-1 — Direct-field vertical tracer (D1–D5, D8)
+### LP-1 — Mandatory ScHelm-style field vertical tracer (D1–D5, D8)
 
-Implement one phase's minimum runtime meta-annotations/interfaces/context plus compiler checks.
-Primary example: annotation on Application.domain mutates existing Domain.fact using Application
+Implement the minimum field mutator/creator API, runtime meta-annotations/context and compiler
+checks in one lifecycle phase.
+Primary example: annotation on Application.domain mutates existing Domain.facts using Application
 knowledge. Domain knows nothing of selection source. A second example supplies the annotated
 relationship. Use only generated public contracts, Model-type support and factory narrowing.
 
@@ -62,25 +84,30 @@ reflection Field/list/path/expiry API. Reject foreign-session or inappropriate F
 Commit: real-transform tracer with public boundary, validation and focused tests together.
 Review API vocabulary against consumer examples before freezing names.
 
-### LP-2 — Participant composition and declaration order (D2–D3)
+### LP-2 — Mandatory composition and actual ordering contract (D2–D3)
 
 One domain annotation combines creator and multiple mutations in same/different phases.
 Creator first; mutations see supplied Builder; null skips them.
 Competing direct same-phase creators (including built-in) fail; mutations and different phases
 coexist. No blanket built-in/meta annotation exclusion.
 
-Acceptance: declaration order survives separately compiled annotation library and Schema under
-Groovy 3/4/5 and Java-authored annotations. Inspect repeatable meta-annotation representation;
-do not depend on reflection iteration. Retain upgrade regression tests. If disproved, stop
-and reopen order with evidence.
+Probe Java/Groovy-authored annotations, repeatable meta-annotations, separately compiled libraries/
+Schemas and Groovy 3/4/5. If declaration order is reliably recovered from actual compiled
+representation, document/regression-test it; otherwise explicitly state unspecified execution
+order and require handler correctness independent of order.
 
-Commit: composition representation and order guarantee with binary-lane regressions.
+Separate within-domain-annotation order from between-domain-annotations on one field
+(unspecified unless established), and from optional type-before-field placement.
+Creation-before-mutation always holds. No priorities, sorting, ordering SPI or elaborate
+workaround. Unspecified mutation order is a permitted core outcome.
+
+Commit: composition and demonstrated ordering contract with binary-lane regressions.
 
 ### LP-3 — All phases and cluster sequence (D1–D3)
 
 Integrate AutoCreate, AutoLink, Default, PostTree at existing field enumeration slots.
-Prove parent-field → child type/field/method/Closure sequence and unchanged built-in callback
-order. AutoCreate may mutate an existing child to create grandchildren; AutoLink may create the
+Prove parent-field → child field/method/Closure sequence (type if LP-5 ships) and preserve
+built-in callback order. AutoCreate may mutate an existing child to create grandchildren; AutoLink may create the
 annotated target. Shapes are phase-independent. Do not promise earlier phases rerun for new children.
 
 Exact AutoCreate trace: Fields → ClusterFields → LifecycleMethods (including Closures).
@@ -93,7 +120,10 @@ Gate: verify existing field order rather than add sorting or a second whole-tree
 
 ### LP-4 — Sealed and construction-route compatibility (D6, D8)
 
-Default sealed failure, explicit skip/handle for mutations; handle never relaxes immutability.
+Core FAIL rejects sealed invocation; SKIP omits it. Optional HANDLE probe covers read-only
+inspection/validation. Include if a small dispatch extension suffices; defer if mutation
+interception, lifecycle changes or a read-only participant framework would be required.
+Publish no HANDLE API if deferred; existing immutability never changes.
 Creators retain normal LINK/OPTIONAL_LINK/composition assignment checks.
 Test polymorphism, alias/cycle identity, fresh handler state across fields/sessions.
 
@@ -103,32 +133,42 @@ serialization. Validate late-created child ownership/session mechanics, not an i
 
 Commit: policy/error behavior with graph/Template/import/session regressions.
 
-### LP-5 — Type mutation (D1, D3–D4)
+### LP-5 — Optional type mutation (D1, D3–D4)
 
-Separate slice. Type participants run first within visited Builder, after parent-field dispatch.
+Independent and not a core/4.1 gate. Include if straightforward after field dispatch, otherwise
+record complexity and defer without type-level public contracts.
+Type participants run first within visited Builder, after parent-field dispatch.
 Traversal supplies containing Builder/incoming field name; both null at root. Target is visited
 Builder. Annotation lookup queries Schema type, not incoming relationship. No new sealed
 aggregation traversal and no creating participant on types.
 
 Acceptance: Java @Inherited base behavior, same-type subclass override, unmarked/interface
 non-inheritance; standard repeatable-container inheritance characterization without plural lookup.
-Resolve deterministic order among different inherited domain annotation types only if existing
-mechanics are insufficient, with a bounded decision. Within each domain annotation use LP-2 order.
+Do not manufacture order among different inherited domain annotation types; document unspecified
+order where none is established. Within one domain annotation use LP-2’s demonstrated contract.
 Inherited fields retain their original declaration and actual containing subtype.
 
 Commit: type dispatch, placement/inheritance/root tests together.
 
-### LP-6 — Narrow Closure evaluation (D7)
+### LP-6 — Optional Closure evaluation; early reuse probe (D7)
 
-Qualify one Java-first helper signature taking Closure class, fixed handler-selected delegate,
+Probe early: DSLASTTransformation.convertValidationClosureOnSingleField, toStronglyTypedClosure,
+Validate annotation Closure behavior, retargetBuilderAnnotationClosures and Model/generated
+Builder mapping. Assess handler-selected Builder/context delegate typing and IntelliJ
+owning-class inference; Validate is the acceptable ergonomic baseline, not perfect inference.
+Reuse typed Closure mechanisms without importing Validate's assertion-specific semantics.
+
+Implement if reuse is modest/compatible. Otherwise document limitations and defer with no partial
+helper API. Qualify one Java-first helper signature taking Closure class, fixed handler-selected
+delegate,
 expected result class. Fresh instance; DELEGATE_ONLY; delegate also single argument.
 Handler owns member choice/sentinel. No configurable owner/resolve/cache API.
 
 Acceptance: Java Closure subclass, Groovy inline annotation Closure, typed member result,
 static/dynamic delegate access, explicit argument, bad result/constructor, owner/caller fallback
 failure and preserved causes. Separate Groovy 3/4/5 compilation; legacy DELEGATE_FIRST unchanged.
-Generic Class bounds alone are not static typing proof. Return for a bounded decision if additional
-public helper surface becomes necessary.
+Generic Class bounds alone are not static typing proof. Avoid a generic execution framework,
+configurable resolution strategies, caching or unrelated compiler infrastructure.
 
 Commit: helper/compiler integration with consumer and existing Closure regressions.
 
@@ -142,12 +182,21 @@ No production collection/map contract is authorized by this plan.
 
 Commit: isolated exploratory fixtures/evidence; acceptance needed before any support implementation.
 
-### LP-8 — Errors, validation participation, qualification and docs (D8)
+### LP-8 — Mandatory errors, existing validation usage, qualification and docs (D8)
 
 Document configuration defects versus execution failures versus domain validation findings.
-Verify public external-handler validation participation, severity/reporting and issue transfer
-through materialization. If route missing, record gap and seek a small decision; never export
-companions or invent a collector. Context restoration on exceptions must preserve cause and
+Use existing validation support (baseline names: KlumSchemaSupport and KlumValidationReporter).
+Current-target getKlumValidation requires lifecycle instance/member context; explicit
+klumValidationForObject(target) reports on the Domain Builder, with no default member unless
+errorAt/issueAt supplies one. Use existing Validate.Level, suppression and fail threshold.
+Verify normal materialization issue transfer. No new validation infrastructure or API.
+
+Add concise participant guidance and one small executable @Issue("867"), documentary/@See
+example in LP-8: an external mutator reports missing Facts on its explicit Domain Builder,
+then asserts member location/severity and normal final reporting. Existing #626 tests already
+cover lifecycle helpers, child targets and suppression; reuse those mechanisms. See refinement
+evidence for the proposed body, existing restrictions and documentation boundary.
+Context restoration on exceptions must preserve cause and
 identify participant, handler, phase and field/type declaration.
 
 Run affected module baseline plus Groovy 4/5, Java/static Groovy binary consumers and Groovy 4/5
@@ -164,9 +213,11 @@ Review unpublished history before remote delivery; preserve reviewed commits.
 
 ## Risks and explicit gates
 
-Names/signatures, binary declaration order, Closure static semantics, phase insertion details,
-inter-type annotation order, validation participation and collection/map disposition require
-evidence. Context invocation-only lifetime is documentation-only by decision.
+Names/signatures and exact phase slots need consumer/compatibility evidence. Mutation ordering
+is probe-dependent with unspecified order a documented acceptable outcome. Type mutation,
+Closure evaluation and HANDLE may defer independently; container support/reject is a mandatory
+release decision. Validation uses existing infrastructure and is not an architectural gate.
+Context invocation-only lifetime is documentation-only by decision.
 No ScHelm types/policy, ownership redesign, Model mutation, Template/import API overhaul or
 runtime-internal general extension seam.
 
@@ -180,5 +231,6 @@ Prior investigation: Groovy 3 and Groovy 4 module suites passed (1,610 tests eac
 zero failures/errors, 15 pre-existing skips); two focused Groovy 5 characterization tests passed.
 These prove traversal only, not this API. This update is documentation-only: check diff and
 relative links; no new Groovy execution or feature tracer implementation.
-Hand back proposed artifacts for maintainer review/Hive reconciliation without issue retargeting,
-implementation or self-archival.
+Hand back refined artifacts for maintainer review/Hive reconciliation without issue retargeting,
+implementation or self-archival. Architecture acceptance does not authorize LP-1.
+See [refinement evidence](evidence/issue-867-core-optional-refinement.md).

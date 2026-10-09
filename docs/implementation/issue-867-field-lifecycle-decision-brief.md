@@ -2,6 +2,7 @@
 
 Date: 2026-10-09
 Status: Historical initial investigation; superseded for design authority by ADR 0028.
+Current core/optional refinement: [evidence](evidence/issue-867-core-optional-refinement.md).
 
 Initial proposals below are historical evidence, not current decisions. See
 [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md) and its
