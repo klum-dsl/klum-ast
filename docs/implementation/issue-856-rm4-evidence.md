@@ -143,9 +143,11 @@ cases per lane**, zero failures/errors/skips, including all three documentary en
 unchanged. Final branch changes are prose only; production, test sources/resources and build inputs remain identical to
 this qualified base. No repeat of the Groovy suites or root check is required for those documentation-only corrections.
 
-Final committed-document rendering/crawl, documentary-link/fence/diff checks, parallel Standards/Spec review and exact-head
-CI/Sonar results are recorded in the RM-4 PR and handoff. Delivery remains draft for maintainer/Hive review; no ready-for-review,
-merge, issue closure or archive action is authorized by this report.
+Committed-document rendering/crawl passed on `033970bb` in 20s using `renderLocalDocumentation` with
+`-PdocumentationVersion=4.1.0-tracer`; documentary-link/fence/diff and existing navigation checks also pass. Standards
+review identified premature delivery-result wording, corrected here. Final review disposition and exact-head CI/Sonar
+checks must be recorded in the RM-4 PR and handoff during delivery. Any PR remains draft for maintainer/Hive review; no
+ready-for-review, merge, issue closure or archive action is authorized by this report.
 
 ## Hive recommendation and remaining action
 
