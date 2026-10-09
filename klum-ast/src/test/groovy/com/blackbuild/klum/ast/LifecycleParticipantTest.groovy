@@ -344,18 +344,18 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         'fresh LINK'      | '@Field(FieldType.LINK) Domain domain'      | 'return Domain.Create.AsBuilder().One()' | 'Fresh Builder inputs are not supported for LINK'
     }
 
-    def 'participant invocation preserves the cause and a later lifecycle remains usable'() {
+    def 'participant invocation preserves the cause and a later lifecycle remains usable (#role, #failureType)'() {
         given:
         createSecondaryClass """
             import com.blackbuild.klum.ast.runtime.*
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = Handler)
+            @${marker}(phase = AutoLink, handler = Handler)
             @interface Binding {}
-            class Handler implements LifecycleMutationHandler<Binding> {
-                void mutate(LifecycleMutationContext<Binding> context) {
-                    throw new IllegalStateException('domain failure')
+            class Handler implements ${handlerRole}<Binding> {
+                ${resultType} ${operation}(${contextType}<Binding> context) {
+                    throw new ${failureType}('domain failure')
                 }
             }
             @DSL class Domain {}
@@ -363,19 +363,34 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         """
 
         when:
-        Application.Create.With { domain {} }
+        if (role == 'creator') Application.Create.One()
+        else Application.Create.With { domain {} }
 
         then:
         KlumException failure = thrown()
         causeMessages(failure).any { it.contains('Participant Binding handler Handler during AutoLink on Application.domain') }
-        failure.cause.cause instanceof IllegalStateException
+        failure.cause.cause.class.simpleName == failureType
         failure.cause.cause.message == 'domain failure'
 
         when:
-        def application = Application.Create.One()
+        def domain = Domain.Create.One()
 
         then:
-        application.domain == null
+        domain != null
+
+        where:
+        role      | failureType
+        'creator' | 'IllegalStateException'
+        'creator' | 'AssertionError'
+        'creator' | 'NoClassDefFoundError'
+        'mutator' | 'IllegalStateException'
+        'mutator' | 'AssertionError'
+        'mutator' | 'NoClassDefFoundError'
+        marker = role == 'creator' ? 'LifecycleCreator' : 'LifecycleMutator'
+        handlerRole = role == 'creator' ? 'LifecycleCreationHandler' : 'LifecycleMutationHandler'
+        resultType = role == 'creator' ? 'KlumBuilder<?>' : 'void'
+        operation = role == 'creator' ? 'create' : 'mutate'
+        contextType = role == 'creator' ? 'LifecycleFieldContext' : 'LifecycleMutationContext'
     }
 
     private static List<String> causeMessages(Throwable failure) {

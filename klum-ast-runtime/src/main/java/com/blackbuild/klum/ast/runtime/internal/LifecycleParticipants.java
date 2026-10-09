@@ -82,7 +82,7 @@ public final class LifecycleParticipants {
             LifecycleCreationHandler<A> handler = (LifecycleCreationHandler<A>) marker.handler().getConstructor().newInstance();
             KlumBuilder<?> result = handler.create(new FieldContext<>(containing, field, annotation));
             if (result != null) containing.setSingleField(field.getName(), result);
-        } catch (ReflectiveOperationException | RuntimeException exception) {
+        } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
             throw failure(field, annotation, marker.handler(), exception);
         }
     }
@@ -95,12 +95,12 @@ public final class LifecycleParticipants {
             if (target.isSealed()) throw new KlumModelException("Lifecycle mutation requires an unsealed Builder");
             LifecycleMutationHandler<A> handler = (LifecycleMutationHandler<A>) marker.handler().getConstructor().newInstance();
             handler.mutate(new MutationContext<>(containing, field, annotation, target));
-        } catch (ReflectiveOperationException | RuntimeException exception) {
+        } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
             throw failure(field, annotation, marker.handler(), exception);
         }
     }
 
-    private static KlumModelException failure(Field field, Annotation annotation, Class<?> handler, Exception exception) {
+    private static KlumModelException failure(Field field, Annotation annotation, Class<?> handler, Throwable exception) {
         Throwable cause = exception instanceof InvocationTargetException invocation ? invocation.getCause() : exception;
         return new KlumModelException("Participant " + annotation.annotationType().getName() + " handler "
                 + handler.getName() + " during " + AutoLink.class.getSimpleName() + " on "
