@@ -122,6 +122,9 @@ Creation-before-mutation is unconditional. Other ordering dimensions are distinc
    repeatable meta-annotations, separately compiled libraries/Schemas and Groovy 3/4/5.
    Reliably recovered declaration order becomes documented and regression-tested; otherwise
    execution order is explicitly unspecified.
+   [LP-2 ordering probes](../implementation/issue-867-lp2-evidence.md#exact-ordering-conclusion)
+   establish declaration order for repeated mutators and value-array order for one explicit container.
+   Mixing a singular marker and explicit container retains unspecified relative order.
 2. Between different domain annotations on a field: no deterministic order is established.
    Do not infer it from reflection or the within-annotation result.
 3. Type versus field: if LP-5 ships, type mutations precede fields in their own visit;

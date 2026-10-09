@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Qualified LP-2 direct-field participant composition during AutoLink: repeatable creator/mutator markers,
+  ordered mutations within one repeatable container, unconditional creation before mutation, and compile-time
+  rejection of competing same-phase direct creators (including LinkTo). Different annotations retain unspecified
+  mutation order; built-in creation in other phases can coexist. The full feature remains partially qualified
+  ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
+
 - Added the provisional LP-1 external lifecycle-participant tracer: separate domain-field creator and mutator
   meta-annotations/handlers during AutoLink, public Builder contexts, checked creator assignment and exact
   annotation-generic validation. Typed reusable consumer examples use common Schema bases and generated Builder

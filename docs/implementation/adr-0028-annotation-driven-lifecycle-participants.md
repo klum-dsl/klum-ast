@@ -101,6 +101,11 @@ Separate within-domain-annotation order from between-domain-annotations on one f
 Creation-before-mutation always holds. No priorities, sorting, ordering SPI or elaborate
 workaround. Unspecified mutation order is a permitted core outcome.
 
+Ordering probe conclusion: [LP-2 evidence](issue-867-lp2-evidence.md#exact-ordering-conclusion)
+qualifies repeated-mutator declaration order and explicit-container value order. Mixed singular/container
+relative order and between-domain-annotation order remain unspecified. The evidence separately records
+the pending LP-2/LP-3 cross-phase scope boundary; no all-phase completion is implied.
+
 Commit: composition and demonstrated ordering contract with binary-lane regressions.
 
 ### LP-3 — All phases and cluster sequence (D1–D3)

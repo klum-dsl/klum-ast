@@ -47,8 +47,7 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## External field participants (LP-1)
 
-Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers only the first qualification
-slice: domain annotations on direct DSL fields during `AutoLink`. Names and signatures remain provisional.
+Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers the LP-1 tracer and LP-2 composition qualification: domain annotations on direct DSL fields during `AutoLink`. Names and signatures remain provisional.
 The whole feature and its conditional 4.1 placement still require the remaining ADR 0028 gates.
 
 A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
@@ -178,11 +177,58 @@ invocation only; retaining them grants no new Builder rights.
 Each invocation constructs a fresh public concrete handler with a public no-arg constructor. Its annotation
 parameter must resolve exactly to the domain annotation, including generic inheritance. Raw, wildcard,
 unresolved and mismatched parameters fail Schema compilation; runtime independently defends precompiled
-inputs before invocation. LP-1 rejects sealed mutation targets. FAIL/SKIP, all four phases, composition
-conflicts/order qualification, Template/import/graph/JPMS coverage, validation guidance and optional type,
+inputs before invocation. Sealed mutation targets are rejected. FAIL/SKIP, all four phases,
+Template/import/graph/JPMS coverage, validation guidance and optional type,
 Closure, HANDLE and container decisions remain later gates. See the
 [LP-1 evidence](../implementation/issue-867-lp1-evidence.md) and
 [ADR 0028 plan](../implementation/adr-0028-annotation-driven-lifecycle-participants.md).
+
+### Participant composition (LP-2)
+
+A domain annotation can combine creation with several mutations. During the field's `AutoLink` visit,
+creation always precedes every mutation, including mutations from other annotations. Existing Builders
+are preserved; a null creator result leaves the field unset and skips its mutations. At most one direct
+creator may claim the same field and phase. Two external creators, repeated creators in one domain
+annotation, or `@LinkTo` plus an external `AutoLink` creator fail Schema compilation. Multiple mutations
+remain legal, including alongside built-in creation. Built-in creation in a different phase (for example
+`@AutoCreate`) may coexist with an external `AutoLink` creator/mutator.
+
+(See: `LifecycleParticipantCompositionTest#'combines creation and repeated mutations on supplied and existing Builders (#container)'`.)
+
+```groovy
+@Retention(RUNTIME) @Target(FIELD)
+@LifecycleCreator(phase = AutoLink, handler = Supply)
+@LifecycleMutator(phase = AutoLink, handler = ZFirst)
+@LifecycleMutator(phase = AutoLink, handler = ASecond)
+@interface Configured { boolean enabled() default true }
+
+@DSL class Domain { String value }
+@DSL class Application {
+    @Configured Domain supplied
+    @Configured Domain existing
+    @Configured(enabled = false) Domain absent
+}
+
+def application = Application.Create.With { existing { value 'configured' } }
+// Supply returns a Domain Builder with value 'created', or null when disabled.
+// ZFirst appends ':first'; ASecond appends ':second'.
+assert application.supplied.value == 'created:first:second'
+assert application.existing.value == 'configured:first:second'
+assert application.absent == null
+```
+
+Within one domain annotation, repeated `@LifecycleMutator` declarations execute in declaration order.
+The equivalent explicit `@LifecycleMutator.List([@LifecycleMutator(...), ...])` executes in its `value`
+array order (Java uses `{...}`). This narrow contract is qualified for Java- and Groovy-authored annotation
+libraries, separately compiled Schemas and binary consumers under Groovy 3/4/5. It follows the emitted
+repeatable container's ordered array, without alphabetical sorting or priorities.
+
+Mixing a singular marker with an explicit container on the same domain annotation has unspecified relative
+order. Order between different domain annotations on one field also remains unspecified; their handlers
+must be correct independently of that order. Neither case weakens creator-before-mutator. Optional type
+mutation and its placement order remain a later gate. Other external phases remain unqualified until LP-3.
+
+See [LP-2 evidence](../implementation/issue-867-lp2-evidence.md) for the precise probe matrix and remaining gates.
 
 ## Phase Details
 
