@@ -79,7 +79,7 @@ public final class LifecycleParticipants {
     private static <A extends Annotation> void create(InternalKlumBuilder<?> containing, Field field,
                                                      A annotation, LifecycleCreator marker) {
         try {
-            LifecycleCreationHandler<A> handler = (LifecycleCreationHandler<A>) marker.handler().getConstructor().newInstance();
+            LifecycleCreationHandler<A> handler = marker.handler().getConstructor().newInstance();
             KlumBuilder<?> result = handler.create(new FieldContext<>(containing, field, annotation));
             if (result != null) containing.setSingleField(field.getName(), result);
         } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
@@ -93,7 +93,7 @@ public final class LifecycleParticipants {
         try {
             InternalKlumBuilder<?> target = (InternalKlumBuilder<?>) containing.getInstanceAttribute(field.getName());
             if (target.isSealed()) throw new KlumModelException("Lifecycle mutation requires an unsealed Builder");
-            LifecycleMutationHandler<A> handler = (LifecycleMutationHandler<A>) marker.handler().getConstructor().newInstance();
+            LifecycleMutationHandler<A> handler = marker.handler().getConstructor().newInstance();
             handler.mutate(new MutationContext<>(containing, field, annotation, target));
         } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
             throw failure(field, annotation, marker.handler(), exception);

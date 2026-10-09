@@ -363,8 +363,11 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         """
 
         when:
-        if (role == 'creator') Application.Create.One()
-        else Application.Create.With { domain {} }
+        if (role == 'creator') {
+            Application.Create.One()
+        } else {
+            Application.Create.With { domain {} }
+        }
 
         then:
         KlumException failure = thrown()
@@ -395,7 +398,9 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
 
     private static List<String> causeMessages(Throwable failure) {
         List<String> messages = []
-        for (Throwable cause = failure; cause != null; cause = cause.cause) messages.add(cause.message ?: '')
+        for (Throwable cause = failure; cause != null; cause = cause.cause) {
+            messages.add(cause.message ?: '')
+        }
         messages
     }
 

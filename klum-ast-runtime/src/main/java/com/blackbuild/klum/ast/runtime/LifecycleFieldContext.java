@@ -40,6 +40,8 @@ public interface LifecycleFieldContext<A extends Annotation> {
     /** Singular typed lookup on the original Schema field declaration. */
     <B extends Annotation> Optional<B> getAnnotation(Class<B> annotationType);
     /** The actual containing Builder, including inherited field occurrences. */
+    // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
+    @SuppressWarnings("java:S1452")
     KlumBuilder<?> getContainingBuilder();
     /** The annotated relationship's name in the containing Schema. */
     String getFieldName();

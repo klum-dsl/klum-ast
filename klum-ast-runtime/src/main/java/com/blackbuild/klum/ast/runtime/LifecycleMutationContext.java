@@ -32,5 +32,7 @@ import java.lang.annotation.Annotation;
  */
 public interface LifecycleMutationContext<A extends Annotation> extends LifecycleFieldContext<A> {
     /** Returns the existing or just-created target Builder. */
+    // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
+    @SuppressWarnings("java:S1452")
     KlumBuilder<?> getTargetBuilder();
 }

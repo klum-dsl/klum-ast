@@ -48,7 +48,6 @@ public class AutoLinkPhase extends BuilderVisitingPhaseAction {
                         field -> field.isAnnotationPresent(LinkTo.class) || LifecycleParticipants.hasParticipant(field))
                 .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);
         fields.entrySet()
-                .stream()
                 .forEach(entry -> {
                     if (isUnset(entry) && element.getModelField(entry.getKey()).isAnnotationPresent(LinkTo.class))
                         LinkHelper.autoLink(element, entry.getKey());

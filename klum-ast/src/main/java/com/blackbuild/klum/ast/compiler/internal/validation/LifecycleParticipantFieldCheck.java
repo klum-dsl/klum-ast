@@ -92,17 +92,21 @@ public final class LifecycleParticipantFieldCheck {
                 error(source, use, "Lifecycle participant handler must be a class literal");
                 continue;
             }
-            ClassNode handler = expression.getType();
-            if (!Modifier.isPublic(handler.getModifiers()) || handler.isAbstract() || handler.isInterface()
-                    || (handler.getOuterClass() != null && !Modifier.isStatic(handler.getModifiers()))
-                    || (!handler.getDeclaredConstructors().isEmpty() && handler.getDeclaredConstructors().stream()
-                    .noneMatch(ctor -> Modifier.isPublic(ctor.getModifiers()) && ctor.getParameters().length == 0)))
-                error(source, use, "Lifecycle participant handler " + handler.getName() + " requires a public concrete class and public no-arg constructor");
-            ClassNode parameter = annotationParameter(handler, handlerRole.getName(), Map.of());
-            if (parameter == null || !parameter.equals(domain))
-                error(source, use, "Lifecycle participant handler " + handler.getName() + " annotation parameter must resolve exactly to "
-                        + domain.getName() + "; raw, wildcard, unresolved and mismatched parameters are unsupported");
+            checkHandler(source, use, domain, expression.getType(), handlerRole);
         }
+    }
+
+    private static void checkHandler(SourceUnit source, AnnotationNode use, ClassNode domain,
+                                     ClassNode handler, Class<?> handlerRole) {
+        if (!Modifier.isPublic(handler.getModifiers()) || handler.isAbstract() || handler.isInterface()
+                || (handler.getOuterClass() != null && !Modifier.isStatic(handler.getModifiers()))
+                || (!handler.getDeclaredConstructors().isEmpty() && handler.getDeclaredConstructors().stream()
+                .noneMatch(ctor -> Modifier.isPublic(ctor.getModifiers()) && ctor.getParameters().length == 0)))
+            error(source, use, "Lifecycle participant handler " + handler.getName() + " requires a public concrete class and public no-arg constructor");
+        ClassNode parameter = annotationParameter(handler, handlerRole.getName(), Map.of());
+        if (parameter == null || !parameter.equals(domain))
+            error(source, use, "Lifecycle participant handler " + handler.getName() + " annotation parameter must resolve exactly to "
+                    + domain.getName() + "; raw, wildcard, unresolved and mismatched parameters are unsupported");
     }
 
     private static ClassNode annotationParameter(ClassNode type, String role, Map<String, GenericsType> incoming) {
@@ -113,6 +117,17 @@ public final class LifecycleParticipantFieldCheck {
             return resolved == null || resolved.isWildcard() || resolved.isPlaceholder()
                     || resolved.getType().isGenericsPlaceHolder() ? null : resolved.getType();
         }
+        Map<String, GenericsType> bindings = parameterBindings(type, arguments, incoming);
+        for (ClassNode parent : type.getInterfaces()) {
+            ClassNode result = annotationParameter(parent, role, bindings);
+            if (result != null) return result;
+        }
+        ClassNode parent = type.getUnresolvedSuperClass();
+        return parent == null ? null : annotationParameter(parent, role, bindings);
+    }
+
+    private static Map<String, GenericsType> parameterBindings(ClassNode type, GenericsType[] arguments,
+                                                               Map<String, GenericsType> incoming) {
         Map<String, GenericsType> bindings = new HashMap<>();
         GenericsType[] variables = type.redirect().getGenericsTypes();
         if (variables != null && arguments != null && variables.length == arguments.length) {
@@ -121,12 +136,7 @@ public final class LifecycleParticipantFieldCheck {
                 if (resolved != null) bindings.put(variables[i].getName(), resolved);
             }
         }
-        for (ClassNode parent : type.getInterfaces()) {
-            ClassNode result = annotationParameter(parent, role, bindings);
-            if (result != null) return result;
-        }
-        ClassNode parent = type.getUnresolvedSuperClass();
-        return parent == null ? null : annotationParameter(parent, role, bindings);
+        return bindings;
     }
 
     private static GenericsType resolve(GenericsType argument, Map<String, GenericsType> bindings) {

@@ -34,5 +34,7 @@ import java.lang.annotation.Annotation;
 @FunctionalInterface
 public interface LifecycleCreationHandler<A extends Annotation> {
     /** Returns a Builder or null to leave the relationship unset. */
+    // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
+    @SuppressWarnings("java:S1452")
     KlumBuilder<?> create(LifecycleFieldContext<A> context);
 }
