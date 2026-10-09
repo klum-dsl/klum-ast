@@ -59,7 +59,28 @@ Checked assignment retains foreign-session and fresh-LINK rejection. Invocation 
 cause, annotation/handler/AutoLink/field context; a subsequent lifecycle works after failure.
 Existing AutoLink and parent-before-child characterization tests are retained.
 
-Validation commands/results and final-head review/CI evidence are recorded below after execution.
+Local qualification on implementation head `c3cc943a`:
+
+| Check | Result |
+| --- | --- |
+| Focused `:klum-ast:test` (participant, AutoLink and traversal tests) | Passed, including six creator/mutator runtime/assertion/linkage-failure regressions |
+| Affected baseline module suites | Passed before review; compiler 1,639 / runtime 73 tests, zero failures/errors |
+| Sequential final `./gradlew check` | Passed after review fix; all repository checks, license checks, lane isolation and compatibility coverage |
+| Compiler Groovy 3 / 4 / 5 | 1,644 tests each; zero failures/errors; 15 existing skips each |
+| Runtime Groovy 3 / 4 / 5 | 73 tests each; zero failures/errors; one existing skip each |
+| `git diff --check`, edited relative Markdown links | Passed |
+| Standards review | Zero breaches/actionable smells; diagnostic follow-up re-review clear |
+| Specification review | One lost assertion-context finding addressed in `c3cc943a`; re-review clear |
+| Commit-history review | Coherent implementation, documentation and additive diagnostic-review steps; no rewrite needed |
+
+The initial full run was invalidated by overlapping local Gradle builds that replaced versioned JAR inputs;
+it is not acceptance evidence. The final full run above was sequential with stable inputs. Fatal JVM errors
+remain unwrapped; ordinary runtime failures, assertions and linkage failures retain their original cause
+and participant/handler/phase/field context. No test suppression was added.
+
+Publication is an authorized draft with `Related: #867`. The final-head PR check/status records and handoff
+provide remote CI/SonarCloud evidence; local success is not claimed as remote success. The Hive must
+reconcile the open PR and later gates; the worker does not set archive-safe state or close #867.
 
 ## Remaining gates
 
