@@ -69,14 +69,32 @@ repeatability is on the meta-annotations, not a plural domain-annotation context
   requires a KlumSchemaException before handler invocation; existing generic-handler replacement controls remain.
 - Existing AutoLink and FieldPhaseTraversalCharacterizationTest regressions remain part of qualification.
 
-Focused Groovy 3 coverage passes after correcting the test's explicit LinkTo provider. Initial Groovy 4/5 ordering
-and binary-consumer probes pass; final full-repository check is in progress. No new suppression or ignored test.
-Standards review found no documented violations and one nonblocking duplicated fixture conversion, subsequently
-consolidated. Specification review found no implementation errors or scope creep; its one incomplete acceptance
-criterion is the explicit cross-phase scope question above. Final-head CI/SonarCloud and commit-history review remain
-pending. An initial repository check was invalidated when a documentation commit changed the Git-derived version
-during nested fixture publication: consumers requested dev.334 while the fixture repository contained dev.335.
-It is not acceptance evidence; qualification must run with stable Git state and no overlapping Gradle builds.
+Final stable `./gradlew check --no-parallel` passed in 9m 27s at code head
+`9239d4a5a137877672a7a2b2e237ba8a8d6933ee`, including license checks, test-lane isolation and artifact consumers.
+No code or Git state changed during this run. The subsequent evidence-only commit changes no executable inputs;
+its applicable verification is diff/relative-link checks rather than another Groovy run.
+
+| Check | Result |
+| --- | --- |
+| Compiler Groovy 3 / 4 / 5 | 1,659 tests each; zero failures/errors, 15 existing skips each |
+| Runtime Groovy 3 / 4 / 5 | 73 tests each; zero failures/errors, one existing skip each |
+| Gradle plugin | 151 tests; zero failures/errors/skips |
+| Published test support, baseline / G4 / G5 | 7 / 6 / 6 tests; zero failures/errors/skips |
+| Focused participant, binary consumer, AutoLink and traversal coverage | Passed; included in final full suites |
+| Edited relative Markdown links and git diff --check | Passed |
+| Standards review and additive re-review | No documented violations; optional duplicated conversion addressed |
+| Specification review and additive re-review | No implementation errors/scope creep; one unresolved phase-scope acceptance criterion |
+| Commit-history review | Core behavior, evidence/docs, additive review cleanup; reviewed commits preserved |
+
+No new suppression or ignored test. Both reviewers inspected base `e1bf38e0` through `a5e42aa3` and the additive
+`9239d4a5` follow-up. The initial repository check was invalidated when a documentation commit changed the
+Git-derived version during nested fixture publication: consumers requested dev.334 while the fixture repository
+contained dev.335. It is not acceptance evidence; the stable successful run above supersedes it.
+
+Publication is held for the explicit phase-scope clarification. No pull request, remote final-head CI/SonarCloud
+result, issue completion or release qualification is claimed. Tracker impact is Related #867 and no curation change;
+this partial local slice does not settle any remaining feature/release gate. The Hive must reconcile the scope and
+later delivery; this worker does not self-archive.
 
 ## Deferred gates
 
