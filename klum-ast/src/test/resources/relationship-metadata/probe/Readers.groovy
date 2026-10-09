@@ -33,7 +33,14 @@ import java.util.Optional
 @CompileStatic
 class StaticReader {
     static int reads
+    static <T> Class<T> modelType(KlumBuilder<T> builder) {
+        Class<T> type = KlumBuilderSupport.of(builder).modelType
+        KlumBuilder<?> erased = builder
+        assert KlumBuilderSupport.of(erased).modelType == type
+        type
+    }
     static <T> void live(KlumBuilder<T> builder) {
+        assert modelType(builder).name == "fixture.leaf.Child"
         KlumBuilderSupport<T> support = KlumBuilderSupport.of(builder)
         KlumBuilderSupport.Structure<T> structure = support.structure
         Optional<KlumSchemaRelationship> relationship = structure.owningRelationship

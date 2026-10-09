@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- Added `KlumBuilderSupport<T>.getModelType(): Class<T>` for the concrete represented Model subtype, including
+  erased/base-typed Builders and sealed completed-LINK wrappers. Immutable type metadata remains readable before
+  OWNER and after completion or abort, independently of ownership queries and mutation eligibility
+  ([#868](https://github.com/klum-dsl/klum-ast/issues/868)).
+
 - Added read-only owning Schema declaration queries through `KlumBuilderSupport.of(builder).getStructure()`
   and completed `KlumObjectSupport` Structure. Both expose immutable `KlumSchemaRelationship` and typed Optional
   annotation queries independent of Owner values. Each Builder request requires its current active session and a phase

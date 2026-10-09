@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit
 import java.util.jar.JarFile
 
 /** Runs real compiler and JVM processes with JAR-only Schema inputs and no test-runner classpath. */
-@Issue('856')
+@Issue(['856', '868'])
 class RelationshipMetadataConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
@@ -169,7 +169,7 @@ class RelationshipMetadataConsumerTest extends Specification {
                         projectionInputs.resolve(packageName + type + '_DSL.class'), mirrors)
                 String mirror = Files.readString(mirrors.resolve(packageName + type + '_DSL.java'))
                 assert mirror.contains('interface Builder<')
-                assert !['getStructure', 'getOwningRelationship', 'KlumBuilderSupport'].any { mirror.contains(it) } : mirror
+                assert !['getModelType', 'getStructure', 'getOwningRelationship', 'KlumBuilderSupport'].any { mirror.contains(it) } : mirror
             }
         }
         Path jar = root.resolve('fixture.' + name + '.jar')

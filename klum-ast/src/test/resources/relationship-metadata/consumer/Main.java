@@ -71,11 +71,11 @@ public class Main {
         JavaProbe.require(dynamicRoot.getChild().getName().equals("dynamic"), "Dynamic Builder setter linkage");
         JavaProbe.require(KlumBuilder.class.getDeclaredMethods().length == 0, "Zero-operation marker");
         for (Class<?> builder : new Class<?>[] {Root_DSL.Builder.class, Child_DSL.Builder.class}) {
-            JavaProbe.require(Arrays.stream(builder.getMethods()).noneMatch(method -> Set.of("getStructure", "getOwningRelationship", "getOwningRelationshipAnnotation").contains(method.getName())), "Facade operations leaked onto generated Builder");
+            JavaProbe.require(Arrays.stream(builder.getMethods()).noneMatch(method -> Set.of("getModelType", "getStructure", "getOwningRelationship", "getOwningRelationshipAnnotation").contains(method.getName())), "Facade operations leaked onto generated Builder");
         }
         JavaProbe.require(Modifier.isPrivate(RootBase.class.getDeclaredField("child").getModifiers()), "Private owning Schema field");
         JavaProbe.require(RootBase.class.getDeclaredField("child").getAnnotation(Binding.class).value().equals("inherited"), "Exact annotation Class identity");
-        JavaProbe.require(Arrays.stream(Child.class.getMethods()).noneMatch(method -> Set.of("getStructure", "getOwningRelationship", "getOwningRelationshipAnnotation").contains(method.getName())), "Metadata properties leaked onto Model");
+        JavaProbe.require(Arrays.stream(Child.class.getMethods()).noneMatch(method -> Set.of("getModelType", "getStructure", "getOwningRelationship", "getOwningRelationshipAnnotation").contains(method.getName())), "Metadata properties leaked onto Model");
         for (Class<?> surface : new Class<?>[] {Root_DSL.Factory.class, Root_DSL.Builder.class, Child_DSL.Builder.class,
                 KlumBuilderSupport.class, KlumBuilderSupport.Structure.class, KlumObjectSupport.Structure.class}) {
             for (Method method : surface.getMethods()) {
@@ -89,6 +89,9 @@ public class Main {
     private static void typedBuilder(Child_DSL.Builder<Child> builder) {
         KlumBuilder<Child> marker = builder;
         KlumBuilderSupport<Child> support = KlumBuilderSupport.of(marker);
+        Class<Child> type = support.getModelType();
+        JavaProbe.require(type == Child.class, "Exact typed Java Model class before OWNER");
+        JavaProbe.require(StaticReader.modelType(marker) == Child.class, "Exact static Groovy Model class before OWNER");
         JavaProbe.require(support.getStructure() != null, "Public generated Builder generic linkage");
     }
 }

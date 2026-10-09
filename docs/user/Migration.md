@@ -2,6 +2,13 @@
 
 ## To 4.1
 
+### Discovering a Builder's Model type
+
+The additive [Model type getter](Completed-Object-Support.md#discovering-the-model-type-of-a-builder)
+`KlumBuilderSupport.of(builder).getModelType()` returns the represented concrete subtype without Schema recompilation.
+It uses the existing runtime export and remains readable before OWNER and after completion or abort. Ownership-query
+lifetime and mutation guards are unchanged.
+
 ### Reading owning Schema declarations
 
 The initial [owning-declaration support](Completed-Object-Support.md#owning-schema-declarations) is additive. Use

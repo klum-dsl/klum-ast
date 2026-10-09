@@ -32,7 +32,8 @@ import java.util.Optional;
 /**
  * Read-only support for a generated Builder. Structure may be acquired early; every ownership
  * request requires the current thread's active Construction session and a phase after OWNER(15).
- * Normal sealing does not end this read lifetime. After construction, use {@link KlumObjectSupport}.
+ * Normal sealing does not end the ownership read lifetime. Model type metadata remains readable
+ * independently of the Construction session. After construction, use {@link KlumObjectSupport} for structure.
  *
  * @param <T> the completed DSL Object type
  */
@@ -52,6 +53,16 @@ public final class KlumBuilderSupport<T> {
         Objects.requireNonNull(builder, "builder");
         InternalKlumBuilderSupport.requireBuilder(builder);
         return new KlumBuilderSupport<>(builder);
+    }
+
+    /**
+     * Returns the concrete Model class represented by this Builder, including polymorphic subtypes.
+     * This immutable metadata is readable for active, sealed and captured inactive Builders, including
+     * after completion or abort. It requires no owning relationship, session or lifecycle phase and
+     * grants no mutation rights.
+     */
+    public Class<T> getModelType() {
+        return InternalKlumBuilderSupport.getModelType(builder);
     }
 
     /** Returns a live, read-only Structure view; each query checks the current session and phase. */
