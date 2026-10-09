@@ -59,7 +59,7 @@ Checked assignment retains foreign-session and fresh-LINK rejection. Invocation 
 cause, annotation/handler/AutoLink/field context; a subsequent lifecycle works after failure.
 Existing AutoLink and parent-before-child characterization tests are retained.
 
-Local qualification on implementation head `c3cc943a`:
+Local qualification repeated on maintainability follow-up head `b99f1a14`:
 
 | Check | Result |
 | --- | --- |
@@ -77,6 +77,12 @@ The initial full run was invalidated by overlapping local Gradle builds that rep
 it is not acceptance evidence. The final full run above was sequential with stable inputs. Fatal JVM errors
 remain unwrapped; ordinary runtime failures, assertions and linkage failures retain their original cause
 and participant/handler/phase/field context. No test suppression was added.
+
+SonarCloud on published head `4906a129` passed its quality gate with zero bugs/vulnerabilities and
+11 maintainability findings. Additive follow-up `b99f1a14` addresses redundant casts, traversal/test
+style and compiler-method complexity; the three required `KlumBuilder<?>` return signatures retain
+localized `java:S1452` suppressions explaining ADR 0028's Schema-neutral consumer boundary.
+Both review axes found no follow-up regression, and sequential full `check` passed again in 6m 26s.
 
 Publication is an authorized draft with `Related: #867`. The final-head PR check/status records and handoff
 provide remote CI/SonarCloud evidence; local success is not claimed as remote success. The Hive must
