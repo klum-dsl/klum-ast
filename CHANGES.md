@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Added the provisional LP-1 external lifecycle-participant tracer: separate domain-field creator and mutator
+  meta-annotations/handlers during AutoLink, public Builder contexts, checked creator assignment and exact
+  annotation-generic validation. Typed reusable consumer examples use common Schema bases and generated Builder
+  contracts. This is partial qualification; the full feature and conditional release placement remain pending
+  ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
+
 - Added `KlumBuilderSupport<T>.getModelType(): Class<T>` for the concrete represented Model subtype, including
   erased/base-typed Builders and sealed completed-LINK wrappers. Immutable type metadata remains readable before
   OWNER and after completion or abort, independently of ownership queries and mutation eligibility

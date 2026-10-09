@@ -234,3 +234,10 @@ relative links; no new Groovy execution or feature tracer implementation.
 Hand back refined artifacts for maintainer review/Hive reconciliation without issue retargeting,
 implementation or self-archival. Architecture acceptance does not authorize LP-1.
 See [refinement evidence](evidence/issue-867-core-optional-refinement.md).
+
+## LP-1 execution record
+
+The maintainer subsequently authorized LP-1 only, superseding the planning-only authorization boundary
+for this slice. [LP-1 evidence](issue-867-lp1-evidence.md) records the provisional API, cross-Schema reuse
+mechanism and validation. Remaining LP-2–LP-8 gates, optional capabilities, issue state and release placement
+are unchanged; this record does not authorize additional slices.
