@@ -103,6 +103,17 @@ The earlier common-base tracer remains valid for active construction relationshi
 this completed-LINK distinction. This evidence update changes no artifact/API, accepted ADR, issue state
 or release targeting; the tested Maven Local artifact remains the exact version and commit above.
 
+## Later LP-6 consumer refinement
+
+On 2026-10-10, ScHelm proposed `@FactBinding({ [messaging: 'facts'] })`: an annotation Closure returning
+`Map<String, String>` from Environment Fact names to target Domain relationship names. The external
+handler would read the existing Environment `facts` Cluster map and invoke generated public target Builder
+methods by the mapped names. [The concrete contract and qualification assessment](evidence/issue-867-schelm-map-closure.md)
+record how this avoids reflective Schema/field/setter discovery, supports multiple Fact relationships,
+and fits fixed-delegate/`DELEGATE_ONLY` evaluation. Named invocation remains dynamic; result entry typing
+and the completed-LINK Cluster read still need qualification. This is proposed consumer evidence, not a
+newly implemented LP-1 capability, passing Closure-helper test, implementation request or scope change.
+
 ## Qualification and validation
 
 The creator documentary case covers existing versus absent fields, null results, creator-before-mutator,
