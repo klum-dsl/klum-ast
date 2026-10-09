@@ -103,16 +103,18 @@ The earlier common-base tracer remains valid for active construction relationshi
 this completed-LINK distinction. This evidence update changes no artifact/API, accepted ADR, issue state
 or release targeting; the tested Maven Local artifact remains the exact version and commit above.
 
-## Later LP-6 consumer refinement
+## Later LP-1 consumer refinement: literal map
 
-On 2026-10-10, ScHelm proposed `@FactBinding({ [messaging: 'facts'] })`: an annotation Closure returning
-`Map<String, String>` from Environment Fact names to target Domain relationship names. The external
-handler would read the existing Environment `facts` Cluster map and invoke generated public target Builder
-methods by the mapped names. [The concrete contract and qualification assessment](evidence/issue-867-schelm-map-closure.md)
-record how this avoids reflective Schema/field/setter discovery, supports multiple Fact relationships,
-and fits fixed-delegate/`DELEGATE_ONLY` evaluation. Named invocation remains dynamic; result entry typing
-and the completed-LINK Cluster read still need qualification. This is proposed consumer evidence, not a
-newly implemented LP-1 capability, passing Closure-helper test, implementation request or scope change.
+On 2026-10-10, ScHelm implemented `@FactBinding({ [messaging: 'facts'] })` using ordinary Groovy.
+The annotation declares `Class<? extends Closure<Map<String, String>>>`; the handler constructs a fresh
+Closure through `InvokerHelper.invokeConstructorOf(type, [null, null] as Object[])` and assigns its
+zero-argument `call()` result directly to `Map<String, String>`. It reads the completed Environment's
+existing `facts` Cluster through `InvokerHelper.getProperty` and calls generated target Builder methods
+through `InvokerHelper.invokeMethod`, removing Schema/field/setter introspection. ScHelm reports its full
+check passing. [The executed contract and correction](evidence/issue-867-schelm-map-closure.md) supersede
+the earlier classification as prospective LP-6 work: this literal-map case needs no public helper.
+Richer typed delegates/provider expressions may still motivate LP-6, which remains independently deferrable.
+No KlumAST implementation, artifact, ADR scope or release change is implied.
 
 ## Qualification and validation
 

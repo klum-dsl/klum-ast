@@ -170,13 +170,12 @@ failure and preserved causes. Separate Groovy 3/4/5 compilation; legacy DELEGATE
 Generic Class bounds alone are not static typing proof. Avoid a generic execution framework,
 configurable resolution strategies, caching or unrelated compiler infrastructure.
 
-[ScHelm's concrete LP-6 consumer input](evidence/issue-867-schelm-map-closure.md) now proposes an annotation
-Closure returning `Map<String, String>` from Environment Fact names to target Domain relationship names.
-The handler would use the existing Environment `facts` Cluster map and named generated Builder methods,
-removing reflective Schema/field/setter discovery while retaining dynamic invocation. Qualify a pure map
-literal with a fixed context delegate (also its single argument), checked raw result and consumer-owned
-String entry validation. This is design input only; it does not authorize implementation, fix a helper
-signature, qualify completed-LINK Cluster reads or change LP-6's optional status.
+[ScHelm's executed literal-map consumer](evidence/issue-867-schelm-map-closure.md) uses ordinary Groovy
+Closure construction and zero-argument `call()` to map Environment Fact names to Domain relationship names.
+The existing completed-LINK `facts` Cluster read and named generated Builder invocation work under LP-1;
+this concrete case requires no KlumAST helper and is not prospective LP-6 qualification. Richer typed
+delegates/provider expressions may still motivate LP-6 under its unchanged accepted protocol and optional
+status. The consumer result does not authorize implementation or fix a helper signature.
 
 Commit: helper/compiler integration with consumer and existing Closure regressions.
 
