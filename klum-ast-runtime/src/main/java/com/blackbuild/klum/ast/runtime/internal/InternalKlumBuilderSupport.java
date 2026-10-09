@@ -41,6 +41,11 @@ public final class InternalKlumBuilderSupport {
                     + builder.getClass().getName());
     }
 
+    public static <T> Class<T> getModelType(KlumBuilder<T> receiver) {
+        requireBuilder(receiver);
+        return ((InternalKlumBuilder<T>) receiver).getModelType();
+    }
+
     public static SchemaRelationshipDeclaration getOwningRelationship(KlumBuilder<?> receiver, String operation) {
         requireBuilder(receiver);
         InternalKlumBuilder<?> builder = (InternalKlumBuilder<?>) receiver;

@@ -35,7 +35,15 @@ public final class JavaProbe {
     private static KlumSchemaRelationship declaration;
     public static int reads;
 
+    public static <T> Class<T> modelType(KlumBuilder<T> builder) {
+        Class<T> type = KlumBuilderSupport.of(builder).getModelType();
+        KlumBuilder<?> erased = builder;
+        require(KlumBuilderSupport.of(erased).getModelType() == type, "Erased Model type");
+        return type;
+    }
+
     public static <T> void live(KlumBuilder<T> builder) {
+        require(modelType(builder).getName().equals("fixture.leaf.Child"), "Java concrete subtype");
         KlumBuilderSupport<T> support = KlumBuilderSupport.of(builder);
         KlumBuilderSupport.Structure<T> structure = support.getStructure();
         Optional<KlumSchemaRelationship> relationship = structure.getOwningRelationship();
