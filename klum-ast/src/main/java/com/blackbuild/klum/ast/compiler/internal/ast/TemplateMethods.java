@@ -53,6 +53,7 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 @SuppressWarnings("java:S1192")
 class TemplateMethods {
     public static final String TEMPLATE_FIELD_NAME = "Template";
+    private static final String TEMPLATE_MODEL_CLASS_NAME = "_TemplateModel";
     public static final ClassNode TEMPLATE_SUPPORT_TYPE = make(GeneratedTemplateSupport.class);
     public static final ClassNode TEMPLATE_FACTORY_SUPPORT_TYPE = make(GeneratedTemplateFactorySupport.class);
 
@@ -96,7 +97,7 @@ class TemplateMethods {
     private void createTemplateAdapter() {
         templateAdapter = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_Template",
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_Template", "Template scope adapters"),
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
                 OBJECT_TYPE,
                 new ClassNode[] { GeneratedDslSupport.of(annotatedClass).getTemplateInterface() },
@@ -147,7 +148,7 @@ class TemplateMethods {
     private void createTemplateFactoryAdapter() {
         templateFactoryAdapter = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_TemplateFactory",
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_TemplateFactory", "Template factory adapters"),
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
                 OBJECT_TYPE,
                 new ClassNode[] { GeneratedDslSupport.of(annotatedClass).getTemplateFactoryInterface() },
@@ -173,6 +174,8 @@ class TemplateMethods {
         addTemplateFactoryMethod("From", params(param(make(File.class), "scriptFile"), param(CLASSLOADER_TYPE, "loader")), support);
         addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl")), support);
         addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl"), param(CLASSLOADER_TYPE, "loader")), support);
+        addTemplateFactoryMethod("FromClasspath", Parameter.EMPTY_ARRAY, support);
+        addTemplateFactoryMethod("FromClasspath", params(param(CLASSLOADER_TYPE, "loader")), support);
     }
 
     private Parameter configurationParameter() {
@@ -285,6 +288,8 @@ class TemplateMethods {
                 else if (parameter.getName().equals("configuration"))
                     documentation.param(parameter.getName(), "the Builder configuration for the Template");
             }
+        } else if (name.equals("FromClasspath")) {
+            documentClasspathTemplateFactoryMethod(method, documentation);
         } else {
             documentation.title("Creates a reusable Template model from a script source.");
             for (Parameter parameter : method.getParameters()) {
@@ -295,6 +300,18 @@ class TemplateMethods {
             }
         }
         AstDocumentation.attach(method, documentation.rendered());
+    }
+
+    private void documentClasspathTemplateFactoryMethod(MethodNode method, KlumDocumentation documentation) {
+        documentation.title("Creates a Template from the conventional classpath model script.")
+                .p("Reads META-INF/klum-model/" + annotatedClass.getName() + ".properties and loads its model-class entry.")
+                .p("DelegatingScript inputs retain Template recipes without running ordinary lifecycle callbacks. "
+                        + "Ordinary scripts execute normally: a returned Template is preserved, while a returned Model "
+                        + "is copied as a value-only Template snapshot; completed deferred actions are not retained for replay.");
+        if (method.getParameters().length == 0)
+            documentation.p("Uses the current thread context class loader for the marker and script class.");
+        else
+            documentation.param("loader", "the class loader used to load the marker and script class");
     }
 
     private static boolean hasSameBridgeArguments(MethodNode candidate, Parameter[] arguments) {
@@ -334,7 +351,10 @@ class TemplateMethods {
     private void createTemplateClass() {
         templateClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$Template",
+                // A nested class named Template wins over the same-named static field in
+                // Groovy class-literal expressions, including on concrete descendants.
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$" + TEMPLATE_MODEL_CLASS_NAME,
+                        "abstract Template implementations"),
                 ACC_STATIC | ACC_SYNTHETIC | ACC_PUBLIC,
                 newClass(annotatedClass));
 

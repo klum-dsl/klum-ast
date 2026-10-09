@@ -43,13 +43,13 @@ import org.gradle.plugins.ide.idea.model.IdeaModel;
 import java.util.Set;
 
 @NonNullApi
-public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
+public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumSchemaExtension> {
 
     private static final String MODULE_INFO = "**/module-info.java";
 
     @Override
     protected void registerExtension() {
-        extension = project.getExtensions().create("klumSchema", KlumExtension.class);
+        extension = project.getExtensions().create("klumSchema", KlumSchemaExtension.class);
     }
 
     protected void addDependentPlugins() {
@@ -61,10 +61,12 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
     protected void addDependencies() {
         project.getDependencies().add("compileOnly", "com.blackbuild.klum.ast:klum-ast");
         project.getDependencies().add("api", "com.blackbuild.klum.ast:klum-ast-runtime");
+        project.getDependencies().add("testImplementation", "com.blackbuild.klum.ast:klum-ast-test-support");
     }
 
     @Override
     protected void additionalConfig() {
+        KlumSchemaGdslProducer.configure(project, extension.getGdsl());
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
         java.withSourcesJar();
         java.withJavadocJar();
@@ -103,7 +105,8 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
                 });
         project.getRootProject().getPluginManager().apply(KlumDslSourceMirrorsAggregationPlugin.class);
         project.getRootProject().getPluginManager().apply(KlumDslGdslMaterializationPlugin.class);
-        KlumDslGdslMaterializationPlugin.addRuntimeGdslSource(project, main.getCompileClasspath());
+        KlumDslGdslMaterializationPlugin.addRuntimeGdslSource(project,
+                KlumDslGdslMaterializationPlugin.binaryClasspath(project.getConfigurations().getByName("compileClasspath")));
         project.getRootProject().getTasks()
                 .named(KlumDslSourceMirrorsAggregationPlugin.TASK_NAME)
                 .configure(task -> task.dependsOn(createMirrors));

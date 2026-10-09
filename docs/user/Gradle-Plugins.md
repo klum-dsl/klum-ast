@@ -32,7 +32,8 @@ If the plugin is applied to a child project, it will inherit the configured Groo
 
 ## `com.blackbuild.klum-ast-schema`
 
-This plugin is used in schema projects (as well as `api` as defined by [Layer3]). It does the following things:
+This plugin is used in Schema projects (as well as a DSL Object `api` project in a [Layer 3](Layer3.md) layout). It does
+the following things:
 
 - applies AnnoDocimal's Groovy plugin for generating documentation
 - applies Groovy and JavaLibrary plugins
@@ -51,6 +52,15 @@ This plugin is used in schema projects (as well as `api` as defined by [Layer3])
   - `klum-ast` as compileOnly dependency
   - `klum-ast-runtime` as api dependency
   - both dependencies are added without explicit versions; the version is enforced by importing the `klum-ast-bom` platform at the plugin's version
+
+### Opt-in DelegatingScript metadata (4.1)
+
+`klumSchema { gdsl { publish = true; mappings { ... } } }` declares Schema-owned literal filename suffixes and
+Model targets. Enabled metadata contributes to local source authoring, and Maven publication adds a separate
+`gdsl` classifier JAR and Gradle Module Metadata capability/variant. `generateKlumGdslMetadata` and `klumGdslJar`
+produce editor metadata; it stays outside ordinary Schema JARs, sources/Javadocs, and POM dependency graphs.
+The same project GAV versions both the Schema and its mapping. See
+[IntelliJ completion for DelegatingScripts](Portable-GDSL.md#declare-the-schema-mapping) for declarations and limits.
 
 ### Named Schema modules
 
@@ -112,9 +122,24 @@ klumModel {
 }
 ```
 
+### Opt-in metadata consumption (4.1)
+
+Enable `klumModel { gdsl { enabled = true } }` and explicitly select metadata in `dependencies { klumGdsl ... }`.
+Use `project(':schema')` for a source Schema or versionless `'group:artifact'` for the preferred binary GMM path;
+the normal `schemas` dependency selects the origin/version. The exact `'group:artifact:version:gdsl@jar'` spelling
+is the explicit POM-only fallback. Defaults are off; metadata is non-transitive and never joins normal classpaths or
+Model publications. See [the complete consumer workflow](Portable-GDSL.md#consume-a-published-binary-schema).
+
+An enabled Model registers the shared IDEA resource root. Run root `materializeKlumDslGdsl` explicitly in binary-only
+builds; source builds use the mirror refresh tasks. Normal builds and Gradle import do not refresh metadata.
+The Model plugin also ensures the root has the standard Gradle Base lifecycle, including root `clean`, so generated
+IDE state can be removed after final opt-out. This does not apply Java or the Model plugin to the root.
+See [refresh and retirement](Portable-GDSL.md#refresh-intellij-metadata).
+
 ## Multi module
 
-Schema and model can be combined in a multimodule project (with the pre mentioned problem of missing IDE support):
+Schema and Model can be combined in a multi-project build. Refresh source mirrors for IntelliJ support;
+DelegatingScript recipes can additionally use the [4.1 suffix-mapping workflow](Portable-GDSL.md#consume-a-source-schema).
 Because the root project applies the shared convention plugin at the matching KlumAST version, its child Schema and
 Model projects can use the packaged plugin IDs without repeating that version.
 

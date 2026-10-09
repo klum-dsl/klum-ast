@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 
+import com.blackbuild.klum.ast.compiler.internal.ast.CustomEqualityDiagnostic;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -39,6 +40,7 @@ public class ModelVerifierTransformation extends StaticTypesTransformation {
 
     @Override
     protected StaticTypeCheckingVisitor newVisitor(SourceUnit unit, ClassNode node) {
+        CustomEqualityDiagnostic.warn(unit, node);
         return new ModelVerificationVisitor(unit, node);
     }
 }

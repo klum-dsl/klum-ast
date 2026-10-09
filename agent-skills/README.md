@@ -1,10 +1,10 @@
-# KlumAST adopter skills (4.0 preview)
+# KlumAST adopter skills
 
-These are portable, task-oriented [Agent Skills](https://agentskills.io) for adopting KlumAST. They are a **4.0 preview pending field testing**. They are deliberately separate from this repository's `.agents/skills/`, which govern KlumAST maintainers and are not part of an adopter installation.
+These are portable, task-oriented [Agent Skills](https://agentskills.io) for adopting KlumAST. `start-klum-project` now carries a frozen public 4.0.1 direct-schema authority record and a public-coordinate acceptance mission. The other workflows remain 4.0 previews pending field testing. These skills are separate from this repository's `.agents/skills/`, which govern KlumAST maintainers and are not part of an adopter installation.
 
 ## Install selected skills
 
-Copy only the directories you want into the skill-discovery directory used by your agent client. For example:
+Copy only the directories you want into the skill-discovery directory used by your agent client, retaining each directory's internal references. For example, from this `agent-skills/` directory:
 
 ```shell
 cp -R start-klum-project <your-agent-skill-directory>/
@@ -18,7 +18,9 @@ Each directory is a standard skill: its portable `SKILL.md` is the workflow. Age
 
 When installing, record the KlumAST release and the source tag or commit of this distribution in the project's adoption notes. `feature-advisor` uses those facts to determine whether a KlumAST or skill update is needed, recommended, or unnecessary.
 
-Use documentation that matches the KlumAST version you are adopting. The linked `/4.0.0/` Pages tree is the immutable documentation contract for this version-matched skill distribution.
+Use documentation that matches the KlumAST version you are adopting. [`start-klum-project`](start-klum-project/SKILL.md) is pinned to public 4.0.1 and carries its tagged authority record inside the copyable directory; the other preview skills retain their linked `/4.0.0/` Pages authority.
+
+For the first direct-schema mission, copy [`fixtures/direct-schema-public-4.0.1`](fixtures/direct-schema-public-4.0.1/) outside this repository and follow its README. It resolves public coordinates and tests completed construction plus a validation failure. The in-repository fixtures below use composite builds and do not supply that public proof.
 
 ## Exercise the fixture
 

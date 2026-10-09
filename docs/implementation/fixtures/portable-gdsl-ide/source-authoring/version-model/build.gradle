@@ -1,0 +1,11 @@
+plugins { id 'com.blackbuild.klum-ast-model' }
+repositories {
+    maven { url = uri(rootProject.file(klumRepository)) }
+    mavenCentral()
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+klumModel {
+    groovyVersion = groovyGeneration
+    schemas { schema 'org.example.gdsl4:schema:805.2' }
+    // Deliberately does not opt into GDSL: its normal selected version still belongs to the root union.
+}

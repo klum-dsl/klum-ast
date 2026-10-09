@@ -71,6 +71,7 @@ public class WriteAccessMethodsMover {
     static void moveMethodFromModelToBuilderClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
         ClassNode builderClass = declaringClass.getNodeMetaData(DSLASTTransformation.BUILDER_CLASS_METADATA_KEY);
+        BuilderMethodProjection.projectExplicitMovedMethod(method, builderClass);
         BuilderMethodProjection.projectQualifiedStaticCallsInBuilderMethod(method);
         retargetOwnerParameters(method);
         retargetVirtualFieldParameter(method);

@@ -127,7 +127,9 @@ class ConverterBuilder {
 
         InnerClassNode converterClass = new InnerClassNode(
                 transformation.annotatedClass,
-                transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
+                DslAstHelper.checkedGeneratedInnerClassName(transformation.annotatedClass,
+                        transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
+                        "converter closure implementations"),
                 ACC_PUBLIC | ACC_STATIC,
                 ClassHelper.OBJECT_TYPE);
         converterClass.addAnnotation(createGeneratedAnnotation(ConverterBuilder.class));
@@ -300,7 +302,9 @@ class ConverterBuilder {
 
     private void createBuilderConverterMethod(MethodNode sourceMethod, MethodNode builderProducer) {
         Map<String, ClassNode> genericsSpec = GenericsUtils.createGenericsSpec(elementType);
-        Parameter[] parameters = cloneParamsWithAdjustedNames(sourceMethod);
+        Parameter[] parameters = BuilderMethodProjection.hasExplicitProjection(sourceMethod)
+                ? BuilderMethodProjection.projectedParameters(sourceMethod, elementType)
+                : cloneParamsWithAdjustedNames(sourceMethod);
         for (int index = 0; index < parameters.length; index++) {
             parameters[index].setType(correctToGenericsSpecRecurse(genericsSpec, parameters[index].getOriginType()));
             copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[index], parameters[index], Collections.emptyList());
@@ -328,6 +332,7 @@ class ConverterBuilder {
                 .returning(BuilderMethodProjection.projectedBuilderType(builderProducer.getReturnType(), elementType))
                 .params(parameters)
                 .sourceLinkTo(sourceMethod)
+                .callMethod(target, "$klum$assertMutable")
                 .doReturn(attachCall);
         BuilderMethodProjection.documentComposition(method, sourceMethod, builderProducer.getReturnType());
         method.addTo(builderClass);

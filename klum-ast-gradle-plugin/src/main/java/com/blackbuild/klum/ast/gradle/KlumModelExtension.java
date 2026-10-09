@@ -24,10 +24,29 @@
 package com.blackbuild.klum.ast.gradle;
 
 import org.gradle.api.Action;
+import org.gradle.api.model.ObjectFactory;
+import javax.inject.Inject;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.tasks.Nested;
 
 public abstract class KlumModelExtension extends KlumExtension {
+
+    private final KlumModelGdslExtension gdsl;
+
+    // Gradle decorates the injected ObjectFactory constructor.
+    @Inject
+    @SuppressWarnings("java:S5993")
+    public KlumModelExtension(ObjectFactory objects) {
+        gdsl = objects.newInstance(KlumModelGdslExtension.class);
+    }
+
+    public KlumModelGdslExtension getGdsl() {
+        return gdsl;
+    }
+
+    public void gdsl(Action<? super KlumModelGdslExtension> action) {
+        action.execute(gdsl);
+    }
 
     @Nested
     public abstract SchemaDependencies getSchemas();

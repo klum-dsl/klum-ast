@@ -53,8 +53,9 @@ For a target-contract case such as Helm values, the target remains authoritative
 authoring model and test an explicit target projection against representative target values. See
 [Target Contract Modeling](Target-Contract-Modeling.md).
 
-## Current standalone-script boundary
+## Small local scripts
 
-The supported onboarding path is Gradle. A project-less standalone-script route is not an established documented user
-journey. Do not treat this page as an `@Grab` support promise; the release documentation still needs a maintained example
-and an identified owner before any such route can be recommended.
+The supported onboarding path for a maintained Schema remains Gradle. For a trusted local proof of concept or focused
+Model check against a separately published Schema, the [standalone `@Grab` workflow](Grab-Model-Scripts.md) provides a
+smaller, version-pinned route and explains how to prepare it for intranet or deliberately disconnected use. Dependency
+controls do not sandbox Groovy code.

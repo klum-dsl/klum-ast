@@ -46,6 +46,16 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         super(modelType);
     }
 
+    /**
+     * The reserved {@code $klum$} name keeps Schema helpers such as {@code assertMutable()} independent and legal.
+     * This override is final so generated factory/converter preflights through Builder receivers always reach
+     * the framework's sealed-state enforcement.
+     */
+    @Override
+    public final void $klum$assertMutable() {
+        super.$klum$assertMutable();
+    }
+
     @Override
     protected void $assignRelationships() {
         super.$assignRelationships();
@@ -53,6 +63,11 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
 
     protected final void $copyFromRecipe(Object template) {
         super.copyFromRecipe(template);
+    }
+
+    /** Returns the completed Model behind a sealed Builder, or {@code null} before Materialization. */
+    protected final M $klum$completedModelOrNull() {
+        return super.getCompletedModel();
     }
 
     protected final <T> T $setSingleField(String fieldOrMethodName, T value) {

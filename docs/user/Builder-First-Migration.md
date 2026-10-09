@@ -15,6 +15,34 @@ def config = Config.Create.With {
 Do not rewrite working schemas preemptively. Compile the schema, run a representative model, and follow the targeted
 diagnostics if KlumAST finds a construct that crosses the new Builder lifecycle boundary.
 
+## `@Mutator` to `@Builder.Method`
+
+KlumAST 4.1 names Builder-only schema behavior through the `Builder` annotation namespace. Migrate the deprecated
+`@Mutator` spelling to `@Builder.Method` when a Schema is next edited:
+
+(See: `SharedCapabilitiesDocumentaryTest#'declares Builder-only behavior with Builder Method'`.)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+
+// Existing 4.x source remains accepted, but this spelling is deprecated.
+@Mutator
+void normalizeHost() { host = host.toLowerCase() }
+
+// Canonical spelling for new and migrated source.
+@Builder.Method
+void normalizeHost() { host = host.toLowerCase() }
+```
+
+This is a spelling-only source migration. During semantic analysis, KlumAST replaces `@Mutator` with `@Builder.Method`,
+so validation, field retargeting, method movement, generated public contracts, and emitted runtime annotation metadata all
+use the canonical marker. Replacing the source spelling does not change receiver state, method visibility, the generated
+`Foo_DSL.Builder` signature, or lifecycle timing. Existing source does not require a bulk rewrite, and already generated
+Builder APIs remain compatible. Code reflecting on a newly compiled legacy declaration sees `@Builder.Method`, not
+`@Mutator`. Do not put both annotations on one method; KlumAST rejects that ambiguous declaration. The outer
+`com.blackbuild.klum.ast.Builder` type is only a namespace for schema annotations and is unrelated to each Schema's
+generated `Foo_DSL.Builder` interface.
+
 ## Migration Checklist
 
 ### 1. Compile the Schema
@@ -28,14 +56,17 @@ use this guide for Builder-first diagnostics:
 | A client-facing signature refers to `$_RW`, `KlumRwObject`, or an RW delegate | Those types are generated implementation details. | Use the generated `Foo_DSL.Builder` interface and `@DelegatesToBuilder`, or let the generated relationship method supply the delegate type. |
 | A model collection declaration is rejected | Completed collections are read-only snapshots and require a supported declaration. | Declare `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, or `EnumSet`; remove unsupported concrete/custom declarations. |
 | A `KlumBuilder` result is raw, wildcarded, or unresolved | KlumAST cannot determine which public Builder interface to expose. | Declare the concrete model type, for example `KlumBuilder<Child>` or `List<KlumBuilder<Child>>`. |
-| A manual configurator shadows a field in a factory map | Map keys intentionally call the same-named Builder method before considering storage. A non-void override can be mistaken for an ordinary helper. | A `void` `@Mutator` remains silent. A return of the field value or its Builder receives a warning; rename the helper if that is not intended. Use `setX` in the map for direct field assignment. An incompatible non-void return is a compilation error. |
+| A manual configurator shadows a field in a factory map | Map keys intentionally call the same-named Builder method before considering storage. A non-void override can be mistaken for an ordinary helper. | A `void` `@Builder.Method` remains silent. The deprecated `@Mutator` spelling behaves identically. A return of the field value or its Builder receives a warning; rename the helper if that is not intended. Use `setX` in the map for direct field assignment. An incompatible non-void return is a compilation error. |
 | A statically checked Builder lifecycle method sees an ordinary collection or map value as `Object` | An earlier 4.0 release candidate emitted a raw Builder accessor for simple collection and map fields. | Recompile the Schema with the correction. Declared element and map value types are preserved, so a compensating local generic cast is no longer needed. |
 | A polymorphic relationship closure cannot see members of the selected subtype under static compilation | A dynamic `ChildType` Class selector retains the declared base Builder delegate. | Pass the generated factory, for example `child(ConcreteChild.Create) { concreteProperty 'value' }`, to select the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` delegate. |
-| `instanceof SomeDslModel` is rejected in a Builder-phase callback | The relationship value is a Builder before materialization, not the completed DSL Object. The diagnostic names the inferred Builder type when available. | Do not use a completed-model type check in a mutator, mutating lifecycle method, or Builder-retargeted annotation closure. Move a completed-model invariant to `@Validate`; ordinary checks and operands known only as `Object` remain valid. |
+| `instanceof SomeDslModel` is rejected in a Builder-phase callback | The relationship value is a Builder before materialization, not the completed DSL Object. The diagnostic names the inferred Builder type when available. | Use `SomeDslModel.Create.isBuilder(value)` and `narrowBuilder(value)` for Builder-only subtype behavior, or `isModelOrBuilder(value)` when a pure shared query deliberately accepts either state. Move a completed-model-only invariant to `@Validate`. |
 | `Child.Create.With`, `One`, or `From` is rejected in Builder-phase code | That call starts an independent root lifecycle and returns a completed model, which cannot become owned composition in the active Builder graph. | Use `Child.Create.AsBuilder().With`, `One`, or `From`, then attach the returned Builder to an owned relationship. Root factories remain valid in `@Validate` and ordinary static source factory methods. |
 | A public static method declared on a custom `Factory` is rejected | Public `Factory` methods become root operations on `Create`, which delegates to a Factory instance. | Remove `static`. Move model-level static converters out of `Factory`; they remain model methods. Non-public static Factory helpers remain valid. |
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
 | A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
+| Pure query logic is duplicated between a Model method and a Builder helper | Ordinary Model methods are intentionally unavailable during Builder phases. | Keep one side-effect-free Model method, annotate it with `@Builder.Query`, and recompile the Schema. Its scalar or other non-DSL result is projected onto `Foo_DSL.Builder`; mutating, construction-only, and DSL-bearing behavior remains rejected. |
+| A helper needs a DSL Object parameter or owned result during Builder execution | Unmarked Model positions retain completed-Model semantics and cannot be used as owned Builder composition. | On a static helper, mark only the required parameter with `@Builder.Input` and the owned result with `@Builder.Result`. On an instance method, also classify it as `@Builder.Query` or `@Builder.Method`; a query cannot produce an owned Builder result. Recompile the declaring Schema and use concrete DSL Object types or supported Collection/Map shapes rather than casting around the diagnostic. |
+| An explicitly selected precompiled helper has no Builder twin | The dependency was compiled without the emitted `@Builder.Input`/`@Builder.Result` contract or its body was not safely projectable. | Recompile the declaring Schema with the current KlumAST version, or replace the call with an explicit generated relationship/Builder operation. KlumAST does not infer or rehydrate a completed Model result. |
 
 ### Public Builder Contracts
 
@@ -51,6 +82,12 @@ as `Foo_DSL.TemplateScope`, without exposing hidden implementation classes. The 
 internal GDSL bridge described in [Gradle Onboarding](Gradle-Onboarding.md#intellij-and-generated-dsl-support); it does
 not add bytecode or independent read-only semantics. This is IDE metadata only: neither the GDSL root nor mirrors become
 compiler, package, or downstream inputs.
+
+For bare Builder calls in `DelegatingScript` recipes, the additive 4.1
+[Schema-owned suffix mapping](Portable-GDSL.md) supplies IntelliJ context through that same public Builder.
+Source consumers refresh mirrors; binary consumers use compiled Builders and the explicit metadata materializer.
+The mapping does not alter Construction sessions, key derivation, or runtime receivers, and qualification excludes
+nested DSL Models pending [#826](https://github.com/klum-dsl/klum-ast/issues/826).
 
 ```groovy
 // Schema.groovy
@@ -100,11 +137,11 @@ void validateCompletedService() {
 ### Builder-phase Factories
 
 `Create.With`, `Create.One`, and `Create.From` are root factories: they return a completed model and own a complete
-Construction session. In a mutator, mutating lifecycle method, or Builder-retargeted annotation closure, create the
-owned child in the active session instead:
+Construction session. In a Builder-only method, mutating lifecycle method, or Builder-retargeted annotation closure,
+create the owned child in the active session instead:
 
 ```groovy
-@Mutator
+@Builder.Method
 void supplySource() {
     source = ProductSource.Create.AsBuilder().With(name: 'default source')
 }
@@ -141,7 +178,7 @@ assert ServicePlan.Create.standard('catalog').name == 'catalog'
 ### Map Configurator Overrides
 
 Factory maps preserve method-first configuration. When a Builder has both a writable `outboxUrl` field and an explicit
-`outboxUrl(String)` mutator, `Create.With(outboxUrl: value)` calls the mutator. This makes intentional overrides work
+`outboxUrl(String)` Builder method, `Create.With(outboxUrl: value)` calls the method. This makes intentional overrides work
 consistently across `Create.With`, `Create.AsBuilder().With`, Templates, and automatic creation.
 
 ```groovy
@@ -149,7 +186,7 @@ consistently across `Create.With`, `Create.AsBuilder().With`, Templates, and aut
 class Mailbox {
     String outboxUrl
 
-    @Mutator
+    @Builder.Method
     String outboxUrl(String value) {
         // Normalize, validate, or coordinate related Builder state.
         value
@@ -160,16 +197,18 @@ Mailbox.Create.With(outboxUrl: 'https://example.invalid')
 Mailbox.Create.With(setOutboxUrl: 'https://example.invalid') // explicit direct field assignment
 ```
 
-KlumAST warns when this exact one-argument `@Mutator` override returns the field value or its Builder, because map
-configuration will choose the method. A `void` mutator is unambiguous and remains silent. A non-void return unrelated
-to the field or its Builder is rejected at the mutator declaration; rename it or make it setter-like. Methods without a
+KlumAST warns when this exact one-argument `@Builder.Method` override returns the field value or its Builder, because map
+configuration will choose the method. The deprecated `@Mutator` spelling receives the same diagnostic. A `void` Builder
+method is unambiguous and remains silent. A non-void return unrelated to the field or its Builder is rejected at the method
+declaration; rename it or make it setter-like. Methods without a
 same-named writable field retain their existing map-method fallback without a diagnostic.
 
 ### 2. Compile and Run a Representative Model
 
 Compile and execute at least one real root configuration. A unit test that calls `Config.Create.With` is usually the
-simplest repeatable migration check; an existing root script is equally suitable. A project-less script can also obtain
-KlumAST with `@Grab`, but the complete standalone-script setup will be documented separately.
+simplest repeatable migration check; an existing root script is equally suitable. A small, trusted project-less Model can
+also obtain its separately published Schema through the documented [standalone `@Grab` workflow](Grab-Model-Scripts.md);
+use the Gradle route for the Schema and for any repeatable Model build.
 
 Build owned children through the generated method on that root Builder, so the entire configuration shares one lifecycle.
 (See: `BuilderFirstMigrationDocumentaryTest#'builds a representative deployment through one Builder lifecycle'`.)
@@ -189,6 +228,7 @@ assert deployment.service.image == 'catalog:1.0'
 | --- | --- |
 | An independent factory cannot start while construction is active | A nested `Child.Create.With` would start a second lifecycle, which is forbidden. Call the generated child method on the parent Builder. Framework extensions can use `Child.Create.AsBuilder()` and attach the result in the same session. |
 | A completed DSL Object cannot be adopted as composition | Build a fresh child through the owning Builder. Pass an existing completed object only to a `FieldType.LINK` relationship. |
+| A sealed Builder cannot be configured, or its Construction session has completed | Configure through the active owning Builder. Framework collection/Map additions and child, converter, producer, Template, and script factories reject before normalization, child lookup/creation, configuration callbacks, or attachment, including empty bulk inputs. A Builder wrapping a completed `LINK` target remains sealed; its domain-property reads still expose the completed Model. |
 | `Create.AsBuilder()` reports no active session, a different session, or a completed session | Use it only inside the active root construction and attach the returned Builder before that construction finishes. |
 | An omitted Builder-producing projection is reported | Replace the call with the generated relationship method, return an explicit `KlumBuilder<Foo>`, or make the recognizable factory path source-visible to schema compilation. |
 | `Create.AsBuilder().From` rejects a regular `Script` | Use a `DelegatingScript` as the nested configuration recipe, or run the materializing Script as a root with `Create.From`. |
@@ -198,7 +238,9 @@ assert deployment.service.image == 'catalog:1.0'
 | Jackson rejects a marked Template | Materialize a fresh ordinary model through a Template/copy API and serialize that model. JSON cannot preserve Template recipe actions. |
 | Jackson rejects a `LINK` value or inline object | For import, configure identity/reference handling, a converter, or lifecycle resolution; inline input never becomes owned composition. For export, choose an explicit id, omission, scalar, custom, or deliberate inline projection. |
 | A generated `apply` method is missing on a completed model | Move the changes into the original `Create.With` callback, a Template, or another factory input. |
+| A Builder owning-declaration query reports an inactive session or premature phase | Acquire Structure freely, but query it only in the current active Construction session strictly after OWNER(15). Normal sealing permits metadata reads while that session remains active. Use [completed Object Structure](Completed-Object-Support.md#owning-schema-declarations) after factory return. |
 | Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. Use `getConstructionPath()` for the Builder/factory invocation path and `getModelPath()` for the object's structural location. |
+| `SomeDslModel.Create.narrowBuilder(value)` rejects a value | The value is a completed Model, a Builder for an incompatible Model hierarchy, `null`, or a non-DSL value. Test with `isBuilder` first and narrow only an existing matching Builder; `narrowBuilder` never creates, adopts, or reopens one. |
 
 The generated `Foo_DSL.Builder<Foo>` interface now types `copyFrom` for an active Builder of the same model. In a
 `@Default`, `@AutoCreate`, or `Create.AsBuilder().With` callback, use that public Builder type instead of suppressing
@@ -223,7 +265,7 @@ remaining compiler errors with this guide.
 Use this order: update the schema module to the target KlumAST version, run the script, inspect the diff, then commit it
 as a deliberate migration starting point or revert it. Continue with the [Template migration guidance](Migration.md#template-creation-and-scoped-application), this checklist, and compilation. The
 canonical creation/application example is executable in
-[`TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`](../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TemplatesDocumentaryTest.groovy).
+[`TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/TemplatesDocumentaryTest.groovy).
 
 It rewrites public schema-annotation imports, changes the deprecated `@DelegatesToRW` spelling to
 `@DelegatesToBuilder`, migrates Layer 3 annotation imports such as `@AutoCreate`, copy annotations such as `@Overwrite`,
@@ -316,6 +358,15 @@ variable or holder is rejected because a completed recipe must not retain constr
 captured recipe values must be serializable so the detached recipe remains serializable. Java serialization preserves the
 Template companion and immutable recipe state, but never Builders, Construction sessions, scopes, or mutable recipe
 collections. Ordinary completed models retain no deferred actions.
+
+Owning-declaration metadata is recaptured from accepted recipient claims when applying Templates or copying single
+children; the source declaration never adopts an old owner. Templates retain accepted definition declarations internally
+and remain rejected by public Object support. Java persistence is qualified only within the same KlumAST version with
+compatible available Schema definitions. Regenerate old serialized Models/Templates from source configuration/recipes
+on upgrade; no historical stream or Schema-evolution compatibility is promised. Direct copied-container placements
+establish no authoritative claim, so their metadata remains empty while aliases and copy semantics stay intact. Empty
+metadata does not identify a root; see
+[Completed Object Support](Completed-Object-Support.md#templates-copies-and-imports).
 
 The internal generated `$proxy` field uses a sealed common Model/Template companion solely for cross-package generated
 linkage. It is not client API. Use `KlumObjectSupport.of(object)` for supported completed-object paths, structure, and

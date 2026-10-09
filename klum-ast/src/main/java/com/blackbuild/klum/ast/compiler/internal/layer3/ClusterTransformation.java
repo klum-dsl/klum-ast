@@ -43,6 +43,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.Collection;
 
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isAssignableTo;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
@@ -64,6 +65,12 @@ public class ClusterTransformation extends AbstractASTTransformation {
         if (!(parent instanceof MethodNode)) return;
 
         MethodNode method = (MethodNode) parent;
+
+        if (method.getDeclaringClass().isInterface() && isDSLObject(method.getDeclaringClass())) {
+            addError(format("@Cluster is not supported on DSL interface member %s.%s(); use an abstract DSL base class for the Layer 3 Domain API.",
+                    method.getDeclaringClass().getNameWithoutPackage(), method.getName()), method);
+            return;
+        }
 
         assertMethodIsNotStatic(method);
         assertIsAbstractOrEmpty(method);

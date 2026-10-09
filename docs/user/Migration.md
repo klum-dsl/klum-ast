@@ -1,15 +1,36 @@
 # Migration
 
-## To 4.0.2
+## To 4.1
 
-### Custom Factory closure forwarding
+### Reading owning Schema declarations
 
-Recompile source Schemas and regenerate IDE mirrors to receive the corrected custom Factory closure metadata.
-A typed Factory method can forward `@DelegatesToBuilder(Model) Closure<?>` directly to `With` with static checking.
-Existing uncast `super.With(..., applicationInput)` and explicitly cast forwarding forms remain valid under both
-`@TypeChecked` and `@CompileStatic`; no forwarding syntax change is required when upgrading from 4.0.1.
-The public contract exposes the exact Builder delegate with `DELEGATE_ONLY`, matching runtime execution.
-See [Factory classes](Factory-Classes.md#forwarding-builder-closures).
+The initial [owning-declaration support](Completed-Object-Support.md#owning-schema-declarations) is additive. Use
+`KlumBuilderSupport.of(builder).getStructure()` in the current active session after OWNER, and
+`KlumObjectSupport.of(model).getStructure()` for completed Objects. No Schema recompilation or generated-interface
+change is required solely for the facade. Existing `LinkTo`/`LinkSource` selection remains unchanged. Null completed
+Object receivers now throw `NullPointerException("object")`, matching the new Builder and annotation-query contract.
+The [bounded Template/copy/import behavior](Completed-Object-Support.md#templates-copies-and-imports) and same-version
+serialization are qualified, as are Java 17 and dynamic/static Groovy 3/4/5 artifact consumers and Groovy 4/5 named modules.
+Existing qualified Schema package opens suffice; annotation lookup adds no field-value access requirement. Copied aliases
+retain their existing identity and behavior. Direct copied-container placements without authoritative claims return
+`Optional.empty()`, even when their location is unique; absence does not prove that an Object is a root. Normal
+OPTIONAL_LINK aggregation and recipe copying remain distinct existing routes; see
+[their copy boundary](Completed-Object-Support.md#templates-copies-and-imports). No copy-semantic repair or historical
+serialization promise is introduced.
+
+### Opting in to portable DelegatingScript IDE metadata
+
+The [IntelliJ DelegatingScript workflow](Portable-GDSL.md) is additive: existing factory calls, script bases,
+compiled script-class names, key derivation, and runtime receivers retain their behavior. The Schema owns and versions
+a literal suffix-to-Model mapping; Model projects explicitly opt in and select separate editor metadata. The preferred
+GMM selection follows the normal Schema version without repeating it; POM-only consumers repeat the exact GAV in the
+explicit `gdsl` classifier request. Refresh metadata and reload IntelliJ when mappings or Schema versions change.
+
+If you experimented with the unreleased copied-resource recipe from PR #809, remove those copied contributors and
+adopt the Schema declaration. There is no migration scanner or automatic deletion of arbitrary external GDSL. The
+qualified contract covers regular non-nested Models; nested mirror/publication preparation is separately tracked in
+[#826](https://github.com/klum-dsl/klum-ast/issues/826). Issue [#805](https://github.com/klum-dsl/klum-ast/issues/805)
+remains open for release qualification.
 
 ## To 4.0
 
@@ -18,6 +39,17 @@ See [Factory classes](Factory-Classes.md#forwarding-builder-closures).
 See the dedicated [Builder First Migration](Builder-First-Migration.md) guide for the complete migration checklist and compatibility breaks, plus
 [Templates](Templates.md), [Copy Strategies](Copy-Strategies.md), and [Model Phases](Model-Phases.md) for materialization boundaries and [Jackson Integration](Jackson-Integration.md) for
 foreign-data import and ordinary POJO export.
+
+### Opting in to owner-provided defaults
+
+`@OwnerProvidedDefaults` is additive and opt-in. Existing unannotated Schemas need no migration and retain their generated
+factories, Builders, completed-model API, and lifecycle behavior. A Schema that adopts the annotation must compile and run
+with KlumAST annotation, compiler, and runtime artifacts that include the feature; recompile the Schema and its generated
+DSL support together after adding it. No generated method or type is added by the annotation.
+
+The annotation provides owner-specific conservative defaults through a shared JavaBean contract. It is not a replacement
+for a generic mixin API or an overwrite-strategy migration. See
+[Owner-provided defaults](Default-Values.md#owner-provided-defaults) for its absence, ordering, identity, and warning rules.
 
 Validation callers must import and catch
 `com.blackbuild.klum.ast.runtime.validation.KlumValidationException`. The former
@@ -55,6 +87,37 @@ For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, im
 and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
 owns source-neutral composition.
+
+### Dynamic Template lookup in abstract hierarchies (4.1)
+
+Recompile Schemas with the corrected 4.1 compiler to use ordinary `Child.Template` property syntax below an abstract
+DSL superclass. The hidden abstract Template implementation now has a distinct name so it cannot shadow the generated
+`Template` field in Groovy class-literal expressions. Generated public factory and scope interfaces keep their names.
+See [Templates in a class hierarchy](Templates.md#templates-in-a-class-hierarchy) for the supported usage.
+
+Regenerate previously Java-serialized abstract Templates from their source recipes after recompiling: serialization
+records the hidden implementation's binary name and is not a cross-version persistence format.
+
+### Generated inner-name collisions (4.1)
+
+A nested Schema type cannot occupy the same binary name as a KlumAST implementation generated directly inside that DSL
+class. Compilation reports the conflicting type at its declaration and asks you to rename it, before Groovy reports a
+low-level duplicate-class error ([#837](https://github.com/klum-dsl/klum-ast/issues/837)). The exact names are:
+
+- `Builder`, `_Factory`, `_Template`, and `_TemplateFactory` for generated Builder, factory, and Template adapters;
+- `_TemplateModel` only when an abstract DSL class needs a generated Template implementation;
+- `_<fieldName>` only when a DSL collection field generates a collection factory;
+- `_<clusterName>` only when a Cluster selects fields and generates a Cluster factory;
+- `_<fieldName>_converterClosures` only when a field declares converter closures.
+
+The rename diagnostic applies to source-declared nested types. Conflicts between generated implementations retain the
+compiler's duplicate-class rejection. For example, a collection factory and a nonempty Cluster both named `services`
+request the same implementation name; this is a generator conflict, not a nested type declaration to rename.
+
+Only names actually generated for that class are reserved. Other underscore-prefixed nested types, such as `_Recipe`,
+remain valid. A concrete DSL class can still declare `_TemplateModel`, and a field without converter closures does not
+reserve its corresponding converter implementation name. These are compiler constraints; broader Schema style
+recommendations are tracked separately in [#838](https://github.com/klum-dsl/klum-ast/issues/838).
 
 ### Named modules and Groovy
 
@@ -118,6 +181,34 @@ local module-path flags to compensate for an invalid dependency graph.
 Recompile schemas and custom checks when moving to KlumAST 4.0. KlumAST's built-in name-bound checks use KlumCast's
 durable stateless `Check` SPI and report structured, source-positioned diagnostics. Custom checks must implement that SPI;
 the deprecated compatibility adapter is only a temporary migration aid for external consumers ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
+
+## To 4.1
+
+### Unique instance storage in DSL hierarchies
+
+Compilation now rejects a user-declared instance field/property that redeclares a DSL ancestor's storage name
+([#371](https://github.com/klum-dsl/klum-ast/issues/371)). Remove the descendant declaration and configure the inherited
+property, or give distinct storage a distinct name. The rule includes owners, defaults, and `FieldType.BUILDER` state.
+Static shadowing and ordinary method/getter overrides remain legal. Generated implementation fields that are excluded
+from Builder state remain legal; generation markers and synthetic flags do not exempt fields that still become DSL
+construction storage. See
+[Instance storage names](Inheritance.md#instance-storage-names) for the executable example and diagnostic boundaries.
+
+### Canonical Builder-only methods
+
+Use `@Builder.Method` for methods that exist only during Builder construction. The 4.0 `@Mutator` spelling remains
+accepted in 4.1 and produces the same generated Builder API, but is deprecated. Compilation promotes it to the canonical
+`@Builder.Method` annotation, including newly emitted runtime metadata. Migrate it when the Schema is next edited; do not
+combine both annotations. See the spelling-only
+[`@Mutator` to `@Builder.Method`](Builder-First-Migration.md#mutator-to-buildermethod) guidance and the canonical example
+in [Advanced Techniques](Advanced-Techniques.md#builder-only-methods).
+
+For test fixtures that need materialized Templates across a Spock lifecycle, use one non-`@Shared` `TemplateScope` field
+with `@AutoCleanup`. A Schema or Model module already receives `klum-ast-test-support` through its plugin's
+`testImplementation` configuration, so do not add that dependency again. A direct Java/Groovy consumer that applies
+neither plugin declares the BOM-aligned runtime and test-support coordinates itself. This replaces project-private
+ambient setup with a public, per-feature lifetime; see
+[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
 
 ## To 2.2
 
@@ -242,11 +333,6 @@ preserves the usual Layer 3 pattern in which a local value overrides an Auto-Lin
 Use `@Field(FieldType.LINK) @LinkTo` when the field must be aggregation-only. Ordinary relationships remain
 composition-only and reject completed or already claimed Builders. Custom `@AutoLink` code that previously overwrote a
 configured value must use `builder.link(fieldName, target)` for an explicit non-destructive fallback instead.
-
-Since 4.0.2, explicit `@LinkTo(..., field = '...')` reads configured storage when the provider is an active Builder, even if a
-Builder-specific getter exposes a different value. Getter-only properties retain their fallback behavior; completed-model
-providers still use ordinary property access. Existing Schema declarations need no syntax changes. See
-[Automatic creation and linking](Layer3.md#automatic-creation-and-linking).
 
 ## Deprecation: Validation annotation -> Validate
 

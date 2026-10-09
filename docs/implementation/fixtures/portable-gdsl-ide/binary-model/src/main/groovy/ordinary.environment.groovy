@@ -1,0 +1,1 @@
+class OrdinaryControl { void probe() { } }

@@ -421,3 +421,21 @@ After publication, corrections preserve the original identity and digest rather 
 finalization concern, not a native RC-train blocker or release dependency. The approved final manifest is nevertheless
 required before #456's protected final documentation render. No new ADR or branding tracer is needed; #456's existing
 manifest/render fixtures cover the KlumAST proof, while KlumCast delivery stays local.
+
+## 2026-09-13 Layer 3 definition and issue normalization
+
+After evidence-led grilling and maintainer confirmation, Layer 3 is defined as the API–Schema–Model pattern with distinct
+abstract Domain API DSL classes, concrete Schema subclasses, configured Models, a meaningful API-only consumer, and at
+least one `@Cluster` projection. Cluster projection is the unique defining KlumAST feature. Abstract base classes are the
+supported API form; API-first, Schema-first, and Model-first describe discovery order rather than architectural variants.
+Generic API-only and Schema-specific clients may consume the same completed Model.
+
+#356 became #454's delivery dependency and was then delivered by PR #754. The canonical environment example therefore
+uses `@Cluster(bounded = true, fixedKeys = true)`, leaves concrete Schema fields annotation-free, and records
+`@Field(key = Field.FieldName)` as the prior per-field workaround. `@AutoCreate`, Auto-Link, lifecycle, ownership,
+defaults, validation, and traversal remain general KlumAST capabilities rather than Layer 3 features.
+
+GitHub normalization replaced #454's provisional grilling body with the confirmed documentation contract, moved it from
+`needs-triage` to `ready-for-agent`, retained its 4.1 milestone and satisfied native #356 dependency, and kept it open for
+delivery through PR #751. #753 owns DSL-interface Cluster support or rejection, and #755 owns reusable Domain API contract
+tests; both are explicitly non-blocking follow-ups.

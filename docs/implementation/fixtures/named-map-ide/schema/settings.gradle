@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+    }
+    plugins {
+        id 'com.blackbuild.klum-ast-schema' version "${klumPluginVersion}"
+    }
+}
+
+rootProject.name = 'named-map-ide-schema'

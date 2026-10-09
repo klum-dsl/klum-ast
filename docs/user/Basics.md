@@ -88,6 +88,70 @@ Config.Create.With(name: 'Dieter', age: 15)
 
 Of course, named parameters and regular calls inside the closure can be combined ad lib.
 
+### Named-map Builder calls
+
+A named map is a sequence of ordinary one-argument calls on the generated Builder, not field or property assignment.
+Consequently, its keys include the complete public Builder vocabulary: generated field configurators and `setX` methods,
+relationship creators and adders, converters, `copyFrom`, inherited operations, and explicit one-argument
+`@Builder.Method`s. When a method-first operation has the same name as a field configurator, normal Groovy method
+selection still decides which operation runs; `setX` remains the direct-storage spelling.
+
+For statically compiled Groovy, KlumAST publishes this vocabulary as native named-parameter metadata on plain literal maps
+passed to `Create.With` and fixed-target single, collection, map, and Cluster relationship creators. Unknown literal keys
+and incompatible values therefore fail where the literal is compiled. Overloaded keys use a type broad enough to retain
+every existing runtime-valid overload, up to `Object`; the metadata does not change runtime dispatch, lifecycle,
+ownership, or materialization.
+
+(See: `NamedMapBuilderOperationsDocumentaryTest#'uses literal map entries as ordinary Builder operation calls'`.)
+
+```groovy
+given: // Schema
+@DSL
+class Library {
+    String name
+    Publication featured
+
+    @Field(members = 'publication')
+    List<Publication> publications
+}
+
+@DSL
+class Publication {
+    String title
+
+    @Field(converters = [{ String value -> URI.create(value) }])
+    URI source
+    List<String> tags
+
+    @Builder.Method
+    String title(Integer edition) {
+        title = "Edition $edition"
+    }
+}
+
+when: // statically compiled Model
+def baseline = Publication.Create.With(title: 'Baseline')
+def library = Library.Create.With(name: 'City Library') {
+    featured(copyFrom: baseline, setTitle: 'Featured') {
+        tag 'spotlight'
+    }
+    publication(
+            title: 2,
+            source: 'https://example.test/guide',
+            tag: 'guide')
+}
+
+then:
+library.featured.title == 'Featured'
+library.publications*.title == ['Edition 2']
+```
+
+The static metadata intentionally covers only plain literals at those fixed-target entry points. Map variables keep their
+ordinary `Map` contract, while computed-key and spread-map expressions are unsupported on annotated calls under static
+compilation. `Create.AsBuilder`, Templates, generic or custom Factory map methods, polymorphic `Class` or typed-Factory
+selection, and `FromMap`/import paths are outside this contract. Dynamic Groovy and Java callers retain their existing
+runtime and `Map` behavior.
+
 ### Explicit null relationship values
 
 Named maps keep normal Builder-method dispatch. An explicit null for a direct `LINK`, `OPTIONAL_LINK`, or composition
@@ -124,7 +188,6 @@ assert cleared.linked == null
 ```
 
 `Graph.Create.With(linked: null)` still fails; it neither clears the relationship nor silently omits the key.
-
 
 For example, a keyed deployment and its owned service can be configured together:
 
@@ -179,7 +242,31 @@ owned composition. [Copy Strategies](Copy-Strategies.md) describes the available
 ## `equals()` Method
 
 If not yet present, the `equals()` method is generated using the default `@EqualsAndHashCode` ASTTransformations. You
-can customize it by using the original ASTTransformation.
+can customize it by using Groovy's `@EqualsAndHashCode`. KlumAST leaves your annotation and equality semantics unchanged.
+
+A compiler warning identifies owner, transient, or `$` implementation fields that your generated equality or hash code
+actually selects. Groovy’s default generated equality can include properties that KlumAST treats as owner or transient
+state. Private fields require `includeFields`, and `$` names require `allNames`. Use `excludes` to remove unwanted state,
+or deliberate `includes` to own the selection
+(explicit includes, including an empty list, always remain silent). Handwritten equality methods remain unchanged.
+
+Place `@EqualsAndHashCode` before `@DSL` when selecting source properties. If it runs after `@DSL`, ordinary properties
+have already become read-only getters; transient properties remain, and `includeFields` / `allProperties` may select
+additional state. The warning follows the methods Groovy actually generates, including annotation order.
+
+(See: `CustomEqualityDiagnosticTest#'chooses equality state explicitly while ignoring ownership and transient metadata'`.)
+
+```groovy
+@EqualsAndHashCode(excludes = ['parent', 'metadata'])
+@DSL
+class Document {
+    String name
+    @Owner Object parent
+    @Field(FieldType.TRANSIENT) String metadata
+}
+
+// Alternatively: @EqualsAndHashCode(includes = ['name'])
+```
 
 ## `hashCode()`
 A barebone hashCode is created, with a constant 0 for non-keyed objects, and the hashcode of
@@ -670,6 +757,20 @@ not values configured by a Model Writer. `LINK` relationships add side connectio
 changing composition ownership or its root. See [Static Models](Static-Models.md#relationship-graph) for the same graph
 boundary in the static-model overview.
 
+![Completed model relationships: solid arrows form the owned composition tree; dashed arrows are framework-managed Owner backlinks; a dotted LINK arrow reaches an existing object outside the tree; the lifecycle runs from Builder configuration to Owner establishment to materialization.](img/composition-owner-link-boundaries.svg)
+
+The visual shows one composition tree rooted at `Deployment`: `Service`, `Endpoint`, and `Database` receive their
+structural paths only through solid owned-composition edges. `Endpoint` declares two Owner fields: a direct
+`@Owner Service service` backlink and a root `@Owner(root = true) Deployment deployment` backlink. The dashed arrows
+are framework-managed navigation relationships, not additional ownership; a type may declare more than one matching
+Owner field.
+
+The dotted `LINK` from `Service` to an existing completed `Policy` is an optional non-owning side connection. The
+`Policy` remains outside the `Deployment` composition tree: `LINK` does not adopt it, change either root identity, or
+contribute to structural model paths. The timeline is deliberate: Builder configuration creates the owned graph, the
+Owner phase establishes matching backlinks, and `INSTANTIATE` then materializes the completed model. Owner assignment is
+therefore not an immediate side effect of a relationship configuration call.
+
 For each owned child Builder, the Owner phase establishes every matching owner field when both of these conditions hold
 (independently for each field):
 
@@ -904,7 +1005,7 @@ the owner's Builder lifecycle.
 ## OPTIONAL_LINK
 `OPTIONAL_LINK` accepts either a locally created child Builder as owned composition or an existing completed DSL Object
 as an aggregation target. `@LinkTo` selects this mode by default; use `@Field(FieldType.LINK) @LinkTo` when a
-relationship must be aggregation-only. See [Layer3](Layer3.md) for the relationship boundary.
+relationship must be aggregation-only. See [Layer 3](Layer3.md) for the relationship boundary.
 
 ## DSL Interfaces
 Interfaces can be marked with `@DSL`. No transformation will be done for these interfaces; however, a field with an
@@ -945,6 +1046,10 @@ creation methods.
 
 `key` is either a closure on the owning instance or the special class
 `Field.FieldName` which uses the name of the member as fixed key.
+
+For a group of direct keyed relationships selected by an API-level `@Cluster`, prefer
+`@Cluster(fixedKeys = true)` instead of repeating `@Field(key = Field.FieldName)` on every concrete Schema field. See
+[Fixed Cluster keys](Layer3.md#fixed-cluster-keys) for its selection and validation rules.
 
 This is useful if the member is derived from some value of the owner.
 

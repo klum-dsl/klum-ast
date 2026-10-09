@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.*;
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.runtime.KlumKeyedModelObject;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
@@ -42,6 +43,7 @@ import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
+import com.blackbuild.klum.ast.compiler.internal.validation.RelationshipConstraintFieldCheck;
 import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
@@ -97,6 +99,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String CREATE_SINGLE_CHILD = "createSingleChild";
     private static final String FACTORY_NAME = "factory";
     private static final String AS_BUILDER = "AsBuilder";
+    private static final String SOURCE_SUPER_WITH = "$klum$superWith";
     private static final String STATIC_FACTORY_METHOD_MESSAGE = "Public methods declared on a DSL Factory are exposed through Create and must be instance methods. Remove static, or move a model-level static converter out of Factory.";
     private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
     private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
@@ -119,7 +122,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
 
-    private static final String SOURCE_SUPER_WITH = "$klum$superWith";
     private static final ClassNode DELEGATES_TO_BUILDER_TYPE = ClassHelper.make(DelegatesToBuilder.class);
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
 
@@ -181,6 +183,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         rejectReservedKlumNamespace(annotatedClass);
         checkFieldNames();
+        rejectShadowedInstanceStorage();
         rejectCompletedModelApplyMethods();
         rejectClientConstructors();
         rejectNonDslSubclasses();
@@ -196,6 +199,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryField();
         createClusterFactories();
         convertValidationClosures();
+        projectBuilderQueries();
+        projectBuilderCapabilities();
         moveMutatorsToBuilderClass();
         createOwnerClosureMethods();
         retargetBuilderAnnotationClosures();
@@ -228,7 +233,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void checkFieldNames() {
-        annotatedClass.getFields().forEach(this::warnIfInvalid);
+        annotatedClass.getFields().forEach(field -> {
+            warnIfInvalid(field);
+            if (field.getOwner() == annotatedClass)
+                RelationshipConstraintFieldCheck.check(field, sourceUnit);
+        });
     }
 
     private void rejectCompletedModelApplyMethods() {
@@ -238,6 +247,41 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         "DSL Objects cannot declare apply methods; configuration belongs to the generated Builder.",
                         method
                 ));
+    }
+
+    private void rejectShadowedInstanceStorage() {
+        annotatedClass.getFields().stream()
+                .filter(field -> field.getOwner().equals(annotatedClass))
+                .filter(DSLASTTransformation::isDslInstanceStorage)
+                .forEach(field -> {
+                    for (ClassNode ancestor = annotatedClass.getSuperClass(); isDSLObject(ancestor);
+                         ancestor = ancestor.getSuperClass()) {
+                        if (declaresInstanceStorage(ancestor, field.getName())) {
+                            addCompileError(sourceUnit,
+                                    "DSL instance field/property '" + annotatedClass.getName() + "." + field.getName()
+                                            + "' shadows '" + ancestor.getName() + "." + field.getName()
+                                            + "'. Declare this storage only once in the DSL hierarchy.", field);
+                            return;
+                        }
+                    }
+                });
+    }
+
+    private static boolean declaresInstanceStorage(ClassNode model, String name) {
+        if (isDslInstanceStorage(model.getDeclaredField(name))) return true;
+
+        // BUILDER fields disappear from transformed Models. Their copied annotations survive on the
+        // Builder, both in the current compilation and when the ancestor is loaded from bytecode.
+        ClassNode builder = getBuilderClassOf(model);
+        FieldNode builderField = builder.getDeclaredField(name);
+        return isDslInstanceStorage(builderField) && getFieldType(builderField) == FieldType.BUILDER;
+    }
+
+    private static boolean isDslInstanceStorage(FieldNode field) {
+        // Match the state moved to Builders: generation markers and synthetic flags do not prevent
+        // that move or name-based materialization. Only static and $-prefixed implementation fields
+        // stay outside construction storage and can safely be exempted from hierarchy collisions.
+        return field != null && !field.isStatic() && !field.getName().startsWith("$");
     }
 
     private void rejectClientConstructors() {
@@ -293,6 +337,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new WriteAccessMethodsMover(annotatedClass).invoke();
     }
 
+    private void projectBuilderQueries() {
+        new BuilderQuerySupport(annotatedClass, builderClass, sourceUnit).invoke();
+    }
+
+    private void projectBuilderCapabilities() {
+        BuilderMethodProjection.projectExplicitCapabilities(annotatedClass, sourceUnit);
+    }
+
     private void setPropertyAccessors() {
         new PropertyAccessors(this).invoke();
     }
@@ -308,7 +360,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         builderClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + BUILDER_CLASS_SUFFIX,
+                checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + BUILDER_CLASS_SUFFIX, "Builder implementations"),
                 ACC_PUBLIC | ACC_STATIC,
                 builderBase,
                 new ClassNode[] { make(Serializable.class) },
@@ -345,8 +397,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void moveSourceStateToBuilder() {
         new ArrayList<>(annotatedClass.getFields()).stream()
                 .filter(field -> field.getOwner().equals(annotatedClass))
-                .filter(field -> !field.isStatic())
-                .filter(field -> !field.getName().startsWith("$"))
+                .filter(DSLASTTransformation::isDslInstanceStorage)
                 .forEach(this::moveSingleFieldStateToBuilder);
         builderFields.values().forEach(this::retargetAnnotationClosuresToBuilder);
     }
@@ -808,7 +859,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFieldDSLMethods() {
-        annotatedClass.getFields().forEach(this::createDSLMethodsForSingleField);
+        annotatedClass.getFields().forEach(fieldNode -> {
+            validateFixedKeysClusterMembership(fieldNode);
+            createDSLMethodsForSingleField(fieldNode);
+        });
         annotatedClass
                 .getMethods()
                 .stream()
@@ -858,14 +912,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void diagnoseNonSetterConfiguratorOverrides() {
         annotatedClass.getMethods().stream()
-                .filter(this::isExplicitMutator)
+                .filter(WriteAccessHelper::isBuilderMethod)
                 .forEach(method -> builderFields.forEach((field, builderField) ->
                         diagnoseNonSetterConfiguratorOverride(method, field, builderField)
                 ));
-    }
-
-    private boolean isExplicitMutator(MethodNode method) {
-        return !method.getAnnotations(make(Mutator.class)).isEmpty();
     }
 
     private void diagnoseNonSetterConfiguratorOverride(MethodNode method, FieldNode field, FieldNode builderField) {
@@ -1059,11 +1109,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
-                        .namedParams("values")
+                        .namedParams("values", null, defaultImpl)
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
-                        .optionalStringParam(fieldKeyName, fieldKey != null, null)
+                        .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam(elementBuilderType, null)
                         .addTo(builderClass);
             }
@@ -1090,7 +1140,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
-                        fieldNode, dslBaseType, fieldName, fieldKeyName, COLLECTION_DOCUMENTATION_SUFFIX);
+                        fieldNode, dslBaseType, fieldKeyName, null, COLLECTION_DOCUMENTATION_SUFFIX);
 
             }
 
@@ -1272,7 +1322,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
-                        .namedParams("values")
+                        .namedParams("values", null, defaultImpl)
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
                         .constantPrimitveParam(false)
@@ -1303,8 +1353,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(builderClass);
 
                 createTypedFactoryProviderMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP,
-                        fieldNode, dslBaseType, fieldName, elementKeyField != null ? "key" : null,
-                        MAP_DOCUMENTATION_SUFFIX);
+                        fieldNode, dslBaseType, elementKeyField != null ? "key" : null,
+                        null, MAP_DOCUMENTATION_SUFFIX);
 
             }
 
@@ -1410,11 +1460,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                             .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                             .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
-                    .namedParams("values")
+                    .namedParams("values", null, defaultImpl)
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
                     .constantPrimitveParam(false)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
+                    .optionalStringParam(targetKeyFieldName, needKeyParameter, keyProvider)
                     .delegatingClosureParam(targetBuilderType)
                     .addTo(builderClass);
         }
@@ -1437,18 +1487,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", dslBaseType)
                     .constantPrimitveParam(true)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
+                    .optionalStringParam(targetKeyFieldName, needKeyParameter, keyProvider)
                     .delegatingClosureParam()
                     .addTo(builderClass);
 
-            createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType, fieldName,
-                    targetKeyFieldName, " to this Builder.");
+            createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType,
+                    targetKeyFieldName, keyProvider, " to this Builder.");
 
         }
     }
 
-    private void createTypedFactoryProviderMethod(String methodName, String runtimeMethod, AnnotatedNode fieldNode,
-                                                   ClassNode dslBaseType, String fieldName, String keyName,
+    private void createTypedFactoryProviderMethod(String methodName, String runtimeMethod, FieldNode fieldNode,
+                                                   ClassNode dslBaseType, String keyName, Expression keyProvider,
                                                    String documentationSuffix) {
         GenericFactoryMethodTypes types = genericFactoryMethodTypes(dslBaseType);
         createProxyMethod(methodName, runtimeMethod)
@@ -1468,9 +1518,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION)
                         .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION))
                 .namedParams("values")
-                .constantParam(fieldName)
+                .constantParam(fieldNode.getName())
                 .delegationTargetParam(types.providerType(), FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
-                .optionalStringParam(keyName, keyName != null)
+                .optionalStringParam(keyName, keyName != null && keyProvider == null, keyProvider)
                 .delegatingClosureParam(FACTORY_NAME, 1, CONFIGURATION_CLOSURE_DOCUMENTATION)
                 .addTo(builderClass);
     }
@@ -1576,10 +1626,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
-        if (fieldAnnotation == null)
+        boolean fixedKeysClusterMember = ClusterFactoryBuilder.isFixedKeysClusterMember(annotatedClass, fieldNode);
+
+        if (fixedKeysClusterMember && fieldAnnotation != null && fieldAnnotation.getMember("key") != null)
             return null;
 
-        Expression keyMember = fieldAnnotation.getMember("key");
+        Expression keyMember = fieldAnnotation != null ? fieldAnnotation.getMember("key") : null;
 
         if (keyMember instanceof ClassExpression) {
             ClassNode memberType = keyMember.getType();
@@ -1603,7 +1655,32 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return callX(varX("this"), keyGetterName);
         }
 
+        if (fixedKeysClusterMember)
+            return constX(fieldNode.getName());
+
         return null;
+    }
+
+    private void validateFixedKeysClusterMembership(FieldNode fieldNode) {
+        if (!ClusterFactoryBuilder.isFixedKeysClusterMember(annotatedClass, fieldNode))
+            return;
+
+        if (isCollectionOrMap(fieldNode.getType())) {
+            addCompileError("@Cluster(fixedKeys = true) only supports direct, single keyed DSL Object relationship fields; " +
+                    "field " + fieldNode.getName() + " is a collection or map.", fieldNode);
+            return;
+        }
+
+        if (!isDSLObject(fieldNode.getType()) || getKeyField(fieldNode.getType()) == null) {
+            addCompileError("@Cluster(fixedKeys = true) only supports direct, single keyed DSL Object relationship fields; " +
+                    "field " + fieldNode.getName() + " is not keyed.", fieldNode);
+            return;
+        }
+
+        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+        if (fieldAnnotation != null && fieldAnnotation.getMember("key") != null)
+            addCompileError("@Cluster(fixedKeys = true) cannot be combined with an explicit @Field(key = ...) on field " +
+                    fieldNode.getName() + ".", fieldNode);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -1650,7 +1727,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         InnerClassNode factoryClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_Factory",
+                checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_Factory", "factory implementations"),
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
@@ -1811,9 +1888,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             && method.getParameters()[method.getParameters().length - 1].getType().equals(CLOSURE_TYPE))
                     .forEach(source -> {
                         MethodNode method = correctFactoryMethod(currentSpec, source);
+                        boolean namedMapEligible = isBuiltInRootWith(declaringClass, source);
                         // Only the hidden implementation bridge can specialize a shared generic Factory.
                         if (!withClosuresOnly || factoryClass.redirect().getGenericsTypes() == null)
-                            overrideFactoryMethod(factoryClass, defaultImpl, method);
+                            overrideFactoryMethod(factoryClass, defaultImpl, method, namedMapEligible);
                         if (withClosuresOnly && !declaringClass.redirect().equals(factoryClass.redirect()))
                             createSourceSuperWithBridge(factoryClass, method);
                     });
@@ -1835,15 +1913,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return corrected;
     }
 
-    private void overrideFactoryMethod(ClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
+    private static boolean isBuiltInRootWith(ClassNode declaringClass, MethodNode method) {
+        return method.getName().equals("With")
+                && (declaringClass.redirect().equals(KEYED_FACTORY) || declaringClass.redirect().equals(UNKEYED_FACTORY))
+                && method.getParameters().length > 0
+                && method.getParameters()[0].getOriginType().redirect().equals(MAP_TYPE);
+    }
+
+    private void overrideFactoryMethod(ClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode,
+                                       boolean namedMapEligible) {
         Parameter[] sourceParameters = methodNode.getParameters();
         if (sourceParameters.length > 0 && sourceParameters[sourceParameters.length - 1].getType().equals(CLOSURE_TYPE)
                 && getAnnotation(sourceParameters[sourceParameters.length - 1], DELEGATES_TO_ANNOTATION) == null) {
-            overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode);
+            overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode, namedMapEligible);
             return;
         }
 
         Parameter[] parameters = cloneFactoryParameters(methodNode);
+        if (namedMapEligible)
+            NamedMapMetadata.target(parameters[0], annotatedClass);
         if (factoryClass.getDeclaredMethod(methodNode.getName(), parameters) != null)
             return;
 
@@ -1904,7 +1992,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ));
     }
 
-    private void overrideUndelegatedClosureMethod(ClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
+    private void overrideUndelegatedClosureMethod(ClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode,
+                                                  boolean namedMapEligible) {
         if (methodNode.getParameters().length == 0)
             return;
         Parameter lastParam = methodNode.getParameters()[methodNode.getParameters().length - 1];
@@ -1924,6 +2013,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         Parameter[] parameters = cloneFactoryParameters(methodNode);
+        if (namedMapEligible)
+            NamedMapMetadata.target(parameters[0], annotatedClass);
         Parameter closureParam = parameters[parameters.length - 1];
 
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
@@ -1956,6 +2047,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             Parameter parameter = sourceParameters[index];
             Parameter clone = new Parameter(parameter.getType(), parameter.getName(), parameter.getInitialExpression());
             copyAnnotationsFromSourceToTarget(parameter, clone, Collections.emptyList());
+            NamedMapMetadata.copyTarget(parameter, clone);
             result[index] = clone;
         }
         return result;

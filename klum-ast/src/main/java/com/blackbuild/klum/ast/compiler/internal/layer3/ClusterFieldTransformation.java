@@ -35,6 +35,8 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.Optional;
 
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
+
 // Needs to run BEFORE DSLTransformation
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class ClusterFieldTransformation extends AbstractASTTransformation {
@@ -51,6 +53,12 @@ public class ClusterFieldTransformation extends AbstractASTTransformation {
         if (!(parent instanceof FieldNode)) return;
 
         FieldNode field = (FieldNode) parent;
+
+        if (field.getDeclaringClass().isInterface() && isDSLObject(field.getDeclaringClass())) {
+            addError("@Cluster is not supported on DSL interface member " + field.getDeclaringClass().getNameWithoutPackage() +
+                    "." + field.getName() + "; use an abstract DSL base class for the Layer 3 Domain API.", field);
+            return;
+        }
 
         if (field.isStatic()) {
             addError("Field annotated with @Cluster must not be static", field);

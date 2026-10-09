@@ -9,7 +9,8 @@ Use target-contract modeling when an existing system such as a Helm chart owns t
 Make the consumer-shape decision independently:
 
 - Choose **direct-schema** when the Schema Developer also owns the authors who consume the types, and there is no separate stable Domain API to protect.
-- Choose **[Layer 3](Layer3.md)** only when client developers must compile against a distinct Domain API rather than Schema types.
+- Choose **[Layer 3](Layer3.md)** only when generic client developers must compile against distinct abstract Domain API
+  DSL classes that project concrete Schema fields through `@Cluster`.
 
 Do not add Layer 3 merely as insurance for a future client. Record the selected shape and the reason in the project architecture note.
 
@@ -35,6 +36,12 @@ The fixture derives `ghcr.io/acme/catalog` and `catalog.example.test`, validates
 ```
 
 This is a target-contract conformance check, not a promise that KlumAST can import arbitrary Helm YAML, preserve YAML formatting, or round trip its own model through YAML.
+
+## Optional Catwalk consumer journey
+
+The [Catwalk Podinfo Helm showcase](https://github.com/klum-dsl/klum-catwalk/tree/main/showcases/helm-target-contract) applies target-contract modeling to a pinned real chart with public KlumAST 4.0.1 coordinates. Its independent Schema and values projects hand off a Schema JAR, generate backend and frontend values, compare parsed YAML to semantic goldens, and verify the resulting manifests with offline `helm template` checks. Follow the showcase README for its pinned tools and run instructions.
+
+This guide, the KlumAST fixture above, and the version-matched portable skill remain the product-owned explanation of the modeling workflow. Catwalk supplies the optional executable consumer journey; it is not a KlumAST release gate. Migration rehearsal and retained-baseline promotion remain separate under [ADR 0019](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0019-published-showcase-consumer-verification.md).
 
 ## Agentic use
 

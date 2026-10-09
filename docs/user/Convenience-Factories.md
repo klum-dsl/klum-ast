@@ -33,6 +33,81 @@ name 'Klaus'
 
 or configure `GroovyClassLoader` / `GroovyShell` with a `BaseScript` (see the Javadoc of `DelegatingScript` for details).
 
+A `DelegatingScript` executes its bare configuration calls against the receiving factory's Builder at runtime.
+For IntelliJ completion and navigation, KlumAST 4.1 provides an explicit Schema-owned suffix mapping and a separate
+editor-only metadata path. Follow [IntelliJ completion for DelegatingScripts](Portable-GDSL.md) for source and binary
+consumers, refresh tasks, and the qualified IDE boundary. A bare `DelegatingScript` without that opt-in still does not
+identify its concrete Builder to IntelliJ.
+
+### Optional IntelliJ completion for one script family
+
+Declare the intentional `.environment.groovy` suffix for `example.Environment` in the Schema's `klumSchema.gdsl`
+configuration; Model consumers opt in and explicitly select that Schema's metadata. This replaces the unreleased
+manual copied-resource recipe. Use the [portable mapping workflow](Portable-GDSL.md#declare-the-schema-mapping)
+instead of placing a contributor in ordinary Schema or Model resources. The qualified path uses regular non-nested
+Models; nested mirror/publication preparation is separately tracked in
+[#826](https://github.com/klum-dsl/klum-ast/issues/826).
+
+For example, the Schema's Model is deliberately unkeyed:
+
+```groovy
+package example
+
+import com.blackbuild.klum.ast.DSL
+
+@DSL
+class Environment {
+    String region
+}
+```
+
+Then write **`catalog.environment.groovy`** as the `DelegatingScript` recipe:
+
+```groovy
+package example
+
+import groovy.transform.BaseScript
+import groovy.util.DelegatingScript
+
+@BaseScript DelegatingScript base
+
+region 'eu'
+```
+
+For example, `Environment.Create.From(new File('catalog.environment.groovy'))` runs that file as an Environment recipe.
+This `Environment` is deliberately unkeyed. For a keyed Schema (for example, after adding `@Key String name`), the
+creation route matters: `Create.From(File)` uses `catalog.environment` as the default key because it removes only the
+final `.groovy` extension, while `Create.From(scriptClass)` uses the compiled script class's simple name,
+`catalog_environment`. The same class-derived key applies when `Create.FromClasspath()` loads that script class.
+To choose `catalog` for the file route, supply the existing key provider explicitly:
+
+```groovy
+Environment.Create.From(new File('catalog.environment.groovy'), { File ignored -> 'catalog' })
+```
+
+If you compile the recipe and use `Create.FromClasspath()`, put a marker at
+`META-INF/klum-model/example.Environment.properties` with `model-class: example.catalog_environment`.
+The marker names the **actual compiled script class**, not `catalog.environment.groovy`; the dotted filename produced
+`example.catalog_environment` in Groovy 3, 4, and 5. Keep the marker in the classpath that loads that script.
+
+IntelliJ resolves operations from the actual public `Environment_DSL.Builder`, through refreshed source mirrors
+or compiled Schema classes. The suffix is an editor hint: it does not choose the runtime factory or alter dispatch.
+A matching recipe executed against another Model can still fail. See the
+[project-wide mapping and failure rules](Portable-GDSL.md#project-wide-mappings-and-failures) before changing suffixes
+or Schema versions.
+
+An ordinary Model script can also use a typed factory call:
+
+```groovy
+Environment.Create.With {
+    region 'eu'
+}
+```
+
+That call exposes the generated Builder through source mirrors or compiled Schema classes and creates a completed
+Model. A `DelegatingScript` recipe can instead configure a Builder inside an active Construction session through the
+existing Builder-producing factory route below.
+
 For a [Usage#schema---model---consumer](Usage.md#schema---model---consumer) setup, the most convenient solution is to configure the Model project with a
 compiler customizer.
 
@@ -110,8 +185,8 @@ If no class loader is given, the current context class loader is used.
 ## File or URL
 
 Instead of text, a `File` or `URL` can be given; for a keyed object, the key is derived from the filename
-(the first segment, in the example above, the key would be "bla"). By using a small dsld-snippet in your IDE, you even 
-get complete code completion and syntax highlighting an specialized config files.
+(the first segment, in the example above, the key would be "bla"). The same
+[opt-in IntelliJ suffix mapping](Portable-GDSL.md) also applies to these recipe files.
 
 This allows splitting configurations into different files, which might be automatically resolved by something like:
 

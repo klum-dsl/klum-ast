@@ -10,16 +10,21 @@ Before creating a Schema, answer two independent questions.
    - **Domain-first**: the completed model is the product's domain abstraction; adapters to target systems remain downstream.
    - **Target-contract**: an external contract such as Helm values is authoritative; the Schema provides validated authoring and useful defaults without claiming to replace that contract.
 2. Do client consumers need a distinct stable Domain API?
-   - **Layer 3**: a Domain API Developer defines that contract before a Schema Developer realizes it; Client Developers do not compile against Schema types.
+   - **Layer 3**: abstract Domain API DSL classes constrain the Schema and project its concrete fields through `@Cluster`;
+     generic Client Developers do not compile against Schema types.
    - **Direct-schema**: Schema types are the consumer-facing API, and the Schema Developer also owns that role.
 
-Record the choices near the project architecture. Layer 3 is a modeling pattern, not a requirement for every Gradle project.
+Record the choices near the project architecture. Layer 3 is a modeling pattern for a real generic consumer boundary, not
+a requirement for every Gradle project or a name for an API project without Cluster projection.
 For route-specific guidance, read [Domain First Modeling](Domain-First-Modeling.md) or [Target Contract Modeling](Target-Contract-Modeling.md); the settled Layer 3 pattern
-is explained in [Layer3](Layer3.md).
+is explained in [Layer 3](Layer3.md).
 
 `author-klum-model` is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. `start-klum-project` establishes the Schema project and its selected structure, while `feature-advisor` reviews both Schemas and configured models for supported improvements. For a domain-first Layer 3 journey, use `build-domain-first-schema` with the executable [smart-home fixture](Domain-First-Modeling.md#smart-home-journey); this keeps the shared Model Writer workflow intact rather than redefining it. `build-target-contract-schema` is the target-contract Schema Developer route; its [executable Helm journey](Target-Contract-Modeling.md) demonstrates intentional external mappings without redefining these role boundaries. The [#470](https://github.com/klum-dsl/klum-ast/issues/470) baseline established the common setup.
 
 ## Create the Gradle project
+
+For a cohesive example of a readable Schema and the reasoning behind its design, see the
+[Schema Style Guide](Schema-Style-Guide.md).
 
 Apply the schema plugin to a Schema project. It supplies the KlumAST BOM, compiler/runtime dependencies, Groovy convention, and sources/Javadocs.
 
@@ -43,6 +48,7 @@ ordinary-classpath setup; do not create a descriptor or add JPMS workaround
 flags for it.
 
 Place Schema classes in `src/main/groovy`, add one root `@DSL` type, and write a test in `src/test/groovy` that constructs a completed model through `Create.With`. Run `./gradlew test` before expanding the model. Use the model plugin only when a separate configured-model artifact is needed; see [Gradle Plugins](Gradle-Plugins.md).
+For focused construction, validation, and Template-backed test examples, see [Testing Models and Schemas](Testing-Models-and-Schemas.md).
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
@@ -95,18 +101,29 @@ the refreshed generated sources.
 
 It refreshes every project that applies the Schema plugin, including both `api` and `schema` projects in a Layer 3 layout. Before each per-Schema mirror task, one root-owned task materializes the packaged IntelliJ GDSL contributors in `build/generated/klum-dsl-ide/gdsl` and registers that same physical directory as generated resource content for every Schema module. This makes the packaged contributor discoverable to IntelliJ without duplicating it into module outputs. The generated `Foo_DSL` mirrors provide the matching public declarations. After a refresh, the contributor resolves source-level `Foo.Create` as static `Foo_DSL.Factory` and `Foo.Template` as static `Foo_DSL.TemplateScope`, so completion continues through their public methods. IntelliJ's documented GDSL property helper cannot preserve those capitalized names, so 4.0 uses a version-sensitive internal raw-member hook, validated with IntelliJ IDEA 2026.2. [IDEA-392559](https://youtrack.jetbrains.com/issue/IDEA-392559/GDSL-property-cannot-contribute-a-literal-uppercase-static-property-name) tracks the supported IntelliJ API needed to replace that bridge. It is IDE metadata only: it neither changes runtime bytecode nor supplies an independent read-only guarantee. It contributes nothing for ordinary classes or when the public namespace cannot be resolved. Neither GDSL root nor mirrors are compiled, packaged, published, or added to downstream classpaths. The aggregate still has no payload of its own; each Schema project remains the owner of its mirror task.
 
-GDSL contributes only literal generated fields that source PSI lacks, currently `Create` and `Template`. `AsBuilder()` is
+The packaged framework GDSL contributes literal generated fields that source PSI lacks, currently `Create` and `Template`. `AsBuilder()` is
 an explicit operation in both Java and Groovy, not GDSL property metadata: uppercase JavaBean-property spelling would be
 normalized differently by IntelliJ and could not truthfully represent the generated contract.
 
 Quick Documentation for compiled declarations is separate from these mirrors. [AnnoDoc Support for IntelliJ IDEA](https://github.com/blackbuild/annodoc-intellij) is currently a locally installable `0.1.0-alpha.1` release candidate; Marketplace publication is pending explicit maintainer approval. Follow its current installation instructions only when you choose to install it. Other IDEs should use their ordinary Gradle import and compilation support; KlumAST makes no unverified IDE-parity claim.
 
+### DelegatingScript recipes in 4.1
+
+For bare Builder calls in a regular, non-nested `DelegatingScript`, explicitly declare a Schema-owned filename suffix
+and select its metadata in the Model. Follow [IntelliJ completion for DelegatingScripts](Portable-GDSL.md) for the
+source-project and separate binary-consumer setup. Source authoring uses the mirror tasks above; binary-only Model
+builds run `./gradlew materializeKlumDslGdsl` and resolve compiled public Builders without mirrors. Sync Gradle and
+reload from disk after refresh. The mapping is project-wide editor context and does not set the runtime receiver.
+The guide records the tested IntelliJ build and the separate nested-Model limitation in #826.
+
 ## Portable adopter skills
 
-The repository's [`agent-skills/`](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills) distribution contains portable, task-oriented workflows for `start-klum-project`, `build-domain-first-schema`, `author-klum-model`, `feature-advisor`, and `build-target-contract-schema`. Copy selected standard skill directories into the discovery location supported by your agent client; do not copy repository-maintainer skills from `.agents/skills/`.
+The repository's [`agent-skills/`](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills) distribution contains portable, task-oriented workflows. For one direct-schema Schema project, copy the complete [`start-klum-project` directory](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/start-klum-project), including its `references/`, into the skill-discovery location supported by your agent client. Its frozen 4.0.1 record identifies the matching public plugin, tagged documentation, canonical imports, Builder guidance, and validation contract. The [public-coordinate adopter mission](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/fixtures/direct-schema-public-4.0.1) is a separate copyable one-module example. `build-domain-first-schema`, `author-klum-model`, `feature-advisor`, and `build-target-contract-schema` remain available for their stated workflows. Repository-maintainer skills in `.agents/skills/` are not adopter packages.
 
 `feature-advisor` is a KlumAST-specific, evidence-based improvement review. It first assesses whether the adopted KlumAST version and installed skill distribution are needed, recommended, unnecessary, or unknown updates, then reviews supported features. It stays read-only unless you request selected changes, then explains the supported feature, fit, benefit, trade-offs, confidence, migration risk, effort, documentation source, and validation result.
 
 The minimal fixture at `agent-skills/fixtures/minimal-gradle-project` exercises the baseline locally against the 4.0 sources. Its `ADOPTER-DRY-RUN.md` captures the setup, Model Writer, and feature-advisor field-test flow, including a deliberately improvable Schema case.
 
-The domain-first smart-home fixture at `agent-skills/fixtures/domain-first-smart-home` proves the separate Layer 3 API–Schema–Model path, its API-only client demo, and a later field-test starting artifact. For an external target such as Helm, start from two representative values files, retain the target contract as authoritative, and use `build-target-contract-schema` to choose intentional mappings. [Target Contract Modeling](Target-Contract-Modeling.md) uses the same `agent-skills/fixtures/helm-target-contract` fixture as the skill, including its direct-schema rationale, golden generated values, and later field-test prompt.
+After the direct-schema start, the optional [domain-first smart-home Layer 3 showcase](https://github.com/klum-dsl/klum-catwalk/tree/519404ebc259e24bb24086f86c2ef6322d8bcbb7/showcases/domain-first-smart-home) demonstrates independent Domain API, Schema, API-only Client, and Model leaves with public 4.0.1 coordinates and explicit artifact handoff. This guide and the version-matched KlumAST skills own setup and model concepts; Catwalk provides the runnable consumer example. The in-repository `agent-skills/fixtures/domain-first-smart-home` remains a local companion and field-test starting point.
+
+For an external target such as Helm, start from two representative values files, retain the target contract as authoritative, and use `build-target-contract-schema` to choose intentional mappings. [Target Contract Modeling](Target-Contract-Modeling.md) uses the same `agent-skills/fixtures/helm-target-contract` fixture as the skill, including its direct-schema rationale, golden generated values, and later field-test prompt. For an optional real-chart consumer journey, follow the [Catwalk Podinfo Helm showcase](https://github.com/klum-dsl/klum-catwalk/tree/main/showcases/helm-target-contract), with separate Schema and values projects, public 4.0.1 coordinates, semantic values goldens, and offline Helm rendering. The KlumAST guide and fixture own the modeling explanation; Catwalk owns this runnable consumer example and does not become a KlumAST release gate.

@@ -23,7 +23,8 @@ A useful model-as-code approach should be easy to author, clear to change, and s
 - **Validate and test the actual model.** A Schema can declare its own constraints, and each generated root factory runs
   validation as it materializes a completed model. Model-specific scenarios are ordinary unit tests: construct the model,
   assert its completed state or validation result, and run the same tests locally and in a pull-request build. They
-  complement, rather than replace, integration tests against the eventual target.
+  complement, rather than replace, integration tests against the eventual target. [Testing Models and Schemas](Testing-Models-and-Schemas.md)
+  shows the focused Spock feedback loop and its boundary with outer tests.
 
 Typical validation output names the rule that emitted it:
 

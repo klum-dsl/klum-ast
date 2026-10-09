@@ -41,13 +41,14 @@ import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.KlumPhase;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
 import groovy.lang.Closure;
+import groovy.lang.DelegatingMetaClass;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
+import groovy.lang.MissingMethodException;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.MetaClass;
 import groovy.lang.MetaClassImpl;
 import groovy.lang.ProxyMetaClass;
-import groovy.lang.DelegatingMetaClass;
 import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
@@ -70,6 +71,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -102,6 +104,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     private transient boolean constructionSessionActive;
     private transient InternalKlumBuilder<?> compositionOwner;
     private transient String compositionFieldName;
+    private transient SchemaRelationshipDeclaration owningRelationship;
 
     private String breadcrumbPath;
     private String modelPath;
@@ -373,8 +376,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return Collections.unmodifiableMap(copy);
     }
 
+    SchemaRelationshipDeclaration readOwningRelationship() {
+        if (wrapsCompletedModel)
+            return InternalKlumObjectSupport.getOwningRelationship(completedModel);
+        return owningRelationship;
+    }
+
     final ModelState exportModelState() {
-        return new ModelState(getBreadcrumbPath(), modelPath, metadata);
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata, owningRelationship);
     }
 
     /**
@@ -387,7 +396,8 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                     model,
                     getBreadcrumbPath(),
                     modelPath,
-                    TemplateRecipeState.capture(applyLaterClosures)
+                    TemplateRecipeState.capture(applyLaterClosures),
+                    owningRelationship
             );
         return new KlumModelProxy(model, exportModelState());
     }
@@ -396,11 +406,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         private final String breadcrumbPath;
         private final String modelPath;
         private final Map<String, Serializable> metadata;
+        private final SchemaRelationshipDeclaration owningRelationship;
 
-        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata) {
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata,
+                           SchemaRelationshipDeclaration owningRelationship) {
             this.breadcrumbPath = breadcrumbPath;
             this.modelPath = modelPath;
             this.metadata = new HashMap<>(metadata);
+            this.owningRelationship = owningRelationship;
         }
 
         String getBreadcrumbPath() {
@@ -409,6 +422,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
         String getModelPath() {
             return modelPath;
+        }
+
+        SchemaRelationshipDeclaration getOwningRelationship() {
+            return owningRelationship;
         }
 
         Map<String, Serializable> getMetadata() {
@@ -515,15 +532,13 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         }
         if (DslHelper.isOptionalLink(schemaField)) {
             if (child.compositionOwner == null) {
-                child.compositionOwner = this;
-                child.compositionFieldName = schemaField.getName();
+                claimComposition(schemaField, child);
             }
             return;
         }
         if (child.compositionOwner == child
                 && DslHelper.isOptionalLink(child.getModelField(child.compositionFieldName))) {
-            child.compositionOwner = this;
-            child.compositionFieldName = schemaField.getName();
+            claimComposition(schemaField, child);
             return;
         }
         if (child.compositionOwner != null)
@@ -531,14 +546,26 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                     "Builder for %s is already claimed by composition relationship %s.%s and cannot be attached to composition relationship %s.%s",
                     child.modelType.getName(), child.compositionOwner.modelType.getName(), child.compositionFieldName,
                     modelType.getName(), schemaField.getName()));
+        claimComposition(schemaField, child);
+    }
+
+    private void claimComposition(Field schemaField, InternalKlumBuilder<?> child) {
+        SchemaRelationshipDeclaration declaration = new SchemaRelationshipDeclaration(schemaField);
         child.compositionOwner = this;
         child.compositionFieldName = schemaField.getName();
+        child.owningRelationship = declaration;
     }
 
     private static boolean isCompositionClaimedBy(InternalKlumBuilder<?> parent, String fieldName, Object value) {
         return value instanceof InternalKlumBuilder<?> builder
                 && builder.compositionOwner == parent
                 && Objects.equals(builder.compositionFieldName, fieldName);
+    }
+
+    boolean ownsRelationshipValue(String fieldName, Object value) {
+        Field field = getModelField(fieldName);
+        return !DslHelper.isLink(field)
+                && (!DslHelper.isOptionalLink(field) || isCompositionClaimedBy(this, fieldName, value));
     }
 
     private KlumModelException completedRelationshipInputError(Field schemaField) {
@@ -620,6 +647,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             throw new KlumModelException("A sealed Builder cannot be configured");
     }
 
+    /** Reserved linkage bridge so Schema Builder helpers can retain the name {@code assertMutable}. */
+    protected void $klum$assertMutable() {
+        assertMutable();
+    }
+
     private void assertConstructionSessionActive() {
         if (constructionSession != null && !constructionSessionActive)
             throw new KlumModelException("Cannot use a Builder after its Construction session has completed. "
@@ -631,19 +663,84 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             return;
         body.setDelegate(this);
         body.setResolveStrategy(Closure.DELEGATE_ONLY);
-        body.call();
+        BuilderDispatchSupport.call(body);
     }
 
     private void applyNamedParameters(Map<String, ?> values) {
-        if (values != null)
-            values.forEach(this::applyNamedParameter);
+        if (values == null)
+            return;
+        for (Map.Entry<String, ?> entry : values.entrySet())
+            applyNamedParameter(entry.getKey(), entry.getValue());
     }
 
     private void applyNamedParameter(String key, Object value) {
         if (value == null)
             relationshipField(key).filter(this::isDirectRelationship)
                     .ifPresent(field -> checkNullRelationshipSelection(key, field));
-        InvokerHelper.invokeMethod(this, key, value);
+        try {
+            InvokerHelper.invokeMethod(this, key, value);
+        } catch (RuntimeException exception) {
+            RuntimeException missingMethod = exception;
+            if (findMissingMethodExceptionType(missingMethod.getClass()) == null) {
+                Throwable cause = exception.getCause();
+                if (!(cause instanceof RuntimeException)
+                        || findMissingMethodExceptionType(cause.getClass()) == null)
+                    throw exception;
+                missingMethod = (RuntimeException) cause;
+            }
+            if (!isNamedParameterDispatchFailure(missingMethod, key))
+                throw exception;
+            throw new KlumModelException(format(
+                    "Unknown named-map Builder call '%s' for Model %s. Each named-map entry calls a public Builder method with exactly one argument.",
+                    key, modelType.getName()), missingMethod);
+        }
+    }
+
+    private boolean isNamedParameterDispatchFailure(RuntimeException exception, String key) {
+        if (key == null)
+            return false;
+        StackTraceElement[] stack = exception.getStackTrace();
+        if (!hasNamedMapDispatchOrigin(stack))
+            return false;
+        try {
+            // Groovy scripts can load a separate MissingMethodException class; inspect its public API across classloaders.
+            Class<?> exceptionType = findMissingMethodExceptionType(exception.getClass());
+            String missingMethod = (String) exceptionType.getMethod("getMethod").invoke(exception);
+            Class<?> receiverType = (Class<?>) exceptionType.getMethod("getType").invoke(exception);
+            String receiverName = receiverType.getName();
+            return key.equals(missingMethod)
+                    && (receiverName.equals(modelType.getName())
+                    || receiverName.equals(modelType.getName() + "$Builder")
+                    || receiverName.equals(getClass().getName()));
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
+    private boolean hasNamedMapDispatchOrigin(StackTraceElement[] stack) {
+        for (StackTraceElement frame : stack) {
+            String className = frame.getClassName();
+            String methodName = frame.getMethodName();
+            if (className.startsWith("java.") || className.startsWith("org.codehaus.groovy.")
+                    || className.startsWith("groovy.lang."))
+                continue;
+            boolean namedParameterDispatch = className.equals(InternalKlumBuilder.class.getName())
+                    && methodName.equals("applyNamedParameter");
+            boolean builderMethodMissing = methodName.equals("methodMissing") && className.endsWith("$Builder");
+            return namedParameterDispatch || builderMethodMissing;
+        }
+        return false;
+    }
+
+    /**
+     * Finds Groovy's exception type by binary name because scripts can load it through an isolated classloader.
+     */
+    @SuppressWarnings("java:S1872")
+    private Class<?> findMissingMethodExceptionType(Class<?> type) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass())
+            if (current.getName().equals(MissingMethodException.class.getName()))
+                return current;
+        return null;
     }
 
     private void checkNullRelationshipSelection(String key, Field field) {
@@ -793,6 +890,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
                                     BuilderFactoryProvider<?, ?> factory,
                                     String key, Closure<?> body) {
+        assertMutable();
         return createSingleChild(namedParams, fieldOrMethodName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
@@ -872,6 +970,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        assertMutable();
         return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -904,6 +1003,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the added element
      */
     public <T> T addElementToCollection(String fieldName, T element) {
+        assertMutable();
         Field schemaField = getModelField(fieldName);
         Object stored = DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, element) : forceCastClosure(element, DslHelper.getElementType(schemaField));
         Collection<Object> target = getInstanceAttribute(fieldName);
@@ -913,6 +1013,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        assertMutable();
         return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -928,6 +1029,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
             addElementToCollection(collectionName, created);
@@ -940,6 +1042,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
                                                 BuilderFactoryProvider<?, ?> factory,
                                                 String key, Closure<?> body) {
+        assertMutable();
         return addNewDslElementToCollection(namedParams, collectionName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
@@ -954,6 +1057,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @param elements the elements to add
      */
     public void addElementsToCollection(String fieldName, Object... elements) {
+        assertMutable();
         Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
     }
 
@@ -963,7 +1067,18 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @param elements the elements to add
      */
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
+        assertMutable();
         elements.forEach(element -> addElementToCollection(fieldName, element));
+    }
+
+    /**
+     * Rehydrates marked Templates as fresh owned children, configures each child, and appends them to a collection relationship.
+     * @param fieldName the collection field name
+     * @param templates the marked Templates to rehydrate
+     * @param configuration the configuration applied once to each fresh child Builder
+     */
+    public void addTemplatesToCollection(String fieldName, Iterable<?> templates, Closure<?> configuration) {
+        addTemplates(fieldName, templates, configuration, builder -> addElementToCollection(fieldName, builder));
     }
 
     /** Attaches a projected batch of child Builders and returns the producer's original container. */
@@ -981,6 +1096,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <K, V> void addElementsToMap(String fieldName, Map<K, V> values) {
+        assertMutable();
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
     }
 
@@ -999,11 +1115,52 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
+        assertMutable();
         values.forEach(value -> addElementToMap(fieldName, null, value));
     }
 
     public void addElementsToMap(String fieldName, Object... values) {
+        assertMutable();
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
+    }
+
+    /**
+     * Rehydrates marked Templates as fresh owned children, configures each child, and adds them to a map relationship using normal key derivation.
+     * @param fieldName the map field name
+     * @param templates the marked Templates to rehydrate
+     * @param configuration the configuration applied once to each fresh child Builder
+     */
+    public void addTemplatesToMap(String fieldName, Iterable<?> templates, Closure<?> configuration) {
+        addTemplates(fieldName, templates, configuration, builder -> addElementToMap(fieldName, null, builder));
+    }
+
+    private void addTemplates(String fieldName, Iterable<?> templates, Closure<?> configuration,
+                              Consumer<InternalKlumBuilder<?>> attachment) {
+        assertMutable();
+        Objects.requireNonNull(configuration, "configuration");
+        Class<?> declaredType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
+        List<Object> validatedTemplates = validatedTemplateSnapshot(fieldName, declaredType, templates);
+        validatedTemplates.forEach(template -> attachment.accept(
+                FactoryHelper.prepareNestedBuilderFromTemplate(declaredType, template, configuration)
+        ));
+    }
+
+    private List<Object> validatedTemplateSnapshot(String fieldName, Class<?> declaredType, Iterable<?> templates) {
+        List<Object> snapshot = new ArrayList<>();
+        templates.forEach(snapshot::add);
+        for (Object template : snapshot) {
+            if (!TemplateManager.isTemplate(template))
+                throw new KlumModelException(format(
+                        "withTemplates for %s.%s accepts only marked Templates; received %s",
+                        modelType.getName(), fieldName, template == null ? "null" : template.getClass().getName()
+                ));
+            if (!declaredType.isInstance(template))
+                throw new KlumModelException(format(
+                        "Template type %s is not compatible with relationship %s.%s of element type %s",
+                        template.getClass().getName(), modelType.getName(), fieldName, declaredType.getName()
+                ));
+        }
+        return snapshot;
     }
 
     /**
@@ -1018,6 +1175,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> existing = ((Map<String, InternalKlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
@@ -1038,16 +1196,19 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public Object addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
                                          BuilderFactoryProvider<?, ?> factory,
                                          String key, Closure<?> body) {
+        assertMutable();
         return addNewDslElementToMap(namedParams, mapName,
                 selectedModelType(factory), true, key, (Closure) body);
     }
 
     public <K, V> V addElementToMap(String fieldName, K key, V value) {
+        assertMutable();
         doAddElementToMap(fieldName, key, value);
         return value;
     }
 
     public <K, V> V addElementToMapViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, K key, Object... args) {
+        assertMutable();
         return addElementToMap(fieldOrMethodName, key, createObjectViaConverter(converterType, converterMethod, args));
     }
 
@@ -1095,6 +1256,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
+        assertMutable();
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
         Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(builderFactory, "From", script)));
@@ -1102,6 +1264,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
+        assertMutable();
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
         Object builderFactory = InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "AsBuilder", null);
         Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(builderFactory, "From", script)));

@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.generated;
 
 import com.blackbuild.klum.ast.runtime.internal.BreadCrumbVerbInterceptor;
+import com.blackbuild.klum.ast.runtime.internal.BuilderDispatchSupport;
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
 import groovy.lang.Closure;
 
@@ -47,6 +48,6 @@ public final class GeneratedBreadcrumbs {
 
     /** Executes a generated nested factory closure inside one construction-path breadcrumb scope. */
     public static <T> T $klum$withBreadcrumb(String verb, String type, String qualifier, Closure<T> action) {
-        return BreadcrumbCollector.withBreadcrumb(verb, type, qualifier, action);
+        return BreadcrumbCollector.withBreadcrumb(verb, type, qualifier, () -> BuilderDispatchSupport.call(action));
     }
 }

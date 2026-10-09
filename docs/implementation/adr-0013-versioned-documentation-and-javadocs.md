@@ -1,6 +1,6 @@
 # ADR 0013 implementation plan: versioned user documentation and Javadocs
 
-This plan implements [ADR 0013](../adr/0013-versioned-documentation-and-javadocs.md) for [#456](https://github.com/klum-dsl/klum-ast/issues/456). VD-1 through VD-4 are delivered; PR #542 carries the VD-5 protected Pages stage and the amended static-HTML presentation contract. The plan does not itself publish Pages, mutate GitHub, implement a release, or absorb #488 artifact/public-proof ownership.
+This plan implements [ADR 0013](../adr/0013-versioned-documentation-and-javadocs.md) for [#456](https://github.com/klum-dsl/klum-ast/issues/456). VD-1 through VD-4 are delivered; PR #542 carries the VD-5 protected Pages stage and the amended static-HTML presentation contract. [ADR 0017](adr-0017-published-template-test-support.md) extends the current-release API allowlist with `klum-ast-test-support`; the historical six-module tracer evidence remains unchanged. The plan does not itself publish Pages, mutate GitHub, implement a release, or absorb #488 artifact/public-proof ownership.
 
 ## Confirmed current behavior and failure path
 
@@ -15,7 +15,7 @@ The failure is semantic and operational: a URL does not identify its contract ve
 | Canonical hosting and version switching | Current authoring moves to docs/user/ while Pages renderer publishes immutable exact user/API trees plus labelled aliases; selector/deep-link tests exercise the contract. | #456 |
 | Stable, historical, and prerelease identity | Every page carries renderer-owned status chrome; /archive/ groups legacy versions, while RC snapshots carry a fixed warning and a status-record fallback. No development alias exists. | #456 |
 | Accurate 2.x and 3.0.1 history | Tag-driven comparison permits only rendering/link changes; errata are separate; released Javadoc artifacts are used when present. | #456 |
-| Module-specific 4.x API | Six isolated Javadoc trees and version API landing; BOM absent; IDE mirrors excluded. | #456 |
+| Module-specific 4.x API | Seven isolated current-release Javadoc trees and version API landing; BOM absent; IDE mirrors excluded. | #456, #658 |
 | Versioned Season branding | Exact 4.x tree contains a branding manifest with Season identity, logo, alt text, and digest; protected final rendering rejects an unapproved manifest. | Branding owner supplies input; #456 validates/captures it |
 | Reproducible pre-RC proof | Credential-free tracer renders v3.0.1 and post-VD-3 SHA `c68d2757301f94ca65964d5fc7c4e76a4e557a8a`, six API trees, selectors/deep links/wiki stubs, and site manifest without deployment or alias changes. `963d12dbf28ebeaf9a47e52c56465f8f27b97592` remains an explicit negative fixture: it predates `docs/user/` and the renderer, so it must be rejected. | #456 |
 | Immutable protected snapshot | Protected documentation stage validates release stage/version/master SHA and deploys only an unlisted pending immutable tree plus manifest before artifacts. | #456, invoked by #488 |
@@ -26,7 +26,7 @@ The failure is semantic and operational: a URL does not identify its contract ve
 ## Affected seams and constraints
 
 - Authoring/rendering: move current 4.x content from wiki/ to docs/user/, then update CHANGES.md, README/migration links, navigation metadata, renderer/site fixture, and contributor guidance. The renderer reads docs/user/ for 4.x and tagged wiki/ only for historical versions; it renders a selected Git revision, not ambient repository state.
-- Build/API inputs: Javadoc tasks/Javadoc JARs for the six named modules. BOM has no Java API; AnnoDocimal mirrors remain IDE-only and outside inputs.
+- Build/API inputs: Javadoc tasks/Javadoc JARs for the seven current-release modules, including `klum-ast-test-support`. BOM has no Java API; AnnoDocimal mirrors remain IDE-only and outside inputs.
 - Branding: a renderer input supplies Season identity, logo asset, accessible alternative text, and digest. It is copied into
   the exact tree and site manifest; the branding owner approves a final manifest, while #456 checks and captures it.
 - Release: root version/stage checks, protected release workflow, separate protected Pages deploy. The documentation stage validates independently and runs before #488 artifacts, but receives no artifact-publishing authority or credentials.

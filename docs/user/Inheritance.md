@@ -39,6 +39,42 @@ completed inheritance chain is materialized only after construction phases finis
 These typed methods are not generated, if the declared type is final. Likewise, if the declared type is abstract,
 *only* the typed methods are generated.
 
+## Instance storage names
+
+Since 4.1, each instance field/property name that participates in DSL construction storage must be unique across a DSL inheritance hierarchy
+([#371](https://github.com/klum-dsl/klum-ast/issues/371)). Redeclaring an inherited name fails compilation at the descendant
+declaration with a message identifying both declarations. This includes ordinary fields/properties, `@Owner`,
+`@Default`, and construction-only `@Field(FieldType.BUILDER)` storage, including ancestors compiled separately.
+
+Configure the inherited property directly and declare only additional storage on the descendant.
+
+(See: `DslPropertyShadowingTest#'configures inherited storage without redeclaring it'`.)
+
+```groovy
+@DSL class Service {
+    String name
+    @Default(code = { 'https' }) String protocol
+}
+@DSL class WebService extends Service { Integer port }
+
+def service = WebService.Create.With {
+    name 'frontend'
+    port 443
+}
+assert service.name == 'frontend'
+assert service.protocol == 'https'
+assert service.port == 443
+```
+
+Static fields may shadow static ancestor fields: they remain class state and never become Builder storage. `$`-prefixed
+implementation fields are also outside the diagnostic because they are excluded from Builder storage, configuration,
+and materialization. A generation marker such as `@KlumGenerated`, or a JVM synthetic flag, does not by itself exempt
+an ordinary field name: that field can still become construction storage and conflict with an inherited declaration.
+Ordinary method/getter overrides, a property implementing an abstract getter, and Java ancestor fields remain legal.
+
+The implementation-field boundary and consistent inherited configuration, lifecycle, defaults, and owners are covered by
+`DslPropertyShadowingTest#'#category implementation fields are invisible to DSL storage with a #compilation ancestor'`.
+
 ## Keyed inheritance
 
 This works identically with keyed objects.

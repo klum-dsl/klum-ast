@@ -315,6 +315,14 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return namedParams(name, null);
     }
 
+    /** Adds a named-map parameter whose entries call the fixed target Model's public Builder operations. */
+    public ProxyMethodBuilder namedParams(String name, String doc, ClassNode targetModel) {
+        if (namedParameterIndex == -1)
+            namedParameterIndex = params.size();
+        params.add(new NamedParamsArgument(name, doc, targetModel));
+        return this;
+    }
+
     public ProxyMethodBuilder nonOptionalNamedParams(String name, String doc) {
         params.add(new NamedParamsArgument(name, doc));
         return this;
@@ -392,6 +400,18 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      */
     public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd) {
         return optionalStringParam(name, doAdd, "the key for the new element");
+    }
+
+    /**
+     * Adds either a caller-provided String parameter or a generated fixed String argument.
+     * A fixed argument remains part of the proxied runtime call without widening the public Builder method signature.
+     */
+    public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd, Expression fixedValue) {
+        if (fixedValue != null)
+            params.add(new FixedExpressionArgument(fixedValue));
+        else
+            optionalStringParam(name, doAdd);
+        return this;
     }
 
     /**
@@ -738,15 +758,25 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private static class NamedParamsArgument extends ProxyMethodArgument {
 
+        private final ClassNode targetModel;
+
         public NamedParamsArgument(String name, String documentation) {
+            this(name, documentation, null);
+        }
+
+        public NamedParamsArgument(String name, String documentation, ClassNode targetModel) {
             super(name, documentation);
+            this.targetModel = targetModel;
         }
 
         @Override
         Optional<Parameter> asProxyMethodParameter() {
             GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE);
             wildcard.setWildcard(true);
-            return Optional.of(new Parameter(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name));
+            Parameter result = new Parameter(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name);
+            if (targetModel != null)
+                NamedMapMetadata.target(result, targetModel);
+            return Optional.of(result);
         }
 
         @Override

@@ -42,7 +42,7 @@ These are not duplicates; later work appears to have delivered or superseded the
 - #174 → `ParameterAnnotation` reflection tests.
 - #226 → current Gradle plugins, BOM, descriptors, and scenarios.
 - #335 → commit `fe9b3eff` removes the flaky extraction path and retry.
-- #356 → commit `1a278c61` implements `@Layer3(fixedKey=true)`.
+- #356 → PR #754 implements the revised `@Cluster(fixedKeys = true)` contract on `master`.
 - #358 → PR #429's Builder-backed `KlumDeserializer`; policy intentionally remains #428.
 - #372 → explicit and no-Spock Gradle scenarios.
 - #430 → existing `Create.FromMap` implementation/docs/tests from closed #359; nested composition remains #431.

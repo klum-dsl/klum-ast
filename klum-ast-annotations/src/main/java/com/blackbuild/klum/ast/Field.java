@@ -48,7 +48,8 @@ import java.lang.annotation.*;
  *
  * <p>In addition to fields, setter like methods (i.e. methods with a single parameter) can also be annotated with {@code @Field},
  * making them 'virtual fields'. For virtual fields, the same dsl methods are generated as for actual fields. The name
- * of the methods is the same as the method name. The annotated method is automatically converted into a Mutator method.</p>
+ * of the methods is the same as the method name. The annotated method is automatically converted into a Builder-only
+ * method equivalent to {@link Builder.Method}.</p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

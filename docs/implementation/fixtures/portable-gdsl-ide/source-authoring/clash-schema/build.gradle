@@ -1,0 +1,18 @@
+plugins { id 'com.blackbuild.klum-ast-schema' }
+repositories {
+    maven { url = uri(rootProject.file(klumRepository)) }
+    mavenCentral()
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+klumSchema {
+    groovyVersion = groovyGeneration
+    gdsl {
+        publish = true
+        mappings {
+            broader {
+                fileNameSuffix = '.groovy'
+                modelType = 'gdslacceptance.Environment'
+            }
+        }
+    }
+}

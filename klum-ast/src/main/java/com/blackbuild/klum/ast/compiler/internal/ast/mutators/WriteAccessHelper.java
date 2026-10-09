@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 
+import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.WriteAccess;
 import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -38,6 +39,7 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.g
 public class WriteAccessHelper {
 
     private static final ClassNode WRITE_ACCESS_ANNOTATION = ClassHelper.make(WriteAccess.class);
+    private static final ClassNode BUILDER_METHOD_ANNOTATION = ClassHelper.make(Builder.Method.class);
 
     private WriteAccessHelper() {
         // helper class
@@ -49,6 +51,10 @@ public class WriteAccessHelper {
                 .map(WriteAccessHelper::getWriteAccessTypeForAnnotation)
                 .filter(Objects::nonNull)
                 .findAny();
+    }
+
+    public static boolean isBuilderMethod(AnnotatedNode method) {
+        return method != null && !method.getAnnotations(BUILDER_METHOD_ANNOTATION).isEmpty();
     }
 
     private static WriteAccess.Type getWriteAccessTypeForAnnotation(AnnotationNode annotation) {

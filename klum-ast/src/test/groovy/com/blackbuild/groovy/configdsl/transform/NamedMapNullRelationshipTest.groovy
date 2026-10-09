@@ -207,7 +207,8 @@ class NamedMapNullRelationshipTest extends AbstractDSLSpec {
         graph.child != null
     }
 
-    def "collection virtual and unknown keys retain ordinary dispatch"() {
+    @Issue(["846", "794"])
+    def "collection virtual keys and unknown-key diagnostics retain established behavior"() {
         when:
         def graph = clazz.Create.With([names: ['one'], virtual: 'value'])
 
@@ -219,6 +220,9 @@ class NamedMapNullRelationshipTest extends AbstractDSLSpec {
         clazz.Create.With([unknown: null])
 
         then:
-        thrown(MissingMethodException)
+        KlumModelException error = thrown()
+        error.message.contains("Unknown named-map Builder call 'unknown'")
+        error.cause instanceof MissingMethodException
+        error.cause.method == 'unknown'
     }
 }

@@ -230,7 +230,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
             return;
         if (DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT)
             return;
-        addError(String.format("Assigning a value to a field of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", variable.getName(), typeCheckingContext.getEnclosingMethod().getText()), expression);
+        addError(String.format("Assigning a value to a field of a model is only allowed in Builder-only methods: %s. Maybe you forgot to annotate %s with @Builder.Method?", variable.getName(), typeCheckingContext.getEnclosingMethod().getText()), expression);
     }
 
     @Override // enhance visibility, since we need to use this method from Extension

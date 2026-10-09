@@ -9,10 +9,14 @@ adapters translate it for a dashboard, automation hub, report, or other target. 
 
 Choose this independently from domain-first versus target-contract:
 
-- **[Layer 3](Layer3.md)** fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.
+- **[Layer 3](Layer3.md)** fits when abstract Domain API DSL classes constrain the Schema and project its concrete fields
+  through `@Cluster`. Generic Client Developers compile against that API, while Model Writers configure the concrete
+  Model.
 - **Direct-schema** fits when Schema types are the appropriate consumer contract. The Schema Developer also assumes the Domain API Developer role.
 
-Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should not depend on concrete Schema types; it is not a requirement for every domain-first project. The wider terminology, variants, and policy remain under [#454](https://github.com/klum-dsl/klum-ast/issues/454), so this guide does not treat an example as a new contract.
+Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should
+not depend on concrete Schema types; it is not a requirement for every domain-first project. The [Layer 3 guide](Layer3.md)
+defines the role, dependency, Cluster-projection, and client boundaries used by this journey.
 
 ## Smart-home journey
 
@@ -29,7 +33,9 @@ The fixture's `SmartHomeJourneyDocumentaryTest` is the documentary test of that 
 ./gradlew -p agent-skills/fixtures/domain-first-smart-home test
 ```
 
-The fixture stops at durable Model configuration and an API-only client boundary. A later showcase could compose provider classes with live readings, or generate OpenHAB Things/devices without a backchannel to the Model. Neither runtime behavior nor OpenHAB integration is a contract of this Layer 3 journey.
+For a public-coordinate consumer journey, follow Catwalk's optional [domain-first smart-home showcase](https://github.com/klum-dsl/klum-catwalk/tree/519404ebc259e24bb24086f86c2ef6322d8bcbb7/showcases/domain-first-smart-home). Its separate Domain API, Schema, API-only Client, and Model leaves build with public 4.0.1 coordinates and pass versioned artifacts between independent Gradle roots. This KlumAST guide owns the modeling concepts; Catwalk owns the executable showcase and its consumer evidence. The smaller direct-schema bootstrap remains the first starting route.
+
+The fixture and showcase stop at durable Model configuration and an API-only client boundary. A later journey could compose provider classes with live readings, or generate OpenHAB Things/devices without a backchannel to the Model. Neither runtime behavior nor OpenHAB integration is a contract of this Layer 3 journey.
 
 ## Agentic use
 

@@ -22,17 +22,27 @@
  * SOFTWARE.
  */
 package com.blackbuild.klum.ast.runtime.internal.validation;
-import com.blackbuild.klum.ast.runtime.validation.KlumValidationIssue;
 
+import com.blackbuild.klum.ast.RelationshipConstraint;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.Validate;
+import com.blackbuild.klum.ast.runtime.internal.AnnotationHelper;
 import com.blackbuild.klum.ast.runtime.internal.ClosureHelper;
 import com.blackbuild.klum.ast.runtime.internal.DslHelper;
+import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationIssue;
 import groovy.lang.Closure;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
@@ -44,8 +54,78 @@ public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidat
     @Override
     protected void doValidateLayer() {
         for (Field field : currentLayer.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())) validateRelationshipConstraints(field);
             if (!isNotExplicitlyIgnored(field)) continue;
             validateField(field).ifPresent(validationResult::addIssue);
+        }
+    }
+
+    private void validateRelationshipConstraints(Field field) {
+        List<Annotation> annotations = AnnotationHelper.getMetaAnnotated(field, RelationshipConstraint.class).toList();
+        if (annotations.isEmpty()) return;
+        Object value = DslHelper.getAttributeValue(field.getName(), instance);
+        if (value == null) return;
+        Map<Object, String> elementContexts = new IdentityHashMap<>();
+        Set<String> usedContexts = new HashSet<>();
+        for (Annotation annotation : annotations) {
+            RelationshipConstraint marker = annotation.annotationType().getAnnotation(RelationshipConstraint.class);
+            String label = "Relationship constraint @" + annotation.annotationType().getSimpleName();
+            validateRelationshipEntries(field, value, annotation, marker, label, elementContexts, usedContexts);
+        }
+    }
+
+    private void validateRelationshipEntries(Field field, Object value, Annotation annotation, RelationshipConstraint marker,
+                                           String label, Map<Object, String> elementContexts, Set<String> usedContexts) {
+        if (value instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet())
+                validateRelationshipTarget(field, annotation, marker, label + " at key '" + entry.getKey() + "'", entry.getValue());
+        } else if (value instanceof List<?> list) {
+            int index = 0;
+            for (Object element : list)
+                validateRelationshipTarget(field, annotation, marker, label + " at index " + index++, element);
+        } else if (value instanceof Collection<?> collection) {
+            validateNonPositionalCollection(field, annotation, marker, label, collection, elementContexts, usedContexts);
+        } else {
+            validateRelationshipTarget(field, annotation, marker, label, value);
+        }
+    }
+
+    private void validateNonPositionalCollection(Field field, Annotation annotation, RelationshipConstraint marker,
+                                                 String label, Collection<?> collection,
+                                                 Map<Object, String> elementContexts, Set<String> usedContexts) {
+        for (Object element : collection) {
+            if (element == null) continue;
+            String context = elementContexts.computeIfAbsent(element,
+                    target -> newElementContext(target, usedContexts));
+            validateRelationshipTarget(field, annotation, marker, label + " at " + context, element);
+        }
+    }
+
+    private static String newElementContext(Object element, Set<String> usedContexts) {
+        // An opaque identity token distinguishes Set entries without claiming an iteration position.
+        String base = "element @" + Integer.toHexString(System.identityHashCode(element));
+        String context = base;
+        int collision = 2;
+        while (!usedContexts.add(context)) context = base + "-" + collision++;
+        return context;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateRelationshipTarget(Field field, Annotation annotation, RelationshipConstraint marker,
+                                         String label, Object value) {
+        if (value == null) return;
+        try {
+            PhaseDriver.getContext().setMember(field.getName());
+            ClosureHelper.invokeClosureWithDelegate(
+                    (Class<? extends Closure<Object>>) marker.value(), instance, annotation, value);
+        } catch (AssertionError error) {
+            validationResult.addIssue(new KlumValidationIssue(breadcrumbPath, field.getName(),
+                    label + ": " + error.getMessage(), null, Validate.Level.ERROR));
+        } catch (Exception error) {
+            validationResult.addIssue(new KlumValidationIssue(breadcrumbPath, field.getName(),
+                    label + ": " + error.getMessage(), error, Validate.Level.ERROR));
+        } finally {
+            PhaseDriver.getContext().setMember(null);
         }
     }
 

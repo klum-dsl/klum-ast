@@ -14,11 +14,20 @@ closures are detached and their captured graph is checked when the Template mate
 non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
 Construction sessions, active Template scopes, and mutable recipe collections are not serialized.
 
+Accepted Template-definition relationship declarations are retained internally. Applying a Template or copying a single
+child captures the recipient's owning field afresh; public `KlumObjectSupport` still rejects the Template and its owned
+nodes. See [owning declarations for Templates/copies](Completed-Object-Support.md#templates-copies-and-imports), including
+the authoritative-claim versus absent copied-container metadata policy. Java-serialized Template identity, recipes and
+accepted declarations are qualified within the same KlumAST version with compatible available Schema definitions. Historical
+serialized forms are not promised; regenerate serialized Templates from source recipes when upgrading.
+
 ## Creating Templates
 
 Ignorable fields of the template (key, owner, transient, or marked as `FieldType.Ignore`) are never copied over. Root
 creation lives below `Create`: use `Create.Template.With` for a map and/or configuration closure, and
-`Create.Template.From` for a DelegatingScript file or URL. The result behaves like a normal factory result with these
+`Create.Template.From` for a DelegatingScript file or URL. Classpath loading through `Create.Template.FromClasspath`
+accepts both delegating and ordinary scripts, as described [below](#loading-templates-from-the-classpath). Direct Template
+definition behaves like a normal factory result with these
 differences:
  
  - the result is always unkeyed (setting the key to null in case of a keyed class)
@@ -56,11 +65,156 @@ For final 4.0 RC users that explicitly declared the generated handler type, rena
 `Foo_DSL.TemplateScope` and recompile. There is intentionally no compatibility alias; `Foo_DSL.Factory.Template` remains
 the separate type of the `Foo.Create.Template` root-creation field.
 
+When a Spock test needs existing materialized Templates through `setup`, a feature, and `cleanup`, use the separately
+published `TemplateScope` test-support API rather than a callback wrapper. The Schema or Model plugin provides it automatically on
+the test classpath; only direct Java/Groovy consumers that apply neither plugin declare its coordinate explicitly. The
+concise lifecycle pattern and both dependency paths are in
+[Testing Models and Schemas](Testing-Models-and-Schemas.md#reuse-templates-across-a-spock-feature).
+
 (See: `TemplatesDocumentaryTest#'creates a template from a DelegatingScript file'`.)
 
 ```groovy
 def template = ServiceConfiguration.Create.Template.From(new File('service-template.groovy'))
 ```
+
+## Templates in a class hierarchy
+
+Ordinary Groovy property syntax selects the receiver's generated `Create` factory and `Template` scope, including
+when an abstract DSL superclass also has a Template implementation. Use the same syntax for dynamic Groovy, static
+Groovy, and Java callers. Unrelated user-defined static properties keep their ordinary inheritance behavior.
+
+(See: `StaticEntryPointInheritanceTest#'applies child Templates below an abstract application'`.)
+
+```groovy
+@DSL
+abstract class Application {
+    String name
+}
+
+@DSL
+class OrderApplication extends Application {
+    String orderQueue
+}
+
+def parentTemplate = Application.Create.Template.With { name 'shared' }
+def childTemplate = OrderApplication.Create.Template.With { orderQueue 'orders' }
+
+def application = Application.Template.With(parentTemplate) {
+    OrderApplication.Template.With(childTemplate) {
+        OrderApplication.Create.One()
+    }
+}
+
+assert application.name == 'shared'
+assert application.orderQueue == 'orders'
+```
+
+
+## Loading Templates from the classpath
+
+`Create.Template.FromClasspath()` loads the same conventional configuration as `Create.FromClasspath()`:
+`META-INF/klum-model/<fully-qualified-model-type>.properties` must contain a `model-class` entry naming the compiled
+Groovy script class. For example, `META-INF/klum-model/recipes.Environment.properties` contains:
+
+```properties
+model-class=recipes.DefaultEnvironment
+```
+
+The no-argument overload uses the current thread context class loader. The `ClassLoader` overload uses the supplied
+loader for both the marker and script class. Missing markers, missing `model-class` entries, unavailable script classes,
+and script failures retain the ordinary classpath factory's diagnostics and causes.
+
+Java clients can name the generated public Template factory contract:
+
+```java
+Environment_DSL.Factory.Template factory = Environment.Create.Template;
+Environment defaults = factory.FromClasspath();
+Environment loadedWith = factory.FromClasspath(loader);
+```
+
+Groovy uses the same operations, including under `@CompileStatic`:
+
+```groovy
+def defaults = Environment.Create.Template.FromClasspath()
+def loadedWith = Environment.Create.Template.FromClasspath(loader)
+```
+
+The script form determines how the Template is created:
+
+| Script result/form | Behavior |
+| --- | --- |
+| `DelegatingScript` | Configures a Template directly, without ordinary lifecycle callbacks, graph phases, or validation. Deferred actions remain recipes for replay. |
+| Ordinary script returning a marked Template | Executes the script and returns that Template unchanged, including its recipe state. |
+| Ordinary script returning an ordinary Model | Executes the script normally, then copies its completed Model into a fresh value-only Template snapshot. |
+
+For a delegating script, the following abbreviated example defines `recipes.DefaultEnvironment`. The Schema's
+`Environment` has a keyed `name`, `region`, and `identifier`.
+
+(See: `ClasspathTemplateTest#'loads a classpath recipe and replays it into fresh environments'`.)
+
+```groovy
+// Compiled classpath script: recipes.DefaultEnvironment
+package recipes
+
+import groovy.transform.BaseScript
+@BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+region 'eu-central'
+applyLater { identifier name.toUpperCase() }
+```
+
+Consumer code:
+
+```groovy
+def defaults = Environment.Create.Template.FromClasspath()
+def catalog = Environment.Template.With(defaults) {
+    Environment.Create.With('catalog') { }
+}
+assert catalog.identifier == 'CATALOG'
+```
+
+### Ordinary scripts produce value snapshots
+
+An ordinary script can return a Model created with `Create.With`, `Create.One`, or another ordinary factory. Its normal
+lifecycle, phases, deferred actions, and validation run before snapshot conversion. If the script or validation fails,
+loading fails with the existing classpath factory diagnostic; conversion does not bypass that failure.
+
+The snapshot uses the existing `copyFrom` rules: it copies eligible values and owned composition into fresh graph-wide
+Template nodes, ignores the original root key and other excluded fields, preserves the concrete Model subtype, and
+retains ordinary `LINK` targets by identity. Copy strategies, Schema field initializers, and active Template defaults
+still apply, as with `Create.Template.With { copyFrom model }`. Value-only describes the ordinary source: an active
+Template scope can independently contribute its own deferred recipes to the new Template. The original Model remains
+an ordinary Model.
+
+Completed deferred actions cannot be recovered as recipes. Their resulting values may be copied, but those actions do
+not replay for recipients. Lifecycle-derived values may also be copied; each recipient then runs its own normal lifecycle.
+For example, the identifier computed from `seed` stays `SEED` when a recipient is named `catalog`:
+
+(See: `ClasspathTemplateTest#'snapshots an ordinary script after its lifecycle without retaining deferred actions'`.)
+
+```groovy
+// Ordinary compiled classpath script: recipes.DefaultEnvironment
+package recipes
+
+Environment.Create.With('seed') {
+    region 'eu-central'
+    applyLater { identifier name.toUpperCase() }
+}
+```
+
+Consumer code:
+
+```groovy
+def defaults = Environment.Create.Template.FromClasspath(loader)
+def catalog = Environment.Template.With(defaults) {
+    Environment.Create.With('catalog') { }
+}
+assert defaults.name == null
+assert catalog.identifier == 'SEED'
+```
+
+When the ordinary script should retain deferred recipes, explicitly return `Environment.Create.Template.With { ... }`
+instead. That returned Template is preserved unchanged. Classpath loading does not change `Template.With`/`WithAll`
+application scope or the behavior of `Create.Template.From(File|URL)`.
 
 ## Nested Builder composition
 
@@ -223,6 +377,59 @@ Config.Create.With {
     }
 }
 ```
+
+## Expanding Template lists into one relationship
+
+Use `withTemplates` inside a collection factory when several existing Templates should become separate values of that
+one relationship. It accepts an `Iterable` and a required trailing configuration closure. Each Template is rehydrated
+immediately as exactly one fresh owned child in the current Construction session; the closure configures that child once,
+and the Template object itself is never inserted into the relationship. Use an empty closure for pure expansion.
+
+(See: `TemplatesDocumentaryTest#'expands reusable member Templates into one relationship'`.)
+
+```groovy
+@DSL
+class Team {
+    List<Member> members
+}
+
+@DSL
+class Member {
+    String name
+    String role
+    boolean active
+}
+
+def admin = Member.Create.Template.With(name: 'admin', role: 'administrator')
+def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
+
+def team = Team.Create.With {
+    members {
+        withTemplates([admin, reader]) {
+            active true
+        }
+    }
+}
+
+assert team.members*.name == ['admin', 'reader']
+assert team.members*.active == [true, true]
+```
+
+`withTemplates` accepts only an `Iterable` of marked Templates plus the trailing child-Builder closure. Repeated calls
+append fresh children in invocation and iteration order. The complete input is checked before any closure invocation or
+child attachment, so an ordinary completed DSL Object in the batch fails without partially changing the relationship.
+The same closure runs once for every fresh child after its recipe has been replayed and before its normal `@PostApply`
+lifecycle callback. It receives no Template argument; its `DELEGATE_ONLY` delegate is the fresh child Builder.
+
+This is direct, field-local recipe expansion: it installs no temporary Template default, and a later child creator in the
+same collection factory is unaffected. Use `Template.WithAll` instead when the goal is to establish type-wide defaults
+while a body creates objects. `withTemplates` is not generated for `LINK` collections because Templates cannot be link
+targets; `OPTIONAL_LINK` collections may own the freshly rehydrated children.
+
+For map relationships, normal key derivation and duplicate handling remain in effect. A keyed Template remains unkeyed by
+definition, so a map of keyed elements still needs a key source available during creation; an existing `keyMapping` on
+the relationship can derive it from another copied Template value. If two expanded children derive the same map key, the
+later child replaces the earlier value just as with the existing collection-factory operations.
 
 ## Template.WithAll()
 

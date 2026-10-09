@@ -54,6 +54,7 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
  * Created by steph on 29.04.2017.
  */
 class AlternativesClassBuilder extends AbstractFactoryBuilder {
+    private static final String ASSERT_MUTABLE_METHOD = "$klum$assertMutable";
     private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
     private static final ClassNode BUILDER_FACTORY = ClassHelper.make(KlumFactory.BuilderFactory.class);
     private final DSLASTTransformation transformation;
@@ -134,10 +135,39 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         createClosureForOuterClass();
         delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
+            createWithTemplatesMethod();
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
         OmittedProjectionCatalog.complete(collectionFactory);
+    }
+
+    private void createWithTemplatesMethod() {
+        String runtimeMethod = isMap(fieldNode.getType())
+                ? "addTemplatesToMap"
+                : "addTemplatesToCollection";
+        String templateDescription = "the marked Templates to rehydrate as fresh owned children";
+
+        new ProxyMethodBuilder(varX("rw"), "withTemplates", runtimeMethod)
+                .targetType(builderClass)
+                .optional()
+                .mod(ACC_PUBLIC)
+                .returning(VOID_TYPE)
+                .constantParam(fieldNode.getName())
+                .param(
+                        makeClassSafeWithGenerics(make(Iterable.class), buildWildcardType(elementType)),
+                        "templates",
+                        templateDescription
+                )
+                .delegatingClosureParam(
+                        getBuilderClassOf(elementType),
+                        null,
+                        "the configuration applied once to each fresh child Builder"
+                )
+                .withDocumentation(doc -> doc
+                        .title("Rehydrates and configures one fresh owned child per marked Template in the current Construction session.")
+                        .p("The Templates are expanded immediately in iteration order and the closure configures each fresh child once; this operation does not install a scoped Template default."))
+                .addTo(collectionFactory);
     }
 
     private void createClosureForOuterClass() {
@@ -148,6 +178,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .callThis(ASSERT_MUTABLE_METHOD)
                 .assignS(propX(varX(closureVarName), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
                         propX(varX(closureVarName), "resolveStrategy"),
@@ -169,6 +200,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .linkToField(fieldNode)
                 .param(newClass(MAP_TYPE), templateMapVarName)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .callThis(ASSERT_MUTABLE_METHOD)
                 .statement(
                         callX(
                                 propX(classX(elementType), TemplateMethods.TEMPLATE_FIELD_NAME),
@@ -191,6 +223,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .linkToField(fieldNode)
                 .param(elementType, templateVarName)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .callThis(ASSERT_MUTABLE_METHOD)
                 .statement(
                         callX(
                                 propX(classX(elementType), TemplateMethods.TEMPLATE_FIELD_NAME),
@@ -324,6 +357,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .params(BuilderMethodProjection.projectedParameters(
                         parameterSource,
                         BuilderMethodProjection.concreteModelFor(builderProducer, elementType)))
+                .callMethod("rw", ASSERT_MUTABLE_METHOD)
                 .doReturn(callX(
                         varX("rw"),
                         attachmentMethodFor(returnType),
@@ -365,6 +399,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .returning(GeneratedDslSupport.publicType(getBuilderClassOf(returnType)))
                 .optional()
                 .cloneParamsFrom(methodNode)
+                .callMethod("rw", ASSERT_MUTABLE_METHOD)
                 .callThis(memberName, builderCall);
         BuilderMethodProjection.documentComposition(method, methodNode, returnType);
         method.addTo(collectionFactory);

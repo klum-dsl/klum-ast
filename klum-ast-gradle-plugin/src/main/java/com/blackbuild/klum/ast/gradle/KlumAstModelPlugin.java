@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.gradle;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.Directory;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.language.jvm.tasks.ProcessResources;
@@ -42,6 +43,9 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
 
     @Override
     protected void additionalConfig() {
+        // ADR-0025: root-owned IDE state always has the standard Base lifecycle owner,
+        // including after the last GDSL consumer opts out. This does not enable GDSL or root Java support.
+        project.getRootProject().getPluginManager().apply(BasePlugin.class);
         project.getConfigurations().getByName("api").extendsFrom(project.getConfigurations().getByName("schemas"));
         Provider<Directory> descriptorDir = project.getLayout().getBuildDirectory().dir("modelDescriptors");
         TaskProvider<CreateModelProperties> createModelDescriptors = project.getTasks().register("createModelDescriptors", CreateModelProperties.class, task -> {
@@ -51,6 +55,8 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
         project.getTasks().named("processResources", ProcessResources.class, task ->
                 task.from(createModelDescriptors, copySpec -> copySpec.into("META-INF/klum-model")));
 
+        KlumModelGdslConsumer.configure(project, extension.getGdsl());
+
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
         java.withSourcesJar();
         // no javadoc, script only library
@@ -58,7 +64,7 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
 
     @Override
     protected void addDependencies() {
-        // nothing, all dependencies are transitive for now
+        project.getDependencies().add("testImplementation", "com.blackbuild.klum.ast:klum-ast-test-support");
     }
 
     protected void addDependentPlugins() {

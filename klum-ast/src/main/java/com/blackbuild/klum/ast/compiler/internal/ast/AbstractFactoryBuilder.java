@@ -30,6 +30,7 @@ import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getBuilderClassOf;
@@ -43,8 +44,8 @@ public abstract class AbstractFactoryBuilder {
     protected InnerClassNode collectionFactory;
 
     protected AbstractFactoryBuilder(ClassNode targetClass) {
-        this.targetClass = targetClass;
-        this.builderClass = getBuilderClassOf(targetClass);
+        this.targetClass = Objects.requireNonNull(targetClass, "A collection/Cluster factory requires its owning DSL class");
+        this.builderClass = getBuilderClassOf(this.targetClass);
     }
 
     protected void createDelegateMethods(MethodNode targetMethod) {
@@ -54,7 +55,7 @@ public abstract class AbstractFactoryBuilder {
         // i.e. bla(int a, int b = 1) -> bla(int a, int b) and bla(int a), otherwise, null values might
         // cause the wrong method to be called.
         do {
-            new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
+            MethodNode delegated = new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
                     .targetType(builderClass)
                     .linkToMethod(targetMethod)
                     .optional()
@@ -63,6 +64,7 @@ public abstract class AbstractFactoryBuilder {
                     .returning(targetMethod.getReturnType())
                     .paramsFromWithoutDefaults(targetMethod, numberOfDefaultParams)
                     .addTo(collectionFactory);
+            NamedMapMetadata.copyTargets(targetMethod, delegated);
             numberOfDefaultParams--;
         } while (numberOfDefaultParams >= 0);
     }
@@ -80,7 +82,11 @@ public abstract class AbstractFactoryBuilder {
     }
 
     private void createInnerClass(String name) {
-        collectionFactory = new InnerClassNode(targetClass, targetClass.getName() + "$_" + name, ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
+        ClassNode owner = Objects.requireNonNull(targetClass, "Factory generation requires its owning DSL class");
+        collectionFactory = new InnerClassNode(owner,
+                DslAstHelper.checkedGeneratedInnerClassName(owner, owner.getName() + "$_" + name,
+                        "collection/Cluster factory implementations"),
+                ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
         ClassNode builderType = builderClass.getPlainNodeReference();
         collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, builderType, null);
         collectionFactory.addConstructor(ACC_PUBLIC,
@@ -93,6 +99,6 @@ public abstract class AbstractFactoryBuilder {
         DslAstHelper.registerAsVerbProvider(collectionFactory);
 
         collectionFactory.addAnnotation(createGeneratedAnnotation(getClass()));
-        targetClass.getModule().addClass(collectionFactory);
+        owner.getModule().addClass(collectionFactory);
     }
 }

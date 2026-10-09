@@ -80,14 +80,27 @@ heavy use of the owner field.
 
 Also resolves `@Role` fields and methods, which are technically special case `@Owner` elements.
 
+See [Ownership and `@Owner`](Basics.md#ownership-and-owner) for a relationship visual showing that this phase establishes
+framework-managed backlinks after Builder configuration and before materialization.
+
 ## AutoLink (20)
 
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
 by annotating fields with `@LinkTo`. Also, regular lifecycle methods and Closure fields can be annotated with `@AutoLink` to be executed.
 
+An inherited callback may read its accepted owning Schema declaration through
+[Builder Structure](Completed-Object-Support.md#owning-schema-declarations). Every such query requires the current
+thread's active Construction session and a phase strictly after OWNER(15), including queries that would return empty.
+Normal sealing at INSTANTIATE does not end this read lifetime; session completion or abort does. Retained immutable
+descriptors remain readable afterwards. Later Model callbacks normally use completed Object support. This adds no late
+Builder callback, traversal, mutation, or Model-extraction operation.
+
 ## Default (25)
 
-The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. This includes `@DefaultValues` as well as `@Default` field, delegate and code defaults. As with all lifecycle annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
+The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. Owner-provided
+defaults run as the first ordered action inside this phase, after the Owner phase has selected their donor and before
+`@DefaultValues`, `@Default` field/delegate/code defaults, and `@Default` lifecycle callbacks. As with all lifecycle
+annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
 
 ## PostTree (30)
 
@@ -99,6 +112,9 @@ to create interlinking between objects that are too complex for AutoLink/AutoCre
 The Instantiate phase materializes the complete composition graph. It first allocates every completed DSL Object and then
 assigns relationship fields, preserving cycles and self-links. Non-relationship state is copied as immutable model state;
 Collections become independent read-only snapshots. After this phase, the PhaseDriver root is the completed DSL Object.
+
+The relationship visual in [Ownership and `@Owner`](Basics.md#ownership-and-owner) places `INSTANTIATE` after Owner
+establishment so it does not imply that relationship configuration immediately assigns an Owner field.
 
 (See: `ModelPhasesDocumentaryTest#'materializes a release plan into an independent completed snapshot'`.)
 

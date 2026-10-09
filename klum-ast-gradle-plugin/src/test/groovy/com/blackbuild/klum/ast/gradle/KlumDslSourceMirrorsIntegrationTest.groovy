@@ -41,6 +41,13 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
 
     @Shared File fixture = new File('src/test/fixtures/dsl-g').absoluteFile
     @Shared File testProject = new File('build/test-dsl-g').absoluteFile
+    @Shared File templateScopeFixtureRepository = new File('build/test-template-scope-repository').absoluteFile
+
+    def setupSpec() {
+        templateScopeFixtureRepository.deleteDir()
+        assert templateScopeFixtureRepository.mkdirs()
+        publishTemplateScopeFixture()
+    }
 
     def setup() {
         testProject.deleteDir()
@@ -355,10 +362,42 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
     private BuildResult run(String... arguments) {
         GradleRunner.create()
                 .withProjectDir(testProject)
-                .withArguments(arguments.toList() + ['--stacktrace', '--console=plain'])
+                .withArguments(arguments.toList() + ["-PtemplateScopeFixtureRepository=${templateScopeFixtureRepository.toURI()}".toString(), '--stacktrace', '--console=plain'])
                 .withPluginClasspath()
                 .forwardOutput()
                 .build()
+    }
+
+    private void publishTemplateScopeFixture() {
+        File initScript = new File(templateScopeFixtureRepository, 'publish-fixture.init.gradle')
+        initScript.text = '''
+            def fixtureRepository = gradle.startParameter.projectProperties.templateScopeFixtureRepository
+            allprojects {
+                pluginManager.withPlugin('maven-publish') {
+                    publishing.repositories {
+                        maven {
+                            name = 'templateScopeFixture'
+                            url = uri(fixtureRepository)
+                        }
+                    }
+                }
+            }
+        '''.stripIndent()
+
+        BuildResult result = GradleRunner.create()
+                .withProjectDir(new File('..').absoluteFile)
+                .withArguments(
+                        '--init-script', initScript.absolutePath,
+                        "-PtemplateScopeFixtureRepository=${templateScopeFixtureRepository.toURI()}",
+                        ':klum-ast-annotations:publishMavenJavaPublicationToTemplateScopeFixtureRepository',
+                        ':klum-ast:publishMavenJavaPublicationToTemplateScopeFixtureRepository',
+                        ':klum-ast-runtime:publishMavenJavaPublicationToTemplateScopeFixtureRepository',
+                        ':klum-ast-test-support:publishMavenJavaPublicationToTemplateScopeFixtureRepository',
+                        ':klum-ast-bom:publishMavenJavaPublicationToTemplateScopeFixtureRepository'
+                )
+                .build()
+
+        assert result.task(':klum-ast-test-support:publishMavenJavaPublicationToTemplateScopeFixtureRepository').outcome == TaskOutcome.SUCCESS
     }
 
     private void addLayer3ApiProject() {

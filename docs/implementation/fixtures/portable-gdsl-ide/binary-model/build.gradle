@@ -1,0 +1,26 @@
+plugins { id 'com.blackbuild.klum-ast-model'; id 'maven-publish' }
+repositories {
+    maven {
+        url = uri(rootProject.file(klumRepository))
+        if (providers.gradleProperty('classifierFallback').isPresent()) {
+            metadataSources { mavenPom(); artifact() }
+        }
+    }
+    mavenCentral()
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+klumModel {
+    groovyVersion = groovyGeneration
+    schemas { schema 'org.example.gdsl4:schema:' + providers.gradleProperty('schemaVersion').getOrElse('805.1') }
+    gdsl { enabled = !providers.gradleProperty('disableGdsl').isPresent() }
+}
+dependencies {
+    if (!providers.gradleProperty('disableGdsl').isPresent()) {
+        if (providers.gradleProperty('classifierFallback').isPresent()) {
+            klumGdsl 'org.example.gdsl4:schema:' + providers.gradleProperty('schemaVersion').getOrElse('805.1') + ':gdsl@jar'
+        } else {
+            klumGdsl 'org.example.gdsl4:schema'
+        }
+    }
+}

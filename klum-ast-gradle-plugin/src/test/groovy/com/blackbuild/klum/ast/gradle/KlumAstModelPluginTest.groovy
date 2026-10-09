@@ -29,6 +29,7 @@ import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.gradle.testfixtures.ProjectBuilder
+import spock.lang.Issue
 import spock.lang.Specification
 
 class KlumAstModelPluginTest extends Specification {
@@ -74,6 +75,24 @@ class KlumAstModelPluginTest extends Specification {
         then:
         project.configurations.api.allDependencies.any { it.group == "bla" && it.name == "blub" && it.version == "1.0" }
         project.configurations.api.allDependencies.any { it.group == "bla" && it.name == "bli" && it.version == "2.0" }
+    }
+
+    @Issue('764')
+    def "test support is restricted to the test classpath"() {
+        when:
+        project.pluginManager.apply(KlumAstModelPlugin)
+
+        then:
+        project.configurations.testImplementation.allDependencies.any {
+            it.group == 'com.blackbuild.klum.ast' && it.name == 'klum-ast-test-support' && it.version == null
+        }
+
+        and:
+        ['api', 'implementation', 'compileOnly', 'compileOnlyApi', 'runtimeOnly'].every { configurationName ->
+            !project.configurations.getByName(configurationName).allDependencies.any {
+                it.group == 'com.blackbuild.klum.ast' && it.name == 'klum-ast-test-support'
+            }
+        }
     }
 
     def "model descriptors are created"() {
