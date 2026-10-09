@@ -88,6 +88,13 @@ framework-managed backlinks after Builder configuration and before materializati
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
 by annotating fields with `@LinkTo`. Also, regular lifecycle methods and Closure fields can be annotated with `@AutoLink` to be executed.
 
+An inherited callback may read its accepted owning Schema declaration through
+[Builder Structure](Completed-Object-Support.md#owning-schema-declarations). Every such query requires the current
+thread's active Construction session and a phase strictly after OWNER(15), including queries that would return empty.
+Normal sealing at INSTANTIATE does not end this read lifetime; session completion or abort does. Retained immutable
+descriptors remain readable afterwards. Later Model callbacks normally use completed Object support. This adds no late
+Builder callback, traversal, mutation, or Model-extraction operation.
+
 ## Default (25)
 
 The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. Owner-provided

@@ -4,7 +4,7 @@ Date: 2026-10-08
 
 Status: Accepted D1–D6, including revised D5 authoritative metadata without copy-semantic change
 
-Implementation status: RM-1, bounded RM-2, RM-3 and revised D5 qualification implemented; RM-4 final acceptance remains pending
+Implementation status: RM-1, bounded RM-2, RM-3 and revised D5 qualification implemented; RM-4 acceptance recorded below
 
 Target: 4.1 (D4 approved)
 
@@ -37,7 +37,8 @@ accepts that compatibility baseline and supersedes the earlier rejection rule. T
 changing runtime behavior.
 The implemented subset and validation are recorded in [the RM-2 evidence](../implementation/issue-856-rm2-evidence.md).
 RM-3 artifact-consumer/JPMS qualification is recorded in [the RM-3 evidence](../implementation/issue-856-rm3-evidence.md).
-Initial documentary guidance describes the delivered seam; RM-4 still owns complete release acceptance.
+[RM-4 acceptance](../implementation/issue-856-rm4-evidence.md) reconciles all A01–A26 requirements, documentary guidance,
+final qualification and the revised D5 boundary. Hive owns parent-issue/release reconciliation after documentation delivery.
 
 ## Context and authority
 

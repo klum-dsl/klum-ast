@@ -114,9 +114,10 @@ assert structure.findAll(Service).keySet() == ['<root>.api', '<root>.services[0]
 
 ## Owning Schema declarations
 
-The first [#856](https://github.com/klum-dsl/klum-ast/issues/856) tracer for 4.1 adds read-only declaration queries to both
-completed Object Structure and active Builder Structure. The declaration identifies the actual owning Schema field,
-including its original declaring class when inherited. It works without an `@Owner` backreference.
+The [#856](https://github.com/klum-dsl/klum-ast/issues/856) capability for 4.1 adds read-only declaration queries to both
+completed Object Structure and active Builder Structure. When authoritative ownership is available, the immutable
+declaration identifies the accepted owning Schema field, including its original declaring class when inherited.
+It works without an `@Owner` backreference; valid objects without authority return `Optional.empty()`.
 
 ```java
 import java.util.Optional;
@@ -226,8 +227,13 @@ active same-session Builders, and merges into already claimed children, retain t
 Direct copied-container insertions preserve existing alias identity but establish no authoritative owning claim, even
 for a unique placement. Their metadata remains empty. A copied container alias of an already claimed child retains that
 accepted declaration. Empty metadata does not identify a root and is not an instruction to infer ownership from a path,
-Owner or occurrence order. Existing OPTIONAL_LINK container copy materialization behavior is preserved; its repair is
-outside this metadata capability.
+Owner or occurrence order.
+
+Normal OPTIONAL_LINK attachments adopt fresh same-session Builders and preserve already claimed or completed aggregation
+targets. OPTIONAL_LINK copy inputs instead follow the existing recipe-rehydration route: unclaimed copied container
+entries can materialize as `null`. This capability preserves that behavior; it does not turn those entries into owned
+composition or repair their materialization. Normal generated relationship operations remain the route for preserving
+an existing completed aggregation target's identity.
 
 Managed Jackson root, Builder, and apply-to-Builder imports retain new owned declarations; explicit references retain the
 original target's declaration and identity. Value-only Template imports retain their accepted definition edges internally
@@ -242,8 +248,8 @@ source configuration or recipes when upgrading.
 
 Java 17 and dynamic/static Groovy 3/4/5 consumers are qualified against separately compiled Schema/annotation artifacts.
 Groovy 4/5 named modules use the existing qualified construction opens; annotation lookup needs no additional opens.
-The revised copied-container authority policy is qualified without a runtime change. Final feature-release acceptance
-remains with #856 RM-4.
+The revised copied-container authority policy is qualified without a runtime change. This qualification supplies no
+provider-selection policy, historical Schema/runtime ABI guarantee, or cross-version serialization promise.
 
 ### Copied providers and absent authority
 
