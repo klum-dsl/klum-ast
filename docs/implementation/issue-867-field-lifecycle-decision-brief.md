@@ -1,7 +1,13 @@
 # #867 external field lifecycle participants: feasibility decision brief
 
 Date: 2026-10-09
-Status: Investigation complete; maintainer decisions required before an ADR or implementation.
+Status: Historical initial investigation; superseded for design authority by ADR 0028.
+
+Initial proposals below are historical evidence, not current decisions. See
+[ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md) and its
+[implementation plan](adr-0028-annotation-driven-lifecycle-participants.md).
+AUTO_LINK-only scope, scalar fields, reflective Field/list context, setter/expiry machinery,
+single-branch dispatch and alphabetical ordering are obsolete proposals.
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867)
 Evidence base: `f0f4a0de95acaaf11005f9bca460d92e14b15f56` (remote-default worktree base).
 
