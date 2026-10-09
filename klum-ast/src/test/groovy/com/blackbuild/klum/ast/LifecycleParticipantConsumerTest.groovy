@@ -73,13 +73,12 @@ class LifecycleParticipantConsumerTest extends Specification {
         if (form == 'container') {
             declaration = declaration.replace('@LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class)\n    @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)',
                     '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class), @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
-            if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
         }
         if (form == 'mixed') {
             declaration = declaration.replace('@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)',
                     '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
-            if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
         }
+        if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
         String librarySource = author == 'Java'  ? 'Composition.java' : 'Composition.groovy'
         Files.writeString(sources.resolve(librarySource), declaration)
         if (author == 'Java') compileJava(sources, classes, jars + [domain], [librarySource])

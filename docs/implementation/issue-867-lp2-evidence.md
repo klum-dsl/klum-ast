@@ -71,7 +71,12 @@ repeatability is on the meta-annotations, not a plural domain-annotation context
 
 Focused Groovy 3 coverage passes after correcting the test's explicit LinkTo provider. Initial Groovy 4/5 ordering
 and binary-consumer probes pass; final full-repository check is in progress. No new suppression or ignored test.
-Standards and Specification review, final-head CI/SonarCloud and commit-history review remain pending.
+Standards review found no documented violations and one nonblocking duplicated fixture conversion, subsequently
+consolidated. Specification review found no implementation errors or scope creep; its one incomplete acceptance
+criterion is the explicit cross-phase scope question above. Final-head CI/SonarCloud and commit-history review remain
+pending. An initial repository check was invalidated when a documentation commit changed the Git-derived version
+during nested fixture publication: consumers requested dev.334 while the fixture repository contained dev.335.
+It is not acceptance evidence; qualification must run with stable Git state and no overlapping Gradle builds.
 
 ## Deferred gates
 
