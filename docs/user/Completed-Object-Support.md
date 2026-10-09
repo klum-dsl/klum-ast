@@ -336,3 +336,41 @@ supported client extension API.
 
 `Validator` result readers are removed in 4.0 with no compatibility adapter. Completed-object code uses
 `KlumObjectSupport.getValidation()` as described in [Validation](Validation.md).
+
+## Discovering the Model type of a Builder
+
+`KlumBuilderSupport.of(builder).getModelType()` returns the concrete represented Model class, including a
+subtype reached through a base-typed relationship or `KlumBuilder<?>`. The facade accepts only generated
+Builders; null and unsupported marker implementations retain the usual targeted diagnostics.
+
+Java consumers retain the generic Model type:
+
+```java
+Class<T> modelType = KlumBuilderSupport.of(builder).getModelType();
+```
+
+Groovy consumers can use the property spelling:
+
+```groovy
+Class<?> modelType = KlumBuilderSupport.of(builder).modelType
+```
+
+(See: `BuilderModelTypeTest#'discovers concrete Model types through base typed owned and LINK relationships'`.)
+
+```groovy
+def completed = SpecialRegistry.Create.With(host: 'packages.example.test')
+def deployment = Deployment.Create.With {
+    def owned = registry(SpecialRegistry.Create) { host 'owned.example.test' }
+    linked completed
+    assert KlumBuilderSupport.of(owned).modelType == SpecialRegistry
+    assert KlumBuilderSupport.of(delegate.linked).modelType == SpecialRegistry
+}
+assert deployment.linked.is(completed)
+```
+
+Here both Deployment relationships are declared as Registry; linked is a LINK relationship. Type reading works
+before OWNER and throughout construction, including sealed wrappers of completed LINK targets. Captured Builders
+retain this immutable metadata after completion or abort, independently of owning-relationship queries, which still
+require the current active session and a phase after OWNER. Reading the type does not create, adopt, unseal or
+materialize anything and grants no mutation eligibility. Templates, ownership, lifecycle and materialization retain
+their existing behavior. `KlumBuilder<T>` remains a zero-operation marker.
