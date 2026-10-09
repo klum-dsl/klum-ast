@@ -47,6 +47,62 @@ Order-specific plumbing with an Order-specific handler. A consumer without a com
 its own contract/convention or LP-6 provider-expression investigation. No generic property-access API,
 consumer policy or Closure helper is added. Names/signatures remain provisional until later review.
 
+## External ScHelm qualification: completed LINK reads
+
+On 2026-10-09, the ScHelm spike consumed Maven Local version
+`4.1.0-dev.329+codex.issue.867.lp1.ce36fb9`, published by the normal
+`./gradlew publishToMavenLocal` workflow from clean KlumAST commit
+`ce36fb99e85df2644ea7e687aa74c71b7528c1c4`. All product modules, the BOM and
+plugin markers were installed at that version; installed JARs matched the build outputs.
+Fresh participant, binary-consumer, AutoLink and traversal tests passed: 47 tests, no failures/skips.
+
+The external consumer moved `@FactBinding` to `@LifecycleMutator(phase = AutoLink,
+handler = FactBindingHandler)`, removed `@Owner OrderApplication application` and
+`OrderKafka.bindFacts()`, and retained exact-instance linking and missing-Fact diagnostics.
+A consumer-owned `FactBoundDomain` marker constrains the domain side while `Kafka.facts`
+retains its concrete technology type. The handler receives the correct actual containing/target
+Builders at `OrderApplication.messaging`. ScHelm reports 13/13 focused `OrderApplicationSpec`
+tests and its full `./gradlew check` passing (24 tasks). Consumer commits `a3031b0`,
+`e482819` and `c7ae6a5` were merged as `a6cb793170517401447cfa0595cd6d05060abef3`;
+that merge identity was independently verified. The additional participant `KlumModelException`
+required updating only the consumer diagnostic test's expected cause depth.
+
+The initial report that completed LINK Facts could not be read was corrected by the consumer:
+
+- `containingBuilder.getEnvironment()` supplies a Builder wrapper with the correct concrete Model type.
+- Calling the generated `environmentBuilder.getMessaging()` directly reads the wrapper's empty
+  relationship storage and returns `null`, although the completed Environment contains that Fact.
+- `InvokerHelper.getProperty(environmentBuilder, factFieldName)` uses the existing Groovy property
+  forwarding and returns the **completed Fact Model**, rather than a nested Builder. The generated
+  Domain relationship method accepts this completed value and links the exact existing instance.
+
+An independent minimal probe against the same published artifact reproduced both paths. An assertion
+requiring the explicit generated getter to be non-null failed; a control using public Groovy
+`InvokerHelper.getProperty` passed and asserted `application.messaging.facts.is(environment.messaging)`.
+The observed output was:
+
+```text
+completedEnvironment.messaging.value=existing-fact
+participant=messaging; environmentType=Environment; environmentName=production;
+  nestedGetterFacts=null; nestedDynamicFacts=Facts@0
+dynamic read links exact completed Environment Fact: true
+```
+
+This is successful real-consumer **LP-1 dispatch and reuse evidence through a fixed consumer
+convention, dynamic Groovy property access and reflective discovery/invocation**. It does not prove
+statically typed reuse over unrelated Schema hierarchies or a generated typed read contract for completed
+LINK wrappers. `KlumBuilder` is an operation-free marker; `KlumBuilderSupport` provides Model type and
+owning-declaration metadata, not completed-value unwrapping. `KlumObjectSupport` requires a completed
+object already in hand. No public LP-1 context method exposes that completed object.
+
+The missing typed completed-LINK read contract is evidence for **LP-6 qualification**, including the
+question of whether a consumer expression can read the required completed value under the accepted fixed
+delegate/`DELEGATE_ONLY` semantics. Closure evaluation itself has not been qualified. It does not justify
+a generic property-access API, ScHelm policy in KlumAST, or an implementation change without Hive direction.
+The earlier common-base tracer remains valid for active construction relationships; it did not exercise
+this completed-LINK distinction. This evidence update changes no artifact/API, accepted ADR, issue state
+or release targeting; the tested Maven Local artifact remains the exact version and commit above.
+
 ## Qualification and validation
 
 The creator documentary case covers existing versus absent fields, null results, creator-before-mutator,

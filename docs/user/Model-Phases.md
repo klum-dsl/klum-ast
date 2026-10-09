@@ -67,6 +67,14 @@ Factory-token narrowing works for their concrete subtypes without dynamic proper
 Owner backlinks, or per-Application binding handlers. It does not provide a typed bridge between unrelated
 Schemas; consumers without a common contract need separate design/LP-6 evidence.
 
+This tracer reads an Environment in active construction. A completed Model supplied through `LINK` has a
+different read path: direct generated relationship getters on its Builder wrapper can return `null` from
+empty wrapper storage. Existing dynamic Groovy property reads, including `InvokerHelper.getProperty`, forward to
+the completed Model and return completed values. An external consumer successfully selects and links an
+existing Fact this way, using its own dynamic convention. LP-1 has no public typed completed-value unwrap
+operation; a generated typed read contract for this case remains unqualified. See the
+[external qualification evidence](https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/issue-867-lp1-evidence.md#external-schelm-qualification-completed-link-reads).
+
 The Java extension contract is:
 
 ```java

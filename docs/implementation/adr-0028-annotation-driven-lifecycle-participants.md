@@ -242,3 +242,9 @@ The maintainer subsequently authorized LP-1 only, superseding the planning-only 
 for this slice. [LP-1 evidence](issue-867-lp1-evidence.md) records the provisional API, cross-Schema reuse
 mechanism and validation. Remaining LP-2–LP-8 gates, optional capabilities, issue state and release placement
 are unchanged; this record does not authorize additional slices.
+
+External [ScHelm qualification](issue-867-lp1-evidence.md#external-schelm-qualification-completed-link-reads)
+now verifies removal of the Order-specific Owner/lifecycle plumbing using one consumer handler. Completed
+LINK values are readable through existing dynamic Groovy property forwarding; direct generated relationship
+getters read empty wrapper storage. This qualifies the dynamic consumer path and records the typed completed-LINK
+read limitation for LP-6. It changes no accepted scope or implementation authorization.
