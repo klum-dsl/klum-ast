@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: Design only. Existing traversal characterization is available; feature implementation is not authorized.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. LP-2–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -241,5 +241,6 @@ Remaining maintainer input follows probes: final names/signatures, optional defe
 recommendations, Collection/Map support-or-reject, conditional 4.1 placement after core evidence.
 No new validation architecture decision is required.
 
-Authorization: planning only. Architecture acceptance does not authorize LP-1, production changes,
-issue retargeting or release placement. Preserve existing characterization tests.
+Original authorization: planning only. Subsequent explicit maintainer delegation authorized LP-1 only,
+recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
+issue retargeting or release placement. Existing characterization tests are preserved.

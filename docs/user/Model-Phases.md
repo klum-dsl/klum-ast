@@ -45,6 +45,145 @@ PhaseActions are usually registered by using the Java ServiceLoader mechanism, s
 Each phase has an ordinal defining the execution order of those phases. Main phases are defined in the `DefaultKlumPhase` enum, but 
 there ordinals are spaced to allow for plugins to insert phases in between.
 
+## External field participants (LP-1)
+
+Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers only the first qualification
+slice: domain annotations on direct DSL fields during `AutoLink`. Names and signatures remain provisional.
+The whole feature and its conditional 4.1 placement still require the remaining ADR 0028 gates.
+
+A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
+`@LifecycleMutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
+live in `com.blackbuild.klum.ast.runtime`; a domain annotation library depends on runtime.
+Use `@Retention(RUNTIME)` and field placement. LP-1 rejects scalars, containers, static fields, type/method
+placement, other phases, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
+This is a qualification boundary, not a final container or Builder-only-field decision.
+
+### Reusing a typed consumer contract
+
+The participant context supplies the containing and target Builders. A consumer still owns the typed contract
+that exposes its Environment and Facts relationships. This example uses common consumer Schema bases,
+`ApplicationBase.environment` and `DomainBase.facts`, and their generated public Builder interfaces.
+Factory-token narrowing works for their concrete subtypes without dynamic property lookup, reflection,
+Owner backlinks, or per-Application binding handlers. It does not provide a typed bridge between unrelated
+Schemas; consumers without a common contract need separate design/LP-6 evidence.
+
+This tracer reads an Environment in active construction. A completed Model supplied through `LINK` has a
+different read path: direct generated relationship getters on its Builder wrapper can return `null` from
+empty wrapper storage. Existing dynamic Groovy property reads, including `InvokerHelper.getProperty`, forward to
+the completed Model and return completed values. An external consumer successfully selects and links an
+existing Fact this way, using its own dynamic convention. LP-1 has no public typed completed-value unwrap
+operation; a generated typed read contract for this case remains unqualified. See the
+[external qualification evidence](https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/issue-867-lp1-evidence.md#external-schelm-qualification-completed-link-reads).
+
+The Java extension contract is:
+
+```java
+public class BindFactsHandler implements LifecycleMutationHandler<BindFacts> {
+    public void mutate(LifecycleMutationContext<BindFacts> context) {
+        ApplicationBase_DSL.Builder<ApplicationBase> application =
+                ApplicationBase.Create.narrowBuilder(context.getContainingBuilder());
+        DomainBase_DSL.Builder<DomainBase> domain =
+                DomainBase.Create.narrowBuilder(context.getTargetBuilder());
+        domain.facts(Facts.Create.AsBuilder().With(
+                Map.of("source", application.getEnvironment().getFactSource()
+                        + ":" + context.getAnnotation().value())));
+    }
+}
+```
+
+The equivalent statically compiled Groovy handler can use `domain.facts { source ... }` through the same
+public generated contract. The documentary tracer uses one such handler for both of these domain-vocabulary
+placements, including an inherited field occurrence:
+
+(See: `LifecycleParticipantTest#'reuses typed fact binding across Application and Domain Schemas before child field actions'`.)
+
+```groovy
+@Retention(RUNTIME)
+@Target(FIELD)
+@LifecycleMutator(phase = AutoLink, handler = BindFactsHandler)
+@interface BindFacts { String value() }
+
+@DSL abstract class ApplicationBase { Environment environment }
+@DSL abstract class DomainBase { Facts facts }
+@DSL class KafkaDomain extends DomainBase {}
+@DSL class QueueDomain extends DomainBase {}
+@DSL class OrdersBase extends ApplicationBase {
+    @BindFacts('messaging') KafkaDomain messaging
+}
+@DSL class Orders extends OrdersBase {}
+@DSL class Notifications extends ApplicationBase {
+    @BindFacts('delivery') QueueDomain delivery
+}
+
+def orders = Orders.Create.With {
+    environment { factSource 'production' }
+    messaging {}
+}
+def notifications = Notifications.Create.With {
+    environment { factSource 'staging' }
+    delivery {}
+}
+assert orders.messaging.facts.source == 'production:messaging'
+assert notifications.delivery.facts.source == 'staging:delivery'
+```
+
+The executable tracer also queries a separate `RelationshipRole` annotation on each original Schema field and
+records its incoming name, declared Domain type, and actual containing Application subtype. A second participant
+on `DomainBase.facts` observes the assigned source in the same AutoLink traversal. Domain classes have no
+binding lifecycle methods or Owner fields. This demonstrates a reusable common-contract consumer shape,
+without introducing technology types or selection policy into KlumAST.
+
+### Creating the annotated relationship
+
+`LifecycleCreationHandler<A>.create(LifecycleFieldContext<A>)` returns `KlumBuilder<?>` or `null`.
+It runs only for an unset field. A non-null result goes through ordinary checked assignment; ownership,
+Construction-session and FieldType rules still apply. It cannot return a completed Model.
+`LifecycleMutationHandler<A>.mutate(LifecycleMutationContext<A>)` returns `void` and runs only with a
+non-null target. Creation always precedes mutation within that field visit; a null result leaves the field
+unset and skips mutation. Other mutation ordering remains unqualified; handlers must not depend on it.
+
+(See: `LifecycleParticipantTest#'creates missing relationships before mutation and leaves null results unset (#mode)'`.)
+
+```groovy
+@Retention(RUNTIME)
+@Target(FIELD)
+@LifecycleCreator(phase = AutoLink, handler = SupplyDomain)
+@LifecycleMutator(phase = AutoLink, handler = ConfigureDomain)
+@interface Supplied { boolean enabled() default true }
+
+class SupplyDomain implements LifecycleCreationHandler<Supplied> {
+    KlumBuilder<?> create(LifecycleFieldContext<Supplied> context) {
+        context.annotation.enabled() ? Domain.Create.AsBuilder().With(value: 'created') : null
+    }
+}
+// ConfigureDomain narrows context.targetBuilder and appends '-mutated' to its value.
+@DSL class Application {
+    @Supplied Domain first
+    @Supplied(enabled = false) Domain absent
+}
+def application = Application.Create.One()
+assert application.first.value == 'created-mutated'
+assert application.absent == null
+```
+
+### Context and qualification boundary
+
+`LifecycleFieldContext<A>` exposes `getAnnotation()`, singular typed
+`getAnnotation(Class<B>): Optional<B>`, `getContainingBuilder(): KlumBuilder<?>`, `getFieldName()`,
+`getDeclaredType(): Class<?>` and effective `getFieldType(): FieldType` from the original Schema declaration.
+`LifecycleMutationContext<A>` additionally exposes `getTargetBuilder(): KlumBuilder<?>`.
+There is no setter, reflective Field, annotation list, path API, or expiry operation. Contexts are for the
+invocation only; retaining them grants no new Builder rights.
+
+Each invocation constructs a fresh public concrete handler with a public no-arg constructor. Its annotation
+parameter must resolve exactly to the domain annotation, including generic inheritance. Raw, wildcard,
+unresolved and mismatched parameters fail Schema compilation; runtime independently defends precompiled
+inputs before invocation. LP-1 rejects sealed mutation targets. FAIL/SKIP, all four phases, composition
+conflicts/order qualification, Template/import/graph/JPMS coverage, validation guidance and optional type,
+Closure, HANDLE and container decisions remain later gates. See the
+[LP-1 evidence](../implementation/issue-867-lp1-evidence.md) and
+[ADR 0028 plan](../implementation/adr-0028-annotation-driven-lifecycle-participants.md).
+
 ## Phase Details
 
 ## ApplyLater (1)

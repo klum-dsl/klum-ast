@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional; no implementation authorization.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1 is implemented under subsequent explicit maintainer delegation; LP-2–LP-8 remain unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -170,6 +170,13 @@ failure and preserved causes. Separate Groovy 3/4/5 compilation; legacy DELEGATE
 Generic Class bounds alone are not static typing proof. Avoid a generic execution framework,
 configurable resolution strategies, caching or unrelated compiler infrastructure.
 
+[ScHelm's executed literal-map consumer](evidence/issue-867-schelm-map-closure.md) uses ordinary Groovy
+Closure construction and zero-argument `call()` to map Environment Fact names to Domain relationship names.
+The existing completed-LINK `facts` Cluster read and named generated Builder invocation work under LP-1;
+this concrete case requires no KlumAST helper and is not prospective LP-6 qualification. Richer typed
+delegates/provider expressions may still motivate LP-6 under its unchanged accepted protocol and optional
+status. The consumer result does not authorize implementation or fix a helper signature.
+
 Commit: helper/compiler integration with consumer and existing Closure regressions.
 
 ### LP-7 — Independent collections/maps exploration and release decision
@@ -231,6 +238,20 @@ Prior investigation: Groovy 3 and Groovy 4 module suites passed (1,610 tests eac
 zero failures/errors, 15 pre-existing skips); two focused Groovy 5 characterization tests passed.
 These prove traversal only, not this API. This update is documentation-only: check diff and
 relative links; no new Groovy execution or feature tracer implementation.
-Hand back refined artifacts for maintainer review/Hive reconciliation without issue retargeting,
-implementation or self-archival. Architecture acceptance does not authorize LP-1.
+The original planning handoff did not authorize implementation, issue retargeting or self-archival.
+The later LP-1 delegation and bounded implementation evidence are recorded below; architecture acceptance
+does not authorize additional slices.
 See [refinement evidence](evidence/issue-867-core-optional-refinement.md).
+
+## LP-1 execution record
+
+The maintainer subsequently authorized LP-1 only, superseding the planning-only authorization boundary
+for this slice. [LP-1 evidence](issue-867-lp1-evidence.md) records the provisional API, cross-Schema reuse
+mechanism and validation. Remaining LP-2–LP-8 gates, optional capabilities, issue state and release placement
+are unchanged; this record does not authorize additional slices.
+
+External [ScHelm qualification](issue-867-lp1-evidence.md#external-schelm-qualification-completed-link-reads)
+now verifies removal of the Order-specific Owner/lifecycle plumbing using one consumer handler. Completed
+LINK values are readable through existing dynamic Groovy property forwarding; direct generated relationship
+getters read empty wrapper storage. This qualifies the dynamic consumer path and records the typed completed-LINK
+read limitation for LP-6. It changes no accepted scope or implementation authorization.

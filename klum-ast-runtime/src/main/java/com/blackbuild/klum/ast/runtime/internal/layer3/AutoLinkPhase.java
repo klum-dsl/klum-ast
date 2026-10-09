@@ -27,10 +27,14 @@ import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.internal.LifecycleHelper;
+import com.blackbuild.klum.ast.runtime.internal.LifecycleParticipants;
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.layer3.LinkTo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class AutoLinkPhase extends BuilderVisitingPhaseAction {
 
@@ -40,11 +44,15 @@ public class AutoLinkPhase extends BuilderVisitingPhaseAction {
 
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
-                .entrySet()
-                .stream()
-                .filter(this::isUnset)
-                .forEach(entry -> LinkHelper.autoLink(element, entry.getKey()));
+        Map<String, Object> fields = ClusterModel.getPropertiesStream(element, Object.class,
+                        field -> field.isAnnotationPresent(LinkTo.class) || LifecycleParticipants.hasParticipant(field))
+                .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);
+        fields.entrySet()
+                .forEach(entry -> {
+                    if (isUnset(entry) && element.getModelField(entry.getKey()).isAnnotationPresent(LinkTo.class))
+                        LinkHelper.autoLink(element, entry.getKey());
+                    LifecycleParticipants.processField(element, entry.getKey());
+                });
 
         LifecycleHelper.executeLifecycleMethods(element, AutoLink.class);
     }
