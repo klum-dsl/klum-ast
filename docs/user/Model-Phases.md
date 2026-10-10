@@ -384,7 +384,8 @@ replaces that inherited annotation; interface annotations and unmarked annotatio
 Discovery uses ordinary `Class.getAnnotations()` and lookup uses `Class.getAnnotation()`, with no plural
 expansion. A repeatable domain annotation's container is a separate annotation type: repeated uses alone do
 not dispatch unless that container itself has a mutator. A subclass container can coexist with an inherited
-singular annotation; that singular annotation still dispatches. Java and Groovy authored libraries qualify
+singular annotation; that singular annotation still dispatches. An unannotated subclass inherits the container
+itself, while a local container replaces the inherited container, without implicit per-entry expansion. Java and Groovy authored libraries qualify
 this behavior. This is separate from repeated **meta-mutators** within one domain annotation, whose LP-2
 container/declaration order remains supported. Ordering between distinct type annotation types, or a
 singular meta-marker mixed with its explicit container, remains unspecified. Handlers must be independent

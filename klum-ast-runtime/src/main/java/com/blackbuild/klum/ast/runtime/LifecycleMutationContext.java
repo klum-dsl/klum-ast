@@ -27,7 +27,8 @@ import java.lang.annotation.Annotation;
 
 /**
  * A non-null Builder target to configure through its generated public contract.
- * Sealed targets fail by default or skip invocation according to {@link LifecycleMutator#onSealed()}.
+ * Field targets fail by default or skip when sealed according to {@link LifecycleMutator#onSealed()}.
+ * Type dispatch follows existing traversal, which skips sealed aggregation targets.
  * @param <A> the exact domain annotation type
  */
 public interface LifecycleMutationContext<A extends Annotation> extends LifecycleFieldContext<A> {

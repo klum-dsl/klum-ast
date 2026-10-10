@@ -63,6 +63,15 @@ public class TypeMain {
     }
 
     private static void verifyRepeatableInheritance() {
+        if (InheritedContainerSchema.class.getDeclaredAnnotation(TypeRules.ManagedList.class) != null
+                || InheritedContainerSchema.class.getAnnotation(TypeRules.ManagedList.class).value().length != 2
+                || InheritedContainerSchema.class.getAnnotation(TypeRules.Managed.class) != null
+                || !InheritedContainerSchema.Create.One().getValue().isEmpty())
+            throw new AssertionError("inherited unmarked container without singular expansion");
+        if (!OverrideContainerSchema.class.getAnnotation(TypeRules.ManagedList.class).value()[0].value().equals("three")
+                || OverrideContainerSchema.class.getAnnotation(TypeRules.Managed.class) != null
+                || !OverrideContainerSchema.Create.One().getValue().isEmpty())
+            throw new AssertionError("local container replaces inherited container");
         if (!RepeatedSchema.class.getAnnotation(TypeRules.Managed.class).value().equals("base")
                 || RepeatedSchema.class.getAnnotation(TypeRules.ManagedList.class).value().length != 2
                 || OnlyRepeatedSchema.class.getAnnotation(TypeRules.Managed.class) != null)

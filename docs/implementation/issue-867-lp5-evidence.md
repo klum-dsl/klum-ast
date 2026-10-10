@@ -44,6 +44,8 @@ The artifact tracer uses an inherited repeatable domain annotation and an inheri
 | Subclass singular | Overrides the same annotation on base |
 | Subclass repeated uses with base singular | Subclass container coexists with inherited base singular; only singular dispatches |
 | Repeated uses without base singular | Only unmarked container is present; no singular annotation or implicit expansion/dispatch |
+| Unannotated subclass of repeated base | Inherits the container, with no singular expansion or dispatch |
+| Subclass repeats after repeated base | Local container replaces inherited container, with no singular expansion or dispatch |
 | Annotation only on implemented interface | No propagation or dispatch |
 
 A container may participate only by declaring its own mutator/handler for its own annotation type; no implicit
@@ -78,7 +80,11 @@ No compatibility conflict requiring deferral was found.
 ## Qualification and remaining gates
 
 Focused Groovy 3 participant coverage passed: 127 tests, zero failures/errors/skips. Compatibility, repository
-checks and independent Standards/Specification review are being run; results will be recorded before publication. No ignored/pending test or broad suppression is introduced.
+checks are being run; results will be recorded before publication. Initial Standards review found one Spock
+assertion-layout violation; initial Specification review requested inherited-container evidence. An additive
+follow-up separates creation/assertions, qualifies inherited/local-override containers in both annotation-author
+lanes, and clarifies sealed type dispatch in Javadoc. The optional internal validator rename is left unchanged
+to keep existing field-check naming stable; its class description now covers fields and types. No ignored/pending test or broad suppression is introduced.
 
 LP-6 Closure evaluation remains optional/unqualified. LP-7 support is optional but support-or-reject with
 diagnostics remains mandatory before release. LP-8 full errors/existing-validation guidance/JVM/JPMS/final

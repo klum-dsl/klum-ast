@@ -32,6 +32,8 @@ import participant.fixture.TypeRules.Local
 @Managed('override') @DSL class OverrideSchema extends BaseSchema {}
 @Managed('one') @Managed('two') @DSL class RepeatedSchema extends BaseSchema {}
 @Managed('one') @Managed('two') @DSL class OnlyRepeatedSchema extends TypeDomain {}
+@DSL class InheritedContainerSchema extends OnlyRepeatedSchema {}
+@Managed('three') @Managed('four') @DSL class OverrideContainerSchema extends OnlyRepeatedSchema {}
 @Managed('interface') interface MarkerInterface {}
 @DSL class InterfaceSchema extends TypeDomain implements MarkerInterface {}
 @Managed('root') @DSL class RootSchema extends TypeDomain { @Managed('incoming') BaseSchema child }

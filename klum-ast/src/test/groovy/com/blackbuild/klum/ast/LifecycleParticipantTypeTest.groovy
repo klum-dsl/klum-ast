@@ -154,11 +154,21 @@ class LifecycleParticipantTypeTest extends AbstractDSLSpec {
             @DSL class InterfaceChild implements Behavior { String value }
         '''
 
-        expect:
-        Base.Create.One().local == 'local'
-        InheritedChild.Create.One().with { value == 'base' && other == 'other' && local == null }
-        OverrideChild.Create.One().with { value == 'override' && other == 'other' && local == null }
-        InterfaceChild.Create.One().value == null
+        when:
+        def base = Base.Create.One()
+        def inherited = InheritedChild.Create.One()
+        def overridden = OverrideChild.Create.One()
+        def fromInterface = InterfaceChild.Create.One()
+
+        then:
+        base.local == 'local'
+        inherited.value == 'base'
+        inherited.other == 'other'
+        inherited.local == null
+        overridden.value == 'override'
+        overridden.other == 'other'
+        overridden.local == null
+        fromInterface.value == null
     }
 
     def 'type participants run before AutoCreate clusters and retain fresh state across Template and map sessions'() {
