@@ -32,7 +32,7 @@ import java.lang.annotation.Target;
 
 /**
  * Opts a domain field annotation into external Builder mutation.
- * The LP-1 qualification supports only direct DSL fields in AutoLink; other phases remain unqualified.
+ * Direct DSL fields participate in AutoCreate, AutoLink, Default or PostTree.
  * Repeated mutations execute in declaration order, or explicit List value order.
  * Relative order of a singular marker mixed with List, and of different domain annotations, is unspecified.
  * Each invocation constructs a fresh public concrete handler with a public no-arg constructor.
@@ -42,7 +42,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.ANNOTATION_TYPE)
 @Repeatable(LifecycleMutator.List.class)
 public @interface LifecycleMutator {
-    /** The existing lifecycle annotation class; LP-1 supports AutoLink only. */
+    /** The existing AutoCreate, AutoLink, Default or PostTree lifecycle annotation class. */
     Class<? extends Annotation> phase();
 
     /** Handler whose resolved annotation parameter must equal this domain annotation. */

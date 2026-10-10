@@ -51,7 +51,7 @@ public class AutoLinkPhase extends BuilderVisitingPhaseAction {
                 .forEach(entry -> {
                     if (isUnset(entry) && element.getModelField(entry.getKey()).isAnnotationPresent(LinkTo.class))
                         LinkHelper.autoLink(element, entry.getKey());
-                    LifecycleParticipants.processField(element, entry.getKey());
+                    LifecycleParticipants.processField(element, entry.getKey(), AutoLink.class);
                 });
 
         LifecycleHelper.executeLifecycleMethods(element, AutoLink.class);

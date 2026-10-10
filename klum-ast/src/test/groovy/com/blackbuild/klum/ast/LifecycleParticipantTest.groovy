@@ -270,7 +270,7 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         'Map<String, Domain> domains'       | 'AutoLink'  | 'non-static direct DSL field'
         'static Domain domain'              | 'AutoLink'  | 'non-static direct DSL field'
         '@Field(FieldType.BUILDER) Domain domain' | 'AutoLink' | 'retained on the Schema'
-        'Domain domain'                      | 'PostTree'  | 'only phase = AutoLink'
+        'Domain domain'                      | 'Validate'  | 'support only AutoCreate, AutoLink, Default and PostTree'
     }
 
     def 'rejects non-public no-arg or non-concrete handlers (#body)'() {

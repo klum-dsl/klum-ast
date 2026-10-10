@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.FieldType;
-import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.LifecycleCreator;
@@ -46,6 +45,7 @@ import java.util.Optional;
 public final class LifecycleParticipants {
     private LifecycleParticipants() {}
 
+    // Discovery is phase-independent so unsupported precompiled phases reach declaration validation.
     public static boolean hasParticipant(AnnotatedElement field) {
         for (Annotation annotation : field.getDeclaredAnnotations()) {
             if (annotation.annotationType().getAnnotationsByType(LifecycleCreator.class).length != 0
@@ -54,7 +54,7 @@ public final class LifecycleParticipants {
         return false;
     }
 
-    public static void processField(InternalKlumBuilder<?> containing, String name) {
+    public static void processField(InternalKlumBuilder<?> containing, String name, Class<? extends Annotation> phase) {
         Field field = containing.getModelField(name);
         LifecycleParticipantDeclaration.check(field);
         String previousMember = PhaseDriver.getContext().getMember();
@@ -62,13 +62,13 @@ public final class LifecycleParticipants {
             PhaseDriver.setCurrentMember(name);
             for (Annotation annotation : field.getDeclaredAnnotations()) {
                 for (LifecycleCreator marker : annotation.annotationType().getAnnotationsByType(LifecycleCreator.class)) {
-                    if (containing.getInstanceAttribute(name) == null)
+                    if (marker.phase() == phase && containing.getInstanceAttribute(name) == null)
                         create(containing, field, annotation, marker);
                 }
             }
             for (Annotation annotation : field.getDeclaredAnnotations()) {
                 for (LifecycleMutator marker : annotation.annotationType().getAnnotationsByType(LifecycleMutator.class)) {
-                    if (containing.getInstanceAttribute(name) != null)
+                    if (marker.phase() == phase && containing.getInstanceAttribute(name) != null)
                         mutate(containing, field, annotation, marker);
                 }
             }
@@ -85,7 +85,7 @@ public final class LifecycleParticipants {
             KlumBuilder<?> result = handler.create(new FieldContext<>(containing, field, annotation));
             if (result != null) containing.setSingleField(field.getName(), result);
         } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
-            throw failure(field, annotation, marker.handler(), exception);
+            throw failure(field, annotation, marker.handler(), marker.phase(), exception);
         }
     }
 
@@ -98,14 +98,14 @@ public final class LifecycleParticipants {
             LifecycleMutationHandler<A> handler = marker.handler().getConstructor().newInstance();
             handler.mutate(new MutationContext<>(containing, field, annotation, target));
         } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
-            throw failure(field, annotation, marker.handler(), exception);
+            throw failure(field, annotation, marker.handler(), marker.phase(), exception);
         }
     }
 
-    private static KlumModelException failure(Field field, Annotation annotation, Class<?> handler, Throwable exception) {
+    private static KlumModelException failure(Field field, Annotation annotation, Class<?> handler, Class<? extends Annotation> phase, Throwable exception) {
         Throwable cause = exception instanceof InvocationTargetException invocation ? invocation.getCause() : exception;
         return new KlumModelException("Participant " + annotation.annotationType().getName() + " handler "
-                + handler.getName() + " during " + AutoLink.class.getSimpleName() + " on "
+                + handler.getName() + " during " + phase.getSimpleName() + " on "
                 + field.getDeclaringClass().getName() + "." + field.getName(), cause);
     }
 

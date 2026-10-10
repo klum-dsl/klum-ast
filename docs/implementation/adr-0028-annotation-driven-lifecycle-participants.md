@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1 and AutoLink-only LP-2 are implemented under subsequent explicit maintainer delegations; LP-3–LP-8 remain unqualified.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4–LP-8 remain unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -273,3 +273,15 @@ creator conflicts, the Java/Groovy binary probe matrix and full local Groovy 3/4
 Different-phase external composition moves to LP-3 together with the phase visitors; declarations for those
 external phases remain rejected until executable support exists. LP-3–LP-8, optional capabilities, issue state
 and release placement remain unchanged. This record does not authorize additional implementation slices.
+
+## LP-3 execution record
+
+The maintainer subsequently authorized LP-3 from merged LP-2 PR #872 (`e0617b73987aa8ae20e0d78f728ad3a6c659c30a`).
+[LP-3 evidence](issue-867-lp3-evidence.md) records executable direct-field dispatch in all four phases.
+AutoCreate extends its existing direct-property stream before clusters; AutoLink retains its HashMap field slot;
+Default extends its direct-default HashMap slot after owner/containing/type defaults; PostTree, which previously
+had callbacks only, adds existing ClusterModel property enumeration immediately before those callbacks.
+All four retain lifecycle methods before Closure callbacks, and ordinary parent-before-child traversal.
+This refines the previously unqualified PostTree insertion point without adding a second tree action.
+LP-2's composition/ordering contract and public interfaces are unchanged. LP-4–LP-8 remain pending; issue state,
+release placement and optional-capability decisions are unchanged. This record does not authorize another slice.

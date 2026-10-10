@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Added LP-3 direct-field participant dispatch in AutoCreate, AutoLink, Default and PostTree, retaining
+  creator-before-mutator composition, built-in sequencing, cluster fallback and parent-before-child traversal.
+  Creators in different phases may coexist; competing direct creators in one phase are rejected. This remains
+  partial qualification; sealed/route and final release gates are pending
+  ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
+
 - Qualified LP-2 direct-field participant composition during AutoLink: repeatable creator/mutator markers,
   ordered mutations within one repeatable container, unconditional creation before mutation, and compile-time
   rejection of competing same-phase direct creators (including LinkTo). Different annotations retain unspecified

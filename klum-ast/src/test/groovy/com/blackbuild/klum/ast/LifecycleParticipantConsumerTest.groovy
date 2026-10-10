@@ -51,10 +51,10 @@ class LifecycleParticipantConsumerTest extends Specification {
         output.trim() == 'binary-defense=true'
 
         where:
-        signature << ['mismatch', 'raw', 'unresolved', 'creators']
+        signature << ['mismatch', 'raw', 'unresolved', 'creators', 'phase']
     }
 
-    def 'qualifies #form composition in a compiled #author annotation library with separate Schema and consumer'() {
+    def 'qualifies #phase #form composition in a compiled #author annotation library with separate Schema and consumer'() {
         given:
         Path root = temporaryFolder.newFolder().toPath()
         Path sources = Files.createDirectories(root.resolve('sources'))
@@ -79,6 +79,9 @@ class LifecycleParticipantConsumerTest extends Specification {
                     '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
         }
         if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
+        String phasePackage = phase in ['AutoCreate', 'AutoLink'] ? 'com.blackbuild.klum.ast.layer3' : 'com.blackbuild.klum.ast'
+        declaration = declaration.replace('import com.blackbuild.klum.ast.layer3.AutoLink;', "import $phasePackage.$phase;")
+                .replace('phase = AutoLink.class', "phase = ${phase}.class")
         String librarySource = author == 'Java'  ? 'Composition.java' : 'Composition.groovy'
         Files.writeString(sources.resolve(librarySource), declaration)
         if (author == 'Java') compileJava(sources, classes, jars + [domain], [librarySource])
@@ -113,13 +116,16 @@ class LifecycleParticipantConsumerTest extends Specification {
         output.trim() == 'compiled-composition=true'
 
         where:
-        author   | form
-        'Java'   | 'repeated'
-        'Java'   | 'container'
-        'Groovy' | 'repeated'
-        'Groovy' | 'container'
-        'Java'   | 'mixed'
-        'Groovy' | 'mixed'
+        author   | form        | phase
+        'Java'   | 'repeated'  | 'AutoLink'
+        'Java'   | 'container' | 'AutoLink'
+        'Groovy' | 'repeated'  | 'AutoLink'
+        'Groovy' | 'container' | 'AutoLink'
+        'Java'   | 'mixed'     | 'AutoLink'
+        'Groovy' | 'mixed'     | 'AutoLink'
+        'Java'   | 'repeated'  | 'AutoCreate'
+        'Java'   | 'repeated'  | 'Default'
+        'Java'   | 'repeated'  | 'PostTree'
     }
 
     private static Path jar(Path root, Path classes, String name) {
@@ -162,6 +168,16 @@ class LifecycleParticipantConsumerTest extends Specification {
             compileJava(sources, classes, jars, ['Binding.java'])
             Path main = sources.resolve('Main.java')
             Files.writeString(main, Files.readString(main).replace('annotation parameter must resolve exactly', 'Competing lifecycle creators'))
+            compileJava(sources, classes, jars, ['Main.java'])
+        } else if (signature == 'phase') {
+            Path binding = sources.resolve('Binding.java')
+            Files.writeString(binding, Files.readString(binding)
+                    .replace('import com.blackbuild.klum.ast.layer3.AutoLink;', 'import com.blackbuild.klum.ast.Validate;')
+                    .replace('phase = AutoLink.class', 'phase = Validate.class'))
+            compileJava(sources, classes, jars, ['Binding.java'])
+            Path main = sources.resolve('Main.java')
+            Files.writeString(main, Files.readString(main).replace('annotation parameter must resolve exactly',
+                    'support only AutoCreate, AutoLink, Default and PostTree'))
             compileJava(sources, classes, jars, ['Main.java'])
         } else if (signature != 'valid') {
             getClass().getResourceAsStream('/lifecycle-participants/InvalidBindFacts.java').withCloseable {

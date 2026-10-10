@@ -32,7 +32,7 @@ import java.lang.annotation.Target;
 
 /**
  * Opts a domain field annotation into external Builder creation.
- * The LP-1 qualification supports only direct DSL fields in AutoLink; other phases remain unqualified.
+ * Direct DSL fields participate in AutoCreate, AutoLink, Default or PostTree.
  * Only one direct creator may claim a field/phase, including built-in creation mechanisms.
  * Each invocation constructs a fresh public concrete handler with a public no-arg constructor.
  * Names and signatures are provisional until issue #867 qualification completes.
@@ -41,7 +41,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.ANNOTATION_TYPE)
 @Repeatable(LifecycleCreator.List.class)
 public @interface LifecycleCreator {
-    /** The existing lifecycle annotation class; LP-1 supports AutoLink only. */
+    /** The existing AutoCreate, AutoLink, Default or PostTree lifecycle annotation class. */
     Class<? extends Annotation> phase();
 
     /** Handler whose resolved annotation parameter must equal this domain annotation. */

@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. LP-3–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. LP-4–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 

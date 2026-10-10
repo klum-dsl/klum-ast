@@ -24,6 +24,9 @@
 package com.blackbuild.klum.ast.compiler.internal.validation;
 
 import com.blackbuild.klum.ast.FieldType;
+import com.blackbuild.klum.ast.Default;
+import com.blackbuild.klum.ast.PostTree;
+import com.blackbuild.klum.ast.layer3.AutoCreate;
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.ast.runtime.LifecycleCreator;
@@ -51,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
@@ -75,13 +79,18 @@ public final class LifecycleParticipantFieldCheck {
     }
 
     public static void check(FieldNode field, SourceUnit source) {
-        int creators = field.getAnnotations(ClassHelper.make(LinkTo.class)).isEmpty() ? 0 : 1;
+        Map<String, Integer> creators = new HashMap<>();
+        for (Class<?> builtIn : Set.of(AutoCreate.class, LinkTo.class, Default.class)) {
+            if (!field.getAnnotations(ClassHelper.make(builtIn)).isEmpty())
+                creators.put((builtIn == LinkTo.class ? AutoLink.class : builtIn).getName(), 1);
+        }
         for (AnnotationNode use : field.getAnnotations()) {
             ClassNode domain = use.getClassNode();
-            int claims = markers(domain, LifecycleCreator.class).size();
-            creators += claims;
-            if (claims > 0 && creators > 1)
-                error(source, use, "Competing lifecycle creators for AutoLink on " + field.getName());
+            for (AnnotationNode marker : markers(domain, LifecycleCreator.class)) {
+                if (marker.getMember("phase") instanceof ClassExpression phase
+                        && creators.merge(phase.getType().getName(), 1, Integer::sum) > 1)
+                    error(source, use, "Competing lifecycle creators for " + phase.getType().getNameWithoutPackage() + " on " + field.getName());
+            }
             checkRole(field, source, use, domain, LifecycleCreator.class, LifecycleCreationHandler.class);
             checkRole(field, source, use, domain, LifecycleMutator.class, LifecycleMutationHandler.class);
         }
@@ -98,8 +107,9 @@ public final class LifecycleParticipantFieldCheck {
             if (!hasRuntimeRetention(domain))
                 error(source, use, "Lifecycle participant annotation " + domain.getName() + " requires @Retention(RUNTIME)");
             if (!(marker.getMember("phase") instanceof ClassExpression phase)
-                    || !phase.getType().equals(ClassHelper.make(AutoLink.class)))
-                error(source, use, "LP-1 lifecycle participants support only phase = AutoLink");
+                    || !Set.of(AutoCreate.class.getName(), AutoLink.class.getName(), Default.class.getName(), PostTree.class.getName())
+                    .contains(phase.getType().getName()))
+                error(source, use, "Lifecycle participants support only AutoCreate, AutoLink, Default and PostTree");
             if (!(marker.getMember("handler") instanceof ClassExpression expression)) {
                 error(source, use, "Lifecycle participant handler must be a class literal");
                 continue;

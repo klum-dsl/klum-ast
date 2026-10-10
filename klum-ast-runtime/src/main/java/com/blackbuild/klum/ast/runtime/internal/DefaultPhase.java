@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +57,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         OwnerProvidedDefaultsCopier.applyTo(element);
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
-        setFieldsAnnotatedWithDefaultAnnotation(element);
+        processDefaultFields(element);
         executeDefaultLifecycleMethods(element);
     }
 
@@ -156,12 +157,17 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         LifecycleHelper.executeLifecycleMethods(element, Default.class);
     }
 
-    private void setFieldsAnnotatedWithDefaultAnnotation(InternalKlumBuilder<?> element) {
-        ClusterModel.getFieldsAnnotatedWith(element, Default.class)
-                .entrySet()
-                .stream()
-                .filter(this::isUnset)
-                .forEach(entry -> applyDefaultValue(element, entry.getKey()));
+    private void processDefaultFields(InternalKlumBuilder<?> element) {
+        Map<String, Object> fields = ClusterModel.getPropertiesStream(element, Object.class,
+                        field -> field.isAnnotationPresent(Default.class) || LifecycleParticipants.hasParticipant(field))
+                .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);
+        fields.entrySet().forEach(entry -> {
+            Field field = element.getField(entry.getKey());
+            if (isUnset(entry) && field.isAnnotationPresent(Default.class))
+                applyDefaultValue(element, entry.getKey());
+            if (LifecycleParticipants.hasParticipant(field))
+                LifecycleParticipants.processField(element, entry.getKey(), Default.class);
+        });
     }
 
     private void applyDefaultValue(InternalKlumBuilder<?> element, String fieldName) {
