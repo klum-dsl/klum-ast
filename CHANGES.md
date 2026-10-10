@@ -1,5 +1,8 @@
 # 4.1.0 (unreleased)
 
+- Added LP-5 mutating lifecycle participants on Schema types in AutoCreate, AutoLink, Default and PostTree.
+  Type mutation follows parent-field dispatch and precedes the visited Builder's own work, with root-aware
+  traversal context, singular Schema annotation lookup and Java inheritance semantics. Creators remain field-only.
 - Added per-mutator sealed-target FAIL (default) and SKIP policies for direct-field lifecycle participants.
   Both act before handler construction; creators retain ordinary checked assignment. Qualified bounded
   graph, Template, import and serialization routes. HANDLE is deferred without a public API; full feature

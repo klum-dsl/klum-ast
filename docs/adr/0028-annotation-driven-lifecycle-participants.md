@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. LP-5–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. LP-6–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -62,9 +62,9 @@ Support domain annotations on direct DSL-typed fields. Scalars are outside scope
 Collections/maps of DSL values have an independent exploratory slice and a mandatory
 support-or-reject decision before release; core implementation must not depend on that slice.
 
-LP-5 may qualify mutating participants on Schema types if the domain author permits TYPE.
-It is independently deferrable, not a mandatory core or 4.1 gate. No type-level public contract
-before qualification. Creating participants are field-only.
+LP-5 qualifies mutating participants on Schema types if the domain author permits TYPE.
+It is independently deferrable, not a mandatory core or 4.1 gate. The qualified additive context discriminator is `LifecycleMutationContext.isType()` (default false);
+type invocation returns the concrete Schema as declared type and incoming FieldType when available, null otherwise. Creating participants are field-only.
 
 Initial supported phases: AutoCreate, AutoLink, Default and PostTree. Select by the lifecycle
 annotation Class (Groovy: phase = AutoLink; Java: phase = AutoLink.class), not an annotation
@@ -108,7 +108,7 @@ null returns). It does not rerun field participants. Preserve other phases' buil
 and methods-before-Closures behavior, with exact insertion points qualified by tracers.
 Child descent follows the containing visit, so parent-field work precedes child processing.
 
-If LP-5 ships, type mutations execute first within the visited Builder, before fields, clusters, methods
+LP-5 type mutations execute first within the visited Builder, before fields, clusters, methods
 and Closures. They therefore see earlier parent-field work. Follow Java @Inherited semantics:
 subclass annotations of the same type override superclass annotations; unmarked annotations
 and interface annotations do not propagate. Characterize repeatable-container semantics
@@ -127,7 +127,7 @@ Creation-before-mutation is unconditional. Other ordering dimensions are distinc
    Mixing a singular marker and explicit container retains unspecified relative order.
 2. Between different domain annotations on a field: no deterministic order is established.
    Do not infer it from reflection or the within-annotation result.
-3. Type versus field: if LP-5 ships, type mutations precede fields in their own visit;
+3. Type versus field: LP-5 type mutations precede fields in their own visit;
    parent-field dispatch still precedes the child visit. This does not establish order
    between different type annotations.
 
@@ -138,12 +138,12 @@ An unspecified mutation order does not block core release.
 ### D4 — Context
 
 Shared context supplies the actual domain annotation, containing Builder, incoming field name,
-applicable declared DSL type and Klum FieldType, with a field/type dispatch distinction only if LP-5 is qualified.
+applicable declared DSL type and Klum FieldType, with the LP-5 field/type dispatch distinction.
 Mutation context supplies the non-null target Builder; creation context has no target or setter.
 Expose Builders through KlumBuilder<?> so handlers work across unrelated Schema hierarchies.
 
 For field dispatch, metadata/typed annotation lookup come from the original Schema field.
-For optional type dispatch, target is the visited Builder; containing Builder and field name come from
+For type dispatch, target is the visited Builder; containing Builder and field name come from
 traversal and are null at root. Lookup queries the Schema type with inherited semantics,
 not the incoming field declaration. Incoming relationship metadata is absent where traversal
 has none; do not invent an owning-metadata requirement. Exact signatures remain tracer-gated.
@@ -244,13 +244,13 @@ action, public reflective Field/list/plural lookup, expiry guards, blanket annot
 alphabetical field ordering, scalar primary example and AutoLink-only scope.
 
 Probe-dependent contracts: actual mutation ordering, precise phase field slots, Closure
-mapping/helper signature and HANDLE feasibility. Optional deferrals: LP-5, LP-6, HANDLE,
+mapping/helper signature and HANDLE feasibility. Optional deferrals: LP-6, HANDLE,
 LP-7 support; document evidence and omit unqualified public APIs.
 
 Remaining maintainer input follows probes: final names/signatures, optional deferral
 recommendations, Collection/Map support-or-reject, conditional 4.1 placement after core evidence.
 No new validation architecture decision is required.
 
-Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 and AutoLink-only
-LP-2, recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
+Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 through LP-5 (LP-2 was AutoLink-only),
+recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
 issue retargeting or release placement. Existing characterization tests are preserved.

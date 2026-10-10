@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5–LP-8 remain unqualified.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5 type mutation is implemented; LP-6–LP-8 remain unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -142,7 +142,7 @@ serialization. Validate late-created child ownership/session mechanics, not an i
 
 Commit: policy/error behavior with graph/Template/import/session regressions.
 
-### LP-5 — Optional type mutation (D1, D3–D4)
+### LP-5 — Optional type mutation (D1, D3–D4), implemented
 
 Independent and not a core/4.1 gate. Include if straightforward after field dispatch, otherwise
 record complexity and defer without type-level public contracts.
@@ -157,7 +157,16 @@ Do not manufacture order among different inherited domain annotation types; docu
 order where none is established. Within one domain annotation use LP-2’s demonstrated contract.
 Inherited fields retain their original declaration and actual containing subtype.
 
-Commit: type dispatch, placement/inheritance/root tests together.
+Disposition: straightforward existing-visit integration is qualified; no deferral. Type mutation runs inside
+AutoCreate's existing Template scope and first in the other three existing visitors. Additive default
+`LifecycleMutationContext.isType()` preserves existing field implementations. Concrete Schema declared type,
+nullable incoming FieldType and root context are documented in [LP-5 evidence](issue-867-lp5-evidence.md).
+Java/Groovy authored annotation libraries and Java/static/dynamic Groovy consumers characterize repeatable
+container coexistence without plural lookup or fabricated ordering. Creators remain field-only; sealed
+aggregation traversal is unchanged. Names and whole-feature/release qualification remain provisional.
+
+Commit: type dispatch, placement/inheritance/root and artifact-consumer tests together; documentation/evidence
+as a separate final reasoning step. No LP-6/LP-7/LP-8 implementation or release retargeting.
 
 ### LP-6 — Optional Closure evaluation; early reuse probe (D7)
 
@@ -297,3 +306,13 @@ HANDLE is explicitly deferred after typed-read and wrapper-targeted-validation p
 LP-5/LP-6 remain optional, LP-7 support-or-reject remains a mandatory release decision, and LP-8 complete
 errors/validation/JVM/JPMS/final API/docs/release qualification remains pending. #867 stays open; release and
 curation placement are unchanged. This record authorizes no further implementation slice.
+
+## LP-5 execution record
+
+The maintainer subsequently authorized the bounded LP-5 implementation-or-deferral probe from merged LP-4
+PR #875 (`f8ef1d4a2279d3f4f7ba36b93d1f65888a2943ff`). [LP-5 evidence](issue-867-lp5-evidence.md)
+records straightforward type mutation within the four existing visitors, traversal-derived root/child
+context, singular Schema lookup, Java inheritance and repeatable-container characterization. Additive
+default `isType()` preserves field contexts and generated contracts. Creators remain field-only and sealed
+aggregation traversal is unchanged. LP-6, LP-7 and LP-8 remain separate gates; #867 stays open and untargeted.
+This record authorizes no further slice, feature-completion claim or release/curation change.
