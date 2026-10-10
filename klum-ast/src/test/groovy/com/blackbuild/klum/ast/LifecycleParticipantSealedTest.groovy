@@ -69,4 +69,129 @@ class LifecycleParticipantSealedTest extends AbstractDSLSpec {
         where:
         phase << ['AutoCreate', 'AutoLink', 'Default', 'PostTree']
     }
+
+    def 'default FAIL preserves sealed rejection context and cause in #phase'() {
+        given:
+        createSecondaryClass """
+            import com.blackbuild.klum.ast.runtime.*
+            import com.blackbuild.klum.ast.layer3.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @LifecycleMutator(phase = $phase, handler = Configure)
+            @interface Configured {}
+            class Configure implements LifecycleMutationHandler<Configured> {
+                Configure() { throw new IllegalStateException('handler must not be constructed') }
+                void mutate(LifecycleMutationContext<Configured> c) {}
+            }
+            @DSL class Service { String value }
+            @DSL class BaseApplication { @Configured @Field(FieldType.LINK) Service service }
+            @DSL class Application extends BaseApplication {}
+        """
+        def completed = Service.Create.With { value 'completed' }
+
+        when:
+        Application.Create.With { service completed }
+
+        then:
+        KlumException failure = thrown()
+        failure.cause.message.contains("Participant Configured handler Configure during $phase on BaseApplication.service")
+        failure.cause.cause.message.contains('unsealed Builder (onSealed=FAIL)')
+        completed.value == 'completed'
+
+        when:
+        def subsequent = Service.Create.With { value 'subsequent' }
+
+        then:
+        subsequent.value == 'subsequent'
+
+        where:
+        phase << ['AutoCreate', 'AutoLink', 'Default', 'PostTree']
+    }
+
+    def 'SKIP still mutates unsealed polymorphic aliases with fresh handlers across sessions in #phase'() {
+        given:
+        createSecondaryClass """
+            import com.blackbuild.klum.ast.runtime.*
+            import com.blackbuild.klum.ast.layer3.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @LifecycleMutator(phase = $phase, handler = Configure,
+                onSealed = LifecycleMutator.SealedPolicy.SKIP)
+            @interface Configured {}
+            class Configure implements LifecycleMutationHandler<Configured> {
+                boolean used
+                void mutate(LifecycleMutationContext<Configured> c) {
+                    assert !used
+                    used = true
+                    assert c.declaredType == Service
+                    assert KlumBuilderSupport.of(c.targetBuilder).modelType == SpecializedService
+                    def service = Service.Create.narrowBuilder(c.targetBuilder)
+                    service.value(service.value + ':' + c.fieldName)
+                }
+            }
+            @DSL class Service {
+                String value
+                @Field(FieldType.LINK) Service peer
+            }
+            @DSL class SpecializedService extends Service {}
+            @DSL class Application {
+                @Configured Service service
+                @Configured @Field(FieldType.LINK) Service alias
+            }
+        """
+
+        when:
+        def specializedType = SpecializedService
+        def results = (1..2).collect {
+            Application.Create.With {
+                def child = service(specializedType) { value 'active' }
+                child.peer(child)
+                alias(child)
+            }
+        }
+
+        then:
+        results.every { it.service.is(it.alias) && it.service.peer.is(it.service) }
+        results.every { it.service.value.count(':') == 2 && it.service.value.contains(':service') && it.service.value.contains(':alias') }
+        !results[0].service.is(results[1].service)
+
+        where:
+        phase << ['AutoCreate', 'AutoLink', 'Default', 'PostTree']
+    }
+
+    def 'creators use ordinary checked assignment for completed wrappers (#kind)'() {
+        given:
+        createSecondaryClass """
+            import com.blackbuild.klum.ast.runtime.*
+            import com.blackbuild.klum.ast.layer3.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @LifecycleCreator(phase = AutoLink, handler = Supply)
+            @LifecycleMutator(phase = AutoLink, handler = Configure, onSealed = LifecycleMutator.SealedPolicy.SKIP)
+            @interface Supplied {}
+            class Supply implements LifecycleCreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleFieldContext<Supplied> c) {
+                    Application.Create.narrowBuilder(c.containingBuilder).source
+                }
+            }
+            class Configure implements LifecycleMutationHandler<Supplied> {
+                void mutate(LifecycleMutationContext<Supplied> c) { throw new AssertionError('sealed result must skip') }
+            }
+            @DSL class Service { String value }
+            @DSL class Application {
+                @Field(FieldType.LINK) Service source
+                @Supplied @Field(FieldType.$kind) Service service
+            }
+        """
+        def completed = Service.Create.With { value 'completed' }
+
+        when:
+        def result = Application.Create.With { source completed }
+
+        then:
+        result.service.is(completed)
+
+        where:
+        kind << ['LINK', 'OPTIONAL_LINK']
+    }
 }
