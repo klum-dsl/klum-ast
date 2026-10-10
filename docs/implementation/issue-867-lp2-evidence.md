@@ -92,10 +92,11 @@ Git-derived version during nested fixture publication: consumers requested dev.3
 contained dev.335. It is not acceptance evidence; the stable successful run above supersedes it.
 
 The maintainer confirmed the AutoLink-only LP-2 boundary before publication. Draft publication is authorized;
-remote final-head CI/SonarCloud results are recorded in the pull request and handoff, independently of local validation.
+remote final-head CI/SonarCloud results will be recorded in the pull request and handoff, independently of local validation.
 Issue completion and full release qualification remain unclaimed. Tracker impact is Related #867 and no curation change;
 this partial local slice does not settle any remaining feature/release gate. The Hive must reconcile the scope and
-later delivery; this worker does not self-archive.
+later delivery; this worker does not self-archive. Git SSH and gh CLI repository capability were separately
+verified authorized before draft publication; no GitHub App delivery channel is used.
 
 ## Deferred gates
 
