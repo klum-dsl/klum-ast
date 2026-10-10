@@ -49,6 +49,18 @@ public @interface LifecycleMutator {
     // Class literals cannot express the relationship to the annotated annotation type; checked by compiler/runtime.
     @SuppressWarnings("rawtypes")
     Class<? extends LifecycleMutationHandler> handler();
+
+    /** Determines whether this mutation rejects or omits invocation on a sealed target. */
+    SealedPolicy onSealed() default SealedPolicy.FAIL;
+
+    /** Policy for completed LINK targets; no policy grants mutation privileges. */
+    enum SealedPolicy {
+        /** Reject invocation before constructing the handler. */
+        FAIL,
+        /** Omit invocation before constructing the handler. */
+        SKIP
+    }
+
     /** Repeatable declarations on one domain annotation, in container value order. */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)

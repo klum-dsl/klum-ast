@@ -27,7 +27,7 @@ import java.lang.annotation.Annotation;
 
 /**
  * A non-null Builder target to configure through its generated public contract.
- * LP-1 rejects sealed targets; the later FAIL/SKIP qualification is still pending.
+ * Sealed targets fail by default or skip invocation according to {@link LifecycleMutator#onSealed()}.
  * @param <A> the exact domain annotation type
  */
 public interface LifecycleMutationContext<A extends Annotation> extends LifecycleFieldContext<A> {
