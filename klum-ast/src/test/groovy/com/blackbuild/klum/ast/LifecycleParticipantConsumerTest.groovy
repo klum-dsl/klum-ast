@@ -30,6 +30,7 @@ import spock.lang.Specification
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import javax.tools.ToolProvider
 
 @Issue('867')
 class LifecycleParticipantConsumerTest extends Specification {
@@ -200,6 +201,79 @@ class LifecycleParticipantConsumerTest extends Specification {
         'Java'   | 'phase'     | 'support only AutoCreate, AutoLink, Default and PostTree'
         'Java'   | 'handler'   | 'annotation parameter must resolve exactly'
         'Java'   | 'creator'   | 'Creating lifecycle participants require direct Schema field placement'
+    }
+
+    def 'qualifies existing public container contracts and rejects binary-added #role participation on #fieldName'() {
+        given:
+        Path root = temporaryFolder.newFolder().toPath()
+        Path sources = Files.createDirectories(root.resolve('sources'))
+        Path classes = Files.createDirectories(root.resolve('classes'))
+        List<Path> jars = runtimeAndCompilerJars()
+        ['ContainerDomain.groovy', 'ContainerRules.java', 'ContainerSchema.groovy',
+         'ContainerWriters.groovy', 'ContainerMain.java', 'ContainerTypedRead.java'].each { file ->
+            getClass().getResourceAsStream('/lifecycle-participants/' + file).withCloseable {
+                Files.copy(it, sources.resolve(file))
+            }
+        }
+        compileGroovy(sources, classes, jars, ['ContainerDomain.groovy'])
+        Path domain = jar(root, classes, 'domain.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        compileJava(sources, classes, jars + [domain], ['ContainerRules.java'])
+        Path library = jar(root, classes, 'annotations.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        if (role != 'none') {
+            Path schemaSource = sources.resolve('ContainerSchema.groovy')
+            String declaration = Files.readString(schemaSource).replace('@Managed ', '')
+            String member = fieldName == 'listValues' ? 'listValue' : fieldName == 'setValues' ? 'setValue' : 'mapValue'
+            declaration = declaration.replace("@Field(members = '$member'", "@Managed @Field(members = '$member'")
+            Files.writeString(schemaSource, declaration)
+        }
+        compileGroovy(sources, classes, jars + [domain, library], ['ContainerSchema.groovy', 'ContainerWriters.groovy'])
+        compileJava(sources, classes, jars + [domain, library], ['ContainerMain.java'])
+        if (role == 'none') {
+            def diagnostics = new ByteArrayOutputStream()
+            int result = ToolProvider.systemJavaCompiler.run(null, diagnostics, diagnostics,
+                    '--class-path', pathString(jars + [domain, library, classes]), '-d', classes.toString(),
+                    sources.resolve('ContainerTypedRead.java').toString())
+            assert result != 0
+            String errors = diagnostics.toString('UTF-8')
+            assert errors.count('incompatible types:') == 3
+            assert errors.contains('List<Builder>') && errors.contains('Set<Builder>') && errors.contains('Map<String,Builder>')
+        }
+
+        Path schema = jar(root, classes, 'schema-consumer.jar')
+        if (role != 'none') {
+            Path declaration = sources.resolve('ContainerRules.java')
+            String marker = role == 'Creator' ?
+                    '@LifecycleCreator(phase = AutoLink.class, handler = Create.class)' :
+                    '@LifecycleMutator(phase = AutoLink.class, handler = Mutate.class)'
+            Files.writeString(declaration, Files.readString(declaration).replace('// PARTICIPANT_MARKER', marker))
+            classes.toFile().deleteDir()
+            Files.createDirectories(classes)
+            compileJava(sources, classes, jars + [domain], ['ContainerRules.java'])
+            library = jar(root, classes, 'replacement.jar')
+        }
+        classes.toFile().deleteDir()
+        sources.toFile().deleteDir()
+
+        when:
+        String output = execute([javaTool('java'), '--class-path', pathString(runtimeJars(jars) + [domain, library, schema]),
+                'participant.container.ContainerMain'] + (role == 'none' ? [] : [role, fieldName]))
+
+        then:
+        output.trim() == (role == 'none' ? 'container-contracts=true' : 'binary-container-defense=true')
+
+        where:
+        role      | fieldName
+        'none'    | 'all'
+        'Creator' | 'listValues'
+        'Mutator' | 'listValues'
+        'Creator' | 'setValues'
+        'Mutator' | 'setValues'
+        'Creator' | 'mapValues'
+        'Mutator' | 'mapValues'
     }
 
     private static Path jar(Path root, Path classes, String name) {
