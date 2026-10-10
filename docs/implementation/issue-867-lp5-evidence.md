@@ -102,7 +102,8 @@ inherited-container evidence. The additive follow-up separates creation/assertio
 local-override containers in both annotation-author lanes, and clarifies sealed type dispatch in Javadoc.
 The optional internal validator rename is left unchanged to keep existing field-check naming stable; its
 class description now covers fields and types. Reviewed commits remain intact. No ignored/pending test
-or new suppression is introduced. The three-commit implementation/documentation/review sequence was inspected
+or broad suppression is introduced. The localized unchecked cast suppression in type mutation documents
+that runtime declaration validation precedes the generic invocation. The three-commit implementation/documentation/review sequence was inspected
 against the accepted slice; this final evidence commit is documentation-only.
 
 Git SSH and gh CLI repository delivery capabilities were independently verified authorized before draft
