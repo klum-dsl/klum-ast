@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. LP-2–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. LP-3–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -244,6 +244,6 @@ Remaining maintainer input follows probes: final names/signatures, optional defe
 recommendations, Collection/Map support-or-reject, conditional 4.1 placement after core evidence.
 No new validation architecture decision is required.
 
-Original authorization: planning only. Subsequent explicit maintainer delegation authorized LP-1 only,
-recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
+Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 and AutoLink-only
+LP-2, recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
 issue retargeting or release placement. Existing characterization tests are preserved.

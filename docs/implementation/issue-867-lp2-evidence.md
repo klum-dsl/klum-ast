@@ -16,10 +16,10 @@ reject a compiled annotation library changed to introduce competing creators aft
 Mutators remain composable, including with built-in LinkTo; built-in AutoCreate and external AutoLink creators
 coexist across their different phases. No blanket built-in/meta-lifecycle exclusion is introduced.
 
-**Pending scope clarification:** LP-1 accepts only AutoLink, whereas the LP-2 assignment asks for different-phase
-composition while excluding LP-3 visitor integration. The implementation currently preserves the public AutoLink-only
-restriction. External AutoCreate/Default/PostTree declarations still fail rather than compile without execution.
-Cross-phase external composition is not claimed complete; the Hive/maintainer must settle its LP-2/LP-3 boundary.
+**Confirmed slice boundary (2026-10-10):** the maintainer explicitly confirmed that LP-2 retains
+AutoLink-only external participation. Different-phase external composition belongs to LP-3 together with its
+visitor integration. External AutoCreate/Default/PostTree declarations still fail rather than compile without
+execution. This settles the LP-2 acceptance boundary without claiming all-phase qualification.
 
 ## Exact ordering conclusion
 
@@ -83,7 +83,7 @@ its applicable verification is diff/relative-link checks rather than another Gro
 | Focused participant, binary consumer, AutoLink and traversal coverage | Passed; included in final full suites |
 | Edited relative Markdown links and git diff --check | Passed |
 | Standards review and additive re-review | No documented violations; optional duplicated conversion addressed |
-| Specification review and additive re-review | No implementation errors/scope creep; one unresolved phase-scope acceptance criterion |
+| Specification review and additive re-review | No implementation errors/scope creep; phase-scope criterion settled by explicit maintainer confirmation |
 | Commit-history review | Core behavior, evidence/docs, additive review cleanup; reviewed commits preserved |
 
 No new suppression or ignored test. Both reviewers inspected base `e1bf38e0` through `a5e42aa3` and the additive
@@ -91,8 +91,9 @@ No new suppression or ignored test. Both reviewers inspected base `e1bf38e0` thr
 Git-derived version during nested fixture publication: consumers requested dev.334 while the fixture repository
 contained dev.335. It is not acceptance evidence; the stable successful run above supersedes it.
 
-Publication is held for the explicit phase-scope clarification. No pull request, remote final-head CI/SonarCloud
-result, issue completion or release qualification is claimed. Tracker impact is Related #867 and no curation change;
+The maintainer confirmed the AutoLink-only LP-2 boundary before publication. Draft publication is authorized;
+remote final-head CI/SonarCloud results are recorded in the pull request and handoff, independently of local validation.
+Issue completion and full release qualification remain unclaimed. Tracker impact is Related #867 and no curation change;
 this partial local slice does not settle any remaining feature/release gate. The Hive must reconcile the scope and
 later delivery; this worker does not self-archive.
 
