@@ -72,12 +72,28 @@ Existing cluster/traversal/precedence behavior is guarded by regressions through
 
 ## Qualification and delivery
 
-Focused Groovy 3 phase, composition and existing AutoCreate/AutoLink/Default/owner-default checks pass.
-Artifact matrix, complete Groovy 3/4/5 checks, Standards/Specification reviews, final-head CI and SonarCloud
-are recorded here or in the draft PR after qualification; no pending check is claimed successful.
+Stable `./gradlew check --no-parallel` passed at executable head `42089c56` in 9m 41s, including
+license checks, test-lane isolation, artifact consumers and all repository modules. Git/source state stayed
+unchanged throughout this run. The earlier interrupted full check is not acceptance evidence.
+
+| Check | Result |
+| --- | --- |
+| Compiler Groovy 3 / 4 / 5 | 1,689 tests each; zero failures/errors, 15 unchanged skips each |
+| Runtime Groovy 3 / 4 / 5 | 73 tests each; zero failures/errors, one unchanged skip each |
+| Jackson Groovy 3 / 4 / 5 | 75 tests each; zero failures/errors/skips |
+| Bean validation Groovy 3 / 4 / 5 | 10 tests each; zero failures/errors/skips |
+| Gradle plugin | 151 tests; zero failures/errors/skips |
+| Published test support baseline / G4 / G5 | 7 / 6 / 6 tests; zero failures/errors/skips |
+| Standards review and additive re-review | Zero remaining findings |
+| Specification review and additive re-review | Both original findings reproduced and addressed; zero remaining findings |
+| Commit-history, relative links and diff checks | Passed; focused reasoning steps and reviewed history preserved |
+
+No ignored/pending test or suppression was added. Source and doc names remain provisional. This evidence-only
+follow-up changes no executable inputs; its applicable local verification is documentation/diff checking.
+Exact final-head remote CI and SonarCloud results are recorded in the draft PR and final handoff after publication.
 
 Tracker impact: Related #867, no closing keyword and no issue-state/label/milestone or curation update.
-Draft publication is explicitly requested. Hive owns delivery/release reconciliation and archival decisions.
+Draft publication is explicitly requested. Git SSH and gh CLI repository capabilities were independently verified authorized; no GitHub App delivery channel is used. Hive owns delivery/release reconciliation and archival decisions.
 
 ## Remaining gates
 
