@@ -47,14 +47,14 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## External field participants (LP-1)
 
-Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers the LP-1 tracer and LP-2 composition qualification: domain annotations on direct DSL fields during `AutoLink`. Names and signatures remain provisional.
+Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers the LP-1 tracer, LP-2 composition and LP-3 field dispatch: domain annotations on direct DSL fields during `AutoCreate`, `AutoLink`, `Default` and `PostTree`. Names and signatures remain provisional.
 The whole feature and its conditional 4.1 placement still require the remaining ADR 0028 gates.
 
 A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
 `@LifecycleMutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
 live in `com.blackbuild.klum.ast.runtime`; a domain annotation library depends on runtime.
-Use `@Retention(RUNTIME)` and field placement. LP-1 rejects scalars, containers, static fields, type/method
-placement, other phases, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
+Use `@Retention(RUNTIME)` and field placement. Unsupported scalars, containers, static fields, type/method
+placement, other phase markers, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
 This is a qualification boundary, not a final container or Builder-only-field decision.
 
 ### Reusing a typed consumer contract
@@ -139,7 +139,7 @@ It runs only for an unset field. A non-null result goes through ordinary checked
 Construction-session and FieldType rules still apply. It cannot return a completed Model.
 `LifecycleMutationHandler<A>.mutate(LifecycleMutationContext<A>)` returns `void` and runs only with a
 non-null target. Creation always precedes mutation within that field visit; a null result leaves the field
-unset and skips mutation. Other mutation ordering remains unqualified; handlers must not depend on it.
+unset and skips mutation. Repeated mutations follow the qualified composition contract below.
 
 (See: `LifecycleParticipantTest#'creates missing relationships before mutation and leaves null results unset (#mode)'`.)
 
@@ -226,9 +226,72 @@ repeatable container's ordered array, without alphabetical sorting or priorities
 Mixing a singular marker with an explicit container on the same domain annotation has unspecified relative
 order. Order between different domain annotations on one field also remains unspecified; their handlers
 must be correct independently of that order. Neither case weakens creator-before-mutator. Optional type
-mutation and its placement order remain a later gate. Other external phases remain unqualified until LP-3.
+mutation and its placement order remain a later gate. LP-3 applies this same field composition contract in all four supported phases.
 
 See [LP-2 evidence](../implementation/issue-867-lp2-evidence.md) for the precise probe matrix and remaining gates.
+
+### Field participants in four phases (LP-3)
+
+A domain annotation may choose `AutoCreate`, `AutoLink`, `Default` or `PostTree` independently for each
+creator or mutator declaration. Only handlers for the current phase execute. One annotation may compose
+creators in different phases; each runs only if the field is still null in its phase. Competing direct
+creators in the same phase fail compilation, including external creation versus `@AutoCreate`, `@LinkTo`
+or direct `@Default`. Built-in creation may coexist with external mutation at the same slot.
+
+| Phase | Field slot inside the containing Builder visit |
+| --- | --- |
+| AutoCreate | Direct built-in/external creation, then field mutations; all direct fields finish before cluster AutoCreate, then lifecycle methods and Closures |
+| AutoLink | Existing LinkTo field enumeration: built-in/external creation, then field mutations, then lifecycle methods and Closures |
+| Default | Owner-provided defaults, containing-field defaults, type defaults, then direct built-in/external creation and field mutations, then lifecycle methods and Closures |
+| PostTree | Existing property enumeration supplies a field step immediately before lifecycle methods and Closures |
+
+Field enumeration keeps the existing phase mechanics; it introduces no sorting or cross-field order guarantee.
+Cluster AutoCreate sees the resulting direct-field values. It can fill remaining nulls (including a creator's
+null result), but does not rerun direct-field creators or mutators. Thus a cluster-created target does not receive
+the earlier direct-field mutation in that AutoCreate visit.
+
+(See: `LifecycleParticipantPhaseTest#'creates then mutates direct fields before callbacks in #phase'`.)
+
+```groovy
+@Retention(RUNTIME)
+@Target(FIELD)
+@LifecycleCreator(phase = AutoCreate, handler = Supply)
+@LifecycleMutator(phase = AutoCreate, handler = ZFirst)
+@LifecycleMutator(phase = AutoCreate, handler = ASecond)
+@interface Configured {}
+
+class Supply implements LifecycleCreationHandler<Configured> {
+    KlumBuilder<?> create(LifecycleFieldContext<Configured> context) {
+        Service.Create.AsBuilder().With([value: 'created'])
+    }
+}
+class ZFirst implements LifecycleMutationHandler<Configured> {
+    void mutate(LifecycleMutationContext<Configured> context) {
+        def service = Service.Create.narrowBuilder(context.targetBuilder)
+        service.value(service.value + ':first')
+    }
+}
+class ASecond implements LifecycleMutationHandler<Configured> {
+    void mutate(LifecycleMutationContext<Configured> context) {
+        def service = Service.Create.narrowBuilder(context.targetBuilder)
+        service.value(service.value + ':second')
+    }
+}
+@DSL class Service { String value }
+@DSL class Application { @Configured Service service }
+
+assert Application.Create.One().service.value == 'created:first:second'
+```
+
+Parent-field work completes before traversal reads and visits children in that same phase. An AutoCreate
+mutator can add a grandchild to an existing child; an AutoLink creator can supply the annotated child itself.
+Those children receive the current phase's field work, methods, then Closures through ordinary traversal.
+Earlier phases do not rerun for children created later. No new traversal, ownership or path reconstruction is used.
+
+[LP-3 evidence](../implementation/issue-867-lp3-evidence.md) records the exact slots and regressions.
+Sealed FAIL/SKIP and Template/import qualification remain LP-4; optional type/Closure/container capabilities
+and final errors, validation, JVM/JPMS and release qualification remain later gates. This is partial feature
+qualification and leaves #867 and its release placement unchanged.
 
 ## Phase Details
 
