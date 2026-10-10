@@ -113,14 +113,18 @@ public final class LifecycleParticipantFieldCheck {
         Class<?> container = markerType == LifecycleCreator.class ? LifecycleCreator.List.class : LifecycleMutator.List.class;
         for (AnnotationNode annotation : domain.getAnnotations(ClassHelper.make(container))) {
             Expression value = annotation.getMember("value");
-            List<Expression> entries = value instanceof ListExpression list ? list.getExpressions()
-                    : value instanceof ArrayExpression array ? array.getExpressions() : value == null ? List.of() : List.of(value);
-            for (Expression entry : entries) {
+            for (Expression entry : annotationValues(value)) {
                 if (entry instanceof AnnotationConstantExpression constant && constant.getValue() instanceof AnnotationNode nested)
                     result.add(nested);
             }
         }
         return result;
+    }
+
+    private static List<Expression> annotationValues(Expression value) {
+        if (value instanceof ListExpression list) return list.getExpressions();
+        if (value instanceof ArrayExpression array) return array.getExpressions();
+        return value == null ? List.of() : List.of(value);
     }
 
     private static void checkHandler(SourceUnit source, AnnotationNode use, ClassNode domain,

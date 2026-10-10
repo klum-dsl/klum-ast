@@ -69,7 +69,7 @@ repeatability is on the meta-annotations, not a plural domain-annotation context
   requires a KlumSchemaException before handler invocation; existing generic-handler replacement controls remain.
 - Existing AutoLink and FieldPhaseTraversalCharacterizationTest regressions remain part of qualification.
 
-Final stable `./gradlew check --no-parallel` passed in 9m 27s at code head
+Initial stable `./gradlew check --no-parallel` passed in 9m 27s at code head
 `9239d4a5a137877672a7a2b2e237ba8a8d6933ee`, including license checks, test-lane isolation and artifact consumers.
 No code or Git state changed during this run. The subsequent evidence-only commit changes no executable inputs;
 its applicable verification is diff/relative-link checks rather than another Groovy run.
@@ -104,3 +104,14 @@ LP-3 four-phase visitor integration and cross-phase external dispatch; LP-4 FAIL
 qualification; optional type mutation (LP-5), Closure helpers (LP-6), HANDLE and containers (LP-7); LP-8 complete
 validation/errors/JPMS/final naming/release reconciliation. Container support-or-reject remains a mandatory release
 decision. No ScHelm policy, ownership/session/materialization redesign or generic extension framework.
+
+## Remote review follow-up
+
+Published head `b40948e9a6a70f861242dc079c24da6d9c65a1fb` passed
+[CI run 38030309839](https://github.com/klum-dsl/klum-ast/actions/runs/38030309839), JUnit Test Report and both
+SonarCloud checks. Its [SonarCloud analysis](https://sonarcloud.io/dashboard?id=klum-dsl_klum-ast&pullRequest=872)
+matched that SHA, with quality gate OK and zero bugs/vulnerabilities. Three maintainability findings identified
+one complexity excess (java:S3776, 17 versus 15) and two nested ternaries (java:S3358) in compiler marker unpacking.
+An additive follow-up extracts List/Array/singular annotation-value normalization into one private helper.
+The branches and public contract are unchanged, and no suppression is added. Reviewed commits remain intact.
+Follow-up local qualification and exact-head remote results are recorded in PR #872 and the final handoff.
