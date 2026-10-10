@@ -47,15 +47,20 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## External field participants (LP-1)
 
-Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers the LP-1–LP-4 field participation and LP-5 type mutation: domain annotations on direct DSL fields during `AutoCreate`, `AutoLink`, `Default` and `PostTree`. Names and signatures remain provisional.
-The whole feature and its conditional 4.1 placement still require the remaining ADR 0028 gates.
+Domain annotations select external creators and mutators on direct DSL relationship fields during `AutoCreate`,
+`AutoLink`, `Default` and `PostTree`. They let Schema developers reuse domain behavior through public Builder contracts.
+[Final acceptance and API inventory](../implementation/issue-867-lp8-evidence.md) records the qualification for
+[#867](https://github.com/klum-dsl/klum-ast/issues/867); the LP labels below link the executable examples to that record.
 
 A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
 `@LifecycleMutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
 live in `com.blackbuild.klum.ast.runtime`; a domain annotation library depends on runtime.
 Use `@Retention(RUNTIME)` and field placement; mutators also support Schema TYPE placement as described below.
 Field participants reject scalars, containers, static fields, method placement, other phase markers, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
-This is a qualification boundary, not a final container or Builder-only-field decision.
+Collection/Map field participants are rejected for this release; their element type does not make the field eligible.
+Use a containing lifecycle callback, a direct DSL wrapper, or child type mutation where its semantics fit. Ordinary
+composition traversal can still reach type annotations on container children; that does not dispatch the container field
+annotation or supply index/key context. Future container support belongs to [#879](https://github.com/klum-dsl/klum-ast/issues/879).
 
 ### Reusing a typed consumer contract
 
@@ -64,14 +69,16 @@ that exposes its Environment and Facts relationships. This example uses common c
 `ApplicationBase.environment` and `DomainBase.facts`, and their generated public Builder interfaces.
 Factory-token narrowing works for their concrete subtypes without dynamic property lookup, reflection,
 Owner backlinks, or per-Application binding handlers. It does not provide a typed bridge between unrelated
-Schemas; consumers without a common contract need separate design/LP-6 evidence.
+Schemas. Heterogeneous consumers can use ordinary Groovy dynamic dispatch with `InvokerHelper.getProperty` and
+`InvokerHelper.invokeMethod`, under their own domain convention. KlumAST supplies neither generic Builder property
+access nor provider-selection policy. Neither approach requires Owner backreferences or Domain binding callbacks.
 
 This tracer reads an Environment in active construction. A completed Model supplied through `LINK` has a
 different read path: direct generated relationship getters on its Builder wrapper can return `null` from
 empty wrapper storage. Existing dynamic Groovy property reads, including `InvokerHelper.getProperty`, forward to
 the completed Model and return completed values. An external consumer successfully selects and links an
-existing Fact this way, using its own dynamic convention. LP-1 has no public typed completed-value unwrap
-operation; a generated typed read contract for this case remains unqualified. See the
+existing Fact this way, using its own dynamic convention. There is no public typed completed-value unwrap
+operation in this participant contract. See the
 [external qualification evidence](https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/issue-867-lp1-evidence.md#external-schelm-qualification-completed-link-reads).
 
 The Java extension contract is:
@@ -171,7 +178,8 @@ assert application.absent == null
 `getAnnotation(Class<B>): Optional<B>`, `getContainingBuilder(): KlumBuilder<?>`, `getFieldName()`,
 `getDeclaredType(): Class<?>` and effective `getFieldType(): FieldType` from the original Schema declaration.
 `LifecycleMutationContext<A>` additionally exposes `getTargetBuilder(): KlumBuilder<?>` and default `isType(): boolean`
-(false for fields). Type invocation changes lookup and root context as described under LP-5 below.
+(false for fields). For fields, the target is the relationship Builder; declared type, field name, FieldType and lookup
+describe the original Schema field. Type invocation changes lookup and root context as described under LP-5 below.
 There is no setter, reflective Field, annotation list, path API, or expiry operation. Contexts are for the
 invocation only; retaining them grants no new Builder rights.
 
@@ -179,14 +187,19 @@ Each invocation constructs a fresh public concrete handler with a public no-arg 
 parameter must resolve exactly to the domain annotation, including generic inheritance. Raw, wildcard,
 unresolved and mismatched parameters fail Schema compilation; runtime independently defends precompiled
 inputs before invocation. All four phases and sealed FAIL/SKIP are qualified below, together with
-bounded Template/import/graph coverage. Type mutation is qualified under LP-5 below. Full JVM/JPMS coverage,
-validation guidance and optional Closure and container decisions remain later gates. HANDLE is deferred without a public API. See the
+bounded Template/import/graph coverage. Type mutation is qualified under LP-5 below. Java and dynamic/static Groovy
+3/4/5 consumers are covered; Groovy 3 uses the classpath, and Groovy 4/5 also support named modules. A separate
+handler module must export its public handler package to runtime for no-arg construction; Schema packages retain the
+ordinary [qualified opens](Migration.md#named-modules-and-groovy). No extra JVM access flags are needed.
+For ordinary cross-module Groovy annotation-Closure construction, the existing named fixture uses an exported Schema
+package, accessible to Groovy as well as runtime; keep that access when separating annotation libraries.
+HANDLE and the annotation-Closure helper remain deferred without APIs. See the
 [LP-1 evidence](../implementation/issue-867-lp1-evidence.md) and
 [ADR 0028 plan](../implementation/adr-0028-annotation-driven-lifecycle-participants.md).
 
 ### Participant composition (LP-2)
 
-A domain annotation can combine creation with several mutations. During the field's `AutoLink` visit,
+A domain annotation can combine creation with several mutations. During the field's selected phase visit,
 creation always precedes every mutation, including mutations from other annotations. Existing Builders
 are preserved; a null creator result leaves the field unset and skips its mutations. At most one direct
 creator may claim the same field and phase. Two external creators, repeated creators in one domain
@@ -226,10 +239,11 @@ repeatable container's ordered array, without alphabetical sorting or priorities
 
 Mixing a singular marker with an explicit container on the same domain annotation has unspecified relative
 order. Order between different domain annotations on one field also remains unspecified; their handlers
-must be correct independently of that order. Neither case weakens creator-before-mutator. Optional type
-mutation and its placement order remain a later gate. LP-3 applies this same field composition contract in all four supported phases.
+must be correct independently of that order. Avoid mixing singular markers and explicit containers when order matters.
+Neither case weakens creator-before-mutator. The same composition contract applies in all four supported phases.
+Type mutation precedes the visited Builder’s own fields, while parent-field work precedes child type mutation.
 
-See [LP-2 evidence](../implementation/issue-867-lp2-evidence.md) for the precise probe matrix and remaining gates.
+See [LP-2 evidence](../implementation/issue-867-lp2-evidence.md) for the precise ordering probe matrix.
 
 ### Field participants in four phases (LP-3)
 
@@ -287,12 +301,12 @@ assert Application.Create.One().service.value == 'created:first:second'
 Parent-field work completes before traversal reads and visits children in that same phase. An AutoCreate
 mutator can add a grandchild to an existing child; an AutoLink creator can supply the annotated child itself.
 Those children receive the current phase's field work, methods, then Closures through ordinary traversal.
-Earlier phases do not rerun for children created later. No new traversal, ownership or path reconstruction is used.
+An AutoLink-created child receives AutoLink processing, not AutoCreate. Children created in Default or PostTree
+have not run earlier callbacks, defaults or automatic creation; handlers must initialize what they require. An Owner
+field can still be null on a late-created child. Earlier phases never replay; future catch-up policy belongs to
+[#874](https://github.com/klum-dsl/klum-ast/issues/874).
 
 [LP-3 evidence](../implementation/issue-867-lp3-evidence.md) records the exact slots and regressions.
-LP-4 qualifies sealed FAIL/SKIP and existing construction routes below; optional Closure/container capabilities
-and final errors, validation, JVM/JPMS and release qualification remain later gates. This is partial feature
-qualification and leaves #867 and its release placement unchanged.
 
 ### Sealed participant targets (LP-4)
 
@@ -375,7 +389,9 @@ assert Service.Create.One().region == 'eu'
 For type invocation, the target is the visited Builder and `getDeclaredType()` is its concrete Schema type.
 Containing Builder and incoming field name come directly from traversal and are both null at root.
 `getFieldType()` reads the incoming original Schema field when traversal has one and returns null otherwise.
-There is no owning-relationship lookup or requirement. Singular `getAnnotation(Class)` queries the Schema type,
+Incoming traversal is not authoritative ownership. For owning Schema declarations, use
+[Structure metadata](Completed-Object-Support.md#owning-schema-declarations) from #856, observing its active-session,
+after-OWNER lifetime and absence semantics; an absent descriptor does not identify a root. Singular `getAnnotation(Class)` queries the Schema type,
 with Java inheritance semantics, rather than the incoming field. Field invocation retains its original declaration
 lookup and actual containing subtype receiver. Context lifetime remains invocation-only.
 
@@ -394,8 +410,75 @@ of that order; no priorities or sorting are introduced.
 Sealed aggregation targets retain the current traversal skip and receive no type invocation, regardless
 of their annotation's sealed policy. Fresh handlers, active sessions, checked assignment, ownership,
 Template value-only definitions, recipient lifecycle and materialization retain their existing boundaries.
-See [LP-5 evidence](../implementation/issue-867-lp5-evidence.md). LP-6, LP-7 and LP-8 remain separate gates;
-this slice does not qualify the whole feature or assign #867 to a release.
+See [LP-5 evidence](../implementation/issue-867-lp5-evidence.md) for the inheritance matrix.
+
+### Annotation Closure members
+
+A handler can evaluate an ordinary Groovy annotation Closure under its own contract. For a literal mapping, the existing
+pattern is sufficient:
+
+(See: `LifecycleParticipantClosureProbeTest#'ordinary annotation map configures a relationship without a Klum Closure API'`.)
+
+```groovy
+@DSL class Application {
+    Map<String, String> catalog
+    @FactBinding({ [messaging: 'facts'] }) Domain domain
+}
+// The consumer's FactBinding handler constructs the Closure and calls it to obtain the mapping.
+```
+
+No KlumAST Closure helper is supplied. Generic `Class<? extends Closure<...>>` bounds do not validate arbitrary inline
+results or infer a runtime-selected delegate. Explicit typed Schema arguments and dynamic delegation are distinct
+consumer choices; enclosing-class IDE inference is not static compiler proof. See [LP-6 evidence](../implementation/issue-867-lp6-evidence.md)
+and deferred [#878](https://github.com/klum-dsl/klum-ast/issues/878) for those limits. Closure evaluation does not repair
+completed-LINK typed reads or wrapper-targeted validation transfer, and `DELEGATE_ONLY` is not a sandbox.
+
+### Participant validation
+
+Report domain findings with the existing `KlumSchemaSupport` / `KlumValidationReporter` capability. Use an explicit target
+for the nested Domain: the current-object reporter uses the framework's current instance/member context, which is not a
+promise to select the participant's target. Explicit targets have no default member; `issueAt`/`errorAt` supplies one.
+
+(See: `LifecycleParticipantValidationDocumentaryTest#'reports missing Facts on the explicit Domain and transfers findings to the completed Model'`.)
+
+```groovy
+@CompileStatic
+class CheckFactsHandler implements LifecycleMutationHandler<CheckFacts> {
+    void mutate(LifecycleMutationContext<CheckFacts> context) {
+        def domain = Domain.Create.narrowBuilder(context.targetBuilder)
+        if (!domain.facts)
+            KlumSchemaSupport.klumValidationForObject(domain)
+                .issueAt('facts', 'facts are required', Validate.Level.WARNING)
+    }
+}
+@Retention(RUNTIME) @Target(FIELD)
+@LifecycleMutator(phase = AutoLink, handler = CheckFactsHandler)
+@interface CheckFacts {}
+@DSL class Facts {}
+@DSL class Domain { Facts facts }
+@DSL class Application { @CheckFacts Domain domain }
+
+def application = Application.Create.With { domain {} }
+def issue = KlumObjectSupport.of(application.domain).validation.result.issues.first()
+assert issue.member == 'facts'
+assert issue.level == Validate.Level.WARNING
+```
+
+Normal materialization transfers the Domain Builder's findings to that completed Domain. Existing suppression applies to
+later findings on the selected target; `klum.validation.failOnLevel` controls Verify (ERROR by default). At WARNING,
+the example fails in Verify with `KlumValidationException`, rather than a participant execution error. Use `errorAt` for
+an unconditional ERROR finding. See [Validation](Validation.md#custom-issues) for reporting, suppression and thresholds.
+This does not extend validation transfer to sealed wrappers of already completed LINK targets.
+
+### Participant diagnostics
+
+Configuration defects fail Schema compilation or binary declaration checks (`KlumSchemaException`): unsupported
+placement/phases, invalid handler generics/constructors and competing creators identify the relevant declaration and
+handler where applicable. Participant construction, invocation and checked-assignment failures retain the original
+cause and add annotation, handler, phase and original Schema field or visited type context (`KlumModelException`).
+Domain validation findings use the reporter, retain their target/member/severity through materialization and are
+assessed in Verify. Throwing from a handler aborts execution; it does not collect a domain validation finding.
+[Final acceptance](../implementation/issue-867-lp8-evidence.md) links the source, binary and exception regressions.
 
 ## Phase Details
 

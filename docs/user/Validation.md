@@ -342,6 +342,9 @@ called by helpers reached from a lifecycle callback, but it is not a general out
 
 (See: `KlumValidationReporterTest#'reports a current validation-method issue through the static Groovy property'`.)
 
+External lifecycle participants should use an explicit Domain Builder target for nested findings; see the
+[participant example](Model-Phases.md#participant-validation) and its materialization/Verify contract.
+
 ## On Inner Classes (Validation Classes)
 
 `@Validate` can also be placed on a public, non-static inner class, making it a **validation class**. A concrete

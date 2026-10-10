@@ -206,6 +206,11 @@ read-only projected queries, while existing lifecycle, ownership, and mutation g
 The predicates inspect only framework-owned Model identity; protected discriminator fields stay protected and need not be
 made configurable or public.
 
+External [lifecycle participants](Model-Phases.md#external-field-participants-lp-1) use these generated public
+contracts and factory-token narrowing too. Heterogeneous handlers may use ordinary Groovy dynamic dispatch under a
+consumer-owned convention. On sealed completed-LINK wrappers, dynamic property reads can return completed values
+while generated typed relationship getters may return null; narrowing does not change that boundary.
+
 ## Combining Builder Capabilities
 
 The four annotations compose without creating a common Model/Builder type. A subclass Builder inherits a projected query,

@@ -1,30 +1,15 @@
 # 4.1.0 (unreleased)
 
-- Added LP-5 mutating lifecycle participants on Schema types in AutoCreate, AutoLink, Default and PostTree.
-  Type mutation follows parent-field dispatch and precedes the visited Builder's own work, with root-aware
-  traversal context, singular Schema annotation lookup and Java inheritance semantics. Creators remain field-only
-  ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
-- Added per-mutator sealed-target FAIL (default) and SKIP policies for direct-field lifecycle participants.
-  Both act before handler construction; creators retain ordinary checked assignment. Qualified bounded
-  graph, Template, import and serialization routes. HANDLE is deferred without a public API; full feature
-  and release qualification remain pending ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
-
-- Added LP-3 direct-field participant dispatch in AutoCreate, AutoLink, Default and PostTree, retaining
-  creator-before-mutator composition, built-in sequencing, cluster fallback and parent-before-child traversal.
-  Creators in different phases may coexist; competing direct creators in one phase are rejected. This remains
-  partial qualification; final feature and release gates are pending
-  ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
-
-- Qualified LP-2 direct-field participant composition during AutoLink: repeatable creator/mutator markers,
-  ordered mutations within one repeatable container, unconditional creation before mutation, and compile-time
-  rejection of competing same-phase direct creators (including LinkTo). Different annotations retain unspecified
-  mutation order; built-in creation in other phases can coexist. The full feature remains partially qualified
-  ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
-
-- Added the provisional LP-1 external lifecycle-participant tracer: separate domain-field creator and mutator
-  meta-annotations/handlers during AutoLink, public Builder contexts, checked creator assignment and exact
-  annotation-generic validation. Typed reusable consumer examples use common Schema bases and generated Builder
-  contracts. This is partial qualification; the full feature and conditional release placement remain pending
+- Added annotation-driven external lifecycle creators and mutators on direct DSL relationship fields in AutoCreate,
+  AutoLink, Default and PostTree, with creation before mutation, checked assignment, exact annotation typing and
+  fresh public no-arg handlers. Repeated mutations within one domain annotation retain declaration/container order;
+  mixed singular/container declarations and distinct annotations have unspecified relative order. Schema-type
+  mutation uses singular lookup and Java inheritance semantics. Sealed mutators select FAIL (default) or SKIP.
+  Java and dynamic/static Groovy 3/4/5 consumers, Groovy 4/5 named modules, existing validation and bounded
+  Template/import/serialization routes are qualified. Collection/Map field participation is rejected for this release;
+  HANDLE and a Closure helper have no public API. Late-created children do not replay earlier phases.
+  See [participant guidance](docs/user/Model-Phases.md#external-field-participants-lp-1) and
+  [final acceptance](docs/implementation/issue-867-lp8-evidence.md)
   ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
 
 - Added `KlumBuilderSupport<T>.getModelType(): Class<T>` for the concrete represented Model subtype, including

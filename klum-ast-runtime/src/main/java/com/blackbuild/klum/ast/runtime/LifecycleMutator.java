@@ -36,7 +36,6 @@ import java.lang.annotation.Target;
  * Repeated mutations execute in declaration order, or explicit List value order.
  * Relative order of a singular marker mixed with List, and of different domain annotations, is unspecified.
  * Each invocation constructs a fresh public concrete handler with a public no-arg constructor.
- * Names and signatures are provisional until issue #867 qualification completes.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)

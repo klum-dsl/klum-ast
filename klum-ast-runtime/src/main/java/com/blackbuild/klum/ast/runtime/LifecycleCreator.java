@@ -35,7 +35,6 @@ import java.lang.annotation.Target;
  * Direct DSL fields participate in AutoCreate, AutoLink, Default or PostTree.
  * Only one direct creator may claim a field/phase, including built-in creation mechanisms.
  * Each invocation constructs a fresh public concrete handler with a public no-arg constructor.
- * Names and signatures are provisional until issue #867 qualification completes.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
