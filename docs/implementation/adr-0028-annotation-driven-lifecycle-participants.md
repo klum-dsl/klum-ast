@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5 type mutation is implemented; LP-6–LP-8 remain unqualified.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5 type mutation is implemented; LP-6 is evidence-deferred without a public helper; LP-7–LP-8 remain unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -169,6 +169,14 @@ Commit: type dispatch, placement/inheritance/root and artifact-consumer tests to
 as a separate final reasoning step. No LP-6/LP-7/LP-8 implementation or release retargeting.
 
 ### LP-6 — Optional Closure evaluation; early reuse probe (D7)
+
+Disposition: [LP-6 executable evidence](issue-867-lp6-evidence.md) supports deferral without a helper/API.
+The ordinary map and explicit typed Schema argument work already; generic annotation bounds do not check
+inline results, and the handler-selected delegate is not inferred. Validate derives typing from the field,
+while participant handlers choose their delegate at runtime. A runtime wrapper adds no demonstrated
+capability and supplying inference would need a separate compiler/IDE metadata contract. This does not
+block core or change existing DELEGATE_FIRST behavior. The original acceptance protocol below remains
+the gate for any later implementation, not a delivered contract.
 
 Probe early: DSLASTTransformation.convertValidationClosureOnSingleField, toStronglyTypedClosure,
 Validate annotation Closure behavior, retargetBuilderAnnotationClosures and Model/generated
