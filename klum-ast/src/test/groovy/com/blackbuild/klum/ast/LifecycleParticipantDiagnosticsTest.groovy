@@ -53,13 +53,18 @@ class LifecycleParticipantDiagnosticsTest extends AbstractDSLSpec {
         """
 
         when:
-        if (role == 'creator') Application.Create.One()
-        else Application.Create.With { domain {} }
+        if (role == 'creator') {
+            Application.Create.One()
+        } else {
+            Application.Create.With { domain {} }
+        }
 
         then:
         RuntimeException failure = thrown()
         def chain = []
-        for (Throwable cause = failure; cause != null; cause = cause.cause) chain << cause
+        for (Throwable cause = failure; cause != null; cause = cause.cause) {
+            chain << cause
+        }
         chain.any { it.message.contains("Participant Binding handler Handler during $phase on $location") }
         chain.last() instanceof IllegalArgumentException
         chain.last().message == 'constructor failed'

@@ -131,6 +131,13 @@ ERROR suppression. The additive follow-up says ERROR-level instead of unconditio
 smells were found. Specification review is clear with zero findings, including every mandatory criterion and checklist
 item. LP-8 documentary names/methods/page links are recorded in the [#867 acceptance-evidence comment](https://github.com/klum-dsl/klum-ast/issues/867#issuecomment-6100033541). Both independent additive re-reviews are clear.
 
+Initial remote CI at `6bc3a5c9` passed in 24m 9s and reported 6350 tests: 6302 passed, 48 existing skips, zero failed.
+Its matching SonarCloud analysis had quality gate OK and zero bugs/vulnerabilities, with three `groovydre:S8306`
+maintainability findings in the diagnostics test. The additive follow-up adds braces to that test's if/else and
+cause-chain loop; conditions, operations, assertions and matrix stay unchanged. No suppression is introduced.
+Both independent reviewers cleared the correction. Focused diagnostics revalidation passed 12 cases on each of G3/G4/G5
+with zero failures/errors/skips in 28s; exact final-head results remain recorded in the PR/handoff below.
+
 The committed `5ea76938` documentation rendered and passed the local served-site crawl in 22s with six Javadoc outputs.
 The corrected committed user pages at `6bc3a5c9` then rendered and passed the served-site crawl in 8s. Runtime Javadoc compilation also passed.
 Dedicated branch history is two focused reasoning steps (qualification, then final contract/guidance) plus additive
