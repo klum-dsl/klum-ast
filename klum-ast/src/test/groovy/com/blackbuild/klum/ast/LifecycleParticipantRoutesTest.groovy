@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast
 
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler
 import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler
@@ -130,7 +131,7 @@ class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
         restored.service.owner.is(restored)
     }
 
-    def 'HANDLE probe exposes the completed LINK typed relationship read gap'() {
+    def 'HANDLE probe exposes completed LINK typed reads and validation target gaps'() {
         given:
         createSecondaryClass """
             import com.blackbuild.klum.ast.runtime.*
@@ -147,6 +148,7 @@ class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
                     def wrapper = getService()
                     dynamicRead = InvokerHelper.getProperty(wrapper, 'facts') instanceof Facts
                     typedReadMissing = wrapper.getFacts() == null
+                    KlumSchemaSupport.klumValidationForObject(wrapper).issueAt('facts', 'probe warning', Validate.Level.WARNING)
                 }
             }
         """
@@ -160,6 +162,7 @@ class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
         result.typedReadMissing
         result.service.is(completed)
         result.service.facts.value == 'completed'
+        KlumObjectSupport.of(completed).validation.result.issues.empty
     }
 
     private void schema(String phase) {
