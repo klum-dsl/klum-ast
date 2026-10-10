@@ -94,7 +94,10 @@ public final class LifecycleParticipants {
                                                      A annotation, LifecycleMutator marker) {
         try {
             InternalKlumBuilder<?> target = (InternalKlumBuilder<?>) containing.getInstanceAttribute(field.getName());
-            if (target.isSealed()) throw new KlumModelException("Lifecycle mutation requires an unsealed Builder");
+            if (target.isSealed()) {
+                if (marker.onSealed() == LifecycleMutator.SealedPolicy.SKIP) return;
+                throw new KlumModelException("Lifecycle mutation requires an unsealed Builder (onSealed=FAIL)");
+            }
             LifecycleMutationHandler<A> handler = marker.handler().getConstructor().newInstance();
             handler.mutate(new MutationContext<>(containing, field, annotation, target));
         } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {

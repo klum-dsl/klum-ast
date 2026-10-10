@@ -177,9 +177,9 @@ invocation only; retaining them grants no new Builder rights.
 Each invocation constructs a fresh public concrete handler with a public no-arg constructor. Its annotation
 parameter must resolve exactly to the domain annotation, including generic inheritance. Raw, wildcard,
 unresolved and mismatched parameters fail Schema compilation; runtime independently defends precompiled
-inputs before invocation. Sealed mutation targets are rejected. FAIL/SKIP, all four phases,
-Template/import/graph/JPMS coverage, validation guidance and optional type,
-Closure, HANDLE and container decisions remain later gates. See the
+inputs before invocation. All four phases and sealed FAIL/SKIP are qualified below, together with
+bounded Template/import/graph coverage. Full JVM/JPMS coverage, validation guidance and optional type,
+Closure and container decisions remain later gates. HANDLE is deferred without a public API. See the
 [LP-1 evidence](../implementation/issue-867-lp1-evidence.md) and
 [ADR 0028 plan](../implementation/adr-0028-annotation-driven-lifecycle-participants.md).
 
@@ -289,9 +289,59 @@ Those children receive the current phase's field work, methods, then Closures th
 Earlier phases do not rerun for children created later. No new traversal, ownership or path reconstruction is used.
 
 [LP-3 evidence](../implementation/issue-867-lp3-evidence.md) records the exact slots and regressions.
-Sealed FAIL/SKIP and Template/import qualification remain LP-4; optional type/Closure/container capabilities
+LP-4 qualifies sealed FAIL/SKIP and existing construction routes below; optional type/Closure/container capabilities
 and final errors, validation, JVM/JPMS and release qualification remain later gates. This is partial feature
 qualification and leaves #867 and its release placement unchanged.
+
+### Sealed participant targets (LP-4)
+
+`LifecycleMutator.onSealed` selects `LifecycleMutator.SealedPolicy.FAIL` (the default) or `SKIP`
+for that mutator occurrence. FAIL rejects a sealed target before constructing the handler, retaining
+participant annotation, handler, phase, original declaring Schema field and the rejection cause.
+SKIP omits both handler construction and invocation. Unsealed targets still execute normally under either
+policy, including polymorphic values and aliases; each invocation receives a fresh handler.
+
+(See: `LifecycleParticipantSealedTest#'skips completed LINK targets before constructing handlers in #phase'`.)
+
+```groovy
+@Retention(RUNTIME)
+@Target(FIELD)
+@LifecycleMutator(phase = AutoLink, handler = Configure,
+    onSealed = LifecycleMutator.SealedPolicy.SKIP)
+@interface Configured {}
+
+@DSL class Service { String value }
+@DSL class SpecializedService extends Service {}
+@DSL class Application {
+    @Configured @Field(FieldType.LINK) Service service
+    @Configured @Field(FieldType.LINK) Service alias
+}
+def completed = SpecializedService.Create.With { value 'completed' }
+def application = Application.Create.With {
+    service completed
+    alias completed
+}
+assert application.service.is(completed)
+assert application.alias.is(completed)
+// Configure is neither constructed nor invoked for these completed targets.
+```
+
+Creators have no separate sealed policy. Their Builder results use ordinary checked assignment:
+completed wrappers may attach through LINK/OPTIONAL_LINK; composition, ownership and Construction-session
+checks still apply. A following mutator independently applies its own FAIL/SKIP policy to that result.
+
+Value-only Template definitions execute no participants. Applying a Template dispatches participants in
+the recipient lifecycle with fresh handler state. Existing FromMap and Jackson root imports use their
+ordinary root lifecycle. Jackson Template imports remain value-only; in-session Builder imports and
+apply-to-Builder execute through the enclosing root. Late-created children retain ordinary session and
+declaration authority and join the current traversal without replaying earlier phases. Completed Java
+serialization preserves graph identity without retaining handlers, contexts or Builders.
+
+HANDLE is deferred: current completed LINK wrappers support dynamic property reads, but generated typed
+relationship getters read empty wrapper storage. Wrapper-targeted validation reports are not transferred
+to the existing completed target. A dispatch-only opt-in would therefore expose an inconsistent read and
+validation contract. LP-4 adds no completed-target access or reporting framework and never unseals targets.
+[LP-4 evidence](../implementation/issue-867-lp4-evidence.md) records the bounded probes and route matrix.
 
 ## Phase Details
 

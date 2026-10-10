@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4–LP-8 remain unqualified.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5–LP-8 remain unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -285,3 +285,15 @@ All four retain lifecycle methods before Closure callbacks, and ordinary parent-
 This refines the previously unqualified PostTree insertion point without adding a second tree action.
 LP-2's composition/ordering contract and public interfaces are unchanged. LP-4–LP-8 remain pending; issue state,
 release placement and optional-capability decisions are unchanged. This record does not authorize another slice.
+
+## LP-4 execution record
+
+The maintainer subsequently authorized LP-4 from current origin/master after merged LP-3 PR #873
+(`d821e4198db1421894b8c9dcb60f76a14951325c`). [LP-4 evidence](issue-867-lp4-evidence.md) records per-mutator
+FAIL/SKIP before handler construction, contextual rejection causes, polymorphic aliases/cycles, fresh handlers,
+ordinary creator assignment, recipient Template dispatch, existing map/Jackson routes, late-child session and
+declaration authority, and completed serialization. No phase, ownership, session or materialization change.
+HANDLE is explicitly deferred after typed-read and wrapper-targeted-validation probes; no public constant/API.
+LP-5/LP-6 remain optional, LP-7 support-or-reject remains a mandatory release decision, and LP-8 complete
+errors/validation/JVM/JPMS/final API/docs/release qualification remains pending. #867 stays open; release and
+curation placement are unchanged. This record authorizes no further implementation slice.
