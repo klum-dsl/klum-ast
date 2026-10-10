@@ -55,6 +55,7 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
+            LifecycleParticipants.processType(element, container, nameOfFieldInContainer, AutoCreate.class);
             ClusterModel.getPropertiesStream(element, Object.class)
                     .forEach(property -> {
                         Object currentValue = property.getValue();

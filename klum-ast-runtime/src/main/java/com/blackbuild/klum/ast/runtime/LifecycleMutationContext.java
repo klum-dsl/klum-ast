@@ -31,7 +31,10 @@ import java.lang.annotation.Annotation;
  * @param <A> the exact domain annotation type
  */
 public interface LifecycleMutationContext<A extends Annotation> extends LifecycleFieldContext<A> {
-    /** Returns the existing or just-created target Builder. */
+    /** True for a Schema-type invocation; false for direct field invocation. */
+    default boolean isType() { return false; }
+
+    /** Returns the visited Builder for type dispatch, or the existing/just-created field target. */
     // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
     @SuppressWarnings("java:S1452")
     KlumBuilder<?> getTargetBuilder();

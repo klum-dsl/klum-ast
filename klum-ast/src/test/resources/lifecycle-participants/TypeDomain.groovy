@@ -21,27 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.runtime.internal;
-
-import com.blackbuild.klum.ast.PostTree;
-import com.blackbuild.klum.ast.runtime.internal.layer3.ClusterModel;
-import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
-import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-public class PostTreePhase extends BuilderVisitingPhaseAction {
-    public PostTreePhase() {
-        super(DefaultKlumPhase.POST_TREE);
-    }
-
-    @Override
-    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        LifecycleParticipants.processType(builder, container, nameOfFieldInContainer, PostTree.class);
-        ClusterModel.getPropertiesStream(builder, Object.class,
-                        LifecycleParticipants::hasParticipant)
-                .forEach(field -> LifecycleParticipants.processField(builder, field.getName(), PostTree.class));
-        LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
-    }
-
-}
+package participant.fixture
+import com.blackbuild.klum.ast.DSL
+@DSL class TypeDomain { String value = ''; String other; String local }

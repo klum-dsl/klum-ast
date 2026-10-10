@@ -59,14 +59,23 @@ import java.util.Set;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
 
-/** LP-1 checks on original Schema declarations, before Builder projection. */
+/** Participant checks on original Schema fields and types, before Builder projection. */
 public final class LifecycleParticipantFieldCheck {
     private LifecycleParticipantFieldCheck() {}
 
     public static void checkUnsupportedPlacements(ClassNode schema, SourceUnit source) {
-        checkUnsupportedPlacement(schema, source);
+        checkType(schema, source);
         schema.getMethods().stream().filter(method -> method.getDeclaringClass().equals(schema))
                 .forEach(method -> checkUnsupportedPlacement(method, source));
+    }
+
+    private static void checkType(ClassNode schema, SourceUnit source) {
+        for (AnnotationNode use : schema.getAnnotations()) {
+            ClassNode domain = use.getClassNode();
+            if (!markers(domain, LifecycleCreator.class).isEmpty())
+                error(source, use, "Creating lifecycle participants require direct Schema field placement");
+            checkRole(source, use, domain, LifecycleMutator.class, LifecycleMutationHandler.class);
+        }
     }
 
     private static void checkUnsupportedPlacement(AnnotatedNode declaration, SourceUnit source) {
@@ -104,6 +113,13 @@ public final class LifecycleParticipantFieldCheck {
                 error(source, use, "Lifecycle participant on " + field.getName()
                         + " requires a non-static direct DSL field retained on the Schema (LP-1)");
             }
+        }
+        checkRole(source, use, domain, markerType, handlerRole);
+    }
+
+    private static void checkRole(SourceUnit source, AnnotationNode use, ClassNode domain,
+                                  Class<?> markerType, Class<?> handlerRole) {
+        for (AnnotationNode marker : markers(domain, markerType)) {
             if (!hasRuntimeRetention(domain))
                 error(source, use, "Lifecycle participant annotation " + domain.getName() + " requires @Retention(RUNTIME)");
             if (!(marker.getMember("phase") instanceof ClassExpression phase)

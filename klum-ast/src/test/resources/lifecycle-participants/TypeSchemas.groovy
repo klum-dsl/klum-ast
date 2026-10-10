@@ -21,27 +21,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.runtime.internal;
+package participant.fixture
+import com.blackbuild.klum.ast.DSL
+import participant.fixture.TypeRules.Managed
+import participant.fixture.TypeRules.Other
+import participant.fixture.TypeRules.Local
 
-import com.blackbuild.klum.ast.PostTree;
-import com.blackbuild.klum.ast.runtime.internal.layer3.ClusterModel;
-import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
-import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-public class PostTreePhase extends BuilderVisitingPhaseAction {
-    public PostTreePhase() {
-        super(DefaultKlumPhase.POST_TREE);
-    }
-
-    @Override
-    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        LifecycleParticipants.processType(builder, container, nameOfFieldInContainer, PostTree.class);
-        ClusterModel.getPropertiesStream(builder, Object.class,
-                        LifecycleParticipants::hasParticipant)
-                .forEach(field -> LifecycleParticipants.processField(builder, field.getName(), PostTree.class));
-        LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
-    }
-
-}
+@Managed('base') @Other @Local @DSL class BaseSchema extends TypeDomain {}
+@DSL class InheritedSchema extends BaseSchema {}
+@Managed('override') @DSL class OverrideSchema extends BaseSchema {}
+@Managed('one') @Managed('two') @DSL class RepeatedSchema extends BaseSchema {}
+@Managed('one') @Managed('two') @DSL class OnlyRepeatedSchema extends TypeDomain {}
+@Managed('interface') interface MarkerInterface {}
+@DSL class InterfaceSchema extends TypeDomain implements MarkerInterface {}
+@Managed('root') @DSL class RootSchema extends TypeDomain { @Managed('incoming') BaseSchema child }

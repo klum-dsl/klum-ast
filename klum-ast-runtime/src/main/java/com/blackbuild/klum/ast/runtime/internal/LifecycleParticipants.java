@@ -41,7 +41,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Direct field dispatch inside the existing containing-Builder phase visit. */
+/** Field and type dispatch inside the existing Builder phase visit. */
 public final class LifecycleParticipants {
     private LifecycleParticipants() {}
 
@@ -52,6 +52,36 @@ public final class LifecycleParticipants {
                     || annotation.annotationType().getAnnotationsByType(LifecycleMutator.class).length != 0) return true;
         }
         return false;
+    }
+
+    /** Runs only within an existing unsealed Builder visit; never reconstructs ownership. */
+    public static void processType(InternalKlumBuilder<?> target, Object container, String name,
+                                   Class<? extends Annotation> phase) {
+        Class<?> schema = target.getModelType();
+        LifecycleParticipantDeclaration.check(schema);
+        String previousMember = PhaseDriver.getContext().getMember();
+        try {
+            PhaseDriver.setCurrentMember(null);
+            for (Annotation annotation : schema.getAnnotations()) {
+                for (LifecycleMutator marker : annotation.annotationType().getAnnotationsByType(LifecycleMutator.class)) {
+                    if (marker.phase() == phase)
+                        mutateType(target, container, name, annotation, marker);
+                }
+            }
+        } finally {
+            PhaseDriver.setCurrentMember(previousMember);
+        }
+    }
+
+    @SuppressWarnings("unchecked") // Runtime declaration validation precedes the annotation-specific invocation.
+    private static <A extends Annotation> void mutateType(InternalKlumBuilder<?> target, Object container,
+                                                         String name, A annotation, LifecycleMutator marker) {
+        try {
+            LifecycleMutationHandler<A> handler = marker.handler().getConstructor().newInstance();
+            handler.mutate(new TypeContext<>(target, container, name, annotation));
+        } catch (ReflectiveOperationException | RuntimeException | AssertionError | LinkageError exception) {
+            throw failure(target.getModelType().getName(), annotation, marker.handler(), marker.phase(), exception);
+        }
     }
 
     public static void processField(InternalKlumBuilder<?> containing, String name, Class<? extends Annotation> phase) {
@@ -106,10 +136,14 @@ public final class LifecycleParticipants {
     }
 
     private static KlumModelException failure(Field field, Annotation annotation, Class<?> handler, Class<? extends Annotation> phase, Throwable exception) {
+        return failure(field.getDeclaringClass().getName() + "." + field.getName(), annotation, handler, phase, exception);
+    }
+
+    private static KlumModelException failure(String location, Annotation annotation, Class<?> handler, Class<? extends Annotation> phase, Throwable exception) {
         Throwable cause = exception instanceof InvocationTargetException invocation ? invocation.getCause() : exception;
         return new KlumModelException("Participant " + annotation.annotationType().getName() + " handler "
                 + handler.getName() + " during " + phase.getSimpleName() + " on "
-                + field.getDeclaringClass().getName() + "." + field.getName(), cause);
+                + location, cause);
     }
 
     private static class FieldContext<A extends Annotation> implements LifecycleFieldContext<A> {
@@ -131,6 +165,34 @@ public final class LifecycleParticipants {
         @Override public String getFieldName() { return field.getName(); }
         @Override public Class<?> getDeclaredType() { return field.getType(); }
         @Override public FieldType getFieldType() { return DslHelper.getKlumFieldType(field); }
+    }
+
+    private static final class TypeContext<A extends Annotation> implements LifecycleMutationContext<A> {
+        private final InternalKlumBuilder<?> target;
+        private final InternalKlumBuilder<?> containing;
+        private final String name;
+        private final A annotation;
+
+        private TypeContext(InternalKlumBuilder<?> target, Object container, String name, A annotation) {
+            this.target = target;
+            this.containing = container instanceof InternalKlumBuilder<?> builder ? builder : null;
+            this.name = name;
+            this.annotation = annotation;
+        }
+
+        @Override public boolean isType() { return true; }
+        @Override public A getAnnotation() { return annotation; }
+        @Override public <B extends Annotation> Optional<B> getAnnotation(Class<B> annotationType) {
+            return Optional.ofNullable(target.getModelType().getAnnotation(Objects.requireNonNull(annotationType, "annotationType")));
+        }
+        @Override public KlumBuilder<?> getContainingBuilder() { return containing; }
+        @Override public String getFieldName() { return name; }
+        @Override public Class<?> getDeclaredType() { return target.getModelType(); }
+        @Override public FieldType getFieldType() {
+            return containing == null || name == null ? null : DslHelper.getField(containing.getModelType(), name)
+                    .map(DslHelper::getKlumFieldType).orElse(null);
+        }
+        @Override public KlumBuilder<?> getTargetBuilder() { return target; }
     }
 
     private static final class MutationContext<A extends Annotation> extends FieldContext<A> implements LifecycleMutationContext<A> {
