@@ -162,9 +162,11 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
                         field -> field.isAnnotationPresent(Default.class) || LifecycleParticipants.hasParticipant(field, Default.class))
                 .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);
         fields.entrySet().forEach(entry -> {
-            if (isUnset(entry) && element.getModelField(entry.getKey()).isAnnotationPresent(Default.class))
+            Field field = element.getField(entry.getKey());
+            if (isUnset(entry) && field.isAnnotationPresent(Default.class))
                 applyDefaultValue(element, entry.getKey());
-            LifecycleParticipants.processField(element, entry.getKey(), Default.class);
+            if (LifecycleParticipants.hasParticipant(field, Default.class))
+                LifecycleParticipants.processField(element, entry.getKey(), Default.class);
         });
     }
 
