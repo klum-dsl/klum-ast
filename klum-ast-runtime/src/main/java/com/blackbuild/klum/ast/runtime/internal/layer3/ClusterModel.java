@@ -260,7 +260,7 @@ public class ClusterModel {
     }
 
     @NotNull
-    static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType, Predicate<AnnotatedElement> filter) {
+    public static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType, Predicate<AnnotatedElement> filter) {
         return getPropertiesStream(container, fieldType)
                 .filter(it -> filter.test(getAnnotatedElementForProperty(container, it)));
     }

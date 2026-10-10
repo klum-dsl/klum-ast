@@ -23,6 +23,9 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import com.blackbuild.klum.ast.Default;
+import com.blackbuild.klum.ast.PostTree;
+import com.blackbuild.klum.ast.layer3.AutoCreate;
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.ast.runtime.KlumSchemaException;
@@ -39,13 +42,18 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /** Runtime defense for separately compiled inputs, without constructing or caching handlers. */
 final class LifecycleParticipantDeclaration {
     private LifecycleParticipantDeclaration() {}
 
     static void check(Field field) {
-        int creators = field.isAnnotationPresent(LinkTo.class) ? 1 : 0;
+        Map<Class<? extends Annotation>, Integer> creators = new HashMap<>();
+        for (Class<? extends Annotation> builtIn : Set.of(AutoCreate.class, LinkTo.class, Default.class)) {
+            if (field.isAnnotationPresent(builtIn))
+                creators.put(builtIn == LinkTo.class ? AutoLink.class : builtIn, 1);
+        }
         for (Annotation annotation : field.getDeclaredAnnotations()) {
             Class<? extends Annotation> domain = annotation.annotationType();
             LifecycleCreator[] creation = domain.getAnnotationsByType(LifecycleCreator.class);
@@ -55,7 +63,8 @@ final class LifecycleParticipantDeclaration {
                 throw new KlumSchemaException("Lifecycle participant requires a non-static direct DSL field: " + field);
             for (LifecycleCreator creator : creation) {
                 checkHandler(field, domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
-                if (++creators > 1) throw new KlumSchemaException("Competing lifecycle creators for AutoLink on " + field);
+                if (creators.merge(creator.phase(), 1, Integer::sum) > 1)
+                    throw new KlumSchemaException("Competing lifecycle creators for " + creator.phase().getSimpleName() + " on " + field);
             }
             for (LifecycleMutator mutator : mutation)
                 checkHandler(field, domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
@@ -65,8 +74,8 @@ final class LifecycleParticipantDeclaration {
     private static void checkHandler(Field field, Class<? extends Annotation> domain, Class<? extends Annotation> phase,
                                      Class<?> handler, Class<?> role) {
         String location = "Participant " + domain.getName() + " handler " + handler.getName() + " on " + field;
-        if (phase != AutoLink.class)
-            throw new KlumSchemaException(location + ": LP-1 lifecycle participants support only phase = AutoLink");
+        if (!Set.of(AutoCreate.class, AutoLink.class, Default.class, PostTree.class).contains(phase))
+            throw new KlumSchemaException(location + ": Lifecycle participants support only AutoCreate, AutoLink, Default and PostTree");
         if (!Modifier.isPublic(handler.getModifiers()) || Modifier.isAbstract(handler.getModifiers()) || handler.isInterface()
                 || (handler.isMemberClass() && !Modifier.isStatic(handler.getModifiers())))
             throw new KlumSchemaException(location + ": requires a public concrete handler and public no-arg constructor");

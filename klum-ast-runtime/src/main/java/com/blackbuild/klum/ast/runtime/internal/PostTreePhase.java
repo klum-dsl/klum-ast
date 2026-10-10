@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.PostTree;
+import com.blackbuild.klum.ast.runtime.internal.layer3.ClusterModel;
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +37,9 @@ public class PostTreePhase extends BuilderVisitingPhaseAction {
 
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        ClusterModel.getPropertiesStream(builder, Object.class,
+                        field -> LifecycleParticipants.hasParticipant(field, PostTree.class))
+                .forEach(field -> LifecycleParticipants.processField(builder, field.getName(), PostTree.class));
         LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
     }
 

@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -157,11 +158,14 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
     }
 
     private void setFieldsAnnotatedWithDefaultAnnotation(InternalKlumBuilder<?> element) {
-        ClusterModel.getFieldsAnnotatedWith(element, Default.class)
-                .entrySet()
-                .stream()
-                .filter(this::isUnset)
-                .forEach(entry -> applyDefaultValue(element, entry.getKey()));
+        Map<String, Object> fields = ClusterModel.getPropertiesStream(element, Object.class,
+                        field -> field.isAnnotationPresent(Default.class) || LifecycleParticipants.hasParticipant(field, Default.class))
+                .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);
+        fields.entrySet().forEach(entry -> {
+            if (isUnset(entry) && element.getModelField(entry.getKey()).isAnnotationPresent(Default.class))
+                applyDefaultValue(element, entry.getKey());
+            LifecycleParticipants.processField(element, entry.getKey(), Default.class);
+        });
     }
 
     private void applyDefaultValue(InternalKlumBuilder<?> element, String fieldName) {
