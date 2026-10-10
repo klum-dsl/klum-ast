@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. LP-4–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. LP-5–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -179,6 +179,13 @@ HANDLE is optional for read-only inspection or validation of completed LINK targ
 Probe a small extension of existing dispatch; retain if straightforward. Defer if it requires
 mutation interception, Builder lifecycle changes or a general read-only participant framework.
 No HANDLE API if deferred; never unseal or grant mutation privileges. Names remain provisional.
+
+LP-4 outcome: `LifecycleMutator.onSealed(): LifecycleMutator.SealedPolicy` defaults to FAIL;
+SKIP omits both handler construction and invocation. The policy applies per mutation, after ordinary
+creator assignment. [The feasibility probe](../implementation/issue-867-lp4-evidence.md#handle-feasibility-outcome)
+retains dynamic completed-LINK reads but demonstrates missing typed relationship reads and wrapper-local
+validation reports that do not transfer to the completed target. HANDLE is deferred: a dispatch-only switch
+cannot supply a consistent completed-target read/validation contract. No HANDLE constant or API is published.
 
 ### D7 — Closure members
 

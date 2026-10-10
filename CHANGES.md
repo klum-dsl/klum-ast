@@ -1,9 +1,14 @@
 # 4.1.0 (unreleased)
 
+- Added per-mutator sealed-target FAIL (default) and SKIP policies for direct-field lifecycle participants.
+  Both act before handler construction; creators retain ordinary checked assignment. Qualified bounded
+  graph, Template, import and serialization routes. HANDLE is deferred without a public API; full feature
+  and release qualification remain pending ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
+
 - Added LP-3 direct-field participant dispatch in AutoCreate, AutoLink, Default and PostTree, retaining
   creator-before-mutator composition, built-in sequencing, cluster fallback and parent-before-child traversal.
   Creators in different phases may coexist; competing direct creators in one phase are rejected. This remains
-  partial qualification; sealed/route and final release gates are pending
+  partial qualification; final feature and release gates are pending
   ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
 
 - Qualified LP-2 direct-field participant composition during AutoLink: repeatable creator/mutator markers,
