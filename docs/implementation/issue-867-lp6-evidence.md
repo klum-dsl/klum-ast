@@ -93,10 +93,32 @@ GDSL framework, annotation declaration vocabulary or source mirror change is int
 
 ## Validation, review and delivery
 
-Focused baseline Groovy 3: eight controls pass with zero failures/errors/skips. Final compatibility,
-full-check and independent Standards/Specification results are recorded in the qualification follow-up
-and PR handoff. Production inputs are unchanged. No tests are ignored, pending or suppressed.
-User pages and CHANGES are unchanged because this slice delivers no new public behavior.
+Stable `./gradlew check --no-parallel` passed at `c94327b9` in 11m 33s. No source or Git
+state changed during the run. Each Groovy lane passes all eight new controls without skips.
+Production inputs are unchanged; this qualification follow-up changes Markdown only.
+
+| Module | Test counts: baseline / G4 / G5 where applicable |
+| --- | --- |
+| klum-ast | 1749 / 1749 / 1749 |
+| klum-ast-runtime | 73 / 73 / 73 |
+| klum-ast-jackson | 81 / 79 / 79 |
+| klum-ast-bean-validation | 10 / 10 / 10 |
+| klum-ast-annotations | 20 |
+| klum-ast-gradle-plugin | 151 |
+| klum-ast-test-support | 7 / 6 / 6 |
+
+All suites have zero failures/errors. Existing skips remain compiler 15 and runtime one per lane.
+License checks and test-lane isolation passed. None of the new probe tests are ignored, pending or suppressed.
+Independent Standards and Specification reviews against `a4ea604d...c94327b9` found no actionable
+findings on either axis. The specification reviewer used the delegation and accepted ADR/plan;
+its live issue fetch was unavailable, while the worker independently read #867 before editing.
+Commit history is one coherent probe/deferral step plus this qualification record; no rewrite is
+needed. Diff checks and all 33 relative Markdown links pass. User pages and CHANGES are unchanged
+because this slice delivers no new public behavior.
+
+Delivery authorization audit: Git SSH authorized; gh CLI authorized; no GitHub App channel used.
+Exact final-head remote CI/SonarCloud results are recorded in the draft PR and handoff after
+publication, separately from these local results.
 
 Tracker relationship is Related #867, with no issue-state/label/milestone or curation mutation.
 Hive owns final delivery and archive reconciliation. The worker retains the open-PR state and
