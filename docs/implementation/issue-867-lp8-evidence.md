@@ -17,6 +17,9 @@ not missing implementation. Source/binary diagnostics already enforce it.
 Optional capabilities are separate from #867's delivered contract: annotation-Closure helper [#878](https://github.com/klum-dsl/klum-ast/issues/878),
 container participation [#879](https://github.com/klum-dsl/klum-ast/issues/879), and optional sealed HANDLE
 ([LP-4 evidence](issue-867-lp4-evidence.md#handle-feasibility-outcome)) are deferred without partial APIs.
+The maintainer frames #879 as a separate future model, likely needing an explicit element/occurrence context object
+and possibly a distinct handler contract. Collection/Map participation is not an automatic extension of #867's
+direct-field participants; LP-8 records this boundary without designing that future model.
 Catch-up sub-lifecycles [#874](https://github.com/klum-dsl/klum-ast/issues/874) are a separate post-4.1 investigation;
 late children receive the current phase without earlier replay. None is a remaining core #867 gate.
 Conditional 4.1 placement remains a release-planning fact owned by the Hive; this acceptance does not assign a milestone
