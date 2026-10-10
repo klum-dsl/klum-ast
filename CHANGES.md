@@ -193,6 +193,10 @@
   guards, Owner paths, relationship identity, and materialization timing remain unchanged
   ([#841](https://github.com/klum-dsl/klum-ast/issues/841)).
 
+- Declarative `@LinkTo` relationships now accept compatible completed DSL Models returned through sealed `LINK`
+  providers as well as active Builders. Unrelated targets remain rejected with diagnostics naming the declared Schema
+  field type; existing ownership and materialization behavior is preserved ([#853](https://github.com/klum-dsl/klum-ast/issues/853)).
+
 - Ambiguous explicit-null direct relationship values in named maps now report an actionable `KlumModelException` with
   the Model, Builder operation/key, and construction path, retaining the original `MethodSelectionException` as direct
   cause. Custom MetaClass dispatch and handler exceptions remain unchanged. Omit the key to preserve configuration,
