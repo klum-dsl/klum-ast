@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.layer3.AutoLink;
+import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.ast.runtime.KlumSchemaException;
 import com.blackbuild.klum.ast.runtime.LifecycleCreator;
 import com.blackbuild.klum.ast.runtime.LifecycleMutator;
@@ -44,15 +45,20 @@ final class LifecycleParticipantDeclaration {
     private LifecycleParticipantDeclaration() {}
 
     static void check(Field field) {
+        int creators = field.isAnnotationPresent(LinkTo.class) ? 1 : 0;
         for (Annotation annotation : field.getDeclaredAnnotations()) {
             Class<? extends Annotation> domain = annotation.annotationType();
-            LifecycleCreator creator = domain.getAnnotation(LifecycleCreator.class);
-            LifecycleMutator mutator = domain.getAnnotation(LifecycleMutator.class);
-            if (creator == null && mutator == null) continue;
+            LifecycleCreator[] creation = domain.getAnnotationsByType(LifecycleCreator.class);
+            LifecycleMutator[] mutation = domain.getAnnotationsByType(LifecycleMutator.class);
+            if (creation.length == 0 && mutation.length == 0) continue;
             if (Modifier.isStatic(field.getModifiers()) || !DslHelper.isDslType(field.getType()))
                 throw new KlumSchemaException("Lifecycle participant requires a non-static direct DSL field: " + field);
-            if (creator != null) checkHandler(field, domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
-            if (mutator != null) checkHandler(field, domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
+            for (LifecycleCreator creator : creation) {
+                checkHandler(field, domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
+                if (++creators > 1) throw new KlumSchemaException("Competing lifecycle creators for AutoLink on " + field);
+            }
+            for (LifecycleMutator mutator : mutation)
+                checkHandler(field, domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
         }
     }
 

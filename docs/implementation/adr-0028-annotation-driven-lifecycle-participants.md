@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1 is implemented under subsequent explicit maintainer delegation; LP-2–LP-8 remain unqualified.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1 and AutoLink-only LP-2 are implemented under subsequent explicit maintainer delegations; LP-3–LP-8 remain unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -86,10 +86,14 @@ Review API vocabulary against consumer examples before freezing names.
 
 ### LP-2 — Mandatory composition and actual ordering contract (D2–D3)
 
-One domain annotation combines creator and multiple mutations in same/different phases.
+Maintainer refinement confirmed 2026-10-10: LP-2 qualifies composition within AutoLink only.
+Different-phase external composition is assigned to LP-3 alongside actual visitor integration; unsupported
+external phases continue to fail compilation until then. The complete D2/D3 cross-phase requirement is unchanged.
+
+One domain annotation combines a creator and multiple mutations within AutoLink.
 Creator first; mutations see supplied Builder; null skips them.
 Competing direct same-phase creators (including built-in) fail; mutations and different phases
-coexist. No blanket built-in/meta annotation exclusion.
+coexist where already supported (including built-in AutoCreate and external AutoLink). No blanket built-in/meta annotation exclusion.
 
 Probe Java/Groovy-authored annotations, repeatable meta-annotations, separately compiled libraries/
 Schemas and Groovy 3/4/5. If declaration order is reliably recovered from actual compiled
@@ -100,6 +104,11 @@ Separate within-domain-annotation order from between-domain-annotations on one f
 (unspecified unless established), and from optional type-before-field placement.
 Creation-before-mutation always holds. No priorities, sorting, ordering SPI or elaborate
 workaround. Unspecified mutation order is a permitted core outcome.
+
+Ordering probe conclusion: [LP-2 evidence](issue-867-lp2-evidence.md#exact-ordering-conclusion)
+qualifies repeated-mutator declaration order and explicit-container value order. Mixed singular/container
+relative order and between-domain-annotation order remain unspecified. The evidence separately records
+the confirmed AutoLink-only LP-2 boundary and LP-3 cross-phase gate; no all-phase completion is implied.
 
 Commit: composition and demonstrated ordering contract with binary-lane regressions.
 
@@ -255,3 +264,12 @@ now verifies removal of the Order-specific Owner/lifecycle plumbing using one co
 LINK values are readable through existing dynamic Groovy property forwarding; direct generated relationship
 getters read empty wrapper storage. This qualifies the dynamic consumer path and records the typed completed-LINK
 read limitation for LP-6. It changes no accepted scope or implementation authorization.
+
+## LP-2 execution record
+
+The maintainer subsequently authorized LP-2 and explicitly confirmed its AutoLink-only composition boundary
+on 2026-10-10. [LP-2 evidence](issue-867-lp2-evidence.md) records repeatable declaration/container ordering,
+creator conflicts, the Java/Groovy binary probe matrix and full local Groovy 3/4/5 qualification.
+Different-phase external composition moves to LP-3 together with the phase visitors; declarations for those
+external phases remain rejected until executable support exists. LP-3–LP-8, optional capabilities, issue state
+and release placement remain unchanged. This record does not authorize additional implementation slices.

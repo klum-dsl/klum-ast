@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. LP-2–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. LP-3–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -122,6 +122,9 @@ Creation-before-mutation is unconditional. Other ordering dimensions are distinc
    repeatable meta-annotations, separately compiled libraries/Schemas and Groovy 3/4/5.
    Reliably recovered declaration order becomes documented and regression-tested; otherwise
    execution order is explicitly unspecified.
+   [LP-2 ordering probes](../implementation/issue-867-lp2-evidence.md#exact-ordering-conclusion)
+   establish declaration order for repeated mutators and value-array order for one explicit container.
+   Mixing a singular marker and explicit container retains unspecified relative order.
 2. Between different domain annotations on a field: no deterministic order is established.
    Do not infer it from reflection or the within-annotation result.
 3. Type versus field: if LP-5 ships, type mutations precede fields in their own visit;
@@ -241,6 +244,6 @@ Remaining maintainer input follows probes: final names/signatures, optional defe
 recommendations, Collection/Map support-or-reject, conditional 4.1 placement after core evidence.
 No new validation architecture decision is required.
 
-Original authorization: planning only. Subsequent explicit maintainer delegation authorized LP-1 only,
-recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
+Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 and AutoLink-only
+LP-2, recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
 issue retargeting or release placement. Existing characterization tests are preserved.

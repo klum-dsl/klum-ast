@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.validation;
 
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.layer3.AutoLink;
+import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.ast.runtime.LifecycleCreator;
 import com.blackbuild.klum.ast.runtime.LifecycleMutator;
 import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;
@@ -36,12 +37,18 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.expr.ClassExpression;
+import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
+import org.codehaus.groovy.ast.expr.ListExpression;
+import org.codehaus.groovy.ast.expr.ArrayExpression;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.syntax.SyntaxException;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,15 +68,20 @@ public final class LifecycleParticipantFieldCheck {
     private static void checkUnsupportedPlacement(AnnotatedNode declaration, SourceUnit source) {
         for (AnnotationNode use : declaration.getAnnotations()) {
             ClassNode domain = use.getClassNode();
-            if (!domain.getAnnotations(ClassHelper.make(LifecycleCreator.class)).isEmpty()
-                    || !domain.getAnnotations(ClassHelper.make(LifecycleMutator.class)).isEmpty())
+            if (!markers(domain, LifecycleCreator.class).isEmpty()
+                    || !markers(domain, LifecycleMutator.class).isEmpty())
                 error(source, use, "LP-1 lifecycle participants require direct Schema field placement");
         }
     }
 
     public static void check(FieldNode field, SourceUnit source) {
+        int creators = field.getAnnotations(ClassHelper.make(LinkTo.class)).isEmpty() ? 0 : 1;
         for (AnnotationNode use : field.getAnnotations()) {
             ClassNode domain = use.getClassNode();
+            int claims = markers(domain, LifecycleCreator.class).size();
+            creators += claims;
+            if (claims > 0 && creators > 1)
+                error(source, use, "Competing lifecycle creators for AutoLink on " + field.getName());
             checkRole(field, source, use, domain, LifecycleCreator.class, LifecycleCreationHandler.class);
             checkRole(field, source, use, domain, LifecycleMutator.class, LifecycleMutationHandler.class);
         }
@@ -77,7 +89,7 @@ public final class LifecycleParticipantFieldCheck {
 
     private static void checkRole(FieldNode field, SourceUnit source, AnnotationNode use, ClassNode domain,
                                   Class<?> markerType, Class<?> handlerRole) {
-        for (AnnotationNode marker : domain.getAnnotations(ClassHelper.make(markerType))) {
+        for (AnnotationNode marker : markers(domain, markerType)) {
             if (Modifier.isStatic(field.getModifiers()) || !isDSLObject(field.getType())
                     || getFieldType(field) == FieldType.BUILDER) {
                 error(source, use, "Lifecycle participant on " + field.getName()
@@ -94,6 +106,25 @@ public final class LifecycleParticipantFieldCheck {
             }
             checkHandler(source, use, domain, expression.getType(), handlerRole);
         }
+    }
+
+    private static List<AnnotationNode> markers(ClassNode domain, Class<?> markerType) {
+        List<AnnotationNode> result = new ArrayList<>(domain.getAnnotations(ClassHelper.make(markerType)));
+        Class<?> container = markerType == LifecycleCreator.class ? LifecycleCreator.List.class : LifecycleMutator.List.class;
+        for (AnnotationNode annotation : domain.getAnnotations(ClassHelper.make(container))) {
+            Expression value = annotation.getMember("value");
+            for (Expression entry : annotationValues(value)) {
+                if (entry instanceof AnnotationConstantExpression constant && constant.getValue() instanceof AnnotationNode nested)
+                    result.add(nested);
+            }
+        }
+        return result;
+    }
+
+    private static List<Expression> annotationValues(Expression value) {
+        if (value instanceof ListExpression list) return list.getExpressions();
+        if (value instanceof ArrayExpression array) return array.getExpressions();
+        return value == null ? List.of() : List.of(value);
     }
 
     private static void checkHandler(SourceUnit source, AnnotationNode use, ClassNode domain,
