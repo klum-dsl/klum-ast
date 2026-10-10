@@ -31,7 +31,6 @@ import java.util.Optional;
 /**
  * Context of one Schema declaration occurrence. Valid for the invocation only; retaining it grants no
  * additional Builder/session rights. Lookup refers to the original Schema field, or to the visited Schema type for type mutation.
- * Provisional LP-1 API (issue #867).
  * @param <A> the exact domain annotation type
  */
 public interface LifecycleFieldContext<A extends Annotation> {

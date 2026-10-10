@@ -276,6 +276,75 @@ class LifecycleParticipantConsumerTest extends Specification {
         'Mutator' | 'mapValues'
     }
 
+    def 'qualifies separate handler modules and public Builder consumers (#named)'() {
+        given:
+        Path root = temporaryFolder.newFolder().toPath()
+        Path sources = Files.createDirectories(root.resolve('sources'))
+        List<Path> dependencies = runtimeAndCompilerJars()
+        List<Map> modules = [
+                [name: 'contract', files: ['Knowledge.groovy'], imports: '', requires: ''],
+                [name: 'handlers', files: ['Binding.java', 'BindFacts.java', 'SupplyDomain.java'],
+                 imports: 'import participant.contract.*;', requires: 'requires participant.contract;'],
+                [name: 'schema', files: ['Application.groovy', 'Writers.groovy'],
+                 imports: 'import participant.contract.*;\nimport participant.handlers.Binding;',
+                 requires: 'requires participant.contract; requires participant.handlers;'],
+                [name: 'consumer', files: ['Main.java'], imports: 'import participant.schema.*;',
+                 requires: 'requires participant.schema; requires participant.contract;']
+        ]
+        modules.each { module ->
+            Path classes = Files.createDirectories(root.resolve(module.name + '-classes'))
+            module.files.each { filename ->
+                String source = getClass().getResourceAsStream('/lifecycle-participants/' + filename).withCloseable { it.text }
+                source = source.replace('package participant.fixture', 'package participant.' + module.name)
+                int packageEnd = source.indexOf('\n', source.indexOf('package participant.'))
+                source = source.substring(0, packageEnd + 1) + module.imports + '\n' + source.substring(packageEnd + 1)
+                Files.writeString(sources.resolve(filename), source)
+            }
+            if (module.files.first().endsWith('.groovy')) {
+                if (named) {
+                    execute([javaTool('java'), '--module-path', pathString(dependencies), '--add-modules', 'ALL-MODULE-PATH',
+                             '-m', 'org.apache.groovy/org.codehaus.groovy.tools.FileSystemCompiler',
+                             '--classpath', pathString(dependencies), '-d', classes.toString()] +
+                            module.files.collect { sources.resolve(it).toString() })
+                } else compileGroovy(sources, classes, dependencies, module.files)
+            } else compileJava(sources, classes, dependencies, module.files)
+            if (named) {
+                String schemaAccess = module.name in ['contract', 'schema'] ?
+                        'requires static com.blackbuild.klum.ast.compiler; opens participant.' + module.name +
+                                ' to com.blackbuild.klum.ast.runtime;' : ''
+                Files.writeString(sources.resolve('module-info.java'), """
+                    module participant.${module.name} {
+                        requires com.blackbuild.klum.ast.annotations;
+                        requires com.blackbuild.klum.ast.runtime;
+                        requires org.apache.groovy;
+                        $module.requires
+                        exports participant.${module.name};
+                        $schemaAccess
+                    }
+                """)
+                execute([javaTool('javac'), '--module-path', pathString(dependencies), '-d', classes.toString(),
+                         sources.resolve('module-info.java').toString()])
+            }
+            dependencies.add(jar(root, classes, 'participant.' + module.name + '.jar'))
+            classes.toFile().deleteDir()
+        }
+        sources.toFile().deleteDir()
+
+        when:
+        List<Path> runtime = runtimeJars(dependencies)
+        String output = named ?
+                execute([javaTool('java'), '--module-path', pathString(runtime),
+                         '-m', 'participant.consumer/participant.consumer.Main']) :
+                execute([javaTool('java'), '--class-path', pathString(runtime), 'participant.consumer.Main'])
+
+        then:
+        output.trim() == 'participant-consumers=true'
+
+        where:
+        // Groovy 3 is classpath-only by ADR 0014; G4/G5 also execute real named consumers.
+        named << (GroovySystem.version.startsWith('3.') ? [false] : [false, true])
+    }
+
     private static Path jar(Path root, Path classes, String name) {
         Path artifact = root.resolve(name)
         execute([javaTool('jar'), '--create', '--file', artifact.toString(), '-C', classes.toString(), '.'])

@@ -2,9 +2,14 @@
 
 Date: 2026-10-09
 
-Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
+Status: Accepted architecture and final public contract. [LP-8 acceptance](../implementation/issue-867-lp8-evidence.md)
+consolidates the mandatory qualification, checklist disposition and deferred optional boundaries.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. [LP-6 Closure probe](../implementation/issue-867-lp6-evidence.md) is evidence-deferred without a public helper; [LP-7 container exploration](../implementation/issue-867-lp7-evidence.md) qualifies the existing rejection, accepted by the maintainer for this release on 2026-10-10; LP-8 qualification remains pending; names/signatures remain provisional.
+Implementation status: LP-1–LP-5 are implemented and merged; LP-6 is evidence-deferred without a Closure helper;
+LP-7's accepted current-release Collection/Map rejection is merged. LP-8 retains the demonstrated API names/signatures,
+qualifies existing validation and public consumers, and finalizes documentation. The acceptance record distinguishes
+local checks, final review and remote evidence; it is the current qualification entry point. Earlier slice records retain
+their historical provisional status and remaining-gate statements.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -35,7 +40,7 @@ or reconstructed child ownership. Existing AutoLink methods remain the supported
 
 ## Decision
 
-All API names in this document are provisional planning vocabulary.
+Public names/signatures are retained after the LP-8 usage review; see the [final inventory](../implementation/issue-867-lp8-evidence.md#exact-final-public-api).
 
 ### Core acceptance versus optional capabilities
 
@@ -157,7 +162,7 @@ For field dispatch, metadata/typed annotation lookup come from the original Sche
 For type dispatch, target is the visited Builder; containing Builder and field name come from
 traversal and are null at root. Lookup queries the Schema type with inherited semantics,
 not the incoming field declaration. Incoming relationship metadata is absent where traversal
-has none; do not invent an owning-metadata requirement. Exact signatures remain tracer-gated.
+has none; do not invent an owning-metadata requirement. Exact signatures are recorded in the final inventory.
 
 Provide singular typed annotation lookup only. No reflective Field, annotation list or plural
 lookup. This does not restrict multiple participant declarations on one domain annotation.
@@ -189,14 +194,14 @@ ordinary checked assignment/ownership/session rules, without separate sealed pol
 HANDLE is optional for read-only inspection or validation of completed LINK targets.
 Probe a small extension of existing dispatch; retain if straightforward. Defer if it requires
 mutation interception, Builder lifecycle changes or a general read-only participant framework.
-No HANDLE API if deferred; never unseal or grant mutation privileges. Names remain provisional.
+No HANDLE API if deferred; never unseal or grant mutation privileges. The qualified names are retained.
 
 LP-4 outcome: `LifecycleMutator.onSealed(): LifecycleMutator.SealedPolicy` defaults to FAIL;
 SKIP omits both handler construction and invocation. The policy applies per mutation, after ordinary
 creator assignment. [The feasibility probe](../implementation/issue-867-lp4-evidence.md#handle-feasibility-outcome)
 retains dynamic completed-LINK reads but demonstrates missing typed relationship reads and wrapper-local
 validation reports that do not transfer to the completed target. HANDLE is deferred: a dispatch-only switch
-cannot supply a consistent completed-target read/validation contract. No HANDLE constant or API is published.
+cannot supply a consistent completed-target read/validation contract. No HANDLE constant or API is published. Optional HANDLE remains outside the delivered #867 contract.
 
 ### D7 — Closure members
 
@@ -263,9 +268,9 @@ Probe-dependent contracts: actual mutation ordering, precise phase field slots, 
 mapping/helper signature and HANDLE feasibility. Optional deferrals: LP-6, HANDLE,
 LP-7 support; document evidence and omit unqualified public APIs.
 
-Remaining maintainer input follows probes: final names/signatures, optional deferral
-recommendations and conditional 4.1 placement after core evidence. The LP-7 Collection/Map
-support-or-reject decision is settled as rejection for this release.
+LP-8 retains the demonstrated names/signatures; optional deferrals and current-release Collection/Map rejection
+are settled for #867. Future Closure work is #878, containers are #879, and catch-up sub-lifecycles are #874.
+Conditional 4.1 placement remains a separate Hive release-planning decision; this ADR does not assign a milestone.
 No new validation architecture decision is required.
 
 Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 through LP-5 (LP-2 was AutoLink-only),

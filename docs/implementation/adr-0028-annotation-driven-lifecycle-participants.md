@@ -1,6 +1,9 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5 type mutation is implemented; LP-6 is evidence-deferred without a public helper; LP-7 rejection is characterized and accepted for this release; LP-8 remains unqualified.
+Status: Accepted architecture and final public contract. LP-1–LP-5 are merged; LP-6 is evidence-deferred without a
+helper; LP-7's current-release rejection is accepted and merged. [LP-8 final acceptance](issue-867-lp8-evidence.md)
+consolidates all mandatory gates, public signatures, checklist dispositions, verification and delivery evidence.
+Earlier execution records below are historical slice boundaries, not current open core gates.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -345,3 +348,16 @@ rejection for this release on 2026-10-10. [LP-7 evidence](issue-867-lp7-evidence
 The acceptance follow-up changes documentation only and is committed locally. LP-8 whole-feature
 qualification, final user/release documentation and Hive delivery reconciliation remain pending.
 Issue #867 remains open and untargeted; this record does not authorize push or PR creation.
+
+
+## LP-8 final acceptance record
+
+The maintainer delegated final qualification from merged LP-7. [LP-8 evidence](issue-867-lp8-evidence.md) maps every
+mandatory core criterion and the read-only Hive checklist to delivered behavior, tests/docs or explicitly deferred
+optional capability. Existing public names/signatures are retained; no dispatch, validation, ownership, session,
+materialization or generated API redesign is needed. Java/static/dynamic Groovy 3/4/5 consumers, G4/G5 named modules,
+throwing handler constructors and explicit-target validation are qualified by dedicated controls.
+
+The preselected tracker relationship is closure candidate #867, conditional on every mandatory gate and final review.
+No manual closure, curation or milestone mutation is performed. #874/#878/#879 and optional HANDLE remain outside
+#867's delivered contract. Delivery/archive reconciliation belongs to the Hive; the worker requests reconciliation.

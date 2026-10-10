@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.See
+import spock.lang.Tag
 import spock.lang.Issue
 
 @Issue('867')
@@ -59,6 +61,8 @@ class LifecycleParticipantClosureProbeTest extends AbstractDSLSpec {
         thrown(ClassCastException)
     }
 
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#annotation-closure-members')
     def 'ordinary annotation map configures a relationship without a Klum Closure API'() {
         given:
         createSecondaryClass '''

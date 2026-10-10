@@ -28,7 +28,6 @@ import java.lang.annotation.Annotation;
 /**
  * Supplies an unset direct relationship during its containing Builder's field visit.
  * A non-null result uses ordinary checked assignment, ownership and session rules.
- * Provisional LP-1 API (issue #867).
  * @param <A> the exact domain annotation type, also when resolved through inheritance
  */
 @FunctionalInterface
