@@ -2,14 +2,16 @@
 
 Date: 2026-10-10. Base: origin/master through merged LP-6 PR #877,
 `19c27198f82f7b39705786da54c43a3201443fb1`.
-Authority: bounded evidence-only exploration; no production container support or public API authorized.
+Authority: bounded evidence-only exploration, followed by explicit maintainer acceptance of
+retaining rejection for this release on 2026-10-10; no production container support or public API authorized.
 Related: #867. Issue state, milestone, curation and conditional release placement are unchanged.
 
-## Recommendation and the pending decision
+## Accepted disposition
 
-**Recommend retaining rejection of Collection/Map field participants for the first release.**
-The maintainer has not accepted or rejected support. LP-7's mandatory pre-release decision
-therefore remains open; this record completes investigation, not that decision or #867.
+**Retain rejection of Collection/Map field participants for this release.** The maintainer
+accepted this recommendation on 2026-10-10 after reviewing the exploration. LP-7 investigation
+and its mandatory pre-release support-or-reject decision are complete. LP-8 qualification and
+full issue acceptance remain open; this decision does not complete #867.
 
 Smallest honest current options are a containing Builder lifecycle callback, an LP-5 type
 mutator on the child Schema when behavior belongs to that type, or an explicit DSL wrapper
@@ -17,10 +19,10 @@ with a direct-field participant. Each keeps selection/enumeration policy in cons
 Type dispatch cannot stand in for an annotation on one container relationship: the declaration
 lookup is on the child type and aliases visit once. No ScHelm assumptions are needed.
 
-**One requested decision:** accept rejection of Collection/Map field participants for this release,
-retaining the existing direct-field diagnostic and recording the boundary in LP-8; or require a
-separately accepted, bounded support design before release. Support implementation, final diagnostics
-wording and publication require subsequent authorization. No support contract is selected here.
+The accepted release boundary retains the existing clear source/binary direct-field rejection
+and adds no container API or dispatch. LP-8 records this boundary in user guidance and whole-feature
+qualification. Future support requires a separately accepted design. The maintainer authorized
+recording and committing this decision locally; push and PR creation remain unauthorized.
 
 ## State and shape matrix
 
@@ -73,8 +75,8 @@ are deleted and the runtime classpath excludes the Klum compiler. These binary c
 AutoLink; source controls cover all four phases and the shape guard is phase-independent.
 
 The existing message clearly identifies the supported boundary; a specialized container error
-is not required to stop silent acceptance. Propose an LP-8 wording refinement, subject to the
-maintainer decision: remove the obsolete '(LP-1)' suffix and explicitly say Collection/Map
+is not required to stop silent acceptance. With rejection accepted, propose an optional LP-8
+wording refinement: remove the obsolete '(LP-1)' suffix and explicitly say Collection/Map
 fields are unsupported, with guidance to a containing lifecycle callback or child type participant
 when appropriate. Do not imply that a type annotation reads the incoming container annotation.
 No production diagnostic changes are made by this exploration.
@@ -153,7 +155,7 @@ Builder typing and is relevant if support is later designed. No generated interf
 
 | Alternative | Capability and cost | Compatibility / honesty boundary |
 | --- | --- | --- |
-| A. Retain rejection (recommended) | Existing diagnostics; use containing callback, child type mutation, or a direct DSL wrapper | No dispatch/API change. Type mutation has identity/type semantics, not incoming-field annotation semantics. LP-8 must state the rejection clearly after acceptance |
+| A. Retain rejection (accepted for this release) | Existing diagnostics; use containing callback, child type mutation, or a direct DSL wrapper | No dispatch/API change. Type mutation has identity/type semantics, not incoming-field annotation semantics. LP-8 must state the accepted rejection clearly |
 | B. Mutator-only element snapshot, no index/key API | Potential bounded future design: explicitly opt in, take non-null Builder identities from one actual field slot, invoke existing Builder mutation operations | Still needs accepted duplicate versus identity cardinality, removed/new entries, mixed sealed FAIL/SKIP, original container versus element declared type, field ordering and raw/wildcard rules. No creator capability. A silent loop cannot preserve direct-field semantics; cannot claim support now |
 | C. One container-level handler call | Can inspect empty state or choose consumer-managed edits once per field | Current target and creator result are Builder-typed. Needs a separate coherent context/result/assignment API and generated typing qualification; not a small use of the current SPI and no partial API is justified |
 | D. Full element creation/replacement and index/key context | Could address individual missing entries and diagnostics | Needs null/empty interpretation, map-key authority, Set identity, alias/cycle cardinality and mutation scheduling. Contextual per-occurrence metadata, path reconstruction, traversal-order ownership inference and ordering machinery are excluded; reject this approach within the accepted boundaries |
@@ -162,7 +164,8 @@ B is a design candidate, not a proposed signature or authorized implementation. 
 to owned composition and non-null mutators must specify how it rejects mixed OPTIONAL_LINK values
 and preserves direct-field/type phase ordering. A direct DSL wrapper is a current consumer model
 choice under A, not a new Klum container API. No evidence demonstrates a container requirement
-that overrides these compatibility costs; the maintainer owns that prioritization and decision.
+that overrides these compatibility costs. The maintainer selected A for this release; B–D remain
+unimplemented alternatives, with any future support subject to a separate accepted design.
 
 ## Validation and local delivery
 
@@ -199,7 +202,9 @@ An initial lane-isolation invocation pulled in an unfiltered G4 module run after
 completed. That follow-on was interrupted and is not qualification evidence. The command above
 replaced it with explicitly filtered tasks and the XML totals were checked again before commit.
 No broad release qualification is requested or claimed: production sources and generated contracts
-are unchanged. No push, PR, issue mutation or support-or-reject decision is performed.
+are unchanged. No push, PR or issue mutation is performed. The later maintainer decision is
+recorded above;
+the worker did not select the support-or-reject outcome.
 
 Fixture discovery corrected invalid hypotheses/setup rather than implementation: Map-only keyMapping,
 OWNER read timing, fresh self-LINK attachment, existing Set FromMap type requirements, sequential
@@ -223,8 +228,16 @@ Carry these non-blocking documentation observations to the Hive; its future chec
   participant import route. No new documentation-only issue is proposed.
 - Retain LP-6 helper deferral and LP-4 HANDLE deferral; neither solves container typing or traversal.
 
-LP-7 investigation is complete, but its maintainer support-or-reject release decision is pending.
+LP-7 investigation and the maintainer support-or-reject release decision are complete: retain rejection.
 LP-8 still owns whole-feature errors, existing validation example, Java/Groovy/binary/JVM/JPMS
 qualification, final API inventory/names, user guidance, migration/CHANGES and release reconciliation.
 LP-1–LP-5 remain delivered and LP-6/HANDLE evidence-deferred. #867 remains open and untargeted.
-Tracker impact: related issue #867; curation impact none pending the maintainer/Hive decision.
+Tracker impact: related issue #867. The LP-7 decision gate is satisfied; the Hive owns reconciliation
+of that acceptance fact and selects any curation treatment before publication. No curation file,
+tracker state, milestone or release placement is changed by this worker.
+
+The acceptance follow-up changes only ADR/plan/evidence Markdown. Diff and relative-link checks
+apply; the Groovy lanes are not repeated for prose-only decision recording. The existing focused
+125-case G3/G4/G5 evidence remains applicable. Local delivery now comprises the two investigation
+commits plus one additive acceptance commit; prior commits are preserved. Hive handoff and delivery
+reconciliation remain pending, with no push or PR authorized.

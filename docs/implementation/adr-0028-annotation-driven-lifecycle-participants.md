@@ -1,6 +1,6 @@
 # ADR 0028 implementation plan: external lifecycle participants
 
-Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5 type mutation is implemented; LP-6 is evidence-deferred without a public helper; LP-7–LP-8 remain unqualified.
+Status: Accepted architecture with refined core/optional plan; signatures and qualification provisional. LP-1, AutoLink-only LP-2 and LP-3 four-phase field dispatch are implemented under subsequent explicit maintainer delegations; LP-4 sealed policy and bounded construction routes are implemented with HANDLE deferred; LP-5 type mutation is implemented; LP-6 is evidence-deferred without a public helper; LP-7 rejection is characterized and accepted for this release; LP-8 remains unqualified.
 Authority: [ADR 0028](../adr/0028-annotation-driven-lifecycle-participants.md).
 Issue: [#867](https://github.com/klum-dsl/klum-ast/issues/867).
 Prerequisite: [#868](https://github.com/klum-dsl/klum-ast/issues/868).
@@ -41,7 +41,8 @@ ScHelm's Application → @Binding Domain → Facts mutation case comes first.
 
 LP-5, LP-6, LP-4 HANDLE and LP-7 container support are desirable, independently deferrable if
 substantial complexity appears. Attempt straightforward compatible delivery; no public contracts
-for deferred capabilities. LP-7 support-or-reject before release is mandatory, support is not.
+for deferred capabilities. LP-7 support-or-reject before release is mandatory, support is not;
+the maintainer accepted retaining container-field rejection on 2026-10-10.
 LP-1 success alone is not release readiness. Keep one cohesive feature; separate issues/PRs only
 if Hive chooses them.
 
@@ -205,23 +206,24 @@ status. The consumer result does not authorize implementation or fix a helper si
 
 Commit: helper/compiler integration with consumer and existing Closure regressions.
 
-### LP-7 — Independent collections/maps exploration and release decision
+### LP-7 — Independent collections/maps exploration; rejection accepted
 
-Core direct-field implementation cannot depend on this speculative slice.
-Investigate container versus element invocation, null/empty, index/key context, mixed sealed/owned
-entries, mutation during enumeration, aliases and occurrence paths. Produce evidence-backed
-support-or-reject decision before release; unsupported shapes receive clear diagnostics.
-No production collection/map contract is authorized by this plan.
+Core direct-field implementation does not depend on container support.
+[LP-7 evidence](issue-867-lp7-evidence.md) supplies source/binary rejection controls,
+ordinary List/Set/Map traversal and route characterization, Java/static/dynamic Groovy public
+Builder typing (including raw nested generic projection), and concrete support/reject alternatives.
+It covers container versus element invocation, null/empty values, index/key context, mixed
+sealed/owned entries, mutation during enumeration, aliases and occurrence paths.
 
-Exploration record: [LP-7 evidence](issue-867-lp7-evidence.md) supplies source/binary rejection
-controls, ordinary List/Set/Map traversal and route characterization, Java/static/dynamic Groovy
-public Builder typing (including raw nested generic projection), and concrete alternatives.
-Recommendation: retain container-field rejection for the first release. **Maintainer decision pending**;
-this is evidence only, not support implementation or satisfaction of the mandatory decision gate.
-Existing direct-field diagnostics stop unsupported dispatch; an explicit container wording improvement
-is proposed for LP-8 subject to the accepted disposition.
+**Accepted maintainer decision (2026-10-10): retain Collection/Map field-participant rejection
+for this release.** The existing direct-field source and binary diagnostics clearly reject
+unsupported shapes. Investigation and the mandatory support-or-reject decision gate are complete;
+no production container support or partial API is delivered. Future support requires a separately
+accepted design. LP-8 owns concise guidance for the accepted boundary and may refine diagnostic
+wording without broadening eligibility; no diagnostic implementation change is part of LP-7.
 
-Commit: isolated exploratory fixtures/evidence; acceptance needed before any support implementation.
+Local commits retain the isolated exploratory fixtures/evidence and record acceptance. Publication
+remains pending Hive reconciliation and explicit authorization; no push or PR is authorized here.
 
 ### LP-8 — Mandatory errors, existing validation usage, qualification and docs (D8)
 
@@ -256,8 +258,9 @@ Review unpublished history before remote delivery; preserve reviewed commits.
 
 Names/signatures and exact phase slots need consumer/compatibility evidence. Mutation ordering
 is probe-dependent with unspecified order a documented acceptable outcome. Type mutation,
-Closure evaluation and HANDLE may defer independently; container support/reject is a mandatory
-release decision. Validation uses existing infrastructure and is not an architectural gate.
+Closure evaluation and HANDLE may defer independently. The mandatory container support/reject
+release decision is satisfied by the accepted LP-7 rejection; LP-8 qualification remains open.
+Validation uses existing infrastructure and is not an architectural gate.
 Context invocation-only lifetime is documentation-only by decision.
 No ScHelm types/policy, ownership redesign, Model mutation, Template/import API overhaul or
 runtime-internal general extension seam.
@@ -332,3 +335,13 @@ context, singular Schema lookup, Java inheritance and repeatable-container chara
 default `isType()` preserves field contexts and generated contracts. Creators remain field-only and sealed
 aggregation traversal is unchanged. LP-6, LP-7 and LP-8 remain separate gates; #867 stays open and untargeted.
 This record authorizes no further slice, feature-completion claim or release/curation change.
+
+## LP-7 execution and decision record
+
+The maintainer authorized independent evidence-only exploration from merged LP-6 PR #877
+(`19c27198f82f7b39705786da54c43a3201443fb1`) and then accepted retaining container-field
+rejection for this release on 2026-10-10. [LP-7 evidence](issue-867-lp7-evidence.md) records
+125 focused cases per Groovy 3/4/5 lane, the shape/state matrix, alternatives and diagnostics.
+The acceptance follow-up changes documentation only and is committed locally. LP-8 whole-feature
+qualification, final user/release documentation and Hive delivery reconciliation remain pending.
+Issue #867 remains open and untargeted; this record does not authorize push or PR creation.
