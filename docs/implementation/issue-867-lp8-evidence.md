@@ -123,9 +123,18 @@ runtime 73 each; Jackson 81/79/79; bean validation 10 each; annotations 20; Grad
 Repository license checks, lane isolation, coverage tasks and documentation-renderer checks passed. Git state and
 executable inputs stayed stable through the run; prose/evidence edits do not change its Git-derived version.
 The subsequent removal of stale provisional labels is Javadoc-only and receives runtime Javadoc compilation.
-Final two-axis review, commit-history review and final-head CI/SonarCloud evidence are pending while LP-8 is in progress. The final handoff/PR must record their actual outcomes and the final SHA; local results do not
+Independent Standards review of `a9d165c4...5ea76938` found one wording issue: `errorAt` does not bypass explicit
+ERROR suppression. The additive follow-up says ERROR-level instead of unconditional. No other violations/actionable
+smells were found. Specification review is clear with zero findings, including every mandatory criterion and checklist
+item. LP-8 documentary names/methods/page links will be added to the #867 acceptance-evidence comment before handoff.
+
+The committed `5ea76938` documentation rendered and passed the local served-site crawl in 22s with six Javadoc outputs.
+The corrected final prose receives a subsequent committed render/crawl. Runtime Javadoc compilation also passed.
+Dedicated branch history is two focused reasoning steps (qualification, then final contract/guidance) plus additive
+review/evidence follow-up; reviewed commits are preserved. Relative file links and diff checks pass.
+Final-head remote CI/SonarCloud evidence remains pending publication. The final handoff/PR must record their actual outcomes and the final SHA; local results do not
 stand in for remote results. No ignored/pending test, broad suppression or access workaround is added.
 
-Delivery authorization audit: gh CLI repository push capability verified **authorized**; Git SSH push audit pending.
+Delivery authorization audit: gh CLI repository push capability verified **authorized**; Git SSH push dry-run verified **authorized**.
 No GitHub App delivery channel used. Final delivery remains a draft PR. Request Hive reconciliation after handoff;
 open-PR state is not archive-safe, and the worker does not self-archive.

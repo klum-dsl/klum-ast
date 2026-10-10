@@ -467,7 +467,7 @@ assert issue.level == Validate.Level.WARNING
 Normal materialization transfers the Domain Builder's findings to that completed Domain. Existing suppression applies to
 later findings on the selected target; `klum.validation.failOnLevel` controls Verify (ERROR by default). At WARNING,
 the example fails in Verify with `KlumValidationException`, rather than a participant execution error. Use `errorAt` for
-an unconditional ERROR finding. See [Validation](Validation.md#custom-issues) for reporting, suppression and thresholds.
+an ERROR-level finding. See [Validation](Validation.md#custom-issues) for reporting, suppression and thresholds.
 This does not extend validation transfer to sealed wrappers of already completed LINK targets.
 
 ### Participant diagnostics
