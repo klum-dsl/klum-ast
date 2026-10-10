@@ -56,14 +56,14 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
             ClusterModel.getPropertiesStream(element, Object.class)
-                    .map(pv -> ClusterModel.getField(element, pv.getName()))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .filter(field -> field.isAnnotationPresent(AutoCreate.class) || LifecycleParticipants.hasParticipant(field, AutoCreate.class))
-                    .forEach(field -> {
-                        if (element.getInstanceAttribute(field.getName()) == null && field.isAnnotationPresent(AutoCreate.class))
-                            autoCreate(element, field, field.getAnnotation(AutoCreate.class));
-                        LifecycleParticipants.processField(element, field.getName(), AutoCreate.class);
+                    .forEach(property -> {
+                        Object currentValue = property.getValue();
+                        ClusterModel.getField(element, property.getName()).ifPresent(field -> {
+                            if (currentValue == null && field.isAnnotationPresent(AutoCreate.class))
+                                autoCreate(element, field, field.getAnnotation(AutoCreate.class));
+                            if (LifecycleParticipants.hasParticipant(field))
+                                LifecycleParticipants.processField(element, field.getName(), AutoCreate.class);
+                        });
                     });
 
             autoCreateClusterFields(element);

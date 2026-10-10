@@ -6,7 +6,7 @@ Authority: explicit maintainer LP-3 delegation. Related: #867; issue and release
 ## Exact phase slots and contract
 
 Direct retained DSL Schema fields now execute external creators and mutators in all four supported phases.
-Runtime selects only markers matching that phase. Every creator precedes every mutation at one field slot;
+Discovery remains phase-independent so malformed binary declarations reach validation; invocation selects only markers matching that phase. Every creator precedes every mutation at one field slot;
 existing targets skip creation, and null creation skips mutation. Checked assignment, public handler/context
 interfaces and LP-2's ordered-container contract are unchanged. No new public API is introduced.
 
@@ -57,11 +57,17 @@ late-created children. Ownership/session/path and traversal mechanics are unchan
 `LifecycleParticipantConsumerTest` retains LP-1/LP-2 Java/static/dynamic/binary replacement probes and extends
 separate Java annotation-library/Schema/consumer JAR composition to AutoCreate, Default and PostTree.
 Runtime executes after source/class directories are removed and without the compiler on its classpath.
+A binary-replacement control also rejects an annotation library changed to unsupported Validate after Schema compilation.
 The prior unsupported PostTree source control now rejects Validate, which remains outside the four-phase set.
 
 Test-first record: the first four-phase tracer passed AutoLink and failed the three newly supported phases
 with the original unsupported-phase diagnostic. The initial integration made all four pass. A further built-in
 construction-only Default regression failed after integration and drove preservation of its Builder-only path.
+Independent Specification review found that initialized construction-only AutoCreate Closures must bypass
+external Schema lookup, and that phase-specific discovery could silently skip unsupported binary phase declarations.
+Both were reproduced as failing factory/artifact controls, then repaired by guarding external AutoCreate dispatch
+and retaining phase-independent discovery with phase-selected invocation. Standards review's two clarity observations
+were addressed by renaming the Default field step and repairing a prose fragment. Reviewed commits remain intact.
 Existing cluster/traversal/precedence behavior is guarded by regressions through the same factory seam.
 
 ## Qualification and delivery

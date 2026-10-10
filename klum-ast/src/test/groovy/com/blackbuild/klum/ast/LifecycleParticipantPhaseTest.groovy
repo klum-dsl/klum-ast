@@ -419,4 +419,22 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
         then:
         application.observed == 'scratch'
     }
+
+    def 'built-in AutoCreate retains initialized construction-only Closure callbacks'() {
+        given:
+        createSecondaryClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+            @DSL class Application {
+                String observed
+                @AutoCreate void observe() { observed = 'method' }
+                @Field(FieldType.BUILDER) @AutoCreate Closure callback = { observed += ':closure' }
+            }
+        '''
+
+        when:
+        def application = Application.Create.One()
+
+        then:
+        application.observed == 'method:closure'
+    }
 }

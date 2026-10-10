@@ -45,12 +45,11 @@ import java.util.Optional;
 public final class LifecycleParticipants {
     private LifecycleParticipants() {}
 
-    public static boolean hasParticipant(AnnotatedElement field, Class<? extends Annotation> phase) {
+    // Discovery is phase-independent so unsupported precompiled phases reach declaration validation.
+    public static boolean hasParticipant(AnnotatedElement field) {
         for (Annotation annotation : field.getDeclaredAnnotations()) {
-            for (LifecycleCreator creator : annotation.annotationType().getAnnotationsByType(LifecycleCreator.class))
-                if (creator.phase() == phase) return true;
-            for (LifecycleMutator mutator : annotation.annotationType().getAnnotationsByType(LifecycleMutator.class))
-                if (mutator.phase() == phase) return true;
+            if (annotation.annotationType().getAnnotationsByType(LifecycleCreator.class).length != 0
+                    || annotation.annotationType().getAnnotationsByType(LifecycleMutator.class).length != 0) return true;
         }
         return false;
     }

@@ -53,7 +53,7 @@ The whole feature and its conditional 4.1 placement still require the remaining 
 A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
 `@LifecycleMutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
 live in `com.blackbuild.klum.ast.runtime`; a domain annotation library depends on runtime.
-Use `@Retention(RUNTIME)` and field placement. Unsupported scalars, containers, static fields, type/method
+Use `@Retention(RUNTIME)` and field placement. Participants reject scalars, containers, static fields, type/method
 placement, other phase markers, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
 This is a qualification boundary, not a final container or Builder-only-field decision.
 

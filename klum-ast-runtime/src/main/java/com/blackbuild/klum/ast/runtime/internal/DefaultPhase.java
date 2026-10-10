@@ -57,7 +57,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         OwnerProvidedDefaultsCopier.applyTo(element);
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
-        setFieldsAnnotatedWithDefaultAnnotation(element);
+        processDefaultFields(element);
         executeDefaultLifecycleMethods(element);
     }
 
@@ -157,15 +157,15 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         LifecycleHelper.executeLifecycleMethods(element, Default.class);
     }
 
-    private void setFieldsAnnotatedWithDefaultAnnotation(InternalKlumBuilder<?> element) {
+    private void processDefaultFields(InternalKlumBuilder<?> element) {
         Map<String, Object> fields = ClusterModel.getPropertiesStream(element, Object.class,
-                        field -> field.isAnnotationPresent(Default.class) || LifecycleParticipants.hasParticipant(field, Default.class))
+                        field -> field.isAnnotationPresent(Default.class) || LifecycleParticipants.hasParticipant(field))
                 .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);
         fields.entrySet().forEach(entry -> {
             Field field = element.getField(entry.getKey());
             if (isUnset(entry) && field.isAnnotationPresent(Default.class))
                 applyDefaultValue(element, entry.getKey());
-            if (LifecycleParticipants.hasParticipant(field, Default.class))
+            if (LifecycleParticipants.hasParticipant(field))
                 LifecycleParticipants.processField(element, entry.getKey(), Default.class);
         });
     }
