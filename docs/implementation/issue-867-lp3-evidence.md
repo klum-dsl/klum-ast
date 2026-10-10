@@ -80,7 +80,7 @@ unchanged throughout this run. The earlier interrupted full check is not accepta
 | --- | --- |
 | Compiler Groovy 3 / 4 / 5 | 1,689 tests each; zero failures/errors, 15 unchanged skips each |
 | Runtime Groovy 3 / 4 / 5 | 73 tests each; zero failures/errors, one unchanged skip each |
-| Jackson Groovy 3 / 4 / 5 | 75 tests each; zero failures/errors/skips |
+| Jackson Groovy 3 / 4 / 5 | 77 / 75 / 75 tests; zero failures/errors/skips |
 | Bean validation Groovy 3 / 4 / 5 | 10 tests each; zero failures/errors/skips |
 | Gradle plugin | 151 tests; zero failures/errors/skips |
 | Published test support baseline / G4 / G5 | 7 / 6 / 6 tests; zero failures/errors/skips |
