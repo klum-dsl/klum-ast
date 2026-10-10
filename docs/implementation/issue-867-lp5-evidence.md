@@ -36,7 +36,7 @@ same-type subclass override, unmarked superclass and interface non-propagation. 
 priorities, ordering SPI or plural lookup is introduced. Distinct type annotation order is unspecified.
 LP-2's repeated meta-mutator/container value order remains intact.
 
-The artifact tracer uses an inherited repeatable domain annotation and an inherited unmarked container:
+The artifact tracer uses an inherited repeatable domain annotation and an inherited container without a participant marker:
 
 | Schema placement | Singular lookup and execution |
 | --- | --- |
@@ -79,12 +79,35 @@ No compatibility conflict requiring deferral was found.
 
 ## Qualification and remaining gates
 
-Focused Groovy 3 participant coverage passed: 127 tests, zero failures/errors/skips. Compatibility, repository
-checks are being run; results will be recorded before publication. Initial Standards review found one Spock
-assertion-layout violation; initial Specification review requested inherited-container evidence. An additive
-follow-up separates creation/assertions, qualifies inherited/local-override containers in both annotation-author
-lanes, and clarifies sealed type dispatch in Javadoc. The optional internal validator rename is left unchanged
-to keep existing field-check naming stable; its class description now covers fields and types. No ignored/pending test or broad suppression is introduced.
+Focused Groovy 3 participant coverage passed: 127 tests, zero failures/errors/skips. Focused Groovy 4/5
+participant runs also each passed 127 tests. After review follow-up, the updated type/artifact-consumer Groovy 3
+controls passed, followed by stable `./gradlew check --no-parallel` at executable head
+`b93dc180a157a948f9b3a6f757d030dde77adba7` in 11m 46s. Source and Git state remained unchanged during
+that full run. This qualification-only follow-up changes no executable inputs.
+
+| Check | Result |
+| --- | --- |
+| Compiler Groovy 3 / 4 / 5 | 1,741 tests each; zero failures/errors; 15 unchanged skips each |
+| Runtime Groovy 3 / 4 / 5 | 73 tests each; zero failures/errors; one unchanged skip each |
+| Jackson Groovy 3 / 4 / 5 | 81 / 79 / 79 tests; zero failures/errors/skips |
+| Bean validation Groovy 3 / 4 / 5 | 10 tests each; zero failures/errors/skips |
+| Annotations / Gradle plugin | 20 / 151 tests; zero failures/errors/skips |
+| Published test support baseline / G4 / G5 | 7 / 6 / 6 tests; zero failures/errors/skips |
+| Repository license, test-lane isolation, documentation renderer | Passed |
+| Independent Standards / Specification review and additive re-review | Clear on both axes |
+| Commit-history, relative links and diff checks | Passed; 57 relative Markdown file links resolve |
+
+Initial Standards review found one Spock assertion-layout violation; initial Specification review requested
+inherited-container evidence. The additive follow-up separates creation/assertions, qualifies inherited and
+local-override containers in both annotation-author lanes, and clarifies sealed type dispatch in Javadoc.
+The optional internal validator rename is left unchanged to keep existing field-check naming stable; its
+class description now covers fields and types. Reviewed commits remain intact. No ignored/pending test
+or new suppression is introduced. The three-commit implementation/documentation/review sequence was inspected
+against the accepted slice; this final evidence commit is documentation-only.
+
+Git SSH and gh CLI repository delivery capabilities were independently verified authorized before draft
+publication; no GitHub App channel is used. Exact final-head remote CI/SonarCloud outcomes will be recorded
+in the draft PR and handoff, separately from the local results above. Hive owns final delivery reconciliation.
 
 LP-6 Closure evaluation remains optional/unqualified. LP-7 support is optional but support-or-reject with
 diagnostics remains mandatory before release. LP-8 full errors/existing-validation guidance/JVM/JPMS/final
