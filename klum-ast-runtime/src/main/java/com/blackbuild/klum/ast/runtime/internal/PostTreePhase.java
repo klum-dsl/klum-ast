@@ -38,7 +38,7 @@ public class PostTreePhase extends BuilderVisitingPhaseAction {
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         ClusterModel.getPropertiesStream(builder, Object.class,
-                        field -> LifecycleParticipants.hasParticipant(field))
+                        LifecycleParticipants::hasParticipant)
                 .forEach(field -> LifecycleParticipants.processField(builder, field.getName(), PostTree.class));
         LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
     }

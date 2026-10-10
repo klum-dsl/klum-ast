@@ -54,21 +54,25 @@ final class LifecycleParticipantDeclaration {
             if (field.isAnnotationPresent(builtIn))
                 creators.put(builtIn == LinkTo.class ? AutoLink.class : builtIn, 1);
         }
-        for (Annotation annotation : field.getDeclaredAnnotations()) {
-            Class<? extends Annotation> domain = annotation.annotationType();
-            LifecycleCreator[] creation = domain.getAnnotationsByType(LifecycleCreator.class);
-            LifecycleMutator[] mutation = domain.getAnnotationsByType(LifecycleMutator.class);
-            if (creation.length == 0 && mutation.length == 0) continue;
-            if (Modifier.isStatic(field.getModifiers()) || !DslHelper.isDslType(field.getType()))
-                throw new KlumSchemaException("Lifecycle participant requires a non-static direct DSL field: " + field);
-            for (LifecycleCreator creator : creation) {
-                checkHandler(field, domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
-                if (creators.merge(creator.phase(), 1, Integer::sum) > 1)
-                    throw new KlumSchemaException("Competing lifecycle creators for " + creator.phase().getSimpleName() + " on " + field);
-            }
-            for (LifecycleMutator mutator : mutation)
-                checkHandler(field, domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
+        for (Annotation annotation : field.getDeclaredAnnotations())
+            checkParticipantAnnotation(field, annotation, creators);
+    }
+
+    private static void checkParticipantAnnotation(Field field, Annotation annotation,
+                                                   Map<Class<? extends Annotation>, Integer> creators) {
+        Class<? extends Annotation> domain = annotation.annotationType();
+        LifecycleCreator[] creation = domain.getAnnotationsByType(LifecycleCreator.class);
+        LifecycleMutator[] mutation = domain.getAnnotationsByType(LifecycleMutator.class);
+        if (creation.length == 0 && mutation.length == 0) return;
+        if (Modifier.isStatic(field.getModifiers()) || !DslHelper.isDslType(field.getType()))
+            throw new KlumSchemaException("Lifecycle participant requires a non-static direct DSL field: " + field);
+        for (LifecycleCreator creator : creation) {
+            checkHandler(field, domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
+            if (creators.merge(creator.phase(), 1, Integer::sum) > 1)
+                throw new KlumSchemaException("Competing lifecycle creators for " + creator.phase().getSimpleName() + " on " + field);
         }
+        for (LifecycleMutator mutator : mutation)
+            checkHandler(field, domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
     }
 
     private static void checkHandler(Field field, Class<? extends Annotation> domain, Class<? extends Annotation> phase,

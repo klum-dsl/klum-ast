@@ -27,7 +27,9 @@ import java.lang.annotation.Annotation;
 
 /**
  * Configures a non-null target after field creation and before child phase visitation.
- * Multiple mutations have no qualified ordering guarantee. Provisional LP-1 API (issue #867).
+ * Repeated mutations within one domain annotation follow declaration/container value order.
+ * Order between different domain annotations or mixed singular/container markers is unspecified.
+ * Provisional API (issue #867).
  * @param <A> the exact domain annotation type, also when resolved through inheritance
  */
 @FunctionalInterface

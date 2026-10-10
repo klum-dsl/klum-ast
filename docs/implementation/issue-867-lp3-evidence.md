@@ -102,3 +102,17 @@ LP-4 sealed FAIL/SKIP and graph/Template/import compatibility; optional type mut
 final API names and release qualification. A container support-or-reject decision remains mandatory before
 release. No ScHelm policy, provider selection, general extension machinery, or ownership/session/materialization
 redesign is delivered or authorized by this slice.
+
+## Remote review follow-up
+
+Published head `64ea7b2bac66cf85c71e7ca1da84f63c55d038ed` passed
+[CI run 38035136101](https://github.com/klum-dsl/klum-ast/actions/runs/38035136101), JUnit Test Report,
+SonarCloud and SonarCloud Code Analysis. The matching
+[PR analysis](https://sonarcloud.io/dashboard?id=klum-dsl_klum-ast&pullRequest=873), 2026-10-10 07:54:52 UTC,
+reported quality gate OK, zero bugs/vulnerabilities/security hotspots and three maintainability findings:
+java:S3776 (declaration validation complexity 20 versus 15), java:S1612 (method reference), and
+groovydre:S8306 (test if braces). An additive follow-up extracts per-annotation declaration checking,
+uses the method reference and braces the test control. No suppression or behavior/API change is introduced.
+The same follow-up synchronizes a stale current public-inventory row and handler ordering Javadoc with
+LP-2/LP-3's delivered contract. Those wording corrections were independently reviewed.
+Final follow-up qualification and exact-head remote results are recorded in PR #873 and the handoff.

@@ -131,7 +131,11 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
         """
 
         when:
-        def application = Application.Create.With { if (existing) child {} }
+        def application = Application.Create.With {
+            if (existing) {
+                child {}
+            }
+        }
 
         then:
         application.child.grandchild.value == 'parent:field:method:closure'
