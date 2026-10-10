@@ -102,9 +102,10 @@ class LifecycleParticipantTypeTest extends AbstractDSLSpec {
         """
 
         when:
+        def childContents = { leaf {} }
         def result = Application.Create.With {
             if (existing) {
-                child { leaf {} }
+                child(childContents)
             }
         }
         def root = Application.Create.One()

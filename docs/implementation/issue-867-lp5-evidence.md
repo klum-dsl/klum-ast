@@ -83,7 +83,7 @@ Focused Groovy 3 participant coverage passed: 127 tests, zero failures/errors/sk
 participant runs also each passed 127 tests. After review follow-up, the updated type/artifact-consumer Groovy 3
 controls passed, followed by stable `./gradlew check --no-parallel` at executable head
 `b93dc180a157a948f9b3a6f757d030dde77adba7` in 11m 46s. Source and Git state remained unchanged during
-that full run. This qualification-only follow-up changes no executable inputs.
+that full run. The subsequent qualification-record commits changed no executable inputs.
 
 | Check | Result |
 | --- | --- |
@@ -104,11 +104,27 @@ The optional internal validator rename is left unchanged to keep existing field-
 class description now covers fields and types. Reviewed commits remain intact. No ignored/pending test
 or broad suppression is introduced. The localized unchecked cast suppression in type mutation documents
 that runtime declaration validation precedes the generic invocation. The three-commit implementation/documentation/review sequence was inspected
-against the accepted slice; this final evidence commit is documentation-only.
+against the accepted slice; the subsequent qualification-record commits were documentation-only.
 
 Git SSH and gh CLI repository delivery capabilities were independently verified authorized before draft
 publication; no GitHub App channel is used. Exact final-head remote CI/SonarCloud outcomes will be recorded
 in the draft PR and handoff, separately from the local results above. Hive owns final delivery reconciliation.
+
+Post-publication qualification at `28a7bd3ecd99ff89efb07467aa67b7c8ecfa0fde` passed all four remote
+checks: CI build, JUnit Test Report, SonarCloud and SonarCloud Code Analysis. CI reported 5,901 tests,
+48 existing skips and zero failures. SonarCloud's exact-revision analysis passed its quality gate with
+96.4% new-code coverage, 0% duplication and no bugs, vulnerabilities or hotspots, but reported one
+`groovydre:S134` nesting smell in the documentary test. The additive follow-up extracts the child-content
+Closure, preserving the supplied/creator branches and every assertion without suppression. Focused
+Groovy 3/4/5 type tests each passed all 21 scenarios with zero failures/errors/skips; both independent
+review axes cleared the follow-up. Final-head remote results will be recorded in the PR and handoff.
+
+Hive's external coordination record `klum-ast-hive/project-memory/state/lp-8-acceptance-checklist.md`
+already carries the LP-5 context contract. Carry forward one non-blocking clarification: repeatable
+domain containers differ from LP-2 repeated meta-mutators; a local container can coexist with an inherited
+singular domain annotation that still dispatches, without implicit container expansion. Distinct type
+annotation order remains unspecified. The matrix above supplies the evidence; no implementation or
+user-document change was made solely for the checklist.
 
 LP-6 Closure evaluation remains optional/unqualified. LP-7 support is optional but support-or-reject with
 diagnostics remains mandatory before release. LP-8 full errors/existing-validation guidance/JVM/JPMS/final
