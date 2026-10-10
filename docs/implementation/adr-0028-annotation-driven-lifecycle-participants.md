@@ -213,6 +213,14 @@ entries, mutation during enumeration, aliases and occurrence paths. Produce evid
 support-or-reject decision before release; unsupported shapes receive clear diagnostics.
 No production collection/map contract is authorized by this plan.
 
+Exploration record: [LP-7 evidence](issue-867-lp7-evidence.md) supplies source/binary rejection
+controls, ordinary List/Set/Map traversal and route characterization, Java/static/dynamic Groovy
+public Builder typing (including raw nested generic projection), and concrete alternatives.
+Recommendation: retain container-field rejection for the first release. **Maintainer decision pending**;
+this is evidence only, not support implementation or satisfaction of the mandatory decision gate.
+Existing direct-field diagnostics stop unsupported dispatch; an explicit container wording improvement
+is proposed for LP-8 subject to the accepted disposition.
+
 Commit: isolated exploratory fixtures/evidence; acceptance needed before any support implementation.
 
 ### LP-8 — Mandatory errors, existing validation usage, qualification and docs (D8)

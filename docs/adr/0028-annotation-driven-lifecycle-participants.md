@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. [LP-6 Closure probe](../implementation/issue-867-lp6-evidence.md) is evidence-deferred without a public helper; LP-7–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. [LP-6 Closure probe](../implementation/issue-867-lp6-evidence.md) is evidence-deferred without a public helper; [LP-7 container exploration](../implementation/issue-867-lp7-evidence.md) characterizes rejection and recommends retaining it; the maintainer support-or-reject decision and LP-8 qualification remain pending; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -69,6 +69,12 @@ type invocation returns the concrete Schema as declared type and incoming FieldT
 Initial supported phases: AutoCreate, AutoLink, Default and PostTree. Select by the lifecycle
 annotation Class (Groovy: phase = AutoLink; Java: phase = AutoLink.class), not an annotation
 instance, phase enum or number. Validate against these four markers. No custom phase contract.
+
+LP-7 evidence: current source and binary declarations reject Collection/Map field participants;
+ordinary container traversal may still invoke child type participants with identity semantics and
+no index/key context. [The state/shape matrix and alternatives](../implementation/issue-867-lp7-evidence.md)
+recommend retaining rejection for the first release. This recommendation is not a maintainer decision;
+D1's mandatory pre-release support-or-reject gate remains open. No container API or dispatch is added.
 
 ### D2 — Two composable capabilities
 
