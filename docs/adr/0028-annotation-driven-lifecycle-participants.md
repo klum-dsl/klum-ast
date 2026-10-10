@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. [LP-6 Closure probe](../implementation/issue-867-lp6-evidence.md) is evidence-deferred without a public helper; LP-7–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. [LP-6 Closure probe](../implementation/issue-867-lp6-evidence.md) is evidence-deferred without a public helper; [LP-7 container exploration](../implementation/issue-867-lp7-evidence.md) qualifies the existing rejection, accepted by the maintainer for this release on 2026-10-10; LP-8 qualification remains pending; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -53,14 +53,17 @@ Desirable but independently deferrable: type mutation (LP-5), annotation Closure
 compatible implementations. Substantial complexity permits evidence-backed deferral without
 blocking the core. Optional does not mean automatically deferred. Do not publish partial APIs
 for deferred capabilities. Container support is optional, but a pre-release support-or-reject
-decision with diagnostics is mandatory. LP-1 alone does not qualify the whole feature.
+decision with diagnostics is mandatory and is satisfied by the accepted rejection in D1.
+LP-1 alone does not qualify the whole feature.
 Separate issues/PRs per slice are unnecessary unless the Hive selects independent delivery.
 
 ### D1 — Placement and phase selection
 
 Support domain annotations on direct DSL-typed fields. Scalars are outside scope.
-Collections/maps of DSL values have an independent exploratory slice and a mandatory
-support-or-reject decision before release; core implementation must not depend on that slice.
+Collection/Map field participants, including List, Set and Map fields of DSL values, remain
+unsupported for this release. The maintainer accepted retaining the existing rejection on
+2026-10-10 after the independent LP-7 exploration; core implementation does not depend on
+container support.
 
 LP-5 qualifies mutating participants on Schema types if the domain author permits TYPE.
 It is independently deferrable, not a mandatory core or 4.1 gate. The qualified additive context discriminator is `LifecycleMutationContext.isType()` (default false);
@@ -69,6 +72,14 @@ type invocation returns the concrete Schema as declared type and incoming FieldT
 Initial supported phases: AutoCreate, AutoLink, Default and PostTree. Select by the lifecycle
 annotation Class (Groovy: phase = AutoLink; Java: phase = AutoLink.class), not an annotation
 instance, phase enum or number. Validate against these four markers. No custom phase contract.
+
+LP-7 accepted disposition (2026-10-10): retain rejection of Collection/Map field participants
+for this release. [The state/shape matrix and alternatives](../implementation/issue-867-lp7-evidence.md)
+qualify clear source and binary direct-field diagnostics, satisfying the mandatory support-or-reject
+decision gate. Ordinary container traversal may still invoke child type participants with identity
+semantics and no index/key context; it is not container-field participation. No container API or
+dispatch is added. LP-8 carries this boundary into user guidance and whole-feature qualification;
+future support requires a separately accepted design.
 
 ### D2 — Two composable capabilities
 
@@ -253,7 +264,8 @@ mapping/helper signature and HANDLE feasibility. Optional deferrals: LP-6, HANDL
 LP-7 support; document evidence and omit unqualified public APIs.
 
 Remaining maintainer input follows probes: final names/signatures, optional deferral
-recommendations, Collection/Map support-or-reject, conditional 4.1 placement after core evidence.
+recommendations and conditional 4.1 placement after core evidence. The LP-7 Collection/Map
+support-or-reject decision is settled as rejection for this release.
 No new validation architecture decision is required.
 
 Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 through LP-5 (LP-2 was AutoLink-only),
