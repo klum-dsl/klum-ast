@@ -63,9 +63,29 @@ transfer change, unsealing or mutation privilege is introduced. Optional deferra
 
 ## Validation and review
 
-Focused baseline Groovy 3 factory, route and Jackson import checks passed. Final affected compatibility,
-full repository checks, independent Standards/Specification review and exact-head remote CI/SonarCloud
-results are recorded below once observed; focused success alone is not full acceptance.
+Focused baseline Groovy 3 factory, route and Jackson import checks passed. Affected compatibility
+checks passed; the Groovy 4 compiler module ran its full suite and Groovy 5 ran 102 participant controls.
+The subsequent stable-head `./gradlew check --no-parallel` passed in 10m 29s at `143c26c2`, with no source
+changes during the run. The evidence-only follow-up changes no executable inputs.
+
+| Check | Result |
+| --- | --- |
+| Compiler Groovy 3 / 4 / 5 | 1,716 tests each; zero failures/errors; 15 unchanged skips each |
+| Runtime Groovy 3 / 4 / 5 | 73 tests each; zero failures/errors; one unchanged skip each |
+| Jackson Groovy 3 / 4 / 5 | 81 / 79 / 79 tests; zero failures/errors/skips |
+| Bean validation Groovy 3 / 4 / 5 | 10 tests each; zero failures/errors/skips |
+| Gradle plugin | 151 tests; zero failures/errors/skips |
+| Published test support baseline / G4 / G5 | 7 / 6 / 6 tests; zero failures/errors/skips |
+| Repository license and test-lane isolation | Passed |
+| Independent Standards review | Zero violations/actionable smells at `143c26c2` |
+| Independent Specification review | Zero findings at `143c26c2` |
+| Commit-history / relative Markdown links / diff checks | Passed; four focused reasoning steps; all 41 relative file links resolve |
+
+No new suppression or ignored/pending test. The documentation-only qualification follow-up receives
+relative-link and diff checks. Exact final-head remote CI and SonarCloud results are recorded in the draft
+PR and completion handoff after publication, distinguishing them from local results. Reviewed history
+is preserved. Git SSH and gh CLI repository capabilities were independently verified authorized;
+no GitHub App delivery channel is used.
 
 ## Remaining gates and delivery boundary
 
