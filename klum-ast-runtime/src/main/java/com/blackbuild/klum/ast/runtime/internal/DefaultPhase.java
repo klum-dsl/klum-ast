@@ -54,6 +54,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
 
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        LifecycleParticipants.processType(element, container, nameOfFieldInContainer, Default.class);
         OwnerProvidedDefaultsCopier.applyTo(element);
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);

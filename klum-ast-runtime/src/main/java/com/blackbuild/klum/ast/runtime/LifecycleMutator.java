@@ -31,8 +31,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Opts a domain field annotation into external Builder mutation.
- * Direct DSL fields participate in AutoCreate, AutoLink, Default or PostTree.
+ * Opts a domain field or Schema-type annotation into external Builder mutation.
+ * Direct DSL fields and visited Schema types participate in AutoCreate, AutoLink, Default or PostTree.
  * Repeated mutations execute in declaration order, or explicit List value order.
  * Relative order of a singular marker mixed with List, and of different domain annotations, is unspecified.
  * Each invocation constructs a fresh public concrete handler with a public no-arg constructor.

@@ -29,24 +29,24 @@ import java.lang.annotation.Annotation;
 import java.util.Optional;
 
 /**
- * Context of one direct Schema field occurrence. Valid for the invocation only; retaining it grants no
- * additional Builder/session rights. Metadata and lookup refer to the original Schema declaration.
+ * Context of one Schema declaration occurrence. Valid for the invocation only; retaining it grants no
+ * additional Builder/session rights. Lookup refers to the original Schema field, or to the visited Schema type for type mutation.
  * Provisional LP-1 API (issue #867).
  * @param <A> the exact domain annotation type
  */
 public interface LifecycleFieldContext<A extends Annotation> {
-    /** Returns the actual domain annotation on this field. */
+    /** Returns the actual domain annotation on the dispatched declaration. */
     A getAnnotation();
-    /** Singular typed lookup on the original Schema field declaration. */
+    /** Singular typed lookup on the original Schema field, or inherited lookup on the visited Schema type. */
     <B extends Annotation> Optional<B> getAnnotation(Class<B> annotationType);
-    /** The actual containing Builder, including inherited field occurrences. */
+    /** The actual containing Builder from traversal, including inherited fields; null for a type invocation at root. */
     // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
     @SuppressWarnings("java:S1452")
     KlumBuilder<?> getContainingBuilder();
-    /** The annotated relationship's name in the containing Schema. */
+    /** The incoming field name; null for a type invocation at root. */
     String getFieldName();
-    /** Declared DSL Model type; it may differ from the target's concrete Model type. */
+    /** Declared field Model type for field dispatch; concrete Schema type for type dispatch. */
     Class<?> getDeclaredType();
-    /** Effective relationship FieldType. */
+    /** Effective incoming relationship FieldType; null when type traversal has no Schema field. */
     FieldType getFieldType();
 }

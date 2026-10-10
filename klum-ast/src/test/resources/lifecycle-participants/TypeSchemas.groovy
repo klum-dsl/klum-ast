@@ -21,22 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.runtime;
+package participant.fixture
+import com.blackbuild.klum.ast.DSL
+import participant.fixture.TypeRules.Managed
+import participant.fixture.TypeRules.Other
+import participant.fixture.TypeRules.Local
 
-import java.lang.annotation.Annotation;
-
-/**
- * A non-null Builder target to configure through its generated public contract.
- * Field targets fail by default or skip when sealed according to {@link LifecycleMutator#onSealed()}.
- * Type dispatch follows existing traversal, which skips sealed aggregation targets.
- * @param <A> the exact domain annotation type
- */
-public interface LifecycleMutationContext<A extends Annotation> extends LifecycleFieldContext<A> {
-    /** True for a Schema-type invocation; false for direct field invocation. */
-    default boolean isType() { return false; }
-
-    /** Returns the visited Builder for type dispatch, or the existing/just-created field target. */
-    // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
-    @SuppressWarnings("java:S1452")
-    KlumBuilder<?> getTargetBuilder();
-}
+@Managed('base') @Other @Local @DSL class BaseSchema extends TypeDomain {}
+@DSL class InheritedSchema extends BaseSchema {}
+@Managed('override') @DSL class OverrideSchema extends BaseSchema {}
+@Managed('one') @Managed('two') @DSL class RepeatedSchema extends BaseSchema {}
+@Managed('one') @Managed('two') @DSL class OnlyRepeatedSchema extends TypeDomain {}
+@DSL class InheritedContainerSchema extends OnlyRepeatedSchema {}
+@Managed('three') @Managed('four') @DSL class OverrideContainerSchema extends OnlyRepeatedSchema {}
+@Managed('interface') interface MarkerInterface {}
+@DSL class InterfaceSchema extends TypeDomain implements MarkerInterface {}
+@Managed('root') @DSL class RootSchema extends TypeDomain { @Managed('incoming') BaseSchema child }

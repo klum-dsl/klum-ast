@@ -44,6 +44,7 @@ public class AutoLinkPhase extends BuilderVisitingPhaseAction {
 
     @Override
     protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        LifecycleParticipants.processType(element, container, nameOfFieldInContainer, AutoLink.class);
         Map<String, Object> fields = ClusterModel.getPropertiesStream(element, Object.class,
                         field -> field.isAnnotationPresent(LinkTo.class) || LifecycleParticipants.hasParticipant(field))
                 .collect(HashMap::new, (result, field) -> result.put(field.getName(), field.getValue()), Map::putAll);

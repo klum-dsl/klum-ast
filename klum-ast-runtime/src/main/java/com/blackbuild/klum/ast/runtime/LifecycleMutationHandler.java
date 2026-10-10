@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.runtime;
 import java.lang.annotation.Annotation;
 
 /**
- * Configures a non-null target after field creation and before child phase visitation.
+ * Configures a non-null field target after creation, or a visited Schema Builder before its fields.
  * Repeated mutations within one domain annotation follow declaration/container value order.
  * Order between different domain annotations or mixed singular/container markers is unspecified.
  * Provisional API (issue #867).

@@ -292,6 +292,12 @@ semantic migration.
 Do not broaden this script by guessing package destinations or rewriting unresolved compiler errors. The compilation and
 model checks are the handoff from mechanical edits to the actual migration.
 
+## External lifecycle type participants
+
+Schema type annotations may now select external mutating lifecycle participants; creators remain field-only.
+Type handlers receive the visited Builder, with null containing Builder/name at root. See
+[Model Phases — type mutation](Model-Phases.md#type-mutation-lp-5) for ordering and inherited annotation lookup.
+
 ## Builder Lifecycle Field Types
 
 Builder lifecycle code preserves ordinary declared collection and map element types. A statically checked `@Default` or

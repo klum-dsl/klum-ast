@@ -404,7 +404,7 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         messages
     }
 
-    def 'rejects participants placed on a Schema type or method (#placement)'() {
+    def 'rejects participants placed on a method (#placement)'() {
         when:
         createSecondaryClass """
             import com.blackbuild.klum.ast.runtime.*
@@ -427,6 +427,6 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         failure.message.contains('LP-1 lifecycle participants require direct Schema field placement')
 
         where:
-        placement << ['type', 'method']
+        placement << ['method']
     }
 }

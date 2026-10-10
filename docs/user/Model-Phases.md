@@ -47,14 +47,14 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## External field participants (LP-1)
 
-Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers the LP-1 tracer, LP-2 composition and LP-3 field dispatch: domain annotations on direct DSL fields during `AutoCreate`, `AutoLink`, `Default` and `PostTree`. Names and signatures remain provisional.
+Issue [#867](https://github.com/klum-dsl/klum-ast/issues/867) currently delivers the LP-1–LP-4 field participation and LP-5 type mutation: domain annotations on direct DSL fields during `AutoCreate`, `AutoLink`, `Default` and `PostTree`. Names and signatures remain provisional.
 The whole feature and its conditional 4.1 placement still require the remaining ADR 0028 gates.
 
 A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
 `@LifecycleMutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
 live in `com.blackbuild.klum.ast.runtime`; a domain annotation library depends on runtime.
-Use `@Retention(RUNTIME)` and field placement. Participants reject scalars, containers, static fields, type/method
-placement, other phase markers, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
+Use `@Retention(RUNTIME)` and field placement; mutators also support Schema TYPE placement as described below.
+Field participants reject scalars, containers, static fields, method placement, other phase markers, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
 This is a qualification boundary, not a final container or Builder-only-field decision.
 
 ### Reusing a typed consumer contract
@@ -170,7 +170,8 @@ assert application.absent == null
 `LifecycleFieldContext<A>` exposes `getAnnotation()`, singular typed
 `getAnnotation(Class<B>): Optional<B>`, `getContainingBuilder(): KlumBuilder<?>`, `getFieldName()`,
 `getDeclaredType(): Class<?>` and effective `getFieldType(): FieldType` from the original Schema declaration.
-`LifecycleMutationContext<A>` additionally exposes `getTargetBuilder(): KlumBuilder<?>`.
+`LifecycleMutationContext<A>` additionally exposes `getTargetBuilder(): KlumBuilder<?>` and default `isType(): boolean`
+(false for fields). Type invocation changes lookup and root context as described under LP-5 below.
 There is no setter, reflective Field, annotation list, path API, or expiry operation. Contexts are for the
 invocation only; retaining them grants no new Builder rights.
 
@@ -178,8 +179,8 @@ Each invocation constructs a fresh public concrete handler with a public no-arg 
 parameter must resolve exactly to the domain annotation, including generic inheritance. Raw, wildcard,
 unresolved and mismatched parameters fail Schema compilation; runtime independently defends precompiled
 inputs before invocation. All four phases and sealed FAIL/SKIP are qualified below, together with
-bounded Template/import/graph coverage. Full JVM/JPMS coverage, validation guidance and optional type,
-Closure and container decisions remain later gates. HANDLE is deferred without a public API. See the
+bounded Template/import/graph coverage. Type mutation is qualified under LP-5 below. Full JVM/JPMS coverage,
+validation guidance and optional Closure and container decisions remain later gates. HANDLE is deferred without a public API. See the
 [LP-1 evidence](../implementation/issue-867-lp1-evidence.md) and
 [ADR 0028 plan](../implementation/adr-0028-annotation-driven-lifecycle-participants.md).
 
@@ -289,7 +290,7 @@ Those children receive the current phase's field work, methods, then Closures th
 Earlier phases do not rerun for children created later. No new traversal, ownership or path reconstruction is used.
 
 [LP-3 evidence](../implementation/issue-867-lp3-evidence.md) records the exact slots and regressions.
-LP-4 qualifies sealed FAIL/SKIP and existing construction routes below; optional type/Closure/container capabilities
+LP-4 qualifies sealed FAIL/SKIP and existing construction routes below; optional Closure/container capabilities
 and final errors, validation, JVM/JPMS and release qualification remain later gates. This is partial feature
 qualification and leaves #867 and its release placement unchanged.
 
@@ -342,6 +343,59 @@ relationship getters read empty wrapper storage. Wrapper-targeted validation rep
 to the existing completed target. A dispatch-only opt-in would therefore expose an inconsistent read and
 validation contract. LP-4 adds no completed-target access or reporting framework and never unseals targets.
 [LP-4 evidence](../implementation/issue-867-lp4-evidence.md) records the bounded probes and route matrix.
+
+### Type mutation (LP-5)
+
+A domain annotation with `@Target(TYPE)` may select mutating participants for the visited Schema Builder.
+Creators remain field-only. The same `LifecycleMutationHandler<A>` is used for field and type placement;
+`LifecycleMutationContext.isType()` distinguishes them. Type mutations run at the start of that Builder's
+existing AutoCreate, AutoLink, Default or PostTree visit, after parent-field dispatch and before its own
+fields, clusters, defaults, lifecycle methods and Closure callbacks. No extra traversal or phase replay occurs.
+
+(See: `LifecycleParticipantTypeTest#'type mutation follows parent fields and precedes own fields and callbacks in #phase (#existing)'`.)
+
+```groovy
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.TYPE, ElementType.FIELD])
+@LifecycleMutator(phase = AutoLink, handler = Configure)
+@interface Managed { String value() }
+
+class Configure implements LifecycleMutationHandler<Managed> {
+    void mutate(LifecycleMutationContext<Managed> context) {
+        def target = Service.Create.narrowBuilder(context.targetBuilder)
+        target.region(context.annotation.value())
+    }
+}
+
+@Managed('eu')
+@DSL class Service { String region }
+assert Service.Create.One().region == 'eu'
+```
+
+For type invocation, the target is the visited Builder and `getDeclaredType()` is its concrete Schema type.
+Containing Builder and incoming field name come directly from traversal and are both null at root.
+`getFieldType()` reads the incoming original Schema field when traversal has one and returns null otherwise.
+There is no owning-relationship lookup or requirement. Singular `getAnnotation(Class)` queries the Schema type,
+with Java inheritance semantics, rather than the incoming field. Field invocation retains its original declaration
+lookup and actual containing subtype receiver. Context lifetime remains invocation-only.
+
+Only annotations marked `@Inherited` propagate from superclasses. A subclass annotation of the same type
+replaces that inherited annotation; interface annotations and unmarked annotations do not propagate.
+Discovery uses ordinary `Class.getAnnotations()` and lookup uses `Class.getAnnotation()`, with no plural
+expansion. A repeatable domain annotation's container is a separate annotation type: repeated uses alone do
+not dispatch unless that container itself has a mutator. A subclass container can coexist with an inherited
+singular annotation; that singular annotation still dispatches. An unannotated subclass inherits the container
+itself, while a local container replaces the inherited container, without implicit per-entry expansion. Java and Groovy authored libraries qualify
+this behavior. This is separate from repeated **meta-mutators** within one domain annotation, whose LP-2
+container/declaration order remains supported. Ordering between distinct type annotation types, or a
+singular meta-marker mixed with its explicit container, remains unspecified. Handlers must be independent
+of that order; no priorities or sorting are introduced.
+
+Sealed aggregation targets retain the current traversal skip and receive no type invocation, regardless
+of their annotation's sealed policy. Fresh handlers, active sessions, checked assignment, ownership,
+Template value-only definitions, recipient lifecycle and materialization retain their existing boundaries.
+See [LP-5 evidence](../implementation/issue-867-lp5-evidence.md). LP-6, LP-7 and LP-8 remain separate gates;
+this slice does not qualify the whole feature or assign #867 to a release.
 
 ## Phase Details
 

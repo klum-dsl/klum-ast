@@ -21,22 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.runtime;
-
-import java.lang.annotation.Annotation;
-
-/**
- * A non-null Builder target to configure through its generated public contract.
- * Field targets fail by default or skip when sealed according to {@link LifecycleMutator#onSealed()}.
- * Type dispatch follows existing traversal, which skips sealed aggregation targets.
- * @param <A> the exact domain annotation type
- */
-public interface LifecycleMutationContext<A extends Annotation> extends LifecycleFieldContext<A> {
-    /** True for a Schema-type invocation; false for direct field invocation. */
-    default boolean isType() { return false; }
-
-    /** Returns the visited Builder for type dispatch, or the existing/just-created field target. */
-    // ADR 0028 requires a Schema-neutral Builder boundary for reusable consumer handlers.
-    @SuppressWarnings("java:S1452")
-    KlumBuilder<?> getTargetBuilder();
-}
+package participant.fixture
+import com.blackbuild.klum.ast.DSL
+@DSL class TypeDomain { String value = ''; String other; String local }

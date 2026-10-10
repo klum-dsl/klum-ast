@@ -128,6 +128,80 @@ class LifecycleParticipantConsumerTest extends Specification {
         'Java'   | 'repeated'  | 'PostTree'
     }
 
+    def 'qualifies type dispatch and repeatable inheritance with #author annotations and Java and Groovy consumers (#replacement)'() {
+        given:
+        Path root = temporaryFolder.newFolder().toPath()
+        Path sources = Files.createDirectories(root.resolve('sources'))
+        Path classes = Files.createDirectories(root.resolve('classes'))
+        List<Path> jars = runtimeAndCompilerJars()
+        ['TypeDomain.groovy', 'TypeRules.java', 'TypeSchemas.groovy', 'TypeWriters.groovy', 'TypeMain.java'].each { file ->
+            getClass().getResourceAsStream('/lifecycle-participants/' + file).withCloseable {
+                Files.copy(it, sources.resolve(file))
+            }
+        }
+        compileGroovy(sources, classes, jars, ['TypeDomain.groovy'])
+        Path domain = jar(root, classes, 'domain.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        String librarySource = author == 'Java' ? 'TypeRules.java' : 'TypeRules.groovy'
+        String declaration = Files.readString(sources.resolve('TypeRules.java'))
+        if (author == 'Groovy') {
+            declaration = declaration.replace('@Target({ElementType.TYPE, ElementType.FIELD})', '@Target([ElementType.TYPE, ElementType.FIELD])')
+        }
+        Files.writeString(sources.resolve(librarySource), declaration)
+        if (author == 'Java') compileJava(sources, classes, jars + [domain], [librarySource])
+        else compileGroovy(sources, classes, jars + [domain], [librarySource])
+        Path library = jar(root, classes, 'annotations.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        compileGroovy(sources, classes, jars + [domain, library], ['TypeSchemas.groovy', 'TypeWriters.groovy'])
+        Path schema = jar(root, classes, 'schema.jar')
+        classes.toFile().deleteDir()
+        Files.createDirectories(classes)
+        compileJava(sources, classes, jars + [domain, library, schema], ['TypeMain.java'])
+        Path consumer = jar(root, classes, 'consumer.jar')
+        if (replacement != 'none') {
+            String invalid = declaration
+            if (replacement == 'phase') {
+                invalid = declaration.replace('import com.blackbuild.klum.ast.layer3.AutoLink;', 'import com.blackbuild.klum.ast.Validate;')
+                        .replace('phase = AutoLink.class', 'phase = Validate.class')
+            } else if (replacement == 'handler') {
+                invalid = declaration.replace('handler = ZFirst.class', 'handler = LocalHandler.class')
+            } else {
+                invalid = declaration.replace('import com.blackbuild.klum.ast.runtime.LifecycleMutator;',
+                        'import com.blackbuild.klum.ast.runtime.LifecycleMutator;\nimport com.blackbuild.klum.ast.runtime.LifecycleCreator;\nimport com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;\nimport com.blackbuild.klum.ast.runtime.LifecycleFieldContext;\nimport com.blackbuild.klum.ast.runtime.KlumBuilder;')
+                        .replace('@Repeatable(ManagedList.class)',
+                        '@Repeatable(ManagedList.class)\n    @LifecycleCreator(phase = AutoLink.class, handler = Supply.class)')
+                        .replace('public class TypeRules {', '''public class TypeRules {
+    public static class Supply implements LifecycleCreationHandler<Managed> {
+        public KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { return null; }
+    }''')
+            }
+            Files.writeString(sources.resolve(librarySource), invalid)
+            classes.toFile().deleteDir()
+            Files.createDirectories(classes)
+            compileJava(sources, classes, jars + [domain], [librarySource])
+            library = jar(root, classes, 'replacement.jar')
+        }
+        classes.toFile().deleteDir()
+        sources.toFile().deleteDir()
+
+        when:
+        String output = execute([javaTool('java'), '--class-path', pathString(runtimeJars(jars) + [domain, library, schema, consumer]),
+                                 'participant.fixture.TypeMain'] + (replacement == 'none' ? [] : [diagnostic]))
+
+        then:
+        output.trim() == (replacement == 'none' ? 'compiled-type-consumers=true' : 'binary-type-defense=true')
+
+        where:
+        author   | replacement | diagnostic
+        'Java'   | 'none'      | ''
+        'Groovy' | 'none'      | ''
+        'Java'   | 'phase'     | 'support only AutoCreate, AutoLink, Default and PostTree'
+        'Java'   | 'handler'   | 'annotation parameter must resolve exactly'
+        'Java'   | 'creator'   | 'Creating lifecycle participants require direct Schema field placement'
+    }
+
     private static Path jar(Path root, Path classes, String name) {
         Path artifact = root.resolve(name)
         execute([javaTool('jar'), '--create', '--file', artifact.toString(), '-C', classes.toString(), '.'])

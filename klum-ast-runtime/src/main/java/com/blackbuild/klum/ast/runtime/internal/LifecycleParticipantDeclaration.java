@@ -58,6 +58,16 @@ final class LifecycleParticipantDeclaration {
             checkParticipantAnnotation(field, annotation, creators);
     }
 
+    static void check(Class<?> schema) {
+        for (Annotation annotation : schema.getAnnotations()) {
+            Class<? extends Annotation> domain = annotation.annotationType();
+            if (domain.getAnnotationsByType(LifecycleCreator.class).length != 0)
+                throw new KlumSchemaException("Creating lifecycle participants require direct Schema field placement: " + schema.getName());
+            for (LifecycleMutator mutator : domain.getAnnotationsByType(LifecycleMutator.class))
+                checkHandler(schema.getName(), domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
+        }
+    }
+
     private static void checkParticipantAnnotation(Field field, Annotation annotation,
                                                    Map<Class<? extends Annotation>, Integer> creators) {
         Class<? extends Annotation> domain = annotation.annotationType();
@@ -67,17 +77,17 @@ final class LifecycleParticipantDeclaration {
         if (Modifier.isStatic(field.getModifiers()) || !DslHelper.isDslType(field.getType()))
             throw new KlumSchemaException("Lifecycle participant requires a non-static direct DSL field: " + field);
         for (LifecycleCreator creator : creation) {
-            checkHandler(field, domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
+            checkHandler(field.toString(), domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
             if (creators.merge(creator.phase(), 1, Integer::sum) > 1)
                 throw new KlumSchemaException("Competing lifecycle creators for " + creator.phase().getSimpleName() + " on " + field);
         }
         for (LifecycleMutator mutator : mutation)
-            checkHandler(field, domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
+            checkHandler(field.toString(), domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
     }
 
-    private static void checkHandler(Field field, Class<? extends Annotation> domain, Class<? extends Annotation> phase,
+    private static void checkHandler(String declaration, Class<? extends Annotation> domain, Class<? extends Annotation> phase,
                                      Class<?> handler, Class<?> role) {
-        String location = "Participant " + domain.getName() + " handler " + handler.getName() + " on " + field;
+        String location = "Participant " + domain.getName() + " handler " + handler.getName() + " on " + declaration;
         if (!Set.of(AutoCreate.class, AutoLink.class, Default.class, PostTree.class).contains(phase))
             throw new KlumSchemaException(location + ": Lifecycle participants support only AutoCreate, AutoLink, Default and PostTree");
         if (!Modifier.isPublic(handler.getModifiers()) || Modifier.isAbstract(handler.getModifiers()) || handler.isInterface()
