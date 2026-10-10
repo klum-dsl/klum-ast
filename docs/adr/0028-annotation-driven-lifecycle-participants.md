@@ -4,7 +4,7 @@ Date: 2026-10-09
 
 Status: Architecture accepted by maintainer; core/optional refinement confirmed. Names/signatures and qualification remain provisional.
 
-Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. LP-6–LP-8 remain unqualified; names/signatures remain provisional.
+Implementation status: [LP-1 direct-field AutoLink qualification tracer](../implementation/issue-867-lp1-evidence.md) implemented under a subsequent explicit maintainer delegation. [LP-2 AutoLink composition and ordering](../implementation/issue-867-lp2-evidence.md) is locally qualified under a later explicit delegation. The maintainer confirmed the AutoLink-only LP-2 boundary; cross-phase external composition belongs to LP-3. [LP-3 four-phase field dispatch](../implementation/issue-867-lp3-evidence.md) is implemented under an explicit later delegation. [LP-4 sealed policy and construction routes](../implementation/issue-867-lp4-evidence.md) are implemented under an explicit later delegation, with HANDLE deferred. [LP-5 type mutation](../implementation/issue-867-lp5-evidence.md) is implemented under an explicit later delegation. [LP-6 Closure probe](../implementation/issue-867-lp6-evidence.md) is evidence-deferred without a public helper; LP-7–LP-8 remain unqualified; names/signatures remain provisional.
 
 Release: Conditional 4.1 candidate; #867 remains untargeted until qualification and release review.
 
@@ -194,6 +194,11 @@ LP-6 proposes one independently deferrable evaluation operation, exact signature
 DELEGATE_ONLY, handler-selected delegate also passed as the single argument, expected-result
 checking. No configurable owner/resolve/constructor/cache or automatic member execution API.
 No partial helper API if LP-6 is deferred.
+
+LP-6 disposition: [executable reuse/benefit probe](../implementation/issue-867-lp6-evidence.md)
+defers the helper. Ordinary Groovy covers the demonstrated map and explicit-argument expressions;
+a runtime wrapper does not establish handler-selected delegate or annotation-result typing.
+No public Closure API or new compiler/IDE metadata contract is introduced.
 
 Annotation members represent Closure classes. Probe early using existing Validate annotation
 Closure transformation/strong typing and IntelliJ owning-class inference as reuse baseline.
