@@ -41,7 +41,7 @@ The earlier evidence records the exact matrices and limitations; this final reco
 | D5 exact annotation generics, fresh public no-arg handlers | Delivered LP-1/LP-2/LP-4, finally qualified LP-8. Source mismatch/raw/wildcard/unresolved/constructor rejection; replaced-binary defenses; fresh handlers per field/session. `LifecycleParticipantDiagnosticsTest` adds throwing constructors for creator/field/type × four phases, preserving original cause and usable subsequent lifecycle. Separate handler-module construction passes without access flags. |
 | D6 FAIL/SKIP, no mutation privilege | Delivered LP-4. `LifecycleParticipantSealedTest`, `LifecycleParticipantRoutesTest`; policy checked per mutator before handler construction; creators keep ordinary checked assignment. HANDLE explicitly deferred, no public constant. |
 | D7 optional Closure disposition | Evidence-deferred LP-6; `LifecycleParticipantClosureProbeTest` and [LP-6 evidence](issue-867-lp6-evidence.md). Ordinary map pattern is documentary; no helper, compiler/IDE inference protocol, automatic member execution or generic framework. #878 owns future investigation. |
-| D8 runtime package/module direction, public generated typing | Qualified LP-1–LP-8. Six public types plus nested marker containers/policy in existing runtime export; no reverse dependency or exported internal seam. `LifecycleParticipantConsumerTest` executes Java/static/dynamic Groovy against separate libraries; `JpmsPackageBoundaryTest` retains descriptor/generated-linkage checks. Exact final inventory below. |
+| D8 runtime package/module direction, public generated typing | Qualified LP-1–LP-8. One public namespace with six nested public members plus marker containers/policy in existing runtime export; no reverse dependency or exported internal seam. `LifecycleParticipantConsumerTest` executes Java/static/dynamic Groovy against separate libraries; `JpmsPackageBoundaryTest` retains descriptor/generated-linkage checks. Exact final inventory below. |
 | D8 configuration defects versus execution failure | Qualified LP-8 against existing implementation. Compile-time declaration errors or runtime `KlumSchemaException`; execution/assignment uses contextual `KlumModelException`, preserving construction/invocation/assertion/linkage causes. Existing source/binary tests plus all-phase constructor tests and LP-5 type-failure tests. Diagnostics guide distinguishes these from collected domain findings. |
 | D8 existing validation, levels, suppression, fail threshold, transfer | Qualified LP-8. `LifecycleParticipantValidationDocumentaryTest` uses `KlumSchemaSupport.klumValidationForObject(domain)` / `KlumValidationReporter`; member and memberless findings transfer to completed Domain, not Application. Later INFO/member warnings are suppressed, earlier issues retained; default ERROR permits WARNING, WARNING threshold and ERROR finding fail Verify with `KlumValidationException`. No facade/collector/companion access or sealed-wrapper transfer change. |
 | D8 graph/session/Template/import/serialization compatibility | Qualified LP-4 and retained in final check. `LifecycleParticipantRoutesTest`, `LifecycleParticipantSealedTest`; `klum-ast-jackson` `LifecycleParticipantImportTest`. Value-only Template definitions, recipient dispatch, FromMap and Jackson root/in-session routes, aliases/cycles, late-child declaration authority and completed serialization excluding Builders/handlers/contexts. Bounded same-version route tests, not historical compatibility promises. |
@@ -53,16 +53,17 @@ The earlier evidence records the exact matrices and limitations; this final reco
 ## Exact final public API
 
 All feature types live in exported `com.blackbuild.klum.ast.runtime`. Domain annotation libraries depend on runtime.
-No API signature changes are introduced in LP-8.
+LP-8 introduced no API signature changes. The inventory below uses the subsequent #883 namespace vocabulary.
 
 | Type | Public contract |
 | --- | --- |
-| `LifecycleCreator` | `phase(): Class<? extends Annotation>`; `handler(): Class<? extends LifecycleCreationHandler>`; repeatable via nested `List.value(): LifecycleCreator[]` |
-| `LifecycleMutator` | `phase(): Class<? extends Annotation>`; `handler(): Class<? extends LifecycleMutationHandler>`; `onSealed(): SealedPolicy` default FAIL; repeatable via nested `List.value(): LifecycleMutator[]`; nested enum has only FAIL and SKIP |
-| `LifecycleCreationHandler<A extends Annotation>` | `KlumBuilder<?> create(LifecycleFieldContext<A>)` |
-| `LifecycleMutationHandler<A extends Annotation>` | `void mutate(LifecycleMutationContext<A>)` |
-| `LifecycleFieldContext<A extends Annotation>` | `A getAnnotation()`; `<B extends Annotation> Optional<B> getAnnotation(Class<B>)`; `KlumBuilder<?> getContainingBuilder()`; `String getFieldName()`; `Class<?> getDeclaredType()`; `FieldType getFieldType()` |
-| `LifecycleMutationContext<A extends Annotation>` | Extends field context; `KlumBuilder<?> getTargetBuilder()`; default `boolean isType()` returns false, true for framework type invocations |
+| `LifecycleParticipant` | Public final namespace; private constructor; no instances |
+| `LifecycleParticipant.Creator` | `phase(): Class<? extends Annotation>`; `handler(): Class<? extends LifecycleParticipant.CreationHandler>`; repeatable via nested `List.value(): LifecycleParticipant.Creator[]` |
+| `LifecycleParticipant.Mutator` | `phase(): Class<? extends Annotation>`; `handler(): Class<? extends LifecycleParticipant.MutationHandler>`; `onSealed(): SealedPolicy` default FAIL; repeatable via nested `List.value(): LifecycleParticipant.Mutator[]`; nested enum has only FAIL and SKIP |
+| `LifecycleParticipant.CreationHandler<A extends Annotation>` | `KlumBuilder<?> create(LifecycleParticipant.InvocationContext<A>)` |
+| `LifecycleParticipant.MutationHandler<A extends Annotation>` | `void mutate(LifecycleParticipant.MutationContext<A>)` |
+| `LifecycleParticipant.InvocationContext<A extends Annotation>` | `A getAnnotation()`; `<B extends Annotation> Optional<B> getAnnotation(Class<B>)`; `KlumBuilder<?> getContainingBuilder()`; `String getFieldName()`; `Class<?> getDeclaredType()`; `FieldType getFieldType()` |
+| `LifecycleParticipant.MutationContext<A extends Annotation>` | Extends `InvocationContext<A>`; `KlumBuilder<?> getTargetBuilder()`; default `boolean isType()` returns false, true for framework type invocations |
 
 Class-literal handler bounds erase annotation identity; compiler/runtime validation checks the exact resolved domain type.
 Existing generated `Foo_DSL.Builder<Foo>` and factory narrowing supply typed consumer access. `KlumBuilder` stays
@@ -147,3 +148,13 @@ Exact final-head remote CI/SonarCloud outcomes and SHA are recorded in [draft PR
 Delivery authorization audit: gh CLI repository push capability verified **authorized**; Git SSH push dry-run verified **authorized**.
 No GitHub App delivery channel used. Delivery is [draft PR #881](https://github.com/klum-dsl/klum-ast/pull/881), with the preselected `Closes #867` relationship after the complete mandatory acceptance audit. Request Hive reconciliation after handoff;
 open-PR state is not archive-safe, and the worker does not self-archive.
+
+## Pre-4.1 namespace refinement (#883)
+
+The accepted public vocabulary is `LifecycleParticipant`, a public final namespace with a private constructor.
+Its nested `Creator`/`Mutator` annotations retain their repeatable `List` containers; `Mutator.SealedPolicy`
+retains only FAIL and SKIP. `CreationHandler`, `MutationHandler`, `InvocationContext`, and `MutationContext`
+are nested interfaces; `MutationContext` extends `InvocationContext`. This deliberately source/binary-breaking
+rename removes the development-only top-level spellings without aliases. Type invocation may have null
+field name/type. All #867 behavior and deferred capabilities remain unchanged. Historical qualification
+above describes the original execution; #883 requalifies the renamed contract.

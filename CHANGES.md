@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Namespaced the pre-release lifecycle-participant API under `LifecycleParticipant`: `Creator`, `Mutator`,
+  `CreationHandler`, `MutationHandler`, `InvocationContext`, and `MutationContext`. The six former top-level
+  types are removed without aliases; recompile annotation/handler libraries and Schemas together. Runtime behavior
+  is unchanged. See [migration guidance](docs/user/Migration.md#external-lifecycle-participants)
+  ([#883](https://github.com/klum-dsl/klum-ast/issues/883)).
+
 - Added annotation-driven external lifecycle creators and mutators on direct DSL relationship fields in AutoCreate,
   AutoLink, Default and PostTree, with creation before mutation, checked assignment, exact annotation typing and
   fresh public no-arg handlers. Repeated mutations within one domain annotation retain declaration/container order;

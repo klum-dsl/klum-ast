@@ -23,8 +23,8 @@ execution. This settles the LP-2 acceptance boundary without claiming all-phase 
 
 ## Exact ordering conclusion
 
-Within one domain annotation, repeated LifecycleMutator declarations are compiled into an ordered repeatable
-container. Execution follows their declaration order. An explicit LifecycleMutator.List executes in its value array
+Within one domain annotation, repeated LifecycleParticipant.Mutator declarations are compiled into an ordered repeatable
+container. Execution follows their declaration order. An explicit LifecycleParticipant.Mutator.List executes in its value array
 order. Java and Groovy authored libraries, separately compiled Schemas, and binary consumers qualify both forms.
 Handlers deliberately named ZFirst and ASecond detect accidental alphabetical sorting.
 
@@ -50,8 +50,8 @@ contract. No priorities, alphabetical sorting, ordering SPI or optional-capabili
 
 ## API change
 
-LifecycleCreator and LifecycleMutator become repeatable through nested public LifecycleCreator.List and
-LifecycleMutator.List annotation containers, each declaring value(): marker[]. Existing singular uses remain valid.
+LifecycleParticipant.Creator and LifecycleParticipant.Mutator become repeatable through nested public LifecycleParticipant.Creator.List and
+LifecycleParticipant.Mutator.List annotation containers, each declaring value(): marker[]. Existing singular uses remain valid.
 All six LP-1 public types retain their existing methods and descriptors. Contexts retain singular annotation lookup;
 repeatability is on the meta-annotations, not a plural domain-annotation context operation.
 

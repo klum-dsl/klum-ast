@@ -6,7 +6,8 @@ Status: Accepted architecture and final public contract. [LP-8 acceptance](../im
 consolidates the mandatory qualification, checklist disposition and deferred optional boundaries.
 
 Implementation status: LP-1–LP-5 are implemented and merged; LP-6 is evidence-deferred without a Closure helper;
-LP-7's accepted current-release Collection/Map rejection is merged. LP-8 retains the demonstrated API names/signatures,
+LP-7's accepted current-release Collection/Map rejection is merged. LP-8 qualified the demonstrated API;
+#883 subsequently namespaces its public names without aliases. LP-8
 qualifies existing validation and public consumers, and finalizes documentation. The acceptance record distinguishes
 local checks, final review and remote evidence; it is the current qualification entry point. Earlier slice records retain
 their historical provisional status and remaining-gate statements.
@@ -40,7 +41,7 @@ or reconstructed child ownership. Existing AutoLink methods remain the supported
 
 ## Decision
 
-Public names/signatures are retained after the LP-8 usage review; see the [final inventory](../implementation/issue-867-lp8-evidence.md#exact-final-public-api).
+Public names follow the accepted #883 `LifecycleParticipant` namespace refinement; see the [final inventory](../implementation/issue-867-lp8-evidence.md#exact-final-public-api).
 
 ### Core acceptance versus optional capabilities
 
@@ -71,7 +72,7 @@ unsupported for this release. The maintainer accepted retaining the existing rej
 container support.
 
 LP-5 qualifies mutating participants on Schema types if the domain author permits TYPE.
-It is independently deferrable, not a mandatory core or 4.1 gate. The qualified additive context discriminator is `LifecycleMutationContext.isType()` (default false);
+It is independently deferrable, not a mandatory core or 4.1 gate. The qualified additive context discriminator is `LifecycleParticipant.MutationContext.isType()` (default false);
 type invocation returns the concrete Schema as declared type and incoming FieldType when available, null otherwise. Creating participants are field-only.
 
 Initial supported phases: AutoCreate, AutoLink, Default and PostTree. Select by the lifecycle
@@ -196,7 +197,7 @@ Probe a small extension of existing dispatch; retain if straightforward. Defer i
 mutation interception, Builder lifecycle changes or a general read-only participant framework.
 No HANDLE API if deferred; never unseal or grant mutation privileges. The qualified names are retained.
 
-LP-4 outcome: `LifecycleMutator.onSealed(): LifecycleMutator.SealedPolicy` defaults to FAIL;
+LP-4 outcome: `LifecycleParticipant.Mutator.onSealed(): LifecycleParticipant.Mutator.SealedPolicy` defaults to FAIL;
 SKIP omits both handler construction and invocation. The policy applies per mutation, after ordinary
 creator assignment. [The feasibility probe](../implementation/issue-867-lp4-evidence.md#handle-feasibility-outcome)
 retains dynamic completed-LINK reads but demonstrates missing typed relationship reads and wrapper-local
@@ -268,7 +269,7 @@ Probe-dependent contracts: actual mutation ordering, precise phase field slots, 
 mapping/helper signature and HANDLE feasibility. Optional deferrals: LP-6, HANDLE,
 LP-7 support; document evidence and omit unqualified public APIs.
 
-LP-8 retains the demonstrated names/signatures; optional deferrals and current-release Collection/Map rejection
+LP-8 qualified the demonstrated contract, now namespaced by #883; optional deferrals and current-release Collection/Map rejection
 are settled for #867. Future Closure work is #878, containers are #879, and catch-up sub-lifecycles are #874.
 Conditional 4.1 placement remains a separate Hive release-planning decision; this ADR does not assign a milestone.
 No new validation architecture decision is required.
@@ -276,3 +277,13 @@ No new validation architecture decision is required.
 Original authorization: planning only. Subsequent explicit maintainer delegations authorized LP-1 through LP-5 (LP-2 was AutoLink-only),
 recorded in the linked execution evidence. Architecture acceptance does not authorize additional slices,
 issue retargeting or release placement. Existing characterization tests are preserved.
+
+## Pre-4.1 namespace refinement (#883)
+
+The accepted public vocabulary is `LifecycleParticipant`, a public final namespace with a private constructor.
+Its nested `Creator`/`Mutator` annotations retain their repeatable `List` containers; `Mutator.SealedPolicy`
+retains only FAIL and SKIP. `CreationHandler`, `MutationHandler`, `InvocationContext`, and `MutationContext`
+are nested interfaces; `MutationContext` extends `InvocationContext`. This deliberately source/binary-breaking
+rename removes the development-only top-level spellings without aliases. Type invocation may have null
+field name/type. All #867 behavior and deferred capabilities remain unchanged. Historical qualification
+above describes the original execution; #883 requalifies the renamed contract.

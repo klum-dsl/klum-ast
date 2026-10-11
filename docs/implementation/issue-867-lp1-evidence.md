@@ -11,12 +11,12 @@ All six types are in runtime's existing exported `com.blackbuild.klum.ast.runtim
 
 | Type | Contract |
 | --- | --- |
-| `LifecycleCreator` | Runtime meta-annotation on annotation types; `phase(): Class<? extends Annotation>`, `handler(): Class<? extends LifecycleCreationHandler>` |
-| `LifecycleMutator` | Separate runtime meta-annotation; same phase representation, separate `LifecycleMutationHandler` class bound |
-| `LifecycleCreationHandler<A extends Annotation>` | `KlumBuilder<?> create(LifecycleFieldContext<A> context)` |
-| `LifecycleMutationHandler<A extends Annotation>` | `void mutate(LifecycleMutationContext<A> context)` |
-| `LifecycleFieldContext<A extends Annotation>` | `A getAnnotation()`; `<B extends Annotation> Optional<B> getAnnotation(Class<B>)`; `KlumBuilder<?> getContainingBuilder()`; `String getFieldName()`; `Class<?> getDeclaredType()`; `FieldType getFieldType()` |
-| `LifecycleMutationContext<A extends Annotation>` | Extends field context; `KlumBuilder<?> getTargetBuilder()` |
+| `LifecycleParticipant.Creator` | Runtime meta-annotation on annotation types; `phase(): Class<? extends Annotation>`, `handler(): Class<? extends LifecycleParticipant.CreationHandler>` |
+| `LifecycleParticipant.Mutator` | Separate runtime meta-annotation; same phase representation, separate `LifecycleParticipant.MutationHandler` class bound |
+| `LifecycleParticipant.CreationHandler<A extends Annotation>` | `KlumBuilder<?> create(LifecycleParticipant.InvocationContext<A> context)` |
+| `LifecycleParticipant.MutationHandler<A extends Annotation>` | `void mutate(LifecycleParticipant.MutationContext<A> context)` |
+| `LifecycleParticipant.InvocationContext<A extends Annotation>` | `A getAnnotation()`; `<B extends Annotation> Optional<B> getAnnotation(Class<B>)`; `KlumBuilder<?> getContainingBuilder()`; `String getFieldName()`; `Class<?> getDeclaredType()`; `FieldType getFieldType()` |
+| `LifecycleParticipant.MutationContext<A extends Annotation>` | Extends field context; `KlumBuilder<?> getTargetBuilder()` |
 
 Annotation handler class bounds necessarily erase the domain parameter at the class-literal boundary;
 compiler/runtime checks enforce its exact resolved annotation identity through generic inheritance.
@@ -56,7 +56,7 @@ On 2026-10-09, the ScHelm spike consumed Maven Local version
 plugin markers were installed at that version; installed JARs matched the build outputs.
 Fresh participant, binary-consumer, AutoLink and traversal tests passed: 47 tests, no failures/skips.
 
-The external consumer moved `@FactBinding` to `@LifecycleMutator(phase = AutoLink,
+The external consumer moved `@FactBinding` to `@LifecycleParticipant.Mutator(phase = AutoLink,
 handler = FactBindingHandler)`, removed `@Owner OrderApplication application` and
 `OrderKafka.bindFacts()`, and retained exact-instance linking and missing-Fact diagnostics.
 A consumer-owned `FactBoundDomain` marker constrains the domain side while `Kafka.facts`

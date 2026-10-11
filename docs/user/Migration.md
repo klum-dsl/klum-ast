@@ -4,6 +4,23 @@
 
 ### External lifecycle participants
 
+The pre-4.1 development API is now owned by public final `LifecycleParticipant` (private constructor).
+This is a source and binary break without deprecated aliases. Update imports and recompile annotation libraries,
+handler libraries, Schemas and consumers together:
+
+| Former development type | 4.1 type |
+| --- | --- |
+| `LifecycleCreator` (including `List`) | `LifecycleParticipant.Creator` (including `List`) |
+| `LifecycleMutator` (including `List` and `SealedPolicy`) | `LifecycleParticipant.Mutator` (including `List` and `SealedPolicy`) |
+| `LifecycleCreationHandler<A>` | `LifecycleParticipant.CreationHandler<A>` |
+| `LifecycleMutationHandler<A>` | `LifecycleParticipant.MutationHandler<A>` |
+| `LifecycleFieldContext<A>` | `LifecycleParticipant.InvocationContext<A>` |
+| `LifecycleMutationContext<A>` | `LifecycleParticipant.MutationContext<A>` |
+
+`MutationContext` extends `InvocationContext`. Contexts remain valid for one invocation only; type mutation can
+have null `fieldName` and `fieldType`. Repeatable containers, FAIL/SKIP and lifecycle behavior are unchanged.
+See [#883](https://github.com/klum-dsl/klum-ast/issues/883).
+
 Domain annotations can select creators/mutators on direct DSL relationships in four existing Builder phases, or mutators
 on Schema types. Handlers use generated public Builder contracts; existing lifecycle callbacks remain valid. See
 [Model Phases](Model-Phases.md#external-field-participants-lp-1) for context, sealed FAIL/SKIP, validation and module access.

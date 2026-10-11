@@ -6,7 +6,7 @@ Authority: explicit maintainer LP-4 delegation. Related: #867; issue/release/cur
 
 ## Delivered policy and public boundary
 
-`LifecycleMutator.onSealed(): LifecycleMutator.SealedPolicy` is additive and defaults to FAIL.
+`LifecycleParticipant.Mutator.onSealed(): LifecycleParticipant.Mutator.SealedPolicy` is additive and defaults to FAIL.
 The nested enum exposes only FAIL and SKIP. Both act before handler construction for a sealed target:
 FAIL throws through the existing participant/handler/phase/original-field wrapper, preserving the rejection
 cause; SKIP returns without invocation. Each mutator occurrence checks its own target/policy. Unsealed
