@@ -24,12 +24,7 @@
 package participant.container;
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
-import com.blackbuild.klum.ast.runtime.LifecycleCreator;
-import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleFieldContext;
-import com.blackbuild.klum.ast.runtime.LifecycleMutator;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationContext;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -38,10 +33,10 @@ public class ContainerRules {
     @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
     // PARTICIPANT_MARKER
     public @interface Managed {}
-    public static class Mutate implements LifecycleMutationHandler<Managed> {
-        public void mutate(LifecycleMutationContext<Managed> c) { throw new AssertionError("Container dispatched"); }
+    public static class Mutate implements LifecycleParticipant.MutationHandler<Managed> {
+        public void mutate(LifecycleParticipant.MutationContext<Managed> c) { throw new AssertionError("Container dispatched"); }
     }
-    public static class Create implements LifecycleCreationHandler<Managed> {
-        public KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { throw new AssertionError("Container dispatched"); }
+    public static class Create implements LifecycleParticipant.CreationHandler<Managed> {
+        public KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { throw new AssertionError("Container dispatched"); }
     }
 }

@@ -27,7 +27,7 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.fasterxml.jackson.databind.ObjectMapper
 import spock.lang.Issue
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantImportTest extends AbstractDSLSpec {
     def 'existing Jackson routes execute participants in their root recipient lifecycle in #phase'() {
         given:
@@ -37,11 +37,11 @@ class LifecycleParticipantImportTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = $phase, handler = Configure)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Configure)
             @interface Configured {}
-            class Configure implements LifecycleMutationHandler<Configured> {
+            class Configure implements LifecycleParticipant.MutationHandler<Configured> {
                 boolean used
-                void mutate(LifecycleMutationContext<Configured> c) {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     assert !used
                     used = true
                     def target = Service.Create.narrowBuilder(c.targetBuilder)

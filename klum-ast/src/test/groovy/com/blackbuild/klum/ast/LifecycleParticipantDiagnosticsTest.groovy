@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import spock.lang.Issue
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantDiagnosticsTest extends AbstractDSLSpec {
     def 'preserves #role constructor failures and restores lifecycle context in #phase'() {
         given:
@@ -77,11 +77,11 @@ class LifecycleParticipantDiagnosticsTest extends AbstractDSLSpec {
 
         where:
         [role, phase] << [['creator', 'mutator', 'type'], ['AutoCreate', 'AutoLink', 'Default', 'PostTree']].combinations()
-        marker = role == 'creator' ? 'LifecycleCreator' : 'LifecycleMutator'
-        handlerRole = role == 'creator' ? 'LifecycleCreationHandler' : 'LifecycleMutationHandler'
+        marker = role == 'creator' ? 'LifecycleParticipant.Creator' : 'LifecycleParticipant.Mutator'
+        handlerRole = role == 'creator' ? 'LifecycleParticipant.CreationHandler' : 'LifecycleParticipant.MutationHandler'
         resultType = role == 'creator' ? 'KlumBuilder<?>' : 'void'
         operation = role == 'creator' ? 'create' : 'mutate'
-        contextType = role == 'creator' ? 'LifecycleFieldContext' : 'LifecycleMutationContext'
+        contextType = role == 'creator' ? 'LifecycleParticipant.InvocationContext' : 'LifecycleParticipant.MutationContext'
         returnValue = role == 'creator' ? 'return null' : ''
         location = role == 'type' ? 'Application' : 'BaseApplication.domain'
     }

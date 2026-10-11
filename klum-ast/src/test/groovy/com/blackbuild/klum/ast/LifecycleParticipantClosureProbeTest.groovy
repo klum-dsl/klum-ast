@@ -28,7 +28,7 @@ import spock.lang.See
 import spock.lang.Tag
 import spock.lang.Issue
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantClosureProbeTest extends AbstractDSLSpec {
 
     def 'generic annotation Closure bound does not check an inline result even under CompileStatic'() {
@@ -71,10 +71,10 @@ class LifecycleParticipantClosureProbeTest extends AbstractDSLSpec {
             import org.codehaus.groovy.runtime.InvokerHelper
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = BindFacts)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = BindFacts)
             @interface FactBinding { Class<? extends Closure<Map<String, String>>> value() }
-            class BindFacts implements LifecycleMutationHandler<FactBinding> {
-                void mutate(LifecycleMutationContext<FactBinding> c) {
+            class BindFacts implements LifecycleParticipant.MutationHandler<FactBinding> {
+                void mutate(LifecycleParticipant.MutationContext<FactBinding> c) {
                     Closure<Map<String, String>> expression = InvokerHelper.invokeConstructorOf(
                         c.annotation.value(), [null, null] as Object[]) as Closure<Map<String, String>>
                     Map<String, String> bindings = expression.call()
@@ -108,10 +108,10 @@ class LifecycleParticipantClosureProbeTest extends AbstractDSLSpec {
             import groovy.transform.CompileStatic
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = Select)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Select)
             @interface Selection { Class<? extends Closure<String>> value() }
-            class Select implements LifecycleMutationHandler<Selection> {
-                void mutate(LifecycleMutationContext<Selection> c) {
+            class Select implements LifecycleParticipant.MutationHandler<Selection> {
+                void mutate(LifecycleParticipant.MutationContext<Selection> c) {
                     def expression = c.annotation.value().getConstructor(Object, Object).newInstance(null, null)
                     expression.delegate = c.containingBuilder
                     expression.resolveStrategy = Closure.DELEGATE_ONLY

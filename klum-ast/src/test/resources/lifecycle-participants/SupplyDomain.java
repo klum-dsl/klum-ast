@@ -23,10 +23,9 @@
  */
 package participant.fixture;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
-import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleFieldContext;
-public class SupplyDomain implements LifecycleCreationHandler<Binding> {
-    public KlumBuilder<?> create(LifecycleFieldContext<Binding> context) {
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
+public class SupplyDomain implements LifecycleParticipant.CreationHandler<Binding> {
+    public KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Binding> context) {
         return Domain.Create.AsBuilder().One();
     }
 }

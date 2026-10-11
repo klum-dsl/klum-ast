@@ -23,15 +23,14 @@
  */
 package participant.fixture;
 import com.blackbuild.klum.ast.FieldType;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationContext;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
 import com.blackbuild.klum.ast.runtime.KlumBuilderSupport;
 import java.lang.annotation.Annotation;
 import java.util.Map;
-abstract class BaseHandler<A extends Annotation> implements LifecycleMutationHandler<A> {}
+abstract class BaseHandler<A extends Annotation> implements LifecycleParticipant.MutationHandler<A> {}
 public class BindFacts extends BaseHandler<Binding> {
     private boolean used;
-    public void mutate(LifecycleMutationContext<Binding> context) {
+    public void mutate(LifecycleParticipant.MutationContext<Binding> context) {
         if (used) throw new AssertionError("Handler reused");
         used = true;
         Knowledge_DSL.Builder<Knowledge> application = Knowledge.Create.narrowBuilder(context.getContainingBuilder());

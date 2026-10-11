@@ -31,7 +31,7 @@ import spock.lang.See
 import spock.lang.Tag
 import uk.org.webcompere.systemstubs.properties.SystemProperties
 
-@Issue('867')
+@Issue(['867', '883'])
 @Tag('documentary')
 @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#participant-validation')
 class LifecycleParticipantValidationDocumentaryTest extends AbstractDSLSpec {
@@ -92,19 +92,17 @@ class LifecycleParticipantValidationDocumentaryTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.layer3.AutoLink
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport
-            import com.blackbuild.klum.ast.runtime.LifecycleMutationContext
-            import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler
-            import com.blackbuild.klum.ast.runtime.LifecycleMutator
+            import com.blackbuild.klum.ast.runtime.LifecycleParticipant
             import groovy.transform.CompileStatic
             import java.lang.annotation.*
 
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = CheckFactsHandler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = CheckFactsHandler)
             @interface CheckFacts {}
 
             @CompileStatic
-            class CheckFactsHandler implements LifecycleMutationHandler<CheckFacts> {
-                void mutate(LifecycleMutationContext<CheckFacts> context) {
+            class CheckFactsHandler implements LifecycleParticipant.MutationHandler<CheckFacts> {
+                void mutate(LifecycleParticipant.MutationContext<CheckFacts> context) {
                     def domain = Domain.Create.narrowBuilder(context.targetBuilder)
                     def report = KlumSchemaSupport.klumValidationForObject(domain)
                     report.issue('domain inspected', Validate.Level.INFO)

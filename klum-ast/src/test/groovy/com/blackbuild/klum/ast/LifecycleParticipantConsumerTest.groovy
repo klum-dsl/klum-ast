@@ -25,6 +25,9 @@ package com.blackbuild.klum.ast
 
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant
+import java.lang.reflect.Modifier
+import java.lang.annotation.Repeatable
 import spock.lang.Issue
 import spock.lang.Specification
 import java.nio.file.Files
@@ -32,9 +35,40 @@ import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import javax.tools.ToolProvider
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
+
+    @Issue('883')
+    def 'publishes exactly the lifecycle namespace with private construction and repeatable nested annotations'() {
+        when:
+        Class<?> namespace = LifecycleParticipant
+
+        then:
+        Modifier.isPublic(namespace.modifiers)
+        Modifier.isFinal(namespace.modifiers)
+        namespace.declaredConstructors.size() == 1
+        Modifier.isPrivate(namespace.declaredConstructors[0].modifiers)
+        namespace.declaredClasses*.simpleName.toSet() ==
+                ['Creator', 'Mutator', 'CreationHandler', 'MutationHandler', 'InvocationContext', 'MutationContext'].toSet()
+        LifecycleParticipant.Creator.getAnnotation(Repeatable).value() == LifecycleParticipant.Creator.List
+        LifecycleParticipant.Mutator.getAnnotation(Repeatable).value() == LifecycleParticipant.Mutator.List
+        LifecycleParticipant.Mutator.SealedPolicy.values()*.name() == ['FAIL', 'SKIP']
+        LifecycleParticipant.MutationContext.interfaces.toList() == [LifecycleParticipant.InvocationContext]
+    }
+
+    @Issue('883')
+    def 'removes the former top-level lifecycle API without aliases (#former)'() {
+        when:
+        Class.forName('com.blackbuild.klum.ast.runtime.' + former)
+
+        then:
+        thrown(ClassNotFoundException)
+
+        where:
+        former << ['LifecycleCreator', 'LifecycleMutator', 'LifecycleCreationHandler',
+                   'LifecycleMutationHandler', 'LifecycleFieldContext', 'LifecycleMutationContext']
+    }
 
     def 'Java handlers and separately compiled Java and static and dynamic Groovy consumers use public contracts'() {
         when:
@@ -72,12 +106,12 @@ class LifecycleParticipantConsumerTest extends Specification {
         Files.createDirectories(classes)
         String declaration = Files.readString(sources.resolve('Composition.java'))
         if (form == 'container') {
-            declaration = declaration.replace('@LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class)\n    @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)',
-                    '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class), @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
+            declaration = declaration.replace('@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ZFirst.class)\n    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)',
+                    '@LifecycleParticipant.Mutator.List({@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ZFirst.class), @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)})')
         }
         if (form == 'mixed') {
-            declaration = declaration.replace('@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)',
-                    '@LifecycleMutator.List({@LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)})')
+            declaration = declaration.replace('@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)',
+                    '@LifecycleParticipant.Mutator.List({@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)})')
         }
         if (author == 'Groovy') declaration = declaration.replace('List({', 'List([').replace('ASecond.class)})', 'ASecond.class)])')
         String phasePackage = phase in ['AutoCreate', 'AutoLink'] ? 'com.blackbuild.klum.ast.layer3' : 'com.blackbuild.klum.ast'
@@ -169,13 +203,13 @@ class LifecycleParticipantConsumerTest extends Specification {
             } else if (replacement == 'handler') {
                 invalid = declaration.replace('handler = ZFirst.class', 'handler = LocalHandler.class')
             } else {
-                invalid = declaration.replace('import com.blackbuild.klum.ast.runtime.LifecycleMutator;',
-                        'import com.blackbuild.klum.ast.runtime.LifecycleMutator;\nimport com.blackbuild.klum.ast.runtime.LifecycleCreator;\nimport com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;\nimport com.blackbuild.klum.ast.runtime.LifecycleFieldContext;\nimport com.blackbuild.klum.ast.runtime.KlumBuilder;')
+                invalid = declaration.replace('import com.blackbuild.klum.ast.runtime.LifecycleParticipant;',
+                        'import com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.KlumBuilder;')
                         .replace('@Repeatable(ManagedList.class)',
-                        '@Repeatable(ManagedList.class)\n    @LifecycleCreator(phase = AutoLink.class, handler = Supply.class)')
+                        '@Repeatable(ManagedList.class)\n    @LifecycleParticipant.Creator(phase = AutoLink.class, handler = Supply.class)')
                         .replace('public class TypeRules {', '''public class TypeRules {
-    public static class Supply implements LifecycleCreationHandler<Managed> {
-        public KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { return null; }
+    public static class Supply implements LifecycleParticipant.CreationHandler<Managed> {
+        public KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { return null; }
     }''')
             }
             Files.writeString(sources.resolve(librarySource), invalid)
@@ -247,8 +281,8 @@ class LifecycleParticipantConsumerTest extends Specification {
         if (role != 'none') {
             Path declaration = sources.resolve('ContainerRules.java')
             String marker = role == 'Creator' ?
-                    '@LifecycleCreator(phase = AutoLink.class, handler = Create.class)' :
-                    '@LifecycleMutator(phase = AutoLink.class, handler = Mutate.class)'
+                    '@LifecycleParticipant.Creator(phase = AutoLink.class, handler = Create.class)' :
+                    '@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = Mutate.class)'
             Files.writeString(declaration, Files.readString(declaration).replace('// PARTICIPANT_MARKER', marker))
             classes.toFile().deleteDir()
             Files.createDirectories(classes)
@@ -379,8 +413,8 @@ class LifecycleParticipantConsumerTest extends Specification {
         if (signature == 'creators') {
             Path binding = sources.resolve('Binding.java')
             String declaration = Files.readString(binding).replace(
-                    '@LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class)',
-                    '@LifecycleCreator.List({@LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class), @LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class)})')
+                    '@LifecycleParticipant.Creator(phase = AutoLink.class, handler = SupplyDomain.class)',
+                    '@LifecycleParticipant.Creator.List({@LifecycleParticipant.Creator(phase = AutoLink.class, handler = SupplyDomain.class), @LifecycleParticipant.Creator(phase = AutoLink.class, handler = SupplyDomain.class)})')
             Files.writeString(binding, declaration)
             compileJava(sources, classes, jars, ['Binding.java'])
             Path main = sources.resolve('Main.java')
@@ -399,8 +433,8 @@ class LifecycleParticipantConsumerTest extends Specification {
         } else if (signature != 'valid') {
             getClass().getResourceAsStream('/lifecycle-participants/InvalidBindFacts.java').withCloseable {
                 String invalid = it.text
-                if (signature == 'raw') invalid = invalid.replace('LifecycleMutationHandler<Deprecated>', 'LifecycleMutationHandler').replace('LifecycleMutationContext<Deprecated>', 'LifecycleMutationContext')
-                if (signature == 'unresolved') invalid = invalid.replace('import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;', 'import java.lang.annotation.Annotation;\nimport com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;').replace('public class BindFacts', 'public class BindFacts<A extends Annotation>').replace('<Deprecated>', '<A>')
+                if (signature == 'raw') invalid = invalid.replace('LifecycleParticipant.MutationHandler<Deprecated>', 'LifecycleParticipant.MutationHandler').replace('LifecycleParticipant.MutationContext<Deprecated>', 'LifecycleParticipant.MutationContext')
+                if (signature == 'unresolved') invalid = invalid.replace('import com.blackbuild.klum.ast.runtime.LifecycleParticipant;', 'import java.lang.annotation.Annotation;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;').replace('public class BindFacts', 'public class BindFacts<A extends Annotation>').replace('<Deprecated>', '<A>')
                 Files.writeString(sources.resolve('BindFacts.java'), invalid)
             }
             compileJava(sources, classes, jars, ['BindFacts.java'])
