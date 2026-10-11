@@ -56,7 +56,7 @@ Optional probe failure cannot hold core delivery hostage.
 ## Thin dependency-ordered slices
 
 Each implementation slice is a green reasoned commit with meaningful acceptance tests.
-Production code and its tests travel together. Names/signatures are provisional.
+Production code and its tests travel together. Public names now follow the accepted #883 namespace refinement.
 New tests carry @Issue for #867 (or #868 for its own work), use Test suffix, and documentary
 cases carry @Tag("documentary") and @See to current user docs. No speculative pending tests.
 
@@ -163,7 +163,7 @@ Inherited fields retain their original declaration and actual containing subtype
 
 Disposition: straightforward existing-visit integration is qualified; no deferral. Type mutation runs inside
 AutoCreate's existing Template scope and first in the other three existing visitors. Additive default
-`LifecycleMutationContext.isType()` preserves existing field implementations. Concrete Schema declared type,
+`LifecycleParticipant.MutationContext.isType()` preserves existing field implementations. Concrete Schema declared type,
 nullable incoming FieldType and root context are documented in [LP-5 evidence](issue-867-lp5-evidence.md).
 Java/Groovy authored annotation libraries and Java/static/dynamic Groovy consumers characterize repeatable
 container coexistence without plural lookup or fabricated ordering. Creators remain field-only; sealed
@@ -354,10 +354,20 @@ Issue #867 remains open and untargeted; this record does not authorize push or P
 
 The maintainer delegated final qualification from merged LP-7. [LP-8 evidence](issue-867-lp8-evidence.md) maps every
 mandatory core criterion and the read-only Hive checklist to delivered behavior, tests/docs or explicitly deferred
-optional capability. Existing public names/signatures are retained; no dispatch, validation, ownership, session,
+optional capability. LP-8 retained the then-current public names/signatures, subsequently namespaced by #883; no dispatch, validation, ownership, session,
 materialization or generated API redesign is needed. Java/static/dynamic Groovy 3/4/5 consumers, G4/G5 named modules,
 throwing handler constructors and explicit-target validation are qualified by dedicated controls.
 
 The preselected tracker relationship is closure candidate #867, conditional on every mandatory gate and final review.
 No manual closure, curation or milestone mutation is performed. #874/#878/#879 and optional HANDLE remain outside
 #867's delivered contract. Delivery/archive reconciliation belongs to the Hive; the worker requests reconciliation.
+
+## Pre-4.1 namespace refinement (#883)
+
+The accepted public vocabulary is `LifecycleParticipant`, a public final namespace with a private constructor.
+Its nested `Creator`/`Mutator` annotations retain their repeatable `List` containers; `Mutator.SealedPolicy`
+retains only FAIL and SKIP. `CreationHandler`, `MutationHandler`, `InvocationContext`, and `MutationContext`
+are nested interfaces; `MutationContext` extends `InvocationContext`. This deliberately source/binary-breaking
+rename removes the development-only top-level spellings without aliases. Type invocation may have null
+field name/type. All #867 behavior and deferred capabilities remain unchanged. Historical qualification
+above describes the original execution; #883 requalifies the renamed contract.

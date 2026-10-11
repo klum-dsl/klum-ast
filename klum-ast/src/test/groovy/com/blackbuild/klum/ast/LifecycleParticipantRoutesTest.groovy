@@ -25,13 +25,11 @@ package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.KlumBuilder
-import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler
-import com.blackbuild.klum.ast.runtime.LifecycleFieldContext
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant
 import groovy.transform.CompileStatic
 import spock.lang.Issue
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
     def 'value-only Templates defer field participants to each recipient lifecycle in #phase'() {
         given:
@@ -76,16 +74,16 @@ class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = $phase, handler = Supply)
-            @LifecycleMutator(phase = $phase, handler = Inspect)
+            @LifecycleParticipant.Creator(phase = $phase, handler = Supply)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Inspect)
             @interface Supplied {}
-            class Supply implements LifecycleCreationHandler<Supplied> {
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> c) {
+            class Supply implements LifecycleParticipant.CreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> c) {
                     Service.Create.AsBuilder().FromMap([value: 'late'])
                 }
             }
-            class Inspect implements LifecycleMutationHandler<Supplied> {
-                void mutate(LifecycleMutationContext<Supplied> c) {
+            class Inspect implements LifecycleParticipant.MutationHandler<Supplied> {
+                void mutate(LifecycleParticipant.MutationContext<Supplied> c) {
                     def relationship = KlumBuilderSupport.of(c.targetBuilder).structure.owningRelationship.orElseThrow()
                     assert relationship.name == 'service'
                     assert relationship.declaringClass == Application
@@ -171,12 +169,12 @@ class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = $phase, handler = Configure,
-                onSealed = LifecycleMutator.SealedPolicy.SKIP)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Configure,
+                onSealed = LifecycleParticipant.Mutator.SealedPolicy.SKIP)
             @interface Configured {}
-            class Configure implements LifecycleMutationHandler<Configured> {
+            class Configure implements LifecycleParticipant.MutationHandler<Configured> {
                 boolean used
-                void mutate(LifecycleMutationContext<Configured> c) {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     assert !used
                     used = true
                     def target = Service.Create.narrowBuilder(c.targetBuilder)
@@ -200,8 +198,8 @@ class LifecycleParticipantRoutesTest extends AbstractDSLSpec {
         }
         @Override
         protected Object replaceObject(Object value) {
-            if (value instanceof KlumBuilder || value instanceof LifecycleFieldContext
-                || value instanceof LifecycleCreationHandler || value instanceof LifecycleMutationHandler) {
+            if (value instanceof KlumBuilder || value instanceof LifecycleParticipant.InvocationContext
+                || value instanceof LifecycleParticipant.CreationHandler || value instanceof LifecycleParticipant.MutationHandler) {
                 throw new InvalidObjectException('Participant or Builder state entered completed serialization')
             }
             value

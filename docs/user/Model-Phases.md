@@ -47,13 +47,20 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## External field participants (LP-1)
 
+`LifecycleParticipant` is the public namespace in `com.blackbuild.klum.ast.runtime`. It groups `Creator`,
+`Mutator`, their repeatable `List` containers, `Mutator.SealedPolicy`, `CreationHandler`, `MutationHandler`,
+`InvocationContext`, and `MutationContext`. Import the namespace to use the examples below. The pre-4.1
+namespace rename removes the former top-level development API without aliases; see
+[migration guidance](Migration.md#external-lifecycle-participants). Contexts describe an invocation, including
+type mutation where the field name or field type can be null.
+
 Domain annotations select external creators and mutators on direct DSL relationship fields during `AutoCreate`,
 `AutoLink`, `Default` and `PostTree`. They let Schema developers reuse domain behavior through public Builder contracts.
 [Final acceptance and API inventory](../implementation/issue-867-lp8-evidence.md) records the qualification for
 [#867](https://github.com/klum-dsl/klum-ast/issues/867); the LP labels below link the executable examples to that record.
 
-A domain annotation carries `@LifecycleCreator(phase = AutoLink, handler = ...)`,
-`@LifecycleMutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
+A domain annotation carries `@LifecycleParticipant.Creator(phase = AutoLink, handler = ...)`,
+`@LifecycleParticipant.Mutator(phase = AutoLink, handler = ...)`, or both. These meta-annotations, handlers and contexts
 live in `com.blackbuild.klum.ast.runtime`; a domain annotation library depends on runtime.
 Use `@Retention(RUNTIME)` and field placement; mutators also support Schema TYPE placement as described below.
 Field participants reject scalars, containers, static fields, method placement, other phase markers, and `FieldType.BUILDER` fields whose original declaration is absent from the Model Schema.
@@ -84,8 +91,8 @@ operation in this participant contract. See the
 The Java extension contract is:
 
 ```java
-public class BindFactsHandler implements LifecycleMutationHandler<BindFacts> {
-    public void mutate(LifecycleMutationContext<BindFacts> context) {
+public class BindFactsHandler implements LifecycleParticipant.MutationHandler<BindFacts> {
+    public void mutate(LifecycleParticipant.MutationContext<BindFacts> context) {
         ApplicationBase_DSL.Builder<ApplicationBase> application =
                 ApplicationBase.Create.narrowBuilder(context.getContainingBuilder());
         DomainBase_DSL.Builder<DomainBase> domain =
@@ -106,7 +113,7 @@ placements, including an inherited field occurrence:
 ```groovy
 @Retention(RUNTIME)
 @Target(FIELD)
-@LifecycleMutator(phase = AutoLink, handler = BindFactsHandler)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = BindFactsHandler)
 @interface BindFacts { String value() }
 
 @DSL abstract class ApplicationBase { Environment environment }
@@ -141,10 +148,10 @@ without introducing technology types or selection policy into KlumAST.
 
 ### Creating the annotated relationship
 
-`LifecycleCreationHandler<A>.create(LifecycleFieldContext<A>)` returns `KlumBuilder<?>` or `null`.
+`LifecycleParticipant.CreationHandler<A>.create(LifecycleParticipant.InvocationContext<A>)` returns `KlumBuilder<?>` or `null`.
 It runs only for an unset field. A non-null result goes through ordinary checked assignment; ownership,
 Construction-session and FieldType rules still apply. It cannot return a completed Model.
-`LifecycleMutationHandler<A>.mutate(LifecycleMutationContext<A>)` returns `void` and runs only with a
+`LifecycleParticipant.MutationHandler<A>.mutate(LifecycleParticipant.MutationContext<A>)` returns `void` and runs only with a
 non-null target. Creation always precedes mutation within that field visit; a null result leaves the field
 unset and skips mutation. Repeated mutations follow the qualified composition contract below.
 
@@ -153,12 +160,12 @@ unset and skips mutation. Repeated mutations follow the qualified composition co
 ```groovy
 @Retention(RUNTIME)
 @Target(FIELD)
-@LifecycleCreator(phase = AutoLink, handler = SupplyDomain)
-@LifecycleMutator(phase = AutoLink, handler = ConfigureDomain)
+@LifecycleParticipant.Creator(phase = AutoLink, handler = SupplyDomain)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = ConfigureDomain)
 @interface Supplied { boolean enabled() default true }
 
-class SupplyDomain implements LifecycleCreationHandler<Supplied> {
-    KlumBuilder<?> create(LifecycleFieldContext<Supplied> context) {
+class SupplyDomain implements LifecycleParticipant.CreationHandler<Supplied> {
+    KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> context) {
         context.annotation.enabled() ? Domain.Create.AsBuilder().With(value: 'created') : null
     }
 }
@@ -174,10 +181,10 @@ assert application.absent == null
 
 ### Context and qualification boundary
 
-`LifecycleFieldContext<A>` exposes `getAnnotation()`, singular typed
+`LifecycleParticipant.InvocationContext<A>` exposes `getAnnotation()`, singular typed
 `getAnnotation(Class<B>): Optional<B>`, `getContainingBuilder(): KlumBuilder<?>`, `getFieldName()`,
 `getDeclaredType(): Class<?>` and effective `getFieldType(): FieldType` from the original Schema declaration.
-`LifecycleMutationContext<A>` additionally exposes `getTargetBuilder(): KlumBuilder<?>` and default `isType(): boolean`
+`LifecycleParticipant.MutationContext<A>` additionally exposes `getTargetBuilder(): KlumBuilder<?>` and default `isType(): boolean`
 (false for fields). For fields, the target is the relationship Builder; declared type, field name, FieldType and lookup
 describe the original Schema field. Type invocation changes lookup and root context as described under LP-5 below.
 There is no setter, reflective Field, annotation list, path API, or expiry operation. Contexts are for the
@@ -211,9 +218,9 @@ remain legal, including alongside built-in creation. Built-in creation in a diff
 
 ```groovy
 @Retention(RUNTIME) @Target(FIELD)
-@LifecycleCreator(phase = AutoLink, handler = Supply)
-@LifecycleMutator(phase = AutoLink, handler = ZFirst)
-@LifecycleMutator(phase = AutoLink, handler = ASecond)
+@LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = ZFirst)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = ASecond)
 @interface Configured { boolean enabled() default true }
 
 @DSL class Domain { String value }
@@ -231,8 +238,8 @@ assert application.existing.value == 'configured:first:second'
 assert application.absent == null
 ```
 
-Within one domain annotation, repeated `@LifecycleMutator` declarations execute in declaration order.
-The equivalent explicit `@LifecycleMutator.List([@LifecycleMutator(...), ...])` executes in its `value`
+Within one domain annotation, repeated `@LifecycleParticipant.Mutator` declarations execute in declaration order.
+The equivalent explicit `@LifecycleParticipant.Mutator.List([@LifecycleParticipant.Mutator(...), ...])` executes in its `value`
 array order (Java uses `{...}`). This narrow contract is qualified for Java- and Groovy-authored annotation
 libraries, separately compiled Schemas and binary consumers under Groovy 3/4/5. It follows the emitted
 repeatable container's ordered array, without alphabetical sorting or priorities.
@@ -270,24 +277,24 @@ the earlier direct-field mutation in that AutoCreate visit.
 ```groovy
 @Retention(RUNTIME)
 @Target(FIELD)
-@LifecycleCreator(phase = AutoCreate, handler = Supply)
-@LifecycleMutator(phase = AutoCreate, handler = ZFirst)
-@LifecycleMutator(phase = AutoCreate, handler = ASecond)
+@LifecycleParticipant.Creator(phase = AutoCreate, handler = Supply)
+@LifecycleParticipant.Mutator(phase = AutoCreate, handler = ZFirst)
+@LifecycleParticipant.Mutator(phase = AutoCreate, handler = ASecond)
 @interface Configured {}
 
-class Supply implements LifecycleCreationHandler<Configured> {
-    KlumBuilder<?> create(LifecycleFieldContext<Configured> context) {
+class Supply implements LifecycleParticipant.CreationHandler<Configured> {
+    KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Configured> context) {
         Service.Create.AsBuilder().With([value: 'created'])
     }
 }
-class ZFirst implements LifecycleMutationHandler<Configured> {
-    void mutate(LifecycleMutationContext<Configured> context) {
+class ZFirst implements LifecycleParticipant.MutationHandler<Configured> {
+    void mutate(LifecycleParticipant.MutationContext<Configured> context) {
         def service = Service.Create.narrowBuilder(context.targetBuilder)
         service.value(service.value + ':first')
     }
 }
-class ASecond implements LifecycleMutationHandler<Configured> {
-    void mutate(LifecycleMutationContext<Configured> context) {
+class ASecond implements LifecycleParticipant.MutationHandler<Configured> {
+    void mutate(LifecycleParticipant.MutationContext<Configured> context) {
         def service = Service.Create.narrowBuilder(context.targetBuilder)
         service.value(service.value + ':second')
     }
@@ -310,7 +317,7 @@ field can still be null on a late-created child. Earlier phases never replay; fu
 
 ### Sealed participant targets (LP-4)
 
-`LifecycleMutator.onSealed` selects `LifecycleMutator.SealedPolicy.FAIL` (the default) or `SKIP`
+`LifecycleParticipant.Mutator.onSealed` selects `LifecycleParticipant.Mutator.SealedPolicy.FAIL` (the default) or `SKIP`
 for that mutator occurrence. FAIL rejects a sealed target before constructing the handler, retaining
 participant annotation, handler, phase, original declaring Schema field and the rejection cause.
 SKIP omits both handler construction and invocation. Unsealed targets still execute normally under either
@@ -321,8 +328,8 @@ policy, including polymorphic values and aliases; each invocation receives a fre
 ```groovy
 @Retention(RUNTIME)
 @Target(FIELD)
-@LifecycleMutator(phase = AutoLink, handler = Configure,
-    onSealed = LifecycleMutator.SealedPolicy.SKIP)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = Configure,
+    onSealed = LifecycleParticipant.Mutator.SealedPolicy.SKIP)
 @interface Configured {}
 
 @DSL class Service { String value }
@@ -361,8 +368,8 @@ validation contract. LP-4 adds no completed-target access or reporting framework
 ### Type mutation (LP-5)
 
 A domain annotation with `@Target(TYPE)` may select mutating participants for the visited Schema Builder.
-Creators remain field-only. The same `LifecycleMutationHandler<A>` is used for field and type placement;
-`LifecycleMutationContext.isType()` distinguishes them. Type mutations run at the start of that Builder's
+Creators remain field-only. The same `LifecycleParticipant.MutationHandler<A>` is used for field and type placement;
+`LifecycleParticipant.MutationContext.isType()` distinguishes them. Type mutations run at the start of that Builder's
 existing AutoCreate, AutoLink, Default or PostTree visit, after parent-field dispatch and before its own
 fields, clusters, defaults, lifecycle methods and Closure callbacks. No extra traversal or phase replay occurs.
 
@@ -371,11 +378,11 @@ fields, clusters, defaults, lifecycle methods and Closure callbacks. No extra tr
 ```groovy
 @Retention(RetentionPolicy.RUNTIME)
 @Target([ElementType.TYPE, ElementType.FIELD])
-@LifecycleMutator(phase = AutoLink, handler = Configure)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = Configure)
 @interface Managed { String value() }
 
-class Configure implements LifecycleMutationHandler<Managed> {
-    void mutate(LifecycleMutationContext<Managed> context) {
+class Configure implements LifecycleParticipant.MutationHandler<Managed> {
+    void mutate(LifecycleParticipant.MutationContext<Managed> context) {
         def target = Service.Create.narrowBuilder(context.targetBuilder)
         target.region(context.annotation.value())
     }
@@ -443,8 +450,8 @@ promise to select the participant's target. Explicit targets have no default mem
 
 ```groovy
 @CompileStatic
-class CheckFactsHandler implements LifecycleMutationHandler<CheckFacts> {
-    void mutate(LifecycleMutationContext<CheckFacts> context) {
+class CheckFactsHandler implements LifecycleParticipant.MutationHandler<CheckFacts> {
+    void mutate(LifecycleParticipant.MutationContext<CheckFacts> context) {
         def domain = Domain.Create.narrowBuilder(context.targetBuilder)
         if (!domain.facts)
             KlumSchemaSupport.klumValidationForObject(domain)
@@ -452,7 +459,7 @@ class CheckFactsHandler implements LifecycleMutationHandler<CheckFacts> {
     }
 }
 @Retention(RUNTIME) @Target(FIELD)
-@LifecycleMutator(phase = AutoLink, handler = CheckFactsHandler)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = CheckFactsHandler)
 @interface CheckFacts {}
 @DSL class Facts {}
 @DSL class Domain { Facts facts }

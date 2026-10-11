@@ -23,14 +23,13 @@
  */
 package participant.fixture;
 import com.blackbuild.klum.ast.layer3.AutoLink;
-import com.blackbuild.klum.ast.runtime.LifecycleCreator;
-import com.blackbuild.klum.ast.runtime.LifecycleMutator;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-@LifecycleCreator(phase = AutoLink.class, handler = SupplyDomain.class)
-@LifecycleMutator(phase = AutoLink.class, handler = BindFacts.class)
+@LifecycleParticipant.Creator(phase = AutoLink.class, handler = SupplyDomain.class)
+@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = BindFacts.class)
 public @interface Binding { String value() default "java"; }

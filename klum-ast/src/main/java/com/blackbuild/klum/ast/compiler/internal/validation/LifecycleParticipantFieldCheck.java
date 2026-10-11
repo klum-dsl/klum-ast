@@ -29,10 +29,10 @@ import com.blackbuild.klum.ast.PostTree;
 import com.blackbuild.klum.ast.layer3.AutoCreate;
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.layer3.LinkTo;
-import com.blackbuild.klum.ast.runtime.LifecycleCreator;
-import com.blackbuild.klum.ast.runtime.LifecycleMutator;
-import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.Creator;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.Mutator;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.CreationHandler;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.MutationHandler;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -72,17 +72,17 @@ public final class LifecycleParticipantFieldCheck {
     private static void checkType(ClassNode schema, SourceUnit source) {
         for (AnnotationNode use : schema.getAnnotations()) {
             ClassNode domain = use.getClassNode();
-            if (!markers(domain, LifecycleCreator.class).isEmpty())
+            if (!markers(domain, Creator.class).isEmpty())
                 error(source, use, "Creating lifecycle participants require direct Schema field placement");
-            checkRole(source, use, domain, LifecycleMutator.class, LifecycleMutationHandler.class);
+            checkRole(source, use, domain, Mutator.class, MutationHandler.class);
         }
     }
 
     private static void checkUnsupportedPlacement(AnnotatedNode declaration, SourceUnit source) {
         for (AnnotationNode use : declaration.getAnnotations()) {
             ClassNode domain = use.getClassNode();
-            if (!markers(domain, LifecycleCreator.class).isEmpty()
-                    || !markers(domain, LifecycleMutator.class).isEmpty())
+            if (!markers(domain, Creator.class).isEmpty()
+                    || !markers(domain, Mutator.class).isEmpty())
                 error(source, use, "LP-1 lifecycle participants require direct Schema field placement");
         }
     }
@@ -95,13 +95,13 @@ public final class LifecycleParticipantFieldCheck {
         }
         for (AnnotationNode use : field.getAnnotations()) {
             ClassNode domain = use.getClassNode();
-            for (AnnotationNode marker : markers(domain, LifecycleCreator.class)) {
+            for (AnnotationNode marker : markers(domain, Creator.class)) {
                 if (marker.getMember("phase") instanceof ClassExpression phase
                         && creators.merge(phase.getType().getName(), 1, Integer::sum) > 1)
                     error(source, use, "Competing lifecycle creators for " + phase.getType().getNameWithoutPackage() + " on " + field.getName());
             }
-            checkRole(field, source, use, domain, LifecycleCreator.class, LifecycleCreationHandler.class);
-            checkRole(field, source, use, domain, LifecycleMutator.class, LifecycleMutationHandler.class);
+            checkRole(field, source, use, domain, Creator.class, CreationHandler.class);
+            checkRole(field, source, use, domain, Mutator.class, MutationHandler.class);
         }
     }
 
@@ -136,7 +136,7 @@ public final class LifecycleParticipantFieldCheck {
 
     private static List<AnnotationNode> markers(ClassNode domain, Class<?> markerType) {
         List<AnnotationNode> result = new ArrayList<>(domain.getAnnotations(ClassHelper.make(markerType)));
-        Class<?> container = markerType == LifecycleCreator.class ? LifecycleCreator.List.class : LifecycleMutator.List.class;
+        Class<?> container = markerType == Creator.class ? Creator.List.class : Mutator.List.class;
         for (AnnotationNode annotation : domain.getAnnotations(ClassHelper.make(container))) {
             Expression value = annotation.getMember("value");
             for (Expression entry : annotationValues(value)) {

@@ -28,7 +28,7 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#field-participants-in-four-phases-lp-3')
@@ -39,23 +39,23 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = $phase, handler = Supply)
-            @LifecycleMutator(phase = $phase, handler = ZFirst)
-            @LifecycleMutator(phase = $phase, handler = ASecond)
+            @LifecycleParticipant.Creator(phase = $phase, handler = Supply)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = ZFirst)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = ASecond)
             @interface Configured { boolean enabled() default true }
-            class Supply implements LifecycleCreationHandler<Configured> {
-                KlumBuilder<?> create(LifecycleFieldContext<Configured> c) {
+            class Supply implements LifecycleParticipant.CreationHandler<Configured> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Configured> c) {
                     c.annotation.enabled() ? Service.Create.AsBuilder().With([value: 'created']) : null
                 }
             }
-            class ZFirst implements LifecycleMutationHandler<Configured> {
-                void mutate(LifecycleMutationContext<Configured> c) {
+            class ZFirst implements LifecycleParticipant.MutationHandler<Configured> {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     def target = Service.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':first')
                 }
             }
-            class ASecond implements LifecycleMutationHandler<Configured> {
-                void mutate(LifecycleMutationContext<Configured> c) {
+            class ASecond implements LifecycleParticipant.MutationHandler<Configured> {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     def target = Service.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':second')
                 }
@@ -95,22 +95,22 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = $phase, handler = SupplyChild)
-            @LifecycleMutator(phase = $phase, handler = AddGrandchild)
+            @LifecycleParticipant.Creator(phase = $phase, handler = SupplyChild)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = AddGrandchild)
             @interface Managed {}
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = $phase, handler = ObserveParent)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = ObserveParent)
             @interface Observed {}
-            class SupplyChild implements LifecycleCreationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { Child.Create.AsBuilder().One() }
+            class SupplyChild implements LifecycleParticipant.CreationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { Child.Create.AsBuilder().One() }
             }
-            class AddGrandchild implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {
+            class AddGrandchild implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {
                     Child.Create.narrowBuilder(c.targetBuilder).grandchild { value 'parent' }
                 }
             }
-            class ObserveParent implements LifecycleMutationHandler<Observed> {
-                void mutate(LifecycleMutationContext<Observed> c) {
+            class ObserveParent implements LifecycleParticipant.MutationHandler<Observed> {
+                void mutate(LifecycleParticipant.MutationContext<Observed> c) {
                     def target = Grandchild.Create.narrowBuilder(c.targetBuilder)
                     assert target.value == 'parent'
                     target.value(target.value + ':field')
@@ -152,26 +152,26 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoCreate, handler = Supply)
-            @LifecycleMutator(phase = AutoCreate, handler = Configure)
+            @LifecycleParticipant.Creator(phase = AutoCreate, handler = Supply)
+            @LifecycleParticipant.Mutator(phase = AutoCreate, handler = Configure)
             @interface Managed { boolean enabled() default true }
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoCreate, handler = ConfigureBuiltIn)
+            @LifecycleParticipant.Mutator(phase = AutoCreate, handler = ConfigureBuiltIn)
             @interface Tune {}
-            class Supply implements LifecycleCreationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) {
+            class Supply implements LifecycleParticipant.CreationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) {
                     c.annotation.enabled() ? Service.Create.AsBuilder().With([value: 'created']) : null
                 }
             }
-            class Configure implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {
+            class Configure implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {
                     assert c.annotation.enabled() : 'null-return field must not be revisited after clusters'
                     def target = Service.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':mutated')
                 }
             }
-            class ConfigureBuiltIn implements LifecycleMutationHandler<Tune> {
-                void mutate(LifecycleMutationContext<Tune> c) {
+            class ConfigureBuiltIn implements LifecycleParticipant.MutationHandler<Tune> {
+                void mutate(LifecycleParticipant.MutationContext<Tune> c) {
                     def target = Service.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':mutated')
                 }
@@ -216,39 +216,39 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoCreate, handler = Decline)
-            @LifecycleCreator(phase = AutoLink, handler = Supply)
-            @LifecycleCreator(phase = Default, handler = MustSkip)
-            @LifecycleCreator(phase = PostTree, handler = MustSkip)
-            @LifecycleMutator(phase = AutoCreate, handler = MustSkip)
-            @LifecycleMutator(phase = AutoLink, handler = Linked)
-            @LifecycleMutator(phase = Default, handler = Defaulted)
-            @LifecycleMutator(phase = PostTree, handler = Finalized)
+            @LifecycleParticipant.Creator(phase = AutoCreate, handler = Decline)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
+            @LifecycleParticipant.Creator(phase = Default, handler = MustSkip)
+            @LifecycleParticipant.Creator(phase = PostTree, handler = MustSkip)
+            @LifecycleParticipant.Mutator(phase = AutoCreate, handler = MustSkip)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Linked)
+            @LifecycleParticipant.Mutator(phase = Default, handler = Defaulted)
+            @LifecycleParticipant.Mutator(phase = PostTree, handler = Finalized)
             @interface Managed {}
-            class Decline implements LifecycleCreationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { null }
+            class Decline implements LifecycleParticipant.CreationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { null }
             }
-            class Supply implements LifecycleCreationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { Service.Create.AsBuilder().With([value: 'created']) }
+            class Supply implements LifecycleParticipant.CreationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { Service.Create.AsBuilder().With([value: 'created']) }
             }
-            class MustSkip implements LifecycleCreationHandler<Managed>, LifecycleMutationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { throw new AssertionError('existing target') }
-                void mutate(LifecycleMutationContext<Managed> c) { throw new AssertionError('null target') }
+            class MustSkip implements LifecycleParticipant.CreationHandler<Managed>, LifecycleParticipant.MutationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { throw new AssertionError('existing target') }
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) { throw new AssertionError('null target') }
             }
-            class Linked implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {
+            class Linked implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {
                     def t = Service.Create.narrowBuilder(c.targetBuilder)
                     t.value(t.value + ':linked')
                 }
             }
-            class Defaulted implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {
+            class Defaulted implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {
                     def t = Service.Create.narrowBuilder(c.targetBuilder)
                     t.value(t.value + ':defaulted')
                 }
             }
-            class Finalized implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {
+            class Finalized implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {
                     def t = Service.Create.narrowBuilder(c.targetBuilder)
                     t.value(t.value + ':finalized')
                 }
@@ -271,16 +271,16 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = $phase, handler = Supply)
+            @LifecycleParticipant.Creator(phase = $phase, handler = Supply)
             @interface Managed {}
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = $phase, handler = OtherSupply)
+            @LifecycleParticipant.Creator(phase = $phase, handler = OtherSupply)
             @interface Other {}
-            class Supply implements LifecycleCreationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { null }
+            class Supply implements LifecycleParticipant.CreationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { null }
             }
-            class OtherSupply implements LifecycleCreationHandler<Other> {
-                KlumBuilder<?> create(LifecycleFieldContext<Other> c) { null }
+            class OtherSupply implements LifecycleParticipant.CreationHandler<Other> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Other> c) { null }
             }
             @DSL class Service {}
             @DSL class Application { @Managed $competing Service service }
@@ -307,10 +307,10 @@ class LifecycleParticipantPhaseTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.runtime.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = Default, handler = Configure)
+            @LifecycleParticipant.Mutator(phase = Default, handler = Configure)
             @interface Managed {}
-            class Configure implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {
+            class Configure implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {
                     def target = Service.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':mutated')
                 }

@@ -29,7 +29,7 @@ import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
 /** LP-7 evidence only: container annotations remain unsupported. */
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantContainerProbeTest extends AbstractDSLSpec {
     def 'rejects #shape #role field participation in #phase'() {
         when:
@@ -293,12 +293,12 @@ class LifecycleParticipantContainerProbeTest extends AbstractDSLSpec {
 
     private static String declaration(String phase, String role, String shape) {
         String handler = role == 'Creator' ? """
-            class Handle implements LifecycleCreationHandler<Managed> {
-                KlumBuilder<?> create(LifecycleFieldContext<Managed> c) { null }
+            class Handle implements LifecycleParticipant.CreationHandler<Managed> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Managed> c) { null }
             }
         """ : """
-            class Handle implements LifecycleMutationHandler<Managed> {
-                void mutate(LifecycleMutationContext<Managed> c) {}
+            class Handle implements LifecycleParticipant.MutationHandler<Managed> {
+                void mutate(LifecycleParticipant.MutationContext<Managed> c) {}
             }
         """
         """
@@ -306,7 +306,7 @@ class LifecycleParticipantContainerProbeTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @Lifecycle$role(phase = $phase, handler = Handle)
+            @LifecycleParticipant.$role(phase = $phase, handler = Handle)
             @interface Managed {}
             $handler
             @DSL class Child {}
@@ -321,10 +321,10 @@ class LifecycleParticipantContainerProbeTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE)
-            @LifecycleMutator(phase = $phase, handler = Observe)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Observe)
             @interface Observed {}
-            class Observe implements LifecycleMutationHandler<Observed> {
-                void mutate(LifecycleMutationContext<Observed> c) {
+            class Observe implements LifecycleParticipant.MutationHandler<Observed> {
+                void mutate(LifecycleParticipant.MutationContext<Observed> c) {
                     assert c.isType() && c.declaredType == Child
                     def child = Child.Create.narrowBuilder(c.targetBuilder)
                     child.visits(child.visits + 1)

@@ -22,8 +22,7 @@
  * SOFTWARE.
  */
 package participant.fixture;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationContext;
-public class BindFacts implements LifecycleMutationHandler<Deprecated> {
-    public void mutate(LifecycleMutationContext<Deprecated> context) {}
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
+public class BindFacts implements LifecycleParticipant.MutationHandler<Deprecated> {
+    public void mutate(LifecycleParticipant.MutationContext<Deprecated> context) {}
 }

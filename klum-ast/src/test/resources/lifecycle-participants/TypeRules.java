@@ -24,9 +24,7 @@
 package participant.fixture;
 
 import com.blackbuild.klum.ast.layer3.AutoLink;
-import com.blackbuild.klum.ast.runtime.LifecycleMutator;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationContext;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
@@ -37,23 +35,23 @@ import java.lang.annotation.ElementType;
 public class TypeRules {
     @Inherited @Retention(RetentionPolicy.RUNTIME) @Target({ElementType.TYPE, ElementType.FIELD})
     @Repeatable(ManagedList.class)
-    @LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class)
-    @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)
+    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ZFirst.class)
+    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)
     public @interface Managed { String value(); }
 
     @Inherited @Retention(RetentionPolicy.RUNTIME) @Target({ElementType.TYPE, ElementType.FIELD})
     public @interface ManagedList { Managed[] value(); }
 
     @Inherited @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE)
-    @LifecycleMutator(phase = AutoLink.class, handler = OtherHandler.class)
+    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = OtherHandler.class)
     public @interface Other {}
 
     @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE)
-    @LifecycleMutator(phase = AutoLink.class, handler = LocalHandler.class)
+    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = LocalHandler.class)
     public @interface Local {}
 
-    public static class ZFirst implements LifecycleMutationHandler<Managed> {
-        public void mutate(LifecycleMutationContext<Managed> c) {
+    public static class ZFirst implements LifecycleParticipant.MutationHandler<Managed> {
+        public void mutate(LifecycleParticipant.MutationContext<Managed> c) {
             TypeDomain_DSL.Builder<TypeDomain> b = TypeDomain.Create.narrowBuilder(c.getTargetBuilder());
             if (c.isType()) {
                 if (!c.getAnnotation(Managed.class).orElseThrow().equals(c.getAnnotation())) throw new AssertionError("type lookup");
@@ -62,16 +60,16 @@ public class TypeRules {
             b.value(b.getValue() + c.getAnnotation().value() + ":first");
         }
     }
-    public static class ASecond implements LifecycleMutationHandler<Managed> {
-        public void mutate(LifecycleMutationContext<Managed> c) {
+    public static class ASecond implements LifecycleParticipant.MutationHandler<Managed> {
+        public void mutate(LifecycleParticipant.MutationContext<Managed> c) {
             TypeDomain_DSL.Builder<TypeDomain> b = TypeDomain.Create.narrowBuilder(c.getTargetBuilder());
             b.value(b.getValue() + ":second:");
         }
     }
-    public static class OtherHandler implements LifecycleMutationHandler<Other> {
-        public void mutate(LifecycleMutationContext<Other> c) { TypeDomain.Create.narrowBuilder(c.getTargetBuilder()).other("other"); }
+    public static class OtherHandler implements LifecycleParticipant.MutationHandler<Other> {
+        public void mutate(LifecycleParticipant.MutationContext<Other> c) { TypeDomain.Create.narrowBuilder(c.getTargetBuilder()).other("other"); }
     }
-    public static class LocalHandler implements LifecycleMutationHandler<Local> {
-        public void mutate(LifecycleMutationContext<Local> c) { TypeDomain.Create.narrowBuilder(c.getTargetBuilder()).local("local"); }
+    public static class LocalHandler implements LifecycleParticipant.MutationHandler<Local> {
+        public void mutate(LifecycleParticipant.MutationContext<Local> c) { TypeDomain.Create.narrowBuilder(c.getTargetBuilder()).local("local"); }
     }
 }

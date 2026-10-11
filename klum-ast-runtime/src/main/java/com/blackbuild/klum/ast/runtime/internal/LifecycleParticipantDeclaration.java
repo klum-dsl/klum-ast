@@ -29,10 +29,10 @@ import com.blackbuild.klum.ast.layer3.AutoCreate;
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.ast.runtime.KlumSchemaException;
-import com.blackbuild.klum.ast.runtime.LifecycleCreator;
-import com.blackbuild.klum.ast.runtime.LifecycleMutator;
-import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.Creator;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.Mutator;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.CreationHandler;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant.MutationHandler;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -61,28 +61,28 @@ final class LifecycleParticipantDeclaration {
     static void check(Class<?> schema) {
         for (Annotation annotation : schema.getAnnotations()) {
             Class<? extends Annotation> domain = annotation.annotationType();
-            if (domain.getAnnotationsByType(LifecycleCreator.class).length != 0)
+            if (domain.getAnnotationsByType(Creator.class).length != 0)
                 throw new KlumSchemaException("Creating lifecycle participants require direct Schema field placement: " + schema.getName());
-            for (LifecycleMutator mutator : domain.getAnnotationsByType(LifecycleMutator.class))
-                checkHandler(schema.getName(), domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
+            for (Mutator mutator : domain.getAnnotationsByType(Mutator.class))
+                checkHandler(schema.getName(), domain, mutator.phase(), mutator.handler(), MutationHandler.class);
         }
     }
 
     private static void checkParticipantAnnotation(Field field, Annotation annotation,
                                                    Map<Class<? extends Annotation>, Integer> creators) {
         Class<? extends Annotation> domain = annotation.annotationType();
-        LifecycleCreator[] creation = domain.getAnnotationsByType(LifecycleCreator.class);
-        LifecycleMutator[] mutation = domain.getAnnotationsByType(LifecycleMutator.class);
+        Creator[] creation = domain.getAnnotationsByType(Creator.class);
+        Mutator[] mutation = domain.getAnnotationsByType(Mutator.class);
         if (creation.length == 0 && mutation.length == 0) return;
         if (Modifier.isStatic(field.getModifiers()) || !DslHelper.isDslType(field.getType()))
             throw new KlumSchemaException("Lifecycle participant requires a non-static direct DSL field: " + field);
-        for (LifecycleCreator creator : creation) {
-            checkHandler(field.toString(), domain, creator.phase(), creator.handler(), LifecycleCreationHandler.class);
+        for (Creator creator : creation) {
+            checkHandler(field.toString(), domain, creator.phase(), creator.handler(), CreationHandler.class);
             if (creators.merge(creator.phase(), 1, Integer::sum) > 1)
                 throw new KlumSchemaException("Competing lifecycle creators for " + creator.phase().getSimpleName() + " on " + field);
         }
-        for (LifecycleMutator mutator : mutation)
-            checkHandler(field.toString(), domain, mutator.phase(), mutator.handler(), LifecycleMutationHandler.class);
+        for (Mutator mutator : mutation)
+            checkHandler(field.toString(), domain, mutator.phase(), mutator.handler(), MutationHandler.class);
     }
 
     private static void checkHandler(String declaration, Class<? extends Annotation> domain, Class<? extends Annotation> phase,

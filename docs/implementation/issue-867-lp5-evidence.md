@@ -15,7 +15,7 @@ Closures. Current sealed/non-Builder skips remain authoritative. There is no sec
 path/ownership reconstruction, creating participant on types or earlier-phase replay.
 
 The existing mutation handler/context boundary is retained. Additive default
-`LifecycleMutationContext.isType(): boolean` returns false for existing field contexts and true for type
+`LifecycleParticipant.MutationContext.isType(): boolean` returns false for existing field contexts and true for type
 invocation. Target is the visited Builder. Containing Builder/incoming name come directly from traversal
 and are null at root. `getDeclaredType()` returns the concrete Schema type for type invocation; field
 invocation still returns the original field's declared type. `getFieldType()` reads the incoming original

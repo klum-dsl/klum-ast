@@ -28,7 +28,7 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantSealedTest extends AbstractDSLSpec {
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#sealed-participant-targets-lp-4')
@@ -39,12 +39,12 @@ class LifecycleParticipantSealedTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = $phase, handler = Configure,
-                onSealed = LifecycleMutator.SealedPolicy.SKIP)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Configure,
+                onSealed = LifecycleParticipant.Mutator.SealedPolicy.SKIP)
             @interface Configured {}
-            class Configure implements LifecycleMutationHandler<Configured> {
+            class Configure implements LifecycleParticipant.MutationHandler<Configured> {
                 Configure() { throw new IllegalStateException('must not construct a skipped handler') }
-                void mutate(LifecycleMutationContext<Configured> c) { throw new AssertionError('must not invoke') }
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) { throw new AssertionError('must not invoke') }
             }
             @DSL class Service { String value }
             @DSL class SpecializedService extends Service {}
@@ -77,11 +77,11 @@ class LifecycleParticipantSealedTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = $phase, handler = Configure)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Configure)
             @interface Configured {}
-            class Configure implements LifecycleMutationHandler<Configured> {
+            class Configure implements LifecycleParticipant.MutationHandler<Configured> {
                 Configure() { throw new IllegalStateException('handler must not be constructed') }
-                void mutate(LifecycleMutationContext<Configured> c) {}
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {}
             }
             @DSL class Service { String value }
             @DSL class BaseApplication { @Configured @Field(FieldType.LINK) Service service }
@@ -115,12 +115,12 @@ class LifecycleParticipantSealedTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = $phase, handler = Configure,
-                onSealed = LifecycleMutator.SealedPolicy.SKIP)
+            @LifecycleParticipant.Mutator(phase = $phase, handler = Configure,
+                onSealed = LifecycleParticipant.Mutator.SealedPolicy.SKIP)
             @interface Configured {}
-            class Configure implements LifecycleMutationHandler<Configured> {
+            class Configure implements LifecycleParticipant.MutationHandler<Configured> {
                 boolean used
-                void mutate(LifecycleMutationContext<Configured> c) {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     assert !used
                     used = true
                     assert c.declaredType == Service
@@ -166,16 +166,16 @@ class LifecycleParticipantSealedTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = Supply)
-            @LifecycleMutator(phase = AutoLink, handler = Configure, onSealed = LifecycleMutator.SealedPolicy.SKIP)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Configure, onSealed = LifecycleParticipant.Mutator.SealedPolicy.SKIP)
             @interface Supplied {}
-            class Supply implements LifecycleCreationHandler<Supplied> {
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> c) {
+            class Supply implements LifecycleParticipant.CreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> c) {
                     Application.Create.narrowBuilder(c.containingBuilder).source
                 }
             }
-            class Configure implements LifecycleMutationHandler<Supplied> {
-                void mutate(LifecycleMutationContext<Supplied> c) { throw new AssertionError('sealed result must skip') }
+            class Configure implements LifecycleParticipant.MutationHandler<Supplied> {
+                void mutate(LifecycleParticipant.MutationContext<Supplied> c) { throw new AssertionError('sealed result must skip') }
             }
             @DSL class Service { String value }
             @DSL class Application {

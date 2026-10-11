@@ -28,7 +28,7 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#participant-composition-lp-2')
@@ -39,22 +39,22 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = Supply)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
             ${mutations(container)}
             @interface Configured { boolean enabled() default true }
-            class Supply implements LifecycleCreationHandler<Configured> {
-                KlumBuilder<?> create(LifecycleFieldContext<Configured> c) {
+            class Supply implements LifecycleParticipant.CreationHandler<Configured> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Configured> c) {
                     c.annotation.enabled() ? Domain.Create.AsBuilder().With([value: 'created']) : null
                 }
             }
-            class ZFirst implements LifecycleMutationHandler<Configured> {
-                void mutate(LifecycleMutationContext<Configured> c) {
+            class ZFirst implements LifecycleParticipant.MutationHandler<Configured> {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     def target = Domain.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':first')
                 }
             }
-            class ASecond implements LifecycleMutationHandler<Configured> {
-                void mutate(LifecycleMutationContext<Configured> c) {
+            class ASecond implements LifecycleParticipant.MutationHandler<Configured> {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     def target = Domain.Create.narrowBuilder(c.targetBuilder)
                     target.value(target.value + ':second')
                 }
@@ -86,16 +86,16 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.*
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = Supply)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
             @interface Supplied {}
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = OtherSupply)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = OtherSupply)
             @interface Other {}
-            class Supply implements LifecycleCreationHandler<Supplied> {
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> c) { null }
+            class Supply implements LifecycleParticipant.CreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> c) { null }
             }
-            class OtherSupply implements LifecycleCreationHandler<Other> {
-                KlumBuilder<?> create(LifecycleFieldContext<Other> c) { null }
+            class OtherSupply implements LifecycleParticipant.CreationHandler<Other> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Other> c) { null }
             }
             @DSL class Domain {}
             @DSL class Application { @Supplied ${competing} Domain domain }
@@ -122,23 +122,23 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = Supply)
-            @LifecycleMutator(phase = AutoLink, handler = SetName)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = SetName)
             @interface Named {}
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = SetPort)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = SetPort)
             @interface Port {}
-            class Supply implements LifecycleCreationHandler<Named> {
-                KlumBuilder<?> create(LifecycleFieldContext<Named> c) {
+            class Supply implements LifecycleParticipant.CreationHandler<Named> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Named> c) {
                     assert c.fieldName == 'external' : 'AutoCreate should already have supplied the Builder'
                     Domain.Create.AsBuilder().One()
                 }
             }
-            class SetName implements LifecycleMutationHandler<Named> {
-                void mutate(LifecycleMutationContext<Named> c) { Domain.Create.narrowBuilder(c.targetBuilder).name('service') }
+            class SetName implements LifecycleParticipant.MutationHandler<Named> {
+                void mutate(LifecycleParticipant.MutationContext<Named> c) { Domain.Create.narrowBuilder(c.targetBuilder).name('service') }
             }
-            class SetPort implements LifecycleMutationHandler<Port> {
-                void mutate(LifecycleMutationContext<Port> c) { Domain.Create.narrowBuilder(c.targetBuilder).port(8080) }
+            class SetPort implements LifecycleParticipant.MutationHandler<Port> {
+                void mutate(LifecycleParticipant.MutationContext<Port> c) { Domain.Create.narrowBuilder(c.targetBuilder).port(8080) }
             }
             @DSL class Domain { String name; int port }
             @DSL class Application {
@@ -168,16 +168,16 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator.List([
-                @LifecycleMutator(phase = AutoLink, handler = Correct),
-                @LifecycleMutator(phase = AutoLink, handler = Wrong)
+            @LifecycleParticipant.Mutator.List([
+                @LifecycleParticipant.Mutator(phase = AutoLink, handler = Correct),
+                @LifecycleParticipant.Mutator(phase = AutoLink, handler = Wrong)
             ])
             @interface Binding {}
-            class Correct implements LifecycleMutationHandler<Binding> {
-                void mutate(LifecycleMutationContext<Binding> c) {}
+            class Correct implements LifecycleParticipant.MutationHandler<Binding> {
+                void mutate(LifecycleParticipant.MutationContext<Binding> c) {}
             }
-            class Wrong implements LifecycleMutationHandler<Deprecated> {
-                void mutate(LifecycleMutationContext<Deprecated> c) {}
+            class Wrong implements LifecycleParticipant.MutationHandler<Deprecated> {
+                void mutate(LifecycleParticipant.MutationContext<Deprecated> c) {}
             }
             @DSL class Domain {}
             @DSL class Application { @Binding Domain domain }
@@ -190,9 +190,9 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
 
     def 'rejects repeated creation claims within one domain annotation (#container)'() {
         when:
-        String first = '@LifecycleCreator(phase = AutoLink, handler = Supply)'
-        String second = '@LifecycleCreator(phase = AutoLink, handler = OtherSupply)'
-        String markers = container ? "@LifecycleCreator.List([$first, $second])" : "$first\n$second"
+        String first = '@LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)'
+        String second = '@LifecycleParticipant.Creator(phase = AutoLink, handler = OtherSupply)'
+        String markers = container ? "@LifecycleParticipant.Creator.List([$first, $second])" : "$first\n$second"
         createSecondaryClass """
             import com.blackbuild.klum.ast.runtime.*
             import com.blackbuild.klum.ast.layer3.AutoLink
@@ -200,11 +200,11 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
             $markers
             @interface Supplied {}
-            class Supply implements LifecycleCreationHandler<Supplied> {
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> c) { null }
+            class Supply implements LifecycleParticipant.CreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> c) { null }
             }
-            class OtherSupply implements LifecycleCreationHandler<Supplied> {
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> c) { null }
+            class OtherSupply implements LifecycleParticipant.CreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> c) { null }
             }
             @DSL class Domain {}
             @DSL class Application { @Supplied Domain domain }
@@ -219,8 +219,8 @@ class LifecycleParticipantCompositionTest extends AbstractDSLSpec {
     }
 
     private static String mutations(boolean container) {
-        String first = '@LifecycleMutator(phase = AutoLink, handler = ZFirst)'
-        String second = '@LifecycleMutator(phase = AutoLink, handler = ASecond)'
-        container ? "@LifecycleMutator.List([$first, $second])" : "$first\n$second"
+        String first = '@LifecycleParticipant.Mutator(phase = AutoLink, handler = ZFirst)'
+        String second = '@LifecycleParticipant.Mutator(phase = AutoLink, handler = ASecond)'
+        container ? "@LifecycleParticipant.Mutator.List([$first, $second])" : "$first\n$second"
     }
 }

@@ -29,7 +29,7 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
-@Issue('867')
+@Issue(['867', '883'])
 class LifecycleParticipantTest extends AbstractDSLSpec {
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#external-field-participants-lp-1')
@@ -46,15 +46,15 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
             @interface RelationshipRole { String value() }
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = BindFactsHandler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = BindFactsHandler)
             @interface BindFacts { String value() }
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = ObserveFactsHandler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = ObserveFactsHandler)
             @interface ObserveFacts {}
 
             @CompileStatic
-            class BindFactsHandler implements LifecycleMutationHandler<BindFacts> {
-                void mutate(LifecycleMutationContext<BindFacts> context) {
+            class BindFactsHandler implements LifecycleParticipant.MutationHandler<BindFacts> {
+                void mutate(LifecycleParticipant.MutationContext<BindFacts> context) {
                     // Consumer-owned common Schema bases supply the typed relationship contract.
                     def application = ApplicationBase.Create.narrowBuilder(context.containingBuilder)
                     def domain = DomainBase.Create.narrowBuilder(context.targetBuilder)
@@ -71,8 +71,8 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
                 }
             }
             @CompileStatic
-            class ObserveFactsHandler implements LifecycleMutationHandler<ObserveFacts> {
-                void mutate(LifecycleMutationContext<ObserveFacts> context) {
+            class ObserveFactsHandler implements LifecycleParticipant.MutationHandler<ObserveFacts> {
+                void mutate(LifecycleParticipant.MutationContext<ObserveFacts> context) {
                     def facts = Facts.Create.narrowBuilder(context.targetBuilder)
                     facts.observed(facts.source)
                 }
@@ -136,10 +136,10 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = WrongHandler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = WrongHandler)
             @interface BindFacts {}
-            class WrongHandler implements LifecycleMutationHandler<Deprecated> {
-                void mutate(LifecycleMutationContext<Deprecated> context) {}
+            class WrongHandler implements LifecycleParticipant.MutationHandler<Deprecated> {
+                void mutate(LifecycleParticipant.MutationContext<Deprecated> context) {}
             }
             @DSL class Domain {}
             @DSL class Application { @BindFacts Domain domain }
@@ -164,15 +164,15 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import java.lang.annotation.*
 
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = SupplyDomain)
-            @LifecycleMutator(phase = AutoLink, handler = ConfigureDomain)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = SupplyDomain)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = ConfigureDomain)
             @interface Supplied { boolean enabled() default true }
             ${mode}
-            abstract class TypedCreator<A extends Annotation> implements LifecycleCreationHandler<A> {}
+            abstract class TypedCreator<A extends Annotation> implements LifecycleParticipant.CreationHandler<A> {}
             ${mode}
             class SupplyDomain extends TypedCreator<Supplied> {
                 private boolean used
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> context) {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> context) {
                     assert !used
                     used = true
                     assert context.fieldType == FieldType.DEFAULT
@@ -180,11 +180,11 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
                 }
             }
             ${mode}
-            abstract class TypedMutator<A extends Annotation> implements LifecycleMutationHandler<A> {}
+            abstract class TypedMutator<A extends Annotation> implements LifecycleParticipant.MutationHandler<A> {}
             ${mode}
             class ConfigureDomain extends TypedMutator<Supplied> {
                 private boolean used
-                void mutate(LifecycleMutationContext<Supplied> context) {
+                void mutate(LifecycleParticipant.MutationContext<Supplied> context) {
                     assert !used
                     used = true
                     def target = Domain.Create.narrowBuilder(context.targetBuilder)
@@ -223,10 +223,10 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = BadHandler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = BadHandler)
             @interface Binding {}
-            class BadHandler${variables} implements LifecycleMutationHandler${signature} {
-                void mutate(LifecycleMutationContext context) {}
+            class BadHandler${variables} implements LifecycleParticipant.MutationHandler${signature} {
+                void mutate(LifecycleParticipant.MutationContext context) {}
             }
             @DSL class Domain {}
             @DSL class Application { @Binding Domain domain }
@@ -250,10 +250,10 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = ${phase}, handler = Handler)
+            @LifecycleParticipant.Mutator(phase = ${phase}, handler = Handler)
             @interface Binding {}
-            class Handler implements LifecycleMutationHandler<Binding> {
-                void mutate(LifecycleMutationContext<Binding> context) {}
+            class Handler implements LifecycleParticipant.MutationHandler<Binding> {
+                void mutate(LifecycleParticipant.MutationContext<Binding> context) {}
             }
             @DSL class Domain {}
             @DSL class Application { @Binding ${declaration} }
@@ -280,11 +280,11 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleMutator(phase = AutoLink, handler = Handler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Handler)
             @interface Binding {}
-            ${modifier} class Handler implements LifecycleMutationHandler<Binding> {
+            ${modifier} class Handler implements LifecycleParticipant.MutationHandler<Binding> {
                 ${body}
-                void mutate(LifecycleMutationContext<Binding> context) {}
+                void mutate(LifecycleParticipant.MutationContext<Binding> context) {}
             }
             @DSL class Domain {}
             @DSL class Application { @Binding Domain domain }
@@ -308,11 +308,11 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
-            @LifecycleCreator(phase = AutoLink, handler = Supplier)
+            @LifecycleParticipant.Creator(phase = AutoLink, handler = Supplier)
             @interface Supplied {}
             class Capture { static KlumBuilder<?> builder }
-            class Supplier implements LifecycleCreationHandler<Supplied> {
-                KlumBuilder<?> create(LifecycleFieldContext<Supplied> context) { ${result} }
+            class Supplier implements LifecycleParticipant.CreationHandler<Supplied> {
+                KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Supplied> context) { ${result} }
             }
             @DSL class Domain { String value }
             @DSL class Application { @Supplied ${field} }
@@ -389,11 +389,11 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
         'mutator' | 'IllegalStateException'
         'mutator' | 'AssertionError'
         'mutator' | 'NoClassDefFoundError'
-        marker = role == 'creator' ? 'LifecycleCreator' : 'LifecycleMutator'
-        handlerRole = role == 'creator' ? 'LifecycleCreationHandler' : 'LifecycleMutationHandler'
+        marker = role == 'creator' ? 'LifecycleParticipant.Creator' : 'LifecycleParticipant.Mutator'
+        handlerRole = role == 'creator' ? 'LifecycleParticipant.CreationHandler' : 'LifecycleParticipant.MutationHandler'
         resultType = role == 'creator' ? 'KlumBuilder<?>' : 'void'
         operation = role == 'creator' ? 'create' : 'mutate'
-        contextType = role == 'creator' ? 'LifecycleFieldContext' : 'LifecycleMutationContext'
+        contextType = role == 'creator' ? 'LifecycleParticipant.InvocationContext' : 'LifecycleParticipant.MutationContext'
     }
 
     private static List<String> causeMessages(Throwable failure) {
@@ -411,10 +411,10 @@ class LifecycleParticipantTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.layer3.AutoLink
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.TYPE, ElementType.FIELD, ElementType.METHOD])
-            @LifecycleMutator(phase = AutoLink, handler = Handler)
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Handler)
             @interface Binding {}
-            class Handler implements LifecycleMutationHandler<Binding> {
-                void mutate(LifecycleMutationContext<Binding> context) {}
+            class Handler implements LifecycleParticipant.MutationHandler<Binding> {
+                void mutate(LifecycleParticipant.MutationContext<Binding> context) {}
             }
             ${placement == 'type' ? '@Binding' : ''}
             @DSL class Application {

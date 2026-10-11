@@ -25,12 +25,7 @@ package participant.fixture;
 
 import com.blackbuild.klum.ast.layer3.AutoLink;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
-import com.blackbuild.klum.ast.runtime.LifecycleCreator;
-import com.blackbuild.klum.ast.runtime.LifecycleCreationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleFieldContext;
-import com.blackbuild.klum.ast.runtime.LifecycleMutator;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationHandler;
-import com.blackbuild.klum.ast.runtime.LifecycleMutationContext;
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -40,25 +35,25 @@ import java.util.Map;
 public class Composition {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
-    @LifecycleCreator(phase = AutoLink.class, handler = Supply.class)
-    @LifecycleMutator(phase = AutoLink.class, handler = ZFirst.class)
-    @LifecycleMutator(phase = AutoLink.class, handler = ASecond.class)
+    @LifecycleParticipant.Creator(phase = AutoLink.class, handler = Supply.class)
+    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ZFirst.class)
+    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)
     public @interface Configured { boolean enabled() default true; }
 
-    public static class Supply implements LifecycleCreationHandler<Configured> {
-        public KlumBuilder<?> create(LifecycleFieldContext<Configured> context) {
+    public static class Supply implements LifecycleParticipant.CreationHandler<Configured> {
+        public KlumBuilder<?> create(LifecycleParticipant.InvocationContext<Configured> context) {
             return context.getAnnotation().enabled()
                     ? CompositionDomain.Create.AsBuilder().With(Map.of("value", "created")) : null;
         }
     }
-    public static class ZFirst implements LifecycleMutationHandler<Configured> {
-        public void mutate(LifecycleMutationContext<Configured> context) {
+    public static class ZFirst implements LifecycleParticipant.MutationHandler<Configured> {
+        public void mutate(LifecycleParticipant.MutationContext<Configured> context) {
             CompositionDomain_DSL.Builder<CompositionDomain> target = CompositionDomain.Create.narrowBuilder(context.getTargetBuilder());
             target.value(target.getValue() + ":first");
         }
     }
-    public static class ASecond implements LifecycleMutationHandler<Configured> {
-        public void mutate(LifecycleMutationContext<Configured> context) {
+    public static class ASecond implements LifecycleParticipant.MutationHandler<Configured> {
+        public void mutate(LifecycleParticipant.MutationContext<Configured> context) {
             CompositionDomain_DSL.Builder<CompositionDomain> target = CompositionDomain.Create.narrowBuilder(context.getTargetBuilder());
             target.value(target.getValue() + ":second");
         }
