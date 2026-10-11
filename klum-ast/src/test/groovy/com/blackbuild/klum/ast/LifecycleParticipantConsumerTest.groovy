@@ -204,7 +204,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 invalid = declaration.replace('handler = ZFirst.class', 'handler = LocalHandler.class')
             } else {
                 invalid = declaration.replace('import com.blackbuild.klum.ast.runtime.LifecycleParticipant;',
-                        'import com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.KlumBuilder;')
+                        'import com.blackbuild.klum.ast.runtime.LifecycleParticipant;\nimport com.blackbuild.klum.ast.runtime.KlumBuilder;')
                         .replace('@Repeatable(ManagedList.class)',
                         '@Repeatable(ManagedList.class)\n    @LifecycleParticipant.Creator(phase = AutoLink.class, handler = Supply.class)')
                         .replace('public class TypeRules {', '''public class TypeRules {
