@@ -47,7 +47,7 @@ plugins { id 'com.blackbuild.klum-ast-schema'; id 'maven-publish' }
 group = 'org.example'
 version = '1.0'
 klumSchema.groovyVersion = '$generation'
-['api', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 dependencies { groovy files($groovy); compileOnly files($compiler) }
 tasks.withType(GroovyCompile).configureEach { groovyClasspath = files($groovy) }
 
@@ -73,7 +73,7 @@ import com.blackbuild.klum.ast.DSL
         new File(consumer, 'build.gradle').text = """
 plugins { id 'com.blackbuild.klum-ast-model' }
 klumModel.groovyVersion = '$generation'
-['api', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 repositories { maven { url = '${repository.toURI()}' } }
 tasks.withType(GroovyCompile).configureEach { groovyClasspath = files($groovy) }
 

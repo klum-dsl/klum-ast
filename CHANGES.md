@@ -1,5 +1,10 @@
 # 4.1.0 (unreleased)
 
+- The Groovy convention plugin now applies the selected Groovy BOM to production implementation/runtime dependencies,
+  so versionless auxiliary modules such as `groovy-yaml` resolve without a manual BOM declaration. Groovy core remains
+  compile-only unless a runtime dependency requires it. Groovy 3/4/5 and inherited root selections are covered
+  ([#886](https://github.com/klum-dsl/klum-ast/issues/886)).
+
 - Namespaced the pre-release lifecycle-participant API under `LifecycleParticipant`: `Creator`, `Mutator`,
   `CreationHandler`, `MutationHandler`, `InvocationContext`, and `MutationContext`. The six former top-level
   types are removed without aliases; recompile annotation/handler libraries and Schemas together. Runtime behavior

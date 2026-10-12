@@ -96,6 +96,8 @@ public class GroovyDependenciesPlugin implements Plugin<Project> {
 
         dependencyHandler.addProvider(GROOVY_CONFIGURATION, groovyBomProvider);
         dependencyHandler.addProvider(GROOVY_CONFIGURATION, groovyProvider);
+        // Share the version constraints with runtime modules without adding Groovy core to runtime.
+        dependencyHandler.addProvider("implementation", groovyBomProvider);
     }
 
     protected void addSpockDefaultDependencies() {

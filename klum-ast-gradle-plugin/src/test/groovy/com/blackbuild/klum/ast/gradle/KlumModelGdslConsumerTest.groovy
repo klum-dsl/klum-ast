@@ -61,7 +61,7 @@ class KlumModelGdslConsumerTest extends Specification {
 plugins { id 'com.blackbuild.klum-ast-schema'; id 'maven-publish' }
 group = '$group'
 version = '$version'
-['api', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 tasks.named('compileJava') { classpath = files() }
 tasks.named('compileGroovy') { classpath = files(); groovyClasspath = files(); astTransformationClasspath.setFrom(files()) }
 tasks.named('javadoc') { classpath = files() }
@@ -475,7 +475,7 @@ plugins { id 'com.blackbuild.klum-ast-model'; id 'maven-publish' }
 group = 'org.example.model'
 version = '1.0'
 groovyDependencies.useSpock = false
-['api', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 repositories { maven { url = '${repository.toURI()}'; ${pomOnly ? 'metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }' : ''} } }
 klumModel {
     schemas { schema 'org.example:environment-schema:1.0' }

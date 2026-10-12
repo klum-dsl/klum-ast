@@ -414,7 +414,7 @@ buildCache { local { directory = '${new File(directory, 'cache').absolutePath}' 
 plugins { id 'com.blackbuild.klum-ast-schema' }
 group = '$group'
 version = '$version'
-['api', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 tasks.named('compileJava') { classpath = files() }
 tasks.named('compileGroovy') { classpath = files(); groovyClasspath = files(); astTransformationClasspath.setFrom(files()) }
 tasks.named('javadoc') { classpath = files() }
@@ -430,7 +430,7 @@ klumSchema.gdsl {
         """
 plugins { id 'com.blackbuild.klum-ast-model' }
 groovyDependencies.useSpock = false
-['api', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 repositories { maven { url = '${repository.toURI()}' } }
 klumModel { schemas { schema $normal }; gdsl { enabled = $enabled } }
 dependencies { $selection }
