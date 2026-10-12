@@ -24,11 +24,41 @@ Note that the plugin does **not** apply the groovy plugin; it only reacts to its
 Applying the plugin (provided the Groovy plugin is also applied) does the following thing:
 
 - Create two additional configurations, `groovy` and `spock`, which are used to declare the dependencies on Groovy and Spock, linking those configurations to the `compileOnly` and `testImplementation` configurations
-- Setting the matching Groovy BOM as 'platform' as well as the main Groovy module as dependencies in `groovy` and the matching spock dependency in `spock` 
+- Add the matching Groovy BOM as a platform to both `groovy` and `implementation`. The main Groovy module stays in `groovy`, and the matching Spock dependency stays in `spock`.
 - Configure all test tasks with `useJunitPlatform()` 
 - Spock dependencies can be skipped with "skipSpock = true"
 
 If the plugin is applied to a child project, it will inherit the configured Groovy versions from the root project, if applicable (even if the Groovy plugin is not applied to the root project). That way, the Groovy version can be set in a single place. In a klum project, this is usually the only situation where the convention plugin needs to be used directly, as the other two plugins will apply it automatically.
+
+### Runtime Groovy modules
+
+The selected BOM constrains Groovy modules on both compile and runtime classpaths, including versionless
+`implementation` and `runtimeOnly` dependencies. There is no need to add
+`platform(groovyDependencies.groovyBomDependency.get())` manually for these modules.
+
+(See: `GroovyDependenciesRuntimeTest#'versionless runtime modules use the selected Groovy BOM (#version, inherited: #inherited)'`.)
+
+```groovy
+plugins {
+    id 'com.blackbuild.convention.groovy' version '<klum-version>'
+    id 'groovy'
+}
+
+groovyDependencies { groovyVersion = '4.0.32' }
+
+dependencies {
+    implementation 'org.apache.groovy:groovy-yaml' // resolves to 4.0.32 at compile time and runtime
+}
+```
+
+Groovy 3 uses the `org.codehaus.groovy` group; Groovy 4 and 5 use `org.apache.groovy`. Child projects inherit
+the root's version selection as described above.
+
+The BOM supplies version constraints; it does not add Groovy libraries by itself. Without a declared runtime
+dependency, the convention plugin keeps Groovy core compile-only for production and available for tests through
+`spock`. A declared auxiliary module may bring Groovy core transitively. Applications that need core directly
+can declare versionless `implementation 'org.apache.groovy:groovy'` (or the Groovy 3 group).
+Spock and dependencies declared only for tests stay off production classpaths, including when Spock is skipped.
 
 ## `com.blackbuild.klum-ast-schema`
 
