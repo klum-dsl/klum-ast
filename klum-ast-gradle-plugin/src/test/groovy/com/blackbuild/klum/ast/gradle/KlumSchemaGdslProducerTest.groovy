@@ -377,7 +377,7 @@ plugins { $plugins }
 group = 'org.example'
 version = '1.2.0'
 // Producer-only fixture: no compiler/runtime dependencies or remote repository.
-['api', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
+['api', 'implementation', 'compileOnly', 'testImplementation', 'groovy'].each { configurations[it].dependencies.clear() }
 dependencies { api 'org.example:normal-api:2.0' }
 tasks.named('compileJava') { classpath = files() }
 tasks.named('compileGroovy') { classpath = files(); groovyClasspath = files(); astTransformationClasspath.setFrom(files()) }
