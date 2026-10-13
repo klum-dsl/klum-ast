@@ -19,6 +19,12 @@ Maintainer refinement: replacing Required's converter with direct handling in th
 permitted as a design option. Required's current timing failure is consequently a removable dependency,
 not a reason to reject propagation. No production implementation is authorized by this investigation.
 
+**Confirmed conflict decision:** duplicate annotation types involving propagation fail, including
+propagated versus explicit field annotations and duplicates contributed by multiple propagation sources,
+even when their defaults are identical. Do not suppress, merge or prioritize them. Existing same-phase
+creator conflicts remain errors. Ordinary existing repeatable declarations are not changed by this decision;
+propagation must not silently use repeatability to merge conflicting contributions.
+
 **Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
 with the existing `LifecycleParticipant.CreationHandler.class` interface as a documented token. This needs
@@ -279,7 +285,7 @@ Additional contract decisions for a reusable propagator:
 
 - Preserve the domain annotation, default-only class list, field-only expansion and one hop initially.
   Do not recursively propagate nested bundles or execute domain members.
-- Reject duplicate non-repeatable annotations initially, including propagated+explicit AutoCreate.
+- **Confirmed:** reject duplicate annotation types involving propagation, including propagated+explicit AutoCreate.
   Do not silently suppress declarations or merge annotation members; repeatable normalization needs
   its own deterministic rule. An external same-phase Creator still conflicts with the added AutoCreate.
 - Run early enough for KlumAST, KlumCast and each supported local AST transform to see equivalent input.
@@ -327,8 +333,8 @@ alone does not preserve that annotation-presence contract. Required's runtime re
 
 If chosen, make this a small prerequisite slice with parity tests for the above cases, before qualifying
 Required propagation. Until then the no-Validate probe remains accurate current-behavior evidence. The
-leading design candidate is now retained, additive, default-only compile-time propagation; broad third-party
-transform scheduling and duplicate policy remain explicit maintainer decisions.
+leading design candidate is now retained, additive, default-only compile-time propagation. Duplicate failure
+is confirmed; broad third-party transform scheduling remains an explicit maintainer decision.
 
 ## Exact maintainer decisions still required
 
@@ -345,9 +351,10 @@ Resolve these in dependency order, one question at a time:
 2. **Public representation:** accept omitted handler backed by CreationHandler.class, select a dedicated
    explicit sentinel, or choose one-hop AutoCreate meta composition? Recommendation: omitted handler;
    do not implement both spellings in 4.1 merely for symmetry.
-3. **Conflict policy:** reject composed+explicit AutoCreate even with identical defaults, or deliberately
-   revise ADR 0028 to normalize/coalesce/override? Recommendation: reject every second claim. This means
-   explicitly customized AutoCreate requires a mutation-only domain annotation.
+3. **Conflict policy — confirmed:** duplicates involving propagation fail, including explicit AutoCreate
+   and multiple propagation sources, even with identical defaults. No coalescing, merging or precedence;
+   same-phase competing creators remain rejected. With default-only propagation, explicitly customized
+   AutoCreate requires a mutation-only domain annotation.
 4. **Parameter boundary:** default-only with no forwarding, fixed key/type/value on a meta declaration,
    or justified future forwarding work? Recommendation: default-only; defer forwarding. Fixed parameters
    are a separate possible scope choice, not synonymous with forwarding.
