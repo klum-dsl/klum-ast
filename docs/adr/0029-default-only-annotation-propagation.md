@@ -242,5 +242,6 @@ fit; neither is full production or IDE acceptance. The [plan](../implementation/
 names the required gates and commit boundaries.
 
 Hive owns review of this proposed ADR, canonical #890 scope reconciliation, implementation admission
-and release placement. This local design document changes no GitHub state and authorizes no implementation,
-push, pull request, merge or release.
+and release placement. The maintainer subsequently authorized a draft design PR, with Hive-selected
+Related: #890 and no curation/release-index changes. That separate publication authority does not authorize
+production implementation, issue edits, merge or release; this ADR remains proposed.

@@ -243,6 +243,10 @@ Before implementation admission, Hive reviews this proposed ADR/plan and reconci
 wording with the now-confirmed generic propagation scope. Release placement and production/remote authority
 remain outside this document. No substantive current ScHelm API requirement is reported unresolved.
 
+The maintainer separately authorized publication of this design branch as a draft PR; Hive selected
+Related: #890 and no curation/release-index changes. This does not start AP-1 or satisfy implementation,
+acceptance or 4.1 admission gates. The issue remains open.
+
 ## Validation of this documentation draft
 
 This continuation changes only the ADR, plan and decision brief. Applicable checks are diff whitespace,

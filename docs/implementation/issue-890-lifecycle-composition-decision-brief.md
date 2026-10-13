@@ -2,7 +2,9 @@
 
 Date: 2026-10-13. Status: **API and semantic scope confirmed; implementation architecture proposed and feasibility-probed.**
 Base: master `dea21a7cfa9b26630cacc5cdbc1087e756e59ce6`, verified against remote master during investigation.
-Scope: local design and executable characterization only. No production change, GitHub mutation or publication.
+Scope: proposed design and opt-in executable characterization only; no production implementation.
+Publication checkpoint: the maintainer subsequently authorized a draft design PR. Hive selected
+`Related: #890`, leaving implementation/acceptance/release admission open and curation/release indexes unchanged.
 
 Formal design: [proposed ADR 0029](../adr/0029-default-only-annotation-propagation.md).
 Execution outline: [dedicated ADR 0029 implementation plan](adr-0029-default-only-annotation-propagation.md).
@@ -15,7 +17,8 @@ of LifecycleParticipant. The repeatable single-annotation shape and semantic sco
 The earlier sentinel and built-in-meta-annotation recommendations are superseded comparison history.
 An isolated global pre-discovery pass demonstrates the proposed compiler architecture on Groovy 3/4/5;
 third-party compatibility and full artifact/generated/IDE qualification remain implementation gates.
-No production implementation or remote delivery is authorized by this checkpoint.
+Production implementation remains unauthorized. The later draft-design-PR authorization does not
+authorize implementation, issue edits, merge or release.
 
 Maintainer refinement: replacing Required's converter with direct handling in the validation phase is
 permitted as a design option. Required's current timing failure is consequently a removable dependency,
@@ -81,7 +84,8 @@ evidence supplied to the design task; no ScHelm source inspection or ScHelm buil
 This resolves the requested consumer-fit check without adding a provider policy, fallback creator,
 customization API or nested resolution. The review accepts the narrow design, not feature implementation,
 publication, a ScHelm migration commit or a release assignment. Formal local ADR/plan preparation is
-authorized; production implementation, GitHub changes, push and PR creation remain outside this task.
+authorized at that review boundary; its original local-only restriction was later superseded only by
+the maintainer's explicit draft-design-PR request. Production implementation and issue changes remain excluded.
 
 ## Historical recommendation among the original two options (superseded)
 
@@ -557,8 +561,8 @@ Before production delivery:
   libraries and compiler-free consumers, generated-contract/source-mirror parity, third-party local-transform
   and global-ordering checks, applicable JPMS and native IDE qualification. The 17-case-per-lane fixture
   establishes feasibility; it does not replace these gates.
-- Confirm 4.1 release placement and authorize production implementation separately. Publication, tracker
-  changes and release work remain outside this investigation's authority.
+- Confirm 4.1 release placement and authorize production implementation separately. The current publication
+  authority covers a draft design PR only; issue changes and release work remain outside this task.
 
 Confirmed compatibility consequence: propagated annotations are compiled into Schema declarations. Changing a domain
 annotation's propagation requests requires recompiling consuming Schemas. It does not retrofit existing
@@ -587,6 +591,7 @@ Hive callback: the external ScHelm fit report is integrated, and the formal prop
 plan are prepared locally for Hive review. API/semantic decisions are confirmed; full compiler architecture
 qualification, canonical issue-scope reconciliation and release placement remain pending. Production
 implementation needs separate authorization. Retain the worktree and evidence; do not archive this worker
-as reconciled or deliver a PR. The final callback identifies the documentation commit and requested handoff state.
+as reconciled. The subsequent authorized draft PR carries Related: #890 and leaves the issue open; no
+curation/release-index change is included. The final callback identifies its head, validation and CI state.
 No release/run IDs or external evidence-store authorization were supplied for this investigation; no
 external operational event stream was created. The local report and reproducible probes are the evidence boundary.
