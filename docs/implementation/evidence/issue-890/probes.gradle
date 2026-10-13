@@ -1,0 +1,9 @@
+// Opt-in investigation probes only; leaves the normal test source sets unchanged.
+gradle.projectsEvaluated {
+    def compiler = gradle.rootProject.findProject(':klum-ast')
+    if (compiler == null) return
+    ['test', 'groovy4Tests', 'groovy5Tests'].each { lane ->
+        compiler.sourceSets[lane].groovy.srcDir(
+                compiler.rootProject.file('docs/implementation/evidence/issue-890/probes'))
+    }
+}
