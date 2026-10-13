@@ -4,6 +4,10 @@ Date: 2026-10-13. Status: **API and semantic scope confirmed; implementation arc
 Base: master `dea21a7cfa9b26630cacc5cdbc1087e756e59ce6`, verified against remote master during investigation.
 Scope: local design and executable characterization only. No production change, GitHub mutation or publication.
 
+Formal design: [proposed ADR 0029](../adr/0029-default-only-annotation-propagation.md).
+Execution outline: [dedicated ADR 0029 implementation plan](adr-0029-default-only-annotation-propagation.md).
+These documents consolidate the current confirmed contract; the earlier alternatives below remain history.
+
 ## Current design checkpoint
 
 The maintainer selected a retained, additive `@PropagateAnnotation(AutoCreate)` mechanism, independent
@@ -56,7 +60,28 @@ annotations repeatable. No customization or forwarding members are added in this
 
 **Confirmed compatibility requirement:** consuming Schemas must be recompiled when a domain annotation's
 propagation declarations change. The maintainer explicitly accepted this as safe; runtime retrofit is
-not required. The requested next step is Hive review with ScHelm before production implementation.
+not required. ScHelm's fit review is integrated below; the next step is Hive review of the proposed ADR
+and dedicated implementation plan before production implementation.
+
+## External ScHelm consumer-fit qualification
+
+Date: 2026-10-13. Source: ScHelm's concrete review, relayed by KlumAST Hive. This is external consumer-fit
+evidence supplied to the design task; no ScHelm source inspection or ScHelm build was performed locally.
+
+| Consumer question | Reported outcome |
+| --- | --- |
+| Current fields that could imply structural creation | OrderApplication.messaging, database, workload and api; OrderKafka.orderTopic and resultTopic |
+| Field shape | Every listed case is a concrete, unkeyed direct DSL relationship |
+| AutoCreate customization or coexistence | No current case needs key/type/value; no explicit AutoCreate must coexist after migration |
+| FactBinding meaning | Fixed structural domain in current ScHelm; a future bind-if-present use can have a separate binding-only annotation |
+| DefaultValues consumers | KafkaTopicDefaults, ResourceClassDefault and HttpEndpointDefaults fit; their members remain existing DefaultValues inputs while propagation adds bare AutoCreate independently |
+| Nesting / forwarding | No demonstrated requirement; default-only, one-level propagation is sufficient |
+| Conflicts | Explicit/propagated duplicates remain deterministic errors |
+
+This resolves the requested consumer-fit check without adding a provider policy, fallback creator,
+customization API or nested resolution. The review accepts the narrow design, not feature implementation,
+publication, a ScHelm migration commit or a release assignment. Formal local ADR/plan preparation is
+authorized; production implementation, GitHub changes, push and PR creation remain outside this task.
 
 ## Historical recommendation among the original two options (superseded)
 
@@ -526,8 +551,8 @@ participant domain annotations, and compile-time Query/Cluster behavior.
 
 Before production delivery:
 
-- Formalize the confirmed contract in the proposed ADR and dedicated implementation plan. The AP-1–AP-5
-  outline above maps the work; the older lifecycle-specific slices are comparison history.
+- Review the now-prepared proposed ADR 0029 and dedicated implementation plan. Its AP-1–AP-5 slices
+  consolidate the current work; the older lifecycle-specific slices are comparison history.
 - Implement complete diagnostics, repeatability and inheritance controls, separately compiled Java/Groovy
   libraries and compiler-free consumers, generated-contract/source-mirror parity, third-party local-transform
   and global-ordering checks, applicable JPMS and native IDE qualification. The 17-case-per-lane fixture
@@ -552,8 +577,16 @@ Initial probe-run repairs were confined to fixtures: skip buildSrc in the initia
 annotation target error from same-source KlumCast validation. No production fix was attempted.
 No full check, live IDE, new feature JPMS, SonarCloud or remote CI qualification is claimed for this design.
 
-Hive callback: retain this local branch/evidence for maintainer review. API/semantic decisions are now
-confirmed; full compiler architecture qualification and release placement remain pending. Design continuation
-is authorized; production implementation needs separate authorization. Do not archive this worker as reconciled or deliver a PR.
+Formalization continuation: only the brief, proposed ADR 0029 and dedicated implementation plan changed.
+Their 18 relative file links/heading anchors, fenced blocks, CommonMark/GFM rendering and diff whitespace
+checks passed; scope inspection confirmed no production/build/probe edits. The ScHelm review is recorded
+as externally reported consumer-fit evidence. No Groovy lanes were rerun for these prose-only changes,
+following docs/agents/testing.md; the historical probe results above remain bounded feasibility evidence.
+
+Hive callback: the external ScHelm fit report is integrated, and the formal proposed ADR 0029 and dedicated
+plan are prepared locally for Hive review. API/semantic decisions are confirmed; full compiler architecture
+qualification, canonical issue-scope reconciliation and release placement remain pending. Production
+implementation needs separate authorization. Retain the worktree and evidence; do not archive this worker
+as reconciled or deliver a PR. The final callback identifies the documentation commit and requested handoff state.
 No release/run IDs or external evidence-store authorization were supplied for this investigation; no
 external operational event stream was created. The local report and reproducible probes are the evidence boundary.
