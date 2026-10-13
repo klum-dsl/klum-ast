@@ -25,6 +25,12 @@ even when their defaults are identical. Do not suppress, merge or prioritize the
 creator conflicts remain errors. Ordinary existing repeatable declarations are not changed by this decision;
 propagation must not silently use repeatability to merge conflicting contributions.
 
+**Confirmed parameter boundary:** propagation uses annotation defaults only. No forwarding of domain
+annotation members or configured annotation instances is included. A selected annotation with required
+members has no usable default-only representation and must fail validation. Customized AutoCreate
+key/type/value remains explicit alongside a mutation-only domain annotation. This scope is sufficient
+for the maintainer's current need; the design discussion is paused pending explicit continuation.
+
 **Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
 with the existing `LifecycleParticipant.CreationHandler.class` interface as a documented token. This needs
@@ -355,9 +361,8 @@ Resolve these in dependency order, one question at a time:
    and multiple propagation sources, even with identical defaults. No coalescing, merging or precedence;
    same-phase competing creators remain rejected. With default-only propagation, explicitly customized
    AutoCreate requires a mutation-only domain annotation.
-4. **Parameter boundary:** default-only with no forwarding, fixed key/type/value on a meta declaration,
-   or justified future forwarding work? Recommendation: default-only; defer forwarding. Fixed parameters
-   are a separate possible scope choice, not synonymous with forwarding.
+4. **Parameter boundary — confirmed:** default-only propagation with no domain-member forwarding or
+   configured annotation instances. Fixed parameters and forwarding remain outside the current scope.
 5. **Eligibility and repeats:** accept the new claim's retained owned direct-field subset and initial
    repeatable-domain rejection? Recommendation: yes; preserve existing explicit annotations and external
    participant eligibility. Decide whether keyed/abstract missing configuration remains at construction
