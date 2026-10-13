@@ -54,6 +54,10 @@ suggested this shape to leave room for per-annotation customization later and ac
 and duplicate rejection still apply; repeatable propagation declarations do not make their copied
 annotations repeatable. No customization or forwarding members are added in this version.
 
+**Confirmed compatibility requirement:** consuming Schemas must be recompiled when a domain annotation's
+propagation declarations change. The maintainer explicitly accepted this as safe; runtime retrofit is
+not required. The requested next step is Hive review with ScHelm before production implementation.
+
 ## Historical recommendation among the original two options (superseded)
 
 Prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
@@ -531,7 +535,7 @@ Before production delivery:
 - Confirm 4.1 release placement and authorize production implementation separately. Publication, tracker
   changes and release work remain outside this investigation's authority.
 
-Compatibility consequence: propagated annotations are compiled into Schema declarations. Changing a domain
+Confirmed compatibility consequence: propagated annotations are compiled into Schema declarations. Changing a domain
 annotation's propagation requests requires recompiling consuming Schemas. It does not retrofit existing
 Schema binaries at runtime. Preserve ordinary explicit-annotation behavior and document the minimum compiler
 version rather than promising new propagation on older compilers. Required's runtime refactor is optional:
