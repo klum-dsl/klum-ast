@@ -1,19 +1,17 @@
-# #890: composing built-in lifecycle field creation
+# #890: default-only annotation propagation design
 
-Date: 2026-10-13. Status: **Investigation complete; recommendation proposed, no architecture accepted.**
+Date: 2026-10-13. Status: **API and semantic scope confirmed; implementation architecture proposed and feasibility-probed.**
 Base: master `dea21a7cfa9b26630cacc5cdbc1087e756e59ce6`, verified against remote master during investigation.
 Scope: local design and executable characterization only. No production change, GitHub mutation or publication.
 
-## Recommendation for maintainer review
+## Current design checkpoint
 
-**Updated after the propagation proposal:** investigate compile-time composition before extending
-LifecycleParticipant. The existing Groovy AnnotationCollector already handles the immediate use case
-through a bundle alias containing AutoCreate and a separate retained domain annotation. If the named
-domain annotation itself must remain on the declaration, an additive `@PropagateAnnotation(AutoCreate)`
-is a stronger third candidate. Keep it default-only, one hop, and preserve normal annotation validation.
-The new probes demonstrate the field/runtime path but expose unresolved scheduling for annotations
-with their own AST transforms. No architecture is accepted, and no new propagator should be published
-with an unqualified promise of arbitrary annotation equivalence.
+The maintainer selected a retained, additive `@PropagateAnnotation(AutoCreate)` mechanism, independent
+of LifecycleParticipant. The repeatable single-annotation shape and semantic scope below are confirmed.
+The earlier sentinel and built-in-meta-annotation recommendations are superseded comparison history.
+An isolated global pre-discovery pass demonstrates the proposed compiler architecture on Groovy 3/4/5;
+third-party compatibility and full artifact/generated/IDE qualification remain implementation gates.
+No production implementation or remote delivery is authorized by this checkpoint.
 
 Maintainer refinement: replacing Required's converter with direct handling in the validation phase is
 permitted as a design option. Required's current timing failure is consequently a removable dependency,
@@ -49,14 +47,16 @@ and generated contracts, not just runtime annotation consumers. Each copied anno
 its actual target and satisfy its ordinary semantic constraints. No parameter/package/constructor scope
 is inferred. General propagation onto classes does not itself introduce #888's AutoCreate class defaults.
 
-**Latest API proposal:** make the propagation meta-annotation repeatable and let each occurrence select
+**Confirmed API shape:** make the propagation meta-annotation repeatable and let each occurrence select
 one `Class<? extends Annotation>`, rather than one occurrence carrying a class array. The maintainer
-suggested this shape to leave room for per-annotation customization later. Recommend the singular name
-`@PropagateAnnotation`; the exact name and final architecture remain proposed. Default-only behavior
+suggested this shape to leave room for per-annotation customization later and accepted the resulting
+`@PropagateAnnotation` proposal. The final internal architecture remains proposed. Default-only behavior
 and duplicate rejection still apply; repeatable propagation declarations do not make their copied
 annotations repeatable. No customization or forwarding members are added in this version.
 
-**Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
+## Historical recommendation among the original two options (superseded)
+
+Prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
 with the existing `LifecycleParticipant.CreationHandler.class` interface as a documented token. This needs
 no public no-op handler or internal-handler exposure. Do not infer built-ins for AutoLink, Default or PostTree.
@@ -67,7 +67,7 @@ explicit AutoCreate behavior when no composed creator is present. Default-only c
 concrete, unkeyed structural children; exclude member forwarding deliberately. Keyed/abstract/configured
 children keep the repeated mutation-only-domain + explicit AutoCreate workaround.
 
-These are recommendations, not decisions. If strict conflicts make that narrow subset too inconvenient for
+These were recommendations, not decisions. If strict conflicts make that narrow subset too inconvenient for
 the primary use case, defer #890 or choose fixed meta-annotation configuration explicitly. Do not quietly
 add override precedence or forwarding to make the example work.
 
@@ -513,40 +513,29 @@ global expansion in klum-ast, without a runtime interpreter or module dependency
    accepted ADR/public inventory and final implementation evidence. Keep #888 class-default policy
    separate. Final review/required checks and separately authorized publication follow implementation.
 
-## Exact maintainer decisions still required
+## Remaining qualification and delivery boundaries
 
-Resolve these one question at a time. Duplicate failure and default-only scope are confirmed;
-the original two lifecycle-specific representations below remain comparison history, not the current
-leading proposal. Propagation depth is confirmed as one level, rejecting nested propagation. Consumer
-scope explicitly permits DefaultValues-only domain annotations to carry AutoCreate, without participants.
-The subsequent declaration decision explicitly adds class and method targets alongside fields.
+No major API/semantic question remains in the agreed current scope: repeatable single requests,
+retained domain annotation, class/field/method targets, annotation defaults only, duplicate failure,
+one level with nested requests rejected, ordinary target/semantic validation, DefaultValues-only and
+participant domain annotations, and compile-time Query/Cluster behavior.
 
-0. **New prerequisite:** is a Groovy bundle alias containing the retained domain annotation acceptable,
-   or must the exact applied domain annotation itself survive expansion? Recommendation: use the
-   existing collector when aliases suffice; otherwise investigate retaining additive propagation before
-   accepting the earlier sentinel recommendation. Separately decide whether its scope promises ordinary
-   KlumAST field annotations or arbitrary third-party AST-transform annotations.
-1. **Meaning and minimum use case:** should a distinct structural domain annotation always imply
-   existence, while a mutation-only annotation continues to mean bind-if-present? Is concrete unkeyed
-   default-only coverage useful enough now? Recommendation: yes; retain separate domain vocabulary.
-2. **Public representation:** accept omitted handler backed by CreationHandler.class, select a dedicated
-   explicit sentinel, or choose one-hop AutoCreate meta composition? Recommendation: omitted handler;
-   do not implement both spellings in 4.1 merely for symmetry.
-3. **Conflict policy — confirmed:** duplicates involving propagation fail, including explicit AutoCreate
-   and multiple propagation sources, even with identical defaults. No coalescing, merging or precedence;
-   same-phase competing creators remain rejected. With default-only propagation, explicitly customized
-   AutoCreate requires a mutation-only domain annotation.
-4. **Parameter boundary — confirmed:** default-only propagation with no domain-member forwarding or
-   configured annotation instances. Fixed parameters and forwarding remain outside the current scope.
-5. **Eligibility and repeats:** accept the new claim's retained owned direct-field subset and initial
-   repeatable-domain rejection? Recommendation: yes; preserve existing explicit annotations and external
-   participant eligibility. Decide whether keyed/abstract missing configuration remains at construction
-   time (recommended parity) rather than introducing a new eager-validation contract.
-6. **Compatibility and release:** accept new compiler/runtime minimum, coordinated/new domain-annotation
-   migration and conditional 4.1 placement, with implementation separately authorized? Recommendation:
-   additive opt-in, no aliases or generated API change; defer if the above choices broaden the feature.
+Before production delivery:
 
-The first question gates an architectural interview; this evidence draft is not permission to implement.
+- Formalize the confirmed contract in the proposed ADR and dedicated implementation plan. The AP-1–AP-5
+  outline above maps the work; the older lifecycle-specific slices are comparison history.
+- Implement complete diagnostics, repeatability and inheritance controls, separately compiled Java/Groovy
+  libraries and compiler-free consumers, generated-contract/source-mirror parity, third-party local-transform
+  and global-ordering checks, applicable JPMS and native IDE qualification. The 17-case-per-lane fixture
+  establishes feasibility; it does not replace these gates.
+- Confirm 4.1 release placement and authorize production implementation separately. Publication, tracker
+  changes and release work remain outside this investigation's authority.
+
+Compatibility consequence: propagated annotations are compiled into Schema declarations. Changing a domain
+annotation's propagation requests requires recompiling consuming Schemas. It does not retrofit existing
+Schema binaries at runtime. Preserve ordinary explicit-annotation behavior and document the minimum compiler
+version rather than promising new propagation on older compilers. Required's runtime refactor is optional:
+the demonstrated early pass discovers its existing converter, so that refactor need not expand this feature.
 
 ## Validation and handoff
 
@@ -559,8 +548,8 @@ Initial probe-run repairs were confined to fixtures: skip buildSrc in the initia
 annotation target error from same-source KlumCast validation. No production fix was attempted.
 No full check, live IDE, new feature JPMS, SonarCloud or remote CI qualification is claimed for this design.
 
-Hive callback: retain this local branch/evidence for maintainer review; #890 stays open with architecture
-and release placement unresolved. Resume only for explicit maintainer decisions/design continuation;
-implementation needs separate authorization. Do not archive this worker as reconciled or deliver a PR.
+Hive callback: retain this local branch/evidence for maintainer review. API/semantic decisions are now
+confirmed; full compiler architecture qualification and release placement remain pending. Design continuation
+is authorized; production implementation needs separate authorization. Do not archive this worker as reconciled or deliver a PR.
 No release/run IDs or external evidence-store authorization were supplied for this investigation; no
 external operational event stream was created. The local report and reproducible probes are the evidence boundary.
