@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.ast.AnnotationNode
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.expr.ClassExpression
@@ -381,5 +382,139 @@ class LifecycleCompositionInvestigationTest extends AbstractDSLSpec {
 
         where:
         withParticipant << [false, true]
+    }
+
+    def 'global pre-discovery propagation supports class DSL method Query and field and method Cluster'() {
+        given:
+        installGlobalPropagationProbe()
+        createSecondaryClass('''
+            import com.blackbuild.klum.ast.layer3.Cluster
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @interface Propagate { Class<? extends Annotation>[] value() }
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE)
+            @Propagate([DSL]) @interface DomainSchema {}
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
+            @Propagate([Builder.Query]) @interface DomainQuery {}
+            @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.METHOD])
+            @Propagate([Cluster]) @interface DomainCluster {}
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @Propagate([Required]) @interface DomainRequired {}
+        ''')
+        createSecondaryClass('''
+            @DSL class Service { String value }
+            @DomainSchema class Application {
+                @DomainRequired String name
+                Service first
+                Service second
+                @DomainCluster Map<String, Service> services
+                @DomainCluster Map<String, Service> getSelected() { null }
+                @DomainQuery String summary() { name.toUpperCase() }
+            }
+        ''')
+
+        when:
+        def result = Application.Create.With {
+            name 'application'
+            services { first { value 'one' } }
+            second { value 'two' }
+            assert summary() == 'APPLICATION'
+        }
+
+        then:
+        result.summary() == 'APPLICATION'
+        result.services.keySet() == ['first', 'second'] as Set
+        result.selected.keySet() == ['first', 'second'] as Set
+        result.first.value == 'one'
+        result.second.value == 'two'
+        Application.declaredFields.every { it.name != 'services' }
+        Application.getDeclaredField('name').declaredAnnotations*.annotationType()*.simpleName.containsAll(['Required', 'Validate'])
+        Application.getDeclaredMethod('summary').declaredAnnotations*.annotationType()*.simpleName.containsAll(['Query', 'DomainQuery'])
+    }
+
+    private void installGlobalPropagationProbe() {
+        // Actual global-transform discovery, isolated in a temporary classpath directory.
+        File root = tempFolder.newFolder('global-propagation')
+        def probeConfiguration = new CompilerConfiguration(compilerConfiguration)
+        probeConfiguration.targetDirectory = root
+        def probeLoader = new GroovyClassLoader(loader, probeConfiguration)
+        probeLoader.parseClass('''
+            import org.codehaus.groovy.ast.*
+            import org.codehaus.groovy.ast.expr.*
+            import org.codehaus.groovy.control.*
+            import org.codehaus.groovy.transform.*
+            @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
+            class InvestigationGlobalPropagation implements ASTTransformation {
+                void visit(ASTNode[] nodes, SourceUnit source) {
+                    source.AST.classes.each { schema ->
+                        // Snapshot original declarations: projection must not trigger another expansion.
+                        def declarations = [schema] + schema.fields.toList() + schema.methods.findAll { it.declaringClass == schema }
+                        declarations.each { declaration ->
+                            declaration.annotations.toList().each { use ->
+                                def markers = use.classNode.annotations.findAll { it.classNode.name in ['Propagate', 'PropagateOne'] }
+                                use.classNode.annotations.findAll { it.classNode.name == 'PropagateOne$List' }.each { container ->
+                                    def value = container.getMember('value')
+                                    def nested = value instanceof ListExpression || value instanceof ArrayExpression ? value.expressions : [value]
+                                    markers.addAll(nested.collect { it.value })
+                                }
+                                markers.each { marker ->
+                                    def value = marker.getMember('value')
+                                    def entries = value instanceof ListExpression ? value.expressions : [value]
+                                    entries.each { ClassExpression entry ->
+                                        def copied = new AnnotationNode(entry.type)
+                                        copied.setSourcePosition(use)
+                                        declaration.addAnnotation(copied)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ''', 'InvestigationGlobalPropagation.groovy')
+        probeLoader.close()
+        File service = new File(root, 'META-INF/services/org.codehaus.groovy.transform.ASTTransformation')
+        service.parentFile.mkdirs()
+        service.text = 'InvestigationGlobalPropagation\n'
+        loader.addClasspath(root.path)
+    }
+
+    def 'repeatable single annotation propagators survive compiled domain metadata (#explicitContainer)'() {
+        given:
+        installGlobalPropagationProbe()
+        String first = '@PropagateOne(AutoCreate)'
+        String second = '@PropagateOne(Required)'
+        String requests = explicitContainer ? "@PropagateOne.List([$first, $second])" : "$first\n$second"
+        createSecondaryClass("""
+            import com.blackbuild.klum.ast.layer3.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @Repeatable(PropagateOne.List)
+            @interface PropagateOne {
+                Class<? extends Annotation> value()
+                @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+                @interface List { PropagateOne[] value() }
+            }
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @DefaultValues
+            $requests
+            @interface Configured { String name() default '' }
+        """)
+        createSecondaryClass('''
+            @DSL class Service { String name }
+            @DSL class Application { @Configured(name='orders') Service service }
+        ''')
+
+        when:
+        def result = Application.Create.One()
+        def annotations = Application.getDeclaredField('service').declaredAnnotations*.annotationType()*.simpleName
+
+        then:
+        result.service.name == 'orders'
+        annotations.containsAll(['Configured', 'AutoCreate', 'Required', 'Validate'])
+        Configured.getAnnotationsByType(PropagateOne).size() == 2
+
+        where:
+        explicitContainer << [false, true]
     }
 }

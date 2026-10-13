@@ -9,7 +9,7 @@ Scope: local design and executable characterization only. No production change, 
 **Updated after the propagation proposal:** investigate compile-time composition before extending
 LifecycleParticipant. The existing Groovy AnnotationCollector already handles the immediate use case
 through a bundle alias containing AutoCreate and a separate retained domain annotation. If the named
-domain annotation itself must remain on the field, an additive `@PropagateAnnotations([AutoCreate])`
+domain annotation itself must remain on the declaration, an additive `@PropagateAnnotation(AutoCreate)`
 is a stronger third candidate. Keep it default-only, one hop, and preserve normal annotation validation.
 The new probes demonstrate the field/runtime path but expose unresolved scheduling for annotations
 with their own AST transforms. No architecture is accepted, and no new propagator should be published
@@ -42,6 +42,19 @@ lifecycle-participant annotation may use the same propagator independently or in
 Expansion produces ordinary field annotations for existing consumers; do not create separate propagation
 vocabularies or per-consumer expansion. Default-only applies to the copied annotation types, not to the
 domain annotation members already interpreted by DefaultValues or passed to external handlers.
+
+**Confirmed declaration scope:** propagation applies to classes, fields and methods. Domain annotations
+may carry Builder.Query or Cluster as well as AutoCreate; this explicitly includes compile-time behavior
+and generated contracts, not just runtime annotation consumers. Each copied annotation must be legal on
+its actual target and satisfy its ordinary semantic constraints. No parameter/package/constructor scope
+is inferred. General propagation onto classes does not itself introduce #888's AutoCreate class defaults.
+
+**Latest API proposal:** make the propagation meta-annotation repeatable and let each occurrence select
+one `Class<? extends Annotation>`, rather than one occurrence carrying a class array. The maintainer
+suggested this shape to leave room for per-annotation customization later. Recommend the singular name
+`@PropagateAnnotation`; the exact name and final architecture remain proposed. Default-only behavior
+and duplicate rejection still apply; repeatable propagation declarations do not make their copied
+annotations repeatable. No customization or forwarding members are added in this version.
 
 **Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
@@ -303,7 +316,7 @@ Additional contract decisions for a reusable propagator:
 
 - Preserve the domain annotation and default-only class list. **Confirmed:** one level only, rejecting
   nested propagation; shared consumer scope includes DefaultValues and lifecycle participants.
-  Field-only versus also type placement remains unresolved. Do not automatically execute domain members.
+  **Confirmed:** class, field and method placement. Do not automatically execute domain members.
 - **Confirmed:** reject duplicate annotation types involving propagation, including propagated+explicit AutoCreate.
   Do not silently suppress declarations or merge annotation members; repeatable normalization needs
   its own deterministic rule. An external same-phase Creator still conflicts with the added AutoCreate.
@@ -390,9 +403,9 @@ splitting them across the in-memory test loader; no production change was made.
 Do not confuse this with copying bare Default: Default's member defaults are syntactically optional, but
 on a field its semantic validation requires exactly one of field/delegate/code. A default-only list does
 not make that otherwise invalid field use meaningful. Existing consumer validation remains authoritative.
-DefaultValues already permits Schema-type and field uses. The maintainer's clarification is specifically
-about allowing the propagator **on a DefaultValues annotation**, not expanding propagation onto Schema
-types. This requirement introduces no class-level propagation or #888 class-level creation-default policy.
+The DefaultValues clarification specifically permits the propagator **on a DefaultValues annotation**
+without participants. The subsequent declaration-scope decision separately accepts class, field and
+method propagation; no #888 class-level AutoCreate policy follows from either decision.
 
 Earlier shared-consumer probe qualification: **13 investigation cases per Groovy 3/4/5 lane**, zero
 failures/errors/skips. Groovy 3 passed in 9s and the Groovy 4/5 run passed in 17s. XML results and local
@@ -402,13 +415,111 @@ Final clarified scope qualification: **14 investigation cases per Groovy 3/4/5 l
 failures/errors/skips, in 28s. This includes DefaultValues-only and combined-participant domain annotations;
 the test asserts participant metadata is absent in the independent case. No production change is included.
 
+### Class, method and repeatable-shape feasibility
+
+The newer isolated probe registers a real temporary global AST transformation via Groovy's service
+discovery at SEMANTIC_ANALYSIS. Unlike a late CompilationCustomizer, Groovy schedules that global pass
+after resolution and before local-transform discovery on the qualified lanes. The pass snapshots original
+class/field/method declarations and adds ordinary default-valued annotations, retaining the domain markers.
+It is not production registration and does not implement the proposed conflict/nesting defenses.
+
+The probe demonstrates all of the following through generated factories and runtime Model results:
+
+- A class domain annotation carries DSL, producing the normal Factory/Builder machinery.
+- A method domain annotation carries Builder.Query; the query runs against current Builder state and the
+  completed Model. Original Query purity/type checks still belong to the regular compiler pipeline.
+- A field domain annotation carries Cluster, whose existing early local transform turns the field into
+  a projection getter. The generated cluster factory can configure children normally.
+- A method domain annotation carries Cluster, generating the expected projection getter.
+- A field domain annotation carries Required; its existing converter is discovered and adds Validate.
+  Direct Required runtime handling remains permitted but is no longer a prerequisite for this approach.
+
+This resolves the earlier late-customizer scheduling counterexample for the demonstrated KlumAST
+annotations; arbitrary third-party transforms, global-transform ordering interactions and native IDE
+source recognition remain qualification work. A default-only copied Cluster on a class must still
+satisfy its ordinary class-placement semantics; generic target support does not waive member constraints.
+
+The proposed singular repeatable API is:
+
+```groovy
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+@Repeatable(PropagateAnnotation.List)
+@interface PropagateAnnotation {
+    Class<? extends Annotation> value()
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.ANNOTATION_TYPE)
+    @interface List { PropagateAnnotation[] value() }
+}
+```
+
+Example domain declaration:
+
+```groovy
+@DefaultValues
+@PropagateAnnotation(AutoCreate)
+@PropagateAnnotation(Required)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface MessagingDefaults { String name() default '' }
+```
+
+Each request has one future customization location, without an index-based correspondence between
+annotation classes and separate configuration arrays. It does not make arbitrary annotation-instance
+values expressible in Java annotation members; any later fixed-value or forwarding API still requires
+its own design. The marker/container are repeatable on domain annotation declarations; applied domain
+repeatability is a separate existing contract. Two requests for AutoCreate still fail under the confirmed
+duplicate rule, even if repeated propagation marker syntax is legal.
+
+The repeatable-shape probe compiles the domain annotation first, then its Schema use. Both repeated
+markers and explicit List containers expand AutoCreate/Required, retain the DefaultValues annotation
+and its explicit member, and create/default the child normally. The source AST path and reflected
+container metadata both require deliberate marker/container extraction.
+
+Final checks: **17 investigation cases per Groovy 3/4/5 lane**, zero failures/errors/skips, in 31s.
+The earlier class/method-only addition also passed all lanes (15 cases each). These are feasibility
+fixtures, not completed duplicate validation, third-party compatibility, generated-descriptor parity,
+artifact-only consumer or IDE acceptance. No production source/build/service-registration change.
+
+### Current generic implementation-plan outline (proposed)
+
+Use a new proposed ADR after final confirmation (classification C); ADR 0028's runtime dispatch is
+unchanged. Place PropagateAnnotation and its repeatable container in klum-ast-annotations; keep the
+global expansion in klum-ast, without a runtime interpreter or module dependency reversal.
+
+1. **AP-1 — one pre-discovery vertical slice.** Introduce the singular marker/container and one global
+   expansion pass before local-transform collection. Cover class/field/method targets, retained original
+   annotations, source and separately compiled domain declarations. Tests and production change belong
+   together in a focused commit. Demonstrate AutoCreate and a domain DefaultValues annotation without
+   requiring LifecycleParticipant. Preserve source positions for diagnostics.
+2. **AP-2 — bounded declaration defenses.** Fail duplicate contributions (direct/propagated/multiple
+   sources), nested propagation, missing required members, illegal annotation targets and ordinary
+   semantic violations. Support source repeats and explicit/precompiled containers. Make processing
+   idempotent per original declaration without dropping legitimate repeatable mutations. Existing
+   same-phase creator diagnostics remain authoritative after expansion. No member forwarding.
+3. **AP-3 — generated behavior.** Query, Cluster field and method, class DSL, and existing Required
+   conversion; purity/shape/target negative controls, inherited declarations, original runtime metadata
+   and generated Builder/Factory/source-mirror parity with explicit annotation input. Class/field/method
+   selection copies annotations, not methods or inherited declarations. No lifecycle or validation rewrite
+   unless independent evidence requires one; Required runtime handling is an allowed alternative.
+4. **AP-4 — compatibility and authoring qualification.** Java/Groovy domain-annotation libraries and
+   separate Schema/consumer artifacts, compiler-free runtime execution, Groovy 3/4/5 and applicable JPMS.
+   Qualify a foreign local transform and imported/aliased nested annotation classes; characterize global
+   ordering and native IDE behavior. Expanded Schema annotations are compiled snapshots: changing a
+   library's requests requires Schema recompilation. No runtime retrofit or old-compiler promise.
+5. **AP-5 — public decision and guidance.** Documentary tests linking Default-Values, Model-Phases,
+   Builder.Query and Cluster guidance as applicable; CHANGES, migration/minimum-compiler guidance,
+   accepted ADR/public inventory and final implementation evidence. Keep #888 class-default policy
+   separate. Final review/required checks and separately authorized publication follow implementation.
+
 ## Exact maintainer decisions still required
 
 Resolve these one question at a time. Duplicate failure and default-only scope are confirmed;
 the original two lifecycle-specific representations below remain comparison history, not the current
 leading proposal. Propagation depth is confirmed as one level, rejecting nested propagation. Consumer
 scope explicitly permits DefaultValues-only domain annotations to carry AutoCreate, without participants.
-Do not infer a Schema-type propagation requirement from this decision; the requested target remains the field.
+The subsequent declaration decision explicitly adds class and method targets alongside fields.
 
 0. **New prerequisite:** is a Groovy bundle alias containing the retained domain annotation acceptable,
    or must the exact applied domain annotation itself survive expansion? Recommendation: use the
