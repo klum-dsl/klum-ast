@@ -24,6 +24,14 @@
 package com.blackbuild.klum.ast
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.ast.AnnotationNode
+import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.ast.expr.ClassExpression
+import org.codehaus.groovy.ast.expr.ListExpression
+import org.codehaus.groovy.classgen.GeneratorContext
+import org.codehaus.groovy.control.CompilePhase
+import org.codehaus.groovy.control.SourceUnit
+import org.codehaus.groovy.control.customizers.CompilationCustomizer
 import spock.lang.Issue
 
 import javax.tools.ToolProvider
@@ -220,5 +228,111 @@ class LifecycleCompositionInvestigationTest extends AbstractDSLSpec {
             messages.add(current.message ?: '')
         }
         messages.join('\n')
+    }
+
+    def 'early additive propagation leaves actual domain annotation and standard field annotations at runtime'() {
+        given:
+        installPropagationProbe()
+        createSecondaryClass('''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+            import com.blackbuild.klum.ast.runtime.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @interface Propagate { Class<? extends Annotation>[] value() }
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface Marker { String value() default 'marker-default' }
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @Propagate([AutoCreate, Marker])
+            @LifecycleParticipant.Mutator(phase = AutoCreate, handler = Bind)
+            @interface FactBinding { String label() default 'domain-default' }
+            class Bind implements LifecycleParticipant.MutationHandler<FactBinding> {
+                void mutate(LifecycleParticipant.MutationContext<FactBinding> c) {
+                    assert c.getAnnotation(AutoCreate).present
+                    assert c.getAnnotation(Marker).get().value() == 'marker-default'
+                    Service.Create.narrowBuilder(c.targetBuilder).value(c.annotation.label())
+                }
+            }
+            @DSL class Service { String value }
+            @DSL class Application { @FactBinding(label='domain-member') Service service }
+        ''')
+
+        when:
+        def result = Application.Create.One()
+        def field = Application.getDeclaredField('service')
+
+        then:
+        result.service.value == 'domain-member'
+        field.getAnnotation(FactBinding).label() == 'domain-member'
+        field.declaredAnnotations*.annotationType()*.simpleName.containsAll(['FactBinding', 'AutoCreate', 'Marker'])
+    }
+
+    private void installPropagationProbe() {
+        // Experimental compiler customizer, not a registered KlumAST transform or public API.
+        compilerConfiguration.addCompilationCustomizers(new CompilationCustomizer(CompilePhase.SEMANTIC_ANALYSIS) {
+            @Override
+            void call(SourceUnit source, GeneratorContext context, ClassNode schema) {
+                schema.fields.each { field ->
+                    field.annotations.toList().each { use ->
+                        use.classNode.annotations.findAll { it.classNode.name == 'Propagate' }.each { marker ->
+                            def value = marker.getMember('value')
+                            def entries = value instanceof ListExpression ? value.expressions : [value]
+                            entries.each { ClassExpression entry -> field.addAnnotation(new AnnotationNode(entry.type)) }
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    def 'adding Required before DSL canonicalization is too late for its local transform discovery'() {
+        given:
+        installPropagationProbe()
+
+        when:
+        createSecondaryClass('''
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @interface Propagate { Class<? extends Annotation>[] value() }
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @Propagate([Required]) @interface Mandatory {}
+            @DSL class Application { @Mandatory String value }
+        ''')
+        def annotations = Application.getDeclaredField('value').declaredAnnotations*.annotationType()*.simpleName
+
+        then:
+        annotations.contains('Required')
+        !annotations.contains('Validate')
+    }
+
+    def 'existing Groovy collector can bundle AutoCreate with a separate retained domain annotation'() {
+        given:
+        createSecondaryClass('''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+            import com.blackbuild.klum.ast.runtime.*
+            import groovy.transform.AnnotationCollector
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @LifecycleParticipant.Mutator(phase = AutoCreate, handler = Bind)
+            @interface FactBinding { String label() default 'domain-default' }
+            class Bind implements LifecycleParticipant.MutationHandler<FactBinding> {
+                void mutate(LifecycleParticipant.MutationContext<FactBinding> c) {
+                    assert c.getAnnotation(AutoCreate).present
+                    Service.Create.narrowBuilder(c.targetBuilder).value(c.annotation.label())
+                }
+            }
+            @AnnotationCollector([AutoCreate, FactBinding])
+            @interface StructuralFactBinding {}
+            @DSL class Service { String value }
+            @DSL class Application { @StructuralFactBinding(label='collector-member') Service service }
+        ''')
+
+        when:
+        def result = Application.Create.One()
+        def annotations = Application.getDeclaredField('service').declaredAnnotations*.annotationType()*.simpleName
+
+        then:
+        result.service.value == 'collector-member'
+        annotations.containsAll(['FactBinding', 'AutoCreate'])
+        !annotations.contains('StructuralFactBinding')
     }
 }

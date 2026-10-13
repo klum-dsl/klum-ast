@@ -6,7 +6,16 @@ Scope: local design and executable characterization only. No production change, 
 
 ## Recommendation for maintainer review
 
-Prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
+**Updated after the propagation proposal:** investigate compile-time composition before extending
+LifecycleParticipant. The existing Groovy AnnotationCollector already handles the immediate use case
+through a bundle alias containing AutoCreate and a separate retained domain annotation. If the named
+domain annotation itself must remain on the field, an additive `@PropagateAnnotations([AutoCreate])`
+is a stronger third candidate. Keep it default-only, one hop, and preserve normal annotation validation.
+The new probes demonstrate the field/runtime path but expose unresolved scheduling for annotations
+with their own AST transforms. No architecture is accepted, and no new propagator should be published
+with an unqualified promise of arbitrary annotation equivalence.
+
+**Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
 with the existing `LifecycleParticipant.CreationHandler.class` interface as a documented token. This needs
 no public no-op handler or internal-handler exposure. Do not infer built-ins for AutoLink, Default or PostTree.
@@ -17,7 +26,7 @@ explicit AutoCreate behavior when no composed creator is present. Default-only c
 concrete, unkeyed structural children; exclude member forwarding deliberately. Keyed/abstract/configured
 children keep the repeated mutation-only-domain + explicit AutoCreate workaround.
 
-This is a recommendation, not a decision. If strict conflicts make that narrow subset too inconvenient for
+These are recommendations, not decisions. If strict conflicts make that narrow subset too inconvenient for
 the primary use case, defer #890 or choose fixed meta-annotation configuration explicitly. Do not quietly
 add override precedence or forwarding to make the example work.
 
@@ -131,7 +140,9 @@ another public annotation for the same claim; no demonstrated need justifies tha
 
 ## Proposed semantic boundary and compatibility
 
-All rules below are **proposed** except the explicitly identified existing invariants.
+The table below describes the original lifecycle-specific candidates. Additive propagation instead
+materializes ordinary field annotations, so their existing placement rules apply; it need not inherit
+the narrower lifecycle-specific eligibility subset. All new rules remain **proposed**.
 
 | Case | Proposed rule / existing constraint |
 | --- | --- |
@@ -175,7 +186,7 @@ Schema migration. Existing schemas not opting in retain their behavior.
 
 ## Proposed ADR and implementation-plan outline
 
-Classification **B: extend ADR 0028** narrowly, since its dispatch/conflict rules remain authoritative.
+For the original lifecycle-specific candidates, classification **B: extend ADR 0028** narrowly, since its dispatch/conflict rules remain authoritative.
 After maintainer acceptance, add a D2/D3 built-in-composition subsection and update its public inventory,
 plus a dedicated implementation plan. If recursive/general built-in composition is chosen, use a successor
 ADR; do not retroactively present that as #867's accepted contract.
@@ -203,10 +214,99 @@ ADR; do not retroactively present that as #867's accepted contract.
 No release assignment, #888 implementation, member forwarding, custom phases, containers, late-phase
 catch-up, HANDLE or new Closure evaluator belongs in these slices.
 
+## Third candidate: default-only additive annotation propagation
+
+Proposed syntax retains the applied domain annotation and adds ordinary field annotations:
+
+```groovy
+@PropagateAnnotations([AutoCreate])
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = BindFacts)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface FactBinding { String provider() default 'orders' }
+
+@DSL class Application {
+    @FactBinding(provider = 'billing') OrderKafka messaging
+}
+```
+
+An annotation member `Class<? extends Annotation>[]` identifies annotation **types**, not configured
+instances. Expansion creates a fresh AnnotationNode for each selected type, uses its defaults, and
+retains FactBinding and its members. No forwarding follows from the array. A propagated type with required
+members cannot be used this way and should produce an ordinary missing-member diagnostic. An illegal
+FIELD target should likewise fail; selecting arbitrary types cannot waive their declared contracts.
+This avoids widening AutoCreate's target or inventing a built-in Creator token. The existing runtime
+sees a physical AutoCreate on the original Schema field, and singular annotation lookup can return it.
+Normal key/type/value, Cluster, ownership and phase behavior then follow the expanded annotations.
+
+The opt-in customizer probe executes during SEMANTIC_ANALYSIS, before DSL's CANONICALIZATION transform.
+It copies AutoCreate plus an unrelated default-valued marker, preserves a domain member, and successfully
+creates/mutates a child through the existing runtime. It is not a registered transform or completed
+generic implementation. A negative control adds Required at the same point: the resulting field has
+Required but **no Validate**, proving that RequiredToValidateTransformation was not discovered. Groovy's
+local-transform collection also occurs during SEMANTIC_ANALYSIS; a general propagator must insert
+before that discovery or explicitly integrate with it. Merely running before DSLASTTransformation
+is insufficient. Conversion-phase resolution of imported/precompiled/source annotations, repeated expansion
+and transform registration all require separate evidence.
+
+Existing [Groovy AnnotationCollector](https://docs.groovy-lang.org/docs/groovy-3.0.19/html/api/groovy/transform/AnnotationCollector.html)
+can already express a bundle without a new KlumAST mechanism:
+
+```groovy
+@AnnotationCollector([AutoCreate, FactBinding])
+@interface StructuralFactBinding {}
+
+@DSL class Application {
+    @StructuralFactBinding(provider = 'billing') OrderKafka messaging
+}
+```
+
+The new real-DSL probe passes: the field ends up with AutoCreate and FactBinding, its handler receives
+the configured domain member, and StructuralFactBinding is absent. Collector alias replacement and
+argument mapping are documented Groovy behavior; the original domain annotation is retained here
+because it is an item in the bundle, not the alias. That differs from decorating FactBinding itself
+with a collector. The repository's Required converter contains an old comment that AnnotationCollector
+did not work there; it does not establish a general current limitation, and this focused probe passes.
+
+Latest checks: **12 investigation cases per Groovy 3/4/5 lane**, zero failures/errors/skips, in 27s.
+These add three cases to the original nine; the earlier 168-case focused run remains the baseline evidence.
+
+Additional contract decisions for a reusable propagator:
+
+- Preserve the domain annotation, default-only class list, field-only expansion and one hop initially.
+  Do not recursively propagate nested bundles or execute domain members.
+- Reject duplicate non-repeatable annotations initially, including propagated+explicit AutoCreate.
+  Do not silently suppress declarations or merge annotation members; repeatable normalization needs
+  its own deterministic rule. An external same-phase Creator still conflicts with the added AutoCreate.
+- Run early enough for KlumAST, KlumCast and each supported local AST transform to see equivalent input.
+  A core pre-pass is the smaller qualification surface if only KlumAST field annotations are promised;
+  an arbitrary-annotation promise requires discovery-aware integration. Consider Groovy collector
+  infrastructure/custom processing before building independent transform scheduling.
+- Persist propagation metadata in precompiled domain libraries; qualify Java-authored declarations
+  consumed by Groovy Schemas. Java compilation itself does not acquire Groovy expansion behavior.
+- Treat expanded annotations as compile-time Schema state. Updating a domain library's class list
+  after Schema compilation does not retrofit copied annotations: recompile Schemas. A new annotation
+  library on an old compiler may silently lack expansion, so document/enforce minimum compiler support.
+- Compare generated Builder/Model/mirror annotations and signatures. Physical expansion intentionally
+  changes original-field annotation presence relative to runtime-only composition; do not claim that
+  metadata is unchanged. Existing downstream propagation rules should see ordinary input.
+
+If existing bundle aliases are acceptable, the next slice should qualify separately compiled libraries,
+duplicate/creator conflicts and generated surfaces with AnnotationCollector; a new framework annotation
+may be unnecessary. If preserving the applied domain annotation is essential, prototype discovery-aware
+additive expansion next, including Required and a third-party local transform. A broad reusable propagator
+warrants a separate proposed ADR (classification C) while referencing ADR 0028's unchanged runtime rules.
+Its generic annotation-placement scope should not be presented as already accepted under #890.
+
 ## Exact maintainer decisions still required
 
 Resolve these in dependency order, one question at a time:
 
+0. **New prerequisite:** is a Groovy bundle alias containing the retained domain annotation acceptable,
+   or must the exact applied domain annotation itself survive expansion? Recommendation: use the
+   existing collector when aliases suffice; otherwise investigate retaining additive propagation before
+   accepting the earlier sentinel recommendation. Separately decide whether its scope promises ordinary
+   KlumAST field annotations or arbitrary third-party AST-transform annotations.
 1. **Meaning and minimum use case:** should a distinct structural domain annotation always imply
    existence, while a mutation-only annotation continues to mean bind-if-present? Is concrete unkeyed
    default-only coverage useful enough now? Recommendation: yes; retain separate domain vocabulary.
