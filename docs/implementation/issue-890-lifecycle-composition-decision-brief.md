@@ -32,6 +32,15 @@ key/type/value remains explicit alongside a mutation-only domain annotation. Thi
 for the maintainer's current need. The maintainer clarified that this was scope confirmation, not a
 request to pause; the design interview continues. Production implementation remains unauthorized.
 
+**Confirmed propagation depth:** expand one level only. Selecting an annotation that itself requests
+propagation is rejected, rather than recursively expanded or silently left ineffective.
+
+**Confirmed consumer scope:** this is a shared Schema annotation mechanism, not a LifecycleParticipant
+feature. DefaultValues must consume the same retained domain annotation alongside lifecycle participants.
+Expansion produces ordinary field annotations for existing consumers; do not create separate propagation
+vocabularies or per-consumer expansion. Default-only applies to the copied annotation types, not to the
+domain annotation members already interpreted by DefaultValues or passed to external handlers.
+
 **Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
 with the existing `LifecycleParticipant.CreationHandler.class` interface as a documented token. This needs
@@ -278,7 +287,7 @@ can already express a bundle without a new KlumAST mechanism:
 }
 ```
 
-The new real-DSL probe passes: the field ends up with AutoCreate and FactBinding, its handler receives
+The real-DSL collector probe passes: the field ends up with AutoCreate and FactBinding, its handler receives
 the configured domain member, and StructuralFactBinding is absent. Collector alias replacement and
 argument mapping are documented Groovy behavior; the original domain annotation is retained here
 because it is an item in the bundle, not the alias. That differs from decorating FactBinding itself
@@ -290,8 +299,9 @@ These add three cases to the original nine; the earlier 168-case focused run rem
 
 Additional contract decisions for a reusable propagator:
 
-- Preserve the domain annotation, default-only class list, field-only expansion and one hop initially.
-  Do not recursively propagate nested bundles or execute domain members.
+- Preserve the domain annotation and default-only class list. **Confirmed:** one level only, rejecting
+  nested propagation; shared consumer scope includes DefaultValues and lifecycle participants.
+  Field-only versus also type placement remains unresolved. Do not automatically execute domain members.
 - **Confirmed:** reject duplicate annotation types involving propagation, including propagated+explicit AutoCreate.
   Do not silently suppress declarations or merge annotation members; repeatable normalization needs
   its own deterministic rule. An external same-phase Creator still conflicts with the added AutoCreate.
@@ -343,13 +353,55 @@ Required propagation. Until then the no-Validate probe remains accurate current-
 leading design candidate is now retained, additive, default-only compile-time propagation. Duplicate failure
 is confirmed; broad third-party transform scheduling remains an explicit maintainer decision.
 
+### Shared DefaultValues and lifecycle consumer acceptance
+
+The propagation marker is independent of LifecycleParticipant. A domain annotation may retain its
+existing DefaultValues and participant metadata while requesting ordinary AutoCreate on its Schema field:
+
+```groovy
+@DefaultValues
+@PropagateAnnotations([AutoCreate])
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = BindFacts)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface FactBinding { String name() default '' }
+
+@DSL class Application {
+    @FactBinding(name = 'orders') Kafka messaging
+}
+```
+
+Default-only copying does not prohibit the already supported `FactBinding.name` consumption: the runtime
+handler receives that original annotation, and DefaultValues reads its explicitly supplied members using
+its existing mapping/empty-target rules. No member is forwarded into AutoCreate. No new consumer-specific
+propagation SPI or effective-annotation lookup is required for the physical-copy candidate.
+
+The new probe compiles the validated domain annotation/handler before related Schema types, then builds
+created, explicitly supplied and omitted-member children. AutoCreate supplies missing children; AutoLink
+mutation receives the domain member; DefaultValues fills an empty child name without overwriting manual
+input. An omitted domain member retains existing DefaultValues behavior (annotation defaults are excluded
+by getNonDefaultMembers). The same original annotation remains available on the Schema field. Initial
+fixture repair kept related Schema types in one compilation after a generated-Builder lookup failed when
+splitting them across the in-memory test loader; no production change was made.
+
+Do not confuse this with copying bare Default: Default's member defaults are syntactically optional, but
+on a field its semantic validation requires exactly one of field/delegate/code. A default-only list does
+not make that otherwise invalid field use meaningful. Existing consumer validation remains authoritative.
+DefaultValues already permits Schema-type and field uses; whether propagation itself should operate on
+both targets is the next maintainer placement decision, rather than an automatic consequence of sharing
+the marker.
+
+Final shared-consumer probe qualification: **13 investigation cases per Groovy 3/4/5 lane**, zero
+failures/errors/skips. Groovy 3 passed in 9s and the Groovy 4/5 run passed in 17s. XML results and local
+Markdown links were inspected; diff whitespace checks passed. Only design evidence and opt-in fixtures changed.
+
 ## Exact maintainer decisions still required
 
 Resolve these one question at a time. Duplicate failure and default-only scope are confirmed;
 the original two lifecycle-specific representations below remain comparison history, not the current
-leading proposal. The next active decision is propagation depth: recommend one level with an explicit
-diagnostic for selecting an annotation that itself declares propagation, rather than recursive expansion
-or silently leaving a nested request ineffective. List the desired annotations directly for this version.
+leading proposal. Propagation depth is confirmed as one level, rejecting nested propagation. Consumer
+scope includes DefaultValues and lifecycle participants using the same retained annotation. The next
+placement decision is field-only versus also Schema types, since DefaultValues already supports both.
 
 0. **New prerequisite:** is a Groovy bundle alias containing the retained domain annotation acceptable,
    or must the exact applied domain annotation itself survive expansion? Recommendation: use the

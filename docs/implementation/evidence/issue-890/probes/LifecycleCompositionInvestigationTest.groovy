@@ -335,4 +335,47 @@ class LifecycleCompositionInvestigationTest extends AbstractDSLSpec {
         annotations.containsAll(['FactBinding', 'AutoCreate'])
         !annotations.contains('StructuralFactBinding')
     }
+
+    def 'one retained annotation drives propagated creation external mutation and existing default values'() {
+        given:
+        installPropagationProbe()
+        // DefaultValues uses KlumCast validation, so compile the domain annotation before its Schema use.
+        createSecondaryClass('''
+            import com.blackbuild.klum.ast.layer3.*
+            import com.blackbuild.klum.ast.runtime.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @interface Propagate { Class<? extends Annotation>[] value() }
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @DefaultValues
+            @Propagate([AutoCreate])
+            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Bind)
+            @interface Configured { String name() default '' }
+            class Bind implements LifecycleParticipant.MutationHandler<Configured> {
+                void mutate(LifecycleParticipant.MutationContext<Configured> c) {
+                    c.targetBuilder.binding(c.annotation.name() ?: 'unnamed')
+                }
+            }
+        ''')
+        createSecondaryClass('''
+            @DSL class Service { String name; String binding }
+            @DSL class Application {
+                @Configured(name='annotation-name') Service created
+                @Configured(name='annotation-name') Service supplied
+                @Configured Service omitted
+            }
+        ''')
+
+        when:
+        def result = Application.Create.With { supplied { name 'manual-name' } }
+
+        then:
+        result.created.name == 'annotation-name'
+        result.created.binding == 'annotation-name'
+        result.supplied.name == 'manual-name'
+        result.supplied.binding == 'annotation-name'
+        result.omitted.name == null
+        result.omitted.binding == 'unnamed'
+        Application.getDeclaredField('created').getAnnotation(Configured).name() == 'annotation-name'
+    }
 }
