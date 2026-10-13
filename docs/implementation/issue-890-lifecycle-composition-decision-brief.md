@@ -15,6 +15,10 @@ The new probes demonstrate the field/runtime path but expose unresolved scheduli
 with their own AST transforms. No architecture is accepted, and no new propagator should be published
 with an unqualified promise of arbitrary annotation equivalence.
 
+Maintainer refinement: replacing Required's converter with direct handling in the validation phase is
+permitted as a design option. Required's current timing failure is consequently a removable dependency,
+not a reason to reject propagation. No production implementation is authorized by this investigation.
+
 **Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
 with the existing `LifecycleParticipant.CreationHandler.class` interface as a documented token. This needs
@@ -297,6 +301,34 @@ may be unnecessary. If preserving the applied domain annotation is essential, pr
 additive expansion next, including Required and a third-party local transform. A broad reusable propagator
 warrants a separate proposed ADR (classification C) while referencing ADR 0028's unchanged runtime rules.
 Its generic annotation-placement scope should not be presented as already accepted under #890.
+
+### Permitted Required refinement
+
+The maintainer permits moving Required interpretation into validation rather than depending on its
+RequiredToValidateTransformation. Source confirms that the converter only adds an empty Validate with
+Required.value mapped to message and Required.level mapped to level. The existing field validator owns
+Groovy truth, the boxed-Boolean non-null exception, field location/default message and severity reporting.
+A direct Required branch in that existing validator, reached through ValidationPhase, can reuse those
+rules without another traversal, phase or public lifecycle handler.
+
+This removes Required as a dependency on local-transform discovery for propagated runtime validation.
+It does not itself prove equivalence for arbitrary third-party AST annotations. Retain Schema diagnostics
+independently of the converter: Required versus explicit Validate is currently forbidden, and primitive
+boolean rejection currently arrives through Validate's compiler check. Preserve static/transient/Owner
+exclusions, inherited layers, Deprecated explicit-validation behavior, class-level Validate, collected
+issue suppression and Verify thresholds. Do not accidentally interpret Required as null-only for strings,
+numbers or containers; false is valid for boxed Boolean but primitive boolean remains rejected.
+
+Compatibility controls must include an old compiled Schema retaining **both Required and synthetic
+Validate**: direct handling must not report the same violation twice. Treat an existing Validate as the
+already normalized legacy path, or otherwise demonstrate equivalent single dispatch. Also record that
+newly compiled fields would no longer expose synthetic Validate to reflection; source compatibility
+alone does not preserve that annotation-presence contract. Required's runtime retention already exists.
+
+If chosen, make this a small prerequisite slice with parity tests for the above cases, before qualifying
+Required propagation. Until then the no-Validate probe remains accurate current-behavior evidence. The
+leading design candidate is now retained, additive, default-only compile-time propagation; broad third-party
+transform scheduling and duplicate policy remain explicit maintainer decisions.
 
 ## Exact maintainer decisions still required
 
