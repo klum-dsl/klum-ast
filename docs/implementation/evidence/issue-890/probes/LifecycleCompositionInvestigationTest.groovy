@@ -336,11 +336,11 @@ class LifecycleCompositionInvestigationTest extends AbstractDSLSpec {
         !annotations.contains('StructuralFactBinding')
     }
 
-    def 'one retained annotation drives propagated creation external mutation and existing default values'() {
+    def 'default values annotation carries AutoCreate with optional independent participant (#withParticipant)'() {
         given:
         installPropagationProbe()
         // DefaultValues uses KlumCast validation, so compile the domain annotation before its Schema use.
-        createSecondaryClass('''
+        createSecondaryClass("""
             import com.blackbuild.klum.ast.layer3.*
             import com.blackbuild.klum.ast.runtime.*
             import java.lang.annotation.*
@@ -349,14 +349,14 @@ class LifecycleCompositionInvestigationTest extends AbstractDSLSpec {
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
             @DefaultValues
             @Propagate([AutoCreate])
-            @LifecycleParticipant.Mutator(phase = AutoLink, handler = Bind)
+            ${withParticipant ? '@LifecycleParticipant.Mutator(phase = AutoLink, handler = Bind)' : ''}
             @interface Configured { String name() default '' }
             class Bind implements LifecycleParticipant.MutationHandler<Configured> {
                 void mutate(LifecycleParticipant.MutationContext<Configured> c) {
                     c.targetBuilder.binding(c.annotation.name() ?: 'unnamed')
                 }
             }
-        ''')
+        """)
         createSecondaryClass('''
             @DSL class Service { String name; String binding }
             @DSL class Application {
@@ -371,11 +371,15 @@ class LifecycleCompositionInvestigationTest extends AbstractDSLSpec {
 
         then:
         result.created.name == 'annotation-name'
-        result.created.binding == 'annotation-name'
+        result.created.binding == (withParticipant ? 'annotation-name' : null)
         result.supplied.name == 'manual-name'
-        result.supplied.binding == 'annotation-name'
+        result.supplied.binding == (withParticipant ? 'annotation-name' : null)
         result.omitted.name == null
-        result.omitted.binding == 'unnamed'
+        result.omitted.binding == (withParticipant ? 'unnamed' : null)
         Application.getDeclaredField('created').getAnnotation(Configured).name() == 'annotation-name'
+        Configured.annotations*.annotationType()*.simpleName.contains('Mutator') == withParticipant
+
+        where:
+        withParticipant << [false, true]
     }
 }
