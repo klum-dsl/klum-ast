@@ -29,7 +29,8 @@ propagation must not silently use repeatability to merge conflicting contributio
 annotation members or configured annotation instances is included. A selected annotation with required
 members has no usable default-only representation and must fail validation. Customized AutoCreate
 key/type/value remains explicit alongside a mutation-only domain annotation. This scope is sufficient
-for the maintainer's current need; the design discussion is paused pending explicit continuation.
+for the maintainer's current need. The maintainer clarified that this was scope confirmation, not a
+request to pause; the design interview continues. Production implementation remains unauthorized.
 
 **Earlier recommendation among the original two options:** prefer a narrowly defined omitted handler in `LifecycleParticipant.Creator`: only `phase = AutoCreate`
 may omit it, meaning the existing AutoCreate field action with its default parameters. Represent omission
@@ -344,7 +345,11 @@ is confirmed; broad third-party transform scheduling remains an explicit maintai
 
 ## Exact maintainer decisions still required
 
-Resolve these in dependency order, one question at a time:
+Resolve these one question at a time. Duplicate failure and default-only scope are confirmed;
+the original two lifecycle-specific representations below remain comparison history, not the current
+leading proposal. The next active decision is propagation depth: recommend one level with an explicit
+diagnostic for selecting an annotation that itself declares propagation, rather than recursive expansion
+or silently leaving a nested request ineffective. List the desired annotations directly for this version.
 
 0. **New prerequisite:** is a Groovy bundle alias containing the retained domain annotation acceptable,
    or must the exact applied domain annotation itself survive expansion? Recommendation: use the
