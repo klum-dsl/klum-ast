@@ -2,7 +2,10 @@
 
 - Added default-only `@PropagateAnnotation` composition on DSL Schema classes, fields and methods,
   with one-hop, target/default-member and duplicate checks and normal Required/AutoCreate/Query/Cluster
-  behavior. Domain values are retained without forwarding. Uses the neutral KlumCast contributor seam
+  behavior. Repeated requests and genuine applied-domain containers are qualified across source and
+  compiled Java/Groovy libraries; duplicate diagnostics identify both occurrences, and container/default
+  use locations survive projection and Required/Optional lowering. Collector selections are rejected;
+  early collector rewriting remains unsupported. Domain values are retained without forwarding. Uses the neutral KlumCast contributor seam
   and aligned public `0.5.0-rc.2` artifacts from Central. Recompile consuming Schemas after changing
   requests and remove newly duplicated explicit annotations. See [annotation propagation](docs/user/Annotation-Propagation.md)
   ([#890](https://github.com/klum-dsl/klum-ast/issues/890)).

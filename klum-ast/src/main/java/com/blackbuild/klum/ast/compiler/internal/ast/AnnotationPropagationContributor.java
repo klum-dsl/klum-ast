@@ -25,11 +25,11 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.DSL;
 import com.blackbuild.klum.ast.PropagateAnnotation;
-import groovy.transform.AnnotationCollector;
 import com.blackbuild.klum.cast.compiler.EffectiveAnnotation;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclaration;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclarationContribution;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclarationContributor;
+import groovy.transform.AnnotationCollector;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;

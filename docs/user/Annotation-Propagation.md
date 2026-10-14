@@ -35,7 +35,13 @@ Here the copied bare `@AutoCreate` creates the child through the normal lifecycl
 ordinary precedence. Customized AutoCreate `key`, `type` or `value` arguments must remain explicit;
 use a domain annotation that does not also request AutoCreate for that case.
 
-Requests are repeatable, using one selected type per request:
+## Repeatable requests and containers
+
+Requests are repeatable, using one selected type per request. Java and Groovy annotation libraries
+may spell the requests separately or use the explicit nested `PropagateAnnotation.List` container.
+Both forms have the same default-only behavior in source and compiled metadata.
+
+(See: `AnnotationPropagationContributionTest#'repeated and explicit request containers retain domains and selected defaults (#kind, #policy)'`.)
 
 ```groovy
 @PropagateAnnotation(AutoCreate)
@@ -44,6 +50,22 @@ Requests are repeatable, using one selected type per request:
 @Target(ElementType.FIELD)
 @interface RequiredService {}
 ```
+
+The explicit spelling for those requests is:
+
+```groovy
+@PropagateAnnotation.List([
+    @PropagateAnnotation(AutoCreate), @PropagateAnnotation(Required)
+])
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface RequiredService {}
+```
+
+Genuine repeatable containers of applied domain annotations also contribute their nested domain uses,
+including a container's default `value`. The physical container and original members remain intact.
+An arbitrary annotation-array member is not a domain container: the component annotation must declare
+that exact container through `@Repeatable`. Two nested uses selecting the same annotation still fail.
 
 Other legal default-only selections include `Builder.Query` on methods and `Cluster` on its supported
 fields/methods. The generated Builder/Factory contracts and source mirrors match equivalent direct
@@ -63,11 +85,23 @@ Every duplicate involving propagation is an error, including explicit-plus-propa
 multiple domain contributors and repeatable selected types. There is no precedence, merge or silent
 deduplication. Ordinary explicit-only repeatable annotations keep their normal behavior.
 
-Propagation errors identify the domain annotation, selected type and Schema declaration. KlumCast
+Propagation errors identify the domain annotation, selected type and Schema declaration. Duplicate
+errors identify both contributions, including occurrence numbers or container `value` indexes. Defaulted
+containers report the applied container's source position; downstream Required/Optional lowering and
+Query/Cluster projections preserve applied annotation positions. KlumCast
 validates the final effective annotation set through its supported contributor seam; its constraint
 errors include contribution provenance. Ordinary local transformations retain their normal phases.
 There is no general ordering guarantee for unrelated AST rewriting or annotations introduced after the
 contributor handoff.
+
+`AnnotationCollector` is not a propagation mechanism. Selecting a collector type is rejected before
+local rewriting. Combining `@AnnotationCollector` and `@PropagateAnnotation` on a domain definition is
+unsupported: Groovy can replace the domain use before the contributor sees it, moving the propagation
+marker onto the Schema declaration. Source and compiled-library controls produce Groovy's ordinary
+“PropagateAnnotation is not allowed on element FIELD” diagnostic for a field use. The original domain
+identity is already unavailable at this boundary. Keep propagating domains as ordinary annotations;
+do not rely on collector modes to merge or prioritize them. Other rewrites are qualified only for the
+effective annotation set present at KlumCast's handoff, with no late rescan or scheduling promise.
 
 Normal SOURCE/CLASS/RUNTIME retention applies to the original and added annotations. Runtime consumers
 need no propagation interpreter or compiler. Recompile consuming Schemas after changing requests;
