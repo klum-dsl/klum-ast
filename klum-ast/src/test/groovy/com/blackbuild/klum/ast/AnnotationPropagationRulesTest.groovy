@@ -354,4 +354,54 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
         'domains'  | '@PropagateAnnotation(Required)'                               | '@Policies([@Policy, @Policy])' | '@Policies occurrence 1.value[1]' | '@Policies occurrence 1.value[2]'
     }
 
+    def 'collector rewriting does not become a propagation request (#precompiled)'() {
+        given:
+        String definitions = '''
+            import groovy.transform.AnnotationCollector
+            @AnnotationCollector
+            @PropagateAnnotation(Required)
+            @interface Policy {}
+        '''
+        if (precompiled) library(definitions)
+
+        when:
+        createSecondaryClass("""
+            ${precompiled ? '' : definitions}
+            @DSL class Order { @Policy String name }
+        """)
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('PropagateAnnotation')
+        error.message.contains('not allowed on element FIELD')
+        !error.message.contains('ClassCastException')
+
+        where:
+        precompiled << [false, true]
+    }
+
+    def 'collector selections are rejected before local rewriting (#precompiled)'() {
+        given:
+        String definitions = '''
+            import groovy.transform.AnnotationCollector
+            @AnnotationCollector([Required]) @interface Selected {}
+            @PropagateAnnotation(Selected) @interface Policy {}
+        '''
+        if (precompiled) library(definitions)
+
+        when:
+        createSecondaryClass("""
+            ${precompiled ? '' : definitions}
+            @DSL class Order { @Policy String name }
+        """)
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('AnnotationCollector cannot be propagated')
+        error.message.contains('@Policy requests @Selected on Order.name')
+
+        where:
+        precompiled << [false, true]
+    }
+
 }

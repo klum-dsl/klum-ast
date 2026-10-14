@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.DSL;
 import com.blackbuild.klum.ast.PropagateAnnotation;
+import groovy.transform.AnnotationCollector;
 import com.blackbuild.klum.cast.compiler.EffectiveAnnotation;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclaration;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclarationContribution;
@@ -213,6 +214,8 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
     }
 
     private static String illegalSelection(ClassNode selected, AnnotatedNode target) {
+        if (!selected.getAnnotations(ClassHelper.make(AnnotationCollector.class)).isEmpty())
+            return "AnnotationCollector cannot be propagated; rewriting is not default-only annotation composition";
         if (!selected.isAnnotationDefinition()) return "selected type is not an annotation";
         if (selected.getName().equals(DSL.class.getName())) return "DSL cannot be propagated";
         if (!requests(selected).isEmpty()) return "nested propagation is not supported";
