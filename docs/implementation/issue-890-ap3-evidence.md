@@ -60,9 +60,43 @@ contract.
 
 ## Validation and delivery
 
-Java 17 focused Groovy 3 qualification of both new test classes passes: 40 cases, zero failures/skips.
-Full root checks, compatibility matrix and independent review are in progress; final evidence will
-replace this status before handoff.
+Local qualification uses Zulu Java `17.0.3`, Groovy `3.0.25 / 4.0.32 / 5.0.6` and normal Central
+resolution. Focused Groovy 3 qualification passes: 28 compiler-contract plus 12 lifecycle cases.
+All 40 new cases pass on each lane with zero failures/errors/skips (120 qualifying executions).
+
+```shell
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew :klum-ast:test \
+  --tests '*AnnotationPropagationContractTest' --tests '*AnnotationPropagationLifecycleTest' \
+  --no-parallel --max-workers=2
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew check --no-parallel --max-workers=2
+```
+
+The full root run passes in 13m 10s at the fixed reviewed revision `c9826143`:
+
+| Compiler lane | Cases | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 | 2033 | 0 | 15 |
+| Groovy 4 | 2035 | 0 | 15 |
+| Groovy 5 | 2035 | 0 | 15 |
+
+All 163 Gradle plugin cases pass, alongside the runtime/auxiliary suites, lane-isolation, license and
+documentation checks. No new tests are ignored or pending. The final evidence-only commit does not
+alter the qualified code; its diff and changed Markdown relative-link checks pass.
+
+The first root run configured an uncommitted base version before local commits were created. Its nested
+plugin-fixture publisher subsequently calculated the newer Git-derived version, leaving the outer
+plugin tests unable to find the old BOM coordinates: 11 fixture lookup failures. Compiler suites passed.
+The complete root rerun held Git state fixed throughout and passes without product or build-default
+changes. The superseded run is not root qualification evidence.
+
+Standards review against `93e5a452...c9826143`: no documented violations or material smells.
+Specification review on the same fixed diff: no missing AP-3 acceptance, incorrect behavior or scope
+expansion. The three implementation/documentation commits were reviewed for scope, order and reasoning;
+the final evidence-only commit records the results without rewriting reviewed history.
+
+Delivery audit: GitHub CLI repository channel authorized; dedicated-branch Git transport authorized by
+dry run. No connected GitHub App channel is used. Final-head CI and SonarCloud verification belongs to
+the draft PR's validation record; local evidence does not substitute for the exact pushed revision.
 
 Tracker impact: `Related: #890`; AP-3 is a partial implementation-plan slice and selects no issue-closing
 syntax. Issue state, labels, milestone, curation/release indexes and reusable agent policy are unchanged.
