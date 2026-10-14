@@ -329,4 +329,29 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
         error.message.contains('explicit @Policies')
     }
 
+    def 'duplicate diagnostics distinguish both repeated contributions (#kind)'() {
+        given:
+        library("""
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @Repeatable(Policies) $requests @interface Policy {}
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface Policies { Policy[] value() }
+        """)
+
+        when:
+        createSecondaryClass("@DSL class Order { $uses String name }")
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.errorCollector.errorCount == 1
+        error.message.contains('duplicate propagated annotation')
+        error.message.contains(first)
+        error.message.contains(second)
+
+        where:
+        kind       | requests                                                      | uses                           | first                             | second
+        'requests' | '@PropagateAnnotation(Required) @PropagateAnnotation(Required)' | '@Policy'                      | 'PropagateAnnotation$List occurrence 1.value[1]' | 'PropagateAnnotation$List occurrence 1.value[2]'
+        'domains'  | '@PropagateAnnotation(Required)'                               | '@Policies([@Policy, @Policy])' | '@Policies occurrence 1.value[1]' | '@Policies occurrence 1.value[2]'
+    }
+
 }
