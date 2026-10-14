@@ -78,6 +78,15 @@ Acceptance:
 - No revalidation or metadata mutation on unrelated/non-DSL declarations or unchanged Schemas.
 - Groovy 3/4/5, Java/Groovy precompiled libraries, genuine repeats/containers, and Groovy 4/5 named modules.
 
+Proposed KlumCast feature-request title: **Support validation of annotations introduced by compiler preprocessing**.
+The motivating counterexamples are newly copied Default bypassing its constraint when KlumCast runs first,
+and an already-validated Key missing a later Field conflict. The request should own effective-annotation
+validation, changed-target revalidation, at-most-once diagnostics and propagation provenance. A compiler
+supplies actual annotation uses/targets and origin; the library continues to own its existing constraint
+engine. Keep the API framework-neutral; no KlumAST-specific marker dependency, general preprocessing
+registry or runtime propagation interpreter is required. The acceptance matrix above is the proposed
+request's minimum scope. This PR records the proposal and does not create or mutate an issue.
+
 Reasoned boundaries: first the engine's explicit validation-state transition with direct compiler tests;
 then supported access/diagnostic provenance and compatibility qualification. Public Java visibility alone
 is insufficient evidence that arbitrary node-metadata invalidation is supported.

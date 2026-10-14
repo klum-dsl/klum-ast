@@ -214,6 +214,13 @@ The current engine class and metadata are public Java symbols, but not an establ
 Current KlumCast artifacts are automatic modules exporting their packages; this does not establish a
 future encapsulation contract. Any explicit descriptor must export/qualify the agreed integration seam.
 
+The maintainer additionally identified this as a potential **KlumCast feature request**: support validation
+of effective annotations introduced by compiler preprocessing, including propagation provenance and
+rechecking affected existing constraints. Keep the request framework-neutral and based on the existing
+engine; it need not teach KlumCast the public KlumAST marker or introduce a preprocessing SPI. The
+[plan's KC-0 proposal](../implementation/adr-0029-default-only-annotation-propagation.md#kc-0--supported-effective-declaration-validation-prerequisite)
+records the bounded request. Its exact integration API remains a KlumCast design decision.
+
 KlumAST's subsequent AP-1 integration consumes that prerequisite. No KlumCast production code is changed
 here and no prerequisite issue is created by this PR. Maintainer approval of ownership/API is outstanding.
 A direct internal engine dependency could avoid a separate library change only with explicit agreement
