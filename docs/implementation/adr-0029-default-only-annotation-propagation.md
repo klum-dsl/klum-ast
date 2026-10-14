@@ -214,6 +214,13 @@ required even where a bare direct annotation happens to pass Groovy compilation.
 
 ### AP-3 — Generated and inherited contract parity
 
+Qualification: [AP-3 acceptance and parity evidence](issue-890-ap3-evidence.md). Paired direct/propagated
+controls cover generated public contracts, Java/static Groovy consumers, compiled source mirrors,
+source/binary inheritance and ordinary lifecycle ordering. Production transformations are unchanged.
+The evidence records the pre-existing Required/primitive-boolean validation limitation for maintainer
+follow-up, without changing the AP-2 contributor or validation ownership contract.
+
+
 Keep Required/Optional as existing local transformations. Cover explicit Required messages/levels and
 Optional Ignore, boolean/shape restrictions and runtime validation. Verify each conversion happens once
 and ordinary non-DSL behavior remains unchanged.

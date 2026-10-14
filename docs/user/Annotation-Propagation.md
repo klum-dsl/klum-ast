@@ -71,6 +71,60 @@ Other legal default-only selections include `Builder.Query` on methods and `Clus
 fields/methods. The generated Builder/Factory contracts and source mirrors match equivalent direct
 annotations. The selected annotation's normal shape, coannotation and lifecycle restrictions still apply.
 
+## Inherited and generated contracts
+
+An abstract DSL base expands its own declarations once. Same-unit subclasses inherit the resulting
+behavior; subclasses compiled later inherit the emitted parent contract without expanding it again.
+Overrides use their own annotations. DSL field shadowing remains an error.
+
+(See: `AnnotationPropagationContractTest#'abstract bases retain public Query and Cluster contracts through #binary inheritance'`.)
+
+```groovy
+// Compiled annotation library
+@PropagateAnnotation(Builder.Query)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
+@interface ReadOnly {}
+
+@PropagateAnnotation(Cluster)
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.METHOD])
+@interface Group {}
+
+// Consuming Schemas
+@DSL class Service { String name }
+@DSL abstract class ApplicationBase {
+    String name
+    @Group Map<String, Service> services
+    @ReadOnly String summary() { name.toUpperCase() }
+}
+@DSL class Application extends ApplicationBase { Service secondary }
+
+def application = Application.Create.With {
+    name 'orders'
+    assert summary() == 'ORDERS' // current Builder state
+    services { secondary { name 'typed' } }
+}
+assert application.summary() == 'ORDERS'
+assert application.services.secondary.name == 'typed'
+```
+
+Query and Cluster retain the same public `Application_DSL.Builder`, `Factory` and nested cluster
+factory signatures as direct annotations, including Java and statically compiled Groovy consumers.
+IDE source mirrors retain the original Query domain annotation as well as the selected annotation;
+those projections are output, never new propagation sites. Editor recognition is a separate qualification.
+
+Required and Optional continue through their ordinary local converters exactly once. A propagated
+Required uses an empty message and ERROR level even when the domain has similarly named configured
+members; explicit Required can still customize both. Optional lowers to `Validate.Ignore`, including
+under class-level Validate. Non-DSL uses of these direct shortcuts keep their existing behavior.
+The current direct Required shortcut does not reject primitive boolean during compilation, unlike
+direct Validate; propagation preserves this existing limitation. Prefer boxed Boolean for required flags.
+
+AutoCreate retains normal assignment, ownership, Templates and supplied-child precedence. Direct
+field creation precedes Cluster fallback; creation precedes participant mutation and callbacks.
+Cluster fallback does not replay skipped field mutations, and children created in later phases do
+not catch up earlier AutoCreate callbacks. Bare AutoCreate retains keyed/abstract creation failures
+and same-phase Creator conflicts.
+
 ## Boundaries and diagnostics
 
 Propagation executes only on original declarations of explicitly annotated DSL Schemas, including
