@@ -87,7 +87,7 @@ class AnnotationPropagationLifecycleTest extends AbstractDSLSpec {
         when:
         def supplied = Container.Create.With {
             service.Template.With(template) {
-                application { child { value 'supplied' } }
+                application { child(value: 'supplied') }
             }
         }
 

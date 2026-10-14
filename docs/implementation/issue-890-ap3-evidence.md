@@ -80,7 +80,7 @@ The full root run passes in 13m 10s at the fixed reviewed revision `c9826143`:
 | Groovy 5 | 2035 | 0 | 15 |
 
 All 163 Gradle plugin cases pass, alongside the runtime/auxiliary suites, lane-isolation, license and
-documentation checks. No new tests are ignored or pending. The final evidence-only commit does not
+documentation checks. No new tests are ignored or pending. The qualification-record commit does not
 alter the qualified code; its diff and changed Markdown relative-link checks pass.
 
 The first root run configured an uncommitted base version before local commits were created. Its nested
@@ -92,11 +92,19 @@ changes. The superseded run is not root qualification evidence.
 Standards review against `93e5a452...c9826143`: no documented violations or material smells.
 Specification review on the same fixed diff: no missing AP-3 acceptance, incorrect behavior or scope
 expansion. The three implementation/documentation commits were reviewed for scope, order and reasoning;
-the final evidence-only commit records the results without rewriting reviewed history.
+the subsequent evidence-only commit records the results without rewriting reviewed history.
 
 Delivery audit: GitHub CLI repository channel authorized; dedicated-branch Git transport authorized by
 dry run. No connected GitHub App channel is used. Final-head CI and SonarCloud verification belongs to
 the draft PR's validation record; local evidence does not substitute for the exact pushed revision.
+
+CI run `38626950688` passes on `e165b468`, including the JUnit report and SonarCloud checks.
+The quality gate passes with 0% new duplication and no security hotspots, but the completed analysis
+reports one test-only `groovydre:S134` nesting observation in the supplied-child Template control.
+The additive follow-up replaces the innermost child Closure with equivalent named-map configuration;
+the same Template-precedence, ownership and callback assertions remain. No suppression or production
+change is introduced. All 120 AP-3 Java 17 / Groovy 3/4/5 cases pass after the adjustment (45s), with
+zero failures/errors/skips. Final-head CI/SonarCloud verification is recorded on the PR.
 
 Tracker impact: `Related: #890`; AP-3 is a partial implementation-plan slice and selects no issue-closing
 syntax. Issue state, labels, milestone, curation/release indexes and reusable agent policy are unchanged.
