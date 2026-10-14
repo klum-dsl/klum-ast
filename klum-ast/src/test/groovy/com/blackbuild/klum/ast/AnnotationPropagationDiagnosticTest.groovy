@@ -116,11 +116,13 @@ class AnnotationPropagationDiagnosticTest extends AbstractDSLSpec {
         compilerConfiguration.addCompilationCustomizers(new CompilationCustomizer(CompilePhase.INSTRUCTION_SELECTION) {
             @Override
             void call(SourceUnit source, GeneratorContext context, ClassNode type) {
-                if (type.name != 'Order' && type.name != 'Order$Builder') return
+                if (type.name != 'Order' && type.name != 'Order$Builder') {
+                    return
+                }
                 (type.fields + type.methods).each { AnnotatedNode member ->
                     member.annotations.findAll { it.classNode.name in [Required.name, Optional.name, Validate.name,
                             Builder.Query.name, Cluster.name] }.each { annotation ->
-                        positions["${type.name}.${member.name}:${annotation.classNode.nameWithoutPackage}"] =
+                        positions["${type.name}.${member.name}:${annotation.classNode.nameWithoutPackage}".toString()] =
                                 [annotation.lineNumber, annotation.columnNumber]
                     }
                 }

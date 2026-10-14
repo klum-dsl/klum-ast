@@ -362,7 +362,9 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
             @PropagateAnnotation(Required)
             @interface Policy {}
         '''
-        if (precompiled) library(definitions)
+        if (precompiled) {
+            library(definitions)
+        }
 
         when:
         createSecondaryClass("""
@@ -387,7 +389,9 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
             @AnnotationCollector([Required]) @interface Selected {}
             @PropagateAnnotation(Selected) @interface Policy {}
         '''
-        if (precompiled) library(definitions)
+        if (precompiled) {
+            library(definitions)
+        }
 
         when:
         createSecondaryClass("""

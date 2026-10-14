@@ -48,6 +48,8 @@ public final class ContributionPolicies {
     public @interface RepeatedRequests { String value() default "domain default"; }
 
     @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+    // This fixture must preserve the explicit request-container spelling under qualification.
+    @SuppressWarnings("java:S1710")
     @PropagateAnnotation.List({@PropagateAnnotation(Required.class), @PropagateAnnotation(Label.class)})
     public @interface ContainerRequests { String value() default "domain default"; }
 
@@ -66,6 +68,8 @@ public final class ContributionPolicies {
     public @interface OtherPolicy {}
 
     @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+    // Duplicate requests in an explicit container are a separate input from repeated syntax.
+    @SuppressWarnings("java:S1710")
     @PropagateAnnotation.List({@PropagateAnnotation(Label.class), @PropagateAnnotation(Label.class)})
     public @interface DuplicateRequests {}
 

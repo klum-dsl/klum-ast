@@ -67,8 +67,9 @@ class AnnotationPropagationContributionTest extends AbstractDSLSpec {
 
     /** Each test consumes either source metadata, emitted Groovy metadata, or javac metadata. */
     private String library(String kind) {
-        if (kind == 'Java binary')
+        if (kind == 'Java binary') {
             return 'import com.blackbuild.klum.ast.propagation.ContributionPolicies.*'
+        }
         if (kind == 'Groovy binary') {
             createSecondaryClass(DEFINITIONS)
             return ''

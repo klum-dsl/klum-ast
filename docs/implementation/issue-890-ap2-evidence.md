@@ -77,11 +77,20 @@ Standards review against `944925e8...ea775d4e`: one P3 stale ADR statement about
 corrected in the final evidence commit; no other documented violations or material smells. Specification
 review on the same fixed diff: no actionable findings or AP-2 acceptance gaps. The five implementation/
 documentation commits were reviewed for scope, order and reasoning before publication; the final commit
-records validation and the ADR correction. Reviewed implementation commits are preserved.
+records validation and the ADR correction. Reviewed implementation commits are preserved; later
+SonarCloud fixes are additive.
 
 Delivery audit: GitHub CLI authorized; Git push authorized by dedicated-branch dry run. No connected
 GitHub App channel was used. Final-head CI and SonarCloud results belong to the draft PR checks and PR
 validation record; no claim here substitutes for checking the exact pushed revision.
+
+CI run `38614581432` passes on `be11d9af`. Its first SonarCloud analysis reports 100% new-code coverage
+and 0% duplication, but finds seven test-only observations: one GString map key, four unbraced branches,
+and two explicit repeatable-container spelling suggestions. The additive follow-up converts the key to
+String, braces the branches, and keeps the two explicit Java containers with declaration-local
+`java:S1710` suppressions explaining why those exact source inputs must remain. No production code or
+accepted behavior changes. The same 278-case Java 17 / Groovy 3/4/5 focused matrix passes after the
+follow-up (54s), with no failures/skips. Final-head remote verification is recorded on the PR.
 
 Tracker discrepancy: GitHub reports issue #890 as closed, with its investigation-era body and no comments.
 This implementation follows the accepted ADR/plan and explicit AP-2 assignment. Issue state, labels,
