@@ -182,8 +182,8 @@ The earlier architectural comparison remains technical history:
 
 Required and Optional remain semantic-analysis local transformations, before canonical DSL processing.
 Required maps explicit value/level to Validate.message/level; Optional adds Validate.Ignore. Both append
-Validate without idempotency or source position. Cluster field conversion is semantic; Cluster projection
-and DSL generation are canonical. Query is consumed by KlumCast and DSL/BuilderQuerySupport rather than
+Validate without idempotency; AP-2 preserves the input annotation source position on Validate. Cluster
+field conversion is semantic; Cluster projection and DSL generation are canonical. Query is consumed by KlumCast and DSL/BuilderQuerySupport rather than
 having its own independently registered Query transform. Moving these implementations is not part of this
 contract. Normal local discovery, not direct coordinator calls, must consume contributor-added triggers.
 

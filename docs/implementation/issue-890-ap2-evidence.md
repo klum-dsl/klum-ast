@@ -45,8 +45,43 @@ annotations introduced after handoff remain outside the ordering contract.
 
 ## Validation and delivery
 
-Java 17 focused tests and the final Groovy 3/4/5 matrix, root checks, two-axis review and final-head
-CI/SonarCloud results are recorded here before handoff.
+Local qualification uses Temurin Java `17.0.17` with ordinary Central resolution:
+
+```shell
+./gradlew :klum-ast:test --tests '*AnnotationPropagation*Test' \
+  :klum-ast:groovy4Tests --tests '*AnnotationPropagation*Test' \
+  :klum-ast:groovy5Tests --tests '*AnnotationPropagation*Test' --max-workers=2
+./gradlew check --no-parallel --max-workers=2
+```
+
+Both commands pass. Focused propagation results are 92 / 93 / 93 cases on Groovy 3 / 4 / 5,
+respectively, with zero failures or skips (278 total). All 61 new AP-2 cases pass on every lane.
+The full root run passes in 14m 22s; the compiler module reports:
+
+| Lane | Cases | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 | 1993 | 0 | 15 |
+| Groovy 4 | 1995 | 0 | 15 |
+| Groovy 5 | 1995 | 0 | 15 |
+
+Root checks include auxiliary modules, Gradle plugin tests, lane isolation, license checks and the
+versioned documentation renderer. No new tests are ignored or pending. `git diff --check` and changed
+Markdown relative-link checks pass.
+
+An earlier parallel root run encountered runtime-jar replacement while workers were reading it,
+including invalid ZIP local-header and missing-class errors. The isolated Groovy 4 subset (10 cases)
+and the complete serialized root rerun pass with fresh workers; no product changes were made for those
+failures. The superseded overlapping/unfiltered run is not qualification evidence.
+
+Standards review against `944925e8...ea775d4e`: one P3 stale ADR statement about missing source positions,
+corrected in the final evidence commit; no other documented violations or material smells. Specification
+review on the same fixed diff: no actionable findings or AP-2 acceptance gaps. The five implementation/
+documentation commits were reviewed for scope, order and reasoning before publication; the final commit
+records validation and the ADR correction. Reviewed implementation commits are preserved.
+
+Delivery audit: GitHub CLI authorized; Git push authorized by dedicated-branch dry run. No connected
+GitHub App channel was used. Final-head CI and SonarCloud results belong to the draft PR checks and PR
+validation record; no claim here substitutes for checking the exact pushed revision.
 
 Tracker discrepancy: GitHub reports issue #890 as closed, with its investigation-era body and no comments.
 This implementation follows the accepted ADR/plan and explicit AP-2 assignment. Issue state, labels,
