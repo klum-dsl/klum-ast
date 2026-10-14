@@ -1,9 +1,15 @@
 # ADR 0029 implementation plan: DSL-only annotation propagation
 
 Date: 2026-10-13. Revised: 2026-10-14.
-Status: Architectural investigation; **no production slice is authorized**.
+Status: Architectural investigation; **KlumCast #58 is a hard AP-1 prerequisite. Neither production
+implementation has started or is authorized.** Contributor/local-discovery admission evidence, supported
+API delivery and artifact-route approval are required before explicit AP-1 implementation authorization.
+
 Authority: [ADR 0029](../adr/0029-default-only-annotation-propagation.md).
-Tracking: [#890](https://github.com/klum-dsl/klum-ast/issues/890), draft design [PR #891](https://github.com/klum-dsl/klum-ast/pull/891).
+Tracking: [#890](https://github.com/klum-dsl/klum-ast/issues/890), merged design investigation
+[PR #891](https://github.com/klum-dsl/klum-ast/pull/891).
+Hard cross-project AP-1 prerequisite: [KlumCast #58 — Support effective-declaration validation after compiler AST
+preprocessing](https://github.com/klum-dsl/klum-cast/issues/58).
 Evidence: [scheduling, eligibility and KlumCast probes](evidence/issue-890/schema-preprocessing.md).
 Consumer history: [decision brief](issue-890-lifecycle-composition-decision-brief.md).
 Release remains conditional; no tracker, milestone or curation state changes are part of this plan.
@@ -15,19 +21,22 @@ DefaultValues consumes the original annotation's nondefault members without requ
 The ScHelm fit review accepts bare AutoCreate for current concrete unkeyed relationships; it is reported
 consumer evidence, not a locally executed integration. Issue #888's class-wide defaults remain separate.
 
-No public PropagateAnnotation or production propagation entry exists. Historical generic probes establish
-that a semantic global pass can insert annotations before local collection; their carried-DSL example
-is now outside the approved scope. A late semantic CompilationCustomizer misses Required discovery.
-The new guarded probes characterize DSL boundaries, generated parity, foreign local effects and validation.
+No public PropagateAnnotation or production propagation entry exists. Historical generic/guarded global
+probes show that early insertion can trigger local transformations; a late semantic customizer can miss
+Required discovery. These probes do not qualify the new contributor contract. Manual-metadata experiments
+cover narrow shapes but expose member/default, peer-alias and duplicate-diagnostic limitations; they are
+historical feasibility evidence, not an AP-1 admission route for broad class/field/method propagation.
 
-**Recommendation:** B with effective-declaration KlumCast validation. Required and Optional stay local.
-C can call the actual converters in order, but unchanged registrations lower twice, a later KlumCast pass
-can report false Required/Validate conflicts, and no ordering dependency between the converters was found.
-Migration is not justified by symmetry. No runtime validation redesign is planned.
+**Confirmed architecture:** KlumCast owns semantic-phase declaration traversal. Immediately before it
+validates a declaration, it invokes a neutral contributor. KlumAST supplies exactly one complete default-
+only propagation batch and origin/provenance, then performs no further contribution mutation after handoff.
+KlumCast discovers/evaluates constraints against the final effective set once. Required and Optional stay
+local; no direct converter invocation or independently scheduled propagation pass establishes the ordering.
 
-Two correctness blockers were demonstrated: KlumCast-before-propagation skips a new constraint; validating
-only copies skips an affected, already-validated explicit constraint. Raw ValidationHandler metadata removal
-is feasibility evidence only. AP-1 is not ready for authorization until the supported handoff is settled.
+KlumCast owns validation state, constraint discovery/evaluation, filters, diagnostics/deduplication and
+rendering. KlumAST owns propagation discovery, expansion, duplicate/nested diagnostics/provenance and final
+DSL/generated compatibility. No raw VALIDATED manipulation, second validation engine, consumer-specific
+cross-library dependency or KlumCast/DSL dependency is allowed.
 
 ## Affected seams and ownership
 
@@ -35,75 +44,120 @@ is feasibility evidence only. AP-1 is not ready for authorization until the supp
 | --- | --- |
 | klum-ast-annotations | JDK-only public repeatable marker/container; normal exports and Javadoc |
 | DslAstHelper / DSLASTTransformation | Reuse existing eligibility and interface boundary; no second framework |
-| New internal early entry | Fixed orchestration: eligibility → contribution plan/guards → complete insertion → supported effective validation |
-| Separate internal propagation operation | Genuine container normalization, defaults-only copies, one-hop/duplicate guards and provenance |
-| KlumCast compiler | Own constraint discovery/checks/state and diagnostic deduplication through an agreed integration seam |
+| KlumCast semantic traversal / neutral contributor boundary | KlumCast invokes the contributor immediately before validating a declaration’s final effective set once |
+| Separate internal propagation operation | KlumAST owns request discovery, genuine container normalization, defaults-only expansion, duplicate/nested errors and introduced-annotation provenance |
+| KlumCast compiler / #58 | Own validation state, constraint discovery/evaluation, filters, diagnostics/aggregation/deduplication and rendering |
 | Required / Optional annotations and converters | Preserve registrations, semantic phase, message/level/Ignore behavior and non-DSL compatibility |
 | Cluster field conversion and projection | Existing semantic then canonical paths; preserve field-to-getter projection and factories |
 | BuilderQuerySupport / generated DSL support | Existing Query processing, public Builder/Factory parity and source mirrors |
 | Runtime AutoCreationPhase / DefaultPhase / participants | Regression only; no interpreter or lifecycle changes |
 | Compiler services and JPMS | Shipped discovery and normal module access; temporary fixture service files are not production registration |
 
-KlumCast is a separate library. Recommend a separately authorized prerequisite issue/change, not an
-unapproved production edit in this repository. An agreed direct dependency on its current public engine
-is an alternative maintainer decision only if state invalidation and at-most-once diagnostics are qualified.
-Do not create or change issues, release indexes or dependency versions during this investigation.
+KlumCast is a separate library. Its contributor contract contains no KlumAST/DSL types, consumer annotation
+names or propagation algorithm. KlumAST supplies the complete batch through that neutral contract and ends
+its contribution mutation at handoff; ordinary local DSL transformations keep their existing phases.
+KlumCast owns semantic traversal and validates the final effective declaration once, with no duplicated
+validation inside KlumAST. Existing public engine symbols are not an alternate integration protocol.
+Do not change issues, release indexes or dependency versions during this documentation update.
 
 ## Dependency-ordered slices and reasoned commits
 
-Prerequisite KC-0 → AP-1 → AP-2 → AP-3 → AP-4 → AP-5. All remain future work.
-Keep dedicated issue branches, small behavior-and-test commits, and reviewed history intact. Each slice
-runs baseline Groovy 3 focused tests and final Groovy 4/5 checks; use current Java 17 artifacts. New tests
-carry @Issue('890'), Test suffixes, and documentary @Tag/@See links for the eventual user-facing feature.
-Do not introduce ignored/pending tests as a substitute for an unresolved contract.
+KlumCast #58 / KC-0 contributor admission probe → supported contract qualification/delivery → approved
+artifact route → explicit AP-1 authorization → AP-1 → AP-2 → AP-3 → AP-4 → AP-5.
+No manual validation route substitutes for KC-0 for the current broad Schema class/field/method scope.
+Keep dedicated issue branches, small behavior-and-test commits, and reviewed history intact. Each future
+slice runs baseline Groovy 3 focused tests and final Groovy 4/5 checks using Java 17 artifacts. New tests
+carry @Issue('890'), Test suffixes and documentary @Tag/@See links for the eventual user-facing feature.
+Do not introduce ignored/pending tests as a substitute for an unresolved or failed contract.
 
-### KC-0 — Supported effective-declaration validation prerequisite
+## Contributor admission gate before production AP-1
 
-Owner: KlumCast, under separate authorization; KlumAST consumes the result in AP-1.
+The contributor contract is confirmed; its compiler-phase feasibility is **not yet qualified**. Before
+production implementation, a separately authorized bounded probe must show on Groovy 3/4/5 that an
+annotation added through the actual neutral contributor remains discoverable by normal Groovy local
+transform collection. Use observable generated behavior and direct controls, not only annotation nodes.
 
-Agree a narrow compiler-facing entry/handoff over existing validation machinery, accepting the final
-annotation batch and contribution origin. It must re-evaluate affected existing coannotation constraints
-after a prior validation pass, retain compiled-annotation prerequisites and definition/use separation,
-and avoid duplicate reporting. No generic preprocessing SPI or propagation-specific runtime machinery.
+| Sentinel | Required contributor-path evidence in every lane |
+| --- | --- |
+| Required | Normal local converter discovered and runs exactly once; Validate/message/level and generated/runtime validation match direct use |
+| AutoCreate | Copied annotation remains effective through ordinary DSL/lifecycle consumers; a child is created with normal DefaultValues/participant behavior |
+| Builder.Query | Normal validation/DSL processing preserves Builder-state and completed-Model queries, public Builder/Factory signatures and source mirrors |
+| Cluster | Normal semantic field conversion and canonical projection/factory generation run; field/method shape checks and generated contracts match direct use |
+| Separately compiled foreign local transform | Contributor-added trigger is collected normally, yields the direct observable generated effect once, and does not alter unrelated direct uses |
+
+Query and AutoCreate are consumer sentinels even where they do not have their own local-transform
+registration; Required/Cluster and the foreign control prove collection as well as downstream behavior.
+Include separately compiled Java/Groovy domain libraries, request containers, inherited declarations and
+non-DSL/no-contribution controls. Preserve Groovy 3 classpath and applicable Groovy 4/5 JPMS boundaries.
+The shipped contributor activation/module contract remains a separate artifact qualification gate.
+
+**Failure condition:** if contributor-added local discovery or a required sentinel fails on any supported
+lane, AP-1 must narrow under an explicit maintainer scope decision or stop. Do not substitute independently
+scheduled globals, late rescans, direct transform calls, manual validation or another workaround. Earlier
+positive global/manual probes do not waive this gate. No implementation or new probe is authorized by
+this documentation-only update.
+
+### KC-0 — KlumCast-owned traversal and neutral contributor prerequisite
+
+Owner: KlumCast, under [#58](https://github.com/klum-dsl/klum-cast/issues/58), with separate implementation
+authorization. The generic contract stays framework-neutral; no KlumAST/DSL dependency or consumer policy.
+
+KlumCast traverses declarations during semantic analysis and invokes the contributor immediately before
+validating the declaration. KlumAST contributes one complete default-only batch and origin/provenance and
+performs no later contribution mutation. KlumCast then discovers/evaluates all applicable constraints on
+the final effective set once, retaining normal filters, library prerequisites and definition/use separation.
+KlumCast owns validation state, diagnostics/deduplication/rendering; no caller manipulates internal metadata.
+The contract specifies ownership and timing, not an unqualified public method/interface shape.
 
 Acceptance:
 
-- Run existing validators on the actual selected annotation and actual Schema target, with ordinary defaults.
-- Preserve original domain validation independently; do not validate its definition as a Schema member.
-- Both global orders: bare Default fails, invalid Cluster type/generics/class configuration fail, valid
-  Cluster passes, Required plus copied Validate fails. Reverse contribution order as well as global order.
-- Original invalid annotation reported before expansion is not reported twice. Preserve diagnostic code,
-  binding/composition path, related positions and domain → selected → qualified declaration context.
-- Existing direct Required/Optional conversion continues without false generated-Validate conflicts.
-- No revalidation or metadata mutation on unrelated/non-DSL declarations or unchanged Schemas.
-- Groovy 3/4/5, Java/Groovy precompiled libraries, genuine repeats/containers, and Groovy 4/5 named modules.
+- Direct annotations and declarations without contributions retain ordinary behavior, including non-DSL uses.
+- Original domain, introduced and existing explicit annotations are checked from the final effective set;
+  new Default constraints and existing Key/Field or Required/Validate conflicts cannot bypass validation.
+- Contribution completion precedes constraint discovery/evaluation within KlumCast's traversal. There is
+  no reliance on relative global-transform order and no mutation by the contributor after handoff.
+- Preserve normal filters, classification/severity, annotation/constraint identities, source/related
+  locations, composition paths and introduced-annotation origin. Aggregate/render violations in KlumCast
+  and report each effective violation at most once without a second KlumAST renderer/constraint engine.
+- KlumCast owns at-most-once final validation and unchanged-state behavior; repeated traversal/handoff
+  must not rerun the contribution or duplicate diagnostics. The caller does not inspect/mutate VALIDATED.
+- Required/Optional retain their normal local conversion without false generated-Validate conflicts.
+- The mandatory contributor/local-discovery sentinels above pass across Java 17 / Groovy 3/4/5, with
+  separately compiled Java/Groovy libraries and applicable JPMS access.
 
-Proposed KlumCast feature-request title: **Support validation of annotations introduced by compiler preprocessing**.
-The motivating counterexamples are newly copied Default bypassing its constraint when KlumCast runs first,
-and an already-validated Key missing a later Field conflict. The request should own effective-annotation
-validation, changed-target revalidation, at-most-once diagnostics and propagation provenance. A compiler
-supplies actual annotation uses/targets and origin; the library continues to own its existing constraint
-engine. Keep the API framework-neutral; no KlumAST-specific marker dependency, general preprocessing
-registry or runtime propagation interpreter is required. The acceptance matrix above is the proposed
-request's minimum scope. This PR records the proposal and does not create or mutate an issue.
+Reasoned boundaries: first separately authorize and execute the admission probe; then agree the supported
+neutral API and implement/qualify KlumCast's traversal/state/filter/diagnostic behavior in its own focused
+change. Preserve at-most-once validation against the final set rather than adding a consumer revalidation
+engine. Neither that implementation nor AP-1 has started or is authorized here.
 
-Reasoned boundaries: first the engine's explicit validation-state transition with direct compiler tests;
-then supported access/diagnostic provenance and compatibility qualification. Public Java visibility alone
-is insufficient evidence that arbitrary node-metadata invalidation is supported.
+Gate before production AP-1:
 
-Gate: maintainer accepts ownership/API and prerequisite evidence. Constraint bypass cannot be deferred;
-further prose refinements may be deferred only after usable origin/location and correctness are complete.
+1. Qualify the contributor/local-discovery admission probe and all concrete sentinels on Groovy 3/4/5;
+   narrow or stop on failure, with no workaround substitution.
+2. Agree, deliver and qualify KlumCast #58's supported neutral contract, including state, filters,
+   diagnostics/dedup/rendering, precompiled-library behavior and normal module access.
+3. Approve a released or explicit cross-project development artifact route with reproducible identity and
+   consistent consumer resolution. Local publication/unreleased dependencies are not implicitly approved.
+4. Obtain explicit AP-1 implementation authorization, then consume the artifact and qualify integration.
+
+The earlier manual-route cost/deferral option is superseded for this broad contract. No dependency gate is
+waived by temporary metadata-removal or manual-check experiments. Further editorial work is deferrable
+only once correctness and understandable provenance meet the supported contract.
 
 ### AP-1 — Narrow vertical tracer and public marker
 
-Only after KC-0 and explicit production authorization. Introduce marker/container and the minimal guarded
-compiler producer together, so no standalone published marker silently does nothing. The entry owns
-orchestration; contribution collection, legality and application remain separate internal operations.
+Only after KC-0 contributor admission, supported API qualification/delivery, approved artifact route and
+explicit production authorization. Introduce the marker/container and minimal KlumAST contributor together,
+so no standalone published marker silently does nothing. Keep eligibility, request normalization,
+contribution checks and default-only expansion separate internal operations.
 
-Use existing direct DSL detection, exclude annotation definitions/interfaces, snapshot owner-declared
-classes/fields/methods and ignore generated/inherited declarations as expansion sites. Reject DSL as a
-selected target. No traversal of ordinary classes' members, unrelated units, or mutations without requests.
-Attach the complete batch before asking KC-0 to validate, then leave normal local discovery intact.
+Reuse direct DSL detection and the existing interface boundary. Snapshot owner-declared classes/fields/
+methods, exclude generated/inherited declarations as expansion sites and reject DSL as a selected target.
+The contributor returns no contribution for unrelated declarations or no-work Schemas. It supplies exactly
+one complete authorized default-only batch plus origin/provenance during KlumCast's pre-validation call;
+no propagation mutation occurs after handoff. KlumCast validates the final set once. Normal Groovy local
+collection/execution must discover the resulting annotations, as proved by the mandatory admission probe.
+Do not register a competing global producer or directly call local converters as a substitute.
 
 Primary tracer: DefaultValues-only domain annotation carries AutoCreate, creates a concrete unkeyed child,
 and applies its original name member. Optional companion case adds a participant that receives the
@@ -114,7 +168,7 @@ non-DSL field/method/class inertness, mixed units, annotation definitions, no-pr
 Required/Optional and an unrelated direct local transform. Assert no extra scan/AST mutation for inert cases.
 Use separately compiled annotations whenever KlumCast already requires them; do not loosen that requirement.
 
-Reasoned commit: marker, guarded activation, supported validation handoff, tracer and documentary test as
+Reasoned commit: marker, guarded contributor integration, tracer and documentary test as
 one working change; current user documentation and release note accompany the first visible behavior.
 
 ### AP-2 — Complete contribution and diagnostic contract
@@ -171,7 +225,7 @@ Java javac only compiles libraries/typed consumers; Groovy performs propagation 
 
 Acceptance:
 
-- Actual shipped global registration and service/module visibility, not a test customizer/classpath overlay.
+- Actual shipped KlumCast traversal/contributor activation and service/module visibility, not an independent global producer or test customizer/classpath overlay.
 - Groovy 4/5 named compiler, annotation-library, Schema and typed consumer modules with normal exports/opens;
   Groovy 3 classpath-only. No access-bypass JVM flags, descriptor rewrites or split packages.
 - Separately compiled foreign default-valued field/method/class local transform: equivalent observable
@@ -205,14 +259,17 @@ PR is not implementation admission, release acceptance or archive reconciliation
 | Accepted marker, defaults, retention, original annotation | AP-1 tracer and retention controls |
 | DSL-only boundaries, no carried DSL, no global semantics | AP-1 inertness; AP-3 eligibility/inheritance |
 | One level, duplicates, repeatable normalization | AP-2 Java/Groovy contribution matrix |
-| Pre-local discovery and foreign interoperability | AP-1 phase tracer; AP-4 independently compiled observable transform |
-| KlumCast direct/propagated constraint parity and provenance | KC-0 prerequisite + AP-1/AP-2 final effective-declaration checks |
+| Contributor-added local discovery and foreign interoperability | Mandatory KC-0 Groovy 3/4/5 sentinel admission; AP-4 actual artifact control |
+| KlumCast effective constraints, filters, provenance and diagnostics | Hard KC-0 prerequisite + AP-1/AP-2 final-set validation through the contributor contract |
 | No double Required/Optional or false coannotation failures | Preserve registrations; AP-3 direct/propagated controls |
 | Generated Builder/Factory/Cluster/Query/mirror equivalence | AP-3 generated and typed-consumer tests |
 | Java 17 / Groovy 3/4/5 / applicable JPMS | AP-4 actual artifact matrix |
 | Recompilation, no fallback, runtime invariants | AP-3 regressions + AP-4 binary/runtime controls |
 | Consumer fit versus actual integration | Reported history now; real ScHelm run in AP-5 |
 
-Maintainer decisions still required: admit B instead of C, confirm interface exclusion, and approve KC-0's
-ownership/access/state contract. Production service/module packaging, diagnostic deduplication, full binary
-inheritance and editor recognition remain qualification risks. **Do not start AP-1 from this plan.**
+Outstanding admission work: the actual neutral-contributor local-discovery/sentinel probe on Groovy 3/4/5;
+KlumCast #58 supported API implementation/qualification/delivery; approved cross-project artifact route;
+and explicit AP-1 authorization. Any failed admission probe narrows or stops AP-1 under a new scope
+decision, without a manual or independent-transform workaround. Full binary inheritance, shipped module/
+contributor activation and editor recognition remain qualification risks. **AP-1 is blocked and unauthorized;
+neither production implementation has started or is authorized by this plan.**

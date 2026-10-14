@@ -2,16 +2,20 @@
 
 Date: 2026-10-13. Architectural refinement: 2026-10-14.
 
-Status: Proposed. The public propagation contract is accepted in principle. DSL-only scope is confirmed;
-compiler architecture and KlumCast integration still require maintainer admission.
+Status: Proposed. The public propagation contract is accepted in principle. DSL-only scope and the neutral
+contributor architecture are confirmed; compiler feasibility and integration admission remain outstanding.
 
-Implementation status: ADR and bounded, opt-in feasibility probes only. **AP-1 is not authorized or ready
-for authorization while the validation integration prerequisite remains unsettled.**
+Implementation status: ADR and bounded feasibility evidence only. **KlumCast #58 is a hard AP-1
+prerequisite; neither production implementation has started or is authorized.** Its neutral contributor
+contract and mandatory Groovy 3/4/5 local-discovery probe must be qualified, then its API/artifact delivery
+admitted, before AP-1 can be considered for explicit implementation authorization.
 
 Release: Conditional 4.1 candidate, subject to Hive review; no milestone or curation change is made here.
 
 Tracking issue: [#890](https://github.com/klum-dsl/klum-ast/issues/890).
-Draft design PR: [#891](https://github.com/klum-dsl/klum-ast/pull/891).
+Merged design investigation: [PR #891](https://github.com/klum-dsl/klum-ast/pull/891).
+Hard cross-project AP-1 prerequisite: [KlumCast #58 — Support effective-declaration validation after
+compiler AST preprocessing](https://github.com/klum-dsl/klum-cast/issues/58).
 Implementation plan: [ADR 0029 plan](../implementation/adr-0029-default-only-annotation-propagation.md).
 Current evidence: [scheduling and validation investigation](../implementation/evidence/issue-890/schema-preprocessing.md).
 Historical alternatives and consumer fit: [decision brief](../implementation/issue-890-lifecycle-composition-decision-brief.md).
@@ -40,6 +44,13 @@ The maintainer proposed coordinating early transformations and made preservation
 an explicit acceptance requirement. The new probes demonstrate that pre-local-discovery insertion alone
 is insufficient: an independently scheduled KlumCast global pass can run before insertion. Correctness
 must cover the complete resulting declaration, including constraints on existing explicit annotations.
+
+The maintainer has now confirmed a neutral contributor contract for KlumCast #58: KlumCast owns semantic-
+phase declaration traversal and invokes the contributor immediately before validating that declaration's
+final effective annotation set once. KlumAST supplies one complete default-only propagation batch and
+origin/provenance, and performs no mutation after handoff. This supersedes the earlier conditional #58 /
+manual-validation proposal for the broad Schema class/field/method contract. Narrow manual-metadata probes
+remain historical feasibility evidence, not an admission route or fallback for that contract.
 
 ## Decision
 
@@ -128,110 +139,108 @@ wrong Required placement can reach its field cast, and bare annotations with mis
 Groovy compilation. This guard does not redefine existing direct-annotation behavior or runtime AutoCreate
 keyed/abstract failures.
 
-### D4 — Prefer guarded propagation, with an explicit validation boundary
+### D4 — KlumCast owns traversal and validation; KlumAST contributes one batch
 
-Recommend **approach B**, qualified by D5's mandatory KlumCast integration. One internal global entry at
-semantic analysis checks DSL eligibility, plans/validates contributions, attaches the complete batch, and
-requests validation of the effective declaration before normal local-transform discovery and execution.
-Keep these operations separate and testable. The fixed sequence is:
+The confirmed compiler architecture uses KlumCast's semantic-phase declaration traversal as the owner.
+Immediately before KlumCast validates a declaration, it invokes a framework-neutral contributor. For an
+eligible DSL Schema declaration, the KlumAST contributor discovers requests, checks contribution legality,
+and supplies exactly one complete default-only batch plus origin/provenance. Contribution completion is
+the handoff: the KlumAST contributor performs no mutation after it. Ordinary DSL/local transformations
+retain their existing phases and responsibilities. KlumCast then discovers and evaluates constraints
+against the final effective set once, including the original domain and existing explicit annotations.
 
 ```text
-existing DSL eligibility
-  → collect requests and check contribution legality
-  → append complete default-only batch with provenance
-  → KlumCast effective-declaration validation
-  → Groovy local collection/execution (existing Required, Optional, Cluster, DSL)
+KlumCast semantic-phase declaration traversal
+  → invoke neutral contributor immediately before declaration validation
+      → KlumAST DSL eligibility and request discovery
+      → complete default-only batch; duplicate/nested diagnostics and provenance
+      → contribution completes; no KlumAST mutation after handoff
+  → KlumCast validates the final effective declaration once
+      (state, constraint discovery/evaluation, filters, diagnostics/dedup/rendering)
+  → normal Groovy local-transform discovery/execution
+      (mandatory admission probe must establish this boundary on Groovy 3/4/5)
 ```
 
-This is not a public preprocessing SPI, configurable priority system, plugin registry, reflective ordering
-scheme, second DSL framework or runtime lifecycle. Source/generated declaration snapshots and per-node
-bookkeeping prevent another expansion on projections. No repeated whole-compilation scan is required.
+Separate propagation operations remain understandable and testable. No independently scheduled KlumAST
+global propagation pass may establish validation ordering. The KlumAST implementation adds no public
+preprocessing SPI, configurable priorities, generic transformation registry, reflective processor ordering,
+second validation engine or runtime lifecycle machinery. The narrow neutral contributor contract belongs
+to KlumCast #58 and contains no KlumAST/DSL types or consumer-specific semantic policy. No reverse or
+consumer-specific cross-library dependency is introduced.
 
-| Concern | A: generic global baseline | B: DSL-guarded propagation | C: guarded Required/Optional coordinator |
-| --- | --- | --- | --- |
-| Scope | Violates revised DSL-only requirement | Matches it | Matches it if correctly guarded |
-| Phase/discovery | Early semantic insertion discovers local triggers | Same proven scheduling seam | Same seam; direct calls order only coordinator-owned operations |
-| Required/Optional ordering | Existing semantic locals precede canonical DSL | Already sufficient; no mutual dependency found | Fixed order callable, but no additional dependency demonstrated |
-| Validation | Same global-order bypass risk | Requires D5 integration | Requires D5 plus validation-before-lowering; otherwise false Required/Validate conflicts |
-| Generated parity | Historical positive examples, including now-disallowed carried DSL | Query/Cluster, Builders/Factories and mirror probes match direct controls | Not qualified after migration; duplicate lowering observed with current registrations |
-| Maintenance / double execution | Broad semantics and compatibility burden | Smallest change; original local registrations preserved | Converter adapters/retirement, idempotency, source positions and non-DSL compatibility needed |
-| Foreign local transforms | Technical baseline | Separately compiled foreign field transform discovered once | No stronger ordering against unrelated transforms |
-| Java/Groovy libraries | Both can supply metadata | Both exercised, including request containers | Same library encoding; converter scheduling adds no benefit |
-| Groovy 3/4/5 / JPMS | Temporary classpath baseline only | Cross-version probes and bounded module probe; shipped packaging still a gate | Cross-version negative ordering probes; no shipped coordinator qualification |
-| Diagnostics | Provenance needed | Target/configuration guards plus KlumCast provenance | Same, plus converter-produced Validate lacks source positions today |
+The earlier architectural comparison remains technical history:
 
-C is technically callable, not intrinsically reliable. Both actual converters are semantic-analysis locals;
-Required maps explicit value/level to Validate.message/level, Optional adds Validate.Ignore. Both append
-Validate without idempotency or source position. They already precede canonical DSL processing. Cluster's
-field conversion is also semantic; Cluster projection and DSL generation are canonical. Query is consumed
-by DSL support and KlumCast, rather than being an independently registered Query transform.
-
-Calling converters under C while retaining their annotation registrations duplicates Validate. Removing
-registration from Required/Optional would also remove existing non-DSL behavior; safe migration would
-need compatibility adapters or an explicitly approved restriction. Groovy discovers registrations from
-the compiled annotation class's reflection metadata, so removing an AST meta-annotation is not retirement.
-C also lets a later independent KlumCast pass see Required plus converter-generated Validate as an illegal
-explicit combination. A validation handoff and skip protocol would be necessary. No demonstrated benefit
-justifies those changes now. **Move neither Required nor Optional.** A general validation redesign or
-Required runtime-phase rewrite is outside this ADR.
-
-The guarantee is insertion before Groovy's local collection on the qualified compiler versions, not
-universal ordering. There is no promise about relative order among independent global transformations,
-independent same-phase locals, third-party code that rewrites declarations, or annotations created after
-this preprocessing boundary. Unsupported interactions must be qualified or diagnosed, not silently widened.
-
-### D5 — KlumCast correctness is a prerequisite, not an assumed consequence of copying
-
-KlumCast 0.4.0 has a global semantic pass. It discovers validation bindings transitively through actual
-meta-annotations (KlumCastValidated, KlumCastValidator, CheckBinding); it does not follow Class-valued
-propagation requests. The engine validates the actual annotation use and explicitly supplied members,
-uses compiled annotation reflection metadata, and records VALIDATED on the AnnotationNode. Constraint
-annotation definitions are skipped as use sites when they carry validation bindings. Selected-type
-metadata and the original domain annotation have distinct validation roles.
-
-The probes demonstrate two release-blocking failure modes:
-
-1. KlumCast first, propagation second: a copied bare Default misses its configuration constraint.
-2. Validating only copies: an existing Key already marked VALIDATED misses a subsequently copied
-   Field conflict. Complete effective-declaration validation must recheck affected existing constraints.
-
-Calling the existing ValidationHandler engine proves applicable checks can be preserved, with provenance
-and original source coordinates. Experimental metadata invalidation demonstrates the second gap can be
-closed, but is not a supported production protocol and can duplicate diagnostics already reported by the
-first pass. Do not publish propagation using only the new-copy check or raw metadata removal.
-
-| Integration | Assessment |
+| Approach | Evidence and disposition under the confirmed contract |
 | --- | --- |
-| A: copy KlumCast meta-annotations onto the domain annotation | Reject as primary solution. Source ClassNode mutation cannot alter precompiled reflection metadata; member constraints would address domain members instead of the effective selected annotation. Definition-time and use-site constraints can be confused. |
-| B: KlumCast resolves propagation transitively | Possible with a separately agreed integration seam, but requires reading a KlumAST-specific request graph or a new protocol and still handling effective target/member semantics. Not currently supported; unnecessary library coupling for this bounded need. |
-| C: preprocessing requests validation through KlumCast's existing engine | Recommend a supported, narrow effective-declaration validation entry/handoff. KlumAST owns expansion, target/default checks and origin; KlumCast owns constraint discovery, checks, validation state and diagnostic deduplication. No duplicate validator implementation. |
+| A: generic global propagation | Historical scheduling baseline; arbitrary Groovy semantics and carried DSL remain outside scope |
+| B: DSL-guarded independent global propagation | Early insertion can trigger local transforms, but independent validation ordering is insufficient; replaced by the KlumCast-owned contributor boundary |
+| C: DSL-guarded Required/Optional coordinator | Actual converter calls can be ordered, but retained registrations double-lower and later validation can see false conflicts; no demonstrated mutual dependency warrants migration |
 
-Recommend a **separate KlumCast prerequisite issue/change**, authorized independently, to expose or confirm
-a supported compiler integration for validating an annotation batch against the final declaration despite
-prior validation. It must preserve structured diagnostics, composition paths, source/related locations,
-coannotation constraints and at-most-once reporting; bound invalidation to declarations actually changed.
-The current engine class and metadata are public Java symbols, but not an established mutation protocol.
-Current KlumCast artifacts are automatic modules exporting their packages; this does not establish a
-future encapsulation contract. Any explicit descriptor must export/qualify the agreed integration seam.
+Required and Optional remain semantic-analysis local transformations, before canonical DSL processing.
+Required maps explicit value/level to Validate.message/level; Optional adds Validate.Ignore. Both append
+Validate without idempotency or source position. Cluster field conversion is semantic; Cluster projection
+and DSL generation are canonical. Query is consumed by KlumCast and DSL/BuilderQuerySupport rather than
+having its own independently registered Query transform. Moving these implementations is not part of this
+contract. Normal local discovery, not direct coordinator calls, must consume contributor-added triggers.
 
-The maintainer additionally identified this as a potential **KlumCast feature request**: support validation
-of effective annotations introduced by compiler preprocessing, including propagation provenance and
-rechecking affected existing constraints. Keep the request framework-neutral and based on the existing
-engine; it need not teach KlumCast the public KlumAST marker or introduce a preprocessing SPI. The
-[plan's KC-0 proposal](../implementation/adr-0029-default-only-annotation-propagation.md#kc-0--supported-effective-declaration-validation-prerequisite)
-records the bounded request. Its exact integration API remains a KlumCast design decision.
+The controlled order is contributor completion before KlumCast constraint discovery/evaluation on that
+declaration. There is no universal ordering promise for independent global or same-phase local transforms,
+third-party AST rewriting, or annotations introduced after handoff. The existing positive global-pass and
+manual-metadata probes qualify neither the new contributor boundary nor effective validation.
 
-KlumAST's subsequent AP-1 integration consumes that prerequisite. No KlumCast production code is changed
-here and no prerequisite issue is created by this PR. Maintainer approval of ownership/API is outstanding.
-A direct internal engine dependency could avoid a separate library change only with explicit agreement
-that its state/diagnostic protocol is supported and executable duplicate-reporting qualification; it is
-not the current recommendation.
+**Mandatory admission probe.** Across Java 17 / Groovy 3/4/5, an annotation introduced through the actual
+neutral contributor must remain discoverable by normal Groovy local transformations. The concrete KlumAST
+sentinels are propagated Required, AutoCreate, Builder.Query and Cluster. Required must undergo its normal
+local conversion exactly once; AutoCreate must create through the ordinary lifecycle; Query must preserve
+Builder/Model behavior and generated contracts; Cluster must retain field/method projection and generated
+factory contracts. Query/AutoCreate consumer behavior is required even though not every sentinel has its
+own local-transform registration. Include a separately compiled foreign local transform as a direct
+collection control, and direct-annotation comparisons, rather than only annotation-node inspection.
 
-Correctness gaps block every affected capability, not just Cluster. Basic origin/selected/declaration
-context is an implementation acceptance requirement. Further editorial improvements may be deferred only
-once constraints and understandable locations/provenance are preserved. Same-source validated domain
-annotations retain KlumCast's precompiled requirement. Java javac emits libraries; it does not run Groovy
-AST transformations or Groovy use-site validation.
+If that probe fails on a supported lane, **AP-1 must narrow under a new explicit scope decision or stop**.
+Do not substitute an independently ordered global pass, late rescan, manual validation route, direct calls
+to local transforms or another workaround. The admission probe is outstanding; this ADR does not claim
+that KlumCast's proposed traversal position already meets Groovy's local collection boundary.
+
+### D5 — KlumCast #58 is a hard prerequisite with a fixed ownership boundary
+
+Current KlumCast 0.4.0 uses a global semantic pass, traverses actual validation meta-annotations, requires
+compiled annotation reflection metadata and records VALIDATED on AnnotationNodes. Copying annotations
+alone can miss a new constraint when KlumCast runs first; validating only copies can miss an affected
+constraint on an already validated explicit annotation. Those negative probes explain the prerequisite,
+not a consumer-side state protocol. **KlumAST must not clear, set or otherwise manipulate VALIDATED.**
+
+The confirmed #58 contract prevents the ordering gap structurally: KlumCast owns traversal, invokes the
+neutral contributor immediately before validation, and validates the complete effective set once after
+one complete contribution batch. KlumCast owns validation state, constraint discovery/evaluation, filters,
+diagnostics, aggregation/deduplication and rendering. Preserve normal classification/severity, annotation
+and constraint identities, source/related locations, binding/composition paths and introduced-annotation
+origin. Contribution diagnostics and constraint diagnostics must remain understandable together without
+KlumAST duplicating the validation engine or rendering KlumCast's errors itself.
+
+KlumAST owns DSL eligibility, propagation discovery, default-only expansion, duplicate/nested errors,
+source/origin provenance and final DSL/generated compatibility. Its completed contribution must not mutate
+the declaration later or depend on observing KlumCast's internal state. The original domain annotation
+remains available to its ordinary consumers and independent constraints. Definition-time checks must not
+be applied as if domain definitions were Schema fields or methods. Existing precompiled-library requirements,
+normal retention/target legality and Java javac's ordinary library-only role remain unchanged.
+
+The contributor contract stays framework-neutral: no KlumAST/DSL dependency, consumer annotation names,
+propagation algorithm, generic transformation scheduler or consumer-specific validation logic belongs in
+KlumCast. It is not a general plugin framework. KlumAST integrates only through the supported neutral
+contract; public engine classes or automatic-module exports are not an alternative protocol.
+
+Manual metadata on domain annotations can check narrow API shapes and may remain useful as ordinary
+API-authored constraints. The temporary 48-case experiments also expose member/default mismatches,
+peer-alias conflicts and repeated diagnostics. They do not qualify broad class/field/method propagation and
+are no longer an alternative admission route. No runtime fallback or manual compatibility mode is added.
+
+Before production AP-1: qualify the contributor/local-discovery admission probe on all three Groovy lanes;
+agree and deliver the supported #58 contract with validation/diagnostic/module qualification; approve its
+released or development artifact route; then obtain explicit AP-1 implementation authorization. The
+[plan's gate](../implementation/adr-0029-default-only-annotation-propagation.md#contributor-admission-gate-before-production-ap-1)
+records the dependency and stop condition. No implementation has started or is authorized by this design
+update, and no issue, dependency version, release or curation state is changed here.
 
 ### D6 — Generated, runtime and compatibility contracts
 
@@ -259,10 +268,10 @@ integration follows authorized production implementation, not this investigation
 
 The feature is narrow Schema preprocessing. It is not general-purpose Groovy annotation composition.
 Neither eligibility nor propagation touches unrelated declarations, and existing direct annotations keep
-their transformation paths. The validation prerequisite is necessary even if C is rejected.
+their transformation paths. The contributor/validation prerequisite is necessary even though C is rejected.
 
-No forwarding, configured copies, merge rules, priorities, recursion, public SPI, ScHelm-specific policy,
-new runtime machinery or general validation redesign. Issue #888 remains separate; this ADR does not
+No forwarding, configured copies, merge rules, priorities, recursion, public KlumAST preprocessing SPI,
+ScHelm-specific policy, new runtime machinery or general validation redesign. Issue #888 remains separate; this ADR does not
 make AutoCreate legal on a class, imply defaults for unannotated fields or add an opt-out.
 
 ## Acceptance and decision boundary
@@ -272,7 +281,8 @@ negative probes, proposals and remaining production gates. The [plan](../impleme
 maps the contract to executable acceptance and reasoned slices. The historical generic probes remain a
 technical baseline, not the recommended scope or evidence that KlumCast correctness is already satisfied.
 
-Pending maintainer decisions: admit B over C; confirm interface exclusion matches the existing Schema
-boundary; approve the separate KlumCast prerequisite and supported integration contract. Until then,
-**not ready for AP-1 implementation authorization**. Publishing this design revision does not authorize
-production code, tracker/milestone/curation changes, merge or release. Hive retains reconciliation ownership.
+Outstanding admission work: prove contributor-added local-transform discovery and sentinel behavior on
+Groovy 3/4/5, qualify/deliver KlumCast #58's neutral contract, approve the cross-project artifact route and
+obtain explicit AP-1 authorization. The confirmed contributor architecture replaces the earlier manual/
+independent-global alternatives. **AP-1 remains blocked and unauthorized**; neither library's production
+implementation has started or is authorized here. Hive retains reconciliation ownership.
