@@ -28,6 +28,7 @@ import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
@@ -111,9 +112,9 @@ final class BuilderQuerySupport {
                     ? projectedBody
                     : block(
                             ifS(
-                                    notNullX(callThisX("$klum$completedModelOrNull")),
+                                    notNullX(completedModelOrNull()),
                                     returnS(callX(
-                                            castX(model.getPlainNodeReference(), callThisX("$klum$completedModelOrNull")),
+                                            castX(model.getPlainNodeReference(), completedModelOrNull()),
                                             query.getName(),
                                             args(twin.getParameters())
                                     ))
@@ -121,6 +122,14 @@ final class BuilderQuerySupport {
                             projectedBody
                     ));
         });
+    }
+
+    private static MethodCallExpression completedModelOrNull() {
+        MethodCallExpression call = callThisX("$klum$completedModelOrNull");
+        // Protected runtime hooks must link directly, including across named-module boundaries.
+        call.setMethodTarget(ClassHelper.make(GeneratedKlumBuilder.class)
+                .getDeclaredMethod("$klum$completedModelOrNull", Parameter.EMPTY_ARRAY));
+        return call;
     }
 
     private void projectQuery(MethodNode query, Map<MethodNode, MethodNode> twins) {
