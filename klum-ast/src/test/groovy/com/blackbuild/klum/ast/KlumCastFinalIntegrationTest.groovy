@@ -35,13 +35,14 @@ import java.util.jar.JarFile
 @Issue(["459", "524"])
 class KlumCastFinalIntegrationTest extends Specification {
 
-    private static final String FINAL_VERSION = "0.4.0"
+    private static final String SUPPORTED_VERSION = "0.5.0-rc.2"
     private static final String AST_TRANSFORMATION_SERVICE = "META-INF/services/org.codehaus.groovy.transform.ASTTransformation"
 
-    def "uses the published final KlumCast artifacts with their stable module names"() {
+    @Issue("890")
+    def "uses the supported published KlumCast artifacts with their stable module names"() {
         expect:
         moduleName(jar) == expectedModuleName
-        moduleVersion(jar) == FINAL_VERSION
+        moduleVersion(jar) == SUPPORTED_VERSION
 
         where:
         jar                       | expectedModuleName
@@ -50,7 +51,7 @@ class KlumCastFinalIntegrationTest extends Specification {
         compilerJar()             | "com.blackbuild.klum.cast.compiler"
     }
 
-    def "final KlumCast artifacts have exclusive package ownership"() {
+    def "published KlumCast artifacts have exclusive package ownership"() {
         given:
         def packageSets = [jarOf(KlumCastValidated), jarOf(KlumCastCheck), compilerJar()]
                 .collect { packagesIn(it) }
