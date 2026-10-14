@@ -5,13 +5,17 @@ Date: 2026-10-13. Architectural refinement: 2026-10-14.
 Status: Proposed. The public propagation contract is accepted in principle. DSL-only scope is confirmed;
 compiler architecture and KlumCast integration still require maintainer admission.
 
-Implementation status: ADR and bounded, opt-in feasibility probes only. **AP-1 is not authorized or ready
-for authorization while the validation integration prerequisite remains unsettled.**
+Implementation status: ADR and bounded, opt-in feasibility probes only. **AP-1 is blocked by
+[KlumCast #58](https://github.com/klum-dsl/klum-cast/issues/58) and is not authorized.** Its supported API
+must be agreed, delivered and qualified, and the cross-project development artifact route approved,
+before production AP-1 can be considered for authorization.
 
 Release: Conditional 4.1 candidate, subject to Hive review; no milestone or curation change is made here.
 
 Tracking issue: [#890](https://github.com/klum-dsl/klum-ast/issues/890).
-Draft design PR: [#891](https://github.com/klum-dsl/klum-ast/pull/891).
+Merged design investigation: [PR #891](https://github.com/klum-dsl/klum-ast/pull/891).
+Blocking cross-project prerequisite: [KlumCast #58 — Support effective-declaration validation after
+compiler AST preprocessing](https://github.com/klum-dsl/klum-cast/issues/58).
 Implementation plan: [ADR 0029 plan](../implementation/adr-0029-default-only-annotation-propagation.md).
 Current evidence: [scheduling and validation investigation](../implementation/evidence/issue-890/schema-preprocessing.md).
 Historical alternatives and consumer fit: [decision brief](../implementation/issue-890-lifecycle-composition-decision-brief.md).
@@ -130,16 +134,20 @@ keyed/abstract failures.
 
 ### D4 — Prefer guarded propagation, with an explicit validation boundary
 
-Recommend **approach B**, qualified by D5's mandatory KlumCast integration. One internal global entry at
-semantic analysis checks DSL eligibility, plans/validates contributions, attaches the complete batch, and
-requests validation of the effective declaration before normal local-transform discovery and execution.
-Keep these operations separate and testable. The fixed sequence is:
+Recommend **approach B**, blocked on D5's supported KlumCast integration through KlumCast #58. One internal
+global entry at semantic analysis checks DSL eligibility, discovers propagation requests and attaches
+one complete authorized default-only batch per declaration before Groovy's local-transform discovery.
+After the batch, KlumAST must invoke the future narrow, idempotent effective-declaration validation
+operation. KlumCast owns constraint discovery and evaluation against that effective state, including
+affected existing constraints. Neither insertion nor an independent global pass's relative scheduling
+qualifies validation. Keep these operations separate and testable. The intended sequence is:
 
 ```text
 existing DSL eligibility
   → collect requests and check contribution legality
   → append complete default-only batch with provenance
-  → KlumCast effective-declaration validation
+  → invoke supported KlumCast #58 effective-declaration handoff
+      (KlumCast owns validation state, constraint recheck and diagnostic aggregation)
   → Groovy local collection/execution (existing Required, Optional, Cluster, DSL)
 ```
 
@@ -179,6 +187,9 @@ The guarantee is insertion before Groovy's local collection on the qualified com
 universal ordering. There is no promise about relative order among independent global transformations,
 independent same-phase locals, third-party code that rewrites declarations, or annotations created after
 this preprocessing boundary. Unsupported interactions must be qualified or diagnosed, not silently widened.
+KlumCast constraint correctness must come from the supported post-batch handoff, regardless of whether
+its independent global validation pass ran earlier. Positive Required/Cluster scheduling and generated
+behavior probes are feasibility evidence only; they do not qualify effective-declaration validation.
 
 ### D5 — KlumCast correctness is a prerequisite, not an assumed consequence of copying
 
@@ -198,7 +209,9 @@ The probes demonstrate two release-blocking failure modes:
 Calling the existing ValidationHandler engine proves applicable checks can be preserved, with provenance
 and original source coordinates. Experimental metadata invalidation demonstrates the second gap can be
 closed, but is not a supported production protocol and can duplicate diagnostics already reported by the
-first pass. Do not publish propagation using only the new-copy check or raw metadata removal.
+first pass. **KlumAST must not clear, set or otherwise manipulate KlumCast VALIDATED metadata.** The
+test-only experiment is not an implementation option. Do not publish propagation using only the new-copy
+check or an assumed relative global-transform order.
 
 | Integration | Assessment |
 | --- | --- |
@@ -206,26 +219,29 @@ first pass. Do not publish propagation using only the new-copy check or raw meta
 | B: KlumCast resolves propagation transitively | Possible with a separately agreed integration seam, but requires reading a KlumAST-specific request graph or a new protocol and still handling effective target/member semantics. Not currently supported; unnecessary library coupling for this bounded need. |
 | C: preprocessing requests validation through KlumCast's existing engine | Recommend a supported, narrow effective-declaration validation entry/handoff. KlumAST owns expansion, target/default checks and origin; KlumCast owns constraint discovery, checks, validation state and diagnostic deduplication. No duplicate validator implementation. |
 
-Recommend a **separate KlumCast prerequisite issue/change**, authorized independently, to expose or confirm
-a supported compiler integration for validating an annotation batch against the final declaration despite
-prior validation. It must preserve structured diagnostics, composition paths, source/related locations,
-coannotation constraints and at-most-once reporting; bound invalidation to declarations actually changed.
+**KlumCast #58 is the explicit blocking cross-project prerequisite**, owned and implemented independently.
+It must establish a supported compiler operation for validating a declaration against its complete
+effective annotation set after the caller's authorized preprocessing batch, despite prior validation.
+Repeated requests against unchanged effective state must be no-ops. It must preserve structured diagnostics,
+composition paths, source/related locations, coannotation constraints and at-most-once reporting. Any
+internal state transition or invalidation is owned by KlumCast, never performed by the caller.
 The current engine class and metadata are public Java symbols, but not an established mutation protocol.
 Current KlumCast artifacts are automatic modules exporting their packages; this does not establish a
 future encapsulation contract. Any explicit descriptor must export/qualify the agreed integration seam.
 
-The maintainer additionally identified this as a potential **KlumCast feature request**: support validation
-of effective annotations introduced by compiler preprocessing, including propagation provenance and
-rechecking affected existing constraints. Keep the request framework-neutral and based on the existing
-engine; it need not teach KlumCast the public KlumAST marker or introduce a preprocessing SPI. The
-[plan's KC-0 proposal](../implementation/adr-0029-default-only-annotation-propagation.md#kc-0--supported-effective-declaration-validation-prerequisite)
-records the bounded request. Its exact integration API remains a KlumCast design decision.
+Ownership is fixed: KlumAST owns DSL eligibility, propagation request discovery, default-only expansion,
+duplicate/nested errors, introduced-annotation provenance, the post-batch call and final DSL/generated
+compatibility. KlumCast owns effective validation state, constraint discovery/evaluation, affected-constraint
+rechecking and diagnostic aggregation/deduplication. Neither library duplicates the other's validation logic.
+KlumCast #58 remains framework-neutral: no KlumAST/DSL dependency, consumer annotation knowledge,
+propagation engine or preprocessing scheduler belongs there.
 
-KlumAST's subsequent AP-1 integration consumes that prerequisite. No KlumCast production code is changed
-here and no prerequisite issue is created by this PR. Maintainer approval of ownership/API is outstanding.
-A direct internal engine dependency could avoid a separate library change only with explicit agreement
-that its state/diagnostic protocol is supported and executable duplicate-reporting qualification; it is
-not the current recommendation.
+KlumAST's subsequent AP-1 consumes only the supported contract agreed and delivered through #58, using a
+released artifact or an explicitly approved cross-project development artifact route. API agreement,
+qualified delivery and artifact-route approval are gates before production AP-1, not follow-up cleanup.
+The [plan's KC-0 gate](../implementation/adr-0029-default-only-annotation-propagation.md#kc-0--supported-effective-declaration-validation-prerequisite)
+records the dependency. Current public engine symbols do not waive it. No KlumCast production code or
+dependency version is changed here.
 
 Correctness gaps block every affected capability, not just Cluster. Basic origin/selected/declaration
 context is an implementation acceptance requirement. Further editorial improvements may be deferred only
@@ -273,6 +289,7 @@ maps the contract to executable acceptance and reasoned slices. The historical g
 technical baseline, not the recommended scope or evidence that KlumCast correctness is already satisfied.
 
 Pending maintainer decisions: admit B over C; confirm interface exclusion matches the existing Schema
-boundary; approve the separate KlumCast prerequisite and supported integration contract. Until then,
+boundary; agree and qualify the supported integration under blocking KlumCast #58 and approve its
+cross-project artifact route. Until those gates are met,
 **not ready for AP-1 implementation authorization**. Publishing this design revision does not authorize
 production code, tracker/milestone/curation changes, merge or release. Hive retains reconciliation ownership.
