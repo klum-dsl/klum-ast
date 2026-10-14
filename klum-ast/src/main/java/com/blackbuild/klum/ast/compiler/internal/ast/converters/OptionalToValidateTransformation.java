@@ -56,6 +56,7 @@ public class OptionalToValidateTransformation extends AbstractASTTransformation 
         requiredAnnotation = (AnnotationNode) nodes[0];
 
         AnnotationNode validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
+        validateAnnotation.setSourcePosition(requiredAnnotation);
         validateAnnotation.addMember("value", GeneralUtils.classX(VALIDATE_IGNORE_MEMBER));
         annotatedField.addAnnotation(validateAnnotation);
     }
