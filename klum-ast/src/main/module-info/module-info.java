@@ -1,5 +1,7 @@
 module com.blackbuild.klum.ast.compiler {
     requires java.desktop;
+    provides com.blackbuild.klum.cast.compiler.EffectiveDeclarationContributor with
+            com.blackbuild.klum.ast.compiler.internal.ast.AnnotationPropagationContributor;
     requires com.blackbuild.annodocimal.global.ast;
     requires com.blackbuild.klum.ast.annotations;
     requires com.blackbuild.klum.ast.runtime;

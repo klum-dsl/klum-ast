@@ -1,5 +1,12 @@
 # 4.1.0 (unreleased)
 
+- Added default-only `@PropagateAnnotation` composition on DSL Schema classes, fields and methods,
+  with one-hop, target/default-member and duplicate checks and normal Required/AutoCreate/Query/Cluster
+  behavior. Domain values are retained without forwarding. Uses the neutral KlumCast contributor seam
+  and aligned public `0.5.0-rc.2` artifacts from Central. Recompile consuming Schemas after changing
+  requests and remove newly duplicated explicit annotations. See [annotation propagation](docs/user/Annotation-Propagation.md)
+  ([#890](https://github.com/klum-dsl/klum-ast/issues/890)).
+
 - The Groovy convention plugin now applies the selected Groovy BOM to production implementation/runtime dependencies,
   so versionless auxiliary modules such as `groovy-yaml` resolve without a manual BOM declaration. Groovy core remains
   compile-only unless a runtime dependency requires it. Groovy 3/4/5 and inherited root selections are covered

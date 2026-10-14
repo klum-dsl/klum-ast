@@ -179,7 +179,7 @@ class GrabModelScriptsDocumentaryTest extends AbstractDSLSpec {
         installLeafModule(repository, 'com.blackbuild.annodocimal', 'anno-docimal-annotations', '1.0.1',
                 codeSource(AnnoDoc), [['org.jspecify', 'jspecify', '1.0.0']])
         installLeafModule(repository, 'org.jspecify', 'jspecify', '1.0.0', codeSource(NullMarked))
-        installLeafModule(repository, 'com.blackbuild.klum.cast', 'klum-cast-annotations', '0.4.0',
+        installLeafModule(repository, 'com.blackbuild.klum.cast', 'klum-cast-annotations', '0.5.0-rc.2',
                 codeSource(KlumCastValidated))
     }
 

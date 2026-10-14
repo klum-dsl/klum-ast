@@ -2,13 +2,17 @@
 
 Date: 2026-10-13. Architectural refinement: 2026-10-14.
 
-Status: Proposed. The public propagation contract is accepted in principle. DSL-only scope and the neutral
-contributor architecture are confirmed; compiler feasibility and integration admission remain outstanding.
+Status: Accepted for the authorized AP-1 implementation. DSL-only scope, default-only semantics and
+neutral contributor ownership are unchanged.
 
-Implementation status: ADR and bounded feasibility evidence only. **KlumCast #58 is a hard AP-1
-prerequisite; neither production implementation has started or is authorized.** Its neutral contributor
-contract and mandatory Groovy 3/4/5 local-discovery probe must be qualified, then its API/artifact delivery
-admitted, before AP-1 can be considered for explicit implementation authorization.
+Implementation status (2026-10-14): public KlumCast `0.5.0-rc.2` is the sole current qualification input,
+resolved normally from Central for annotations, SPI and compiler. It passes the ordinary Gradle provider
+classloader boundary that failed with RC.1. AP-1 is implemented locally; Java 17 / Groovy 3/4/5 focused
+sentinels, generated contracts, source mirrors, separate artifacts, runtime-only Java consumers and
+Groovy 4/5 named-module activation pass. See [current evidence](../implementation/issue-890-ap1-rc2-evidence.md)
+for full-check and delivery status. Earlier dev/Maven-Local probes and RC.1 failures are historical only;
+they supply no current qualification evidence. The original planning admission sequence below is retained
+as the contract, not a claim that implementation is still unauthorized.
 
 Release: Conditional 4.1 candidate, subject to Hive review; no milestone or curation change is made here.
 
@@ -199,8 +203,8 @@ collection control, and direct-annotation comparisons, rather than only annotati
 
 If that probe fails on a supported lane, **AP-1 must narrow under a new explicit scope decision or stop**.
 Do not substitute an independently ordered global pass, late rescan, manual validation route, direct calls
-to local transforms or another workaround. The admission probe is outstanding; this ADR does not claim
-that KlumCast's proposed traversal position already meets Groovy's local collection boundary.
+to local transforms or another workaround. The current RC.2 production tests qualify this boundary on Groovy 3/4/5; historical probes alone
+were insufficient.
 
 ### D5 — KlumCast #58 is a hard prerequisite with a fixed ownership boundary
 
@@ -239,8 +243,8 @@ Before production AP-1: qualify the contributor/local-discovery admission probe 
 agree and deliver the supported #58 contract with validation/diagnostic/module qualification; approve its
 released or development artifact route; then obtain explicit AP-1 implementation authorization. The
 [plan's gate](../implementation/adr-0029-default-only-annotation-propagation.md#contributor-admission-gate-before-production-ap-1)
-records the dependency and stop condition. No implementation has started or is authorized by this design
-update, and no issue, dependency version, release or curation state is changed here.
+records the dependency and stop condition. The original design update did not authorize implementation. Later maintainer authorization and
+current production qualification are recorded above; Hive retains issue/release/curation ownership.
 
 ### D6 — Generated, runtime and compatibility contracts
 
@@ -281,8 +285,7 @@ negative probes, proposals and remaining production gates. The [plan](../impleme
 maps the contract to executable acceptance and reasoned slices. The historical generic probes remain a
 technical baseline, not the recommended scope or evidence that KlumCast correctness is already satisfied.
 
-Outstanding admission work: prove contributor-added local-transform discovery and sentinel behavior on
-Groovy 3/4/5, qualify/deliver KlumCast #58's neutral contract, approve the cross-project artifact route and
-obtain explicit AP-1 authorization. The confirmed contributor architecture replaces the earlier manual/
-independent-global alternatives. **AP-1 remains blocked and unauthorized**; neither library's production
-implementation has started or is authorized here. Hive retains reconciliation ownership.
+AP-1 now uses the delivered neutral contributor and exact public RC.2 route. The current production
+evidence replaces the earlier admission blockers. Independent editor recognition, actual ScHelm admission
+and final release/issue reconciliation remain outside this bounded implementation. Hive owns those
+follow-ups and issue closure; an open draft PR is not release acceptance or archive safety.
