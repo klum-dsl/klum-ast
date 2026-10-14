@@ -241,7 +241,9 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
                 new ClassVisitor(Opcodes.ASM9) {
                     @Override
                     FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-                        if (name != 'name') return null
+                        if (name != 'name') {
+                            return null
+                        }
                         new FieldVisitor(Opcodes.ASM9) {
                             @Override
                             AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
@@ -288,7 +290,9 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
             @interface Policies { Policy[] value() default [@Policy] }
         '''
-        if (precompiled) library(definitions)
+        if (precompiled) {
+            library(definitions)
+        }
 
         when:
         createSecondaryClass("""
