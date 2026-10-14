@@ -8,13 +8,20 @@ Authority: [ADR 0029](../adr/0029-default-only-annotation-propagation.md) and it
 
 Work began in an isolated `codex/issue-890-ap4` worktree from the exact AP-3 head
 `563f5dcf773504d32d6ea2084c513d04c8666e0a`, while [PR #898](https://github.com/klum-dsl/klum-ast/pull/898)
-was open. The user checkout is unchanged. AP-4 adds shipping qualification and one protected Query-hook linkage correction, without
-AP-2 diagnostic/validation changes. AP-3 assumptions remain intact.
+was open. The user checkout is unchanged. AP-4 adds shipping qualification and one protected
+Query-hook linkage correction, without AP-2 diagnostic/validation changes. AP-3 assumptions remain intact.
 
-The branch remains local until AP-3 merges. At the next natural boundary after that merge, rebase once
-onto current `origin/master`, resolve only genuine AP-3 interactions, and rerun affected qualification.
-No rebase or remote AP-4 CI has occurred yet. Publication requires that rebase and passing final-head
-checks. Tracker impact is `Related: #890`; parent acceptance and release reconciliation remain Hive-owned.
+AP-3 merged with its expected head unchanged at `2026-10-14 20:48:44 UTC`, as
+`d94cc44c0b5b1d28a7b34589c2abbc20cbbcbe20`. At the completed full-check boundary, AP-4 rebased **once**
+onto that current `origin/master`, without conflicts. The AP-3 head and merged master have identical
+trees; `git range-diff` confirms both AP-4 patches are unchanged:
+
+- `8c803a4d` → `6d21847d`: protected Query-hook linkage.
+- `6aa29a62` → `5a7e8885`: artifact/module qualification and explicit CI gate.
+
+No speculative push, PR or CI occurred. One normal draft PR may follow final-head revalidation;
+its validation record owns the current local/CI/SonarCloud delivery result. No merge is authorized.
+Tracker impact is `Related: #890`; parent acceptance and release reconciliation remain Hive-owned.
 
 ## Reproducible shipping gate
 
@@ -82,7 +89,7 @@ AP-4 executes both direct and propagated queries on named-module Builders.
 ## Minimum-version and authoring limits
 
 The qualified compiler and annotation artifacts are built together from this AP-3-derived 4.1 development
-source. Both the public marker and a compiler with the production contributor are required. KlumCast
+source. The pre-rebase full-check pairing is `4.1.0-dev.432+codex.issue.890.ap4.6aa29a6`. Both the public marker and a compiler with the production contributor are required. KlumCast
 `0.5.0-rc.2`, Java 17 and Groovy `3.0.25 / 4.0.32 / 5.0.6` are the exact evidence inputs. This establishes a
 consistent tested pairing, not a released minimum-version promise or support on an older compiler.
 Changing requests requires recompiling consuming Schemas; there is no runtime retrofit.
@@ -109,4 +116,24 @@ The strengthened final matrix passes in 48s. The ordinary JPMS suite passes five
 Groovy lane (15 total, zero failures/errors/skips), including the new Query-linkage regression.
 License tasks and changed Markdown relative-link/whitespace checks pass; the CI YAML parses.
 
-Ordinary root checks, two-axis reviews and final delivery state are recorded here when complete.
+The full Java 17 root check plus explicit AP-4 matrix passes in 14m 27s at the fixed, reviewed
+pre-rebase revision `6aa29a62bbd3ff838373f6e9215e5a4c3175776e`:
+
+| Compiler lane | Cases | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 | 2033 | 0 | 15 |
+| Groovy 4 | 2035 | 0 | 15 |
+| Groovy 5 | 2035 | 0 | 15 |
+
+All 163 Gradle plugin cases pass, along with runtime/auxiliary suites, lane isolation, license and
+documentation checks. The same run executes all five AP-4 scenarios with zero failures/errors/skips.
+
+Standards review: zero documented violations or material smells. Specification review: zero actionable
+findings, missing AP-4 acceptance or scope expansion. Both reviews cover the fixed pre-rebase diff from
+`563f5dcf` through `6aa29a62`; unchanged patch equivalence after rebase is verified above. Commit-history
+review confirms the two reasoning steps and their order; this evidence update is documentation-only.
+Final-head local revalidation and CI/SonarCloud results are reported with the eventual draft PR, after
+this single rebase, rather than treating pre-rebase evidence as a remote-check result.
+
+No release/run IDs or external evidence-store authorization were supplied; this repository record is
+the local evidence boundary. Retain the worktree while delivery/merge and Hive reconciliation remain open.
