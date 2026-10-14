@@ -1,9 +1,21 @@
 # ADR 0029 implementation plan: DSL-only annotation propagation
 
 Date: 2026-10-13. Revised: 2026-10-14.
-Status: Architectural investigation; **KlumCast #58 is a hard AP-1 prerequisite. Neither production
-implementation has started or is authorized.** Contributor/local-discovery admission evidence, supported
-API delivery and artifact-route approval are required before explicit AP-1 implementation authorization.
+Status: AP-1 implemented locally against public KlumCast `0.5.0-rc.2`, Central-only. Current focused
+Java 17 / Groovy 3/4/5 and artifact/module evidence passes; see the
+[current qualification record](issue-890-ap1-rc2-evidence.md) for full-check and delivery status.
+
+## AP-1 authorization and current implementation boundary (2026-10-14)
+
+The maintainer authorized the production default-only contributor, then replacement of the isolated
+route with normal Central-only exact RC.2 resolution. RC.2 supersedes all development/Maven-Local
+artifacts and RC.1 as current qualification input. The ordinary Gradle classloader gate now passes.
+The public marker and production contributor are paired, with guards and retained provenance; ordinary
+local transformations keep their phases. No workaround or second validation engine was introduced.
+
+The original slices and gate sequence below remain the approved contract. Statements describing
+historical authorization/admission status are superseded by this dated status. Editor recognition,
+actual ScHelm admission and final release reconciliation remain separate; issue #890 stays open.
 
 Authority: [ADR 0029](../adr/0029-default-only-annotation-propagation.md).
 Tracking: [#890](https://github.com/klum-dsl/klum-ast/issues/890), merged design investigation
@@ -72,10 +84,10 @@ Do not introduce ignored/pending tests as a substitute for an unresolved or fail
 
 ## Contributor admission gate before production AP-1
 
-The contributor contract is confirmed; its compiler-phase feasibility is **not yet qualified**. Before
-production implementation, a separately authorized bounded probe must show on Groovy 3/4/5 that an
-annotation added through the actual neutral contributor remains discoverable by normal Groovy local
-transform collection. Use observable generated behavior and direct controls, not only annotation nodes.
+The contributor contract and compiler-phase boundary are now qualified by the current RC.2 production
+evidence. The original gate required an independently authorized probe demonstrating normal local
+collection on Groovy 3/4/5 through observable generated behavior and direct controls, not only nodes.
+The table remains the acceptance contract for regression and eventual-artifact requalification.
 
 | Sentinel | Required contributor-path evidence in every lane |
 | --- | --- |
@@ -94,8 +106,8 @@ The shipped contributor activation/module contract remains a separate artifact q
 **Failure condition:** if contributor-added local discovery or a required sentinel fails on any supported
 lane, AP-1 must narrow under an explicit maintainer scope decision or stop. Do not substitute independently
 scheduled globals, late rescans, direct transform calls, manual validation or another workaround. Earlier
-positive global/manual probes do not waive this gate. No implementation or new probe is authorized by
-this documentation-only update.
+positive global/manual probes do not waive this gate. The original documentation update authorized no
+implementation; later authorization and exact RC.2 qualification are recorded in the current status.
 
 ### KC-0 — KlumCast-owned traversal and neutral contributor prerequisite
 
@@ -267,9 +279,9 @@ PR is not implementation admission, release acceptance or archive reconciliation
 | Recompilation, no fallback, runtime invariants | AP-3 regressions + AP-4 binary/runtime controls |
 | Consumer fit versus actual integration | Reported history now; real ScHelm run in AP-5 |
 
-Outstanding admission work: the actual neutral-contributor local-discovery/sentinel probe on Groovy 3/4/5;
-KlumCast #58 supported API implementation/qualification/delivery; approved cross-project artifact route;
-and explicit AP-1 authorization. Any failed admission probe narrows or stops AP-1 under a new scope
-decision, without a manual or independent-transform workaround. Full binary inheritance, shipped module/
-contributor activation and editor recognition remain qualification risks. **AP-1 is blocked and unauthorized;
-neither production implementation has started or is authorized by this plan.**
+Current AP-1 evidence covers the neutral contributor, normal local discovery and sentinels, the exact
+public Central-only artifact route, binary-parent behavior, shipped classpath/module activation and
+runtime-only consumers. Failed future artifact or lane qualification still narrows or stops publication
+without a manual or independent-transform workaround. Independent editor recognition, actual ScHelm
+admission and final release/issue reconciliation remain separate. Current full-check and delivery status
+is recorded in the [RC.2 evidence](issue-890-ap1-rc2-evidence.md).
