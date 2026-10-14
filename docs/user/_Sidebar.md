@@ -27,6 +27,7 @@
   * [Copy Strategies](Copy-Strategies.md)
   * [Validation](Validation.md)
   * [Default Values](Default-Values.md)
+  * [Annotation Propagation](Annotation-Propagation.md)
   * [Inheritance](Inheritance.md)
   * [Converters](Converters.md)
   * [Alternatives Syntax](Alternatives-Syntax.md)

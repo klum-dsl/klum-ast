@@ -2,6 +2,14 @@
 
 ## To 4.1
 
+### Composing domain annotations
+
+[Annotation propagation](Annotation-Propagation.md) adds default-only composition on DSL Schema
+classes, fields and methods. Use aligned KlumCast annotations/SPI/compiler `0.5.0-rc.2` dependencies.
+Recompile Schemas after adding or changing a domain annotation's requests. Remove an explicit annotation
+when the domain now propagates that same type: every duplicate involving propagation is rejected.
+Existing compiled Schemas retain their emitted behavior; no runtime interpreter or retrofit is supplied.
+
 ### External lifecycle participants
 
 The pre-4.1 development API is now owned by public final `LifecycleParticipant` (private constructor).
@@ -216,6 +224,7 @@ durable stateless `Check` SPI and report structured, source-positioned diagnosti
 the deprecated compatibility adapter is only a temporary migration aid for external consumers ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
 
 ## To 4.1
+
 
 ### Unique instance storage in DSL hierarchies
 
