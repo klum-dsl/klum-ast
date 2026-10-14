@@ -404,4 +404,40 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
         precompiled << [false, true]
     }
 
+    def 'legality errors point to the applied domain rather than the member'() {
+        given:
+        library('''
+            @PropagateAnnotation(Required) @interface Policy {}
+        ''')
+
+        when:
+        createSecondaryClass('''@DSL class Order {
+    @Policy
+    String name() { null }
+}''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.errorCollector.errors[0].cause.startLine == 2
+        error.message.contains('target METHOD')
+    }
+
+    def 'defaulted source containers report the use site for effective constraints'() {
+        when:
+        createSecondaryClass('''import java.lang.annotation.*
+@Repeatable(Policies) @PropagateAnnotation(Default) @interface Policy {}
+@interface Policies { Policy[] value() default [@Policy] }
+@DSL class Order {
+    @Policies
+    String name
+}''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.errorCollector.errorCount == 1
+        error.message.contains('Effective annotation origin: @Policy requests @com.blackbuild.klum.ast.Default on Order.name')
+        error.message.contains('(5:5)')
+        error.errorCollector.errors[0].cause.startLine == 5
+    }
+
 }

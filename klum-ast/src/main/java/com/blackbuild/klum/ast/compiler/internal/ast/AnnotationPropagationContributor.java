@@ -147,7 +147,9 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
             List<AnnotationNode> nested = repeatedAnnotations(annotation);
             for (int index = 0; index < nested.size(); index++) {
                 AnnotationNode repeated = nested.get(index);
-                AnnotationNode source = repeated.getLineNumber() > 0 ? repeated : annotation;
+                // Defaults belong to the annotation library, so their source is the applied container.
+                AnnotationNode source = annotation.getMember(VALUE_MEMBER) != null && repeated.getLineNumber() > 0
+                        ? repeated : annotation;
                 result.add(new AnnotationUse(repeated, source, path + ".value[" + (index + 1) + "]"));
             }
         }
