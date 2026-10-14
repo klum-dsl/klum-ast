@@ -5,5 +5,8 @@ gradle.projectsEvaluated {
     ['test', 'groovy4Tests', 'groovy5Tests'].each { lane ->
         compiler.sourceSets[lane].groovy.srcDir(
                 compiler.rootProject.file('docs/implementation/evidence/issue-890/probes'))
+        compiler.tasks.named(lane) {
+            systemProperty 'issue890.evidence', compiler.rootProject.file('docs/implementation/evidence/issue-890').path
+        }
     }
 }
