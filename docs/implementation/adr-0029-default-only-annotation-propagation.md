@@ -185,6 +185,12 @@ one working change; current user documentation and release note accompany the fi
 
 ### AP-2 — Complete contribution and diagnostic contract
 
+Implementation evidence: [AP-2 acceptance and diagnostics](issue-890-ap2-evidence.md). This slice
+qualifies source and compiled Java/Groovy normalization, legality, one-hop rejection, direct-control
+KlumCast diagnostics, retained originals, and source positions through lowering/projection. Collector
+selections are rejected; early collector rewriting is explicitly qualified as unsupported. AP-3/AP-4/AP-5
+remain separate scope; these focused regression controls do not claim their full acceptance.
+
 Normalize genuine repeated requests and explicit nested List containers in Java/Groovy source and compiled
 libraries. Also normalize legitimate containers of applied domain annotations without general alias merging.
 Retain originals; preserve source positions and provenance through downstream projection.

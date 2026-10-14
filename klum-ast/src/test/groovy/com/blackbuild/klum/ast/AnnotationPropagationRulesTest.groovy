@@ -329,4 +329,119 @@ class AnnotationPropagationRulesTest extends AbstractDSLSpec {
         error.message.contains('explicit @Policies')
     }
 
+    def 'duplicate diagnostics distinguish both repeated contributions (#kind)'() {
+        given:
+        library("""
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @Repeatable(Policies) $requests @interface Policy {}
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface Policies { Policy[] value() }
+        """)
+
+        when:
+        createSecondaryClass("@DSL class Order { $uses String name }")
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.errorCollector.errorCount == 1
+        error.message.contains('duplicate propagated annotation')
+        error.message.contains(first)
+        error.message.contains(second)
+
+        where:
+        kind       | requests                                                      | uses                           | first                             | second
+        'requests' | '@PropagateAnnotation(Required) @PropagateAnnotation(Required)' | '@Policy'                      | 'PropagateAnnotation$List occurrence 1.value[1]' | 'PropagateAnnotation$List occurrence 1.value[2]'
+        'domains'  | '@PropagateAnnotation(Required)'                               | '@Policies([@Policy, @Policy])' | '@Policies occurrence 1.value[1]' | '@Policies occurrence 1.value[2]'
+    }
+
+    def 'collector rewriting does not become a propagation request (#precompiled)'() {
+        given:
+        String definitions = '''
+            import groovy.transform.AnnotationCollector
+            @AnnotationCollector
+            @PropagateAnnotation(Required)
+            @interface Policy {}
+        '''
+        if (precompiled) {
+            library(definitions)
+        }
+
+        when:
+        createSecondaryClass("""
+            ${precompiled ? '' : definitions}
+            @DSL class Order { @Policy String name }
+        """)
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('PropagateAnnotation')
+        error.message.contains('not allowed on element FIELD')
+        !error.message.contains('ClassCastException')
+
+        where:
+        precompiled << [false, true]
+    }
+
+    def 'collector selections are rejected before local rewriting (#precompiled)'() {
+        given:
+        String definitions = '''
+            import groovy.transform.AnnotationCollector
+            @AnnotationCollector([Required]) @interface Selected {}
+            @PropagateAnnotation(Selected) @interface Policy {}
+        '''
+        if (precompiled) {
+            library(definitions)
+        }
+
+        when:
+        createSecondaryClass("""
+            ${precompiled ? '' : definitions}
+            @DSL class Order { @Policy String name }
+        """)
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('AnnotationCollector cannot be propagated')
+        error.message.contains('@Policy requests @Selected on Order.name')
+
+        where:
+        precompiled << [false, true]
+    }
+
+    def 'legality errors point to the applied domain rather than the member'() {
+        given:
+        library('''
+            @PropagateAnnotation(Required) @interface Policy {}
+        ''')
+
+        when:
+        createSecondaryClass('''@DSL class Order {
+    @Policy
+    String name() { null }
+}''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.errorCollector.errors[0].cause.startLine == 2
+        error.message.contains('target METHOD')
+    }
+
+    def 'defaulted source containers report the use site for effective constraints'() {
+        when:
+        createSecondaryClass('''import java.lang.annotation.*
+@Repeatable(Policies) @PropagateAnnotation(Default) @interface Policy {}
+@interface Policies { Policy[] value() default [@Policy] }
+@DSL class Order {
+    @Policies
+    String name
+}''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.errorCollector.errorCount == 1
+        error.message.contains('Effective annotation origin: @Policy requests @com.blackbuild.klum.ast.Default on Order.name')
+        error.message.contains('(5:5)')
+        error.errorCollector.errors[0].cause.startLine == 5
+    }
+
 }

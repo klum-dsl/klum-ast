@@ -29,6 +29,7 @@ import com.blackbuild.klum.cast.compiler.EffectiveAnnotation;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclaration;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclarationContribution;
 import com.blackbuild.klum.cast.compiler.EffectiveDeclarationContributor;
+import groovy.transform.AnnotationCollector;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -68,24 +69,25 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
 
         List<EffectiveAnnotation> additions = new ArrayList<>();
         Map<String, String> origins = new LinkedHashMap<>();
-        List<AnnotationNode> annotations = normalized(declaration.getAnnotations());
-        for (AnnotationNode explicit : annotations)
-            origins.put(explicit.getClassNode().getName(), "explicit @" + explicit.getClassNode().getName());
+        List<AnnotationUse> annotations = normalized(declaration.getAnnotations());
+        for (AnnotationUse explicit : annotations)
+            origins.putIfAbsent(explicit.annotation().getClassNode().getName(), "explicit " + explicit.path());
         List<String> errors = new ArrayList<>();
-        for (AnnotationNode domain : annotations) {
-            for (AnnotationNode request : requests(domain.getClassNode())) {
-                Expression value = request.getMember(VALUE_MEMBER);
-                String origin = "@" + domain.getClassNode().getName() + " requests ";
+        for (AnnotationUse domain : annotations) {
+            for (AnnotationUse request : requests(domain.annotation().getClassNode())) {
+                Expression value = request.annotation().getMember(VALUE_MEMBER);
+                String origin = "@" + domain.annotation().getClassNode().getName() + " requests ";
                 if (!(value instanceof ClassExpression selectedType)) {
                     errors.add(origin + "an annotation class literal on " + location(owner, target));
                     continue;
                 }
                 ClassNode selected = selectedType.getType();
-                origin += "@" + selected.getName() + " on " + location(owner, target);
+                origin += "@" + selected.getName() + " on " + location(owner, target)
+                        + " (domain " + domain.path() + ", request " + request.path() + ")";
                 checkSelection(selected, target, origin, origins, errors);
                 AnnotationNode copy = new AnnotationNode(selected);
-                copy.setSourcePosition(domain);
-                additions.add(new EffectiveAnnotation(copy, origin, domain));
+                copy.setSourcePosition(domain.source());
+                additions.add(new EffectiveAnnotation(copy, origin, domain.source()));
             }
         }
         if (!errors.isEmpty()) {
@@ -126,22 +128,35 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
         return owner.getName();
     }
 
-    private static List<AnnotationNode> requests(ClassNode type) {
+    private static List<AnnotationUse> requests(ClassNode type) {
         return normalized(type.getAnnotations()).stream()
-                .filter(annotation -> annotation.getClassNode().getName().equals(PropagateAnnotation.class.getName()))
+                .filter(use -> use.annotation().getClassNode().getName().equals(PropagateAnnotation.class.getName()))
                 .toList();
     }
 
     /** Unwrap only genuine repeatable containers, never arbitrary annotation-array members. */
-    private static List<AnnotationNode> normalized(List<AnnotationNode> annotations) {
-        List<AnnotationNode> result = new ArrayList<>();
+    private static List<AnnotationUse> normalized(List<AnnotationNode> annotations) {
+        List<AnnotationUse> result = new ArrayList<>();
+        Map<String, Integer> occurrences = new LinkedHashMap<>();
         for (AnnotationNode annotation : annotations) {
-            // Retain explicit container identity as well as its logical repeated annotations.
-            result.add(annotation);
-            result.addAll(repeatedAnnotations(annotation));
+            String name = annotation.getClassNode().getName();
+            int occurrence = occurrences.merge(name, 1, Integer::sum);
+            String path = "@" + name + " occurrence " + occurrence;
+            // Keep physical container identity; normalization is only a logical discovery view.
+            result.add(new AnnotationUse(annotation, annotation, path));
+            List<AnnotationNode> nested = repeatedAnnotations(annotation);
+            for (int index = 0; index < nested.size(); index++) {
+                AnnotationNode repeated = nested.get(index);
+                // Defaults belong to the annotation library, so their source is the applied container.
+                AnnotationNode source = annotation.getMember(VALUE_MEMBER) != null && repeated.getLineNumber() > 0
+                        ? repeated : annotation;
+                result.add(new AnnotationUse(repeated, source, path + ".value[" + (index + 1) + "]"));
+            }
         }
         return result;
     }
+
+    private record AnnotationUse(AnnotationNode annotation, AnnotationNode source, String path) {}
 
     private static List<AnnotationNode> repeatedAnnotations(AnnotationNode container) {
         ClassNode repeated = repeatedType(container.getClassNode());
@@ -201,6 +216,8 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
     }
 
     private static String illegalSelection(ClassNode selected, AnnotatedNode target) {
+        if (!selected.getAnnotations(ClassHelper.make(AnnotationCollector.class)).isEmpty())
+            return "AnnotationCollector cannot be propagated; rewriting is not default-only annotation composition";
         if (!selected.isAnnotationDefinition()) return "selected type is not an annotation";
         if (selected.getName().equals(DSL.class.getName())) return "DSL cannot be propagated";
         if (!requests(selected).isEmpty()) return "nested propagation is not supported";

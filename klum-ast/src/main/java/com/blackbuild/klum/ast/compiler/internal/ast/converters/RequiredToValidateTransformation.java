@@ -56,6 +56,7 @@ public class RequiredToValidateTransformation extends AbstractASTTransformation 
         requiredAnnotation = (AnnotationNode) nodes[0];
 
         AnnotationNode validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
+        validateAnnotation.setSourcePosition(requiredAnnotation);
 
         Expression value = requiredAnnotation.getMember("value");
         if (value != null)
