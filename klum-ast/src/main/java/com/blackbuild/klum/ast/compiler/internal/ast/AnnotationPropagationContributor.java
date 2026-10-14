@@ -58,6 +58,8 @@ import java.util.Map;
 
 /** Default-only expansion inside KlumCast's effective-declaration handoff; never mutates the target. */
 public final class AnnotationPropagationContributor implements EffectiveDeclarationContributor {
+    private static final String VALUE_MEMBER = "value";
+
     @Override
     public EffectiveDeclarationContribution contribute(EffectiveDeclaration declaration) {
         AnnotatedNode target = declaration.getTarget();
@@ -72,13 +74,13 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
         List<String> errors = new ArrayList<>();
         for (AnnotationNode domain : annotations) {
             for (AnnotationNode request : requests(domain.getClassNode())) {
-                Expression value = request.getMember("value");
+                Expression value = request.getMember(VALUE_MEMBER);
                 String origin = "@" + domain.getClassNode().getName() + " requests ";
-                if (!(value instanceof ClassExpression)) {
+                if (!(value instanceof ClassExpression selectedType)) {
                     errors.add(origin + "an annotation class literal on " + location(owner, target));
                     continue;
                 }
-                ClassNode selected = ((ClassExpression) value).getType();
+                ClassNode selected = selectedType.getType();
                 origin += "@" + selected.getName() + " on " + location(owner, target);
                 checkSelection(selected, target, origin, origins, errors);
                 AnnotationNode copy = new AnnotationNode(selected);
@@ -110,25 +112,24 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
     private static ClassNode eligibleOwner(AnnotatedNode target) {
         if (target instanceof ConstructorNode || target.getLineNumber() < 0) return null;
         ClassNode owner;
-        if (target instanceof ClassNode) owner = (ClassNode) target;
-        else if (target instanceof FieldNode) owner = ((FieldNode) target).getOwner();
-        else if (target instanceof MethodNode) owner = ((MethodNode) target).getDeclaringClass();
+        if (target instanceof ClassNode schema) owner = schema;
+        else if (target instanceof FieldNode field) owner = field.getOwner();
+        else if (target instanceof MethodNode method) owner = method.getDeclaringClass();
         else return null;
         if (owner.isAnnotationDefinition() || owner.isInterface() || !DslAstHelper.isDSLObject(owner)) return null;
         return owner;
     }
 
     private static String location(ClassNode owner, AnnotatedNode target) {
-        if (target instanceof FieldNode) return owner.getName() + "." + ((FieldNode) target).getName();
-        if (target instanceof MethodNode) return owner.getName() + "." + ((MethodNode) target).getName() + "()";
+        if (target instanceof FieldNode field) return owner.getName() + "." + field.getName();
+        if (target instanceof MethodNode method) return owner.getName() + "." + method.getName() + "()";
         return owner.getName();
     }
 
     private static List<AnnotationNode> requests(ClassNode type) {
-        List<AnnotationNode> result = new ArrayList<>();
-        for (AnnotationNode annotation : normalized(type.getAnnotations()))
-            if (annotation.getClassNode().getName().equals(PropagateAnnotation.class.getName())) result.add(annotation);
-        return result;
+        return normalized(type.getAnnotations()).stream()
+                .filter(annotation -> annotation.getClassNode().getName().equals(PropagateAnnotation.class.getName()))
+                .toList();
     }
 
     /** Unwrap only genuine repeatable containers, never arbitrary annotation-array members. */
@@ -145,19 +146,19 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
     private static List<AnnotationNode> repeatedAnnotations(AnnotationNode container) {
         ClassNode repeated = repeatedType(container.getClassNode());
         if (repeated == null) return List.of();
-        Expression value = container.getMember("value");
+        Expression value = container.getMember(VALUE_MEMBER);
         if (value == null) {
             if (container.getClassNode().isResolved()) return defaultDomainTypes(container);
-            MethodNode member = container.getClassNode().getMethods("value").get(0);
-            if (member.getCode() instanceof ExpressionStatement)
-                value = ((ExpressionStatement) member.getCode()).getExpression();
-            else if (member.getCode() instanceof ReturnStatement)
-                value = ((ReturnStatement) member.getCode()).getExpression();
+            MethodNode member = container.getClassNode().getMethods(VALUE_MEMBER).get(0);
+            if (member.getCode() instanceof ExpressionStatement expressionStatement)
+                value = expressionStatement.getExpression();
+            else if (member.getCode() instanceof ReturnStatement returnStatement)
+                value = returnStatement.getExpression();
         }
         List<AnnotationNode> result = new ArrayList<>();
         for (Expression entry : annotationValues(value)) {
-            if (entry instanceof AnnotationConstantExpression) {
-                AnnotationNode nested = (AnnotationNode) ((AnnotationConstantExpression) entry).getValue();
+            if (entry instanceof AnnotationConstantExpression constant) {
+                AnnotationNode nested = (AnnotationNode) constant.getValue();
                 if (nested.getClassNode().getName().equals(repeated.getName())) result.add(nested);
             }
         }
@@ -168,32 +169,31 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
     private static List<AnnotationNode> defaultDomainTypes(AnnotationNode container) {
         List<AnnotationNode> result = new ArrayList<>();
         for (Method member : container.getClassNode().getTypeClass().getDeclaredMethods()) {
-            if (!member.getName().equals("value")) continue;
-            Object defaults = member.getDefaultValue();
-            if (!(defaults instanceof Annotation[])) continue;
-            for (Annotation domain : (Annotation[]) defaults) {
-                AnnotationNode use = new AnnotationNode(ClassHelper.make(domain.annotationType()));
-                use.setSourcePosition(container);
-                result.add(use);
+            if (member.getName().equals(VALUE_MEMBER) && member.getDefaultValue() instanceof Annotation[] defaults) {
+                for (Annotation domain : defaults) {
+                    AnnotationNode use = new AnnotationNode(ClassHelper.make(domain.annotationType()));
+                    use.setSourcePosition(container);
+                    result.add(use);
+                }
             }
         }
         return result;
     }
 
     private static List<Expression> annotationValues(Expression value) {
-        if (value instanceof ListExpression) return ((ListExpression) value).getExpressions();
-        if (value instanceof ArrayExpression) return ((ArrayExpression) value).getExpressions();
+        if (value instanceof ListExpression list) return list.getExpressions();
+        if (value instanceof ArrayExpression array) return array.getExpressions();
         return value == null ? List.of() : List.of(value);
     }
 
     private static ClassNode repeatedType(ClassNode container) {
-        for (MethodNode method : container.getMethods("value")) {
+        for (MethodNode method : container.getMethods(VALUE_MEMBER)) {
             if (!method.getReturnType().isArray()) continue;
             ClassNode component = method.getReturnType().getComponentType();
             for (AnnotationNode marker : component.getAnnotations()) {
                 if (!marker.getClassNode().getName().equals(Repeatable.class.getName())) continue;
-                Expression value = marker.getMember("value");
-                if (value instanceof ClassExpression && ((ClassExpression) value).getType().getName().equals(container.getName()))
+                Expression value = marker.getMember(VALUE_MEMBER);
+                if (value instanceof ClassExpression repeatable && repeatable.getType().getName().equals(container.getName()))
                     return component;
             }
         }
@@ -204,17 +204,22 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
         if (!selected.isAnnotationDefinition()) return "selected type is not an annotation";
         if (selected.getName().equals(DSL.class.getName())) return "DSL cannot be propagated";
         if (!requests(selected).isEmpty()) return "nested propagation is not supported";
-        ElementType required = target instanceof ClassNode ? ElementType.TYPE :
-                target instanceof FieldNode ? ElementType.FIELD : ElementType.METHOD;
+        ElementType required = declarationTarget(target);
         for (AnnotationNode marker : selected.getAnnotations()) {
             if (marker.getClassNode().getName().equals(Target.class.getName())) {
-                Expression value = marker.getMember("value");
+                Expression value = marker.getMember(VALUE_MEMBER);
                 List<Expression> entries = annotationValues(value);
                 if (entries.stream().noneMatch(entry -> entry.getText().endsWith("." + required.name())))
                     return "selected annotation does not permit target " + required;
             }
         }
         return missingDefaultProblem(selected);
+    }
+
+    private static ElementType declarationTarget(AnnotatedNode target) {
+        if (target instanceof ClassNode) return ElementType.TYPE;
+        if (target instanceof FieldNode) return ElementType.FIELD;
+        return ElementType.METHOD;
     }
 
     private static String missingDefaultProblem(ClassNode selected) {
