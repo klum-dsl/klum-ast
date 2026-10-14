@@ -1,4 +1,12 @@
-# #890: default-only annotation propagation design
+# #890: historical annotation propagation decision brief
+
+
+> Historical record, superseded where it describes arbitrary Groovy declarations, carried `@DSL`, or
+> validation as an automatic consequence of copying. The 2026-10-14 maintainer refinement limits execution
+> to DSL Schemas. [ADR 0029](../adr/0029-default-only-annotation-propagation.md) and its
+> [implementation plan](adr-0029-default-only-annotation-propagation.md) are authoritative. New scheduling,
+> coordinator and KlumCast findings are recorded only in the
+> [current investigation evidence](evidence/issue-890/schema-preprocessing.md). Production remains unauthorized.
 
 Date: 2026-10-13. Status: **API and semantic scope confirmed; implementation architecture proposed and feasibility-probed.**
 Base: master `dea21a7cfa9b26630cacc5cdbc1087e756e59ce6`, verified against remote master during investigation.
@@ -8,9 +16,9 @@ Publication checkpoint: the maintainer subsequently authorized a draft design PR
 
 Formal design: [proposed ADR 0029](../adr/0029-default-only-annotation-propagation.md).
 Execution outline: [dedicated ADR 0029 implementation plan](adr-0029-default-only-annotation-propagation.md).
-These documents consolidate the current confirmed contract; the earlier alternatives below remain history.
+Those documents own the current contract. All checkpoints and alternatives below describe the earlier investigation.
 
-## Current design checkpoint
+## Historical design checkpoint
 
 The maintainer selected a retained, additive `@PropagateAnnotation(AutoCreate)` mechanism, independent
 of LifecycleParticipant. The repeatable single-annotation shape and semantic scope below are confirmed.

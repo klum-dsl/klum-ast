@@ -1,57 +1,53 @@
-# Default-only annotation propagation on Schema declarations
+# Default-only annotation propagation on DSL Schema declarations
 
-Date: 2026-10-13
+Date: 2026-10-13. Architectural refinement: 2026-10-14.
 
-Status: Proposed for Hive review. The maintainer confirmed the public shape and semantic scope below;
-the internal compiler architecture is feasibility-probed, not production-qualified.
+Status: Proposed. The public propagation contract is accepted in principle. DSL-only scope is confirmed;
+compiler architecture and KlumCast integration still require maintainer admission.
 
-Implementation status: Local design and opt-in probes only. Production implementation is not authorized.
+Implementation status: ADR and bounded, opt-in feasibility probes only. **AP-1 is not authorized or ready
+for authorization while the validation integration prerequisite remains unsettled.**
 
-Release: Conditional 4.1 candidate, subject to Hive release review; this ADR assigns no milestone.
+Release: Conditional 4.1 candidate, subject to Hive review; no milestone or curation change is made here.
 
 Tracking issue: [#890](https://github.com/klum-dsl/klum-ast/issues/890).
+Draft design PR: [#891](https://github.com/klum-dsl/klum-ast/pull/891).
 Implementation plan: [ADR 0029 plan](../implementation/adr-0029-default-only-annotation-propagation.md).
-Evidence: [decision brief and consumer-fit report](../implementation/issue-890-lifecycle-composition-decision-brief.md).
+Current evidence: [scheduling and validation investigation](../implementation/evidence/issue-890/schema-preprocessing.md).
+Historical alternatives and consumer fit: [decision brief](../implementation/issue-890-lifecycle-composition-decision-brief.md).
 
 Parent decisions: [ADR 0003](0003-builder-first-materialization.md),
 [ADR 0005](0005-generated-dsl-support-api.md), [ADR 0011](0011-shared-multi-groovy-compatibility-contract.md),
 [ADR 0014](0014-groovy4-jpms-boundary.md), [ADR 0020](0020-explicit-shared-model-builder-capabilities.md),
 and [ADR 0028](0028-annotation-driven-lifecycle-participants.md).
-Related: [ADR 0023](0023-schema-owned-constraint-annotations.md),
-[#888](https://github.com/klum-dsl/klum-ast/issues/888).
+Related: [ADR 0023](0023-schema-owned-constraint-annotations.md), [#888](https://github.com/klum-dsl/klum-ast/issues/888).
 
 ## Context and authority
 
-A domain annotation can select an external lifecycle participant or supply DefaultValues, but currently
-cannot itself add ordinary AutoCreate behavior. Schema Developers repeat annotations on each structural
-child. The original #890 investigation compared a built-in Creator token with AutoCreate meta-annotation
-resolution. The maintainer instead selected additive compile-time annotation propagation, preserving the
-applied domain annotation and the ordinary consumers of copied annotations.
+Schema Developers repeat AutoCreate beside domain annotations that select DefaultValues or lifecycle
+participants. ScHelm's reported examples are concrete, unkeyed direct relationships: OrderApplication's
+messaging/database/workload/api and OrderKafka's orderTopic/resultTopic. Its current use needs bare
+AutoCreate, retained domain members for defaults/handlers, and deterministic duplicate failure. No
+forwarding, nesting or customized AutoCreate configuration is required. This is Hive-relayed consumer-fit
+evidence; no ScHelm integration build was run locally.
 
-The scope extends to classes, fields and methods: a domain annotation may carry Builder.Query or Cluster,
-not only runtime lifecycle metadata. The maintainer confirmed default-only copying, duplicate failure,
-one level with nested propagation rejected, and a repeatable propagator selecting one annotation per
-occurrence. Existing domain members remain available to DefaultValues and participant handlers. Schema
-recompilation when propagation declarations change is explicitly accepted as safe.
+The maintainer selected a repeatable, retained propagator carrying one selected annotation type per request.
+The 2026-10-14 refinement limits execution exclusively to existing DSL Schemas. The former proposal to
+propagate onto arbitrary Groovy classes, including propagation of DSL itself, is superseded. A global
+compiler registration may be needed for scheduling; it must not grant global propagation semantics.
 
-The ScHelm consumer-fit review, relayed by KlumAST Hive on 2026-10-13, accepts this contract. Its current
-structural fields are concrete, unkeyed direct DSL relationships: OrderApplication.messaging/database/
-workload/api and OrderKafka.orderTopic/resultTopic. No current case needs AutoCreate key/type/value or
-coexisting explicit AutoCreate after migration. FactBinding currently always represents a fixed structural
-domain. KafkaTopicDefaults, ResourceClassDefault and HttpEndpointDefaults fit the DefaultValues use case.
-No demonstrated forwarding or nesting requirement remains. This is an externally reported fit review;
-the local investigation did not execute a ScHelm build.
+The maintainer proposed coordinating early transformations and made preservation of KlumCast constraints
+an explicit acceptance requirement. The new probes demonstrate that pre-local-discovery insertion alone
+is insufficient: an independently scheduled KlumCast global pass can run before insertion. Correctness
+must cover the complete resulting declaration, including constraints on existing explicit annotations.
 
 ## Decision
 
-### D1 — One generic, retained meta-annotation
+### D1 — Public marker and default-only semantics remain accepted in principle
 
-Introduce `com.blackbuild.klum.ast.PropagateAnnotation` in klum-ast-annotations. It has runtime retention,
-targets ANNOTATION_TYPE, is documented and is repeatable through a nested `List` container with matching
-target, retention and documentation. Its only member is `Class<? extends Annotation> value()`.
-No configuration, forwarding, priority or override member is published in this version.
-
-Groovy contract sketch:
+Introduce `com.blackbuild.klum.ast.PropagateAnnotation` in klum-ast-annotations, with runtime retention,
+ANNOTATION_TYPE target, documentation and repeatability through nested `List` with matching metadata.
+The only member is `Class<? extends Annotation> value()`. The annotation artifact stays Groovy-free.
 
 ```groovy
 @Retention(RetentionPolicy.RUNTIME)
@@ -68,15 +64,9 @@ Groovy contract sketch:
 }
 ```
 
-A Schema Developer places one or more requests on a domain annotation. When that domain annotation is
-applied to a source class, field or method, the compiler retains the domain annotation and adds an
-ordinary annotation of each selected type, with no explicitly supplied members. Copied annotations use
-their normal member defaults. The applied domain annotation may have its own arguments; they are not
-copied into the selected annotation.
-
-Retaining the domain annotation means preserving its AST use and ordinary retention/projection behavior,
-not upgrading SOURCE/CLASS retention to runtime. Existing consumers keep their own retention and
-precompiled-annotation requirements; propagation does not loosen KlumCast validation prerequisites.
+Retain the original domain annotation and append fresh selected annotations with no supplied members.
+The selected annotations use their normal defaults; domain annotation arguments are not forwarded.
+Normal SOURCE/CLASS/RUNTIME retention and existing projection rules apply to both original and copies.
 
 ```groovy
 @DefaultValues
@@ -93,155 +83,189 @@ precompiled-annotation requirements; propagation does not loosen KlumCast valida
 assert Application.Create.One().messaging.name == 'orders'
 ```
 
-No LifecycleParticipant declaration or handler is required. A participant domain annotation can use the
-same propagator, independently or together with DefaultValues. DefaultValues keeps its current behavior
-of applying nondefault domain members; copying defaults does not redefine that consumer contract.
+No LifecycleParticipant is required. The same marker may accompany participants or DefaultValues, alone
+or combined. DefaultValues continues to consume nondefault domain members. Customized AutoCreate
+key/type/value remains explicit with a domain annotation that does not also request AutoCreate.
 
-Each request identifies one annotation so future per-request customization can be designed without
-parallel configuration arrays. Repeatability is not authorization to add that future behavior now.
+### D2 — Execution is restricted to eligible DSL Schema declarations
 
-### D2 — Declaration scope and ordinary validation
+Use `DslAstHelper.isDSLObject` and the main DSL transformation's declaration boundaries; do not create
+another inheritance-based eligibility model. The proposed rules, supported by the bounded probes, are:
 
-Expand on original source classes, declared fields and declared methods, including non-DSL classes;
-otherwise a domain class annotation could not carry DSL itself. Do not add parameter, constructor,
-package or type-use propagation. Definition of a domain annotation is not execution of its requests
-against that annotation definition.
+| Declaration | Eligibility and existing restrictions |
+| --- | --- |
+| Explicitly annotated concrete or abstract DSL class | Eligible; abstractness does not prevent preprocessing or inherited contracts |
+| DSL interface | Excluded from expansion, matching DSLASTTransformation's early interface return; no new interface DSL surface |
+| Domain annotation definition | Metadata only; never an execution site |
+| Original declared Schema field or method | Eligible subject to ordinary target, static, shape and DSL checks; eligibility does not legalize invalid uses |
+| Inherited declaration | Expand at its source owner only; a compiled parent contributes its already emitted behavior |
+| Subclass without DSL | Do not infer eligibility from annotation inheritance; retain the existing non-DSL-subclass hierarchy error |
+| Static nested or nonstatic inner DSL class | Evaluate that class independently, using existing DSL checks; its enclosing class grants no eligibility |
+| Ordinary enclosing, nested or sibling class | Inert, including in a mixed source unit |
+| Generated getter, Builder twin or source mirror | Projection/output, never a new expansion site |
 
-Each copied type must be an annotation legal at the actual target. Ordinary semantic checks remain
-authoritative: Query purity and result restrictions, Cluster shape/static/generic rules, and AutoCreate
-eligibility/key/type/value behavior do not change. Generic propagation grants no right to use a copied
-annotation at a target where direct use would fail. Missing required annotation members are compilation
-errors; syntactic defaults do not waive checks such as Default requiring field/delegate/code on a field.
+Do not expand constructors, parameters, packages or type uses. **DSL is not a supported selected type**;
+reject that request at an eligible execution site. Ignore propagation metadata on non-DSL uses without
+adding copied annotations, generated members, propagation errors or altered local-transform discovery.
+Do not scan unrelated source units. Avoid member traversal after a class fails eligibility, and avoid AST
+mutation when no request contributes work. Existing unrelated compiler checks continue normally.
 
-Do not move existing runtime configuration errors to compilation as incidental cleanup. For example,
-bare AutoCreate's keyed/abstract failures retain ordinary behavior when creation is needed. Generic
-propagation introduces no new relationship whitelist beyond the copied annotations' existing contracts.
+### D3 — One level and duplicate failure
 
-### D3 — One level, duplicates fail
+Expand requests from actually applied domain annotations once. Reject a selected annotation that itself
+requests propagation, including self-reference and cycles. No recursion or silently ineffective nested
+requests. Recognize genuine repeatable requests and explicit containers in source and precompiled metadata,
+and genuine containers of applied domain annotations. Container normalization does not add another level.
 
-Expand requests from the actually applied domain annotations once. If a selected annotation itself
-declares propagation, reject the request; do not recurse or leave a nested request silently ineffective.
-This also excludes cycles and self-propagating declarations.
+Reject every duplicate contribution involving propagation, even if identical or the selected type is
+repeatable: explicit plus copied, repeated requests, repeated domain uses, or different contributing domains.
+No merge, deduplication, precedence or priority. Ordinary explicit-only repeatable annotations are unchanged.
+Retain existing downstream conflicts such as competing Creators and Query/Builder.Method categories.
 
-Reject every duplicate annotation contribution involving propagation at one declaration, even if the
-copies would have identical defaults or the selected annotation is repeatable. This includes explicit
-plus propagated annotations, two requests on one domain annotation and contributions from different
-domain annotations. No deduplication, member merge, explicit precedence or collector override mode.
-Existing explicit-only repeatable declarations retain their ordinary behavior.
+Before scheduling local transformations, reject non-annotation types, illegal targets and members without
+defaults, with domain → selected annotation → declaration provenance. Do not rely on late Groovy verification:
+wrong Required placement can reach its field cast, and bare annotations with missing members can escape
+Groovy compilation. This guard does not redefine existing direct-annotation behavior or runtime AutoCreate
+keyed/abstract failures.
 
-Recognize repeated PropagateAnnotation declarations and explicit containers in source and precompiled
-domain metadata. Normalizing a legitimate repeatable container is not recursive propagation. Repeated
-applied domain occurrences must not hide propagation contributions inside a container: recognize the
-standard repeatable relationship and apply the same duplicate rule. This adds no plural participant
-context or new runtime dispatch guarantee for repeatable domain annotations.
+### D4 — Prefer guarded propagation, with an explicit validation boundary
 
-After expansion, existing semantic conflicts still fail. AutoCreate plus an external same-phase Creator
-remains an ADR 0028 competing-creator error; Query plus Builder.Method remains an incompatible-category
-error. Diagnosis is independent of a runtime value that might otherwise skip creation.
+Recommend **approach B**, qualified by D5's mandatory KlumCast integration. One internal global entry at
+semantic analysis checks DSL eligibility, plans/validates contributions, attaches the complete batch, and
+requests validation of the effective declaration before normal local-transform discovery and execution.
+Keep these operations separate and testable. The fixed sequence is:
 
-Normalizing request/container order supplies deterministic diagnostics, not a new runtime execution
-order between annotations. Each consumer's existing ordering contract remains authoritative.
+```text
+existing DSL eligibility
+  → collect requests and check contribution legality
+  → append complete default-only batch with provenance
+  → KlumCast effective-declaration validation
+  → Groovy local collection/execution (existing Required, Optional, Cluster, DSL)
+```
 
-### D4 — Expand before local-transform discovery
+This is not a public preprocessing SPI, configurable priority system, plugin registry, reflective ordering
+scheme, second DSL framework or runtime lifecycle. Source/generated declaration snapshots and per-node
+bookkeeping prevent another expansion on projections. No repeated whole-compilation scan is required.
 
-Proposed compiler architecture: one global AST pass in klum-ast at semantic analysis, after type/import
-resolution and before Groovy collects local AST transforms. Use the ordinary global-transform discovery
-path; no schema-specific runtime interpreter, custom lifecycle phase or second graph traversal.
+| Concern | A: generic global baseline | B: DSL-guarded propagation | C: guarded Required/Optional coordinator |
+| --- | --- | --- | --- |
+| Scope | Violates revised DSL-only requirement | Matches it | Matches it if correctly guarded |
+| Phase/discovery | Early semantic insertion discovers local triggers | Same proven scheduling seam | Same seam; direct calls order only coordinator-owned operations |
+| Required/Optional ordering | Existing semantic locals precede canonical DSL | Already sufficient; no mutual dependency found | Fixed order callable, but no additional dependency demonstrated |
+| Validation | Same global-order bypass risk | Requires D5 integration | Requires D5 plus validation-before-lowering; otherwise false Required/Validate conflicts |
+| Generated parity | Historical positive examples, including now-disallowed carried DSL | Query/Cluster, Builders/Factories and mirror probes match direct controls | Not qualified after migration; duplicate lowering observed with current registrations |
+| Maintenance / double execution | Broad semantics and compatibility burden | Smallest change; original local registrations preserved | Converter adapters/retirement, idempotency, source positions and non-DSL compatibility needed |
+| Foreign local transforms | Technical baseline | Separately compiled foreign field transform discovered once | No stronger ordering against unrelated transforms |
+| Java/Groovy libraries | Both can supply metadata | Both exercised, including request containers | Same library encoding; converter scheduling adds no benefit |
+| Groovy 3/4/5 / JPMS | Temporary classpath baseline only | Cross-version probes and bounded module probe; shipped packaging still a gate | Cross-version negative ordering probes; no shipped coordinator qualification |
+| Diagnostics | Provenance needed | Target/configuration guards plus KlumCast provenance | Same, plus converter-produced Validate lacks source positions today |
 
-The pass snapshots original declarations, resolves direct requests and standard containers, validates
-contributions and appends fresh annotation nodes. Preserve the originating use's source position and
-enough internal provenance for usable errors. Process each original declaration once; generated getters,
-Builder twins, source mirrors and inherited declarations are not new expansion sites.
+C is technically callable, not intrinsically reliable. Both actual converters are semantic-analysis locals;
+Required maps explicit value/level to Validate.message/level, Optional adds Validate.Ignore. Both append
+Validate without idempotency or source position. They already precede canonical DSL processing. Cluster's
+field conversion is also semantic; Cluster projection and DSL generation are canonical. Query is consumed
+by DSL support and KlumCast, rather than being an independently registered Query transform.
 
-This ordering is substantive. A late semantic-analysis CompilationCustomizer can make AutoCreate work
-but miss Required's converter and Cluster's early field conversion. The global-pass feasibility probe
-does discover Required and both Cluster transforms, and produces Query twins and a DSL class normally.
-Production service/module packaging, foreign local transforms and interactions with other global
-transforms remain mandatory qualification gates. Do not use alphabetical transform sorting or reflection
-order as a public ordering contract.
+Calling converters under C while retaining their annotation registrations duplicates Validate. Removing
+registration from Required/Optional would also remove existing non-DSL behavior; safe migration would
+need compatibility adapters or an explicitly approved restriction. Groovy discovers registrations from
+the compiled annotation class's reflection metadata, so removing an AST meta-annotation is not retirement.
+C also lets a later independent KlumCast pass see Required plus converter-generated Validate as an illegal
+explicit combination. A validation handoff and skip protocol would be necessary. No demonstrated benefit
+justifies those changes now. **Move neither Required nor Optional.** A general validation redesign or
+Required runtime-phase rewrite is outside this ADR.
 
-Required's direct runtime validation refactor was permitted by the maintainer, but is not a prerequisite:
-the demonstrated early architecture discovers the existing converter. Keep it outside the implementation
-slices unless new evidence requires an independently reviewed change.
+The guarantee is insertion before Groovy's local collection on the qualified compiler versions, not
+universal ordering. There is no promise about relative order among independent global transformations,
+independent same-phase locals, third-party code that rewrites declarations, or annotations created after
+this preprocessing boundary. Unsupported interactions must be qualified or diagnosed, not silently widened.
 
-### D5 — Existing generated and runtime contracts
+### D5 — KlumCast correctness is a prerequisite, not an assumed consequence of copying
 
-The resulting declaration is interpreted like the equivalent directly annotated declaration. Original
-domain annotations retain their ordinary retention/projection behavior. Copied runtime-retained annotations
-are physically visible to reflection and singular participant lookup. Ordinary source retention rules also apply to copies.
-Do not preserve the earlier runtime-only candidate's absence of synthetic annotations as a contract.
+KlumCast 0.4.0 has a global semantic pass. It discovers validation bindings transitively through actual
+meta-annotations (KlumCastValidated, KlumCastValidator, CheckBinding); it does not follow Class-valued
+propagation requests. The engine validates the actual annotation use and explicitly supplied members,
+uses compiled annotation reflection metadata, and records VALIDATED on the AnnotationNode. Constraint
+annotation definitions are skipped as use sites when they carry validation bindings. Selected-type
+metadata and the original domain annotation have distinct validation roles.
 
-Builder.Query and Cluster intentionally affect generated contracts, exactly as their direct use does.
-Generated Foo_DSL Builder/Factory interfaces, hidden implementations, child factories and IDE source
-mirrors must match explicit-annotation controls. Propagation grants no Model/Builder substitutability,
-new public generated type, metadata facade or client construction API.
+The probes demonstrate two release-blocking failure modes:
 
-Inherited fields/methods retain their original declarations; do not re-expand them on each subclass.
-For type annotations, normal copied-annotation inheritance applies. Do not manufacture inherited copies
-because a domain annotation is @Inherited, or promise to rerun a superclass's transform in subclasses.
-Existing shadowing and DSL interface restrictions remain.
+1. KlumCast first, propagation second: a copied bare Default misses its configuration constraint.
+2. Validating only copies: an existing Key already marked VALIDATED misses a subsequently copied
+   Field conflict. Complete effective-declaration validation must recheck affected existing constraints.
 
-AutoCreate still uses the same FactoryHelper, checked assignment, ownership/session, Templates scope,
-construction path and phase slot. Creation precedes field mutation; direct fields precede Cluster
-fallback and callbacks; earlier phases do not replay for late-created children. Mutator FAIL/SKIP,
-DefaultValues precedence, materialization, validation and serialization behavior are unchanged.
-Handlers/contexts and new propagation compiler state are not serialized into Models or Templates.
+Calling the existing ValidationHandler engine proves applicable checks can be preserved, with provenance
+and original source coordinates. Experimental metadata invalidation demonstrates the second gap can be
+closed, but is not a supported production protocol and can duplicate diagnostics already reported by the
+first pass. Do not publish propagation using only the new-copy check or raw metadata removal.
 
-### D6 — Compilation and compatibility
+| Integration | Assessment |
+| --- | --- |
+| A: copy KlumCast meta-annotations onto the domain annotation | Reject as primary solution. Source ClassNode mutation cannot alter precompiled reflection metadata; member constraints would address domain members instead of the effective selected annotation. Definition-time and use-site constraints can be confused. |
+| B: KlumCast resolves propagation transitively | Possible with a separately agreed integration seam, but requires reading a KlumAST-specific request graph or a new protocol and still handling effective target/member semantics. Not currently supported; unnecessary library coupling for this bounded need. |
+| C: preprocessing requests validation through KlumCast's existing engine | Recommend a supported, narrow effective-declaration validation entry/handoff. KlumAST owns expansion, target/default checks and origin; KlumCast owns constraint discovery, checks, validation state and diagnostic deduplication. No duplicate validator implementation. |
 
-Domain annotation libraries may be authored in Java or Groovy. The marker/container contain only JDK
-types and preserve the annotation artifact's Groovy-free interface. Expansion occurs when Groovy
-compiles consuming declarations with the new klum-ast compiler available; Java javac does not execute
-this Groovy transform. Runtime-only consumers need no compiler or runtime propagation interpreter.
+Recommend a **separate KlumCast prerequisite issue/change**, authorized independently, to expose or confirm
+a supported compiler integration for validating an annotation batch against the final declaration despite
+prior validation. It must preserve structured diagnostics, composition paths, source/related locations,
+coannotation constraints and at-most-once reporting; bound invalidation to declarations actually changed.
+The current engine class and metadata are public Java symbols, but not an established mutation protocol.
+Current KlumCast artifacts are automatic modules exporting their packages; this does not establish a
+future encapsulation contract. Any explicit descriptor must export/qualify the agreed integration seam.
 
-Changing a domain annotation's propagation requests requires recompiling consuming Schemas. Existing
-Schema binaries keep their emitted annotation presence and generated code. Member-default evolution
-of the copied annotation itself follows ordinary annotation semantics; this is not a promise to freeze
-all runtime defaults independently of their defining annotation library.
+KlumAST's subsequent AP-1 integration consumes that prerequisite. No KlumCast production code is changed
+here and no prerequisite issue is created by this PR. Maintainer approval of ownership/API is outstanding.
+A direct internal engine dependency could avoid a separate library change only with explicit agreement
+that its state/diagnostic protocol is supported and executable duplicate-reporting qualification; it is
+not the current recommendation.
 
-New requests are not supported by older compilers. Document the minimum compiler version and consistent
-annotation/compiler dependencies; qualify the consumer build instead of claiming runtime fallback.
-Switching an established domain annotation to imply creation is a deliberate consumer migration:
-remove old explicit AutoCreate uses in recompiled Schemas or choose a separate structural annotation.
+Correctness gaps block every affected capability, not just Cluster. Basic origin/selected/declaration
+context is an implementation acceptance requirement. Further editorial improvements may be deferred only
+once constraints and understandable locations/provenance are preserved. Same-source validated domain
+annotations retain KlumCast's precompiled requirement. Java javac emits libraries; it does not run Groovy
+AST transformations or Groovy use-site validation.
 
-Qualify one Java-17 production artifact across Groovy 3/4/5 and applicable Groovy 4/5 JPMS using normal
-module access. Source IDE recognition is a separate authoring gate; compiled source mirrors alone do
-not demonstrate that IntelliJ understands every domain alias before compilation.
+### D6 — Generated, runtime and compatibility contracts
+
+Copied Query and Cluster affect generated contracts exactly as equivalent explicit annotations do. Verify
+public Foo_DSL Builder/Factory surfaces, inherited capabilities, hidden implementations, cluster factories
+and IDE source mirrors; mirrors are not another execution site or proof of editor alias recognition.
+Do not change generated public APIs, Model/Builder separation or runtime construction/lifecycle machinery.
+AutoCreate keeps its ordinary FactoryHelper, assignment, ownership, Templates and lifecycle ordering;
+DefaultValues and handlers still consume the retained original domain annotation. No compiler state is
+serialized into Models or Templates.
+
+Changing propagation declarations requires recompiling consuming Schemas; this requirement is accepted.
+Previously compiled Schemas keep their emitted annotations/code. Normal member-default evolution follows
+ordinary annotation rules. No runtime interpreter, compatibility fallback or retrofit is introduced.
+
+Qualify Java 17 and Groovy 3/4/5 with consistent annotation/compiler dependencies. Groovy 3 remains
+classpath-only; named-module support is Groovy 4/5 under ADR 0014, without access-bypass JVM flags.
+The temporary external service overlay cannot access the compiler-internal DslAstHelper from an unnamed
+module on Groovy 4/5; the independent KlumCast engine access probe tests its automatic-module boundary.
+Production must keep the helper call within the compiler module rather than widen exports. These probes
+are not proof of production service/module packaging or a named Schema consumer. AP-4 must qualify shipped activation, library modules and runtime-only consumers. A real ScHelm
+integration follows authorized production implementation, not this investigation.
 
 ## Consequences and exclusions
 
-Schema authors reuse domain annotations without repeating default-valued framework annotations, while
-all existing compiler/runtime semantics remain at their current consumers. Complexity concentrates in
-one early compiler producer and its declaration diagnostics rather than multiple runtime resolvers.
+The feature is narrow Schema preprocessing. It is not general-purpose Groovy annotation composition.
+Neither eligibility nor propagation touches unrelated declarations, and existing direct annotations keep
+their transformation paths. The validation prerequisite is necessary even if C is rejected.
 
-No fixed annotation values, member forwarding, nested expansion, generic annotation execution framework,
-runtime retrofit, ScHelm provider policy, lifecycle containers, HANDLE or catch-up lifecycle is added.
-This is annotation expansion, not a new lifecycle-participant API.
-
-[#888](https://github.com/klum-dsl/klum-ast/issues/888) remains separate. This ADR acts only where a domain
-annotation requests propagation. Supporting class declarations does not make AutoCreate legal on a class,
-opt a whole Schema into child defaults, reinterpret Required/Optional or add an auto-create opt-out.
-
-## Rejected alternatives
-
-- Creator handler omission/sentinel: narrow lifecycle-only representation; superseded by the confirmed
-  generic class/field/method requirement. No public no-op handler is introduced.
-- AutoCreate on ANNOTATION_TYPE with runtime transitive resolution: adds per-consumer interpretation and
-  does not cover Query/Cluster generation as ordinary early annotations.
-- Plain AnnotationCollector alias: can bundle AutoCreate and a separate domain annotation today, but
-  replaces its applied alias and has broader argument-mapping/duplicate policies than this contract.
-- Late copying before only DSL canonicalization: misses early local-transform discovery.
-- Recursive composition, duplicate precedence and configured-member forwarding: explicitly excluded.
-- One class-array request: replaced by the confirmed repeatable single-annotation shape.
+No forwarding, configured copies, merge rules, priorities, recursion, public SPI, ScHelm-specific policy,
+new runtime machinery or general validation redesign. Issue #888 remains separate; this ADR does not
+make AutoCreate legal on a class, imply defaults for unannotated fields or add an opt-out.
 
 ## Acceptance and decision boundary
 
-Local probes qualify feasibility: 17 cases per Groovy 3/4/5 lane, zero failures/errors/skips. The earlier
-focused lifecycle baseline passed 56 cases per lane. ScHelm's reported review qualifies current use-case
-fit; neither is full production or IDE acceptance. The [plan](../implementation/adr-0029-default-only-annotation-propagation.md)
-names the required gates and commit boundaries.
+The [evidence](../implementation/evidence/issue-890/schema-preprocessing.md) distinguishes observations,
+negative probes, proposals and remaining production gates. The [plan](../implementation/adr-0029-default-only-annotation-propagation.md)
+maps the contract to executable acceptance and reasoned slices. The historical generic probes remain a
+technical baseline, not the recommended scope or evidence that KlumCast correctness is already satisfied.
 
-Hive owns review of this proposed ADR, canonical #890 scope reconciliation, implementation admission
-and release placement. The maintainer subsequently authorized a draft design PR, with Hive-selected
-Related: #890 and no curation/release-index changes. That separate publication authority does not authorize
-production implementation, issue edits, merge or release; this ADR remains proposed.
+Pending maintainer decisions: admit B over C; confirm interface exclusion matches the existing Schema
+boundary; approve the separate KlumCast prerequisite and supported integration contract. Until then,
+**not ready for AP-1 implementation authorization**. Publishing this design revision does not authorize
+production code, tracker/milestone/curation changes, merge or release. Hive retains reconciliation ownership.
