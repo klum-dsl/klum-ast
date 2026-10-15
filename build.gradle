@@ -210,6 +210,47 @@ tasks.named('renderVersionedDocumentation', RenderVersionedDocumentationTask) {
 }
 tasks.named('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {
     dependsOn(versionedDocumentationJavadocTasks)
+    repositoryDirectory.set(layout.projectDirectory)
+    liveContractFiles.from(fileTree('docs/user'), file('README.md'), file('build.gradle'),
+            file('buildSrc/src/main/groovy/klum-ast.base-conventions.gradle'),
+            fileTree('.github/workflows'), file('.github/scripts/write-documentation-landing.sh'),
+            file('release/plugin-consumer/settings.gradle'), file('release/maven-consumer/settings.gradle'))
+    historicalDocumentationRevision.set(providers.exec {
+        commandLine('git', 'rev-parse', 'v3.0.1^{commit}')
+    }.standardOutput.asText.map { it.trim() })
+    // These providers are declared task inputs: Gradle materializes their model projections before serialization.
+    // Resolve lazily so consuming build scripts can still configure the inspected tasks after registration.
+    contractDependencies.set(providers.provider {
+        ['renderVersionedDocumentation', 'publishMavenProductToSonatype', 'closeSonatypeStagingRepository',
+         'renderLocalDocumentation', 'verifyLocalDocumentationSite', 'previewLocalDocumentation',
+         'renderLocalDocumentationFiles', 'preparePendingDocumentationStage'].collectEntries { name ->
+            def inspected = tasks.named(name).get()
+            [(name): inspected.taskDependencies.getDependencies(inspected)*.path.sort()]
+        }
+    })
+    expectedMavenPublicationTasks.set(providers.provider {
+        subprojects.findAll { it.tasks.findByName('publishToSonatype') != null }
+                .collect { ":${it.name}:publishToSonatype".toString() }.sort()
+    })
+    localRenderSettings.set(providers.provider {
+        def inspected = renderLocalDocumentationFiles.get()
+        [version: inspected.documentationVersion.get(), status: inspected.status.get(),
+         brandingManifest: inspected.brandingManifestPath.get(),
+         objectDirectory: inspected.objectDirectory.get().asFile.canonicalPath,
+         outputDirectory: inspected.outputDirectory.get().asFile.canonicalPath,
+         expectedOutputDirectory: layout.buildDirectory.dir('versioned-documentation/local-review').get().asFile.canonicalPath,
+         revision: inspected.revision.get(), rendererRevision: inspected.rendererRevision.get()]
+    })
+    wikiPublisherDescription.set(providers.provider { tasks.findByName('gitPublishPush')?.description ?: '' })
+    standardJavadocs.set(versionedDocumentationJavadocTasks.collect { provider ->
+        def inspected = provider.get()
+        def input = objects.newInstance(VerifyVersionedDocumentationRendererTask.ModuleJavadoc)
+        input.module.set(inspected.project.name)
+        input.outputDirectory.set(layout.dir(providers.provider { inspected.destinationDir }))
+        input.outputFiles.from(input.outputDirectory)
+        input.sourceFiles.from(providers.provider { inspected.source })
+        input
+    })
 }
 
 def releaseVersion = providers.gradleProperty("release.version")
