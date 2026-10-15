@@ -1,5 +1,9 @@
 # 4.1.0 (unreleased)
 
+- Reject primitive `boolean` Schema fields annotated with direct or propagated `@Required`, with a diagnostic
+  naming the field and recommending boxed `Boolean`. Required `Boolean` still accepts `false`
+  ([#899](https://github.com/klum-dsl/klum-ast/issues/899)).
+
 - Added default-only `@PropagateAnnotation` composition on DSL Schema classes, fields and methods,
   with one-hop, target/default-member and duplicate checks and normal Required/AutoCreate/Query/Cluster
   behavior. Repeated requests and genuine applied-domain containers are qualified across source and

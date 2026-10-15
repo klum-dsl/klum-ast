@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast
 import com.blackbuild.annodocimal.generator.ProjectionPolicy
 import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.layer3.Cluster
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
@@ -360,24 +361,56 @@ class AnnotationPropagationContractTest extends AbstractDSLSpec {
         !error.message.contains('Effective annotation origin')
     }
 
-    def 'Required boolean lowering preserves the existing direct behavior'() {
+    @Issue('899')
+    def '#annotation rejects primitive boolean fields'() {
         when:
-        createSecondaryClass("""
-            @DSL class Direct { @Required boolean enabled }
-            @DSL class Application { @Needed boolean enabled }
-        """)
-
-        then:
-        notThrown(MultipleCompilationErrorsException)
-        [Direct, Application].every { it.getDeclaredField('enabled').getAnnotationsByType(Validate).size() == 1 }
-        Application.Create.With(enabled: true).enabled == Direct.Create.With(enabled: true).enabled
-
-        when: 'direct Validate still enforces its primitive boolean restriction'
-        createSecondaryClass('@DSL class Invalid { @Validate boolean enabled }')
+        createSecondaryClass("@DSL class Invalid { $annotation boolean enabled }")
 
         then:
         def error = thrown(MultipleCompilationErrorsException)
-        error.message.contains("Validation is not valid on 'boolean' fields")
+        error.message.contains(restriction)
+
+        where:
+        annotation  | restriction
+        '@Required' | "@Required is not valid on primitive 'boolean' field 'enabled', use 'Boolean' instead."
+        '@Needed'   | "@Required is not valid on primitive 'boolean' field 'enabled', use 'Boolean' instead."
+        '@Validate' | "Validation is not valid on 'boolean' fields, use 'Boolean' instead."
+    }
+
+    @Issue('899')
+    def '#annotation preserves boxed false and Required Groovy truth'() {
+        given:
+        createSecondaryClass("""
+            @DSL class Application {
+                $annotation Boolean enabled
+                $annotation String name
+            }
+        """)
+
+        when:
+        def model = Application.Create.With(enabled: false, name: 'configured')
+
+        then:
+        model.enabled == false
+        model.name == 'configured'
+        ['enabled', 'name'].every { Application.getDeclaredField(it).getAnnotationsByType(Validate).size() == 1 }
+
+        when:
+        Application.Create.With(enabled: null, name: 'configured')
+
+        then:
+        def missingBoolean = thrown(KlumValidationException)
+        missingBoolean.message.contains('enabled')
+
+        when:
+        Application.Create.With(enabled: false, name: '')
+
+        then:
+        def emptyName = thrown(KlumValidationException)
+        emptyName.message.contains('name')
+
+        where:
+        annotation << ['@Required', '@Needed']
     }
 
     private void compileJavaConsumer() {
