@@ -10,4 +10,11 @@ repositories {
 dependencies {
     implementation 'org.commonmark:commonmark:0.28.0'
     implementation 'org.commonmark:commonmark-ext-gfm-tables:0.28.0'
+    testImplementation gradleTestKit()
+    testImplementation 'org.spockframework:spock-core:2.4-groovy-3.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
