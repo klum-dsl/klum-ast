@@ -33,6 +33,7 @@ import spock.lang.Specification
 
 import java.io.File
 import java.util.Map
+import java.util.zip.ZipFile
 
 @Issue("658")
 class TemplateScopePublishedConsumerTest extends Specification {
@@ -64,6 +65,34 @@ class TemplateScopePublishedConsumerTest extends Specification {
         }
     }
 
+    @Issue('895')
+    def "nested publication retains captured source and version after the original checkout advances"() {
+        given: 'two existing commits; advancing this disposable checkout creates no commits'
+        String capturedRevision = System.getProperty('klumPublicationRevision')
+        String previousRevision = git(projectDirectory(), 'rev-parse', "${capturedRevision}^").trim()
+        File original = temporaryFolder.newFolder('advancing-checkout')
+        git(projectDirectory(), 'clone', '--no-hardlinks', '--no-checkout', projectDirectory().absolutePath, original.absolutePath)
+        git(original, 'reset', '--mixed', previousRevision)
+        File fixture = isolatedPublicationProject(original, previousRevision)
+        File source = new File(fixture, 'klum-ast-test-support/src/main/java/com/blackbuild/klum/ast/testsupport/TemplateScope.java')
+        byte[] capturedSource = source.bytes
+
+        when: 'the original Git identity and source change after the fixture has been captured'
+        git(original, 'reset', '--mixed', capturedRevision)
+        new File(original, 'build.gradle').text = "throw new GradleException('active checkout must not be configured')\n"
+        BuildResult result = publicationRunner(fixture, 'properties').build()
+
+        then: 'only the independent source, Git metadata and outer build version are observed'
+        git(original, 'rev-parse', 'HEAD').trim() == capturedRevision
+        git(fixture, 'rev-parse', 'HEAD').trim() == previousRevision
+        source.bytes == capturedSource
+        result.output.readLines().contains("version: ${version()}".toString())
+        result.output.readLines().contains("projectDir: ${fixture.canonicalPath}".toString())
+        result.output.readLines().contains("buildDir: ${new File(fixture, 'build').canonicalPath}".toString())
+        !new File(original, '.gradle').exists()
+        !new File(original, 'build').exists()
+    }
+
     private void publishFixture(File repository) {
         File initScript = temporaryFolder.newFile('publish-fixture.init.gradle')
         initScript.text = '''
@@ -80,9 +109,8 @@ class TemplateScopePublishedConsumerTest extends Specification {
             }
         '''.stripIndent()
 
-        BuildResult result = GradleRunner.create()
-                .withProjectDir(projectDirectory())
-                .withArguments(
+        File fixture = isolatedPublicationProject(projectDirectory(), System.getProperty('klumPublicationRevision'))
+        BuildResult result = publicationRunner(fixture,
                         '--init-script', initScript.absolutePath,
                         "-PtemplateScopeFixtureRepository=${repository.toURI()}",
                         ':klum-ast-annotations:publishMavenJavaPublicationToTemplateScopeFixtureRepository',
@@ -94,6 +122,36 @@ class TemplateScopePublishedConsumerTest extends Specification {
                 .build()
 
         assert result.task(':klum-ast-test-support:publishMavenJavaPublicationToTemplateScopeFixtureRepository').outcome == TaskOutcome.SUCCESS
+    }
+
+    private File isolatedPublicationProject(File original, String revision) {
+        File fixture = temporaryFolder.newFolder()
+        git(original, 'clone', '--no-hardlinks', '--no-checkout', original.absolutePath, fixture.absolutePath)
+        git(fixture, 'reset', '--mixed', revision)
+        git(fixture, 'remote', 'remove', 'origin')
+        new ZipFile(System.getProperty('klumPublicationSource')).withCloseable { zip ->
+            zip.entries().each { entry ->
+                if (entry.directory) return
+                File target = new File(fixture, entry.name)
+                target.parentFile.mkdirs()
+                zip.getInputStream(entry).withCloseable { input -> target.withOutputStream { it << input } }
+            }
+        }
+        fixture
+    }
+
+    private static GradleRunner publicationRunner(File fixture, String... arguments) {
+        GradleRunner.create()
+                .withProjectDir(fixture)
+                .withArguments(arguments.toList() + ["-Prelease.version=${version()}".toString()])
+    }
+
+    private static String git(File directory, String... arguments) {
+        Process process = new ProcessBuilder(['git'] + arguments.toList())
+                .directory(directory).redirectErrorStream(true).start()
+        String output = process.inputStream.text
+        assert process.waitFor() == 0 : output
+        output
     }
 
     private BuildResult runConsumer(File repository, Map<String, ?> lane) {

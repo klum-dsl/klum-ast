@@ -36,6 +36,32 @@ tasks.withType(Test).configureEach {
     systemProperty 'klumVersion', rootProject.version.toString()
 }
 
+// Capture current source inputs, including local edits, without active build outputs or Git metadata.
+def publicationSource = tasks.register('templateScopePublicationSource', Zip) {
+    archiveFileName = 'publication-source.zip'
+    destinationDirectory = layout.buildDirectory.dir('template-scope-publication')
+    from(rootProject.projectDir) {
+        include '*.gradle', 'gradle.properties', 'LICENSE', 'README.md'
+        include 'buildSrc/*.gradle', 'buildSrc/src/**'
+        rootProject.subprojects.each { include "${it.name}/build.gradle", "${it.name}/src/**" }
+        exclude '**/build/**', '**/.gradle/**', '**/.git/**'
+    }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+def publicationRevision = providers.exec {
+    workingDir rootProject.projectDir
+    commandLine 'git', 'rev-parse', 'HEAD'
+}.standardOutput.asText.get().trim()
+
+tasks.named('test', Test) {
+    dependsOn publicationSource
+    inputs.file(publicationSource.flatMap { it.archiveFile })
+    systemProperty 'klumPublicationSource', publicationSource.get().archiveFile.get().asFile.absolutePath
+    systemProperty 'klumPublicationRevision', publicationRevision
+}
+
 ['groovy4Tests', 'groovy5Tests'].each { lane ->
     sourceSets.named(lane) {
         groovy.exclude 'com/blackbuild/klum/ast/testsupport/TemplateScopePublishedConsumerTest.groovy'
