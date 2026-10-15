@@ -1,0 +1,104 @@
+{
+  "samples": [
+    {
+      "mode": "before",
+      "negative_control": null,
+      "source_head": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_revision": "49cc93c85e61d6ca795c790e7d81f11e23a728d6",
+      "advanced_revision": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_version": "4.1.0-dev.448.uncommitted+49cc93c",
+      "test_source_sha256": "1d8b29d2b3903488df90232db517ccd4d74cd395edea00092ceea7b278af884a",
+      "build_source_sha256": "0e9a3c0d9a00ad9978b39da4d949137eff7bc4cbe598919c7b991513d4aee322",
+      "java_version": [
+        "openjdk version \"17.0.3\" 2022-04-19 LTS",
+        "OpenJDK Runtime Environment Zulu17.34+19-CA (build 17.0.3+7-LTS)",
+        "OpenJDK 64-Bit Server VM Zulu17.34+19-CA (build 17.0.3+7-LTS, mixed mode, sharing)"
+      ],
+      "wrapper_seconds": 41.97,
+      "exit_code": 1,
+      "suite": {
+        "tests": "1",
+        "failures": "1",
+        "errors": "0",
+        "skipped": "0",
+        "time": "35.617"
+      },
+      "failure_kind": "missing captured-version support POM"
+    },
+    {
+      "mode": "after",
+      "negative_control": null,
+      "source_head": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_revision": "49cc93c85e61d6ca795c790e7d81f11e23a728d6",
+      "advanced_revision": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_version": "4.1.0-dev.448.uncommitted+49cc93c",
+      "test_source_sha256": "1a7d5f806b14201b667b559ceea8826c98a20c4276fb5e769c90f1099c810f28",
+      "build_source_sha256": "0e9a3c0d9a00ad9978b39da4d949137eff7bc4cbe598919c7b991513d4aee322",
+      "java_version": [
+        "openjdk version \"17.0.3\" 2022-04-19 LTS",
+        "OpenJDK Runtime Environment Zulu17.34+19-CA (build 17.0.3+7-LTS)",
+        "OpenJDK 64-Bit Server VM Zulu17.34+19-CA (build 17.0.3+7-LTS, mixed mode, sharing)"
+      ],
+      "wrapper_seconds": 61.659,
+      "exit_code": 0,
+      "suite": {
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "54.724"
+      },
+      "failure_kind": null
+    },
+    {
+      "mode": "after",
+      "negative_control": "live-root",
+      "source_head": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_revision": "49cc93c85e61d6ca795c790e7d81f11e23a728d6",
+      "advanced_revision": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_version": "4.1.0-dev.448.uncommitted+49cc93c",
+      "test_source_sha256": "82544ad5390da71a35bae12f87be2e09cf913668a2079075b1779790a7d478c0",
+      "build_source_sha256": "0e9a3c0d9a00ad9978b39da4d949137eff7bc4cbe598919c7b991513d4aee322",
+      "java_version": [
+        "openjdk version \"17.0.3\" 2022-04-19 LTS",
+        "OpenJDK Runtime Environment Zulu17.34+19-CA (build 17.0.3+7-LTS)",
+        "OpenJDK 64-Bit Server VM Zulu17.34+19-CA (build 17.0.3+7-LTS, mixed mode, sharing)"
+      ],
+      "wrapper_seconds": 36.981,
+      "exit_code": 1,
+      "suite": {
+        "tests": "1",
+        "failures": "1",
+        "errors": "0",
+        "skipped": "0",
+        "time": "30.437"
+      },
+      "failure_kind": "independent project directory assertion"
+    },
+    {
+      "mode": "after",
+      "negative_control": "live-version",
+      "source_head": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_revision": "49cc93c85e61d6ca795c790e7d81f11e23a728d6",
+      "advanced_revision": "aa55ed9a3c2266645cff0f53f3a06ce9c69e6f90",
+      "captured_version": "4.1.0-dev.448.uncommitted+49cc93c",
+      "test_source_sha256": "0a8f4c78f6412594fe8c4ef99f4e4906a414daeaec704255536655e7a4a480e7",
+      "build_source_sha256": "0e9a3c0d9a00ad9978b39da4d949137eff7bc4cbe598919c7b991513d4aee322",
+      "java_version": [
+        "openjdk version \"17.0.3\" 2022-04-19 LTS",
+        "OpenJDK Runtime Environment Zulu17.34+19-CA (build 17.0.3+7-LTS)",
+        "OpenJDK 64-Bit Server VM Zulu17.34+19-CA (build 17.0.3+7-LTS, mixed mode, sharing)"
+      ],
+      "wrapper_seconds": 48.461,
+      "exit_code": 1,
+      "suite": {
+        "tests": "1",
+        "failures": "1",
+        "errors": "0",
+        "skipped": "0",
+        "time": "41.965"
+      },
+      "failure_kind": "captured version assertion"
+    }
+  ]
+}
