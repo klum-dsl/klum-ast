@@ -26,24 +26,61 @@ package com.blackbuild.klum.ast.docs
 import groovy.json.JsonOutput
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Nested
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
+
 import org.commonmark.node.AbstractVisitor
 import org.commonmark.node.Link
 import org.commonmark.parser.Parser
 
+import javax.inject.Inject
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.security.MessageDigest
 
-/** Hermetic acceptance fixtures for the VD-1 renderer contract. */
+/** Hermetic acceptance fixtures and live build/release assertions for the VD-1 renderer contract. */
+@DisableCachingByDefault(because = 'Live verification has no outputs and must execute on every invocation')
 abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
+
+    @Internal abstract DirectoryProperty getRepositoryDirectory()
+    @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getLiveContractFiles()
+    @Input abstract Property<String> getHistoricalDocumentationRevision()
+    @Input abstract MapProperty<String, List<String>> getContractDependencies()
+    @Input abstract ListProperty<String> getExpectedMavenPublicationTasks()
+    @Input abstract MapProperty<String, String> getLocalRenderSettings()
+    @Input abstract Property<String> getWikiPublisherDescription()
+    @Nested abstract ListProperty<ModuleJavadoc> getStandardJavadocs()
+    @Inject abstract FileSystemOperations getFileSystemOperations()
+
+    /** Retain file trees so source membership is inspected after the Javadoc prerequisites execute. */
+    abstract static class ModuleJavadoc {
+        @Input abstract Property<String> getModule()
+        @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
+        abstract ConfigurableFileCollection getOutputFiles()
+        @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
+        abstract ConfigurableFileCollection getSourceFiles()
+        @Internal abstract DirectoryProperty getOutputDirectory()
+    }
 
     @TaskAction
     void verifyRendererContract() {
-        assertNoAuthoredPresentationHtml(project.rootDir)
-        assertNoLegacyKlumVersionPlaceholder(project.rootDir)
-        assertNoWikiStyleLinksOutsideCode(project.rootDir)
-        String readme = new File(project.rootDir, 'README.md').text
+        assertNoAuthoredPresentationHtml(repositoryDirectory.get().asFile, historicalDocumentationRevision.get())
+        assertNoLegacyKlumVersionPlaceholder(repositoryDirectory.get().asFile)
+        assertNoWikiStyleLinksOutsideCode(repositoryDirectory.get().asFile)
+        String readme = new File(repositoryDirectory.get().asFile, 'README.md').text
         assertContains(readme, 'https://klum-dsl.github.io/klum-ast/',
                 'README must use the canonical versioned documentation entry point')
         assertTrue(!containsCurrentAuthoringDocumentationLink(readme),
@@ -56,7 +93,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'README must retain intentional exact historical documentation links')
         File fixture = Files.createTempDirectory(temporaryDir.toPath(), 'documentation-renderer-').toFile()
         File outputs = new File(temporaryDir, 'outputs')
-        project.delete(outputs)
+        fileSystemOperations.delete { delete(outputs) }
         outputs.mkdirs()
         initializeFixture(fixture)
         Map<String, File> moduleJavadocs = initializeModuleJavadocs(fixture)
@@ -91,7 +128,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'public RC rendering must not retain a portable or legacy KlumAST version placeholder')
         assertContains(new File(fixture, 'docs/user/Guide/Nested.md').text, '<klum-version>',
                 'source documentation must remain portable after rendering an exact version')
-        assertContains(new File(project.rootDir, 'docs/user/assets/migrate-3x-to-4x-builder-first.sh').text, 'if [[ -n',
+        assertContains(new File(repositoryDirectory.get().asFile, 'docs/user/assets/migrate-3x-to-4x-builder-first.sh').text, 'if [[ -n',
                 'the migration script must retain literal double-bracket syntax')
         assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
                 'authoring-root escapes must become immutable repository-source links')
@@ -347,80 +384,71 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
             VerifyVersionedDocumentationRendererTask.render(fixture, new File(outputs, 'merged'), revision, '4.0.0-rc.1', 'public-rc', merged)
         }
 
-        def renderTask = project.tasks.named('renderVersionedDocumentation').get()
-        Set<String> directDependencies = renderTask.taskDependencies.getDependencies(renderTask)*.path as Set
+        Map<String, List<String>> dependencies = contractDependencies.get()
+        Set<String> directDependencies = dependencies['renderVersionedDocumentation'] as Set
         Set<String> expectedDependencies = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { ":$it:javadoc".toString() } as Set
         if (!directDependencies.containsAll(expectedDependencies))
             throw new GradleException("Exact-version rendering must depend on every allowed module Javadoc task; actual direct dependencies: $directDependencies")
         assertTrue(!directDependencies.contains(':klum-ast-bom:javadoc'), 'BOM must not be wired into exact-version API rendering')
 
-        def mavenPublicationTask = project.tasks.named('publishMavenProductToSonatype').get()
-        Set<String> mavenPublicationDependencies = mavenPublicationTask.taskDependencies.getDependencies(mavenPublicationTask)*.path as Set
-        Set<String> expectedMavenPublicationDependencies = project.subprojects.findAll { subproject ->
-            subproject.tasks.findByName('publishToSonatype') != null
-        }.collect { subproject ->
-            ":${subproject.name}:publishToSonatype".toString()
-        } as Set
+        Set<String> mavenPublicationDependencies = dependencies['publishMavenProductToSonatype'] as Set
+        Set<String> expectedMavenPublicationDependencies = expectedMavenPublicationTasks.get() as Set
         assertTrue(!expectedMavenPublicationDependencies.empty,
                 'the protected Maven publication aggregate must discover at least one Sonatype publication task')
         assertTrue(mavenPublicationDependencies.containsAll(expectedMavenPublicationDependencies),
                 "the protected Maven publication aggregate must depend on every Sonatype publication task; actual direct dependencies: $mavenPublicationDependencies")
-        def pluginAssemblyTask = project.project(':klum-ast-gradle-plugin').tasks.named('assemble').get()
-        assertTrue(mavenPublicationDependencies.contains(pluginAssemblyTask.path),
+        assertTrue(mavenPublicationDependencies.contains(':klum-ast-gradle-plugin:assemble'),
                 'the protected Maven publication aggregate must assemble Gradle plugins before staging')
-        def closeStagingTask = project.tasks.named('closeSonatypeStagingRepository').get()
-        assertTrue(closeStagingTask.taskDependencies.getDependencies(closeStagingTask).contains(mavenPublicationTask),
+        assertTrue(dependencies['closeSonatypeStagingRepository'].contains(':publishMavenProductToSonatype'),
                 'closing the protected Sonatype staging repository must require Maven publication first')
-        String rootBuild = new File(project.rootDir, 'build.gradle').text
+        String rootBuild = new File(repositoryDirectory.get().asFile, 'build.gradle').text
         assertContains(rootBuild, 'mustRunAfter closeSonatypeStagingRepository',
                 'Gradle Plugin Portal publication must run after Sonatype release')
-        String baseConventions = new File(project.rootDir, 'buildSrc/src/main/groovy/klum-ast.base-conventions.gradle').text
+        String baseConventions = new File(repositoryDirectory.get().asFile, 'buildSrc/src/main/groovy/klum-ast.base-conventions.gradle').text
         assertContains(baseConventions, 'gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")',
                 'protected complete-product publication must require Maven signatures')
         assertContains(baseConventions, 'useInMemoryPgpKeys(signingKey, signingPassword)',
                 'protected in-memory signing credentials must configure a Gradle signatory')
 
-        def localEntryTask = project.tasks.named('renderLocalDocumentation').get()
-        def localPreviewTask = project.tasks.named('previewLocalDocumentation').get()
-        def localVerifyTask = project.tasks.named('verifyLocalDocumentationSite').get()
-        def localRenderTask = project.tasks.named('renderLocalDocumentationFiles', RenderVersionedDocumentationTask).get()
-        Set<String> localRenderDependencies = localRenderTask.taskDependencies.getDependencies(localRenderTask)*.path as Set
-        assertTrue(localEntryTask.taskDependencies.getDependencies(localEntryTask)*.name.contains('verifyLocalDocumentationSite'),
+        Map<String, List<String>> dependencyNames = dependencies.collectEntries { name, paths ->
+            [(name): paths.collect { it.tokenize(':').last() }]
+        }
+        Set<String> localRenderDependencies = dependencies['renderLocalDocumentationFiles'] as Set
+        assertTrue(dependencyNames['renderLocalDocumentation'].contains('verifyLocalDocumentationSite'),
                 'local documentation entry point must verify the rendered site')
-        assertTrue(localVerifyTask.taskDependencies.getDependencies(localVerifyTask)*.name.contains('renderLocalDocumentationFiles'),
+        assertTrue(dependencyNames['verifyLocalDocumentationSite'].contains('renderLocalDocumentationFiles'),
                 'local documentation verification must require the local render')
-        assertTrue(localPreviewTask.taskDependencies.getDependencies(localPreviewTask)*.name.contains('renderLocalDocumentationFiles'),
+        assertTrue(dependencyNames['previewLocalDocumentation'].contains('renderLocalDocumentationFiles'),
                 'local documentation preview must require the same local render')
         assertTrue(localRenderDependencies.contains(':cleanLocalDocumentationOutput'),
                 'local documentation rendering must clear its dedicated output first')
         assertTrue(localRenderDependencies.containsAll(expectedDependencies),
                 'local documentation rendering must include every allowed module Javadoc task')
-        assertTrue(localRenderTask.documentationVersion.get() == '4.0.0-tracer', 'local documentation version must default to 4.0.0-tracer')
-        assertTrue(localRenderTask.status.get() == 'tracer', 'local documentation status must default to tracer')
-        assertTrue(localRenderTask.brandingManifestPath.get() == 'docs/branding/season-4-klumast.json',
+        Map<String, String> localSettings = localRenderSettings.get()
+        assertTrue(localSettings['version'] == '4.0.0-tracer', 'local documentation version must default to 4.0.0-tracer')
+        assertTrue(localSettings['status'] == 'tracer', 'local documentation status must default to tracer')
+        assertTrue(localSettings['brandingManifest'] == 'docs/branding/season-4-klumast.json',
                 'local documentation must default to the Season 4 branding manifest')
-        assertTrue(localRenderTask.objectDirectory.get().asFile.canonicalFile == project.rootDir.canonicalFile,
+        assertTrue(localSettings['objectDirectory'] == repositoryDirectory.get().asFile.canonicalPath,
                 'local documentation must default to the repository object directory')
-        assertTrue(localRenderTask.outputDirectory.get().asFile.canonicalFile ==
-                new File(project.buildDir, 'versioned-documentation/local-review').canonicalFile,
+        assertTrue(localSettings['outputDirectory'] == localSettings['expectedOutputDirectory'],
                 'local documentation must default to its dedicated review output')
-        assertTrue(localRenderTask.revision.get() == git(project.rootDir, ['rev-parse', 'HEAD']).trim(),
+        assertTrue(localSettings['revision'] == git(repositoryDirectory.get().asFile, ['rev-parse', 'HEAD']).trim(),
                 'local documentation revision must default to the full current HEAD')
-        assertTrue(localRenderTask.rendererRevision.get() == localRenderTask.revision.get(),
+        assertTrue(localSettings['rendererRevision'] == localSettings['revision'],
                 'local renderer revision must default to the rendered revision')
-        def rootProject = project
-        VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String representativeType ->
-            def javadocTask = rootProject.project(":$module").tasks.named('javadoc').get()
-            VerifyVersionedDocumentationRendererTask.assertTrue(new File(javadocTask.destinationDir, representativeType).file, "standard $module Javadocs must expose a representative public type")
-            VerifyVersionedDocumentationRendererTask.assertTrue(javadocTask.source.files.every { !it.name.endsWith('_DSL.java') }, "standard $module Javadocs must exclude IDE source mirrors")
+        standardJavadocs.get().each { ModuleJavadoc javadoc ->
+            String module = javadoc.module.get()
+            String representativeType = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS[module]
+            VerifyVersionedDocumentationRendererTask.assertTrue(new File(javadoc.outputDirectory.get().asFile, representativeType).file, "standard $module Javadocs must expose a representative public type")
+            VerifyVersionedDocumentationRendererTask.assertTrue(javadoc.sourceFiles.files.every { !it.name.endsWith('_DSL.java') }, "standard $module Javadocs must exclude IDE source mirrors")
         }
 
-        assertTrue(project.tasks.findByName('gitPublishPush')?.description?.contains('fails closed'),
+        assertTrue(wikiPublisherDescription.get().contains('fails closed'),
                 'Former mutable wiki publisher must be registered as a fail-closed task')
-        def pendingTask = project.tasks.named('preparePendingDocumentationStage').get()
-        assertTrue(pendingTask.taskDependencies.getDependencies(pendingTask)*.name.contains('verifyRenderedDocumentationSite'),
+        assertTrue(dependencyNames['preparePendingDocumentationStage'].contains('verifyRenderedDocumentationSite'),
                 'protected pending preparation must require the HTTP presentation and link crawl')
-        String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
+        String pagesWorkflow = new File(repositoryDirectory.get().asFile, '.github/workflows/publish-pending-documentation.yml').text
         assertContains(pagesWorkflow, 'name: "_REL-1a: Stage pending documentation (reusable)"',
                 'the pending Pages workflow must remain visibly distinct as the reusable REL-1 stage')
         int workflowCallStart = pagesWorkflow.indexOf('  workflow_call:\n')
@@ -473,7 +501,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'pending Pages must derive the only allowed maintenance line from the exact release version')
         assertContains(pagesWorkflow, 'git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"',
                 'pending Pages must bind the exact source SHA to its allowed source line')
-        String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
+        String releaseWorkflow = new File(repositoryDirectory.get().asFile, '.github/workflows/release.yml').text
         assertContains(releaseWorkflow, 'name: "REL-1: Publish protected release"',
                 'protected publication must retain the manually dispatched REL-1 display name')
         int identityPreflightStart = releaseWorkflow.indexOf('  verify-release-identity-available:\n')
@@ -541,8 +569,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(!mavenCentralJob.contains('SONATYPE_') && !mavenCentralJob.contains('SIGNING_') && !mavenCentralJob.contains('GRADLE_PUBLISH_'),
                 'Maven Central polling must not receive publishing credentials')
 
-        String pluginConsumerSettings = new File(project.rootDir, 'release/plugin-consumer/settings.gradle').text
-        String mavenConsumerSettings = new File(project.rootDir, 'release/maven-consumer/settings.gradle').text
+        String pluginConsumerSettings = new File(repositoryDirectory.get().asFile, 'release/plugin-consumer/settings.gradle').text
+        String mavenConsumerSettings = new File(repositoryDirectory.get().asFile, 'release/maven-consumer/settings.gradle').text
         assertContains(pluginConsumerSettings, 'gradlePluginPortal()',
                 'the Plugin Portal fixture must resolve plugin markers from the real Plugin Portal')
         assertTrue(!pluginConsumerSettings.contains('mavenCentral()'),
@@ -552,7 +580,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(!mavenConsumerSettings.contains('gradlePluginPortal()'),
                 'the Maven fixture must not resolve plugin markers')
 
-        String publicProofWorkflow = new File(project.rootDir, '.github/workflows/verify-public-release.yml').text
+        String publicProofWorkflow = new File(repositoryDirectory.get().asFile, '.github/workflows/verify-public-release.yml').text
         assertContains(publicProofWorkflow, 'name: "REL-2: Verify public release"',
                 'public proof must retain the manually dispatched REL-2 display name')
         int proofDispatchStart = publicProofWorkflow.indexOf('  workflow_dispatch:\n')
@@ -612,7 +640,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(promotionJob, 'secrets: inherit',
                 'the reusable promotion caller must preserve the called writer job\'s environment secret context')
 
-        String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
+        String promotionWorkflow = new File(repositoryDirectory.get().asFile, '.github/workflows/promote-public-documentation.yml').text
         assertContains(promotionWorkflow, 'name: "_REL-2a: Promote proven public documentation (reusable)"',
                 'documentation promotion must remain visibly distinct as the reusable REL-2 stage')
         assertContains(promotionWorkflow, 'workflow_call:', 'documentation promotion must be callable only from the unified verification workflow')
@@ -621,7 +649,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(promotionWorkflow, 'group: pending-documentation-gh-pages',
                 'promotion must serialize gh-pages mutations with the pending-stage writer')
 
-        String recoveryWorkflow = new File(project.rootDir, '.github/workflows/recover-public-release-record.yml').text
+        String recoveryWorkflow = new File(repositoryDirectory.get().asFile, '.github/workflows/recover-public-release-record.yml').text
         assertContains(recoveryWorkflow, 'name: "REC-1: Recover incomplete public release record"',
                 'exceptional record recovery must retain the manually dispatched REC-1 display name')
         assertContains(recoveryWorkflow, 'workflow_dispatch:',
@@ -713,7 +741,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must retain the reviewed landing writer even while it renders an older exact source')
         assertContains(promotionWorkflow, 'bash landing-writer/.github/scripts/write-documentation-landing.sh pages',
                 'promotion must render the mutable root and alias landings through one canonical shell')
-        String landingScript = new File(project.rootDir, '.github/scripts/write-documentation-landing.sh').text
+        String landingScript = new File(repositoryDirectory.get().asFile, '.github/scripts/write-documentation-landing.sh').text
         assertContains(landingScript, 'write_landing_page()',
                 'root and alias landings must be rendered through one canonical shell')
         assertContains(landingScript, '"$pages_directory/index.html"',
@@ -829,13 +857,13 @@ dependencies {
         git(repository, ['commit', '-m', 'fixture documentation input'])
     }
 
-    private static void assertNoAuthoredPresentationHtml(File repository) {
+    private static void assertNoAuthoredPresentationHtml(File repository, String historicalRevision) {
         new File(repository, 'docs/user').eachFileRecurse { File file ->
             if (file.file && file.name.endsWith('.md') && StaticDocumentationPageRenderer.containsAuthoredHtml(file.getText(StandardCharsets.UTF_8.name())))
                 throw new GradleException("Current user documentation contains authored presentation HTML: ${repository.toPath().relativize(file.toPath())}")
         }
-        git(repository, ['ls-tree', '-r', '--name-only', 'v3.0.1', '--', 'wiki']).readLines().findAll { it.endsWith('.md') }.each { String path ->
-            String content = git(repository, ['show', "v3.0.1:$path"])
+        git(repository, ['ls-tree', '-r', '--name-only', historicalRevision, '--', 'wiki']).readLines().findAll { it.endsWith('.md') }.each { String path ->
+            String content = git(repository, ['show', "$historicalRevision:$path"])
             List<String> html = StaticDocumentationPageRenderer.authoredHtmlLiterals(content)
             if (html.any { !(it ==~ /<[A-Z][A-Za-z0-9]*>/) })
                 throw new GradleException("v3.0.1 documentation contains authored presentation HTML beyond generic type notation: $path")
