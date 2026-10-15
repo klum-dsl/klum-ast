@@ -46,6 +46,25 @@ gradle.projectsEvaluated {
     }
 }
 
+// The shipping matrix starts many isolated Java 17 compilers. Keep it explicit and out of check.
+def propagationQualification = 'com.blackbuild.klum.ast.AnnotationPropagationQualificationTest'
+[3: 'test', 4: 'groovy4Tests', 5: 'groovy5Tests'].each { generation, lane ->
+    tasks.named(lane, Test) {
+        exclude '**/AnnotationPropagationQualificationTest*'
+    }
+    tasks.register("annotationPropagationArtifactsGroovy$generation", Test) {
+        group = 'verification'
+        description = "Qualifies actual propagation artifacts with Java 17 / Groovy $generation."
+        dependsOn tasks.named(sourceSets[lane].classesTaskName)
+        testClassesDirs = sourceSets[lane].output.classesDirs
+        classpath = sourceSets[lane].runtimeClasspath
+        useJUnitPlatform()
+        filter { includeTestsMatching propagationQualification }
+        maxParallelForks = 1
+        inputs.dir file('src/test/fixtures/annotation-propagation-artifacts')
+    }
+}
+
 dependencies {
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     api project(':klum-ast-annotations')

@@ -244,6 +244,9 @@ binary/source-mirror evidence. Any required change outside equivalence returns t
 
 ### AP-4 — Artifact, foreign-transform and JPMS qualification
 
+The [AP-4 qualification record](issue-890-ap4-evidence.md) tracks the isolated actual-artifact matrix,
+request-change snapshots, foreign local discovery and independent authoring limitations.
+
 Build the actual production artifact once with Java 17 and consume it across Groovy 3/4/5. Separate Java
 and Groovy annotation libraries from Schema compilation, including repeated requests and explicit containers.
 Java javac only compiles libraries/typed consumers; Groovy performs propagation and local transformations.

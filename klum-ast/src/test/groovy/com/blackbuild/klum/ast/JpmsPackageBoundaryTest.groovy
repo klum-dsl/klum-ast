@@ -179,6 +179,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
+    @Issue("890")
     def "Groovy 4 and 5 activate local transformations from the named compiler module"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -190,6 +191,7 @@ class JpmsPackageBoundaryTest extends Specification {
         then:
         assert classpathResult.exitCode == 0 : classpathResult.output
         Files.exists(classpathResult.outputDirectory.resolve('NamedRoot.class'))
+        assertGeneratedQueryDirectlyInvokesRuntimeHook(classpathResult.outputDirectory)
 
         and: 'Groovy 3 remains classpath-only while Groovy 4 and 5 also prove the named-module path.'
         !namedGroovy || namedModuleResult.exitCode == 0
@@ -197,10 +199,30 @@ class JpmsPackageBoundaryTest extends Specification {
 
         and: 'the class-file owner and descriptor scanner finds no runtime-internal reference in any generated named-schema class'
         if (namedGroovy) {
+            assertGeneratedQueryDirectlyInvokesRuntimeHook(namedModuleResult.outputDirectory)
             assertNoRuntimeInternalReferences(namedModuleResult.outputDirectory)
             assertGeneratedHelperContract(namedModuleResult.outputDirectory, 'NamedRoot', '$_Template', true)
             assertGeneratedHelperContract(namedModuleResult.outputDirectory, 'NamedRoot', '$_Factory', false)
         }
+    }
+
+    private static void assertGeneratedQueryDirectlyInvokesRuntimeHook(Path classes) {
+        List<String> calls = []
+        Files.newInputStream(classes.resolve('NamedRoot$Builder.class')).withCloseable { input ->
+            new ClassReader(input).accept(new ClassVisitor(Opcodes.ASM7) {
+                @Override
+                MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    new MethodVisitor(Opcodes.ASM7) {
+                        @Override
+                        void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
+                                             boolean isInterface) {
+                            if (name == 'summary' && methodName == '$klum$completedModelOrNull') calls.add(owner)
+                        }
+                    }
+                }
+            }, 0)
+        }
+        assert calls == ['com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder'] * 2
     }
 
     private static void assertNoRuntimeInternalReferences(Path classes) {
@@ -1027,12 +1049,14 @@ class JpmsPackageBoundaryTest extends Specification {
         Path output = fixture.resolve('classes')
         Files.createDirectories(output)
         Files.writeString(source, '''
+            import com.blackbuild.klum.ast.Builder
             import com.blackbuild.klum.ast.DSL
             import com.blackbuild.klum.ast.Required
             import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL class NamedRoot {
                 @Required String name
+                @Builder.Query String summary() { name.toUpperCase() }
                 @Cluster Map<String, NamedChild> children
                 NamedChild child
             }

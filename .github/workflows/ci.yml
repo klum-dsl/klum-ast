@@ -41,6 +41,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run:
           ./gradlew check --scan sonar --info
+      - name: Qualify annotation propagation artifacts
+        run: >-
+          ./gradlew :klum-ast:annotationPropagationArtifactsGroovy3
+          :klum-ast:annotationPropagationArtifactsGroovy4
+          :klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v6
         if: success() || failure()
@@ -55,6 +60,7 @@ jobs:
           path: |
             **/build/test-results/groovy4Tests/TEST-*.xml
             **/build/test-results/groovy5Tests/TEST-*.xml
+            klum-ast/build/test-results/annotationPropagationArtifactsGroovy*/TEST-*.xml
             code-coverage-report/build/reports/jacoco/groovy4CodeCoverageReport/**
             code-coverage-report/build/reports/jacoco/groovy5CodeCoverageReport/**
           if-no-files-found: error
