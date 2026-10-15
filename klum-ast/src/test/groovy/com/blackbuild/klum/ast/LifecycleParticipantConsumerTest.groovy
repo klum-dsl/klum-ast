@@ -477,6 +477,8 @@ class LifecycleParticipantConsumerTest extends Specification {
 
     private static String execute(List<String> command) {
         assert !command.any { it in ['--add-reads', '--add-exports', '--add-opens', '--patch-module'] }
+        long startedAt = System.currentTimeMillis()
+        long started = System.nanoTime()
         ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true)
         builder.environment().remove('CLASSPATH')
         Process process = builder.start()
@@ -488,6 +490,13 @@ class LifecycleParticipantConsumerTest extends Specification {
         reader.join(5000)
         assert completed : "Timed out: $command\n$output"
         assert process.exitValue() == 0 : "Failed: $command\n$output"
+        if (Boolean.getBoolean('klum.consumerTimings')) {
+            String kind = command.any { it.contains('org.codehaus.groovy.tools.FileSystemCompiler') } ?
+                    'groovyc' : Path.of(command.first()).fileName.toString()
+            String sources = command.findAll { it.endsWith('.java') || it.endsWith('.groovy') }
+                    .collect { Path.of(it).fileName }.join(',')
+            println "CONSUMER_PROCESS\t${GroovySystem.version}\t$kind\t$startedAt\t${System.nanoTime() - started}\t$sources"
+        }
         output.toString()
     }
 }
