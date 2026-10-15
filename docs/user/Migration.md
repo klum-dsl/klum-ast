@@ -5,13 +5,24 @@
 ### Composing domain annotations
 
 [Annotation propagation](Annotation-Propagation.md) adds default-only composition on DSL Schema
-classes, fields and methods. Use aligned KlumCast annotations/SPI/compiler `0.5.0-rc.2` dependencies.
-Recompile Schemas after adding or changing a domain annotation's requests. Remove an explicit annotation
-when the domain now propagates that same type: every duplicate involving propagation is rejected,
-including repeatable selections and nested domain-container uses. Keep propagating domains as ordinary
-annotations: selecting an `AnnotationCollector` is rejected, and collector rewriting of a propagating
-domain is unsupported.
-Existing compiled Schemas retain their emitted behavior; no runtime interpreter or retrofit is supplied.
+classes, fields and methods. Upgrade the KlumAST compiler and annotation library together to a pairing
+that provides the marker and contributor; a new marker alone does not enable an older compiler.
+Use aligned KlumCast annotations/SPI/compiler `0.5.0-rc.2` dependencies. Compile domain annotation
+libraries first, then recompile consuming Schemas after adding or changing requests.
+
+When adopting a domain that now requests AutoCreate, remove the former bare explicit `@AutoCreate`
+from each use. Every duplicate involving propagation is rejected, including configured explicit uses,
+repeatable selections and nested domain-container uses. If a relationship needs customized `key`,
+`type` or `value`, retain a [defaults-only domain with direct AutoCreate](Annotation-Propagation.md#keeping-customized-creation-explicit)
+instead. Domain arguments are never forwarded to the selected annotation.
+
+Keep propagating domains as ordinary annotations: selecting an `AnnotationCollector` is rejected,
+and collector rewriting of a propagating domain is unsupported. Existing compiled Schemas retain their
+emitted behavior until recompiled; there is no runtime interpreter or retrofit. Direct annotations
+remain valid. Editor alias recognition remains unqualified even when compilation and source mirrors work.
+
+Propagation does not enable class-level defaults ([#888](https://github.com/klum-dsl/klum-ast/issues/888)),
+source composition ([#548](https://github.com/klum-dsl/klum-ast/issues/548)) or consumer provider-selection policy.
 
 ### External lifecycle participants
 

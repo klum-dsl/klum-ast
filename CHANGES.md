@@ -9,7 +9,12 @@
   and aligned public `0.5.0-rc.2` artifacts from Central. Recompile consuming Schemas after changing
   requests and remove newly duplicated explicit annotations. Direct-annotation parity is qualified for
   abstract/source/binary inheritance, public Builder/Factory and cluster signatures, Java/static Groovy
-  consumers, source mirrors, Required/Optional lowering and AutoCreate lifecycle ordering. See [annotation propagation](docs/user/Annotation-Propagation.md)
+  consumers, source mirrors, Required/Optional lowering and AutoCreate lifecycle ordering. Separate-artifact
+  qualification covers foreign local transforms, compiler-free runtime consumers, changed-request
+  recompilation and Groovy 4/5 named modules. Practical domain-default/relationship examples and
+  [migration guidance](docs/user/Migration.md#composing-domain-annotations) distinguish optional defaults
+  and customized direct creation. Editor alias recognition remains unqualified.
+  See [annotation propagation](docs/user/Annotation-Propagation.md)
   ([#890](https://github.com/klum-dsl/klum-ast/issues/890)).
 
 - The Groovy convention plugin now applies the selected Groovy BOM to production implementation/runtime dependencies,

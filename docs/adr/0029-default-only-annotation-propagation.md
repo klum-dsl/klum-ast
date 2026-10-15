@@ -2,17 +2,17 @@
 
 Date: 2026-10-13. Architectural refinement: 2026-10-14.
 
-Status: Accepted for the authorized AP-1 implementation. DSL-only scope, default-only semantics and
-neutral contributor ownership are unchanged.
+Status: Accepted; AP-1 through AP-4 are merged. DSL-only scope, default-only semantics and neutral
+contributor ownership are unchanged. AP-5 consumer admission remains pending.
 
-Implementation status (2026-10-14): public KlumCast `0.5.0-rc.2` is the sole current qualification input,
-resolved normally from Central for annotations, SPI and compiler. It passes the ordinary Gradle provider
-classloader boundary that failed with RC.1. AP-1 is implemented locally; Java 17 / Groovy 3/4/5 focused
-sentinels, generated contracts, source mirrors, separate artifacts, runtime-only Java consumers and
-Groovy 4/5 named-module activation pass. See [current evidence](../implementation/issue-890-ap1-rc2-evidence.md)
-for full-check and delivery status. Earlier dev/Maven-Local probes and RC.1 failures are historical only;
-they supply no current qualification evidence. The original planning admission sequence below is retained
-as the contract, not a claim that implementation is still unauthorized.
+Implementation status (2026-10-15): production propagation and AP-2 diagnostics, AP-3 contract parity,
+and AP-4 artifact/module qualification are merged through `ce897d5f7bd4aec2380f8369d12337fec30bf00a`
+([PR #900](https://github.com/klum-dsl/klum-ast/pull/900)). Public KlumCast `0.5.0-rc.2`, resolved normally
+from Central for annotations, SPI and compiler, remains the qualification input. See the
+[AP-5 acceptance ledger](../implementation/issue-890-ap5-evidence.md) for the merged slice references,
+local documentation preparation and outstanding real ScHelm evidence gate. Earlier KlumCast dev/Maven-Local
+probes and RC.1 failures remain historical only. The original planning sequence below records the
+accepted contract, not a claim that the merged implementation is still unauthorized.
 
 Release: Conditional 4.1 candidate, subject to Hive review; no milestone or curation change is made here.
 
@@ -265,8 +265,10 @@ classpath-only; named-module support is Groovy 4/5 under ADR 0014, without acces
 The temporary external service overlay cannot access the compiler-internal DslAstHelper from an unnamed
 module on Groovy 4/5; the independent KlumCast engine access probe tests its automatic-module boundary.
 Production must keep the helper call within the compiler module rather than widen exports. These probes
-are not proof of production service/module packaging or a named Schema consumer. AP-4 must qualify shipped activation, library modules and runtime-only consumers. A real ScHelm
-integration follows authorized production implementation, not this investigation.
+are not proof of production service/module packaging or a named Schema consumer. AP-4 now qualifies
+shipped activation, library modules and runtime-only consumers through its
+[artifact matrix](../implementation/issue-890-ap4-evidence.md). Real ScHelm integration remains the
+separate AP-5 admission gate.
 
 ## Consequences and exclusions
 
@@ -285,7 +287,7 @@ negative probes, proposals and remaining production gates. The [plan](../impleme
 maps the contract to executable acceptance and reasoned slices. The historical generic probes remain a
 technical baseline, not the recommended scope or evidence that KlumCast correctness is already satisfied.
 
-AP-1 now uses the delivered neutral contributor and exact public RC.2 route. The current production
-evidence replaces the earlier admission blockers. Independent editor recognition, actual ScHelm admission
-and final release/issue reconciliation remain outside this bounded implementation. Hive owns those
-follow-ups and issue closure; an open draft PR is not release acceptance or archive safety.
+AP-1 through AP-4 now qualify the delivered neutral contributor, exact public RC.2 route, diagnostics,
+generated/inherited parity and actual artifacts. Independent editor recognition remains unqualified.
+Actual ScHelm admission and final AP-5 acceptance are pending in the acceptance ledger. Hive owns
+release/issue reconciliation and issue closure; an open draft PR is not release acceptance or archive safety.
