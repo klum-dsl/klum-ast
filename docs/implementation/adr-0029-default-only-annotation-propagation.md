@@ -2,7 +2,8 @@
 
 Date: 2026-10-13. Revised: 2026-10-15.
 Status: AP-1 through AP-4 merged at `ce897d5f7bd4aec2380f8369d12337fec30bf00a`; AP-5 local
-consumer guidance is prepared, with real ScHelm admission outstanding. The
+consumer guidance is prepared and real ScHelm development-consumer admission is PASS. Draft delivery
+and final-head CI/SonarCloud follow. The
 [AP-5 acceptance ledger](issue-890-ap5-evidence.md) consolidates slice delivery and open conditions.
 Public KlumCast `0.5.0-rc.2` remains the Central-only prerequisite pairing.
 
@@ -271,10 +272,11 @@ and any packaging corrections, followed by required check/SonarCloud review.
 
 ### AP-5 — Consumer admission and release-facing delivery
 
-Local preparation and the exact outstanding consumer gate are tracked in the
-[AP-5 acceptance ledger](issue-890-ap5-evidence.md). The requested ScHelm development pairing is
+Local preparation and the admitted real consumer result are tracked in the
+[AP-5 acceptance ledger](issue-890-ap5-evidence.md). The qualified ScHelm development pairing is
 `4.1.0-dev.435+ce897d5` from master `ce897d5f7bd4aec2380f8369d12337fec30bf00a`, using Maven Local
-only as a development route. This request is not evidence of a completed integration or a public release.
+only as a development route. The supplied consumer result passes; ScHelm negative-diagnostic fixtures
+and live editor alias recognition remain unqualified. This is not public release qualification.
 
 After production implementation, run the real ScHelm integration on admitted dependency versions. Validate
 its concrete relationships and DefaultValues consumers; no ScHelm policy or new configuration is added.
@@ -298,11 +300,12 @@ PR is not implementation admission, release acceptance or archive reconciliation
 | Generated Builder/Factory/Cluster/Query/mirror equivalence | AP-3 generated and typed-consumer tests |
 | Java 17 / Groovy 3/4/5 / applicable JPMS | AP-4 actual artifact matrix |
 | Recompilation, no fallback, runtime invariants | AP-3 regressions + AP-4 binary/runtime controls |
-| Consumer fit versus actual integration | Reported history now; real ScHelm run in AP-5 |
+| Consumer fit versus actual integration | Real ScHelm development admission PASS; AP-5 ledger records exact commits, workflow/results and limits |
 
 Current AP-1 evidence covers the neutral contributor, normal local discovery and sentinels, the exact
 public Central-only artifact route, binary-parent behavior, shipped classpath/module activation and
 runtime-only consumers. Failed future artifact or lane qualification still narrows or stops publication
-without a manual or independent-transform workaround. Independent editor recognition, actual ScHelm
-admission and final release/issue reconciliation remain separate. Current full-check and delivery status
-is recorded in the [RC.2 evidence](issue-890-ap1-rc2-evidence.md).
+without a manual or independent-transform workaround. Real ScHelm development admission now passes,
+with consumer negative diagnostics and independent editor recognition explicitly unqualified. Hive
+retains final release/issue reconciliation. The [AP-5 ledger](issue-890-ap5-evidence.md) consolidates
+current local validation, admission and delivery boundaries.

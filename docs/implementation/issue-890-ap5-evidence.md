@@ -8,9 +8,14 @@ Branch: `codex/issue-890-ap5`.
 
 ## Acceptance status
 
-AP-1 through AP-4 are merged and qualified as summarized below. AP-5 local user guidance, documentary coverage, review and validation are complete. **Final AP-5 acceptance is pending real ScHelm evidence supplied to Hive.**
-No ScHelm run or acceptance is inferred from local examples, consumer-fit reports, a publication request,
-or the earlier artifact matrix. No PR publication, issue closure or release is claimed by this ledger.
+AP-1 through AP-4 are merged and qualified as summarized below. AP-5 user guidance, documentary
+coverage and local validation are complete. **The real ScHelm development-consumer gate is PASS**, on
+maintainer-authorized evidence supplied through Hive on 2026-10-15. The accepted result and its limits
+are recorded below; local examples are not substituted for that consumer run.
+
+Draft-PR delivery and final-head CI/SonarCloud verification follow this admission. Issue #890 remains
+open for Hive reconciliation. Development admission does not establish public release availability,
+a released minimum version, merge approval or release approval.
 
 | Slice | Verified merged delivery | Decisive record |
 | --- | --- | --- |
@@ -18,7 +23,7 @@ or the earlier artifact matrix. No PR publication, issue closure or release is c
 | AP-2 | [PR #897](https://github.com/klum-dsl/klum-ast/pull/897), `93e5a4529fff9685bc1aef01300fccd8613d4ddb` | [Contribution and diagnostic matrix](issue-890-ap2-evidence.md) |
 | AP-3 | [PR #898](https://github.com/klum-dsl/klum-ast/pull/898), `d94cc44c0b5b1d28a7b34589c2abbc20cbbcbe20` | [Generated/inherited/lifecycle parity](issue-890-ap3-evidence.md) |
 | AP-4 | [PR #900](https://github.com/klum-dsl/klum-ast/pull/900), `ce897d5f7bd4aec2380f8369d12337fec30bf00a` | [Actual-artifact matrix](issue-890-ap4-evidence.md); final-head [CI 38639133477](https://github.com/klum-dsl/klum-ast/actions/runs/38639133477) passed on `820d2867645abd7a01915fa1f10d3db6faee6df7`, including SonarCloud |
-| AP-5 | Local preparation; external gate pending | This ledger; no AP-5 remote CI/SonarCloud result exists yet |
+| AP-5 | Local preparation complete; real ScHelm development admission PASS | This ledger; draft delivery and final-head CI/SonarCloud verification pending |
 
 Live final-head checks for AP-1 follow-up #894 (`f01e8fd5`), AP-2 #897 (`416eb2bd`), AP-3 #898
 (`563f5dcf`) and AP-4 #900 (`820d2867`) all report successful build, JUnit and both SonarCloud checks.
@@ -104,49 +109,70 @@ independently ordered global producer or direct converter invocation is admitted
 | Relevant user pages and release note | [Default Values](../user/Default-Values.md#creating-a-child-with-domain-defaults), [Model Phases](../user/Model-Phases.md#autocreate-10), [Migration](../user/Migration.md#composing-domain-annotations) and [CHANGES](../../CHANGES.md) synchronized |
 | Navigation | Existing Annotation Propagation, Default Values, Model Phases and Migration sidebar entries remain correct; added section links provide navigation without adding/renaming a page |
 | Scope distinctions | Generic propagation versus #888 class-level defaults, #548 source composition, arbitrary meta-annotation execution and ScHelm-owned provider policy made explicit |
-| Actual ScHelm admission | **Pending**; local examples are framework documentation, not ScHelm execution evidence |
-| Issue/release reconciliation | **Pending Hive decision** after consumer evidence; #890 remains OPEN, no release or curation mutation |
+| Actual ScHelm admission | **PASS**, maintainer-authorized Hive relay; exact versions, separate artifacts, six targets, 23 Model cases and offline runtime rendering below |
+| Issue/release reconciliation | **Pending Hive decision** after draft delivery/final-head checks; #890 remains OPEN, no release or curation mutation |
 
-## Outstanding real consumer gate
+## Real ScHelm development-consumer admission
 
-The requested input is the just-published **development** coordinate `4.1.0-dev.435+ce897d5`, built from
-master `ce897d5f7bd4aec2380f8369d12337fec30bf00a`. Maven Local is authorized only for that development
-route. This ledger records the request, not an independently verified publication/resolve-back or run.
-It does not establish public repository availability, a released minimum version or release qualification.
+Evidence source: maintainer-authorized ScHelm final consumer-side AP-4 admission PASS, relayed by Hive
+to this AP-5 task on 2026-10-15. This is supplied external execution evidence; the KlumAST worker did
+not rerun or contact ScHelm. Source identities:
 
-Hive must supply the actual ScHelm qualification result before AP-5 final acceptance. Evidence must
-identify the ScHelm source revision, resolved KlumAST compiler/annotation/runtime coordinates and route,
-Java/Groovy versions, commands/results and a durable or precise local evidence source. It must cover:
+- KlumAST `4.1.0-dev.435+ce897d5`, master `ce897d5f7bd4aec2380f8369d12337fec30bf00a`;
+- ScHelm `1950b04`: exact dependency pin;
+- ScHelm `757de3e`: static artifact qualification; and
+- ScHelm `465e969`: runtime qualification.
 
-- OrderApplication `messaging`, `database`, `workload`, `api` concrete propagated relationships;
-- OrderKafka `orderTopic`, `resultTopic` relationships;
-- retained domain values reaching ScHelm's DefaultValues consumers, with normal supplied-value precedence;
-- consistent admitted dependencies and cleanup of explicit annotations that now duplicate propagation; and
-- the outcome/limits of the real consumer integration, including any remaining failure or required decision.
+The admitted route is **Maven Local for development only**. All resolved KlumAST BOM, AST, annotations
+and runtime modules were exactly `4.1.0-dev.435+ce897d5`. No public repository resolve-back, released
+4.1 availability, released minimum version or release/publication qualification follows from this run.
+The relay supplies precise consumer commits and commands/results; it does not supply a separate report
+URL or exact consumer Java/Groovy patch versions. Those are not inferred from the KlumAST-local matrix.
+The maintainer explicitly admits this result as AP-5's real consumer gate with the stated limits.
 
-No evidence source, ScHelm revision, command/result or pass has yet been supplied to this AP-5 task.
-KlumAST supplies generic propagation; ScHelm retains ownership of its annotation meanings, creation/bind
-choice and provider-selection policy. No ScHelm code or policy is changed here. This worker has not
-contacted ScHelm. A failed qualification returns to Hive for scope/decision; it does not authorize a
-lifecycle, propagation or consumer-policy workaround.
+| Consumer acceptance | Supplied result |
+| --- | --- |
+| Complete artifact-boundary workflow | `./qualify-artifact-boundaries.sh` completed end-to-end; every producer passed clean `check` and published to Maven Local |
+| Isolated consumer resolution | `render-demo` passed clean `check --offline`; all four KlumAST module families resolved to the exact admitted version |
+| Existing concrete Models and DefaultValues consumers | `OrderApplicationSpec`: 15; `OrderModelSpec`: 8; all 23 cases passed, zero skips/failures/errors; concrete deployment Model loaded |
+| Concrete propagated relationships | Runtime physical AutoCreate retained on all six targets: OrderApplication `messaging`, `database`, `workload`, `api`; OrderKafka `orderTopic`, `resultTopic` |
+| Separate annotation/Schema artifacts | Independently compiled ScHelm annotation JAR containing FactBinding, KafkaTopicDefaults, ResourceClassDefault and HttpEndpointDefaults consumed by a separately compiled Order Schema |
+| Generated/static/module contracts | Generated contracts, source mirrors and JPMS descriptors passed in the consumer artifact qualification |
+| Real runtime behavior | Both offline demos rendered expected test/prod ConfigMaps, including environment-specific Kafka bootstrap and PostgreSQL host values |
+| Consumer defect result | No consumer behavior or diagnostic defect found in the exercised paths |
 
-## Resume and publication boundary
+The concrete Models, retained annotations and expected rendered values supply the real consumer
+DefaultValues/relationship evidence. Ordinary supplied-value precedence also remains guarded by the
+KlumAST AP-1/AP-3 controls and AP-5 documentary tests; no additional consumer-specific precedence
+fixture is inferred from the relay.
 
-After Hive supplies the real consumer evidence, reconcile its exact versions, source and relationship/
-DefaultValues results against this gate. Record failures and limits instead of converting a development
-run into release qualification. Hive decides the final #890 relationship and release/curation impact. That tracker reconciliation must
-also add the new documentary class/methods and matching user-guide sections to #890, preserving the
-existing AP-1–AP-3 documentary cross-links.
+**Remaining limits:** negative diagnostic fixtures were not added or run in ScHelm. The successful
+consumer workflow therefore does not qualify AP-2 rejection messages in ScHelm; those remain qualified
+by KlumAST's AP-2 source/compiled-library/direct-control tests. IntelliJ/editor alias recognition remains
+unqualified: compiled contracts and mirrors are not a live editor result. AnnotationCollector rewriting,
+universal third-party transform ordering and the existing Required/primitive-boolean limitation retain
+their documented boundaries.
 
-When all accepted local and external conditions pass, refresh master and validate the final branch,
-push the dedicated branch and open one draft PR against master. Verify final-head CI and SonarCloud
-and address actionable findings additively after review. Keep #890 open until Hive verifies complete
-acceptance and selects the tracker action. No merge or release is authorized by AP-5.
+KlumAST supplies generic propagation. ScHelm owns annotation meanings, creation/bind decisions and
+provider-selection policy. This AP-5 branch changes no ScHelm code or policy.
+
+## Publication and tracker boundary
+
+The supplied external gate passes and local validation is complete. Refresh master, review the evidence
+update and run applicable documentation checks before pushing this dedicated branch and opening one
+draft PR against master. Final-head CI/SonarCloud must be inspected and actionable findings addressed.
+No merge or release is authorized. Tracker relationship remains `Related: #890`; Hive owns closing
+syntax, release/curation decisions and final issue closure.
+
+After final-head checks pass, reconcile #890 with the AP-1–AP-5 evidence and the new documentary
+class/methods and matching user-guide sections, preserving the existing AP-1–AP-3 cross-links.
+The issue remains open while this draft PR and Hive delivery/reconciliation are pending.
 
 ## Independent reviews
 
 Fixed review range: `ce897d5f7bd4aec2380f8369d12337fec30bf00a...4b7287100d244b1cbdc8442e43e82f150bfc96e7`.
-Both reviewers worked read-only; final validation/status additions are documentation-only.
+Both reviewers worked read-only. Their original reports below predate the external consumer relay;
+final validation/status additions and the new admission record are documentation-only.
 
 ### Standards
 
@@ -210,13 +236,15 @@ produces the successful results above. No product changes were needed for these 
 
 Standards and Spec reviews each report zero findings. Commit-history review preserves the reviewed
 feature commit, then records reviews/stable-build reasoning and this final evidence-only handoff. No code,
-test or user-guide change follows qualification; final edits only record results here. No AP-5 PR was
-pushed or created, so AP-5 remote CI/SonarCloud is not run. Those checks remain required after the
-external gate and authorized draft publication. Local validation cannot satisfy the ScHelm gate.
+test or user-guide change follows qualification; later edits record results and the supplied consumer
+admission in this ledger and synchronize ADR/plan status. At the consumer-admission checkpoint no AP-5
+branch was pushed or PR created. Final-head remote CI/SonarCloud verification remains required after
+the authorized draft publication. The separate real ScHelm result above satisfies the external gate.
 
 No production implementation, KlumCast, runtime lifecycle, public/generated API, build/publishing
 configuration, ScHelm code, source composition or class-level-default policy is changed. No release/run
 IDs or external evidence-store authorization were supplied; this ledger is the bounded repository record.
-Tracker recommendation: retain #890 OPEN and `Related: #890`; Hive alone selects final closing syntax
-and any release/curation update after all accepted evidence is reconciled. Retain the isolated worktree
-while the consumer gate and delivery remain open; archive reconciliation is not requested as complete.
+Tracker recommendation: retain #890 OPEN and `Related: #890` while the draft PR remains unmerged;
+Hive alone selects final closing syntax and any release/curation update after all accepted evidence
+and delivery are reconciled. Retain the isolated worktree while delivery remains open. Archive
+reconciliation is not requested as complete.

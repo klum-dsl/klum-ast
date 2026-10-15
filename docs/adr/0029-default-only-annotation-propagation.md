@@ -3,14 +3,16 @@
 Date: 2026-10-13. Architectural refinement: 2026-10-14.
 
 Status: Accepted; AP-1 through AP-4 are merged. DSL-only scope, default-only semantics and neutral
-contributor ownership are unchanged. AP-5 consumer admission remains pending.
+contributor ownership are unchanged. AP-5 real ScHelm development-consumer admission is PASS;
+draft delivery and final-head CI/SonarCloud verification follow.
 
 Implementation status (2026-10-15): production propagation and AP-2 diagnostics, AP-3 contract parity,
 and AP-4 artifact/module qualification are merged through `ce897d5f7bd4aec2380f8369d12337fec30bf00a`
 ([PR #900](https://github.com/klum-dsl/klum-ast/pull/900)). Public KlumCast `0.5.0-rc.2`, resolved normally
 from Central for annotations, SPI and compiler, remains the qualification input. See the
 [AP-5 acceptance ledger](../implementation/issue-890-ap5-evidence.md) for the merged slice references,
-local documentation preparation and outstanding real ScHelm evidence gate. Earlier KlumCast dev/Maven-Local
+local documentation and the admitted real ScHelm result with its development-only and diagnostic/editor
+limits. Earlier KlumCast dev/Maven-Local
 probes and RC.1 failures remain historical only. The original planning sequence below records the
 accepted contract, not a claim that the merged implementation is still unauthorized.
 
@@ -267,8 +269,8 @@ module on Groovy 4/5; the independent KlumCast engine access probe tests its aut
 Production must keep the helper call within the compiler module rather than widen exports. These probes
 are not proof of production service/module packaging or a named Schema consumer. AP-4 now qualifies
 shipped activation, library modules and runtime-only consumers through its
-[artifact matrix](../implementation/issue-890-ap4-evidence.md). Real ScHelm integration remains the
-separate AP-5 admission gate.
+[artifact matrix](../implementation/issue-890-ap4-evidence.md). Real ScHelm integration is admitted
+separately in the AP-5 ledger, using the exact development coordinate and supplied consumer evidence.
 
 ## Consequences and exclusions
 
@@ -289,5 +291,6 @@ technical baseline, not the recommended scope or evidence that KlumCast correctn
 
 AP-1 through AP-4 now qualify the delivered neutral contributor, exact public RC.2 route, diagnostics,
 generated/inherited parity and actual artifacts. Independent editor recognition remains unqualified.
-Actual ScHelm admission and final AP-5 acceptance are pending in the acceptance ledger. Hive owns
-release/issue reconciliation and issue closure; an open draft PR is not release acceptance or archive safety.
+Actual ScHelm development admission passes on the supplied maintainer-authorized result, with no
+consumer negative-diagnostic or live editor qualification. Hive owns release/issue reconciliation and
+issue closure; an open draft PR is not release acceptance or archive safety.
