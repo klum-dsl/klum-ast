@@ -17,4 +17,7 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    def rootSettings = layout.projectDirectory.file('../settings.gradle')
+    inputs.file(rootSettings).withPropertyName('laneFixtureSettings')
+    systemProperty 'klum.laneFixtureSettings', rootSettings.asFile.absolutePath
 }
