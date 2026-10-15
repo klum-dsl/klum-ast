@@ -29,7 +29,9 @@ import com.blackbuild.klum.ast.runtime.LifecycleParticipant
 import java.lang.reflect.Modifier
 import java.lang.annotation.Repeatable
 import spock.lang.Issue
+import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -38,6 +40,25 @@ import javax.tools.ToolProvider
 @Issue(['867', '883'])
 class LifecycleParticipantConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
+    @Shared @TempDir Path domainArtifactRoot
+    @Shared private Map<String, Path> domainArtifacts = [:]
+
+    @Issue('895')
+    def 'replacing one domain archive leaves other consumers and the lane prerequisite intact'() {
+        given:
+        Path first = domainJar(temporaryFolder.newFolder().toPath(), 'TypeDomain.groovy')
+        Path second = domainJar(temporaryFolder.newFolder().toPath(), 'TypeDomain.groovy')
+
+        when:
+        Files.writeString(first, 'replaced by one consumer')
+        Path later = domainJar(temporaryFolder.newFolder().toPath(), 'TypeDomain.groovy')
+
+        then:
+        !Files.isSameFile(first, second)
+        !Files.isSameFile(second, later)
+        Files.mismatch(first, second) != -1
+        Files.mismatch(second, later) == -1
+    }
 
     @Issue('883')
     def 'publishes exactly the lifecycle namespace with private construction and repeatable nested annotations'() {
@@ -100,10 +121,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 Files.copy(it, sources.resolve(file))
             }
         }
-        compileGroovy(sources, classes, jars, ['CompositionDomain.groovy'])
-        Path domain = jar(root, classes, 'domain.jar')
-        classes.toFile().deleteDir()
-        Files.createDirectories(classes)
+        Path domain = domainJar(root, 'CompositionDomain.groovy')
         String declaration = Files.readString(sources.resolve('Composition.java'))
         if (form == 'container') {
             declaration = declaration.replace('@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ZFirst.class)\n    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)',
@@ -174,10 +192,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 Files.copy(it, sources.resolve(file))
             }
         }
-        compileGroovy(sources, classes, jars, ['TypeDomain.groovy'])
-        Path domain = jar(root, classes, 'domain.jar')
-        classes.toFile().deleteDir()
-        Files.createDirectories(classes)
+        Path domain = domainJar(root, 'TypeDomain.groovy')
         String librarySource = author == 'Java' ? 'TypeRules.java' : 'TypeRules.groovy'
         String declaration = Files.readString(sources.resolve('TypeRules.java'))
         if (author == 'Groovy') {
@@ -249,10 +264,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 Files.copy(it, sources.resolve(file))
             }
         }
-        compileGroovy(sources, classes, jars, ['ContainerDomain.groovy'])
-        Path domain = jar(root, classes, 'domain.jar')
-        classes.toFile().deleteDir()
-        Files.createDirectories(classes)
+        Path domain = domainJar(root, 'ContainerDomain.groovy')
         compileJava(sources, classes, jars + [domain], ['ContainerRules.java'])
         Path library = jar(root, classes, 'annotations.jar')
         classes.toFile().deleteDir()
@@ -379,6 +391,28 @@ class LifecycleParticipantConsumerTest extends Specification {
         named << (GroovySystem.version.startsWith('3.') ? [false] : [false, true])
     }
 
+    private Path domainJar(Path consumerRoot, String sourceName) {
+        // Only unchanged domain sources are reusable. This map and its temp directory belong to one
+        // specification execution in one Groovy lane; no test/fixture output crosses lane boundaries.
+        synchronized (domainArtifacts) {
+            if (!domainArtifacts.containsKey(sourceName)) {
+                Path root = Files.createDirectory(domainArtifactRoot.resolve(sourceName))
+                Path sources = Files.createDirectory(root.resolve('sources'))
+                Path classes = Files.createDirectory(root.resolve('classes'))
+                getClass().getResourceAsStream('/lifecycle-participants/' + sourceName).withCloseable {
+                    Files.copy(it, sources.resolve(sourceName))
+                }
+                compileGroovy(sources, classes, runtimeAndCompilerJars(), [sourceName])
+                Path artifact = jar(root, classes, 'domain.jar')
+                assert sources.toFile().deleteDir()
+                assert classes.toFile().deleteDir()
+                domainArtifacts[sourceName] = artifact
+            }
+            // Never expose the shared archive to scenario-specific compilers or replacement controls.
+            return Files.copy(domainArtifacts[sourceName], consumerRoot.resolve('domain.jar'))
+        }
+    }
+
     private static Path jar(Path root, Path classes, String name) {
         Path artifact = root.resolve(name)
         execute([javaTool('jar'), '--create', '--file', artifact.toString(), '-C', classes.toString(), '.'])
@@ -477,6 +511,8 @@ class LifecycleParticipantConsumerTest extends Specification {
 
     private static String execute(List<String> command) {
         assert !command.any { it in ['--add-reads', '--add-exports', '--add-opens', '--patch-module'] }
+        long startedAt = System.currentTimeMillis()
+        long started = System.nanoTime()
         ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true)
         builder.environment().remove('CLASSPATH')
         Process process = builder.start()
@@ -488,6 +524,13 @@ class LifecycleParticipantConsumerTest extends Specification {
         reader.join(5000)
         assert completed : "Timed out: $command\n$output"
         assert process.exitValue() == 0 : "Failed: $command\n$output"
+        if (Boolean.getBoolean('klum.consumerTimings')) {
+            String kind = command.any { it.contains('org.codehaus.groovy.tools.FileSystemCompiler') } ?
+                    'groovyc' : Path.of(command.first()).fileName.toString()
+            String sources = command.findAll { it.endsWith('.java') || it.endsWith('.groovy') }
+                    .collect { Path.of(it).fileName }.join(',')
+            println "CONSUMER_PROCESS\t${GroovySystem.version}\t$kind\t$startedAt\t${System.nanoTime() - started}\t$sources"
+        }
         output.toString()
     }
 }
