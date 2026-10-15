@@ -511,6 +511,10 @@ i.e., everything provided by a user-provided script or code. This includes check
 
 ## AutoCreate (10)
 
+A domain annotation can request bare AutoCreate through [annotation propagation](Annotation-Propagation.md#default-only-composition).
+This uses the same creation phase and restrictions as direct AutoCreate. It can accompany DefaultValues
+or a lifecycle mutator; it does not supply a custom Creator or change provider-selection policy.
+
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs
 any lifecycle methods and Closures that are marked with `@AutoCreate`.
 

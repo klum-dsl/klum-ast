@@ -318,6 +318,18 @@ class Bathroom extends Room {
 }
 ```
 
+### Creating a child with domain defaults
+
+A field's `@DefaultValues` domain annotation configures a child when present; it does not by itself
+create that child. A domain annotation may also request bare `@AutoCreate` through
+[`@PropagateAnnotation`](Annotation-Propagation.md#creating-related-services). The original domain
+members still supply the defaults, while AutoCreate provides ordinary structural creation. Supplied
+child values retain their normal precedence; no lifecycle participant is required.
+
+For optional children or customized AutoCreate arguments, keep a defaults-only domain and use direct
+creation where needed. The [executable examples](Annotation-Propagation.md#keeping-customized-creation-explicit)
+show both choices. This is independent of type-level DefaultValues and class-level AutoCreate defaults.
+
 ### Closure and Coercion
 
 KlumAST coerces the default value to the target type on a best-effort basis. If an annotation member has type `Class` and

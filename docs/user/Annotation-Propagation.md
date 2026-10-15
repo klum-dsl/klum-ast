@@ -3,6 +3,7 @@
 `@PropagateAnnotation` lets a domain annotation request a bare annotation on the DSL Schema class,
 field or method carrying it. Each selected annotation uses its own declared defaults. Domain member
 values remain on the original annotation and are never forwarded to the selected annotation.
+Direct annotations remain supported, including their configured members.
 
 ## Default-only composition
 
@@ -34,6 +35,84 @@ Here the copied bare `@AutoCreate` creates the child through the normal lifecycl
 `@Configured(name = 'orders')` then supplies DefaultValues. Supplying the child explicitly keeps its
 ordinary precedence. Customized AutoCreate `key`, `type` or `value` arguments must remain explicit;
 use a domain annotation that does not also request AutoCreate for that case.
+
+## Creating related services
+
+Each annotated relationship makes its own creation request. AutoCreate can therefore create a missing
+messaging object and its topics, while DefaultValues reads the retained domain members on each field.
+These are ordinary concrete, unkeyed owned relationships; the policy does not select existing providers.
+
+(See: `AnnotationPropagationDocumentaryTest#'creates related services while retaining domain defaults'`.)
+
+```groovy
+// Compile this domain annotation in the annotation library first.
+@DefaultValues
+@PropagateAnnotation(AutoCreate)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface ServiceDefaults { String name() default '' }
+
+@DSL class Topic { String name }
+@DSL class Messaging {
+    String name
+    @ServiceDefaults(name = 'orders') Topic orderTopic
+    @ServiceDefaults(name = 'results') Topic resultTopic
+}
+@DSL class Service { String name }
+@DSL class Application {
+    @ServiceDefaults(name = 'messaging') Messaging messaging
+    @ServiceDefaults(name = 'database') Service database
+    @ServiceDefaults(name = 'workload') Service workload
+    @ServiceDefaults(name = 'api') Service api
+}
+
+def application = Application.Create.With {
+    messaging { orderTopic { name 'priority-orders' } }
+}
+assert application.messaging.name == 'messaging'
+assert application.messaging.orderTopic.name == 'priority-orders'
+assert application.messaging.resultTopic.name == 'results'
+assert application.database.name == 'database'
+assert application.workload.name == 'workload'
+assert application.api.name == 'api'
+```
+
+## Keeping customized creation explicit
+
+A defaults-only policy can configure an existing child without requiring that child to exist. Use that
+policy with explicit AutoCreate when a particular relationship needs a configured `key`, `type` or
+`value`. Do not also request AutoCreate from that domain: explicit plus propagated is always a duplicate,
+even when the arguments would agree.
+
+(See: `AnnotationPropagationDocumentaryTest#'keeps optional defaults and customized creation explicit'`.)
+
+```groovy
+// Separately compiled annotation library: no propagation request here.
+@DefaultValues
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface ServiceDefaults { String name() default '' }
+
+@DSL class Service { String name }
+@DSL class Database extends Service { String engine = 'postgres' }
+@DSL class Application {
+    @ServiceDefaults(name = 'optional') Service optional
+    @AutoCreate(type = Database)
+    @ServiceDefaults(name = 'orders') Service database
+}
+
+def application = Application.Create.One()
+assert application.optional == null
+assert application.database instanceof Database
+assert application.database.name == 'orders'
+assert application.database.engine == 'postgres'
+assert Application.Create.With { optional { name 'supplied' } }.optional.name == 'supplied'
+```
+
+These are alternative domain definitions for different creation policies. The domain's Schema Developer
+chooses whether an annotation implies existence or only supplies defaults when a child is present.
+A lifecycle participant is optional and continues to receive the original domain annotation; propagation
+adds no handler or provider-selection behavior.
 
 ## Repeatable requests and containers
 
@@ -162,5 +241,30 @@ need no propagation interpreter or compiler. Recompile consuming Schemas after c
 previous binaries retain their emitted annotations and behavior. When replacing repeated explicit
 annotations with a propagating policy, remove the now-duplicate explicit annotation.
 
-This feature uses KlumCast `0.5.0-rc.2` consistently across annotations, SPI and compiler dependencies.
-Class-level AutoCreate defaults remain separate work under [#888](https://github.com/klum-dsl/klum-ast/issues/888).
+## Dependency and editor requirements
+
+Use a matching KlumAST 4.1 compiler and annotation library that both provide this feature. Adding the
+marker library to an older compiler is insufficient. The qualified dependency pairing uses KlumCast
+`0.5.0-rc.2` consistently across annotations, SPI and compiler, with Java 17 and Groovy 3/4/5
+(Groovy 3 on the classpath; Groovy 4/5 also in named modules). This is development qualification, not
+a promise that an older or mixed compiler/annotation combination works.
+
+IntelliJ/editor recognition of a domain annotation as its selected annotation remains unqualified.
+Compiled contracts, typed consumers and generated source mirrors do not establish source-editor alias
+recognition. See [migration guidance](Migration.md#composing-domain-annotations) for recompilation and
+explicit-annotation cleanup.
+
+## Choosing the right mechanism
+
+| Need | Mechanism |
+| --- | --- |
+| A domain use implies bare AutoCreate (or another legal default-valued annotation) | Propagation on that domain annotation |
+| Configure a selected annotation's members | A direct annotation; no member forwarding or configured annotation instances |
+| Defaults on fields that have no domain annotation | Separate class-level policy work under [#888](https://github.com/klum-dsl/klum-ast/issues/888) |
+| Reuse Schema source declarations | Separate source composition work under [#548](https://github.com/klum-dsl/klum-ast/issues/548) |
+| Execute arbitrary or recursively nested meta-annotations | Outside propagation's one-hop contract |
+| Select or bind ScHelm providers | ScHelm's own policy, outside KlumAST propagation |
+
+KlumAST supplies generic propagation. A consumer such as ScHelm owns its domain annotation meanings,
+provider selection and the decision to create or only bind when present. Compiler qualification does
+not establish acceptance of a particular consumer integration.

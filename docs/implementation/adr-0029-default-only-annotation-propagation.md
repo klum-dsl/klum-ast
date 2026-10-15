@@ -1,9 +1,11 @@
 # ADR 0029 implementation plan: DSL-only annotation propagation
 
-Date: 2026-10-13. Revised: 2026-10-14.
-Status: AP-1 implemented locally against public KlumCast `0.5.0-rc.2`, Central-only. Current focused
-Java 17 / Groovy 3/4/5 and artifact/module evidence passes; see the
-[current qualification record](issue-890-ap1-rc2-evidence.md) for full-check and delivery status.
+Date: 2026-10-13. Revised: 2026-10-15.
+Status: AP-1 through AP-4 merged at `ce897d5f7bd4aec2380f8369d12337fec30bf00a`; AP-5 local
+consumer guidance is prepared and real ScHelm development-consumer admission is PASS. Draft delivery
+and final-head CI/SonarCloud follow. The
+[AP-5 acceptance ledger](issue-890-ap5-evidence.md) consolidates slice delivery and open conditions.
+Public KlumCast `0.5.0-rc.2` remains the Central-only prerequisite pairing.
 
 ## AP-1 authorization and current implementation boundary (2026-10-14)
 
@@ -26,14 +28,14 @@ Evidence: [scheduling, eligibility and KlumCast probes](evidence/issue-890/schem
 Consumer history: [decision brief](issue-890-lifecycle-composition-decision-brief.md).
 Release remains conditional; no tracker, milestone or curation state changes are part of this plan.
 
-## Current behavior and admission boundary
+## Historical behavior and admission boundary
 
 Explicit AutoCreate plus a domain mutator already creates before mutation and preserves supplied children.
 DefaultValues consumes the original annotation's nondefault members without requiring a participant.
 The ScHelm fit review accepts bare AutoCreate for current concrete unkeyed relationships; it is reported
 consumer evidence, not a locally executed integration. Issue #888's class-wide defaults remain separate.
 
-No public PropagateAnnotation or production propagation entry exists. Historical generic/guarded global
+At the original planning baseline, no public PropagateAnnotation or production entry existed. Generic/guarded global
 probes show that early insertion can trigger local transformations; a late semantic customizer can miss
 Required discovery. These probes do not qualify the new contributor contract. Manual-metadata experiments
 cover narrow shapes but expose member/default, peer-alias and duplicate-diagnostic limitations; they are
@@ -220,7 +222,6 @@ source/binary inheritance and ordinary lifecycle ordering. Production transforma
 The evidence records the pre-existing Required/primitive-boolean validation limitation for maintainer
 follow-up, without changing the AP-2 contributor or validation ownership contract.
 
-
 Keep Required/Optional as existing local transformations. Cover explicit Required messages/levels and
 Optional Ignore, boolean/shape restrictions and runtime validation. Verify each conversion happens once
 and ordinary non-DSL behavior remains unchanged.
@@ -271,6 +272,12 @@ and any packaging corrections, followed by required check/SonarCloud review.
 
 ### AP-5 — Consumer admission and release-facing delivery
 
+Local preparation and the admitted real consumer result are tracked in the
+[AP-5 acceptance ledger](issue-890-ap5-evidence.md). The qualified ScHelm development pairing is
+`4.1.0-dev.435+ce897d5` from master `ce897d5f7bd4aec2380f8369d12337fec30bf00a`, using Maven Local
+only as a development route. The supplied consumer result passes; ScHelm negative-diagnostic fixtures
+and live editor alias recognition remain unqualified. This is not public release qualification.
+
 After production implementation, run the real ScHelm integration on admitted dependency versions. Validate
 its concrete relationships and DefaultValues consumers; no ScHelm policy or new configuration is added.
 Update relevant docs/user pages, Migration navigation, _Sidebar, CHANGES.md and linked documentary tests.
@@ -293,11 +300,12 @@ PR is not implementation admission, release acceptance or archive reconciliation
 | Generated Builder/Factory/Cluster/Query/mirror equivalence | AP-3 generated and typed-consumer tests |
 | Java 17 / Groovy 3/4/5 / applicable JPMS | AP-4 actual artifact matrix |
 | Recompilation, no fallback, runtime invariants | AP-3 regressions + AP-4 binary/runtime controls |
-| Consumer fit versus actual integration | Reported history now; real ScHelm run in AP-5 |
+| Consumer fit versus actual integration | Real ScHelm development admission PASS; AP-5 ledger records exact commits, workflow/results and limits |
 
 Current AP-1 evidence covers the neutral contributor, normal local discovery and sentinels, the exact
 public Central-only artifact route, binary-parent behavior, shipped classpath/module activation and
 runtime-only consumers. Failed future artifact or lane qualification still narrows or stops publication
-without a manual or independent-transform workaround. Independent editor recognition, actual ScHelm
-admission and final release/issue reconciliation remain separate. Current full-check and delivery status
-is recorded in the [RC.2 evidence](issue-890-ap1-rc2-evidence.md).
+without a manual or independent-transform workaround. Real ScHelm development admission now passes,
+with consumer negative diagnostics and independent editor recognition explicitly unqualified. Hive
+retains final release/issue reconciliation. The [AP-5 ledger](issue-890-ap5-evidence.md) consolidates
+current local validation, admission and delivery boundaries.
