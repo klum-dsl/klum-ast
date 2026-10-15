@@ -1,0 +1,19 @@
+import groovy.json.JsonOutput
+
+def starts = [:]
+gradle.taskGraph.beforeTask { task ->
+    if (task.name in ['compileModuleInfo', 'generatePomFileForMavenJavaPublication']) {
+        starts[task.path] = System.nanoTime()
+    }
+}
+gradle.taskGraph.afterTask { task, state ->
+    if (starts.containsKey(task.path)) {
+        println('TASK_HYGIENE ' + JsonOutput.toJson([
+                task: task.path,
+                outcome: state.skipMessage ?: (state.failure ? 'FAILED' : 'SUCCESS'),
+                seconds: (System.nanoTime() - starts[task.path]) / 1e9,
+                modulePath: task.name == 'compileModuleInfo' ? task.project.configurations.jpmsModulePath.files*.absolutePath : [],
+                output: task.name == 'compileModuleInfo' ? new File(task.destinationDirectory.get().asFile, 'module-info.class').absolutePath : task.destination.absolutePath
+        ]))
+    }
+}
