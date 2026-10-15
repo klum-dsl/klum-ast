@@ -29,7 +29,9 @@ import com.blackbuild.klum.ast.runtime.LifecycleParticipant
 import java.lang.reflect.Modifier
 import java.lang.annotation.Repeatable
 import spock.lang.Issue
+import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -38,6 +40,25 @@ import javax.tools.ToolProvider
 @Issue(['867', '883'])
 class LifecycleParticipantConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
+    @Shared @TempDir Path domainArtifactRoot
+    @Shared private Map<String, Path> domainArtifacts = [:]
+
+    @Issue('895')
+    def 'replacing one domain archive leaves other consumers and the lane prerequisite intact'() {
+        given:
+        Path first = domainJar(temporaryFolder.newFolder().toPath(), 'TypeDomain.groovy')
+        Path second = domainJar(temporaryFolder.newFolder().toPath(), 'TypeDomain.groovy')
+
+        when:
+        Files.writeString(first, 'replaced by one consumer')
+        Path later = domainJar(temporaryFolder.newFolder().toPath(), 'TypeDomain.groovy')
+
+        then:
+        !Files.isSameFile(first, second)
+        !Files.isSameFile(second, later)
+        Files.mismatch(first, second) != -1
+        Files.mismatch(second, later) == -1
+    }
 
     @Issue('883')
     def 'publishes exactly the lifecycle namespace with private construction and repeatable nested annotations'() {
@@ -100,10 +121,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 Files.copy(it, sources.resolve(file))
             }
         }
-        compileGroovy(sources, classes, jars, ['CompositionDomain.groovy'])
-        Path domain = jar(root, classes, 'domain.jar')
-        classes.toFile().deleteDir()
-        Files.createDirectories(classes)
+        Path domain = domainJar(root, 'CompositionDomain.groovy')
         String declaration = Files.readString(sources.resolve('Composition.java'))
         if (form == 'container') {
             declaration = declaration.replace('@LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ZFirst.class)\n    @LifecycleParticipant.Mutator(phase = AutoLink.class, handler = ASecond.class)',
@@ -174,10 +192,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 Files.copy(it, sources.resolve(file))
             }
         }
-        compileGroovy(sources, classes, jars, ['TypeDomain.groovy'])
-        Path domain = jar(root, classes, 'domain.jar')
-        classes.toFile().deleteDir()
-        Files.createDirectories(classes)
+        Path domain = domainJar(root, 'TypeDomain.groovy')
         String librarySource = author == 'Java' ? 'TypeRules.java' : 'TypeRules.groovy'
         String declaration = Files.readString(sources.resolve('TypeRules.java'))
         if (author == 'Groovy') {
@@ -249,10 +264,7 @@ class LifecycleParticipantConsumerTest extends Specification {
                 Files.copy(it, sources.resolve(file))
             }
         }
-        compileGroovy(sources, classes, jars, ['ContainerDomain.groovy'])
-        Path domain = jar(root, classes, 'domain.jar')
-        classes.toFile().deleteDir()
-        Files.createDirectories(classes)
+        Path domain = domainJar(root, 'ContainerDomain.groovy')
         compileJava(sources, classes, jars + [domain], ['ContainerRules.java'])
         Path library = jar(root, classes, 'annotations.jar')
         classes.toFile().deleteDir()
@@ -377,6 +389,28 @@ class LifecycleParticipantConsumerTest extends Specification {
         where:
         // Groovy 3 is classpath-only by ADR 0014; G4/G5 also execute real named consumers.
         named << (GroovySystem.version.startsWith('3.') ? [false] : [false, true])
+    }
+
+    private Path domainJar(Path consumerRoot, String sourceName) {
+        // Only unchanged domain sources are reusable. This map and its temp directory belong to one
+        // specification execution in one Groovy lane; no test/fixture output crosses lane boundaries.
+        synchronized (domainArtifacts) {
+            if (!domainArtifacts.containsKey(sourceName)) {
+                Path root = Files.createDirectory(domainArtifactRoot.resolve(sourceName))
+                Path sources = Files.createDirectory(root.resolve('sources'))
+                Path classes = Files.createDirectory(root.resolve('classes'))
+                getClass().getResourceAsStream('/lifecycle-participants/' + sourceName).withCloseable {
+                    Files.copy(it, sources.resolve(sourceName))
+                }
+                compileGroovy(sources, classes, runtimeAndCompilerJars(), [sourceName])
+                Path artifact = jar(root, classes, 'domain.jar')
+                assert sources.toFile().deleteDir()
+                assert classes.toFile().deleteDir()
+                domainArtifacts[sourceName] = artifact
+            }
+            // Never expose the shared archive to scenario-specific compilers or replacement controls.
+            return Files.copy(domainArtifacts[sourceName], consumerRoot.resolve('domain.jar'))
+        }
     }
 
     private static Path jar(Path root, Path classes, String name) {
