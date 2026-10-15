@@ -135,19 +135,51 @@ lifecycle, propagation or consumer-policy workaround.
 
 After Hive supplies the real consumer evidence, reconcile its exact versions, source and relationship/
 DefaultValues results against this gate. Record failures and limits instead of converting a development
-run into release qualification. Hive decides the final #890 relationship and release/curation impact.
+run into release qualification. Hive decides the final #890 relationship and release/curation impact. That tracker reconciliation must
+also add the new documentary class/methods and matching user-guide sections to #890, preserving the
+existing AP-1–AP-3 documentary cross-links.
 
 When all accepted local and external conditions pass, refresh master and validate the final branch,
 push the dedicated branch and open one draft PR against master. Verify final-head CI and SonarCloud
 and address actionable findings additively after review. Keep #890 open until Hive verifies complete
 acceptance and selects the tracker action. No merge or release is authorized by AP-5.
 
+## Independent reviews
+
+Fixed review range: `ce897d5f7bd4aec2380f8369d12337fec30bf00a...4b7287100d244b1cbdc8442e43e82f150bfc96e7`.
+Both reviewers worked read-only; final validation/status additions are documentation-only.
+
+### Standards
+
+Zero findings. No documented-standard violations or material baseline smells. The documentary class
+follows naming, `@Issue('890')`, the class-level tag, per-feature `@See` links and matching guide
+references. User guidance, migration, changelog and ADR status are consistent with local preparation.
+Pending ScHelm qualification, final validation reporting and issue/test cross-links are delivery conditions.
+
+### Spec
+
+Zero actionable findings. Practical examples, retained values, default-only selection, customized direct
+creation, duplicate/one-hop boundaries, dependency/recompilation guidance and policy distinctions match
+the authorized preparation. The ledger reconciles AP-1–AP-4 and records editor recognition as unqualified.
+There is no implementation or consumer-policy scope expansion. Real ScHelm integration on the admitted
+development versions remains deliberately pending; no premature acceptance, publication, closure or
+release is claimed.
+
+Summary: Standards 0; Spec 0. Neither axis has an outstanding actionable review finding.
+
 ## Local validation and delivery
 
-The two new documentary examples pass on Java 17 / Groovy 3, zero failures/errors/skips. Final root
-`check`, explicit Groovy 3/4/5 artifact matrix, rendered-site verification and two-axis review are in
-progress; their result will be recorded before the safe local handoff. No AP-5 remote CI or SonarCloud
-result is claimed. Local checks cannot satisfy the external consumer gate.
+The two new documentary examples pass on Java 17 / Groovy 3/4/5, zero failures/errors/skips.
+The first full root attempt passes all compiler lanes (2035 / 2037 / 2037 cases, 15 existing skips
+per lane) but fails 11 of 163 Gradle plugin cases. The worker created its review checkpoint during the
+run: the outer build requested the earlier Git-derived version, while nested fixture publication used
+the new HEAD's version. The failure is missing fixture BOM/artifact coordinates, not a product assertion.
+Repository inspection confirms the two different versions. No build or product workaround is added.
+
+The root and explicit artifact matrix will be rerun with HEAD and the worktree fixed for the complete
+run. Final rendered-site verification and results remain pending at this checkpoint. Both independent
+reviews pass; no AP-5 remote CI or SonarCloud result is claimed. Local checks cannot satisfy the external
+consumer gate.
 
 No production implementation, KlumCast, runtime lifecycle, public/generated API, build/publishing
 configuration, ScHelm code, source composition or class-level-default policy is changed. No release/run

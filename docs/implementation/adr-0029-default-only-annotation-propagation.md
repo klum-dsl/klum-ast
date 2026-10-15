@@ -2,7 +2,7 @@
 
 Date: 2026-10-13. Revised: 2026-10-15.
 Status: AP-1 through AP-4 merged at `ce897d5f7bd4aec2380f8369d12337fec30bf00a`; AP-5 local
-consumer guidance is being prepared, with real ScHelm admission outstanding. The
+consumer guidance is prepared, with real ScHelm admission outstanding. The
 [AP-5 acceptance ledger](issue-890-ap5-evidence.md) consolidates slice delivery and open conditions.
 Public KlumCast `0.5.0-rc.2` remains the Central-only prerequisite pairing.
 
