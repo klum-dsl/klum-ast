@@ -190,6 +190,10 @@ The marker and concrete bounds remain available through ordinary reflection on t
 
 `@Required` is a convenient alias for `@Validate` with an empty value (i.e., default validation), also with an optional message and level.
 
+Primitive `boolean` fields cannot use `@Required`; Schema compilation rejects them with guidance to use boxed
+`Boolean` instead. A required `Boolean` accepts both `true` and `false` and rejects `null`. The same restriction
+applies when Required is contributed through `@PropagateAnnotation(Required)`.
+
 (See: `ValidationDocumentaryTest#'uses Required as the concise Groovy-truth field rule'`.)
 
 ```groovy

@@ -34,6 +34,7 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
+import static org.codehaus.groovy.ast.ClassHelper.boolean_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
@@ -54,6 +55,13 @@ public class RequiredToValidateTransformation extends AbstractASTTransformation 
 
         annotatedField = (FieldNode) nodes[1];
         requiredAnnotation = (AnnotationNode) nodes[0];
+
+        // Generated Validate arrives after KlumCast's effective-declaration checks.
+        if (annotatedField.getType().equals(boolean_TYPE)) {
+            addError("@Required is not valid on primitive 'boolean' field '" + annotatedField.getName()
+                    + "', use 'Boolean' instead.", requiredAnnotation);
+            return;
+        }
 
         AnnotationNode validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
         validateAnnotation.setSourcePosition(requiredAnnotation);
