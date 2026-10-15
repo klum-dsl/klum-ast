@@ -63,7 +63,7 @@ test {
     useJUnitPlatform()
 
     inputs.files(
-            project(":klum-ast").tasks.named("jar")
+            project(":klum-ast").tasks.named("jar", Jar).flatMap { it.archiveFile }
     )
 }
 
