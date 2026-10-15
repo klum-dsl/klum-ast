@@ -8,8 +8,7 @@ Branch: `codex/issue-890-ap5`.
 
 ## Acceptance status
 
-AP-1 through AP-4 are merged and qualified as summarized below. AP-5 prepares local user guidance
-and documentary coverage. **Final AP-5 acceptance is pending real ScHelm evidence supplied to Hive.**
+AP-1 through AP-4 are merged and qualified as summarized below. AP-5 local user guidance, documentary coverage, review and validation are complete. **Final AP-5 acceptance is pending real ScHelm evidence supplied to Hive.**
 No ScHelm run or acceptance is inferred from local examples, consumer-fit reports, a publication request,
 or the earlier artifact matrix. No PR publication, issue closure or release is claimed by this ledger.
 
@@ -169,17 +168,51 @@ Summary: Standards 0; Spec 0. Neither axis has an outstanding actionable review 
 
 ## Local validation and delivery
 
-The two new documentary examples pass on Java 17 / Groovy 3/4/5, zero failures/errors/skips.
-The first full root attempt passes all compiler lanes (2035 / 2037 / 2037 cases, 15 existing skips
-per lane) but fails 11 of 163 Gradle plugin cases. The worker created its review checkpoint during the
-run: the outer build requested the earlier Git-derived version, while nested fixture publication used
-the new HEAD's version. The failure is missing fixture BOM/artifact coordinates, not a product assertion.
-Repository inspection confirms the two different versions. No build or product workaround is added.
+Validation is complete on fixed revision `e6fb76027ff79055e4c751715693716164d3bd14`, with a clean
+worktree throughout the final run. Zulu Java `17.0.3`; Groovy `3.0.25 / 4.0.32 / 5.0.6`; ordinary
+public KlumCast `0.5.0-rc.2` resolution. All six executions of the two new documentary features pass,
+with zero failures/errors/skips.
 
-The root and explicit artifact matrix will be rerun with HEAD and the worktree fixed for the complete
-run. Final rendered-site verification and results remain pending at this checkpoint. Both independent
-reviews pass; no AP-5 remote CI or SonarCloud result is claimed. Local checks cannot satisfy the external
-consumer gate.
+| Compiler lane | Cases | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 | 2035 | 0 | 15 |
+| Groovy 4 | 2037 | 0 | 15 |
+| Groovy 5 | 2037 | 0 | 15 |
+
+All 163 Gradle plugin cases pass, together with runtime/auxiliary suites, lane isolation, license checks
+and the versioned-renderer fixtures. All five explicit artifact scenarios pass (1 / 2 / 2 across Groovy
+3 / 4 / 5), with zero failures/errors/skips. The local exact-source render and HTTP site crawl pass;
+the renderer's default `4.0.0-tracer` label is only local review output, not a release/version claim.
+Rendered propagation examples, migration links and policy table are present. All 95 local Markdown
+links/anchors, documentary issue/tag/See/reference checks and `git diff --check` pass.
+
+Reproduce as **separate** invocations with Java 17:
+
+```shell
+./gradlew check :klum-ast:annotationPropagationArtifactsGroovy3 \
+  :klum-ast:annotationPropagationArtifactsGroovy4 \
+  :klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2
+./gradlew renderLocalDocumentation --no-parallel --max-workers=2
+```
+
+The complete fixed-revision test/matrix execution took 13m 28s. Its combined command ended only at
+render task configuration: Gradle rejects undeclared output dependencies when `renderLocalDocumentation`
+is co-scheduled with `check`. Separate rendering succeeds in 3s, and a standalone root/matrix confirmation
+succeeds in 2s, reusing the completed matrix (123 up-to-date tasks). No build-configuration workaround
+was introduced; the combined-task limitation is recorded for separate tooling follow-up.
+
+Two earlier invocations are not final qualification: creating the review checkpoint during the first
+root run changed the Git-derived version, so 11 plugin cases requested missing fixture BOM/artifact
+coordinates while nested publication used the new HEAD. A seven-second attempt then supplied a tracer
+version override that the renderer's default-configuration fixture intentionally rejects. Holding HEAD
+and the worktree fixed, retaining the default tracer setting and using separate render/check invocations
+produces the successful results above. No product changes were needed for these execution failures.
+
+Standards and Spec reviews each report zero findings. Commit-history review preserves the reviewed
+feature commit, then records reviews/stable-build reasoning and this final evidence-only handoff. No code,
+test or user-guide change follows qualification; final edits only record results here. No AP-5 PR was
+pushed or created, so AP-5 remote CI/SonarCloud is not run. Those checks remain required after the
+external gate and authorized draft publication. Local validation cannot satisfy the ScHelm gate.
 
 No production implementation, KlumCast, runtime lifecycle, public/generated API, build/publishing
 configuration, ScHelm code, source composition or class-level-default policy is changed. No release/run
