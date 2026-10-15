@@ -1,0 +1,1365 @@
+{
+  "schema": 1,
+  "environment": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64",
+    "chip": "Apple M3 Max",
+    "logical_cpus": 16,
+    "memory_gib": 64,
+    "jdk": "Azul Zulu 17.0.3+7-LTS",
+    "gradle": "8.14.4",
+    "groovy": [
+      "3.0.25",
+      "4.0.32",
+      "5.0.6"
+    ],
+    "spock": "2.4 matching each Groovy generation",
+    "cache_state": "Existing dependency/transform caches and compatible daemon; task-output/configuration caches disabled; forced selected Test execution"
+  },
+  "base": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+  "baseline_consumer_content_commit": "812816c5",
+  "optimized_consumer_content_commit": "953d4df1",
+  "notes": [
+    "Invocation HEAD plus consumer-source hash identify local changes: before used base plus instrumentation, after used instrumentation commit plus optimization. Production sources unchanged.",
+    "Wrapper time includes recompilation of the selected test lane on its first after run and first baseline compatibility run; use JUnit suite time for comparison.",
+    "Every captured subprocess succeeded; ToolProvider negative compilation is in-process, not counted as a subprocess.",
+    "Domain compiler event pairs are [epoch start milliseconds, elapsed nanoseconds]. All subprocess category timestamp ranges and durations include startup, output draining and waiting.",
+    "Shared desktop host, not an idle benchmark runner. No other Gradle invocation was started by this task during focused measurements."
+  ],
+  "original_case_names": {
+    "test": [
+      "publishes exactly the lifecycle namespace with private construction and repeatable nested annotations",
+      "removes the former top-level lifecycle API without aliases (LifecycleCreator)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutator)",
+      "removes the former top-level lifecycle API without aliases (LifecycleCreationHandler)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutationHandler)",
+      "removes the former top-level lifecycle API without aliases (LifecycleFieldContext)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutationContext)",
+      "Java handlers and separately compiled Java and static and dynamic Groovy consumers use public contracts",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (mismatch)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (raw)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (unresolved)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (creators)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (phase)",
+      "qualifies AutoLink repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink container composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink repeated composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoLink container composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoLink mixed composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink mixed composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoCreate repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies Default repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies PostTree repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (none)",
+      "qualifies type dispatch and repeatable inheritance with Groovy annotations and Java and Groovy consumers (none)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (phase)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (handler)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (creator)",
+      "qualifies existing public container contracts and rejects binary-added none participation on all",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on listValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on listValues",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on setValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on setValues",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on mapValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on mapValues",
+      "qualifies separate handler modules and public Builder consumers (false)"
+    ],
+    "groovy4Tests": [
+      "publishes exactly the lifecycle namespace with private construction and repeatable nested annotations",
+      "removes the former top-level lifecycle API without aliases (LifecycleCreator)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutator)",
+      "removes the former top-level lifecycle API without aliases (LifecycleCreationHandler)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutationHandler)",
+      "removes the former top-level lifecycle API without aliases (LifecycleFieldContext)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutationContext)",
+      "Java handlers and separately compiled Java and static and dynamic Groovy consumers use public contracts",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (mismatch)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (raw)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (unresolved)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (creators)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (phase)",
+      "qualifies AutoLink repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink container composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink repeated composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoLink container composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoLink mixed composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink mixed composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoCreate repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies Default repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies PostTree repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (none)",
+      "qualifies type dispatch and repeatable inheritance with Groovy annotations and Java and Groovy consumers (none)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (phase)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (handler)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (creator)",
+      "qualifies existing public container contracts and rejects binary-added none participation on all",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on listValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on listValues",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on setValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on setValues",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on mapValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on mapValues",
+      "qualifies separate handler modules and public Builder consumers (false)",
+      "qualifies separate handler modules and public Builder consumers (true)"
+    ],
+    "groovy5Tests": [
+      "publishes exactly the lifecycle namespace with private construction and repeatable nested annotations",
+      "removes the former top-level lifecycle API without aliases (LifecycleCreator)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutator)",
+      "removes the former top-level lifecycle API without aliases (LifecycleCreationHandler)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutationHandler)",
+      "removes the former top-level lifecycle API without aliases (LifecycleFieldContext)",
+      "removes the former top-level lifecycle API without aliases (LifecycleMutationContext)",
+      "Java handlers and separately compiled Java and static and dynamic Groovy consumers use public contracts",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (mismatch)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (raw)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (unresolved)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (creators)",
+      "runtime rejects a precompiled declaration replaced after Schema compilation (phase)",
+      "qualifies AutoLink repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink container composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink repeated composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoLink container composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoLink mixed composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies AutoLink mixed composition in a compiled Groovy annotation library with separate Schema and consumer",
+      "qualifies AutoCreate repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies Default repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies PostTree repeated composition in a compiled Java annotation library with separate Schema and consumer",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (none)",
+      "qualifies type dispatch and repeatable inheritance with Groovy annotations and Java and Groovy consumers (none)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (phase)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (handler)",
+      "qualifies type dispatch and repeatable inheritance with Java annotations and Java and Groovy consumers (creator)",
+      "qualifies existing public container contracts and rejects binary-added none participation on all",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on listValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on listValues",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on setValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on setValues",
+      "qualifies existing public container contracts and rejects binary-added Creator participation on mapValues",
+      "qualifies existing public container contracts and rejects binary-added Mutator participation on mapValues",
+      "qualifies separate handler modules and public Builder consumers (false)",
+      "qualifies separate handler modules and public Builder consumers (true)"
+    ]
+  },
+  "additional_case": "replacing one domain archive leaves other consumers and the lane prerequisite intact",
+  "runs": [
+    {
+      "phase": "before",
+      "repeat": 1,
+      "lane": "test",
+      "invocation_head": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+      "consumer_source_sha256": "2a1843aea1fea5dd1cca2800c362fe9023e933592d9030c7b7a316003e128677",
+      "started_utc": "2026-10-15T08:28:30.173869+00:00",
+      "wrapper_wall_seconds": 75.820475625,
+      "suite": {
+        "name": "com.blackbuild.klum.ast.LifecycleParticipantConsumerTest",
+        "tests": "35",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-15T08:28:31.651Z",
+        "time": "74.217"
+      },
+      "original_cases_preserved": true,
+      "case_count": 35,
+      "subprocesses": {
+        "groovyc": {
+          "count": 60,
+          "total_seconds": 36.495869875,
+          "first_start_epoch_ms": 1792052911931,
+          "last_start_epoch_ms": 1792052984448
+        },
+        "javac": {
+          "count": 68,
+          "total_seconds": 20.286440793,
+          "first_start_epoch_ms": 1792052912600,
+          "last_start_epoch_ms": 1792052985133
+        },
+        "jar": {
+          "count": 96,
+          "total_seconds": 7.073603293,
+          "first_start_epoch_ms": 1792052913840,
+          "last_start_epoch_ms": 1792052985415
+        },
+        "java": {
+          "count": 28,
+          "total_seconds": 9.45066217,
+          "first_start_epoch_ms": 1792052913923,
+          "last_start_epoch_ms": 1792052985496
+        }
+      },
+      "domain_compiler_events": {
+        "CompositionDomain.groovy": [
+          [
+            1792052927496,
+            537523125
+          ],
+          [
+            1792052929883,
+            521352291
+          ],
+          [
+            1792052932224,
+            526857208
+          ],
+          [
+            1792052934758,
+            521777042
+          ],
+          [
+            1792052937356,
+            538234958
+          ],
+          [
+            1792052939715,
+            540099834
+          ],
+          [
+            1792052942324,
+            551980125
+          ],
+          [
+            1792052944719,
+            542866833
+          ],
+          [
+            1792052947052,
+            544807333
+          ]
+        ],
+        "TypeDomain.groovy": [
+          [
+            1792052949445,
+            541230042
+          ],
+          [
+            1792052952144,
+            553324334
+          ],
+          [
+            1792052955101,
+            538903458
+          ],
+          [
+            1792052958062,
+            558748500
+          ],
+          [
+            1792052961104,
+            542863708
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792052964082,
+            540184084
+          ],
+          [
+            1792052966837,
+            564314500
+          ],
+          [
+            1792052969638,
+            568729583
+          ],
+          [
+            1792052972406,
+            561270875
+          ],
+          [
+            1792052975151,
+            544895709
+          ],
+          [
+            1792052977884,
+            546735583
+          ],
+          [
+            1792052980635,
+            538276500
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "before",
+      "repeat": 1,
+      "lane": "groovy4Tests",
+      "invocation_head": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+      "consumer_source_sha256": "2a1843aea1fea5dd1cca2800c362fe9023e933592d9030c7b7a316003e128677",
+      "started_utc": "2026-10-15T08:29:45.997179+00:00",
+      "wrapper_wall_seconds": 82.983859291,
+      "suite": {
+        "name": "com.blackbuild.klum.ast.LifecycleParticipantConsumerTest",
+        "tests": "36",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-15T08:29:53.067Z",
+        "time": "75.78"
+      },
+      "original_cases_preserved": true,
+      "case_count": 36,
+      "subprocesses": {
+        "groovyc": {
+          "count": 62,
+          "total_seconds": 37.582613668,
+          "first_start_epoch_ms": 1792052993294,
+          "last_start_epoch_ms": 1792053066848
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 21.715776916,
+          "first_start_epoch_ms": 1792052993950,
+          "last_start_epoch_ms": 1792053068163
+        },
+        "jar": {
+          "count": 100,
+          "total_seconds": 7.223016414,
+          "first_start_epoch_ms": 1792052995153,
+          "last_start_epoch_ms": 1792053068435
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 8.311543331,
+          "first_start_epoch_ms": 1792052995237,
+          "last_start_epoch_ms": 1792053068508
+        }
+      },
+      "domain_compiler_events": {
+        "CompositionDomain.groovy": [
+          [
+            1792053008221,
+            582777709
+          ],
+          [
+            1792053010530,
+            536673583
+          ],
+          [
+            1792053012802,
+            541644792
+          ],
+          [
+            1792053015275,
+            526522625
+          ],
+          [
+            1792053017735,
+            533963166
+          ],
+          [
+            1792053019993,
+            527442834
+          ],
+          [
+            1792053022504,
+            520219792
+          ],
+          [
+            1792053024798,
+            562425000
+          ],
+          [
+            1792053027118,
+            541164375
+          ]
+        ],
+        "TypeDomain.groovy": [
+          [
+            1792053029453,
+            563382084
+          ],
+          [
+            1792053032118,
+            528104667
+          ],
+          [
+            1792053035025,
+            554875666
+          ],
+          [
+            1792053037954,
+            567211500
+          ],
+          [
+            1792053040858,
+            581531250
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053043799,
+            530993334
+          ],
+          [
+            1792053046621,
+            553256000
+          ],
+          [
+            1792053049288,
+            532106083
+          ],
+          [
+            1792053051871,
+            538608500
+          ],
+          [
+            1792053054515,
+            569221167
+          ],
+          [
+            1792053057166,
+            552511625
+          ],
+          [
+            1792053059916,
+            537274958
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "before",
+      "repeat": 1,
+      "lane": "groovy5Tests",
+      "invocation_head": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+      "consumer_source_sha256": "2a1843aea1fea5dd1cca2800c362fe9023e933592d9030c7b7a316003e128677",
+      "started_utc": "2026-10-15T08:31:08.983760+00:00",
+      "wrapper_wall_seconds": 85.802309458,
+      "suite": {
+        "name": "com.blackbuild.klum.ast.LifecycleParticipantConsumerTest",
+        "tests": "36",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-15T08:31:16.056Z",
+        "time": "78.621"
+      },
+      "original_cases_preserved": true,
+      "case_count": 36,
+      "subprocesses": {
+        "groovyc": {
+          "count": 62,
+          "total_seconds": 41.072117913,
+          "first_start_epoch_ms": 1792053076319,
+          "last_start_epoch_ms": 1792053152719
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 21.291371378,
+          "first_start_epoch_ms": 1792053077077,
+          "last_start_epoch_ms": 1792053154008
+        },
+        "jar": {
+          "count": 100,
+          "total_seconds": 6.570486673,
+          "first_start_epoch_ms": 1792053078400,
+          "last_start_epoch_ms": 1792053154256
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 8.715706837,
+          "first_start_epoch_ms": 1792053078477,
+          "last_start_epoch_ms": 1792053154322
+        }
+      },
+      "domain_compiler_events": {
+        "CompositionDomain.groovy": [
+          [
+            1792053092573,
+            576377333
+          ],
+          [
+            1792053094951,
+            566194916
+          ],
+          [
+            1792053097326,
+            594349791
+          ],
+          [
+            1792053099992,
+            594366667
+          ],
+          [
+            1792053102603,
+            584116500
+          ],
+          [
+            1792053104965,
+            562880625
+          ],
+          [
+            1792053107552,
+            557152583
+          ],
+          [
+            1792053109804,
+            518067584
+          ],
+          [
+            1792053111970,
+            525000417
+          ]
+        ],
+        "TypeDomain.groovy": [
+          [
+            1792053114162,
+            513694916
+          ],
+          [
+            1792053116722,
+            517036125
+          ],
+          [
+            1792053119741,
+            596880458
+          ],
+          [
+            1792053122796,
+            607113958
+          ],
+          [
+            1792053125855,
+            604880291
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053128892,
+            598495250
+          ],
+          [
+            1792053131821,
+            602115500
+          ],
+          [
+            1792053134587,
+            600827041
+          ],
+          [
+            1792053137379,
+            611474917
+          ],
+          [
+            1792053140165,
+            595487291
+          ],
+          [
+            1792053142911,
+            599447417
+          ],
+          [
+            1792053145671,
+            586673667
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "before",
+      "repeat": 2,
+      "lane": "test",
+      "invocation_head": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+      "consumer_source_sha256": "2a1843aea1fea5dd1cca2800c362fe9023e933592d9030c7b7a316003e128677",
+      "started_utc": "2026-10-15T08:32:34.788348+00:00",
+      "wrapper_wall_seconds": 74.00152541699998,
+      "suite": {
+        "name": "com.blackbuild.klum.ast.LifecycleParticipantConsumerTest",
+        "tests": "35",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-15T08:32:36.105Z",
+        "time": "72.604"
+      },
+      "original_cases_preserved": true,
+      "case_count": 35,
+      "subprocesses": {
+        "groovyc": {
+          "count": 60,
+          "total_seconds": 36.382523791,
+          "first_start_epoch_ms": 1792053156357,
+          "last_start_epoch_ms": 1792053227350
+        },
+        "javac": {
+          "count": 68,
+          "total_seconds": 19.688463833,
+          "first_start_epoch_ms": 1792053157017,
+          "last_start_epoch_ms": 1792053228022
+        },
+        "jar": {
+          "count": 96,
+          "total_seconds": 6.51656988,
+          "first_start_epoch_ms": 1792053158264,
+          "last_start_epoch_ms": 1792053228300
+        },
+        "java": {
+          "count": 28,
+          "total_seconds": 9.188324252,
+          "first_start_epoch_ms": 1792053158340,
+          "last_start_epoch_ms": 1792053228362
+        }
+      },
+      "domain_compiler_events": {
+        "CompositionDomain.groovy": [
+          [
+            1792053171941,
+            550755625
+          ],
+          [
+            1792053174368,
+            556436541
+          ],
+          [
+            1792053176709,
+            546896250
+          ],
+          [
+            1792053179301,
+            548222291
+          ],
+          [
+            1792053181894,
+            541839375
+          ],
+          [
+            1792053184244,
+            550462208
+          ],
+          [
+            1792053186826,
+            543878416
+          ],
+          [
+            1792053189171,
+            548179292
+          ],
+          [
+            1792053191499,
+            537541292
+          ]
+        ],
+        "TypeDomain.groovy": [
+          [
+            1792053193774,
+            525908125
+          ],
+          [
+            1792053196394,
+            538411000
+          ],
+          [
+            1792053199224,
+            526072583
+          ],
+          [
+            1792053202009,
+            518847833
+          ],
+          [
+            1792053204800,
+            514137333
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053207581,
+            511725416
+          ],
+          [
+            1792053210195,
+            510007917
+          ],
+          [
+            1792053212760,
+            527804042
+          ],
+          [
+            1792053215424,
+            526163917
+          ],
+          [
+            1792053218204,
+            557351625
+          ],
+          [
+            1792053220898,
+            517843417
+          ],
+          [
+            1792053223595,
+            557210958
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "before",
+      "repeat": 2,
+      "lane": "groovy4Tests",
+      "invocation_head": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+      "consumer_source_sha256": "2a1843aea1fea5dd1cca2800c362fe9023e933592d9030c7b7a316003e128677",
+      "started_utc": "2026-10-15T08:33:48.792301+00:00",
+      "wrapper_wall_seconds": 74.13635520899999,
+      "suite": {
+        "name": "com.blackbuild.klum.ast.LifecycleParticipantConsumerTest",
+        "tests": "36",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-15T08:33:50.091Z",
+        "time": "72.746"
+      },
+      "original_cases_preserved": true,
+      "case_count": 36,
+      "subprocesses": {
+        "groovyc": {
+          "count": 62,
+          "total_seconds": 36.213896294,
+          "first_start_epoch_ms": 1792053230319,
+          "last_start_epoch_ms": 1792053301127
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 20.708130586,
+          "first_start_epoch_ms": 1792053230966,
+          "last_start_epoch_ms": 1792053302249
+        },
+        "jar": {
+          "count": 100,
+          "total_seconds": 7.072468792,
+          "first_start_epoch_ms": 1792053232111,
+          "last_start_epoch_ms": 1792053302468
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 7.847250374,
+          "first_start_epoch_ms": 1792053232204,
+          "last_start_epoch_ms": 1792053302535
+        }
+      },
+      "domain_compiler_events": {
+        "CompositionDomain.groovy": [
+          [
+            1792053244849,
+            534571792
+          ],
+          [
+            1792053247169,
+            520486042
+          ],
+          [
+            1792053249406,
+            509721500
+          ],
+          [
+            1792053251845,
+            521713459
+          ],
+          [
+            1792053254328,
+            513851083
+          ],
+          [
+            1792053256531,
+            538340708
+          ],
+          [
+            1792053259006,
+            559489041
+          ],
+          [
+            1792053261253,
+            524688084
+          ],
+          [
+            1792053263415,
+            496108209
+          ]
+        ],
+        "TypeDomain.groovy": [
+          [
+            1792053265634,
+            522301167
+          ],
+          [
+            1792053268238,
+            522570667
+          ],
+          [
+            1792053271011,
+            528197125
+          ],
+          [
+            1792053273816,
+            544881375
+          ],
+          [
+            1792053276582,
+            523779667
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053279314,
+            516167208
+          ],
+          [
+            1792053281957,
+            518008875
+          ],
+          [
+            1792053284478,
+            527186625
+          ],
+          [
+            1792053287008,
+            528565750
+          ],
+          [
+            1792053289579,
+            532018375
+          ],
+          [
+            1792053292140,
+            527505041
+          ],
+          [
+            1792053294722,
+            535696834
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "before",
+      "repeat": 2,
+      "lane": "groovy5Tests",
+      "invocation_head": "11c5503f49a9e6bf6e00f5b1d043ccda36144a7b",
+      "consumer_source_sha256": "2a1843aea1fea5dd1cca2800c362fe9023e933592d9030c7b7a316003e128677",
+      "started_utc": "2026-10-15T08:35:02.931089+00:00",
+      "wrapper_wall_seconds": 76.39124529099996,
+      "suite": {
+        "name": "com.blackbuild.klum.ast.LifecycleParticipantConsumerTest",
+        "tests": "36",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-15T08:35:04.260Z",
+        "time": "74.955"
+      },
+      "original_cases_preserved": true,
+      "case_count": 36,
+      "subprocesses": {
+        "groovyc": {
+          "count": 62,
+          "total_seconds": 37.86835021,
+          "first_start_epoch_ms": 1792053304498,
+          "last_start_epoch_ms": 1792053377365
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 20.804146999,
+          "first_start_epoch_ms": 1792053305193,
+          "last_start_epoch_ms": 1792053378575
+        },
+        "jar": {
+          "count": 100,
+          "total_seconds": 7.040038088,
+          "first_start_epoch_ms": 1792053306385,
+          "last_start_epoch_ms": 1792053378817
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 8.324408125,
+          "first_start_epoch_ms": 1792053306475,
+          "last_start_epoch_ms": 1792053378901
+        }
+      },
+      "domain_compiler_events": {
+        "CompositionDomain.groovy": [
+          [
+            1792053319446,
+            654596333
+          ],
+          [
+            1792053321773,
+            543998750
+          ],
+          [
+            1792053324072,
+            575204625
+          ],
+          [
+            1792053326609,
+            565471000
+          ],
+          [
+            1792053329145,
+            576045958
+          ],
+          [
+            1792053331489,
+            557595084
+          ],
+          [
+            1792053334020,
+            591235792
+          ],
+          [
+            1792053336411,
+            588498292
+          ],
+          [
+            1792053338788,
+            563111750
+          ]
+        ],
+        "TypeDomain.groovy": [
+          [
+            1792053341110,
+            545456792
+          ],
+          [
+            1792053343690,
+            539845583
+          ],
+          [
+            1792053346552,
+            523268416
+          ],
+          [
+            1792053349357,
+            532241542
+          ],
+          [
+            1792053352209,
+            548675583
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053355094,
+            531848542
+          ],
+          [
+            1792053357807,
+            547781750
+          ],
+          [
+            1792053360427,
+            513883958
+          ],
+          [
+            1792053362996,
+            533202000
+          ],
+          [
+            1792053365652,
+            532461833
+          ],
+          [
+            1792053368230,
+            537441792
+          ],
+          [
+            1792053370812,
+            530400583
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "after",
+      "repeat": 1,
+      "lane": "test",
+      "invocation_head": "812816c54d6f1fc59be841fa7d4b273ac68d3569",
+      "consumer_source_sha256": "75ddaea9ffdcf82ee2ce7d86fef56c93716d4f3a84d2bb9b70632f48a9a0262f",
+      "started_utc": "2026-10-15T08:37:08.377682+00:00",
+      "wrapper_wall_seconds": 71.13240129200001,
+      "suite": {
+        "tests": "36",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "time": "62.251",
+        "timestamp": "2026-10-15T08:37:17.160Z"
+      },
+      "original_cases_preserved": true,
+      "case_count": 36,
+      "subprocesses": {
+        "groovyc": {
+          "count": 42,
+          "total_seconds": 27.179575625,
+          "first_start_epoch_ms": 1792053437281,
+          "last_start_epoch_ms": 1792053497981
+        },
+        "jar": {
+          "count": 78,
+          "total_seconds": 5.244872876,
+          "first_start_epoch_ms": 1792053437834,
+          "last_start_epoch_ms": 1792053498970
+        },
+        "javac": {
+          "count": 68,
+          "total_seconds": 19.704357753,
+          "first_start_epoch_ms": 1792053438538,
+          "last_start_epoch_ms": 1792053498684
+        },
+        "java": {
+          "count": 28,
+          "total_seconds": 9.318634834,
+          "first_start_epoch_ms": 1792053439776,
+          "last_start_epoch_ms": 1792053499034
+        }
+      },
+      "domain_compiler_events": {
+        "TypeDomain.groovy": [
+          [
+            1792053437281,
+            541203667
+          ]
+        ],
+        "CompositionDomain.groovy": [
+          [
+            1792053452641,
+            548768417
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053481362,
+            570522834
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "after",
+      "repeat": 1,
+      "lane": "groovy4Tests",
+      "invocation_head": "812816c54d6f1fc59be841fa7d4b273ac68d3569",
+      "consumer_source_sha256": "75ddaea9ffdcf82ee2ce7d86fef56c93716d4f3a84d2bb9b70632f48a9a0262f",
+      "started_utc": "2026-10-15T08:38:19.512394+00:00",
+      "wrapper_wall_seconds": 80.921328958,
+      "suite": {
+        "tests": "37",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "time": "73.106",
+        "timestamp": "2026-10-15T08:38:27.197Z"
+      },
+      "original_cases_preserved": true,
+      "case_count": 37,
+      "subprocesses": {
+        "groovyc": {
+          "count": 44,
+          "total_seconds": 32.332739498,
+          "first_start_epoch_ms": 1792053507410,
+          "last_start_epoch_ms": 1792053578153
+        },
+        "jar": {
+          "count": 82,
+          "total_seconds": 6.267051539,
+          "first_start_epoch_ms": 1792053508069,
+          "last_start_epoch_ms": 1792053579852
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 24.253266627,
+          "first_start_epoch_ms": 1792053508921,
+          "last_start_epoch_ms": 1792053579569
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 9.269206751,
+          "first_start_epoch_ms": 1792053510499,
+          "last_start_epoch_ms": 1792053579935
+        }
+      },
+      "domain_compiler_events": {
+        "TypeDomain.groovy": [
+          [
+            1792053507410,
+            647433125
+          ]
+        ],
+        "CompositionDomain.groovy": [
+          [
+            1792053525069,
+            617385833
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053556756,
+            622244542
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "after",
+      "repeat": 1,
+      "lane": "groovy5Tests",
+      "invocation_head": "812816c54d6f1fc59be841fa7d4b273ac68d3569",
+      "consumer_source_sha256": "75ddaea9ffdcf82ee2ce7d86fef56c93716d4f3a84d2bb9b70632f48a9a0262f",
+      "started_utc": "2026-10-15T08:39:40.435882+00:00",
+      "wrapper_wall_seconds": 77.504602584,
+      "suite": {
+        "tests": "37",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "time": "70.655",
+        "timestamp": "2026-10-15T08:39:47.165Z"
+      },
+      "original_cases_preserved": true,
+      "case_count": 37,
+      "subprocesses": {
+        "groovyc": {
+          "count": 44,
+          "total_seconds": 31.912578255,
+          "first_start_epoch_ms": 1792053587380,
+          "last_start_epoch_ms": 1792053655892
+        },
+        "jar": {
+          "count": 82,
+          "total_seconds": 5.761528752,
+          "first_start_epoch_ms": 1792053588096,
+          "last_start_epoch_ms": 1792053657415
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 22.702844409,
+          "first_start_epoch_ms": 1792053588973,
+          "last_start_epoch_ms": 1792053657171
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 9.312341622,
+          "first_start_epoch_ms": 1792053590501,
+          "last_start_epoch_ms": 1792053657482
+        }
+      },
+      "domain_compiler_events": {
+        "TypeDomain.groovy": [
+          [
+            1792053587380,
+            701296375
+          ]
+        ],
+        "CompositionDomain.groovy": [
+          [
+            1792053605638,
+            633961000
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053636488,
+            566386083
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "after",
+      "repeat": 2,
+      "lane": "test",
+      "invocation_head": "812816c54d6f1fc59be841fa7d4b273ac68d3569",
+      "consumer_source_sha256": "75ddaea9ffdcf82ee2ce7d86fef56c93716d4f3a84d2bb9b70632f48a9a0262f",
+      "started_utc": "2026-10-15T08:40:57.942600+00:00",
+      "wrapper_wall_seconds": 63.97319091699998,
+      "suite": {
+        "tests": "36",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "time": "62.482",
+        "timestamp": "2026-10-15T08:40:59.337Z"
+      },
+      "original_cases_preserved": true,
+      "case_count": 36,
+      "subprocesses": {
+        "groovyc": {
+          "count": 42,
+          "total_seconds": 27.517417079,
+          "first_start_epoch_ms": 1792053659458,
+          "last_start_epoch_ms": 1792053720345
+        },
+        "jar": {
+          "count": 78,
+          "total_seconds": 5.084557502,
+          "first_start_epoch_ms": 1792053660051,
+          "last_start_epoch_ms": 1792053721377
+        },
+        "javac": {
+          "count": 68,
+          "total_seconds": 19.766306913,
+          "first_start_epoch_ms": 1792053660788,
+          "last_start_epoch_ms": 1792053721068
+        },
+        "java": {
+          "count": 28,
+          "total_seconds": 9.376236747,
+          "first_start_epoch_ms": 1792053662130,
+          "last_start_epoch_ms": 1792053721444
+        }
+      },
+      "domain_compiler_events": {
+        "TypeDomain.groovy": [
+          [
+            1792053659458,
+            583132583
+          ]
+        ],
+        "CompositionDomain.groovy": [
+          [
+            1792053675665,
+            538714958
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053703892,
+            560171625
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "after",
+      "repeat": 2,
+      "lane": "groovy4Tests",
+      "invocation_head": "812816c54d6f1fc59be841fa7d4b273ac68d3569",
+      "consumer_source_sha256": "75ddaea9ffdcf82ee2ce7d86fef56c93716d4f3a84d2bb9b70632f48a9a0262f",
+      "started_utc": "2026-10-15T08:42:01.918001+00:00",
+      "wrapper_wall_seconds": 68.27226841600003,
+      "suite": {
+        "tests": "37",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "time": "65.825",
+        "timestamp": "2026-10-15T08:42:04.270Z"
+      },
+      "original_cases_preserved": true,
+      "case_count": 37,
+      "subprocesses": {
+        "groovyc": {
+          "count": 44,
+          "total_seconds": 29.470505044,
+          "first_start_epoch_ms": 1792053724468,
+          "last_start_epoch_ms": 1792053788236
+        },
+        "jar": {
+          "count": 82,
+          "total_seconds": 5.517270124,
+          "first_start_epoch_ms": 1792053725100,
+          "last_start_epoch_ms": 1792053789711
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 21.618432419,
+          "first_start_epoch_ms": 1792053725883,
+          "last_start_epoch_ms": 1792053789478
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 8.278181997,
+          "first_start_epoch_ms": 1792053727196,
+          "last_start_epoch_ms": 1792053789780
+        }
+      },
+      "domain_compiler_events": {
+        "TypeDomain.groovy": [
+          [
+            1792053724468,
+            619301625
+          ]
+        ],
+        "CompositionDomain.groovy": [
+          [
+            1792053740446,
+            550682209
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053768609,
+            605575834
+          ]
+        ]
+      }
+    },
+    {
+      "phase": "after",
+      "repeat": 2,
+      "lane": "groovy5Tests",
+      "invocation_head": "812816c54d6f1fc59be841fa7d4b273ac68d3569",
+      "consumer_source_sha256": "75ddaea9ffdcf82ee2ce7d86fef56c93716d4f3a84d2bb9b70632f48a9a0262f",
+      "started_utc": "2026-10-15T08:43:10.192306+00:00",
+      "wrapper_wall_seconds": 68.49809420899999,
+      "suite": {
+        "tests": "37",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "time": "67.082",
+        "timestamp": "2026-10-15T08:43:11.523Z"
+      },
+      "original_cases_preserved": true,
+      "case_count": 37,
+      "subprocesses": {
+        "groovyc": {
+          "count": 44,
+          "total_seconds": 29.948074082,
+          "first_start_epoch_ms": 1792053791730,
+          "last_start_epoch_ms": 1792053856629
+        },
+        "jar": {
+          "count": 82,
+          "total_seconds": 5.70875012,
+          "first_start_epoch_ms": 1792053792366,
+          "last_start_epoch_ms": 1792053858187
+        },
+        "javac": {
+          "count": 74,
+          "total_seconds": 21.779918876,
+          "first_start_epoch_ms": 1792053793165,
+          "last_start_epoch_ms": 1792053857929
+        },
+        "java": {
+          "count": 29,
+          "total_seconds": 8.71743279,
+          "first_start_epoch_ms": 1792053794486,
+          "last_start_epoch_ms": 1792053858257
+        }
+      },
+      "domain_compiler_events": {
+        "TypeDomain.groovy": [
+          [
+            1792053791730,
+            623390583
+          ]
+        ],
+        "CompositionDomain.groovy": [
+          [
+            1792053808774,
+            555449541
+          ]
+        ],
+        "ContainerDomain.groovy": [
+          [
+            1792053836760,
+            580671375
+          ]
+        ]
+      }
+    }
+  ]
+}
