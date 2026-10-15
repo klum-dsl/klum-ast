@@ -1,4 +1,5 @@
-import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import com.blackbuild.klum.ast.testing.VerifyTestLaneIsolationTask
+import com.blackbuild.klum.ast.testing.VerifyTestLaneIsolationTask.Lane
 
 plugins {
     id "klum-ast.java-conventions"
@@ -79,59 +80,30 @@ def testLanes = [
         ]
 ]
 
-tasks.register('verifyTestLaneIsolation') {
+tasks.register('verifyTestLaneIsolation', VerifyTestLaneIsolationTask) {
     group = 'verification'
     description = 'Verifies matching Groovy/Spock dependencies, isolated test output, and lane-specific JUnit results.'
     dependsOn testLanes.values()*.testTask
     mustRunAfter testLanes.values()*.testTask
 
-    doLast {
-        testLanes.each { generation, lane ->
-            def components = lane.classpath.incoming.resolutionResult.allComponents*.id.findAll {
-                it instanceof ModuleComponentIdentifier
-            }
-            def groovyComponents = components.findAll { it.group in ['org.codehaus.groovy', 'org.apache.groovy'] }
-            def expectedGroovyGroup = generation == 3 ? 'org.codehaus.groovy' : 'org.apache.groovy'
-            if (groovyComponents.isEmpty() || groovyComponents.any {
-                it.group != expectedGroovyGroup || it.version != libs.versions.groovy."v$generation".get()
-            })
-                throw new GradleException("Groovy $generation lane contains mismatched Groovy modules: $groovyComponents")
-
-            def spockComponents = components.findAll { it.group == 'org.spockframework' }
-            if (spockComponents.isEmpty() || spockComponents.any {
-                it.version != libs.versions.spock."g$generation".get()
-            })
-                throw new GradleException("Groovy $generation lane contains mismatched Spock modules: $spockComponents")
-
-            def forbiddenOutput = testLanes.findAll { otherGeneration, ignored -> otherGeneration != generation }
-                    .values()
-                    .collectMany { otherLane ->
-                        otherLane.sourceSet.output.classesDirs.files + [otherLane.sourceSet.output.resourcesDir]
-                    }
-                    .findAll { it != null }
-            def sourceSetCompileLeak = lane.sourceSet.compileClasspath.files.intersect(forbiddenOutput)
-            if (!sourceSetCompileLeak.isEmpty())
-                throw new GradleException("Groovy $generation source-set compile classpath contains another lane's output: $sourceSetCompileLeak")
-
-            def groovyCompileLeak = lane.compileTask.get().classpath.files.intersect(forbiddenOutput)
-            if (!groovyCompileLeak.isEmpty())
-                throw new GradleException("Groovy $generation Groovy compile classpath contains another lane's output: $groovyCompileLeak")
-
-            def testTask = lane.testTask.get()
-            def runtimeLeak = testTask.classpath.files.intersect(forbiddenOutput)
-            if (!runtimeLeak.isEmpty())
-                throw new GradleException("Groovy $generation test runtime classpath contains another lane's output: $runtimeLeak")
-
-            def expectedClasses = lane.sourceSet.output.classesDirs.files
-            if (testTask.testClassesDirs.files != expectedClasses)
-                throw new GradleException("Groovy $generation executes unexpected test classes: ${testTask.testClassesDirs.files}")
-
-            def expectedResults = layout.buildDirectory.dir("test-results/${testTask.name}").get().asFile
-            if (testTask.reports.junitXml.outputLocation.get().asFile != expectedResults)
-                throw new GradleException("Groovy $generation writes JUnit results outside $expectedResults")
-            if (!expectedResults.directory)
-                throw new GradleException("Groovy $generation did not produce JUnit results in $expectedResults")
-        }
+    testLanes.each { generation, lane ->
+        def sourceSet = lane.sourceSet
+        def input = objects.newInstance(Lane)
+        input.generation.set(generation)
+        input.groovyVersion.set(libs.versions.groovy."v$generation")
+        input.spockVersion.set(libs.versions.spock."g$generation")
+        input.modules.set(lane.classpath.incoming.resolutionResult.rootComponent.map { Lane.moduleCoordinates(it) })
+        // Value providers are evaluated after all project customization, including source-set output overrides.
+        // Snapshot path membership, not file contents: the verifier checks isolation, while producers track bytes.
+        input.classes.set(sourceSet.output.classesDirs.elements.map { it.collect { it.asFile.absolutePath } })
+        input.resources.set(providers.provider { [sourceSet.output.resourcesDir?.absolutePath].findAll { it != null } })
+        input.sourceSetCompileClasspath.set(providers.provider { sourceSet.compileClasspath.files.collect { it.absolutePath } })
+        input.groovyCompileClasspath.set(lane.compileTask.map { it.classpath.files.collect { it.absolutePath } })
+        input.testRuntimeClasspath.set(lane.testTask.map { it.classpath.files.collect { it.absolutePath } })
+        input.testClasses.set(lane.testTask.map { it.testClassesDirs.files.collect { it.absolutePath } })
+        input.expectedResults.set(layout.buildDirectory.dir("test-results/${lane.testTask.name}").map { it.asFile.absolutePath })
+        input.actualResults.set(lane.testTask.map { it.reports.junitXml.outputLocation.get().asFile.absolutePath })
+        lanes.add(input)
     }
 }
 
