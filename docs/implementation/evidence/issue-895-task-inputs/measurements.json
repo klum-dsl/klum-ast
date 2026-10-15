@@ -1,0 +1,1628 @@
+{
+  "source_sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+  "environment": {
+    "host": "Apple M3 Max, macOS arm64, shared workstation",
+    "jdk": "Azul Zulu 17.0.3+7-LTS",
+    "gradle": "8.14.4",
+    "caches": "existing outer and TestKit dependency caches; task-output and configuration caches disabled",
+    "parallelism": "--no-parallel --max-workers=2"
+  },
+  "targets": [
+    ":klum-ast:jar",
+    ":klum-ast-test-support:jar",
+    ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+    ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+    ":klum-ast-bom:generatePomFileForMavenJavaPublication"
+  ],
+  "flags": [
+    "--info",
+    "--no-build-cache",
+    "--no-configuration-cache",
+    "--no-parallel",
+    "--max-workers=2"
+  ],
+  "implementation_sha256": {
+    "before": {
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/DocumentationSiteServer.groovy": "33e5fe1f50a75313b20a729b98a168c2f0f83fd6e5cb8307259096d5e21bbffd",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/GenerateGitHubWikiMigrationStubsTask.groovy": "1fafcb006528409fb94d1a3b671982b30b3328eb07eb0f4bb946e578f78bef61",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/PreparePendingDocumentationStageTask.groovy": "27c60d6f7ca939320edb1bf0f75cabdd01c9f1431725494c98c186491e8650f4",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/PreviewRenderedDocumentationTask.groovy": "3d6d7d18493358371e603d2c64b46dfa88d8ebe74928c7bf439a7b3d99a7d676",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/RenderHistoricalDocumentationTask.groovy": "44203c622725d3d5425df692457cde2003abbd72d7a9d4c096d0ea82009a1c98",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/RenderVersionedDocumentationTask.groovy": "13ed229b3bd9522216b761615160768296b723ada0d3debb3b45b393134bd5f7",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/StaticDocumentationPageRenderer.groovy": "42bd1c9bd6fb53f72ccfbb5e12f1545d7a8d642d69ac5e3ac2e5eee362e3febe",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyCredentialFreeDocumentationTracerTask.groovy": "ebb6ca43c981b7ede110bffbfc0fd491fd473fbb19e939622305d9c426b404a8",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyRenderedDocumentationSiteTask.groovy": "6f29c65ecf11ec527f3190bce2d0a0a53b729f67471866d0c0587a8268257ef5",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyVersionedDocumentationRendererTask.groovy": "96c0bd1ecbab791b03fe0dc3e1a63e3fd662dbd32565c01607c1b44a5178671a",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VersionedDocumentationRenderer.groovy": "d9a0a5940a7cac1f145fedf6dae3bf82288bfe27b53362cf758969dc18474389",
+      "buildSrc/src/main/groovy/klum-ast.base-conventions.gradle": "d7cd5eb1160331e20cfa050b465baf0ba4577c7acebb33556e1767ba229f6533",
+      "buildSrc/src/main/groovy/klum-ast.jacoco-conventions.gradle": "21e357a5a34ac394f55e9f1780dccf230c9aaf8d3c0c11d078b53f7ee69d8d82",
+      "buildSrc/src/main/groovy/klum-ast.java-conventions.gradle": "49a5110eced8478423a239633f4d79609b32a9e8b465eefd6a60592f787cc6ee",
+      "buildSrc/src/main/groovy/klum-ast.jpms-descriptor-conventions.gradle": "1343b28d59855d5815cd8129d924b9729ad10a03c3ea4c9bceeb7f7364020c8f",
+      "buildSrc/src/main/groovy/klum-ast.multigroovy-conventions.gradle": "7036a2a0ac5bad473d50fe5b6ed69a3e194796240c463a68baccb59b2f894eb7",
+      "buildSrc/build.gradle": "5149beb7e08b3de45e1ef224c8451f21756b86e0acc3ce73eaefbe9fd572bb2a"
+    },
+    "after": {
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/compile/ModulePathArgumentProvider.groovy": "2474da61615f4a79b204ebea69f09a4da55c356e78a71eb2aabf610d9a9f5f75",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/DocumentationSiteServer.groovy": "33e5fe1f50a75313b20a729b98a168c2f0f83fd6e5cb8307259096d5e21bbffd",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/GenerateGitHubWikiMigrationStubsTask.groovy": "1fafcb006528409fb94d1a3b671982b30b3328eb07eb0f4bb946e578f78bef61",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/PreparePendingDocumentationStageTask.groovy": "27c60d6f7ca939320edb1bf0f75cabdd01c9f1431725494c98c186491e8650f4",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/PreviewRenderedDocumentationTask.groovy": "3d6d7d18493358371e603d2c64b46dfa88d8ebe74928c7bf439a7b3d99a7d676",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/RenderHistoricalDocumentationTask.groovy": "44203c622725d3d5425df692457cde2003abbd72d7a9d4c096d0ea82009a1c98",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/RenderVersionedDocumentationTask.groovy": "13ed229b3bd9522216b761615160768296b723ada0d3debb3b45b393134bd5f7",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/StaticDocumentationPageRenderer.groovy": "42bd1c9bd6fb53f72ccfbb5e12f1545d7a8d642d69ac5e3ac2e5eee362e3febe",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyCredentialFreeDocumentationTracerTask.groovy": "ebb6ca43c981b7ede110bffbfc0fd491fd473fbb19e939622305d9c426b404a8",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyRenderedDocumentationSiteTask.groovy": "6f29c65ecf11ec527f3190bce2d0a0a53b729f67471866d0c0587a8268257ef5",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyVersionedDocumentationRendererTask.groovy": "96c0bd1ecbab791b03fe0dc3e1a63e3fd662dbd32565c01607c1b44a5178671a",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VersionedDocumentationRenderer.groovy": "d9a0a5940a7cac1f145fedf6dae3bf82288bfe27b53362cf758969dc18474389",
+      "buildSrc/src/main/groovy/klum-ast.base-conventions.gradle": "d7cd5eb1160331e20cfa050b465baf0ba4577c7acebb33556e1767ba229f6533",
+      "buildSrc/src/main/groovy/klum-ast.jacoco-conventions.gradle": "21e357a5a34ac394f55e9f1780dccf230c9aaf8d3c0c11d078b53f7ee69d8d82",
+      "buildSrc/src/main/groovy/klum-ast.java-conventions.gradle": "49a5110eced8478423a239633f4d79609b32a9e8b465eefd6a60592f787cc6ee",
+      "buildSrc/src/main/groovy/klum-ast.jpms-descriptor-conventions.gradle": "0f7471a0abc6728c795ca9403ed5d08ffac93a80ff42640032453d666070f21c",
+      "buildSrc/src/main/groovy/klum-ast.multigroovy-conventions.gradle": "7036a2a0ac5bad473d50fe5b6ed69a3e194796240c463a68baccb59b2f894eb7",
+      "buildSrc/build.gradle": "7557b36d51b7af5987d9ad917029ac91a031a89fda94479cbbde0fe27215f69a"
+    },
+    "after-warm": {
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/compile/ModulePathArgumentProvider.groovy": "2474da61615f4a79b204ebea69f09a4da55c356e78a71eb2aabf610d9a9f5f75",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/DocumentationSiteServer.groovy": "33e5fe1f50a75313b20a729b98a168c2f0f83fd6e5cb8307259096d5e21bbffd",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/GenerateGitHubWikiMigrationStubsTask.groovy": "1fafcb006528409fb94d1a3b671982b30b3328eb07eb0f4bb946e578f78bef61",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/PreparePendingDocumentationStageTask.groovy": "27c60d6f7ca939320edb1bf0f75cabdd01c9f1431725494c98c186491e8650f4",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/PreviewRenderedDocumentationTask.groovy": "3d6d7d18493358371e603d2c64b46dfa88d8ebe74928c7bf439a7b3d99a7d676",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/RenderHistoricalDocumentationTask.groovy": "44203c622725d3d5425df692457cde2003abbd72d7a9d4c096d0ea82009a1c98",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/RenderVersionedDocumentationTask.groovy": "13ed229b3bd9522216b761615160768296b723ada0d3debb3b45b393134bd5f7",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/StaticDocumentationPageRenderer.groovy": "42bd1c9bd6fb53f72ccfbb5e12f1545d7a8d642d69ac5e3ac2e5eee362e3febe",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyCredentialFreeDocumentationTracerTask.groovy": "ebb6ca43c981b7ede110bffbfc0fd491fd473fbb19e939622305d9c426b404a8",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyRenderedDocumentationSiteTask.groovy": "6f29c65ecf11ec527f3190bce2d0a0a53b729f67471866d0c0587a8268257ef5",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyVersionedDocumentationRendererTask.groovy": "96c0bd1ecbab791b03fe0dc3e1a63e3fd662dbd32565c01607c1b44a5178671a",
+      "buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VersionedDocumentationRenderer.groovy": "d9a0a5940a7cac1f145fedf6dae3bf82288bfe27b53362cf758969dc18474389",
+      "buildSrc/src/main/groovy/klum-ast.base-conventions.gradle": "d7cd5eb1160331e20cfa050b465baf0ba4577c7acebb33556e1767ba229f6533",
+      "buildSrc/src/main/groovy/klum-ast.jacoco-conventions.gradle": "21e357a5a34ac394f55e9f1780dccf230c9aaf8d3c0c11d078b53f7ee69d8d82",
+      "buildSrc/src/main/groovy/klum-ast.java-conventions.gradle": "49a5110eced8478423a239633f4d79609b32a9e8b465eefd6a60592f787cc6ee",
+      "buildSrc/src/main/groovy/klum-ast.jpms-descriptor-conventions.gradle": "0f7471a0abc6728c795ca9403ed5d08ffac93a80ff42640032453d666070f21c",
+      "buildSrc/src/main/groovy/klum-ast.multigroovy-conventions.gradle": "7036a2a0ac5bad473d50fe5b6ed69a3e194796240c463a68baccb59b2f894eb7",
+      "buildSrc/build.gradle": "7557b36d51b7af5987d9ad917029ac91a031a89fda94479cbbde0fe27215f69a"
+    }
+  },
+  "module_path_inputs": {
+    "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb": [
+      {
+        "name": "anno-docimal-annotations-1.0.1.jar",
+        "sha256": "54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e"
+      },
+      {
+        "name": "klum-cast-annotations-0.5.0-rc.2.jar",
+        "sha256": "ac0908461574e0023db5ae39902bb5c7a237f26c9f2c2ab57e0a64c117aa3515"
+      },
+      {
+        "name": "annotations-16.0.2.jar",
+        "sha256": "245abad9a39eab1266ac9a8796980f462577e708ef3f6d43be2e008e4b72b9b4"
+      },
+      {
+        "name": "groovy-4.0.32.jar",
+        "sha256": "d77815c8f31d503bc50129f28892e60b64e339b490f7babf9df70848ce465698"
+      },
+      {
+        "name": "jspecify-1.0.0.jar",
+        "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab"
+      }
+    ],
+    "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac": [
+      {
+        "name": "klum-ast-annotations-4.1.0-dev.446.uncommitted+codex.issue.895.descriptor.inputs.649bd52.jar",
+        "sha256": "68260d74c21f23c7f530c81f3ec87e6f4aa6269fee00063b51d565d2e1bdfbd0"
+      },
+      {
+        "name": "annotations-16.0.2.jar",
+        "sha256": "245abad9a39eab1266ac9a8796980f462577e708ef3f6d43be2e008e4b72b9b4"
+      },
+      {
+        "name": "groovy-4.0.32.jar",
+        "sha256": "d77815c8f31d503bc50129f28892e60b64e339b490f7babf9df70848ce465698"
+      },
+      {
+        "name": "anno-docimal-annotations-1.0.1.jar",
+        "sha256": "54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e"
+      },
+      {
+        "name": "klum-cast-annotations-0.5.0-rc.2.jar",
+        "sha256": "ac0908461574e0023db5ae39902bb5c7a237f26c9f2c2ab57e0a64c117aa3515"
+      },
+      {
+        "name": "jspecify-1.0.0.jar",
+        "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab"
+      }
+    ],
+    "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e": [
+      {
+        "name": "klum-ast-runtime-4.1.0-dev.446.uncommitted+codex.issue.895.descriptor.inputs.649bd52.jar",
+        "sha256": "0c849cdf9f0e478d841ccf5822dba7129d853e0d1304a8f4260db299b6c3fb70"
+      },
+      {
+        "name": "klum-ast-annotations-4.1.0-dev.446.uncommitted+codex.issue.895.descriptor.inputs.649bd52.jar",
+        "sha256": "68260d74c21f23c7f530c81f3ec87e6f4aa6269fee00063b51d565d2e1bdfbd0"
+      },
+      {
+        "name": "anno-docimal-global-ast-1.0.1.jar",
+        "sha256": "ed74657a02d574156beadafb78c2f69dfb00687f3f04af1d5e8884ae29923ac0"
+      },
+      {
+        "name": "klum-cast-compile-0.5.0-rc.2.jar",
+        "sha256": "7789b1104ff72152b904c1987265fa390ba6e25f3e51e93c387b08436ca8dd87"
+      },
+      {
+        "name": "klum-cast-spi-0.5.0-rc.2.jar",
+        "sha256": "7eecfcf861f4995909fc28ff9bbbd9d022eb7ddf155c2acdf5c13e4d98bbd074"
+      },
+      {
+        "name": "annotations-16.0.2.jar",
+        "sha256": "245abad9a39eab1266ac9a8796980f462577e708ef3f6d43be2e008e4b72b9b4"
+      },
+      {
+        "name": "groovy-4.0.32.jar",
+        "sha256": "d77815c8f31d503bc50129f28892e60b64e339b490f7babf9df70848ce465698"
+      },
+      {
+        "name": "anno-docimal-ast-1.0.1.jar",
+        "sha256": "433f0e61873c0cc421a235da99a61bf0563a00264b312ecf26ec8aa68a06a544"
+      },
+      {
+        "name": "anno-docimal-annotations-1.0.1.jar",
+        "sha256": "54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e"
+      },
+      {
+        "name": "klum-cast-annotations-0.5.0-rc.2.jar",
+        "sha256": "ac0908461574e0023db5ae39902bb5c7a237f26c9f2c2ab57e0a64c117aa3515"
+      },
+      {
+        "name": "jspecify-1.0.0.jar",
+        "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab"
+      }
+    ],
+    "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414": [
+      {
+        "name": "annotations-16.0.2.jar",
+        "sha256": "245abad9a39eab1266ac9a8796980f462577e708ef3f6d43be2e008e4b72b9b4"
+      },
+      {
+        "name": "klum-ast-runtime-4.1.0-dev.446.uncommitted+codex.issue.895.descriptor.inputs.649bd52.jar",
+        "sha256": "0c849cdf9f0e478d841ccf5822dba7129d853e0d1304a8f4260db299b6c3fb70"
+      },
+      {
+        "name": "groovy-4.0.32.jar",
+        "sha256": "d77815c8f31d503bc50129f28892e60b64e339b490f7babf9df70848ce465698"
+      },
+      {
+        "name": "klum-ast-annotations-4.1.0-dev.446.uncommitted+codex.issue.895.descriptor.inputs.649bd52.jar",
+        "sha256": "68260d74c21f23c7f530c81f3ec87e6f4aa6269fee00063b51d565d2e1bdfbd0"
+      },
+      {
+        "name": "anno-docimal-annotations-1.0.1.jar",
+        "sha256": "54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e"
+      },
+      {
+        "name": "klum-cast-annotations-0.5.0-rc.2.jar",
+        "sha256": "ac0908461574e0023db5ae39902bb5c7a237f26c9f2c2ab57e0a64c117aa3515"
+      },
+      {
+        "name": "jspecify-1.0.0.jar",
+        "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab"
+      }
+    ]
+  },
+  "records": [
+    {
+      "label": "before",
+      "repeat": 1,
+      "boundary": "outer",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 1.528600916,
+      "log_sha256": "0bf84042bd4ed3d82c320115b1ae8e34861a4fe56428595167d3af9766fd1597",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.055901084,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.085640583,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.071147,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.030086708,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002111,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002517208,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001462292,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 1,
+      "boundary": "testkit",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 1.179888542,
+      "log_sha256": "777c549964b1b0f49992b68a9583f08f40bf9a143982034d35d2a48f4b1873b6",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.036416,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.083788042,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.073229625,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.029792459,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002693833,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.003141917,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001885375,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 1,
+      "boundary": "artifact-prerequisites",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.924846584,
+      "log_sha256": "aa522e85b1197077c42e8d61590e2ae45ebb65a3ee2e4352da01afde0b28d75f",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.036332666,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.047490083,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.039371291,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.028308458,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001948541,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00212125,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001140666,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 1,
+      "boundary": "unchanged-repeat",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.7971568339999999,
+      "log_sha256": "16949e2d69d24108af71b7b3179d2e1473ab1a3ec37b5470069831b0e2d1d31d",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000567875,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000449458,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000416958,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000615541,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002048542,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002713459,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001191125,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 2,
+      "boundary": "outer",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.7132898750000001,
+      "log_sha256": "40a30e4575fed0826929c063ab4d854e95eafe129666b1ed57774dcf8fda65dd",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000495541,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000601667,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.00053875,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000554792,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001795,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00153225,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001103833,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 2,
+      "boundary": "testkit",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.942988583,
+      "log_sha256": "bf4b5ddcfbce5e6b8c44d2b0294aec4dac9f9e170ddaece3127293a47b73a3f1",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.048323458,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.047802666,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.04545325,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.033626458,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002469875,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002637416,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001330834,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 2,
+      "boundary": "artifact-prerequisites",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.876227375,
+      "log_sha256": "47eeb8ed72ea1fab8708dba8392fcc85aa59e5239159d27f44d6afc0dc3c8aa2",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.032538542,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.044838458,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.040105542,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.025615375,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001704875,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001518125,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001118583,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "repeat": 2,
+      "boundary": "unchanged-repeat",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.950528834,
+      "log_sha256": "bd2fcdc7ad8bcda03290f08b6702dc28d98d7f5f2f207aa533c025aca925f6bd",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000435792,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000480583,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000389958,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000501459,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001933125,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001589166,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001066459,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 1,
+      "boundary": "outer",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 4.342958917000001,
+      "log_sha256": "e8bbcf1f09929a37283f78b9e5ad405732683bfdb7a3d767dfcd3a8b4c2d8ab5",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.037878625,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.048613583,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.047779333,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "SUCCESS",
+          "seconds": 0.028662708,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.004112583,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002246417,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001181209,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 1,
+      "boundary": "testkit",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 1.9716215840000002,
+      "log_sha256": "894eb3aa08f22060d9c864ed176c85fc8f647a3bc847abb7264683e36ba8813f",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.004103292,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.004298041,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.003768708,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.002273125,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00374075,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00329,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001482042,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 1,
+      "boundary": "artifact-prerequisites",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.8117315409999994,
+      "log_sha256": "b6cb00879897e9736d086abd365b0e218d1cfa373fc2466da3d5a0f304b1a573",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001683458,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001689834,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.005435416,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001955917,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002509125,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002645,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001094083,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 1,
+      "boundary": "unchanged-repeat",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.748124208000001,
+      "log_sha256": "3341cfe569af55a74b2cdacaeb29c908529cce3c8f3c173e6ad69ee8fb357622",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.00140675,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001166,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001228292,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001323334,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001742333,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001984125,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001088166,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 2,
+      "boundary": "outer",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 1.0443043749999994,
+      "log_sha256": "2f67a6f3879ea62df7e0ca6633a78dc5a776a9a250a2e7306f9a649e1d573646",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.00130625,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001474833,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001286834,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001447667,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00179175,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002195334,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.0012405,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 2,
+      "boundary": "testkit",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.8053546249999997,
+      "log_sha256": "70e4371b1160f56e696b3e218cfebadada7453bacf904869b8f08be964aeca95",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.002382,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.002100875,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001909333,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001583958,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002056333,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00238075,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001172167,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 2,
+      "boundary": "artifact-prerequisites",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.7673552089999998,
+      "log_sha256": "5d0c93f3a8d3cf5366175a7d6cca9ae3db2c46600aea378f55ede6cb0dd0ab9d",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001780417,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001351083,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.00179,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001608708,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002104625,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001690792,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001099792,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "repeat": 2,
+      "boundary": "unchanged-repeat",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.7367610829999993,
+      "log_sha256": "b2e334e08d297ad401e4749a5670a1ea634c9cf93a845387f913b91b49f20176",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001225291,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001048083,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001160917,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000889166,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001635458,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001365958,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001104334,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 1,
+      "boundary": "outer",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 1.07131125,
+      "log_sha256": "160bca82e59d8908f2c9727aac805a1a6dd5899e627b15849029f427f071ada4",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001622041,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000885125,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001034125,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000831833,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002523083,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001520625,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001069542,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 1,
+      "boundary": "testkit",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.861454291,
+      "log_sha256": "519eea398c5a8d84a325d5985115826890723bde6220ab99f48c8bc0bac4c29c",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001975375,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.002200916,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.002357375,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001997792,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00213225,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.002328959,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00126675,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 1,
+      "boundary": "artifact-prerequisites",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.6597462909999998,
+      "log_sha256": "0d932da9a80d58e6205b84107c41f36111f184506dc3679c157647e4a7480584",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001032458,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.00095225,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001466292,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001174416,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.00131175,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001009292,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.000604458,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 1,
+      "boundary": "unchanged-repeat",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.6572966250000003,
+      "log_sha256": "e8972c005b92d3b16a47a5a2463f47ef384b318bb35003123cb857caba395293",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000818875,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000794042,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000816709,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000748542,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001707792,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001197209,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.000681333,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 2,
+      "boundary": "outer",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.64303475,
+      "log_sha256": "5b838963c6142b4a9987b605aeab1867fbea3e4949a8466cf629e760ccb645ef",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001042375,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.00061325,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000837166,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000898166,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001534916,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001085084,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.000573417,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 2,
+      "boundary": "testkit",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 1.125119916,
+      "log_sha256": "a92dc63627847babe9f9c4cc96c7a914d8b0e0e735893040be056816b9910990",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001593833,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001353,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001264583,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001515125,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001821833,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001343875,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.000939667,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 2,
+      "boundary": "artifact-prerequisites",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.6946916669999998,
+      "log_sha256": "0992db47344327c36837de038bccf90081793eda9a51848adcc67db460c20007",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001038167,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001149,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.001247083,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000978958,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001675,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001593,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.000827792,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    },
+    {
+      "label": "after-warm",
+      "repeat": 2,
+      "boundary": "unchanged-repeat",
+      "sha": "649bd52e3c85433e75b04cee0f0e114e0811f6ea",
+      "wall_seconds": 0.6554313330000001,
+      "log_sha256": "e2d87cfc2c4645df39c87c2d6495a63d12f8937ef3c7234339268c3faa02e663",
+      "tasks": [
+        {
+          "task": ":klum-ast-annotations:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000794291,
+          "output_sha256": "a8c0ffc25fcb54c006ac2e6971d9f6e449582a4a02437382cd7c343fccf2e01d",
+          "module_path_sha256": "f033815351bf492f7b22fdffeb7746dc26762419663b46a0065bf006c2c3ddeb"
+        },
+        {
+          "task": ":klum-ast-runtime:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000796584,
+          "output_sha256": "a73f427eaaa8e2ae7969d9c16b9bc8be58376fc067268903b103a3781ab0d1cf",
+          "module_path_sha256": "35bc2bd5422d768f92e614ab8fc7ec2970fb1908308f2944cc063a7c2859b6ac"
+        },
+        {
+          "task": ":klum-ast:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.000788625,
+          "output_sha256": "694d512d01dae570b72205a7d4ce2210610a532144f600687360c2bd8bd370c1",
+          "module_path_sha256": "f993bc8657ecf51798ed973bd945ab9bf768d72cc4aab98a6fc8c1b055c1a37e"
+        },
+        {
+          "task": ":klum-ast-test-support:compileModuleInfo",
+          "outcome": "UP-TO-DATE",
+          "seconds": 0.006257791,
+          "output_sha256": "e9ca03984ff885238d20805e010ee458a574976c2a8b4f7a64d21b5e30c7f333",
+          "module_path_sha256": "63bde3591a1b3f2d4e08dfc3380e76385c62e62a432ac677304700a2e4aa3414"
+        },
+        {
+          "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001727208,
+          "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+        },
+        {
+          "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.001215583,
+          "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+        },
+        {
+          "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+          "outcome": "SUCCESS",
+          "seconds": 0.000660583,
+          "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+        }
+      ]
+    }
+  ],
+  "baseline_negative_control": {
+    "tests": "5",
+    "failures": "3",
+    "cases": [
+      {
+        "name": "reuses byte-identical relocated modules and repairs a missing descriptor without changing artifact bytes",
+        "failure": true
+      },
+      {
+        "name": "detects same-path module descriptor changes even when dependency classes are byte-identical",
+        "failure": true
+      },
+      {
+        "name": "tracks dependency class and resource contents",
+        "failure": true
+      },
+      {
+        "name": "invalidates automatic module identity when only the JAR filename changes",
+        "failure": false
+      },
+      {
+        "name": "retains compiler source and owning artifact resource invalidation",
+        "failure": false
+      }
+    ]
+  },
+  "publication_metadata_control": [
+    {
+      "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+      "outcome": "SUCCESS",
+      "output_sha256": "95abcd7661753cb6de6f5bc23232587d2887847d21e6efe7bedb54a8407e332a",
+      "description_and_documentation_url_changed": true
+    },
+    {
+      "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+      "outcome": "SUCCESS",
+      "output_sha256": "585591f3374325d551407e75c6c6bddabbc87b68c16ebf9bf861fff022caa249",
+      "description_and_documentation_url_changed": true
+    },
+    {
+      "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+      "outcome": "SUCCESS",
+      "output_sha256": "7ab57301c6cceab568ddcd07fc4d3cb84487e4999689c7bd18331e33055ffeb4",
+      "description_and_documentation_url_changed": true
+    }
+  ],
+  "publication_metadata_restored": [
+    {
+      "task": ":klum-ast-annotations:generatePomFileForMavenJavaPublication",
+      "outcome": "SUCCESS",
+      "output_sha256": "a7d1ad0bb0599236a428c8fec49aea35357e5fd90c9022b4f4bb53cc039c628a"
+    },
+    {
+      "task": ":klum-ast-runtime:generatePomFileForMavenJavaPublication",
+      "outcome": "SUCCESS",
+      "output_sha256": "3a5801112406c141a9eb65dce957154322838651d27097c40d57dfa6b8a90784"
+    },
+    {
+      "task": ":klum-ast-bom:generatePomFileForMavenJavaPublication",
+      "outcome": "SUCCESS",
+      "output_sha256": "08b6a073c962cdff31e94fb08b8e7efb93178cbff36abc54d163fe8941b7c674"
+    }
+  ],
+  "regression_result": {
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "6.479"
+  },
+  "regression_xml_sha256": "1fcafcb3fdfd75f3297985a07749612db842433fb2f8f9ac668d96b67a7a18f2"
+}
