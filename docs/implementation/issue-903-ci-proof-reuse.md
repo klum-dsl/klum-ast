@@ -3,13 +3,14 @@
 Date: 2026-10-16. Status: accepted policy/design package; implementation has not started.
 
 Authority: [ADR 0030](../adr/0030-exact-sha-ci-proof-reuse.md), accepted exact-SHA reuse direction from
-maintainer delegation, [investigation](issue-903-release-verification-contract.md).
+maintainer delegation, [investigation](issue-903-release-verification-contract.md),
+and [Sonar feasibility evidence](issue-903-sonar-feasibility.md).
 Related: [#903](https://github.com/klum-dsl/klum-ast/issues/903); keep open through implementation acceptance.
 This package changes documentation only and makes no claim that any proposed acceptance test already passes.
 
 ## Current behavior and seams
 
-The investigation was performed at `96608b7c8c1657662f95e003b09d6e6d96cde777`, also this worktree's base.
+The investigation was performed at `96608b7c8c1657662f95e003b09d6e6d96cde777`, the original investigation base.
 Its report is copied verbatim from investigation commit `9ef9e975f6e8f6e652eea02c4800a4277aa6a924` so the
 plan remains reviewable independently of the other worktree. Live run/protection observations in that report
 are dated snapshots, not current checks by this planning task.
@@ -40,7 +41,7 @@ explicitly before using their changed semantics on master or a maintenance line.
 
 ## Proof handoff shape
 
-Illustrative receipt fields (final schema follows the slice-1 feasibility admission gate):
+Illustrative receipt fields (final strict schema is slice-1 work under the approved producer boundary):
 
 ```text
 schemaVersion, contractRevision, verifierRevision
@@ -48,7 +49,8 @@ release: {stage, version, sha, sourceBranch}
 producer: {repositoryId, repository, workflowId, path, workflowBlob,
            event, headBranch, headSha, runId, attempt, completedAt}
 verification: {jobId, requiredStepResults, checkIds, taskOutcomes, toolchain}
-sonar: {appId, projectKey, scannerTaskId, analysisId, checkId, revision, qualityResult}
+sonar: {serverUrl, projectKey, scannerTaskId, analysisId, revision, qualityResult,
+        scannerStep, correlationFilePath, correlationSha256, resolutionFilePath, resolutionSha256}
 artifacts: [{id, name, serviceDigest, manifestSha256, expiresAt,
              files: [{path, producerTask, lane, size, sha256}]}]
 validatedAt, freshnessDeadline
@@ -64,9 +66,10 @@ retrieves the exact receipt, validates its digest and repeats the API/data check
 Example: release input SHA S, newest trusted push run R attempt 2 on the selected line, successful complete
 reports and Sonar analysis A yields receipt `(S,R,2,A)`. After approval, a rerun attempt 3 causes the protected
 recheck to reject that receipt even if attempt 2 was green. A new preflight must bind the current valid attempt.
-The slice-1 probe must prove which metadata the producer and protected preflight can each access read-only
-with existing credentials; do not assume the Actions token can query Sonar. Correlation metadata must be retained
-by CI; release must not inherit `SONAR_TOKEN` or any publication credential into preflight.
+The producer is trusted for the exact scanner-task-to-analysis mapping; protected preflight verifies its retained
+attempt-qualified artifact and independently reads public analysis-specific project/revision/result. Normal Sonar
+App checks remain status evidence, outside this mapping. Do not assume the Actions token can resolve CE tasks; prove
+the existing scanner integration capability in slice 2. Release must not inherit `SONAR_TOKEN` or publication credentials.
 
 ## Slices and reasoned commit boundaries
 
@@ -74,43 +77,45 @@ All slices map to #903. Policy choices were confirmed by maintainer delegation o
 Implement on a new dedicated issue branch under the accepted contract.
 Keep production changes with their passing tests; never commit a deliberately failing guard fixture by itself.
 
-### 1. Establish SonarCloud feasibility, then define the proof contract
+### 1. Define the strict artifact-backed proof contract
 
-First commit: a bounded read-only feasibility record using actual GitHub Actions/SonarCloud metadata. No producer
-manifest, receipt validator, workflow change or Gradle guard starts before this admission gate passes. Inventory:
+The bounded [feasibility report](issue-903-sonar-feasibility.md) is complete: public metadata alone is insufficient.
+Maintainer adjudication accepts the producer boundary in ADR 0030 and authorizes preparatory contract implementation.
+The historical report remains decision evidence; its original no-go does not prohibit this revised synthetic slice.
 
-- Trusted GitHub workflow/repository/run/attempt/job/scanner-step/check fields and their relationships.
-- Sonar task/analysis/project/revision and completed quality-gate fields, including the exact GitHub App identity.
-- The authoritative join from successful scanner execution in the selected attempt to its analysis and quality
-  gate. Test whether a same-SHA successful check can belong to another workflow run or attempt.
-- Reruns, failed attempts, multiple analyses of one SHA and asynchronous quality completion, using actual records.
-- Read-only access separately available to producer and protected preflight with existing credentials; no release
-  secrets, new privileges or privileged credentials added to unprotected CI.
+Commit strict schema, pure validator, exhaustive task/report inventory and focused synthetic fixture tests. Require
+scanner correlation and resolution files bound to repository/workflow/path/blob/SHA/run/latest attempt/job/scanner step,
+exact CE task, analysis ID, approved project, revision and completed passing quality result. Reconcile trusted producer
+mapping with public analysis-specific revision/result; App check identity is ordinary status evidence, not that join.
+Explicitly model producer assertions versus independently verified consumer facts; caller JSON alone is not trusted.
 
-Record field paths, sanitized examples, provenance, counterexamples and access limitations. Names, timestamps,
-branch labels, successful uploads and same-SHA green checks are not authoritative joins. Missing/ambiguous binding,
-insufficient read-only access or unavailable counterexample records leave admission unproven: stop for a maintainer
-integration-contract decision before substantial implementation, without heuristic fallback. The probe is future
-slice-1 work, not executed by this documentation amendment.
-
-Only after admission, commit strict schema, pure validator, exhaustive inventory and focused fixture tests;
-add the read-only API adapter with pagination/error coverage as a separate reasoned commit. Reuse the existing
-fixture/test harness with sanitized response shapes; fixture tests make no live calls or credential demands.
-Acceptance: P1 and N1–N7/N10. Explicit NO-SOURCE cases, baseline-only Sonar input and G4/G5 retention remain required.
+Add the separate read-only API adapter with pagination/error/ambiguity coverage as a second reasoned commit. Reuse
+the established harness; synthetic response fixtures make no live calls or credential demands. Test exact numeric IDs,
+strict JSON/version/path validation, newest run before success filtering, latest-attempt-only, no mixed attempts,
+required job/step/task/report completeness, explicit allowed NO-SOURCE, baseline/G4/G5 JUnit and all three coverage
+inventories, artifact identity/digests/file hashes and path safety. No workflow or producer implementation in this slice.
+Acceptance: P1 and N1–N8/N10. Fixtures prove the contract, not actual scanner integration or release admission.
 
 ### 2. Emit complete CI evidence within the existing job
 
 Commit: producer collection, manifest generation, attempt-qualified immutable uploads, failure diagnostics,
-correlation and retention settings plus producer fixtures/workflow contract assertions. Preserve existing task
-commands, worker controls, reporting behavior and one `build` job. Write passing proof only after every required
-verification/report/upload input succeeds; the run conclusion remains an independent consumer check. If Sonar
-quality completes after CI, consumer waits only through bounded read-only polling and fails on timeout.
-Do not mark scan submission as quality success to avoid waiting.
+correlation and retention settings plus producer fixtures/workflow contract assertions. First verify actual scanner
+output location/fields and existing CI integration access to the exact CE task; inability stops for adjudication.
+Retain whitelisted scanner correlation (`report-task.txt` or verified equivalent) and sanitized CE resolution evidence.
+The same-job producer resolves the exact task to analysis/project/revision and waits boundedly for a passing
+analysis-specific quality result before passing proof is issued. Never retain credentials or arbitrary scanner context.
+Preserve existing task commands, worker controls, reporting behavior and one `build` job. Write passing proof only after every required
+verification/report/upload input succeeds; the run conclusion remains an independent consumer check. Pending, failed
+or timed-out task/quality results issue no passing proof. Consumer rechecks public analysis-specific project/revision/
+quality without scanner credentials; it rejects pending/unavailable evidence rather than treating submission as success.
 
 Acceptance: P1/P2 and N5–N7. Enumerate exact expected XML/report paths from contract, including baseline JUnit,
 three coverage outputs and artifact qualification. Ensure report uploader failure makes proof unusable; failure
 uploads may retain partial diagnostics without authorizing publication. Stable required-check names remain intact.
 Check no cross-lane compiled test/fixture sharing is introduced and all original source verification families remain.
+Separately authorized normal CI must demonstrate actual producer and protected read-only access without extra privileges,
+rerun invalidation, distinct same-SHA analyses, failed attempts and asynchronous completion. Fixture cases remain mandatory
+when hosted counterexamples are unavailable; record any live acceptance gaps explicitly before release admission.
 
 ### 3. Gate REL-1 and recheck after protected approval
 
@@ -177,7 +182,7 @@ Implement fixture/API tests in the selected repository test harness; new Spock c
 
 | ID | Input/control | Required outcome |
 | --- | --- | --- |
-| P1 | Probe establishes authoritative run/attempt-to-analysis/quality join and read-only access; complete admitted proof | Admit slice 1 before downstream work; later produce one receipt reconciled to API/contract |
+| P1 | Trusted selected-attempt scanner correlation and CE resolution bind approved project/exact revision/analysis/passing quality; public analysis agrees | Fixture validator accepts complete proof; actual scanner/existing producer access and credential-free consumer access must pass slice-2 hosted acceptance before release admission |
 | P2 | Original CI graph and report producers on admitted source | Same verification families, one production product/job; all G3/G4/G5/report evidence; no matrix weakening |
 | P3 | Valid preflight, approved release, unchanged live receipt/proof | Pending documentation and publication become eligible in order; protected recheck succeeds before operation |
 | P4 | Valid protected fixture prerequisites and complete entry task | Stub protected operations execute only after guards; source matrix does not rerun |
@@ -188,7 +193,7 @@ Implement fixture/API tests in the selected repository test harness; new Spock c
 | N4 | Older green run with newest eligible red/running run; rerun pending/failed; mixed attempts | Reject; no successful-only filtering or fallback |
 | N5 | Missing/failed/skipped/cancelled/timed-out build, artifact step, report upload, isolation or lane result | Reject incomplete proof; NO-SOURCE only where contract explicitly allows |
 | N6 | Missing baseline/G4/G5 JUnit or coverage, missing artifact lane, malformed/duplicate inventory | Reject; partial diagnostics never form passing proof |
-| N7 | Same SHA/different attempt or unrelated analysis; successful upload with pending/failed gate; missing/ambiguous join; insufficient read-only identity access | Slice-1 admission stops if binding unproven; later verifier rejects or bounded-waits then rejects; no upload/name/SHA heuristic |
+| N7 | Scanner task or resolution from another attempt; wrong project/revision/analysis; missing/ambiguous mapping; pending/failed/timed-out gate; unavailable producer/consumer access; same-SHA green App check offered alone | Producer issues no passing proof; consumer rejects; bounded producer polling never turns submission into quality success. App check names/timestamps/branch pages supply no correlation authority |
 | N8 | Missing/expired/deleted artifact, digest/file mismatch, archive traversal/symlink, expired freshness | Reject before side effects; no executable artifact consumption |
 | N9 | After approval: artifact deleted, rerun/new run, failed Sonar, branch force change, receipt tampering | Protected recheck rejects; no silent rebinding |
 | N10 | API 403/404/429/5xx, timeout, malformed JSON, duplicate identities or later-page conflicting run/artifact | Fail closed; bounded retries do not become bypasses; paginate completely |
@@ -216,10 +221,12 @@ exception in [testing guidance](../agents/testing.md); no executable/configurati
 
 ## Risks and confirmed decisions
 
-Sonar feasibility is the first implementation admission gate. Open technical evidence: actual API joins/access and
-rerun behavior, plus destination binding/shared-signing semantics in the configured Gradle plugins. These need
-implementation evidence, not another architecture choice; inability to prove the Sonar join requires maintainer
-integration adjudication before substantial work. Service retention can also outlast proof availability.
+The public-metadata no-go has received an explicit maintainer integration decision: use artifact-backed trusted
+producer correlation. Preparatory schema/validator/adapter fixtures may proceed under that boundary. Actual scanner
+output, existing producer CE-task access, public analysis access and hosted rerun/asynchronous behavior still need
+slice-2 evidence before release admission. If existing access cannot implement the approved boundary, stop for further
+integration adjudication; no new privilege or heuristic fallback. Destination/shared-signing semantics remain slice-4
+technical evidence. Service retention can outlast proof availability.
 Latest-attempt policy intentionally makes reruns invalidate approval-bound proof. API snapshots cannot provide an atomic
 lock over later service changes. The protected recheck narrows that race without claiming to eliminate it. Versioned
 release binaries still require authorized local assembly/signing and public resolve-back.
@@ -228,15 +235,18 @@ Maintainer delegation on 2026-10-16 confirms ADR 0030's policy choices:
 
 1. Retain source-proof payloads/receipts for 30 days and accept source proof for at most 30 days from attempt
    completion. Earlier GitHub/service expiry or deletion wins; no external evidence store.
-2. Establish exact Sonar project/App/attempt-to-analysis correlation read-only during implementation. If existing
-   metadata cannot prove it, stop for a maintainer integration decision; do not weaken matching or grant extra
-   credentials. Actual numeric identities and metadata capability still require evidence during implementation.
+2. Accept scanner correlation and CE resolution from the trusted same CI attempt as the authoritative mapping.
+   Protected release verifies its artifact/manifest/hash and public analysis-specific project/revision/result.
+   Sonar App checks remain normal status evidence; exact analysis-to-App-check correlation is removed.
+   Existing integration access must be proved, numeric identities evidenced, and no extra release credentials added.
 3. Master-first; no `release/4.0.x` backport. `release/4.1.x` is the first intended maintenance branch if/when
    needed, receiving producer/verifier/operation guards together and requiring proof from that exact line.
 
-No design policy choice remains open. Sonar integration escalation is conditional on inadequate metadata found
-in implementation. Exact-SHA reuse and single-job topology remain settled. This decision record does not authorize
+The revised producer boundary is accepted; further escalation applies if existing access cannot implement it.
+Exact-SHA reuse and single-job topology remain settled. This decision record does not authorize
 this worker to edit workflows/builds/settings, access secrets, publish or dispatch. No child worker is required.
 
-Assigned delivery is the local ADR/plan/evidence package. Implementation, GitHub updates, push/PR, branch backport and
-release execution are excluded. Hive reconciliation is requested on completion; the worker does not mark itself `(arch)`.
+Assigned delivery for this amendment is the ADR/plan/evidence documentation package, pushed as a draft PR against
+master with `Related: #903`. Monitor final-head CI/Sonar; retain `(PR:open)` until verified merged. Workflow/validator/
+producer implementation, issue-state mutation, secrets access, branch backport and release dispatch remain excluded.
+Hive reconciliation is requested at handoff; the worker does not mark itself `(arch)`.

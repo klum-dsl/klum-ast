@@ -13,6 +13,8 @@ Implementation plan: [#903 proof-reuse implementation plan](../implementation/is
 Evidence: [#903 investigation](../implementation/issue-903-release-verification-contract.md), retained verbatim
 from local investigation commit `9ef9e975f6e8f6e652eea02c4800a4277aa6a924`. Its recommendation-awaiting-adoption
 wording describes the investigation's historical state; this ADR records the subsequently accepted reuse direction.
+The [Sonar feasibility probe](../implementation/issue-903-sonar-feasibility.md) records why public metadata alone
+cannot prove attempt correlation. Maintainer approval on 2026-10-16 adopts the artifact-backed boundary below.
 
 Parent decisions: [ADR 0011](0011-shared-multi-groovy-compatibility-contract.md),
 [ADR 0012](0012-shared-prerelease-channel-policy.md), [ADR 0013](0013-versioned-documentation-and-javadocs.md).
@@ -62,19 +64,27 @@ Use attempt-specific job metadata and attempt-named immutable artifacts. Never c
 from different attempts or fall back to an older green attempt/run when the newest is red or incomplete.
 Paginate all run/job/check/artifact lists and reject ambiguous matches and API errors.
 
-### First implementation admission gate: SonarCloud feasibility
+### Sonar admission and trusted producer boundary
 
-Before producer manifests, receipt validation, release workflow changes or Gradle guards, slice 1 must run a
-bounded read-only probe of actual GitHub Actions and SonarCloud metadata. Record authoritative workflow/run/
-attempt/job/scanner-step/check identities, Sonar task/analysis/project/revision and completed quality-gate
-identities, and the verifiable joins between them. Distinguish those joins from display names, timestamps and
-branch labels. Establish whether a same-SHA green check can come from another run/attempt, and exercise
-reruns, failed attempts, multiple same-SHA analyses and asynchronous quality completion using available records.
-Verify read-only access available separately to the producer and protected preflight without release secrets,
-new privileges or unprotected privileged credentials. Successful upload or a same-SHA green check alone fails
-admission. If records/access cannot establish the binding, stop before substantial implementation for a maintainer
-integration-contract decision; no heuristic fallback. This probe belongs to the first implementation slice and
-is not required to execute in this documentation PR.
+The bounded [feasibility probe](../implementation/issue-903-sonar-feasibility.md) found public exact-SHA analysis
+and quality results, but no authoritative join from a CI attempt to an analysis or from an analysis to the
+Sonar GitHub App check. Maintainer adjudication accepts artifact-backed producer correlation instead.
+This decision admits contract implementation; it does not claim the revised integration has passed acceptance.
+
+The same trusted CI attempt retains scanner-generated `report-task.txt`, or its verified actual scanner equivalent,
+and a manifest binding repository, workflow ID/path/blob, exact source SHA, run/latest attempt, job and scanner step.
+A producer step in that job resolves the exact scanner CE task to successful completion, analysis ID, approved project
+identity, source revision and the analysis-specific quality result. It may use the existing scanner-capable CI
+integration without exposing or retaining credentials. No extra privileges or release credentials are authorized.
+Unavailable task resolution with existing access stops implementation for integration adjudication.
+
+The protected consumer verifies the selected run's attempt-qualified immutable artifact, manifest and hashes, then
+independently reads the exact analysis's revision and quality result for the approved Sonar project. It trusts the
+reviewed producer for the scanner-task-to-analysis mapping; it cannot derive that mapping from public metadata alone.
+Missing or ambiguous mappings, pending/failed quality, inaccessible evidence or identity disagreement fail closed.
+Before release admission, demonstrate the real producer's existing access, the actual scanner output and read-only
+consumer access, including reruns, failed attempts, multiple same-SHA analyses and asynchronous completion. Use
+synthetic fixtures for deterministic negative cases; separately authorized normal CI supplies hosted acceptance.
 
 ### Evidence and Sonar
 
@@ -87,13 +97,13 @@ and documentation/Javadoc verification summary. Expected empty test suites must 
 by the contract, never inferred from missing XML. Retain diagnostics on failure but issue no passing proof.
 The manifest's own artifact identity/digest is bound by the consumer receipt, avoiding a self-hash cycle.
 
-Sonar scan upload success alone is insufficient. Require a completed successful quality-result check from
-the approved Sonar GitHub App ID for this repository/project and SHA, and bind check ID, analysis/task ID,
-revision and result to this producer attempt. The producer records the scanner task identity and the analysis
-correlation; a same-SHA check from an unrelated analysis or a spoofed check name cannot qualify. Only G3
-coverage feeds Sonar; G4/G5 remain retained compatibility evidence. If the available trusted integration
-cannot expose a verifiable attempt-to-analysis binding without privileged credentials in the consumer,
-implementation must stop for an explicit integration decision, not weaken correlation or grant release secrets.
+Sonar scan upload success alone is insufficient. Require the trusted producer's exact CE task-to-analysis mapping
+and completed passing analysis-specific quality result, reconciled with the public analysis revision/result and
+approved project identity by the consumer. Retain scanner correlation and resolution evidence with file hashes in the
+attempt-qualified inventory. The Sonar GitHub App check remains normal CI/status evidence; it is not an authoritative
+attempt-correlation join and no exact analysis-to-App-check association is required. Names, timestamps, matching SHAs
+and branch dashboard pages cannot substitute for the producer mapping. Only G3 coverage feeds Sonar; G4/G5 remain
+retained compatibility evidence. Do not pass SONAR_TOKEN or other scanner credentials into protected preflight.
 
 The consumer receipt binds stage/version/source line/SHA to the selected run/attempt, producer manifest hash,
 artifact IDs and service digests plus independently calculated file hashes, job/step/check identities and Sonar
@@ -183,13 +193,15 @@ Maintainer delegation on 2026-10-16 confirms:
 
 1. The 30-day source-proof payload/receipt retention and freshness window is approved. Earlier GitHub/service
    expiry or deletion wins; no external evidence store is introduced.
-2. Exact Sonar project/App/attempt-to-analysis correlation must be established read-only during implementation.
-   If existing metadata cannot prove it, stop for a maintainer integration decision. Do not weaken matching or
-   grant extra credentials. Numeric identities remain implementation discovery, not guessed policy values.
+2. Adopt artifact-backed CI producer correlation after the public-metadata feasibility no-go. The trusted same-attempt
+   producer resolves the scanner CE task using its existing integration; protected release verifies the immutable
+   artifact and public analysis-specific project/revision/result without extra credentials. Sonar App checks remain
+   status evidence, outside the authoritative correlation join. Numeric identities must be evidenced, never guessed.
 3. Adopt master-first. Do not backport to `release/4.0.x`; `release/4.1.x` is the first intended maintenance
    branch for the complete package if/when needed. Producer, verifier and operation guards must travel together,
    and release proof must come from that exact line.
 
-No policy decision remains open for this design. A Sonar integration decision is conditional on implementation
-finding inadequate metadata. Exact-SHA reuse and current CI topology remain settled. ADR 0019 candidate
+The public-metadata integration decision is settled by this amendment. Implementation must still prove the accepted
+producer/consumer boundary with existing access; inadequate access requires further maintainer adjudication.
+Exact-SHA reuse and current CI topology remain settled. ADR 0019 candidate
 qualification remains a separate existing decision surface. Implementation has not started.
