@@ -20,4 +20,7 @@ tasks.named('test') {
     def rootSettings = layout.projectDirectory.file('../settings.gradle')
     inputs.file(rootSettings).withPropertyName('laneFixtureSettings')
     systemProperty 'klum.laneFixtureSettings', rootSettings.asFile.absolutePath
+    def releaseBuild = layout.projectDirectory.file('../build.gradle')
+    inputs.file(releaseBuild).withPropertyName('protectedReleaseBuild')
+    systemProperty 'klum.releaseBuild', releaseBuild.asFile.absolutePath
 }

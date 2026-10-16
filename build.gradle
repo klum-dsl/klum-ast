@@ -287,6 +287,20 @@ tasks.register("verifyReleaseVersion") {
     }
 }
 
+def protectedReleaseAuthorization = tasks.register('verifyProtectedReleaseAuthorization') {
+    group = 'verification'
+    description = 'Requires local release validation and the complete-product entry before protected operations.'
+    dependsOn tasks.named('verifyReleaseVersion'), tasks.named('verifyVersionedDocumentationRenderer')
+    doLast {
+        if (!gradle.taskGraph.hasTask(':publishCompleteKlumAstProduct'))
+            throw new GradleException('Use publishCompleteKlumAstProduct; individual protected operations are forbidden.')
+    }
+}
+
+tasks.named('initializeSonatypeStagingRepository') {
+    dependsOn protectedReleaseAuthorization
+}
+
 def publishMavenProductToSonatype = tasks.register("publishMavenProductToSonatype") {
     group = "publishing"
     description = "Publishes every KlumAST Maven coordinate to one protected Sonatype staging repository."
