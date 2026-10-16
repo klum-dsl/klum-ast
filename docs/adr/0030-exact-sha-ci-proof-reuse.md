@@ -3,8 +3,9 @@
 Date: 2026-10-16
 
 Status: Accepted, revised by the canonical maintainer decision in [#903](https://github.com/klum-dsl/klum-ast/issues/903).
-Implementation status: REL-A implemented locally pending review/delivery; REL-B remains pending.
-See the [REL-A evidence record](../implementation/issue-903-rel-a-evidence.md). No release or protection state was changed.
+Implementation status: REL-A merged in PR #915; REL-B implemented locally pending review/delivery.
+See the [REL-A evidence record](../implementation/issue-903-rel-a-evidence.md) and
+[REL-B evidence record](../implementation/issue-903-rel-b-evidence.md). No release or protection state was changed.
 
 Plan: [#903 implementation plan](../implementation/issue-903-ci-proof-reuse.md).
 Historical evidence: [original investigation](../implementation/issue-903-release-verification-contract.md)

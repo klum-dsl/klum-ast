@@ -1,6 +1,6 @@
 # #903 — Direct GitHub release verification implementation plan
 
-Date: 2026-10-16. Status: accepted revised design; REL-A implemented locally pending review/delivery; REL-B remains pending.
+Date: 2026-10-16. Status: accepted revised design; REL-A merged in PR #915; REL-B implemented locally pending review/delivery.
 Authority: canonical [#903](https://github.com/klum-dsl/klum-ast/issues/903) maintainer decision and
 [ADR 0030](../adr/0030-exact-sha-ci-proof-reuse.md). Related: #903; keep open until full acceptance.
 
@@ -84,6 +84,11 @@ Focused acceptance:
 | Shared signing in local-only/protected-only/mixed graphs; protected destination/key behind local-looking request | Protected operations remain guarded; no property/name bypass |
 | Maven Local, disposable TestKit/local publication, nonprotected fixture signing, compilation and ordinary verification | Work without GitHub proof or protected credentials |
 
+REL-B's local implementation, actual task bindings, marker execution and production graph validation are recorded in
+[the REL-B evidence record](issue-903-rel-b-evidence.md). The root authorization prerequisite retains the existing
+root `check` selection; it does not select a repeated CI matrix. Staging release now depends on successful close,
+and Portal publication on successful close/release, instead of relying on ordering constraints.
+
 ## Validation, scope and overengineering review
 
 All new Spock tests use `Test` suffix and `@Issue("903")`. Start with focused baseline tests, then affected module
@@ -105,5 +110,5 @@ The prior amendment was documentation-only work delivered through PR #912 with `
 Its validation used Markdown/diff checks and preserved both historical reports. Its instruction to
 omit Groovy lanes and avoid production implementation applied to that amendment alone. REL-A
 implementation uses the executable validation and delivery boundary recorded above and in its
-evidence record; REL-B remains separate. This local REL-A delivery changes no issue state, release,
+evidence record; REL-B has its separate local evidence record above. These slices change no issue state, release,
 environment or protection setting and reads no secrets.

@@ -13,7 +13,10 @@
 
 - Release tooling: require exact-SHA ordinary CI and a trusted SonarCloud App check before pending
   documentation and release approval, then repeat the checks immediately before publication.
-  Missing, changed or unavailable GitHub evidence rejects publication without repeating the CI matrix
+  Missing, changed or unavailable GitHub evidence rejects publication without repeating the CI matrix.
+  Protected signing, staging, Maven upload and Plugin Portal operations now require successful local
+  authorization, version, documentation and verification dependencies even for direct, reordered,
+  parallel or `--continue` requests. Unsigned Maven Local and file-repository development remain usable
   ([#903](https://github.com/klum-dsl/klum-ast/issues/903)).
 
 - Added default-only `@PropagateAnnotation` composition on DSL Schema classes, fields and methods,
