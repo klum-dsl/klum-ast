@@ -520,7 +520,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the preflight must not decide release identity from runner-local Git refs')
         assertContains(pendingDocumentationStage, 'uses: ./.github/workflows/publish-pending-documentation.yml',
                 'the pending documentation stage must call the reusable Pages workflow')
-        assertContains(pendingDocumentationStage, 'needs: [validate-release-input, verify-release-identity-available]',
+        assertContains(pendingDocumentationStage, 'needs: [validate-release-input, verify-release-identity-available, verify-release-ci]',
                 'the pending documentation stage must remain unreachable before remote identity preflight succeeds')
         assertContains(pendingDocumentationStage, 'secrets: inherit',
                 'the pending documentation stage must forward the reusable Pages workflow secret contract')
@@ -542,7 +542,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'publication must recheck GitHub releases through the authoritative remote API')
         assertTrue(!publicationStage.contains('git show-ref --verify'),
                 'publication must not decide release identity from runner-local Git refs')
-        assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, verify-release-identity-available, stage-pending-documentation]') <
+        assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, verify-release-identity-available, verify-release-ci, stage-pending-documentation]') <
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
         int pluginPortalJobStart = releaseWorkflow.indexOf('  verify-public-gradle-plugins:\n')
         int mavenCentralJobStart = releaseWorkflow.indexOf('  await-public-maven-product:\n')

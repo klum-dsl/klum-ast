@@ -44,6 +44,7 @@ dependencies {
     api libs.annodocimal.gradle.plugin
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     testImplementation libs.spock.g3
+    testImplementation 'org.yaml:snakeyaml:2.6'
     testRuntimeOnly project(':klum-ast-runtime')
 }
 
@@ -61,6 +62,10 @@ processResources {
 
 test {
     useJUnitPlatform()
+
+    inputs.files(rootProject.file('.github/scripts/verify-release-ci.cjs'),
+            rootProject.fileTree('.github/workflows'))
+    systemProperty 'klum.repositoryRoot', rootProject.projectDir.absolutePath
 
     inputs.files(
             project(":klum-ast").tasks.named("jar", Jar).flatMap { it.archiveFile }

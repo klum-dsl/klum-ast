@@ -104,9 +104,36 @@ jobs:
           assert_remote_identity_absent 'release tag' "git/ref/tags/v$RELEASE_VERSION"
           assert_remote_identity_absent 'GitHub release' "releases/tags/v$RELEASE_VERSION"
 
+  verify-release-ci:
+    name: Verify exact-SHA CI and trusted SonarCloud
+    needs: validate-release-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    outputs:
+      run_id: ${{ steps.ci.outputs.run_id }}
+      run_attempt: ${{ steps.ci.outputs.run_attempt }}
+      check_id: ${{ steps.ci.outputs.check_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - id: ci
+        name: Verify current GitHub evidence before pending documentation or approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node .github/scripts/verify-release-ci.cjs
+
   stage-pending-documentation:
     name: Stage pending documentation for ${{ inputs.version }}
-    needs: [validate-release-input, verify-release-identity-available]
+    needs: [validate-release-input, verify-release-identity-available, verify-release-ci]
     permissions:
       contents: read
       pages: write
@@ -120,21 +147,29 @@ jobs:
 
   publish:
     name: Publish ${{ inputs.stage }} ${{ inputs.version }}
-    needs: [validate-release-input, verify-release-identity-available, stage-pending-documentation]
+    needs: [validate-release-input, verify-release-identity-available, verify-release-ci, stage-pending-documentation]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment:
       name: ${{ needs.validate-release-input.outputs.environment }}
-    env:
-      KLUM_AST_RELEASE_AUTHORIZED: ${{ inputs.stage }}
-      ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
-      ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
-      ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
-      ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
-      GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
-      GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+    permissions:
+      contents: read
+      actions: read
+      checks: read
 
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Retain the gate from the approved workflow revision
+        env:
+          WORKFLOW_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$WORKFLOW_COMMIT"
+          cp .github/scripts/verify-release-ci.cjs "$RUNNER_TEMP/verify-release-ci.cjs"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
@@ -202,6 +237,14 @@ jobs:
           assert_remote_identity_absent 'release tag' "git/ref/tags/v$RELEASE_VERSION"
           assert_remote_identity_absent 'GitHub release' "releases/tags/v$RELEASE_VERSION"
       - name: Require every protected credential before publication
+        env:
+          KLUM_AST_RELEASE_AUTHORIZED: ${{ inputs.stage }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
@@ -239,7 +282,30 @@ jobs:
           [[ "$DOCUMENTATION_DEPLOYMENT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           [[ "$DOCUMENTATION_DEPLOYMENT_ID" =~ ^[0-9]+\.[0-9]+$ ]]
           [[ "$DOCUMENTATION_PAGE_URL" =~ ^https:// ]]
+      - name: Recheck exact-SHA CI and SonarCloud immediately before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          CI_RUN_ID: ${{ needs.verify-release-ci.outputs.run_id }}
+          CI_RUN_ATTEMPT: ${{ needs.verify-release-ci.outputs.run_attempt }}
+          SONAR_CHECK_ID: ${{ needs.verify-release-ci.outputs.check_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain=v1)"
+          node "$RUNNER_TEMP/verify-release-ci.cjs" --recheck
       - name: Verify, sign, stage, and publish the complete product
+        env:
+          KLUM_AST_RELEASE_AUTHORIZED: ${{ inputs.stage }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
         run: >-
           ./gradlew publishCompleteKlumAstProduct
           -Prelease.version=${{ inputs.version }}

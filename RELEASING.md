@@ -59,9 +59,11 @@ an incident.
    are evaluated. After accepting the last RC, only the ADR 0012 documentation-only exception
    may date the exact final heading; any substantive source, dependency, signing, publication,
    or workflow change requires the next RC.
-5. Ensure all 4.0 blockers, documentation/Javadocs, and the normal Java 17 Groovy 3/4/5
-   `check` gate are ready. The workflow runs `check` and requires the protected Gradle version
-   to equal the approved input before any publication task starts.
+5. Ensure all release blockers and documentation/Javadocs are ready. REL-1 must find completed
+   successful ordinary CI for the exact source SHA and dispatch line, including its complete Java 17
+   Groovy 3/4/5 verification and trusted SonarCloud check. It does not dispatch or repeat that matrix.
+   The existing local publication prerequisites still require the protected Gradle version to equal
+   the approved input before publication.
 6. Confirm #456 has delivered the ADR 0013 versioned documentation/Javadoc destination and
    that its protected Pages stage has produced the exact unlisted pending snapshot and manifest
    for this stage/version/SHA before artifact publication. A final additionally requires the
@@ -218,9 +220,11 @@ off-allowed-line, or already tagged request does not create a pending or rejecte
 Dispatch **REL-1: Publish protected release** from `master` or the matching
 `release/<major>.<minor>.x` line, select `candidate` or `final`, and enter the exact version and
 full source commit SHA. The matching environment approval is the irreversible-
-operation checkpoint. An unprivileged preflight accepts only valid candidate/final version
-shapes before it selects either protected environment. The workflow then checks out that SHA
-with no persisted GitHub credential, proves it is on the dispatch's allowed source line, and executes in its protected job:
+operation checkpoint. Unprivileged validation accepts only valid candidate/final version shapes.
+A separate read-only exact-SHA CI/Sonar preflight must succeed before pending documentation or
+protected release approval becomes eligible. The workflow then checks out that SHA with no
+persisted GitHub credential, proves it is on the dispatch's allowed source line, and executes in
+its protected job:
 
 ```text
 ./gradlew publishCompleteKlumAstProduct \
@@ -242,6 +246,56 @@ public proof is the only input that may advance #456's labelled stable, line, or
 The protected immutable proof handoff must bind the release channel, exact version, full source SHA,
 and proof-run identity; a missing or mismatched field rejects promotion. This does not make
 cross-registry publication reversible or claim that a final is byte-identical to its RC.
+
+### Exact-SHA CI and Sonar preflight
+
+[ADR 0030](docs/adr/0030-exact-sha-ci-proof-reuse.md) defines this gate. The repository-local
+[helper](.github/scripts/verify-release-ci.cjs) reads only GitHub REST APIs using
+`contents: read`, `actions: read`, and `checks: read`. Its reviewed identities are repository
+`40505913` (`klum-dsl/klum-ast`), CI workflow `23237467` at `.github/workflows/ci.yml`, and
+SonarCloud App `12526` (`sonarqubecloud`, SonarSource). These were verified against GitHub metadata
+on 2026-10-16; any change needs review of the helper, CI contract tests and this runbook.
+
+The source must be a full 40-character SHA on the live dispatch line: `master` or the exact
+version-matching maintenance branch. Proof must come from a same-repository `push` run on that
+line and exact SHA. The helper paginates runs, attempt-specific jobs and all exact-SHA checks;
+it selects the newest eligible run by creation time, then run ID, before considering success.
+Its latest attempt and sole required `build` job must have completed successfully. Required
+successful steps are `Build with Gradle`, `Qualify annotation propagation artifacts`,
+`Publish Test Report`, and `Archive compatibility-lane evidence`, at their reviewed step numbers.
+The failure-only `Archive test classes` upload is excluded. `ReleaseCiWorkflowTest` guards the
+existing single-job command/action contract; review it together with CI changes.
+
+Exactly one relevant SonarCloud check must be completed successfully for that full SHA and
+originate from the numeric approved App. A display name cannot establish origin. Same-SHA Sonar
+success is sufficient; no CI-attempt or Sonar-analysis correlation is claimed. Missing, ambiguous,
+malformed, duplicate, incomplete, changed or unavailable API evidence rejects the gate. Network
+failures and selected transient HTTP errors receive at most three attempts per request, with
+15-second request timeouts and short bounded backoff. There is no older-green fallback,
+automatic dispatch, custom proof artifact or separate retention policy.
+
+The workflow-run API caps each filtered search at 1,000 results. That count is for this workflow,
+exact SHA, event and branch, not lifetime CI history. The helper also has a local 100-page budget
+(10,000 jobs or checks at 100 per page); exceeding either bound rejects completeness. These are
+separate service and operational limits. GitHub's numeric repository pagination URLs are accepted
+only for this repository's verified ID. The reference check-runs API searches only the 1,000 most
+recent suites, so a read-only suite-count probe rejects larger references before check selection.
+No truncated window or older green result is accepted as a substitute. See the
+[pagination review](docs/implementation/issue-903-rel-a-evidence.md#pagination-reliability-review).
+
+Preflight exports only run ID, attempt and Sonar check ID as ordinary job outputs. After protected
+approval, the workflow runs the same helper from its approved workflow revision immediately before
+Gradle publication. It rechecks the clean exact checkout, live line ancestry and all API conditions,
+and compares those identifiers. Changed evidence, including a newer successful run, requires a
+fresh REL-1 preflight and approval flow. A newer failed or unfinished run also rejects publication.
+This is a point-in-time recheck, not an atomic lock over later GitHub changes. The helper receives
+no scanner, signing or publication credentials. Existing local version/documentation checks,
+pending handoff, immutable version checks, RC/final approval, public resolve-back, REL-2 and
+independent consumer qualification remain separate release boundaries.
+
+This correction is master-first; do not backport it to `release/4.0.x`. Future maintenance-line
+admission requires the separate review specified in ADR 0030. The Gradle protected-operation
+dependency correction is the separate REL-B slice of [#903](https://github.com/klum-dsl/klum-ast/issues/903).
 
 After publication, the same protected release run proves public availability without retaining release
 credentials: it resolves the three plugin markers from the Plugin Portal once, then polls the complete
