@@ -1,6 +1,7 @@
 # #903 REL-B — protected Gradle operation prerequisites
 
-Date: 2026-10-16. Status: local implementation; review/delivery pending. Related: #903.
+Date: 2026-10-16. Status: local implementation validated; draft PR publication authorized;
+remote CI/review pending. Related: #903.
 Base: `cfa5e87dd9a088d9163b36e7c6fc1f39708fc111`, current `origin/master` after merged
 [REL-A PR #915](https://github.com/klum-dsl/klum-ast/pull/915).
 Branch: `codex/issue-903-protected-operations`; isolated worktree, IDE-main checkout untouched.
@@ -108,11 +109,12 @@ Completed on Java 17 / pinned Gradle 8.14.4:
 - The actual renderer also passed with keyless synthetic signatories configured on all production
   signing tasks. Its graph selected no signing, publication or authorization task, proving that the
   input projection does not introduce a release cycle or require authorization for ordinary docs.
-- All 354 Gradle-plugin cases and 15 buildSrc cases passed in the stable clean aggregate run, as did
-  the complete core Groovy 3/4/5 suites, coverage and lane isolation. The aggregate then caught the
-  new `.gradle` resource's header opener: the pinned plugin defaults to `JAVADOC_STYLE` for that
-  extension. The resource now uses the required `/**` opener; focused `licenseTest` passed, with
-  no configuration, exclusion, extension or file-type change.
+- The final clean aggregate passed all 354 Gradle-plugin cases and 15 buildSrc cases, the complete
+  core Groovy 3/4/5 suites, coverage, lane isolation, license/documentation checks and all three
+  explicit artifact qualification lanes. The new tests have zero failures/skips; pre-existing core
+  skips remain unchanged. An earlier aggregate caught the new `.gradle` resource's header opener:
+  the pinned plugin defaults to `JAVADOC_STYLE` for that extension. The resource now uses the
+  required `/**` opener, with no configuration, exclusion, extension or file-type change.
 - Scoped actionlint 1.7.7 with shellcheck for REL-1 and CI, helper Node syntax and diff checks: passed.
   An all-workflow lint also reported pre-existing shellcheck style finding SC2129 in unchanged
   `verify-public-release.yml:171`; no unrelated workflow edit was made.
@@ -133,9 +135,10 @@ The final acceptance command, run from a clean committed tree before handoff, is
   :klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2
 ```
 
-The final worker handoff records this aggregate's exit result and exact committed tip. It includes
-all repository lanes, buildSrc, coverage/isolation/license/documentation and the separate artifact
-qualifications. The committed checkout remains stable throughout parent and nested builds.
+This aggregate succeeded at `aca3959f336da30d8609c3cb0e7aadc352cb7aa1` in 15 minutes 20 seconds
+(140 tasks). The committed checkout remained stable throughout parent and nested builds. The
+production ancestry probe also passed at that tip. The subsequent publication follow-up updates
+only this evidence record; executable sources and test inputs remain at the validated revision.
 
 The mandatory overengineering review found no new proof authority, publishing framework, custom
 receipt/manifest, report inventory, retention store or Sonar integration. GitHub/environment authority
@@ -150,12 +153,15 @@ parent and nested builds.
 
 ## Delivery boundary
 
-Stop at `(ready:PR)`: local commits only; no push, PR, release dispatch, publication, secrets access,
-issue mutation or environment/protection change. Final-head remote CI/Sonar are unavailable until a
-later authorized publication and must be inspected then; local checks cannot claim remote results.
-No real protected-environment or registry operation is rehearsed.
+The original assignment stopped at `(ready:PR)`, with local commits only. The maintainer subsequently
+requested a PR, authorizing the dedicated branch push and draft PR creation. The delivery capability
+audit recorded Git SSH: `authorized`; GitHub CLI: `authorized`. The branch has no existing PR, and
+the refreshed `origin/master` remains the accepted base. Final-head remote CI/Sonar must be inspected
+after publication; local checks cannot claim remote results. No release dispatch, registry
+publication, secrets access, issue mutation or environment/protection change is included. No real
+protected-environment or registry operation is rehearsed.
 
-Tracker impact is proposed `Related: #903`; Hive owns the final issue relationship, release-gate
+Tracker impact remains `Related: #903`; Hive owns release-gate
 curation and full acceptance. Current user DSL/API/migration pages are unaffected. Historical
 investigation and Sonar feasibility reports remain unchanged. Request Hive reconciliation and retain
 the isolated branch/worktree for review; the worker does not mark itself archive-safe.
