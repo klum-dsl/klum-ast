@@ -294,6 +294,105 @@ class ProtectedPublicationTest extends Specification {
     }
 
     @Unroll
+    def 'production signingKey interface guards #entry even with only local destinations'() {
+        given:
+        new File(fixture, 'local-fixture/build.gradle') << '''
+            // A keyless sentinel exercises the production interface without loading or parsing a key.
+            ext.signingKey = 'synthetic-interface-sentinel'
+            publishing.publications.create('fixture', MavenPublication) { artifact file('payload') }
+            signing.sign(publishing.publications.fixture)
+            tasks.named('signFixturePublication', Sign) {
+                signatory = tasks.signFixture.signatory
+                actions.clear()
+                doLast { rootProject.file('protected-key-interface-sign').text = 'executed' }
+            }
+            tasks.withType(PublishToMavenLocal).configureEach {
+                actions.clear()
+                doLast { rootProject.file('local-maven').text = 'executed' }
+            }
+        '''.stripIndent()
+
+        when:
+        def result = runner(entry, '-PlocalOnly', '--parallel', '--continue').buildAndFail()
+
+        then:
+        result.output.contains('A release requires -Prelease.version')
+        result.task(':local-fixture:signFixturePublication') == null
+        !new File(fixture, 'local-maven').exists()
+        protectedMarkers().empty
+
+        where:
+        entry << [':local-fixture:signFixturePublication', ':local-fixture:publishToMavenLocal']
+    }
+
+    @Unroll
+    def 'independent disposable signing is conservatively guarded in a #infrastructure project'() {
+        given:
+        File localBuild = new File(fixture, 'local-fixture/build.gradle')
+        if (infrastructure == 'Sonatype') {
+            localBuild << '''
+                publishing.repositories.maven {
+                    name = 'sonatype'
+                    url = uri('https://publication.invalid/releases')
+                }
+                assert publishing.publications.empty
+            '''.stripIndent()
+        } else {
+            localBuild.text = localBuild.text.replace("plugins { id 'signing'", "plugins { id 'com.gradle.plugin-publish'; id 'signing'")
+            localBuild << '''
+                assert plugins.hasPlugin('com.gradle.plugin-publish')
+                // Only the detached signing task may run; the real Portal client cannot execute.
+                gradle.taskGraph.whenReady { graph -> assert !graph.hasTask(':local-fixture:publishPlugins') }
+            '''.stripIndent()
+        }
+        localBuild << '''
+            assert tasks.signFixture.signatory.name == 'disposable'
+            assert tasks.signFixture.filesToSign.files == [file('payload')] as Set
+            assert !project.hasProperty('signingKey')
+        '''.stripIndent()
+        def buildRunner = runner(':local-fixture:signFixture', '-PlocalOnly', '--parallel', '--continue')
+        if (infrastructure == 'Plugin Portal')
+            buildRunner.withPluginClasspath([new File(System.getProperty('klum.portalPlugin'))])
+
+        when:
+        def result = buildRunner.buildAndFail()
+
+        then:
+        result.output.contains('A release requires -Prelease.version')
+        result.task(':local-fixture:signFixture') == null
+        !new File(fixture, 'local-sign').exists()
+        protectedMarkers().empty
+
+        where:
+        infrastructure << ['Sonatype', 'Plugin Portal']
+    }
+
+    def 'detached task sharing a protected publication signatory remains guarded'() {
+        given:
+        write('klum-ast-gradle-plugin/payload', 'detached fixture input')
+        new File(fixture, 'klum-ast-gradle-plugin/build.gradle') << '''
+            afterEvaluate {
+                tasks.register('signDetached', Sign) {
+                    signatory = tasks.signMainPublication.signatory
+                    sign file('payload')
+                    actions.clear()
+                    doLast { rootProject.file('protected-detached-sign').text = 'executed' }
+                }
+                assert tasks.signDetached.signatory.is(tasks.signMainPublication.signatory)
+            }
+        '''.stripIndent()
+
+        when:
+        def result = runner(':klum-ast-gradle-plugin:signDetached', '-PfixtureSigning', '-PlocalOnly',
+                '--parallel', '--continue').buildAndFail()
+
+        then:
+        result.output.contains('A release requires -Prelease.version')
+        result.task(':klum-ast-gradle-plugin:signDetached') == null
+        protectedMarkers().empty
+    }
+
+    @Unroll
     def 'failed #failure prevents later staging release and Portal actions under continue'() {
         when:
         runner('publishCompleteKlumAstProduct', '-PfixtureSigning', failure, '--parallel', '--continue').buildAndFail()

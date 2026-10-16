@@ -309,12 +309,20 @@ close, and Portal publication requires successful Sonatype close/release.
 Sonatype remains protected before its staging URL is initialized and when redirected to a file URL.
 Other Maven tasks are classified by their actual repository URL: only file URLs without a network
 authority are local; scheme comparisons ignore case. All other destinations are protected regardless
-of repository name. A configured signatory serving protected destinations or the Portal,
-or supplied through the production `signingKey` interface, is protected even when a local publication
-requests its shared signature. Unsigned Maven Local, file-repository publication, artifact preparation
-and ordinary verification need no release authorization. Disposable signing in a local-only fixture
-without production key configuration remains unguarded. Local publishing does not require a signer;
-the complete protected product still requires signatures.
+of repository name. Signing classification is deliberately conservative: any `Sign` task with a
+signatory requires authorization if its project configures a protected Maven destination, applies
+`com.gradle.plugin-publish`, or has the production `signingKey` property. This also protects direct
+invocation and Maven Local requests for shared release signatures.
+
+An independent disposable signer in such a project therefore also requires release authorization,
+even when signing only a local file. Gradle's signing API does not provide a complete reverse mapping
+from a signing task to its publication consumers or establish that a separate signatory uses a
+disposable key. Narrowing the guard would require consumer traversal or additional key policy.
+The project-level restriction is an intentional tradeoff to keep release keys protected without that
+machinery. Keep disposable development signing in an isolated local-only project without production
+key configuration. Unsigned Maven Local, file-repository publication, artifact preparation and
+ordinary verification remain usable without release authorization. Local publishing does not require
+a signer; the complete protected product still requires signatures.
 
 These Gradle dependencies enforce local prerequisites. REL-A's read-only GitHub preflight and immediate
 post-approval recheck remain workflow prerequisites, and protected environments remain the credential

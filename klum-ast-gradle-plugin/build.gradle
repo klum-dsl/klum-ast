@@ -69,6 +69,10 @@ test {
     systemProperty 'klum.releaseBuild', releaseBuild.asFile.absolutePath
     systemProperty 'klum.baseConventions', baseConventions.asFile.absolutePath
 
+    def portalPlugin = new File(plugins.getPlugin('com.gradle.plugin-publish').class.protectionDomain.codeSource.location.toURI())
+    inputs.file(portalPlugin).withPropertyName('protectedPublicationPortalPlugin')
+    systemProperty 'klum.portalPlugin', portalPlugin.absolutePath
+
     inputs.files(rootProject.file('.github/scripts/verify-release-ci.cjs'),
             rootProject.fileTree('.github/workflows'))
     systemProperty 'klum.repositoryRoot', rootProject.projectDir.absolutePath

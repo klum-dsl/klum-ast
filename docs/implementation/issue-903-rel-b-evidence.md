@@ -1,7 +1,7 @@
 # #903 REL-B — protected Gradle operation prerequisites
 
-Date: 2026-10-16. Status: local implementation validated; draft PR publication authorized;
-remote CI/review pending. Related: #903.
+Date: 2026-10-16. Status: implementation validated; focused signing review complete in draft
+[PR #916](https://github.com/klum-dsl/klum-ast/pull/916); final-head remote checks pending. Related: #903.
 Base: `cfa5e87dd9a088d9163b36e7c6fc1f39708fc111`, current `origin/master` after merged
 [REL-A PR #915](https://github.com/klum-dsl/klum-ast/pull/915).
 Branch: `codex/issue-903-protected-operations`; isolated worktree, IDE-main checkout untouched.
@@ -46,8 +46,10 @@ Other Maven tasks use the actual configured destination rather than local-lookin
 Only authority-free file URLs are local, with case-insensitive scheme handling; network file URLs
 remain protected. Both the unsafe network-file exemption and the uppercase-local rejection were
 observed as failing execution regressions before correcting the destination predicate.
-A real signatory in a project serving protected destinations or the Portal, or using the production
-`signingKey` interface, is treated as protected even for a local request of the shared signature.
+A real signatory in a project configured for protected destinations or the Portal, or with the production
+`signingKey` property, is treated as protected even for a local request of the shared signature.
+This deliberately includes independent disposable signers in the same project; the focused review below
+qualifies that restriction and its rationale.
 Unsigned Maven Local and file-repository publication select no release authorization. A disposable
 signatory in an isolated local-only fixture without production key configuration also remains usable.
 The [base signing convention](../../buildSrc/src/main/groovy/klum-ast.base-conventions.gradle) now
@@ -96,6 +98,62 @@ selection containing another task, so no publication or signing action can execu
 The existing documentation contract also checks actual configured direct dependencies at protected
 operations and staging/Portal predecessors. Its model projection is a normal Gradle task input,
 preserving the existing configuration-cache-safe documentation contract.
+
+## Focused signing-classification review
+
+The maintainer requested a narrow follow-up to PR #916. The original 45 REL-B cases remain intact;
+five focused cases extend the same TestKit fixture. Production classification is unchanged.
+
+| Scenario | Evidence and chosen behavior |
+| --- | --- |
+| Production `signingKey` interface, direct signing or Maven Local | Two new cases use a keyless interface sentinel and a real Gradle publication-signing task. Both reject before any signature/local publication marker, even with only local repositories. No key is loaded or parsed. |
+| Signing task shared by Maven Local and Sonatype | Existing direct/shared-local/protected publication cases stay guarded, including authorized complete-product success. |
+| Detached file-signing task sharing the publication signatory | One new case reuses the exact synthetic signatory object from the protected publication signer. Direct invocation stays guarded without relying on publication-task naming. |
+| Independent disposable signer, Sonatype configured | One new case has no publications and signs only a fixture payload. Adding the Sonatype repository alone causes release prerequisites to be required. This confirms conservative overguarding. |
+| Independent disposable signer, Plugin Publish plugin applied | One new case applies the actual pinned Plugin Publish 1.2.1 implementation from the production build's classpath, with only a local Maven repository and no production-key property. The detached payload signer is guarded. A graph assertion rejects selection of the real Portal client. |
+| Local-only publication/signing without a production key | Existing unsigned Maven Local/file publication and isolated disposable-signing cases remain unguarded. |
+| Mixed local/protected graph and failed prerequisites | Existing parallel/continue cases permit isolated disposable signing while blocking every protected signature/action after failed authorization, version, docs or verification. |
+
+The initial minimized probe expected the independent Sonatype-project signer to run locally. It failed
+at `verifyReleaseVersion` with the missing release-version prerequisite, before the signing marker.
+The command was `:klum-ast-gradle-plugin:test --tests '*ProtectedPublicationTest.independent disposable signing*'`.
+The final characterization asserts that deliberate rejection. All fixture signing actions remain marker
+writers; their synthetic signatories throw if real cryptography is attempted. TestKit remains offline
+with a restricted credential-free environment. The added plugin classpath is a declared test input,
+not a new fixture dependency resolution or production signing configuration.
+
+Inspection used the pinned Gradle 8.14.4 source distribution (`Sign`, `Signature`, `SigningExtension`,
+`Signatory`) and the pinned Plugin Publish 1.2.1 source archive (`PublishPlugin`). `SigningExtension.sign`
+returns the tasks it creates, but `Sign` retains signatures rather than a public collection of publication
+consumers. Its `sign` overloads also accept files, tasks and configurations. Gradle attaches derived
+signature artifacts through `PublicationInternal`, and `Signature.getSource()` is package-private.
+The Portal plugin creates/reuses publication signers and attaches their task dependencies; that does
+not identify arbitrary detached file signers or their downstream consumers.
+
+Publication membership alone would miss detached tasks sharing a protected signatory. Comparing the
+default signatory by object identity covers only that object: Gradle permits per-task signatories, and
+separate instances need not represent different keys. Key IDs/names do not prove disposable provenance.
+File comparison alone does not establish that a signature cannot later feed a publication. A complete
+consumer analysis or a new signing-policy abstraction would exceed this follow-up's scope.
+
+Decision: retain the current conservative rule. A non-null signatory in a protected-capable project,
+or a project with the production `signingKey` property, requires successful release prerequisites.
+The independent disposable-signing restriction is an intentional tradeoff, not an unresolved defect.
+Use an isolated local-only project for disposable development signing; unsigned local publication
+remains available in protected-capable projects. No names, bypass flags or caller-selected graph
+exemptions are introduced. All accepted REL-B gates and release semantics remain unchanged.
+
+Follow-up validation on Java 17 / Gradle 8.14.4 passed all 50 REL-B cases (the original 45 plus five
+new cases), then the complete Gradle-plugin module check: 359 tests, zero failures/errors/skips.
+`verifyVersionedDocumentationRenderer`, the module license checks, changed documentation links and
+diff checks passed. The unchanged read-only production probe again qualified 27 protected operations
+(11 signing, 11 Maven uploads and five staging/Portal entries) and 33 unsigned development entries.
+Manual scope/standards review confirmed that the root release wiring, signing convention, production
+probe and all workflows are byte-identical to the reviewed revision. The follow-up changes only focused
+tests, their declared Portal-plugin test input and necessary documentation. The previously validated
+full Groovy 3/4/5 production matrix remains recorded below; this retained-behavior follow-up uses the
+requested focused/module/documentation checks rather than another local core matrix run. Current-head
+remote CI/SonarCloud will be inspected after the additive review commit is pushed.
 
 ## Validation and review
 
@@ -155,8 +213,8 @@ parent and nested builds.
 
 The original assignment stopped at `(ready:PR)`, with local commits only. The maintainer subsequently
 requested a PR, authorizing the dedicated branch push and draft PR creation. The delivery capability
-audit recorded Git SSH: `authorized`; GitHub CLI: `authorized`. The branch has no existing PR, and
-the refreshed `origin/master` remains the accepted base. Final-head remote CI/Sonar must be inspected
+audit recorded Git SSH: `authorized`; GitHub CLI: `authorized`. Before first publication, the branch
+had no existing PR and the refreshed `origin/master` remained the accepted base. Final-head remote CI/Sonar must be inspected
 after publication; local checks cannot claim remote results. No release dispatch, registry
 publication, secrets access, issue mutation or environment/protection change is included. No real
 protected-environment or registry operation is rehearsed.
