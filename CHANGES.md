@@ -1,5 +1,12 @@
 # 4.1.0 (unreleased)
 
+- Class-selected relationship creators now return the declared polymorphic Builder instead of the `defaultImpl`
+  Builder, avoiding sibling-subtype cast failures for OPTIONAL_LINK, owned, keyed, Collection, and Map creation.
+  Implicit default creation, Templates, completed targets, and existing-child guards retain their behavior.
+  Recompile affected Schemas and clients using the generated Class-selected signatures; see
+  [migration guidance](docs/user/Migration.md#explicit-subtype-creation-with-defaultimpl)
+  ([#913](https://github.com/klum-dsl/klum-ast/issues/913)).
+
 - Reject primitive `boolean` Schema fields annotated with direct or propagated `@Required`, with a diagnostic
   naming the field and recommending boxed `Boolean`. Required `Boolean` still accepts `false`
   ([#899](https://github.com/klum-dsl/klum-ast/issues/899)).

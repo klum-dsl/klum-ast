@@ -1123,12 +1123,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
 
             if (!isFinal(elementType)) {
+                ClassNode selectedBuilderType = DslAstHelper.getBuilderClassOf(dslBaseType, fieldNode.getOwner()).getPlainNodeReference();
                 createProxyMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                        .returning(selectedBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + COLLECTION_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1336,12 +1337,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
 
             if (!isFinal(elementType)) {
+                ClassNode selectedBuilderType = DslAstHelper.getBuilderClassOf(dslBaseType, fieldNode.getOwner()).getPlainNodeReference();
                 createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
                         .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
+                        .returning(selectedBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + MAP_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
@@ -1474,12 +1476,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(targetFieldType)) {
+            ClassNode selectedBuilderType = DslAstHelper.getBuilderClassOf(dslBaseType, fieldNode.getOwner()).getPlainNodeReference();
             createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
                     .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .returning(targetBuilderType)
+                    .returning(selectedBuilderType)
                     .withDocumentation(doc -> doc
                             .title("Creates a new '{{singleElementName}}' Builder to this Builder.")
                             .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)

@@ -593,7 +593,10 @@ might be some corner cases where it is useful.
 
 `defaultImpl` can also be used on collections, maps and virtual fields.
 
-It selects the concrete type used for creation, but does not narrow Builder storage for a field declared as a DSL Object.
+It selects the concrete type used for implicit creation. An explicit Class selector can choose another compatible
+subtype; its creator returns the declared relationship's public Builder type rather than the default implementation's
+Builder. Use the subtype's generated `Create` Factory selector when static code needs its exact Builder type.
+The default does not narrow Builder storage for a field declared as a DSL Object.
 Such a field, including collection and map values, retains its declared polymorphic Builder type for ownership and other
 Builder-time relationship handling.
 

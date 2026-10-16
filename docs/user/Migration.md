@@ -2,6 +2,15 @@
 
 ## To 4.1
 
+### Explicit subtype creation with defaultImpl
+
+Recompile Schemas whose abstract DSL relationship type declares `defaultImpl` and clients compiled against their
+Class-selected creator methods. Those methods now return the declared relationship's public Builder type, avoiding a
+cast to the default implementation's Builder when another compatible subtype is selected. This applies to direct
+owned/OPTIONAL_LINK, keyed, Collection, and Map creators. Implicit creators still return the default implementation's
+Builder; generated `Create` Factory selectors retain the exact selected Builder type. See
+[default implementations](Basics.md#default-implementation).
+
 ### Composing domain annotations
 
 [Annotation propagation](Annotation-Propagation.md) adds default-only composition on DSL Schema
