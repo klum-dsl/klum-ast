@@ -60,7 +60,8 @@ gradle.projectsEvaluated {
             int uploads = 0
             product.subprojects.each { module ->
                 module.tasks.withType(PublishToMavenRepository).each { upload ->
-                    if (upload.repository.name == 'sonatype' || upload.repository.url.scheme != 'file') {
+                    if (upload.repository.name == 'sonatype' ||
+                            !upload.repository.url.scheme?.equalsIgnoreCase('file') || upload.repository.url.authority != null) {
                         operations.add(upload)
                         uploads++
                     }

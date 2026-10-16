@@ -328,7 +328,7 @@ def releaseSonatypeRepository = tasks.named("releaseSonatypeStagingRepository")
 def closeSonatypeStagingRepository = tasks.named("closeAndReleaseSonatypeStagingRepository")
 def assembleGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("assemble")
 def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publishPlugins")
-def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduct") {
+tasks.register("publishCompleteKlumAstProduct") {
     group = "publishing"
     description = "Publishes the complete protected KlumAST Maven and Gradle Plugin Portal product."
     dependsOn tasks.named("check")
@@ -352,9 +352,11 @@ gradle.projectsEvaluated {
     }
 
     // Nexus binds this repository URL only after initialization. Its configured destination is protected
-    // even before that URL exists. Every other non-file destination is protected regardless of its name.
+    // even before that URL exists. Only authority-free file URLs are local, regardless of task/repository name.
     def protectedDestination = { repository ->
-        repository.name == 'sonatype' || repository.url.scheme != 'file'
+        if (repository.name == 'sonatype') return true
+        def destination = repository.url
+        !destination.scheme?.equalsIgnoreCase('file') || destination.authority != null
     }
     allprojects.each { publishingProject ->
         publishingProject.tasks.withType(PublishToMavenRepository).configureEach { upload ->

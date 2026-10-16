@@ -91,6 +91,7 @@ class ProtectedPublicationTest extends Specification {
             }
         ''')
         write('klum-ast-gradle-plugin/build.gradle', '''
+            import java.net.URI
             import org.gradle.plugins.signing.Sign
             import org.gradle.plugins.signing.signatory.Signatory
             plugins { id 'java-library'; id 'maven-publish'; id 'signing' }
@@ -104,6 +105,12 @@ class ProtectedPublicationTest extends Specification {
             }
             if (project.hasProperty('redirectDevelopment')) publishing.repositories.development.url = uri('https://publication.invalid/releases')
             if (project.hasProperty('redirectSonatypeToFile')) publishing.repositories.sonatype.url = uri(layout.buildDirectory.dir('pretend-local'))
+            if (project.hasProperty('networkFileDevelopment')) {
+                publishing.repositories.development.url = URI.create('file://publication.invalid/releases')
+                assert publishing.repositories.development.url.authority == 'publication.invalid'
+            }
+            if (project.hasProperty('uppercaseDevelopment')) publishing.repositories.development.url =
+                    URI.create(publishing.repositories.development.url.toString().replaceFirst('^file:', 'FILE:'))
             // The real repository signing configuration is appended below, after task customization.
             tasks.withType(Sign).configureEach {
                 if (project.hasProperty('fixtureSigning')) {
@@ -124,7 +131,8 @@ class ProtectedPublicationTest extends Specification {
                 actions.clear()
                 doLast {
                     if (project.hasProperty('failUpload')) throw new GradleException('Rejected upload')
-                    rootProject.file(repository.name != 'sonatype' && repository.url.scheme == 'file' ? 'local-upload' : 'protected-upload').text = 'executed'
+                    boolean local = repository.name != 'sonatype' && repository.url.scheme.equalsIgnoreCase('file') && repository.url.authority == null
+                    rootProject.file(local ? 'local-upload' : 'protected-upload').text = 'executed'
                 }
             }
             tasks.withType(PublishToMavenLocal).configureEach {
@@ -247,6 +255,18 @@ class ProtectedPublicationTest extends Specification {
         redirection                  | operation
         '-PredirectDevelopment'      | ':klum-ast-gradle-plugin:publishMainPublicationToDevelopmentRepository'
         '-PredirectSonatypeToFile'    | ':klum-ast-gradle-plugin:publishMainPublicationToSonatypeRepository'
+        '-PnetworkFileDevelopment'   | ':klum-ast-gradle-plugin:publishMainPublicationToDevelopmentRepository'
+    }
+
+    def 'local file repository schemes remain case insensitive'() {
+        when:
+        def result = runner(':klum-ast-gradle-plugin:publishMainPublicationToDevelopmentRepository',
+                '-PuppercaseDevelopment', '-PlocalOnly').build()
+
+        then:
+        result.task(':verifyProtectedReleaseAuthorization') == null
+        new File(fixture, 'local-upload').file
+        protectedMarkers().empty
     }
 
     @Unroll
