@@ -2,7 +2,7 @@
 
 Date: 2026-10-16
 
-Status: Proposed contract details; exact-SHA reuse direction accepted by maintainer delegation.
+Status: Accepted. Policy and design confirmed by maintainer delegation on 2026-10-16.
 
 Implementation status: Design only. No workflow, build, protection, or release behavior changed.
 
@@ -90,7 +90,7 @@ source with its authorized release version, retaining local version and document
 
 ### Retention and freshness
 
-Proposed rollout default, requiring maintainer confirmation: explicitly retain all source-proof payloads,
+Explicitly retain all source-proof payloads,
 manifest and release receipts for 30 days, and accept source proof for at most 30 days from attempt completion.
 The service's earlier expiry/deletion or any invalidation always wins; configuration is not evidence of availability.
 Record completion/expiry timestamps and validate them at both gates. A shorter repository retention cap must
@@ -125,8 +125,10 @@ Admit `master` first after the corrected contract itself has passed trusted push
 require exactly `release/<major>.<minor>.x` matching the version and dispatch ref, source ancestry on that line,
 and proof produced on that same line. `main`, generic `release/*`, feature-branch CI, an ancestor or master proof
 for a maintenance SHA is not automatic admission. Backport producer, verifier and operation guards as one reviewed
-maintenance reliability package; absence of the contract blocks release. Maintainer must confirm which maintenance
-lines receive the package; do not create branches or change protection implicitly.
+maintenance reliability package; absence of the contract blocks release. Do not backport this package to
+`release/4.0.x`. `release/4.1.x` is the first intended maintenance branch to receive the complete package if/when
+needed, with producer, verifier and operation guards admitted together and proof produced on that exact line.
+Do not create branches or change protection implicitly.
 
 ADR 0012's independent RC/final authorization, immutable versions, burns, public propagation, manual annotated
 tag/release record and REL-2 proof remain intact. ADR 0013's pending snapshot precedes artifact publication and its
@@ -146,14 +148,19 @@ a matrix substitute, silent rerun/fallback and workflow splitting as a fix for t
 credential-free matrix rerun could be safe but is outside the accepted reuse direction. No public/generated API,
 DSL lifecycle, serialization, ownership or Groovy compatibility contract changes.
 
-## Remaining maintainer decisions
+## Confirmed maintainer decisions
 
-1. Confirm the proposed 30-day retention/freshness window against repository limits and release audit obligations.
-2. Confirm the trusted Sonar App/project identity and supported attempt-to-analysis correlation; decide an adapter
-   only if current metadata cannot establish it read-only. Numeric identity must be discovered, never guessed.
-3. Select maintenance lines for admission/backport. Master-first is the proposed rollout; this does not authorize
-   releases from an unpatched maintenance line.
+Maintainer delegation on 2026-10-16 confirms:
 
-Exact-SHA reuse and preserving current CI topology are settled. ADR 0019 candidate qualification is a separate
-existing decision surface, not a reason to invent more #903 scope. Detailed schema and helper placement are
-implementation choices constrained by this contract, not additional policy questions.
+1. The 30-day source-proof payload/receipt retention and freshness window is approved. Earlier GitHub/service
+   expiry or deletion wins; no external evidence store is introduced.
+2. Exact Sonar project/App/attempt-to-analysis correlation must be established read-only during implementation.
+   If existing metadata cannot prove it, stop for a maintainer integration decision. Do not weaken matching or
+   grant extra credentials. Numeric identities remain implementation discovery, not guessed policy values.
+3. Adopt master-first. Do not backport to `release/4.0.x`; `release/4.1.x` is the first intended maintenance
+   branch for the complete package if/when needed. Producer, verifier and operation guards must travel together,
+   and release proof must come from that exact line.
+
+No policy decision remains open for this design. A Sonar integration decision is conditional on implementation
+finding inadequate metadata. Exact-SHA reuse and current CI topology remain settled. ADR 0019 candidate
+qualification remains a separate existing decision surface. Implementation has not started.

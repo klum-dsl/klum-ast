@@ -1,6 +1,6 @@
 # #903 — Exact-SHA CI-proof reuse implementation plan
 
-Date: 2026-10-16. Status: local design package; implementation has not started.
+Date: 2026-10-16. Status: accepted policy/design package; implementation has not started.
 
 Authority: [ADR 0030](../adr/0030-exact-sha-ci-proof-reuse.md), accepted exact-SHA reuse direction from
 maintainer delegation, [investigation](issue-903-release-verification-contract.md).
@@ -69,7 +69,8 @@ must be retained by CI; release must not inherit `SONAR_TOKEN` or any publicatio
 
 ## Slices and reasoned commit boundaries
 
-All slices map to #903. Implement on a new dedicated issue branch after remaining policy choices are resolved.
+All slices map to #903. Policy choices were confirmed by maintainer delegation on 2026-10-16.
+Implement on a new dedicated issue branch under the accepted contract.
 Keep production changes with their passing tests; never commit a deliberately failing guard fixture by itself.
 
 ### 1. Define and exercise the proof contract
@@ -128,7 +129,9 @@ record confirmed retention, Sonar policy identity and admitted branch contracts.
 release navigation. ADRs 0012/0013 need only links/clarifying integration wording if required; preserve their ordering.
 No Schema/Model migration or Builder-first user page changes are required because APIs/runtime behavior do not change.
 
-Acceptance: P2/P3 for master; maintenance backport must pass its own exact-line contract before admission. Do not
+Acceptance: P2/P3 for master first. Do not backport to `release/4.0.x`. If/when needed, `release/4.1.x` is the
+first intended maintenance branch: admit producer, verifier and operation guards together, pass its own
+exact-line contract and require release proof from that same line. Do not
 manufacture historical test-support coordinates. Track the historical-product inventory repair and Catwalk candidate
 rebinding through existing ADR 0019 ownership, without implementing them in #903. Record issue/test/doc relationships
 when GitHub mutation is later authorized. Do not close #903 until all negative containment checks and branch admission
@@ -176,16 +179,26 @@ This planning package: compare retained investigation byte-for-byte, check local
 review changed-file scope and commit history, then commit locally. Groovy lanes are omitted under the documentation-only
 exception in [testing guidance](../agents/testing.md); no executable/configuration inputs changed.
 
-## Risks and remaining decisions
+## Risks and confirmed decisions
 
 Service retention and Sonar correlation are the principal integration risks; approval can outlast proof availability.
 Latest-attempt policy intentionally makes reruns invalidate approval-bound proof. API snapshots cannot provide an atomic
 lock over later service changes. The protected recheck narrows that race without claiming to eliminate it. Versioned
 release binaries still require authorized local assembly/signing and public resolve-back.
 
-Only ADR 0030's three policy choices remain: retention/freshness duration, trusted Sonar identity/correlation, and
-maintenance admission. These are review items, not authorization for this worker to edit settings, access secrets,
-publish or dispatch. Exact-SHA reuse and single-job CI topology are settled. No child worker is required.
+Maintainer delegation on 2026-10-16 confirms ADR 0030's policy choices:
+
+1. Retain source-proof payloads/receipts for 30 days and accept source proof for at most 30 days from attempt
+   completion. Earlier GitHub/service expiry or deletion wins; no external evidence store.
+2. Establish exact Sonar project/App/attempt-to-analysis correlation read-only during implementation. If existing
+   metadata cannot prove it, stop for a maintainer integration decision; do not weaken matching or grant extra
+   credentials. Actual numeric identities and metadata capability still require evidence during implementation.
+3. Master-first; no `release/4.0.x` backport. `release/4.1.x` is the first intended maintenance branch if/when
+   needed, receiving producer/verifier/operation guards together and requiring proof from that exact line.
+
+No design policy choice remains open. Sonar integration escalation is conditional on inadequate metadata found
+in implementation. Exact-SHA reuse and single-job topology remain settled. This decision record does not authorize
+this worker to edit workflows/builds/settings, access secrets, publish or dispatch. No child worker is required.
 
 Assigned delivery is the local ADR/plan/evidence package. Implementation, GitHub updates, push/PR, branch backport and
 release execution are excluded. Hive reconciliation is requested on completion; the worker does not mark itself `(arch)`.
