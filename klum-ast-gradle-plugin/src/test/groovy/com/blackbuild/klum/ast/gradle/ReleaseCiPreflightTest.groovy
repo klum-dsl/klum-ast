@@ -61,6 +61,7 @@ class ReleaseCiPreflightTest extends Specification {
             (REPO + '/actions/runs/100'): [body: run],
             (jobsPath()): [body: [total_count: 1, jobs: [[id: 200, run_id: 100, run_attempt: 1, head_sha: SHA,
                       name: 'build', status: 'completed', conclusion: 'success', steps: steps]]]],
+            (suitesPath()): [body: [total_count: 1, check_suites: [[id: 400]]]],
             (checksPath()): [body: [total_count: 1, check_runs: [[id: 300, head_sha: SHA, name: 'SonarCloud Code Analysis',
                       app: [id: 12526, slug: 'sonarqubecloud'], status: 'completed', conclusion: 'success']]]]
         ]]
@@ -97,6 +98,178 @@ class ReleaseCiPreflightTest extends Specification {
         result.calls.contains(runsPath().replace('&page=1', '&page=2'))
         result.calls.contains(jobsPath().replace('&page=1', '&page=2'))
         result.calls.contains(checksPath().replace('&page=1', '&page=2'))
+    }
+
+    def 'accepts GitHub numeric repository pagination links for the verified repository'() {
+        given:
+        def run = fixture.responses[runsPath()].body.workflow_runs[0]
+        paginate(runsPath(), 'workflow_runs', (101..200).collect { run + [id: it, created_at: '2025-10-16T10:00:00Z'] }, [run])
+        def job = fixture.responses[jobsPath()].body.jobs[0]
+        paginate(jobsPath(), 'jobs', (1000..1099).collect { job + [id: it, name: "Auxiliary $it", steps: []] }, [job])
+        def check = fixture.responses[checksPath()].body.check_runs[0]
+        paginate(checksPath(), 'check_runs', (2000..2099).collect { check + [id: it, app: [id: 15368], name: "Other $it"] }, [check])
+        [runsPath(), jobsPath(), checksPath()].each { path ->
+            fixture.responses[path].headers.link = fixture.responses[path].headers.link.replace(REPO, '/repositories/40505913')
+        }
+
+        when:
+        def result = verify()
+
+        then:
+        result.ok
+        result.selected == [run_id: 100, run_attempt: 1, check_id: 300]
+    }
+
+    def 'does not accept the check-run endpoint window as a complete suite history'() {
+        given:
+        fixture.responses[suitesPath()].body.total_count = 1001
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.message.contains('1000 check suites')
+        !result.calls.contains(checksPath())
+    }
+
+    def 'accepts complete workflow searches at the documented 1000-result ceiling'() {
+        given:
+        def run = fixture.responses[runsPath()].body.workflow_runs[0]
+        paginate(runsPath(), 'workflow_runs', (1000..1998).collect { run + [id: it, created_at: '2025-10-16T10:00:00Z'] } + [run])
+
+        when:
+        def result = verify()
+
+        then:
+        result.ok
+        result.calls.count { it.startsWith(runsPath().split('\\?')[0] + '?') } == 10
+    }
+
+    def 'job and check counts above 1000 remain accessible within the page budget: #key #count'() {
+        given:
+        def required = fixture.responses[path].body[key][0]
+        def other = key == 'jobs' ? required + [name: 'Auxiliary', steps: []] : required + [name: 'Other', app: [id: 15368]]
+        paginate(path, key, (1..<count).collect { other + [id: 1000 + it] } + [required])
+        fixture.responses[suitesPath()].body.total_count = 1000
+
+        when:
+        def result = verify()
+
+        then:
+        result.ok
+        result.calls.count { it.startsWith(path.split('\\?')[0] + '?') } == pages
+
+        where:
+        path         | key          | count | pages
+        jobsPath()   | 'jobs'       | 1001  | 11
+        checksPath() | 'check_runs' | 1001  | 11
+        jobsPath()   | 'jobs'       | 10000 | 100
+        checksPath() | 'check_runs' | 10000 | 100
+    }
+
+    def 'rejects total conflicts and duplicate identities across pages: #key #conflict'() {
+        given:
+        def record = fixture.responses[path].body[key][0]
+        paginate(path, key, (1000..1099).collect { record + [id: it] }, [record])
+        def last = fixture.responses[path.replace('&page=1', '&page=2')].body
+        if (conflict == 'total') last.total_count = 102
+        else last[key][0].id = 1000
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.message.contains(conflict == 'total' ? 'pagination changed' : 'duplicate GitHub identity')
+
+        where:
+        [path, key, conflict] << [[runsPath(), 'workflow_runs'], [jobsPath(), 'jobs'], [checksPath(), 'check_runs']].collectMany {
+            ['total', 'duplicate'].collect { kind -> it + [kind] }
+        }
+    }
+
+    def 'rejects missing or malformed continuation links on a later page: #malformed'() {
+        given:
+        def job = fixture.responses[jobsPath()].body.jobs[0]
+        paginate(jobsPath(), 'jobs', (1000..1199).collect { job + [id: it, name: 'Auxiliary', steps: []] } + [job])
+        fixture.responses[jobsPath().replace('&page=1', '&page=2')].headers = malformed ? [link: 'next page'] : [:]
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        !result.calls.contains(jobsPath().replace('&page=1', '&page=3'))
+
+        where:
+        malformed << [false, true]
+    }
+
+    def 'does not admit pagination aliases for another numeric repository'() {
+        given:
+        def job = fixture.responses[jobsPath()].body.jobs[0]
+        paginate(jobsPath(), 'jobs', (1000..1099).collect { job + [id: it] }, [job])
+        fixture.responses[jobsPath()].headers.link = fixture.responses[jobsPath()].headers.link.replace(REPO, '/repositories/42')
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.message == 'Untrusted GitHub pagination target'
+    }
+
+    def 'does not request page 101 or accept an incomplete list at the traversal budget'() {
+        given:
+        def job = fixture.responses[jobsPath()].body.jobs[0]
+        paginate(jobsPath(), 'jobs', (1000..10998).collect { job + [id: it, name: 'Auxiliary', steps: []] } + [job])
+        fixture.responses[jobsPath().replace('&page=1', '&page=100')].headers =
+                [link: '<https://api.github.com' + jobsPath().replace('&page=1', '&page=101') + '>; rel="next"']
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.calls.count { it.startsWith(REPO + '/actions/runs/100/attempts/1/jobs?') } == 100
+        !result.calls.contains(jobsPath().replace('&page=1', '&page=101'))
+    }
+
+    def 'rejects results that cannot fit the operational request budget before traversing them: #key'() {
+        given:
+        fixture.responses[path].body.total_count = 10001
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.calls.count(path) == 1
+
+        where:
+        path         | key
+        jobsPath()   | 'jobs'
+        checksPath() | 'check_runs'
+    }
+
+    def 'unavailable or malformed suite-count evidence fails closed: #scenario'() {
+        given:
+        mutate(fixture.responses[suitesPath()])
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        !result.calls.contains(checksPath())
+
+        where:
+        scenario        | mutate
+        'API failure'   | { response -> response.status = 503 }
+        'missing total' | { response -> response.body.remove('total_count') }
+        'negative total'| { response -> response.body.total_count = -1 }
+        'empty page'    | { response -> response.body.check_suites = [] }
     }
 
     def 'rejects wrong identity or missing evidence: #scenario'() {
@@ -206,6 +379,10 @@ class ReleaseCiPreflightTest extends Specification {
 
         then:
         !result.ok
+        if (scenario == 'API search cap') {
+            assert result.message.contains('1000 results')
+            assert result.calls.count(runsPath()) == 1
+        }
 
         where:
         scenario               | mutate
@@ -216,7 +393,7 @@ class ReleaseCiPreflightTest extends Specification {
         'null response'        | { f -> f.responses[REPO] = [body: null] }
         'missing count'        | { f -> f.responses[runsPath()].body.remove('total_count') }
         'missing next page'    | { f -> f.responses[runsPath()].body.total_count = 2 }
-        'API search cap'       | { f -> f.responses[runsPath()].body.total_count = 1001 }
+        'API search cap'       | { f -> f.responses[runsPath()].body.total_count = 2500 }
         'duplicate run id'     | { f -> f.responses[runsPath()].body.workflow_runs *= 2; f.responses[runsPath()].body.total_count = 2 }
         'duplicate job id'     | { f -> f.responses[jobsPath()].body.jobs *= 2; f.responses[jobsPath()].body.total_count = 2 }
         'duplicate check id'   | { f -> f.responses[checksPath()].body.check_runs *= 2; f.responses[checksPath()].body.total_count = 2 }
@@ -442,10 +619,17 @@ class ReleaseCiPreflightTest extends Specification {
     }
 
     def paginate(String path, String key, List first, List last) {
-        String next = path.replace('&page=1', '&page=2')
-        fixture.responses[path] = [body: [total_count: first.size() + last.size(), (key): first],
-                                   headers: [link: "<https://api.github.com$next>; rel=\"next\""]]
-        fixture.responses[next] = [body: [total_count: first.size() + last.size(), (key): last]]
+        paginate(path, key, first + last)
+    }
+
+    def paginate(String path, String key, List records) {
+        def pages = records.collate(100)
+        pages.eachWithIndex { page, index ->
+            String current = path.replace('&page=1', '&page=' + (index + 1))
+            String next = path.replace('&page=1', '&page=' + (index + 2))
+            fixture.responses[current] = [body: [total_count: records.size(), (key): page],
+                    headers: index + 1 < pages.size() ? [link: "<https://api.github.com$next>; rel=\"next\""] : [:]]
+        }
     }
 
     Map verify() {
@@ -460,5 +644,6 @@ class ReleaseCiPreflightTest extends Specification {
 
     static String runsPath() { REPO + '/actions/workflows/23237467/runs?head_sha=' + SHA + '&event=push&branch=master&per_page=100&page=1' }
     static String jobsPath() { REPO + '/actions/runs/100/attempts/1/jobs?per_page=100&page=1' }
+    static String suitesPath() { REPO + '/commits/' + SHA + '/check-suites?per_page=1&page=1' }
     static String checksPath() { REPO + '/commits/' + SHA + '/check-runs?filter=all&per_page=100&page=1' }
 }

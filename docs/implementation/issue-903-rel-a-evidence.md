@@ -17,7 +17,8 @@ after reading jobs/checks, rejecting a rerun that begins during the read.
 
 All run/job/check lists follow validated same-endpoint pagination links and reconcile stable totals,
 unique numeric identities and complete pages. The GitHub filtered-run search ceiling is 1,000;
-responses exceeding that ceiling fail closed. Other lists have a bounded 100-page limit. API errors,
+responses exceeding that ceiling fail closed. Other lists have a bounded 100-page limit. A count-only
+check-suite query rejects references outside the check-runs endpoint's 1,000-suite window. API errors,
 malformed fields, incomplete/ambiguous evidence or exhausted bounded retries reject the gate.
 
 [REL-1](../../.github/workflows/release.yml) makes successful preflight a dependency of pending
@@ -116,3 +117,70 @@ publication of a draft does not authorize merge or release. Delivery-channel aud
 Git SSH branch publication `authorized`; gh CLI repository capability `authorized`. No issue update,
 release dispatch or environment/protection change is included.
 Hive owns later reconciliation and archive safety; this worker does not archive itself.
+
+## Pagination reliability review
+
+Review baseline: PR #915 head `4fedd102618c66c8ec8034109edb1b1ee2152cfe`, 2026-10-16.
+Scope: pagination helper, its existing fixture seam and necessary documentation only. The unchanged
+release-tooling changelog entry was relocated to avoid an overlapping insertion from merged #913;
+no compiler changes were imported or edited. Accepted
+repository/source/workflow/attempt/Sonar selection, workflow DAG, credentials, permissions,
+verification commands, topology and REL-B are unchanged. Review is local; no child workers.
+
+The [workflow-run endpoint](https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow)
+documents a 1,000-result search window when using filters including `head_sha`, `event` and `branch`.
+`total_count` describes that filtered search within the selected workflow. A bounded read-only
+KlumAST probe returned 951 unfiltered CI workflow runs, one result for the exact eligible reference SHA/
+master/push filter, and zero when changing its event to workflow_dispatch. The reference run was
+`38897125107`; no success filter was used. Consequently the original 1,000 guard is justified and
+retained; it does not reject a release merely because the repository has over 1,000 historical runs.
+A final bounded probe of public VS Code workflow `1472838` with `event=pull_request` advertised
+`total_count=2500` on page one. Requests beyond the search window (page 1001 at one per page,
+page 11 at 100 per page, and the advertised last page 2500 at one per page) returned HTTP 200
+with empty results and `total_count=0`. A large reported count is therefore not evidence that
+all advertised pages are accessible. The existing cap is retained with a specific diagnostic;
+the fixture asserts rejection before any continuation request.
+
+The [attempt jobs endpoint](https://docs.github.com/en/rest/actions/workflow-jobs#list-jobs-for-a-workflow-run-attempt)
+documents pages of at most 100 records with no analogous search ceiling. The
+[reference checks endpoint](https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference)
+also permits 100-record pages, but searches only the 1,000 most recent check suites. This is a
+suite limit, not a 1,000-check limit. The original non-workflow threshold of 10,000 is derived from
+100 pages times 100 records, not a GitHub service cap. It adds no rejection within the existing
+page budget. Fully accessible results requiring 101 pages are intentionally outside that bounded
+budget; the reader fails rather than weakening completeness. Keep that generous existing budget
+for this one-job CI contract, rather than inventing an unbounded history reader.
+
+[GitHub pagination guidance](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api)
+requires following continuation links; `last` may be absent. Actual responses for KlumAST runs,
+jobs and checks used `/repositories/40505913/...` in Link headers even when requested through
+`/repos/klum-dsl/klum-ast/...`. The former helper rejected those legitimate second pages. A
+reproducing fixture failed before the two-line correction. The helper now normalizes only that
+known numeric repository alias before its existing origin/path/query validation. It continues to
+construct subsequent requests from the original approved endpoint and rejects foreign IDs/routes.
+
+A second focused correction probes only `total_count` from the existing
+[check-suite endpoint](https://docs.github.com/en/rest/checks/suites#list-check-suites-for-a-git-reference)
+using `per_page=1`. Larger-than-1,000 references now fail explicitly because the existing reference
+check-runs endpoint cannot prove completeness. Missing, malformed or unavailable count evidence
+also fails. This is not a suite inventory or a new check selection rule; it adds one read-only
+request per verification through the existing client, with the same timeout/retry bounds. The
+reference SHA probe returned four suites. No suite-by-suite fallback, new client, credentials or
+pagination framework was added.
+
+All original 123 cases remain. The 23 additional pagination cases cover the real numeric alias and
+wrong-ID rejection, exactly 1,000 workflow results, 1,001 and 10,000 jobs/checks, the suite service
+window, missing/malformed later-page links, conflicting totals and duplicate identities across
+pages, and rejection before page 101. Existing later-page newer-failed-run coverage is retained.
+The existing fixture builder was extended to create these pages; no parallel suite was duplicated.
+
+Validation: 146 focused Node-backed Spock cases passed on Node 22. The full Java-17 repository
+`check --no-parallel --max-workers=2` passed in 12m26s, including Groovy 3/4/5, isolation, coverage,
+documentation/license checks and the 309-case affected Gradle-plugin suite (zero failures/errors).
+Remote CI/Sonar are inspected on the published follow-up head and reported in the consolidated
+PR review response; the previous head passed both. Reviewed history is preserved in one additive
+pagination follow-up. Local standards/spec review found no remaining findings within this scope.
+Actionlint (including shellcheck), Node syntax and diff checks passed. Remaining limits are the
+filtered-run search window, reference-suite window and deliberate local page budget; all remain
+fail-closed, with no older-success fallback. Checks deleted by GitHub are not recovered by a custom
+history or retention system; the accepted gate continues to verify GitHub's available current state.

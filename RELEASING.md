@@ -274,6 +274,15 @@ failures and selected transient HTTP errors receive at most three attempts per r
 15-second request timeouts and short bounded backoff. There is no older-green fallback,
 automatic dispatch, custom proof artifact or separate retention policy.
 
+The workflow-run API caps each filtered search at 1,000 results. That count is for this workflow,
+exact SHA, event and branch, not lifetime CI history. The helper also has a local 100-page budget
+(10,000 jobs or checks at 100 per page); exceeding either bound rejects completeness. These are
+separate service and operational limits. GitHub's numeric repository pagination URLs are accepted
+only for this repository's verified ID. The reference check-runs API searches only the 1,000 most
+recent suites, so a read-only suite-count probe rejects larger references before check selection.
+No truncated window or older green result is accepted as a substitute. See the
+[pagination review](docs/implementation/issue-903-rel-a-evidence.md#pagination-reliability-review).
+
 Preflight exports only run ID, attempt and Sonar check ID as ordinary job outputs. After protected
 approval, the workflow runs the same helper from its approved workflow revision immediately before
 Gradle publication. It rechecks the clean exact checkout, live line ancestry and all API conditions,

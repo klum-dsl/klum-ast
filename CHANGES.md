@@ -1,13 +1,13 @@
 # 4.1.0 (unreleased)
 
+- Reject primitive `boolean` Schema fields annotated with direct or propagated `@Required`, with a diagnostic
+  naming the field and recommending boxed `Boolean`. Required `Boolean` still accepts `false`
+  ([#899](https://github.com/klum-dsl/klum-ast/issues/899)).
+
 - Release tooling: require exact-SHA ordinary CI and a trusted SonarCloud App check before pending
   documentation and release approval, then repeat the checks immediately before publication.
   Missing, changed or unavailable GitHub evidence rejects publication without repeating the CI matrix
   ([#903](https://github.com/klum-dsl/klum-ast/issues/903)).
-
-- Reject primitive `boolean` Schema fields annotated with direct or propagated `@Required`, with a diagnostic
-  naming the field and recommending boxed `Boolean`. Required `Boolean` still accepts `false`
-  ([#899](https://github.com/klum-dsl/klum-ast/issues/899)).
 
 - Added default-only `@PropagateAnnotation` composition on DSL Schema classes, fields and methods,
   with one-hop, target/default-member and duplicate checks and normal Required/AutoCreate/Query/Cluster

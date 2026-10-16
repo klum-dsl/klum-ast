@@ -78,6 +78,15 @@ function githubApi(token, fetchResponse = fetch, pause = ms => new Promise(resol
 
 async function list(api, path, key) {
   const first = new URL(`https://api.github.com${path}${path.endsWith('?') ? '' : '&'}per_page=100&page=1`);
+  if (key === 'check_runs') {
+    // The reference endpoint hides runs from suites older than its 1000-suite window.
+    // Only the total is needed: this is a count probe, not a suite inventory or selection rule.
+    const {body} = await api(`${first.pathname.replace(/\/check-runs$/, '/check-suites')}?per_page=1&page=1`);
+    requireEvidence(Number.isSafeInteger(body.total_count) && body.total_count >= 0 &&
+      Array.isArray(body.check_suites) && body.check_suites.length === Math.min(body.total_count, 1),
+      'Malformed GitHub check-suite count');
+    requireEvidence(body.total_count <= 1000, 'GitHub reference endpoint is limited to 1000 check suites; complete pagination unavailable');
+  }
   const records = [];
   const ids = new Set();
   let total;
@@ -85,10 +94,14 @@ async function list(api, path, key) {
     const url = new URL(first);
     url.searchParams.set('page', page);
     const {body, link} = await api(url.pathname + url.search);
+    // GitHub caps filtered workflow searches at 1000 results. For other lists,
+    // 10000 is the existing local budget (100 pages of at most 100), not a service limit.
     requireEvidence(Number.isSafeInteger(body.total_count) && body.total_count >= 0 &&
-      body.total_count <= (key === 'workflow_runs' ? 1000 : 10000) &&
       Array.isArray(body[key]) && body[key].length <= 100 && body.incomplete_results !== true,
       'Malformed or truncated GitHub list');
+    requireEvidence(body.total_count <= (key === 'workflow_runs' ? 1000 : 10000), key === 'workflow_runs'
+      ? 'GitHub workflow-run search is limited to 1000 results; complete pagination unavailable'
+      : 'GitHub list exceeds the 100-page request budget');
     if (total === undefined) total = body.total_count;
     requireEvidence(total === body.total_count, 'GitHub pagination changed');
     for (const record of body[key]) {
@@ -101,6 +114,8 @@ async function list(api, path, key) {
       const match = /^\s*<([^>]+)>;\s*rel="(next|prev|first|last)"\s*$/.exec(part);
       requireEvidence(match && !links.has(match[2]), 'Malformed GitHub pagination link');
       const target = new URL(match[1]);
+      // GitHub emits this canonical alias in Link headers; only this verified repository is equivalent.
+      target.pathname = target.pathname.replace(`/repositories/${REPOSITORY_ID}/`, `/repos/${REPOSITORY}/`);
       const linkedPage = target.searchParams.get('page');
       requireEvidence(/^[1-9][0-9]*$/.test(linkedPage) && Number.isSafeInteger(Number(linkedPage)), 'Malformed GitHub page number');
       const allowed = new URL(first);
