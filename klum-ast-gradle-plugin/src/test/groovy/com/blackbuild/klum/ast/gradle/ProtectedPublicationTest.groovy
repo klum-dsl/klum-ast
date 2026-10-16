@@ -310,7 +310,7 @@ class ProtectedPublicationTest extends Specification {
         String authorizedStage = arguments.find { it.startsWith('-Prelease.stage=') }?.split('=', 2)?.last() ?: 'final'
         GradleRunner.create().withProjectDir(fixture).withTestKitDir(testKitDirectory)
                 .withEnvironment([PATH: System.getenv('PATH'), JAVA_HOME: System.getProperty('java.home'),
-                                  HOME: fixture.absolutePath, TMPDIR: System.getProperty('java.io.tmpdir'),
+                                  TMPDIR: System.getProperty('java.io.tmpdir'),
                                   KLUM_AST_RELEASE_AUTHORIZED: arguments.any { it in ['-Punauthorized', '-PlocalOnly'] } ? '' : authorizedStage])
                 .withArguments((arguments.contains('-PlocalOnly') ? [] : ['-Prelease.version=4.1.0', '-Prelease.stage=final']) +
                         arguments.toList() + ['--offline', '--no-configuration-cache', '--no-build-cache', '--max-workers=2', '--stacktrace'])

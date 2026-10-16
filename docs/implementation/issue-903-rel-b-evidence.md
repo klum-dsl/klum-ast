@@ -1,6 +1,6 @@
 # #903 REL-B — protected Gradle operation prerequisites
 
-Date: 2026-10-16. Status: local implementation; final repository validation in progress. Related: #903.
+Date: 2026-10-16. Status: local implementation; review/delivery pending. Related: #903.
 Base: `cfa5e87dd9a088d9163b36e7c6fc1f39708fc111`, current `origin/master` after merged
 [REL-A PR #915](https://github.com/klum-dsl/klum-ast/pull/915).
 Branch: `codex/issue-903-protected-operations`; isolated worktree, IDE-main checkout untouched.
@@ -105,13 +105,41 @@ Completed on Java 17 / pinned Gradle 8.14.4:
 - Read-only offline production probe: 27 protected operations (11 signing, 11 Maven uploads and
   five staging/Portal entries); 33 unsigned development entries without release authorization.
 - `verifyVersionedDocumentationRenderer`: passed, including real graph assertions and module Javadocs.
+- The actual renderer also passed with keyless synthetic signatories configured on all production
+  signing tasks. Its graph selected no signing, publication or authorization task, proving that the
+  input projection does not introduce a release cycle or require authorization for ordinary docs.
+- All 354 Gradle-plugin cases and 15 buildSrc cases passed in the stable clean aggregate run, as did
+  the complete core Groovy 3/4/5 suites, coverage and lane isolation. The aggregate then caught the
+  new `.gradle` resource's header opener: the pinned plugin defaults to `JAVADOC_STYLE` for that
+  extension. The resource now uses the required `/**` opener; focused `licenseTest` passed, with
+  no configuration, exclusion, extension or file-type change.
 - Scoped actionlint 1.7.7 with shellcheck for REL-1 and CI, helper Node syntax and diff checks: passed.
   An all-workflow lint also reported pre-existing shellcheck style finding SC2129 in unchanged
   `verify-public-release.yml:171`; no unrelated workflow edit was made.
 
-Full repository Groovy 3/4/5, isolation, coverage/license/documentation and affected-module checks,
-separate annotation-artifact qualification, final Markdown targets, standards/spec and history review
-are in progress. Their completed outcomes belong in the final handoff and this record before delivery.
+Local Markdown targets and standards/spec review passed. All new tests use the normal CI suite,
+`Test` naming, `@Issue('903')`, imported simple type names and the required license text. Review found
+and corrected the URI classification boundary and the resource's header format. There are no remaining
+local review findings. The four implementation/documentation reasoning steps and final compliance
+correction were reviewed against the fixed base; no reviewed commits were rewritten or unrelated
+source changes included. Review was manual under the explicit prohibition on child workers.
+
+The final acceptance command, run from a clean committed tree before handoff, is:
+
+```sh
+./gradlew check buildSrc:check \
+  :klum-ast:annotationPropagationArtifactsGroovy3 \
+  :klum-ast:annotationPropagationArtifactsGroovy4 \
+  :klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2
+```
+
+The final worker handoff records this aggregate's exit result and exact committed tip. It includes
+all repository lanes, buildSrc, coverage/isolation/license/documentation and the separate artifact
+qualifications. The committed checkout remains stable throughout parent and nested builds.
+
+The mandatory overengineering review found no new proof authority, publishing framework, custom
+receipt/manifest, report inventory, retention store or Sonar integration. GitHub/environment authority
+and native Gradle dependency failure propagation retain their distinct responsibilities.
 
 The initial root check completed the core Groovy 3/4/5 suites, then failed 11 existing mirror integration
 cases: the parent had fixed a clean development version, while this worker's concurrent documentation
