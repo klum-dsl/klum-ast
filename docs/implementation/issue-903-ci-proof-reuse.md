@@ -1,6 +1,6 @@
 # #903 — Direct GitHub release verification implementation plan
 
-Date: 2026-10-16. Status: accepted revised design; production implementation has not started.
+Date: 2026-10-16. Status: accepted revised design; REL-A implemented locally pending review/delivery; REL-B remains pending.
 Authority: canonical [#903](https://github.com/klum-dsl/klum-ast/issues/903) maintainer decision and
 [ADR 0030](../adr/0030-exact-sha-ci-proof-reuse.md). Related: #903; keep open until full acceptance.
 
@@ -45,6 +45,7 @@ synthetic API responses and no live calls or credentials in tests. Do not build 
 - Preserve protected environments, version/tag checks, local version/documentation checks and pending handoff.
   Do not rerun/split the matrix, download proof artifacts or introduce receipts/manifests/inventories/retention policy.
 
+REL-A implementation and validation are recorded in [the REL-A evidence record](issue-903-rel-a-evidence.md).
 Keep helper and workflow changes in small reasoned commits with passing tests. Update relevant release documentation
 and neutral CHANGES.md tooling entry in this slice. Master-first; future maintenance admission is separately reviewed.
 
@@ -98,8 +99,11 @@ integration, generic adapters or publishing frameworks. Any extra slice needs a 
 Preserve ADRs 0012/0013/0019 ordering and independent consumer/public proof. Master first, no 4.0.x backport;
 4.1.x is a separate later decision. No environment/protection changes or maintenance branches are implicit.
 
-This amendment is documentation only. Validate local Markdown links, unchanged historical reports, diff/scope and additive
-commit history. Omit Groovy lanes under the documentation-only exception. Update existing draft PR #912 in place with
-`Related: #903`; preserve reviewed commits, push the additive revision and inspect final-head CI/Sonar. No production
-implementation, issue-state mutation, secrets access, release dispatch or child tasks. Retain `(PR:open)` until verified
-merged and request Hive reconciliation; do not mark `(arch)` autonomously.
+## Historical design-amendment delivery
+
+The prior amendment was documentation-only work delivered through PR #912 with `Related: #903`.
+Its validation used Markdown/diff checks and preserved both historical reports. Its instruction to
+omit Groovy lanes and avoid production implementation applied to that amendment alone. REL-A
+implementation uses the executable validation and delivery boundary recorded above and in its
+evidence record; REL-B remains separate. This local REL-A delivery changes no issue state, release,
+environment or protection setting and reads no secrets.
