@@ -40,7 +40,7 @@ explicitly before using their changed semantics on master or a maintenance line.
 
 ## Proof handoff shape
 
-Illustrative receipt fields (final strict schema belongs to slice 1):
+Illustrative receipt fields (final schema follows the slice-1 feasibility admission gate):
 
 ```text
 schemaVersion, contractRevision, verifierRevision
@@ -64,8 +64,9 @@ retrieves the exact receipt, validates its digest and repeats the API/data check
 Example: release input SHA S, newest trusted push run R attempt 2 on the selected line, successful complete
 reports and Sonar analysis A yields receipt `(S,R,2,A)`. After approval, a rerun attempt 3 causes the protected
 recheck to reject that receipt even if attempt 2 was green. A new preflight must bind the current valid attempt.
-No secret is required for the consumer beyond its read-only ephemeral Actions token. Correlation metadata
-must be retained by CI; release must not inherit `SONAR_TOKEN` or any publication credential into preflight.
+The slice-1 probe must prove which metadata the producer and protected preflight can each access read-only
+with existing credentials; do not assume the Actions token can query Sonar. Correlation metadata must be retained
+by CI; release must not inherit `SONAR_TOKEN` or any publication credential into preflight.
 
 ## Slices and reasoned commit boundaries
 
@@ -73,15 +74,29 @@ All slices map to #903. Policy choices were confirmed by maintainer delegation o
 Implement on a new dedicated issue branch under the accepted contract.
 Keep production changes with their passing tests; never commit a deliberately failing guard fixture by itself.
 
-### 1. Define and exercise the proof contract
+### 1. Establish SonarCloud feasibility, then define the proof contract
 
-Commit: strict schema, pure validator, complete task/report inventory, synthetic API fixtures and tests as one
-reviewable contract. Add read-only API adapter separately with pagination/error/ambiguity coverage. Use recorded
-non-secret response shapes and synthetic IDs; no test calls GitHub or needs credentials. Reconcile actual Sonar
-integration metadata during implementation read-only; do not infer its numeric identity from its display name.
+First commit: a bounded read-only feasibility record using actual GitHub Actions/SonarCloud metadata. No producer
+manifest, receipt validator, workflow change or Gradle guard starts before this admission gate passes. Inventory:
 
-Acceptance: P1 and N1–N7/N10 below. Tests reject incomplete inventories and spoofed/cross-attempt proofs.
-Document explicitly admitted task-level NO-SOURCE cases. Verify baseline-only Sonar input and G4/G5 retention.
+- Trusted GitHub workflow/repository/run/attempt/job/scanner-step/check fields and their relationships.
+- Sonar task/analysis/project/revision and completed quality-gate fields, including the exact GitHub App identity.
+- The authoritative join from successful scanner execution in the selected attempt to its analysis and quality
+  gate. Test whether a same-SHA successful check can belong to another workflow run or attempt.
+- Reruns, failed attempts, multiple analyses of one SHA and asynchronous quality completion, using actual records.
+- Read-only access separately available to producer and protected preflight with existing credentials; no release
+  secrets, new privileges or privileged credentials added to unprotected CI.
+
+Record field paths, sanitized examples, provenance, counterexamples and access limitations. Names, timestamps,
+branch labels, successful uploads and same-SHA green checks are not authoritative joins. Missing/ambiguous binding,
+insufficient read-only access or unavailable counterexample records leave admission unproven: stop for a maintainer
+integration-contract decision before substantial implementation, without heuristic fallback. The probe is future
+slice-1 work, not executed by this documentation amendment.
+
+Only after admission, commit strict schema, pure validator, exhaustive inventory and focused fixture tests;
+add the read-only API adapter with pagination/error coverage as a separate reasoned commit. Reuse the existing
+fixture/test harness with sanitized response shapes; fixture tests make no live calls or credential demands.
+Acceptance: P1 and N1–N7/N10. Explicit NO-SOURCE cases, baseline-only Sonar input and G4/G5 retention remain required.
 
 ### 2. Emit complete CI evidence within the existing job
 
@@ -109,18 +124,36 @@ same-SHA eligible runs, chooses newest before checking success, and uses attempt
 concurrency, environment approval, remote identity checks and pending handoff. No automatic CI or release dispatch.
 Keep credentials scoped to protected publication; API logs redact tokens and contain only selected non-secret fields.
 
-### 4. Enforce local operation ancestry
+### 4. Enforce the protected operation boundary without disrupting development
 
-Commit: one shared local prerequisite and operation-level entry guards plus graph and execution tests. Cover every
-configured Sign, staging initialization, low-level Maven-to-Sonatype upload, staging close/release and Portal task.
-Attach prerequisites to actual operation tasks; use successful dependency edges, not only `mustRunAfter` or aggregate
-membership. Keep root documentation/Javadocs verification and version/authorization checks, avoid test-matrix
-reexecution and cycles through artifact producers. Keep publication's existing complete-product behavior.
+Before wiring, inspect actual Gradle/plugin task types, publication/repository destinations, signing key use and
+shared dependencies. Current source uses Nexus publish plugin 1.3.0 and Plugin Publish 1.2.1; the base convention
+calls `sign it` for each publication and includes Maven Local in its signing-required predicate. Local and protected
+paths share `:klum-ast:signMavenJavaPublication`, confirmed by offline JDK-17 dry-runs of
+`:klum-ast:publishToMavenLocal` and `publishCompleteKlumAstProduct` with task-type/dependency inspection.
+A third dry-run of `:klum-ast:jar :klum-ast:generatePomFileForMavenJavaPublication` selected no publication Sign,
+upload or staging action. All three used `--dry-run --offline --no-configuration-cache --no-build-cache`;
+root task actions were skipped (buildSrc bootstrap executed). These establish graph structure, not action safety.
+Do not attach release prerequisites to every Sign task blindly.
+Retain fixture-specific signing behavior without making ordinary preparation require a GitHub receipt.
 
-Acceptance: P4 and N11–N13. Use an isolated TestKit/fixture build with all irreversible actions replaced by marker
-writers and synthetic credentials. Fail each prerequisite in turn and prove zero operation markers under normal,
-reordered, direct and parallel `--continue` execution. Disable any real network/credential integration in fixtures.
-Also assert the production graph's dependency ancestry so stub safety is not evidence about a different graph.
+Class A is real Sonatype initialization/upload/close/release, protected-key signing and production Portal publication.
+Class B is Maven Local, disposable TestKit/isolated qualification repositories and local consumer publication without
+protected destinations/keys. Class C is nonpublishing compilation, JAR/module/POM/sources/Javadoc preparation and
+verification. REL-1 owns proof/credential admission; Gradle owns actual operation/destination binding and dependency
+ancestry. Reclassify redirected destinations and mixed graphs correctly: local labels/properties cannot bypass A.
+
+Commit destination-aware operation guards and successful prerequisites with focused graph/execution tests. Prefer
+existing Gradle dependency/publication models, preserving the sole protected complete-product entry and version/
+documentation checks; no separate publishing hierarchy unless evidence shows the model insufficient. Avoid matrix
+reexecution and artifact cycles. Assert ancestry on every actual A operation, not just aggregate membership/order.
+
+Acceptance: P4/P5 and N11–N14. Use existing isolated TestKit/fixtures, replacing irreversible actions with markers and
+synthetic credentials; no real network or protected key. Fail each prerequisite under direct, reordered, alternative
+aggregate, parallel and `--continue` requests and prove zero protected-operation markers. Cover shared Sign tasks in
+local-only, protected-only and mixed graphs, including direct invocation and attempted protected-key use. Prove B/C
+still work without receipts, and redirecting B to a protected destination requires A guards. Confirm production graph
+bindings as well as fixture behavior; dry-runs alone do not prove action containment.
 
 ### 5. Admit branches and synchronize release documentation
 
@@ -144,23 +177,25 @@ Implement fixture/API tests in the selected repository test harness; new Spock c
 
 | ID | Input/control | Required outcome |
 | --- | --- | --- |
-| P1 | Complete admitted same-SHA push run, latest successful attempt, approved Sonar and complete artifacts | One deterministic receipt; every field reconciled to API and contract |
+| P1 | Probe establishes authoritative run/attempt-to-analysis/quality join and read-only access; complete admitted proof | Admit slice 1 before downstream work; later produce one receipt reconciled to API/contract |
 | P2 | Original CI graph and report producers on admitted source | Same verification families, one production product/job; all G3/G4/G5/report evidence; no matrix weakening |
 | P3 | Valid preflight, approved release, unchanged live receipt/proof | Pending documentation and publication become eligible in order; protected recheck succeeds before operation |
-| P4 | Valid local fixture prerequisites and complete entry task | Stub operations execute only after guards; source matrix does not rerun |
+| P4 | Valid protected fixture prerequisites and complete entry task | Stub protected operations execute only after guards; source matrix does not rerun |
+| P5 | Maven Local, disposable TestKit/qualification repository publication, local consumer artifacts and nonpublishing preparation without receipt | B/C remain usable with existing fixture signing behavior; no protected destination/key reachable |
 | N1 | Wrong SHA, prefix, ancestor, equivalent tree, PR merge SHA or dispatch event head instead of input | Reject before pending Pages/signing/staging |
 | N2 | Foreign/fork repository, wrong workflow numeric ID/path/blob/contract, lookalike workflow name | Reject untrusted producer |
 | N3 | Wrong source branch, main, mismatched maintenance version, master proof for maintenance, removed ancestry | Reject line admission even with same SHA |
 | N4 | Older green run with newest eligible red/running run; rerun pending/failed; mixed attempts | Reject; no successful-only filtering or fallback |
 | N5 | Missing/failed/skipped/cancelled/timed-out build, artifact step, report upload, isolation or lane result | Reject incomplete proof; NO-SOURCE only where contract explicitly allows |
 | N6 | Missing baseline/G4/G5 JUnit or coverage, missing artifact lane, malformed/duplicate inventory | Reject; partial diagnostics never form passing proof |
-| N7 | Sonar upload only, wrong App/project/check/analysis/SHA, unrelated same-SHA analysis, pending/error quality | Reject or bounded wait then reject; no name-only or scan-only success |
+| N7 | Same SHA/different attempt or unrelated analysis; successful upload with pending/failed gate; missing/ambiguous join; insufficient read-only identity access | Slice-1 admission stops if binding unproven; later verifier rejects or bounded-waits then rejects; no upload/name/SHA heuristic |
 | N8 | Missing/expired/deleted artifact, digest/file mismatch, archive traversal/symlink, expired freshness | Reject before side effects; no executable artifact consumption |
 | N9 | After approval: artifact deleted, rerun/new run, failed Sonar, branch force change, receipt tampering | Protected recheck rejects; no silent rebinding |
 | N10 | API 403/404/429/5xx, timeout, malformed JSON, duplicate identities or later-page conflicting run/artifact | Fail closed; bounded retries do not become bypasses; paginate completely |
-| N11 | Version, authorization, receipt or documentation prerequisite fails individually | Zero stub sign/staging/upload/Portal markers; graph ancestry established for every operation |
-| N12 | Direct low-level task, reordered CLI, parallel execution and `--continue` with failed prerequisite | No operation escapes prerequisite or complete-entry guard |
+| N11 | Version, authorization, receipt or documentation prerequisite fails individually | Zero protected sign/staging/upload/Portal markers; ancestry established for every A operation |
+| N12 | Direct protected signing/staging/upload, protected tasks before aggregate, alternative aggregate, parallel failed authorization and `--continue` after failed prerequisite | No A operation escapes prerequisite or complete-entry guard |
 | N13 | Passing root check alone, forged local boolean/property or unsupported receipt schema | Cannot authorize protected workflow publication; local guard rejects invalid/missing receipt |
+| N14 | Local-looking publication redirected to protected destination/key; shared Sign task requested locally, protected or in mixed graph | A remains fail-closed including direct signing; no name/property exemption; legitimate nonprotected signing/preparation remains usable |
 
 For N13, distinguish trusted workflow/API enforcement from local build defense: anyone able to rewrite the build can
 rewrite its checks. No local JSON file confers environment approval or publisher credentials. Tests must prove the
@@ -181,7 +216,10 @@ exception in [testing guidance](../agents/testing.md); no executable/configurati
 
 ## Risks and confirmed decisions
 
-Service retention and Sonar correlation are the principal integration risks; approval can outlast proof availability.
+Sonar feasibility is the first implementation admission gate. Open technical evidence: actual API joins/access and
+rerun behavior, plus destination binding/shared-signing semantics in the configured Gradle plugins. These need
+implementation evidence, not another architecture choice; inability to prove the Sonar join requires maintainer
+integration adjudication before substantial work. Service retention can also outlast proof availability.
 Latest-attempt policy intentionally makes reruns invalidate approval-bound proof. API snapshots cannot provide an atomic
 lock over later service changes. The protected recheck narrows that race without claiming to eliminate it. Versioned
 release binaries still require authorized local assembly/signing and public resolve-back.

@@ -62,6 +62,20 @@ Use attempt-specific job metadata and attempt-named immutable artifacts. Never c
 from different attempts or fall back to an older green attempt/run when the newest is red or incomplete.
 Paginate all run/job/check/artifact lists and reject ambiguous matches and API errors.
 
+### First implementation admission gate: SonarCloud feasibility
+
+Before producer manifests, receipt validation, release workflow changes or Gradle guards, slice 1 must run a
+bounded read-only probe of actual GitHub Actions and SonarCloud metadata. Record authoritative workflow/run/
+attempt/job/scanner-step/check identities, Sonar task/analysis/project/revision and completed quality-gate
+identities, and the verifiable joins between them. Distinguish those joins from display names, timestamps and
+branch labels. Establish whether a same-SHA green check can come from another run/attempt, and exercise
+reruns, failed attempts, multiple same-SHA analyses and asynchronous quality completion using available records.
+Verify read-only access available separately to the producer and protected preflight without release secrets,
+new privileges or unprotected privileged credentials. Successful upload or a same-SHA green check alone fails
+admission. If records/access cannot establish the binding, stop before substantial implementation for a maintainer
+integration-contract decision; no heuristic fallback. This probe belongs to the first implementation slice and
+is not required to execute in this documentation PR.
+
 ### Evidence and Sonar
 
 A versioned producer manifest binds repository, source SHA, branch/event, workflow ID/path/blob, contract
@@ -110,14 +124,29 @@ preflight receipt; publication never silently rebinds an approved receipt. Keep 
 and pending-documentation handoff rechecks. Perform the proof recheck immediately before the publication command;
 it is a point-in-time gate, not an atomic lock over subsequent GitHub changes. A new dispatch revalidates everything.
 
-Actual Gradle signing, staging initialization, every Sonatype upload, close/release and Portal operation must
-depend on successful local version/authorization, source-proof receipt validation, and root documentation checks.
-Enforce the sole complete-product entry at operation tasks, including low-level upload tasks. A sibling aggregate
-or ordering hint cannot satisfy this boundary. The local receipt is created by the verified protected workflow;
-Gradle enforces its presence/identity and operation ordering, not an independent cryptographic authority over a
-malicious local checkout. Protected environments remain the authority for credentials. Avoid cycles through
-artifact generation; shared prerequisites run once. Direct or reordered requests and `--continue` must not bypass
-failed dependencies. Do not transfer release credentials into CI or preflight.
+Classify operations by their actual destination and key use, not task names or a caller-controlled bypass:
+
+| Class | Operation and prerequisite boundary |
+| --- | --- |
+| A — protected release | Real Sonatype staging initialization, protected-key signing, Maven upload to real Sonatype, real staging close/release and production Plugin Portal publication require successful version/authorization, trusted proof receipt and root documentation checks before the action. The complete-product entry guard covers every protected operation, including low-level and alternative aggregate paths. |
+| B — development/fixture publication | Maven Local, disposable TestKit Maven repositories, isolated consumer-qualification repositories and local ScHelm/other consumer artifacts require no GitHub receipt, provided they cannot reach protected destinations or keys. Existing fixture/dependency-resolution behavior remains usable. |
+| C — nonpublishing preparation | Compilation, JAR/module descriptor/POM generation, sources/Javadocs, ordinary verification and inspection require no release authorization merely because their outputs may later be published. |
+
+REL-1 owns API proof revalidation and protected credential admission; repository Gradle wiring owns destination/
+publication classification and successful prerequisite ancestry at actual operations. Protected environments
+remain the credential authority. A local receipt validates identity/order, not a malicious checkout independently.
+Direct invocation, alternative aggregates, reordered arguments, parallel execution or `--continue` cannot bypass
+class A prerequisites. Redirecting a supposedly local publication to a protected destination makes it class A;
+neither a local-looking name nor an untrusted property can exempt it. No alternate path may acquire protected
+credentials or perform remote publication without these checks.
+
+Inspect actual task types, publication/repository bindings, signatories and dependency graphs before concrete
+wiring. The current convention signs publication objects, so a Sign task can be shared with Maven Local;
+blanket guards on all Sign tasks would disrupt class B. Guard protected signing/key use without requiring a
+receipt for nonprotected fixture signing or preparation, and prove mixed local/protected graphs cannot exempt
+class A. Prefer Gradle's existing dependency/publication model, avoid cycles and keep shared prerequisites once.
+A new publishing abstraction or release-task hierarchy needs evidence that the existing model cannot express
+the boundary. No generic attestation or release orchestration framework is introduced.
 
 ### Branch admission and independent release gates
 
