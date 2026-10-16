@@ -102,7 +102,7 @@ async function list(api, path, key) {
       requireEvidence(match && !links.has(match[2]), 'Malformed GitHub pagination link');
       const target = new URL(match[1]);
       const linkedPage = target.searchParams.get('page');
-      requireEvidence(/^[1-9][0-9]*$/.test(linkedPage), 'Malformed GitHub page number');
+      requireEvidence(/^[1-9][0-9]*$/.test(linkedPage) && Number.isSafeInteger(Number(linkedPage)), 'Malformed GitHub page number');
       const allowed = new URL(first);
       allowed.searchParams.set('page', linkedPage);
       target.searchParams.sort();
@@ -110,6 +110,9 @@ async function list(api, path, key) {
       requireEvidence(target.href === allowed.href, 'Untrusted GitHub pagination target');
       links.set(match[2], Number(linkedPage));
     }
+    requireEvidence((!links.has('last') || links.get('last') === Math.max(1, Math.ceil(total / 100))) &&
+      (!links.has('prev') || links.get('prev') === page - 1) &&
+      (!links.has('first') || links.get('first') === 1), 'Conflicting GitHub pagination links');
     requireEvidence(records.length <= total, 'Conflicting GitHub list count');
     if (!links.has('next')) {
       requireEvidence(records.length === total, 'Incomplete GitHub pagination');
@@ -141,15 +144,18 @@ async function verifyReleaseCi(identity, api) {
   const eligible = run => repositoryMatches(run.repository) && repositoryMatches(run.head_repository) &&
     run.workflow_id === WORKFLOW_ID && run.path === WORKFLOW_PATH && run.event === 'push' &&
     run.head_sha === sha && run.head_branch === branch;
-  const runs = await list(api, `${root}/actions/workflows/${WORKFLOW_ID}/runs?head_sha=${sha}&event=push&branch=${encodeURIComponent(branch)}`, 'workflow_runs');
-  const candidates = runs.filter(eligible);
+  const candidates = await list(api, `${root}/actions/workflows/${WORKFLOW_ID}/runs?head_sha=${sha}&event=push&branch=${encodeURIComponent(branch)}`, 'workflow_runs');
+  requireEvidence(candidates.every(eligible), 'Conflicting exact-SHA workflow run response');
   requireEvidence(candidates.length > 0, 'No eligible exact-SHA CI run');
   for (const run of candidates) {
     requireEvidence(positiveId(run.id) && positiveId(run.run_attempt) &&
-      typeof run.created_at === 'string' && Number.isFinite(Date.parse(run.created_at)), 'Malformed CI run');
+      typeof run.created_at === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(run.created_at) &&
+      Number.isFinite(Date.parse(run.created_at)) &&
+      new Date(run.created_at).toISOString() === run.created_at.replace('Z', '.000Z'), 'Malformed CI run');
   }
   candidates.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id - a.id);
   const selected = candidates[0];
+  requireEvidence(successful(selected), 'Newest eligible CI run is not successful');
   const current = (await api(`${root}/actions/runs/${selected.id}`)).body;
   requireEvidence(current.id === selected.id && eligible(current) && current.run_attempt === selected.run_attempt &&
     current.created_at === selected.created_at && successful(current), 'Latest CI run attempt is not successful or changed');
@@ -168,13 +174,17 @@ async function verifyReleaseCi(identity, api) {
   requireEvidence(sonar.length === 1 && sonar[0].app?.id === SONAR_APP_ID && sonar[0].head_sha === sha && successful(sonar[0]),
     'Missing, ambiguous, untrusted or unsuccessful SonarCloud check');
   requireEvidence(positiveId(sonar[0].id), 'Malformed SonarCloud check identity');
+  // A rerun starting during job/check reads invalidates the attempt we just inspected.
+  const latest = (await api(`${root}/actions/runs/${current.id}`)).body;
+  requireEvidence(latest.id === current.id && eligible(latest) && latest.run_attempt === current.run_attempt &&
+    latest.created_at === current.created_at && successful(latest), 'CI attempt changed while reading results');
   const result = {run_id: current.id, run_attempt: current.run_attempt, check_id: sonar[0].id};
   if (expected) requireEvidence(Object.keys(result).every(key => result[key] === expected[key]),
     'CI or SonarCloud evidence changed; repeat preflight and approval');
   return result;
 }
 
-module.exports = {verifyReleaseCi, githubApi, REQUIRED_STEPS};
+module.exports = {verifyReleaseCi, githubApi};
 
 if (require.main === module) {
   (async () => {

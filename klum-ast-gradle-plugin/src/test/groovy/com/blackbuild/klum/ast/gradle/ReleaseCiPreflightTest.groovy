@@ -27,6 +27,8 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import spock.lang.Issue
 import spock.lang.Specification
+import spock.lang.TempDir
+import org.yaml.snakeyaml.Yaml
 
 import java.util.concurrent.TimeUnit
 
@@ -37,6 +39,7 @@ class ReleaseCiPreflightTest extends Specification {
     static final String REPO = '/repos/klum-dsl/klum-ast'
     File root = new File(System.getProperty('klum.repositoryRoot'))
     Map fixture
+    @TempDir File sandbox
 
     def setup() {
         def repository = [id: 40505913, full_name: 'klum-dsl/klum-ast']
@@ -140,6 +143,8 @@ class ReleaseCiPreflightTest extends Specification {
         'ambiguous Sonar'     | { f -> f.responses[checksPath()].body.check_runs << (f.responses[checksPath()].body.check_runs[0] + [id: 301]); f.responses[checksPath()].body.total_count = 2 }
         'run changed at read' | { f -> f.responses[REPO + '/actions/runs/100'] = [body: f.responses[runsPath()].body.workflow_runs[0] + [status: 'in_progress', conclusion: null]] }
         'malformed timestamp' | { f -> f.responses[runsPath()].body.workflow_runs[0].created_at = 'yesterday' }
+        'truncated timestamp' | { f -> f.responses[runsPath()].body.workflow_runs[0].created_at = '2026' }
+        'invalid calendar'    | { f -> f.responses[runsPath()].body.workflow_runs[0].created_at = '2026-02-31T10:00:00Z' }
     }
 
     def 'rejects unsuccessful required #target with #outcome'() {
@@ -217,6 +222,7 @@ class ReleaseCiPreflightTest extends Specification {
         'duplicate check id'   | { f -> f.responses[checksPath()].body.check_runs *= 2; f.responses[checksPath()].body.total_count = 2 }
         'foreign next target'  | { f -> f.responses[runsPath()].headers = [link: '<https://evil.invalid/>; rel="next"'] }
         'malformed link'       | { f -> f.responses[runsPath()].headers = [link: 'page two'] }
+        'conflicting last page'| { f -> f.responses[runsPath()].headers = [link: '<https://api.github.com' + runsPath().replace('&page=1', '&page=2') + '>; rel="last"'] }
     }
 
     def 'bounds transient retries and admits only a successful complete response'() {
@@ -260,6 +266,179 @@ class ReleaseCiPreflightTest extends Specification {
         'CI result'         | { f -> f.responses[REPO + '/actions/runs/100'].body.status = 'in_progress' }
         'branch ancestry'   | { f -> f.responses[REPO + '/compare/' + SHA + '...' + TIP].body.merge_base_commit.sha = TIP }
         'missing CI result' | { f -> f.responses[jobsPath()] = [status: 404] }
+    }
+
+    def 'rejects changing run status or latest attempt while reading required results: #scenario'() {
+        given:
+        Map original = fixture.responses[REPO + '/actions/runs/100'].body
+        fixture.responses[REPO + '/actions/runs/100'] = [[body: original], [body: original + changed]]
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+
+        where:
+        scenario         | changed
+        'failed result'  | [conclusion: 'failure']
+        'latest attempt' | [run_attempt: 2, status: 'in_progress', conclusion: null]
+    }
+
+    def 'a failed selected run cannot become convenient green evidence during the read'() {
+        given:
+        Map original = fixture.responses[runsPath()].body.workflow_runs[0]
+        fixture.responses[REPO + '/actions/runs/100'] = [body: original + [conclusion: 'success']]
+        original.conclusion = 'failure'
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+    }
+
+    def 'real gate CLI and workflow shell contain failures before a protected marker: #mode #failure'() {
+        given:
+        if (failure) fixture.responses[checksPath()].body.check_runs[0].conclusion = 'failure'
+        new File(sandbox, 'fixture.json').text = JsonOutput.toJson(fixture)
+        new File(sandbox, 'verify-release-ci.cjs').bytes = new File(root, '.github/scripts/verify-release-ci.cjs').bytes
+        File bin = new File(sandbox, 'bin')
+        bin.mkdirs()
+        File git = new File(bin, 'git')
+        git.text = '#!/bin/sh\nif [ "$1" = rev-parse ]; then echo "$EXPECTED_COMMIT"; fi\n'
+        git.setExecutable(true)
+        Map workflow = new Yaml().load(new File(root, '.github/workflows/release.yml').text)
+        String script = mode == 'preflight' ? workflow.jobs['verify-release-ci'].steps.last().run : workflow.jobs.publish.steps[-2].run
+        if (mode == 'preflight') script = script.replace('.github/scripts/verify-release-ci.cjs', new File(sandbox, 'verify-release-ci.cjs').path)
+        def process = new ProcessBuilder('bash', '-e', '-c', script + '\ntouch protected-marker').directory(sandbox).redirectErrorStream(true)
+        process.environment().putAll([
+            PATH: bin.path + File.pathSeparator + System.getenv('PATH'),
+            NODE_OPTIONS: '--require=' + new File(root, 'klum-ast-gradle-plugin/src/test/resources/release-ci/preload-fixture.cjs').path,
+            RELEASE_CI_FIXTURE: new File(sandbox, 'fixture.json').path,
+            RUNNER_TEMP: sandbox.path, GITHUB_OUTPUT: new File(sandbox, 'outputs').path,
+            GITHUB_REPOSITORY: 'klum-dsl/klum-ast', GH_TOKEN: 'fixture-token',
+            EXPECTED_COMMIT: SHA, SOURCE_BRANCH: 'master', RELEASE_VERSION: '4.1.0-rc.1',
+            CI_RUN_ID: '100', CI_RUN_ATTEMPT: '1', SONAR_CHECK_ID: '300'
+        ])
+
+        when:
+        def running = process.start()
+        String output = running.inputStream.getText('UTF-8')
+        assert running.waitFor(20, TimeUnit.SECONDS): output
+
+        then:
+        (running.exitValue() == 0) == !failure
+        new File(sandbox, 'protected-marker').exists() == !failure
+        if (failure) assert !new File(sandbox, 'outputs').exists()
+
+        where:
+        mode        | failure
+        'preflight' | true
+        'recheck'   | true
+        'preflight' | false
+        'recheck'   | false
+    }
+
+    def 'missing or ambiguous required job or step is rejected: #scenario'() {
+        given:
+        Map body = fixture.responses[jobsPath()].body
+        if (scenario == 'ambiguous build') {
+            body.jobs << (body.jobs[0] + [id: 201])
+            body.total_count = 2
+        } else body.jobs[0].steps.removeAll { it.name == scenario }
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+
+        where:
+        scenario << ['ambiguous build', 'Build with Gradle', 'Qualify annotation propagation artifacts',
+                     'Publish Test Report', 'Archive compatibility-lane evidence']
+    }
+
+    def 'later-page API failure closes every relevant list: #key'() {
+        given:
+        List first = (1000..1099).collect { fixture.responses[path].body[key][0] + [id: it] }
+        paginate(path, key, first, [fixture.responses[path].body[key][0] + [id: 2000]])
+        fixture.responses[path.replace('&page=1', '&page=2')] = [status: 503]
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.calls.count(path.replace('&page=1', '&page=2')) == 3
+
+        where:
+        path         | key
+        runsPath()   | 'workflow_runs'
+        jobsPath()   | 'jobs'
+        checksPath() | 'check_runs'
+    }
+
+    def 'protected recheck refuses rebinding to a newer successful run or attempt: #change'() {
+        given:
+        def preflight = verify()
+        assert preflight.ok
+        fixture.identity.expected = preflight.selected
+        Map previous = fixture.responses[runsPath()].body.workflow_runs[0]
+        Map replacement = previous + (change == 'run' ? [id: 500, created_at: '2026-10-16T11:00:00Z'] : [run_attempt: 2])
+        fixture.responses[runsPath()].body.workflow_runs = [replacement]
+        fixture.responses[REPO + '/actions/runs/' + replacement.id] = [body: replacement]
+        fixture.responses[REPO + '/actions/runs/' + replacement.id + '/attempts/' + replacement.run_attempt + '/jobs?per_page=100&page=1'] =
+                [body: [total_count: 1, jobs: [fixture.responses[jobsPath()].body.jobs[0] + [run_id: replacement.id, run_attempt: replacement.run_attempt]]]]
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        result.message.contains('repeat preflight and approval')
+
+        where:
+        change << ['run', 'attempt']
+    }
+
+    def 'run ID breaks a creation-time tie before filtering on success'() {
+        given:
+        Map old = fixture.responses[runsPath()].body.workflow_runs[0]
+        fixture.responses[runsPath()].body = [total_count: 2, workflow_runs: [old, old + [id: 101, status: 'in_progress', conclusion: null]]]
+
+        when:
+        def result = verify()
+
+        then:
+        !result.ok
+        !result.calls.contains(jobsPath())
+    }
+
+    def 'admits the exact version-matching maintenance line using proof from that line'() {
+        given:
+        fixture.identity.branch = 'release/4.1.x'
+        fixture.responses[runsPath()].body.workflow_runs[0].head_branch = 'release/4.1.x'
+        fixture.responses[runsPath().replace('branch=master', 'branch=release%2F4.1.x')] = fixture.responses.remove(runsPath())
+        fixture.responses[REPO + '/branches/release%2F4.1.x'] = fixture.responses.remove(REPO + '/branches/master')
+        fixture.responses[REPO + '/branches/release%2F4.1.x'].body.name = 'release/4.1.x'
+
+        when:
+        def result = verify()
+
+        then:
+        result.ok
+    }
+
+    def 'trusted numeric Sonar App origin remains authoritative when the display name changes'() {
+        given:
+        fixture.responses[checksPath()].body.check_runs[0].name = 'Renamed analysis check'
+
+        when:
+        def result = verify()
+
+        then:
+        result.ok
     }
 
     def paginate(String path, String key, List first, List last) {

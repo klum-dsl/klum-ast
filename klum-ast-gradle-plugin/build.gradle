@@ -44,6 +44,7 @@ dependencies {
     api libs.annodocimal.gradle.plugin
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     testImplementation libs.spock.g3
+    testImplementation 'org.yaml:snakeyaml:2.6'
     testRuntimeOnly project(':klum-ast-runtime')
 }
 
