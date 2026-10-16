@@ -48,9 +48,7 @@ afterEvaluate {
         if (signingKey)
             useInMemoryPgpKeys(signingKey, signingPassword)
         required = {
-            gradle.taskGraph.hasTask("publish") ||
-                    gradle.taskGraph.hasTask("publishToMavenLocal") ||
-                    gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")
+            gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")
         }
         publishing.publications.configureEach {
             sign it

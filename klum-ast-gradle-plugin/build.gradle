@@ -63,6 +63,12 @@ processResources {
 test {
     useJUnitPlatform()
 
+    def releaseBuild = rootProject.layout.projectDirectory.file('build.gradle')
+    def baseConventions = rootProject.layout.projectDirectory.file('buildSrc/src/main/groovy/klum-ast.base-conventions.gradle')
+    inputs.files(releaseBuild, baseConventions).withPropertyName('protectedPublicationContract')
+    systemProperty 'klum.releaseBuild', releaseBuild.asFile.absolutePath
+    systemProperty 'klum.baseConventions', baseConventions.asFile.absolutePath
+
     inputs.files(rootProject.file('.github/scripts/verify-release-ci.cjs'),
             rootProject.fileTree('.github/workflows'))
     systemProperty 'klum.repositoryRoot', rootProject.projectDir.absolutePath
