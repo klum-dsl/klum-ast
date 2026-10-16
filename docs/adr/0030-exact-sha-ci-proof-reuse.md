@@ -1,195 +1,117 @@
-# Exact-SHA CI proof before protected publication
+# Exact-SHA CI verification before protected publication
 
 Date: 2026-10-16
 
-Status: Accepted. Policy and design confirmed by maintainer delegation on 2026-10-16.
+Status: Accepted, revised by the canonical maintainer decision in [#903](https://github.com/klum-dsl/klum-ast/issues/903).
+Implementation status: Design only; no workflow, build, protection or release behavior changed.
 
-Implementation status: Design only. No workflow, build, protection, or release behavior changed.
+Plan: [#903 implementation plan](../implementation/issue-903-ci-proof-reuse.md).
+Historical evidence: [original investigation](../implementation/issue-903-release-verification-contract.md)
+and [Sonar feasibility report](../implementation/issue-903-sonar-feasibility.md), retained unchanged.
 
-Tracking issue: [#903](https://github.com/klum-dsl/klum-ast/issues/903) (remains open).
+## Context and supersession
 
-Implementation plan: [#903 proof-reuse implementation plan](../implementation/issue-903-ci-proof-reuse.md).
+At investigated baseline `96608b7c8c1657662f95e003b09d6e6d96cde777`, ordinary CI has one Ubuntu/JDK-17
+`build` job. It runs `check --scan sonar --info`, then the three annotation-propagation artifact tasks with
+`--no-parallel --max-workers=2`. Protected publication selects root `:check`, which omits portions of the
+subproject matrix, and REL-1 does not verify exact-SHA CI. Successful historical CI exists; this finding
+concerns missing enforcement and is not evidence of an unqualified release.
 
-Evidence: [#903 investigation](../implementation/issue-903-release-verification-contract.md), retained verbatim
-from local investigation commit `9ef9e975f6e8f6e652eea02c4800a4277aa6a924`. Its recommendation-awaiting-adoption
-wording describes the investigation's historical state; this ADR records the subsequently accepted reuse direction.
-
-Parent decisions: [ADR 0011](0011-shared-multi-groovy-compatibility-contract.md),
-[ADR 0012](0012-shared-prerelease-channel-policy.md), [ADR 0013](0013-versioned-documentation-and-javadocs.md).
-Related boundary: [ADR 0019](0019-published-showcase-consumer-verification.md), still Proposed in this checkout.
-
-## Context
-
-At base `96608b7c8c1657662f95e003b09d6e6d96cde777`, ordinary CI has one Ubuntu/JDK-17 `build` job.
-It runs `check --scan sonar --info`, then the three annotation-propagation artifact tasks with
-`--no-parallel --max-workers=2`. Protected publication depends only on root `:check`, which does not
-select the subproject matrix. Investigation found 134 publication tasks versus 206 complete CI tasks;
-these counts describe that revision, not a permanent acceptance constant. REL-1 has no exact-SHA CI lookup.
-Some actual signing/staging/upload tasks also lack version and verification dependency ancestors.
-Successful historical source CI exists; the finding is missing enforcement, not proof of an unqualified release.
+The previous artifact-backed attestation, custom receipt/manifest, exhaustive report inventory, retention system,
+and Sonar CE/task/analysis correlation design is **superseded for disproportionate complexity**. The historical
+reports describe the investigation and earlier requirements, not current implementation obligations. In particular,
+the Sonar feasibility no-go concerns the rejected attempt-to-analysis join and does not block this decision.
 
 ## Decision
 
-### Source proof and topology
+### Minimum sufficient GitHub gate
 
-Reuse trusted successful CI for the exact full source SHA; do not repeat the expensive matrix just because
-publication is dispatched. Preserve the single CI job, both existing Gradle invocations and their scheduling
-limits, Java 17, single Groovy-3 production product, independently compiled Groovy 3/4/5 test lanes,
-isolation, artifact qualification, Javadocs/renderer, coverage, JUnit and Sonar. Lane splitting and performance
-experiments remain separate under [#573](../implementation/evidence/issue-573-ci-performance-decision-2026-07-28.md).
-No DSL/API usage example applies to this internal release boundary.
+Use existing GitHub Actions, Checks and protected environments as the authoritative systems. A read-only REL-1
+preflight must pass before pending documentation or protected approval/publication becomes eligible. Use only
+`contents: read`, `actions: read` and `checks: read`; no Sonar or publication credentials in that gate.
 
-A read-only REL-1 preflight must finish before pending documentation or protected publication is eligible.
-Require `contents: read`, `actions: read`, and `checks: read` only. It validates the requested stage/version,
-full SHA, selected release line and ancestry, then selects and retains a source-proof identity. A green badge,
-branch protection, environment approval, workflow title, or caller-provided JSON alone is insufficient.
+Verify repository numeric ID/full name and head repository, the exact full source SHA, intended source branch
+and live ancestry, and the approved numeric CI workflow ID with exact `.github/workflows/ci.yml` path. Eligible
+source runs are same-repository `push` runs on that exact line and SHA. Reject fork/PR/merge-ref/tag/dispatch or
+other-workflow runs, SHA prefixes, ancestor proofs and equivalent trees. Workflow title alone is insufficient.
 
-### Trusted producer and attempt selection
+Paginate all relevant GitHub run/job/check lists. Select the newest eligible run by creation time and then run ID
+before filtering on success. Require that run's current latest attempt to be completed successfully. Inspect
+attempt-specific jobs and a small stable reviewed contract of required job/step identities and successful results.
+Do not combine attempts, fall back to older green runs/attempts, or accept missing/skipped/neutral/cancelled/
+timed-out/pending/failed required jobs or steps. The failure-only diagnostic upload is not a required passing step.
 
-The producer must be a same-repository `push` run of the configured numeric workflow ID and exact path
-`.github/workflows/ci.yml`, on the selected release branch, with `head_sha` exactly equal to the input SHA.
-Reject fork, PR/merge-ref, dispatch, tag and other-workflow proofs even if their trees or names match.
-Validate repository ID/full name and head repository, workflow ID/path, event, branch and source SHA through
-API metadata; bind the workflow file blob at that source to a reviewed proof-contract revision. A contract
-revision explicitly lists required steps, task families, report producers and allowed action identities.
-A workflow-file change needs reviewed contract admission; an unchanged display name cannot admit it.
+The reviewed contract covers the existing `build` job's complete Gradle verification invocation, explicit annotation
+artifact qualification, JUnit report and compatibility-evidence upload. Keep action identities and step identities
+reviewable against the checked-in workflow. Names alone do not establish workflow trust. A changed required job/step
+contract needs review before admission; do not introduce a workflow-blob attestation registry or enumerate every
+Gradle task/report in a second manifest. Normal CI success remains the evidence that its reviewed verification ran.
 
-Choose the newest eligible run by creation time with run ID as a deterministic tie-breaker, before filtering
-on success. Require its current latest attempt to be completed successfully, its `build` job and every
-required verification/report/upload step successful. Reject missing, skipped, cancelled, neutral, timed-out,
-pending or failed outcomes; explicitly declared task-level NO-SOURCE cases are distinct from skipped steps.
-Use attempt-specific job metadata and attempt-named immutable artifacts. Never combine jobs/checks/artifacts
-from different attempts or fall back to an older green attempt/run when the newest is red or incomplete.
-Paginate all run/job/check/artifact lists and reject ambiguous matches and API errors.
+Require a completed successful SonarCloud GitHub App check for the exact full SHA from the approved numeric App
+identity. Establish approved repository/workflow/App IDs from actual GitHub metadata and review them explicitly;
+never guess IDs or accept check display names as identity. Reject missing, ambiguous, pending or unsuccessful
+required check evidence. A successful trusted exact-SHA check is sufficient: correlation to the selected CI attempt
+or a particular Sonar analysis is an **explicitly accepted residual risk**. Do not query Sonar CE/analysis APIs,
+create a Sonar adapter, or infer correlation from timestamps, branch dashboards or check names.
 
-### First implementation admission gate: SonarCloud feasibility
+API errors, malformed responses, missing fields, conflicting/duplicate identities, incomplete pagination and
+unavailable evidence close the gate. Bounded transient retries are allowed; exhausting them cannot cause a weaker
+fallback. No automatic CI/release dispatch repairs missing evidence.
 
-Before producer manifests, receipt validation, release workflow changes or Gradle guards, slice 1 must run a
-bounded read-only probe of actual GitHub Actions and SonarCloud metadata. Record authoritative workflow/run/
-attempt/job/scanner-step/check identities, Sonar task/analysis/project/revision and completed quality-gate
-identities, and the verifiable joins between them. Distinguish those joins from display names, timestamps and
-branch labels. Establish whether a same-SHA green check can come from another run/attempt, and exercise
-reruns, failed attempts, multiple same-SHA analyses and asynchronous quality completion using available records.
-Verify read-only access available separately to the producer and protected preflight without release secrets,
-new privileges or unprotected privileged credentials. Successful upload or a same-SHA green check alone fails
-admission. If records/access cannot establish the binding, stop before substantial implementation for a maintainer
-integration-contract decision; no heuristic fallback. This probe belongs to the first implementation slice and
-is not required to execute in this documentation PR.
+### Recheck and unchanged CI topology
 
-### Evidence and Sonar
+Repeat essential GitHub checks after protected-environment approval, immediately before any protected publication
+operation. Revalidate exact clean checkout/source identity, live intended-line ancestry, approved workflow, newest
+eligible run/latest attempt, required job/step outcomes and trusted exact-SHA Sonar check. Compare the selected
+run/attempt/check identities with the successful preflight outputs; changed evidence requires a fresh preflight
+and approval flow, including a newer successful run. Plain workflow outputs suffice for these identifiers; no
+custom receipt, artifact attestation, manifest, report inventory, retention/freshness subsystem or external store.
 
-A versioned producer manifest binds repository, source SHA, branch/event, workflow ID/path/blob, contract
-revision, run ID, attempt, job and check IDs, toolchain, task/lane outcomes and an exhaustive report inventory.
-Each report entry records relative path, producer task/lane, byte size and SHA-256. A trusted verifier reconciles
-that inventory against the contract; self-declared completeness is not accepted. Retain baseline and G4/G5
-JUnit, all three JaCoCo XML/HTML outputs, lane-isolation results, annotation-propagation G3/G4/G5 results,
-and documentation/Javadoc verification summary. Expected empty test suites must be explicitly enumerated
-by the contract, never inferred from missing XML. Retain diagnostics on failure but issue no passing proof.
-The manifest's own artifact identity/digest is bound by the consumer receipt, avoiding a self-hash cycle.
+Preserve the current single CI job, both Gradle invocations, worker limits, Java 17, single Groovy-3 production
+product, independently compiled Groovy 3/4/5 lanes, isolation, all three coverage outputs, artifact qualification,
+JUnit, Javadocs/renderer and Sonar. Do not rerun or split the matrix for release dispatch. Performance work remains
+separate under [#573](../implementation/evidence/issue-573-ci-performance-decision-2026-07-28.md).
 
-Sonar scan upload success alone is insufficient. Require a completed successful quality-result check from
-the approved Sonar GitHub App ID for this repository/project and SHA, and bind check ID, analysis/task ID,
-revision and result to this producer attempt. The producer records the scanner task identity and the analysis
-correlation; a same-SHA check from an unrelated analysis or a spoofed check name cannot qualify. Only G3
-coverage feeds Sonar; G4/G5 remain retained compatibility evidence. If the available trusted integration
-cannot expose a verifiable attempt-to-analysis binding without privileged credentials in the consumer,
-implementation must stop for an explicit integration decision, not weaken correlation or grant release secrets.
+Protected environments remain the credential/approval authority. Keep local version/documentation and remote
+version/tag availability checks plus the pending-documentation handoff. Rechecking is a point-in-time safeguard,
+not an atomic lock over later GitHub changes. No separate 30-day proof policy remains; unavailable GitHub evidence
+fails the gate regardless of age. No DSL/API usage example applies to this internal release boundary.
 
-The consumer receipt binds stage/version/source line/SHA to the selected run/attempt, producer manifest hash,
-artifact IDs and service digests plus independently calculated file hashes, job/step/check identities and Sonar
-analysis/result. Download only from the validated run's artifacts; reject expired/deleted/duplicate artifacts,
-archive traversal, symlinks and hash/inventory discrepancies. Proof artifacts are data and never executed or
-placed on a publication classpath. CI binaries are not published: protected publication builds/signs the exact
-source with its authorized release version, retaining local version and documentation checks.
+### Gradle protected-operation dependencies
 
-### Retention and freshness
+Use plain Gradle successful dependency ancestry at actual protected operations: protected-key signing, Sonatype
+staging initialization, Maven uploads to protected destinations, staging close/release and production Plugin Portal
+publication. Require local authorization, version and documentation prerequisites before each action. Preserve the
+complete-product entry boundary. REL-1 owns GitHub verification and protected credential admission; Gradle owns
+local operation prerequisites. A local boolean or file cannot replace GitHub/environment authority.
 
-Explicitly retain all source-proof payloads,
-manifest and release receipts for 30 days, and accept source proof for at most 30 days from attempt completion.
-The service's earlier expiry/deletion or any invalidation always wins; configuration is not evidence of availability.
-Record completion/expiry timestamps and validate them at both gates. A shorter repository retention cap must
-be resolved before admission. Persistent release records retain compact proof identities/hashes and the actual
-expiry deadline under the release audit policy; these references do not make expired payloads reusable.
-Do not introduce a new external evidence store in #903. Missing or expired proof requires fresh CI on the exact
-SHA through a separately authorized path; no release dispatch, old success, ancestor proof or local bypass repairs it.
+Direct low-level invocation, alternative aggregates, reordered requests, parallel execution and `--continue` must
+not bypass these dependencies. Classify by actual destination and key use: redirected local-looking publication
+and mixed local/protected graphs cannot exempt protected operations. Maven Local, disposable TestKit/local fixture
+publication, nonprotected fixture signing, compilation, JAR/POM/Javadoc generation and ordinary verification remain
+usable without GitHub proof. Shared signing tasks require inspection of actual key/destination use rather than a
+blanket guard on every Sign task. Prove failure containment with stubbed operations; dry-runs alone are insufficient.
 
-### Protected recheck and local operations
+### Release placement and independent gates
 
-Both pending documentation and `publish` need the preflight. After environment approval and before any signing,
-staging initialization, upload or Portal action, publication repeats read-only validation against the retained
-receipt: exact checkout/cleanliness, live branch ancestry, trusted contract, latest eligible run/attempt, all
-conclusions, Sonar correlation, artifact availability/hashes and freshness. It must reject superseding failed or
-in-progress attempts/runs, deleted evidence or a changed receipt. A newer successful run also requires a new
-preflight receipt; publication never silently rebinds an approved receipt. Keep remote version/tag availability
-and pending-documentation handoff rechecks. Perform the proof recheck immediately before the publication command;
-it is a point-in-time gate, not an atomic lock over subsequent GitHub changes. A new dispatch revalidates everything.
+Master first. No `release/4.0.x` backport. A future `release/4.1.x` line requires a separate reviewed decision for
+the complete correction. Maintenance admission must require exact version/dispatch line and proof from that line;
+master proof does not admit a maintenance SHA. Do not create maintenance branches or change protection implicitly.
 
-Classify operations by their actual destination and key use, not task names or a caller-controlled bypass:
+[ADR 0012](0012-shared-prerelease-channel-policy.md) RC/final authorization, immutable versions, burns, public
+resolve-back and REL-2 remain intact. [ADR 0013](0013-versioned-documentation-and-javadocs.md) pending documentation
+precedes publication and promotion follows public proof. [ADR 0019](0019-published-showcase-consumer-verification.md)
+independent consumer qualification retains separate ownership. Exact-SHA CI cannot replace candidate/public proof.
 
-| Class | Operation and prerequisite boundary |
-| --- | --- |
-| A — protected release | Real Sonatype staging initialization, protected-key signing, Maven upload to real Sonatype, real staging close/release and production Plugin Portal publication require successful version/authorization, trusted proof receipt and root documentation checks before the action. The complete-product entry guard covers every protected operation, including low-level and alternative aggregate paths. |
-| B — development/fixture publication | Maven Local, disposable TestKit Maven repositories, isolated consumer-qualification repositories and local ScHelm/other consumer artifacts require no GitHub receipt, provided they cannot reach protected destinations or keys. Existing fixture/dependency-resolution behavior remains usable. |
-| C — nonpublishing preparation | Compilation, JAR/module descriptor/POM generation, sources/Javadocs, ordinary verification and inspection require no release authorization merely because their outputs may later be published. |
+## Mandatory overengineering review
 
-REL-1 owns API proof revalidation and protected credential admission; repository Gradle wiring owns destination/
-publication classification and successful prerequisite ancestry at actual operations. Protected environments
-remain the credential authority. A local receipt validates identity/order, not a malicious checkout independently.
-Direct invocation, alternative aggregates, reordered arguments, parallel execution or `--continue` cannot bypass
-class A prerequisites. Redirecting a supposedly local publication to a protected destination makes it class A;
-neither a local-looking name nor an untrusted property can exempt it. No alternate path may acquire protected
-credentials or perform remote publication without these checks.
+Actions already owns repository/workflow/run/attempt identity and execution results. Checks already identifies the
+Sonar App and source SHA. Protected environments already own approval and credential admission. These systems supply
+the minimum sufficient authority directly; reproducing them in artifact attestations, custom receipts, manifests,
+report inventories, retention stores or a separate Sonar integration adds implementation and review burden without
+an accepted need. The deliberate same-SHA Sonar residual risk removes the unavailable analysis-correlation join.
 
-Inspect actual task types, publication/repository bindings, signatories and dependency graphs before concrete
-wiring. The current convention signs publication objects, so a Sign task can be shared with Maven Local;
-blanket guards on all Sign tasks would disrupt class B. Guard protected signing/key use without requiring a
-receipt for nonprotected fixture signing or preparation, and prove mixed local/protected graphs cannot exempt
-class A. Prefer Gradle's existing dependency/publication model, avoid cycles and keep shared prerequisites once.
-A new publishing abstraction or release-task hierarchy needs evidence that the existing model cannot express
-the boundary. No generic attestation or release orchestration framework is introduced.
-
-### Branch admission and independent release gates
-
-Admit `master` first after the corrected contract itself has passed trusted push CI. For a maintenance release,
-require exactly `release/<major>.<minor>.x` matching the version and dispatch ref, source ancestry on that line,
-and proof produced on that same line. `main`, generic `release/*`, feature-branch CI, an ancestor or master proof
-for a maintenance SHA is not automatic admission. Backport producer, verifier and operation guards as one reviewed
-maintenance reliability package; absence of the contract blocks release. Do not backport this package to
-`release/4.0.x`. `release/4.1.x` is the first intended maintenance branch to receive the complete package if/when
-needed, with producer, verifier and operation guards admitted together and proof produced on that exact line.
-Do not create branches or change protection implicitly.
-
-ADR 0012's independent RC/final authorization, immutable versions, burns, public propagation, manual annotated
-tag/release record and REL-2 proof remain intact. ADR 0013's pending snapshot precedes artifact publication and its
-public promotion follows public proof. CI reuse cannot replace candidate-coordinate or independent public-consumer
-qualification. ADR 0019 candidate rebinding/release orchestration remains separately owned; historical Catwalk
-4.0.1 success is not proof of a new candidate. This ADR does not decide or waive that deferred gate.
-
-## Consequences and rejected alternatives
-
-The release waits for complete source evidence without buying another matrix run. Evidence expiry, unavailable
-APIs or a newer failed attempt block publication intentionally. Existing historical CI without the new manifest
-cannot qualify automatically. Proof identifies source verification; it does not claim versioned release binaries
-are byte-identical to CI outputs or make RC evidence interchangeable with final publication.
-
-Reject ancestor/latest-branch or name-only checks, mixed attempts, successful scan upload alone, root `:check` as
-a matrix substitute, silent rerun/fallback and workflow splitting as a fix for the missing dependency. A complete
-credential-free matrix rerun could be safe but is outside the accepted reuse direction. No public/generated API,
-DSL lifecycle, serialization, ownership or Groovy compatibility contract changes.
-
-## Confirmed maintainer decisions
-
-Maintainer delegation on 2026-10-16 confirms:
-
-1. The 30-day source-proof payload/receipt retention and freshness window is approved. Earlier GitHub/service
-   expiry or deletion wins; no external evidence store is introduced.
-2. Exact Sonar project/App/attempt-to-analysis correlation must be established read-only during implementation.
-   If existing metadata cannot prove it, stop for a maintainer integration decision. Do not weaken matching or
-   grant extra credentials. Numeric identities remain implementation discovery, not guessed policy values.
-3. Adopt master-first. Do not backport to `release/4.0.x`; `release/4.1.x` is the first intended maintenance
-   branch for the complete package if/when needed. Producer, verifier and operation guards must travel together,
-   and release proof must come from that exact line.
-
-No policy decision remains open for this design. A Sonar integration decision is conditional on implementation
-finding inadequate metadata. Exact-SHA reuse and current CI topology remain settled. ADR 0019 candidate
-qualification remains a separate existing decision surface. Implementation has not started.
+Gradle already provides successful dependency execution and failure propagation. Plain dependencies at actual
+protected operations express the local boundary without a release framework, publishing hierarchy or task-name
+bypass. Keep the GitHub helper narrow and separately fixture-testable; no generic evidence/adapter framework.
+Implement only REL-A and REL-B unless a demonstrated dependency requires another slice and maintainer review.
