@@ -9,6 +9,8 @@ import com.blackbuild.klum.ast.docs.PreviewRenderedDocumentationTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.plugins.signing.Sign
 
 buildscript {
     repositories {
@@ -232,6 +234,21 @@ tasks.named('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentation
         subprojects.findAll { it.tasks.findByName('publishToSonatype') != null }
                 .collect { ":${it.name}:publishToSonatype".toString() }.sort()
     })
+    protectedOperationDependencies.set(providers.provider {
+        def operations = ['initializeSonatypeStagingRepository', 'closeSonatypeStagingRepository',
+                          'releaseSonatypeStagingRepository', 'closeAndReleaseSonatypeStagingRepository',
+                          'verifyProtectedReleaseAuthorization'].collect { tasks.named(it).get() }
+        operations.add(project(':klum-ast-gradle-plugin').tasks.named('publishPlugins').get())
+        subprojects.each { publishingProject ->
+            operations.addAll(publishingProject.tasks.withType(PublishToMavenRepository).findAll {
+                it.repository.name == 'sonatype'
+            })
+            operations.addAll(publishingProject.tasks.withType(Sign).findAll { it.signatory != null })
+        }
+        operations.collectEntries { operation ->
+            [(operation.path): operation.taskDependencies.getDependencies(operation)*.path.sort()]
+        }
+    })
     localRenderSettings.set(providers.provider {
         def inspected = renderLocalDocumentationFiles.get()
         [version: inspected.documentationVersion.get(), status: inspected.status.get(),
@@ -287,6 +304,20 @@ tasks.register("verifyReleaseVersion") {
     }
 }
 
+def protectedReleaseAuthorization = tasks.register('verifyProtectedReleaseAuthorization') {
+    group = 'verification'
+    description = 'Requires local release validation and the complete-product entry before protected operations.'
+    dependsOn tasks.named('verifyReleaseVersion'), tasks.named('verifyVersionedDocumentationRenderer'), tasks.named('check')
+    doLast {
+        if (!gradle.taskGraph.hasTask(':publishCompleteKlumAstProduct'))
+            throw new GradleException('Use publishCompleteKlumAstProduct; individual protected operations are forbidden.')
+    }
+}
+
+tasks.named('initializeSonatypeStagingRepository') {
+    dependsOn protectedReleaseAuthorization
+}
+
 def publishMavenProductToSonatype = tasks.register("publishMavenProductToSonatype") {
     group = "publishing"
     description = "Publishes every KlumAST Maven coordinate to one protected Sonatype staging repository."
@@ -297,7 +328,7 @@ def releaseSonatypeRepository = tasks.named("releaseSonatypeStagingRepository")
 def closeSonatypeStagingRepository = tasks.named("closeAndReleaseSonatypeStagingRepository")
 def assembleGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("assemble")
 def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publishPlugins")
-def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduct") {
+tasks.register("publishCompleteKlumAstProduct") {
     group = "publishing"
     description = "Publishes the complete protected KlumAST Maven and Gradle Plugin Portal product."
     dependsOn tasks.named("check")
@@ -320,12 +351,29 @@ gradle.projectsEvaluated {
         dependsOn sonatypePublicationTasks
     }
 
-    sonatypePublicationTasks.each { publicationTask ->
-        publicationTask.configure {
-            dependsOn tasks.named("verifyReleaseVersion")
-            doFirst {
-                if (!gradle.taskGraph.hasTask(publishMavenProductToSonatype.get()))
-                    throw new GradleException("Use publishCompleteKlumAstProduct; individual Maven publication is forbidden.")
+    // Nexus binds this repository URL only after initialization. Its configured destination is protected
+    // even before that URL exists. Only authority-free file URLs are local, regardless of task/repository name.
+    def protectedDestination = { repository ->
+        if (repository.name == 'sonatype') return true
+        def destination = repository.url
+        !destination.scheme?.equalsIgnoreCase('file') || destination.authority != null
+    }
+    allprojects.each { publishingProject ->
+        publishingProject.tasks.withType(PublishToMavenRepository).configureEach { upload ->
+            dependsOn {
+                protectedDestination(upload.repository) ? [protectedReleaseAuthorization] : []
+            }
+        }
+        publishingProject.tasks.withType(Sign).configureEach { signingTask ->
+            dependsOn {
+                // Shared publication signatures can also feed Maven Local. No signatory means no key use.
+                // A signatory serving this product's protected destinations (including the Portal) is protected.
+                def publishing = publishingProject.extensions.findByName('publishing')
+                boolean protectedKey = signingTask.signatory != null && (
+                        publishingProject.findProperty('signingKey') != null ||
+                        publishingProject.plugins.hasPlugin('com.gradle.plugin-publish') ||
+                        publishing?.repositories?.any(protectedDestination))
+                protectedKey ? [protectedReleaseAuthorization] : []
             }
         }
     }
@@ -333,23 +381,18 @@ gradle.projectsEvaluated {
 
 [closeSonatypeRepository, releaseSonatypeRepository, closeSonatypeStagingRepository].each { stagingTask ->
     stagingTask.configure {
-        dependsOn tasks.named("verifyReleaseVersion")
+        dependsOn protectedReleaseAuthorization
         if (stagingTask == closeSonatypeRepository)
             dependsOn publishMavenProductToSonatype
-        doFirst {
-            if (!gradle.taskGraph.hasTask(publishCompleteKlumAstProduct.get()))
-                throw new GradleException("Use publishCompleteKlumAstProduct; direct Sonatype staging release is forbidden.")
-        }
     }
+}
+releaseSonatypeRepository.configure {
+    dependsOn closeSonatypeRepository
 }
 
 publishGradlePlugins.configure {
-    dependsOn tasks.named("verifyReleaseVersion")
-    mustRunAfter closeSonatypeStagingRepository
-    doFirst {
-        if (!gradle.taskGraph.hasTask(publishCompleteKlumAstProduct.get()))
-            throw new GradleException("Use publishCompleteKlumAstProduct; direct Gradle Plugin Portal publication is forbidden.")
-    }
+    dependsOn protectedReleaseAuthorization
+    dependsOn closeSonatypeStagingRepository
 }
 
 if (hasProperty('buildScan')) {

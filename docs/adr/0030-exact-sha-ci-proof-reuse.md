@@ -3,8 +3,9 @@
 Date: 2026-10-16
 
 Status: Accepted, revised by the canonical maintainer decision in [#903](https://github.com/klum-dsl/klum-ast/issues/903).
-Implementation status: REL-A implemented locally pending review/delivery; REL-B remains pending.
-See the [REL-A evidence record](../implementation/issue-903-rel-a-evidence.md). No release or protection state was changed.
+Implementation status: REL-A merged in PR #915; REL-B under review in PR #916.
+See the [REL-A evidence record](../implementation/issue-903-rel-a-evidence.md) and
+[REL-B evidence record](../implementation/issue-903-rel-b-evidence.md). No release or protection state was changed.
 
 Plan: [#903 implementation plan](../implementation/issue-903-ci-proof-reuse.md).
 Historical evidence: [original investigation](../implementation/issue-903-release-verification-contract.md)
@@ -92,6 +93,15 @@ and mixed local/protected graphs cannot exempt protected operations. Maven Local
 publication, nonprotected fixture signing, compilation, JAR/POM/Javadoc generation and ordinary verification remain
 usable without GitHub proof. Shared signing tasks require inspection of actual key/destination use rather than a
 blanket guard on every Sign task. Prove failure containment with stubbed operations; dry-runs alone are insufficient.
+
+The focused signing review in PR #916 retains a conservative project boundary: a non-null signatory is
+protected when the project has the production `signingKey` property, a protected Maven destination or
+the Plugin Publish plugin. This intentionally includes independent disposable signers in those projects.
+Gradle's public signing relationships do not establish complete publication consumers or disposable-key
+provenance; narrowing the boundary would require consumer traversal or additional signing policy.
+Unsigned local publication and disposable signing in isolated local-only projects remain usable.
+This restriction is an accepted tradeoff, not an outstanding implementation defect; see the
+[focused evidence](../implementation/issue-903-rel-b-evidence.md#focused-signing-classification-review).
 
 ### Release placement and independent gates
 

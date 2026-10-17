@@ -60,6 +60,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
     @Input abstract Property<String> getHistoricalDocumentationRevision()
     @Input abstract MapProperty<String, List<String>> getContractDependencies()
     @Input abstract ListProperty<String> getExpectedMavenPublicationTasks()
+    @Input abstract MapProperty<String, List<String>> getProtectedOperationDependencies()
     @Input abstract MapProperty<String, String> getLocalRenderSettings()
     @Input abstract Property<String> getWikiPublisherDescription()
     @Nested abstract ListProperty<ModuleJavadoc> getStandardJavadocs()
@@ -401,9 +402,20 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the protected Maven publication aggregate must assemble Gradle plugins before staging')
         assertTrue(dependencies['closeSonatypeStagingRepository'].contains(':publishMavenProductToSonatype'),
                 'closing the protected Sonatype staging repository must require Maven publication first')
-        String rootBuild = new File(repositoryDirectory.get().asFile, 'build.gradle').text
-        assertContains(rootBuild, 'mustRunAfter closeSonatypeStagingRepository',
-                'Gradle Plugin Portal publication must run after Sonatype release')
+        Map<String, List<String>> protectedOperations = protectedOperationDependencies.get()
+        String authorization = ':verifyProtectedReleaseAuthorization'
+        assertTrue(protectedOperations[authorization].containsAll([
+                ':verifyReleaseVersion', ':verifyVersionedDocumentationRenderer', ':check']),
+                'protected authorization must require successful local version and documentation validation')
+        for (operation in protectedOperations.entrySet()) {
+            if (operation.key != authorization)
+                assertTrue(operation.value.contains(authorization),
+                        "${operation.key} must have a real dependency on protected release authorization")
+        }
+        assertTrue(protectedOperations[':releaseSonatypeStagingRepository'].contains(':closeSonatypeStagingRepository'),
+                'staging release must require successful staging close, including under --continue')
+        assertTrue(protectedOperations[':klum-ast-gradle-plugin:publishPlugins'].contains(':closeAndReleaseSonatypeStagingRepository'),
+                'Portal publication must require successful Sonatype close/release, including under --continue')
         String baseConventions = new File(repositoryDirectory.get().asFile, 'buildSrc/src/main/groovy/klum-ast.base-conventions.gradle').text
         assertContains(baseConventions, 'gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")',
                 'protected complete-product publication must require Maven signatures')

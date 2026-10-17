@@ -295,7 +295,41 @@ independent consumer qualification remain separate release boundaries.
 
 This correction is master-first; do not backport it to `release/4.0.x`. Future maintenance-line
 admission requires the separate review specified in ADR 0030. The Gradle protected-operation
-dependency correction is the separate REL-B slice of [#903](https://github.com/klum-dsl/klum-ast/issues/903).
+dependency correction is the REL-B slice of [#903](https://github.com/klum-dsl/klum-ast/issues/903).
+
+### Local protected-operation prerequisites
+
+Every actual protected signing, Sonatype initialization, protected Maven upload, staging close/release
+and Plugin Portal operation depends on `verifyProtectedReleaseAuthorization`. That task requires
+successful `verifyReleaseVersion`, `verifyVersionedDocumentationRenderer` and the existing root `check`,
+then enforces the `publishCompleteKlumAstProduct` entry. Dependency failure blocks the operation even
+with reordered commands, parallel execution or `--continue`. Staging release also requires successful
+close, and Portal publication requires successful Sonatype close/release.
+
+Sonatype remains protected before its staging URL is initialized and when redirected to a file URL.
+Other Maven tasks are classified by their actual repository URL: only file URLs without a network
+authority are local; scheme comparisons ignore case. All other destinations are protected regardless
+of repository name. Signing classification is deliberately conservative: any `Sign` task with a
+signatory requires authorization if its project configures a protected Maven destination, applies
+`com.gradle.plugin-publish`, or has the production `signingKey` property. This also protects direct
+invocation and Maven Local requests for shared release signatures.
+
+An independent disposable signer in such a project therefore also requires release authorization,
+even when signing only a local file. Gradle's signing API does not provide a complete reverse mapping
+from a signing task to its publication consumers or establish that a separate signatory uses a
+disposable key. Narrowing the guard would require consumer traversal or additional key policy.
+The project-level restriction is an intentional tradeoff to keep release keys protected without that
+machinery. Keep disposable development signing in an isolated local-only project without production
+key configuration. Unsigned Maven Local, file-repository publication, artifact preparation and
+ordinary verification remain usable without release authorization. Local publishing does not require
+a signer; the complete protected product still requires signatures.
+
+These Gradle dependencies enforce local prerequisites. REL-A's read-only GitHub preflight and immediate
+post-approval recheck remain workflow prerequisites, and protected environments remain the credential
+authority. No local flag, file or successful task substitutes for those gates. Pending documentation,
+remote immutable-version checks, public resolve-back, REL-2 and independent consumer qualification
+retain their existing ordering and ownership. See the [REL-B evidence](docs/implementation/issue-903-rel-b-evidence.md)
+for harmless execution fixtures and the separate production graph probe; never rehearse a real release.
 
 After publication, the same protected release run proves public availability without retaining release
 credentials: it resolves the three plugin markers from the Plugin Portal once, then polls the complete
