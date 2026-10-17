@@ -166,6 +166,22 @@ The Model plugin also ensures the root has the standard Gradle Base lifecycle, i
 IDE state can be removed after final opt-out. This does not apply Java or the Model plugin to the root.
 See [refresh and retirement](Portable-GDSL.md#refresh-intellij-metadata).
 
+For tests that load the real compiled script and descriptor, follow
+[Test a separately compiled Model](Testing-Models-and-Schemas.md#test-a-separately-compiled-model).
+
+## Layer 3 topology checklist
+
+For a separately compiled [Layer 3](Layer3.md) build:
+
+- Apply the Schema plugin to both Domain API and concrete Schema projects. Declare the Schema's dependency on the
+  Domain API explicitly, normally with `api project(':domain-api')`.
+- Apply the Model plugin to the configured Model project, select the Schema with `schemas`, and register the root
+  type/script class pair with `topLevelScript`.
+- Keep a generic client's compile dependencies on the Domain API. Supply the concrete Schema and Model at runtime through
+  application wiring; Schema-specific tests may depend on them directly.
+- Select aligned KlumAST plugin/runtime versions and one matching Groovy/Spock pair across participating projects.
+  Rebuild and [test the actual Model](Testing-Models-and-Schemas.md#test-a-separately-compiled-model) when changing that selection.
+
 ## Multi module
 
 Schema and Model can be combined in a multi-project build. Refresh source mirrors for IntelliJ support;

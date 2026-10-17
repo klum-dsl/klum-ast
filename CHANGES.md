@@ -1,5 +1,9 @@
 # 4.1.0 (unreleased)
 
+- Expanded [Layer 3 guidance](docs/user/Layer3.md) with additive Schema evolution behind an unchanged Domain API and
+  local versus shared strategy relationships. Added [compiled-Model testing](docs/user/Testing-Models-and-Schemas.md#test-a-separately-compiled-model)
+  through classpath descriptors and a [Gradle topology checklist](docs/user/Gradle-Plugins.md#layer-3-topology-checklist).
+
 - Scalar `FieldType.LINK` copying with default or explicit `Single.MERGE` now selects a non-null ordinary completed
   donor by identity when the receiver already holds a completed target. Null donors preserve the receiver; neither
   referent is recursively configured or has lifecycle/validation replayed. Owned scalar merges and other strategies

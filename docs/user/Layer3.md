@@ -205,11 +205,16 @@ with an explicit `@Field(key = ...)` are rejected at Schema compilation. Unselec
 methods. The option changes neither ownership nor lifecycle behavior and can also be useful for Clusters outside a Layer
 3 architecture.
 
-## Automatic creation and linking
+## Evolve a Schema behind the Domain API
 
-The environment model can also create infrastructure automatically and connect it to an application relationship:
+Suppose Shipping now needs monitoring, but Model Writers should not have to repeat its baseline configuration. Add an
+auto-created child to the concrete `Shipping` Schema above, with a default and a link to its existing database:
 
 ```groovy
+import com.blackbuild.klum.ast.Default
+import com.blackbuild.klum.ast.layer3.AutoCreate
+import com.blackbuild.klum.ast.layer3.AutoLink
+
 @DSL
 class Shipping extends Application {
     ShippingDatabase database
@@ -222,6 +227,7 @@ class Shipping extends Application {
 class MonitoringService {
     @Owner Shipping application
     @Field(FieldType.LINK) ShippingDatabase database
+    @Default(code = { 7 }) Integer retentionDays
 
     @AutoLink
     void connectDatabase() {
@@ -229,6 +235,26 @@ class MonitoringService {
     }
 }
 ```
+
+Rebuild the Schema and run the same production Model configuration again. Neither the Model script above nor the
+API-only `deploy(Environment)` client needs a source edit for this addition:
+
+```groovy
+assert production.shipping.monitoring.retentionDays == 7
+assert production.shipping.monitoring.database.is(production.shipping.database)
+assert production.applications.shipping.is(production.shipping)
+```
+
+The abstract Domain API and its `applications` projection remain unchanged. The completed Model now contains the new
+owned monitoring child, but the generic client still sees `Application`. A Schema-specific projection that emits
+monitoring settings to a target system may need an explicit update and its own acceptance tests. Keeping this API and
+these Model sources unchanged is not a general binary-compatibility promise: rebuild and test the selected API, Schema,
+Model, and client artifacts together when upgrading. See the [Gradle topology checklist](Gradle-Plugins.md#layer-3-topology-checklist).
+
+## Automatic creation and linking
+
+In the monitoring example, AutoCreate creates the child before AutoLink resolves its database, and Default fills its
+retention period before Materialization returns the completed Model.
 
 The explicit `LINK` relationship reuses the database already owned by `Shipping`, while `?=` preserves any target set by
 the Model Writer. `@AutoCreate` and `@AutoLink` were initially useful drivers for environment models like this one, but
@@ -238,6 +264,73 @@ relationship, and lifecycle rules.
 
 For general Builder-backed `@LinkTo` provider reads, see
 [Behind the Curtain](Behind-the-Curtain.md#builder-backed-linkto-providers).
+
+### Choose a local or shared strategy
+
+A relationship may need an owner-provided default while still allowing a local override. `@LinkTo` selects
+`OPTIONAL_LINK`: leaving the relationship unset links the matching owner field; creating a child in its callback makes
+owned composition; supplying a completed strategy links that exact object. Here `strategy` matches the owner's field
+name, so no provider expression is needed:
+
+```groovy
+import com.blackbuild.klum.ast.layer3.LinkTo
+
+@DSL
+class StrategyEnvironment {
+    DeploymentStrategy strategy
+    List<StrategyApplication> applications
+}
+
+@DSL
+class StrategyApplication {
+    @Key String name
+    @Owner StrategyEnvironment environment
+    @LinkTo DeploymentStrategy strategy
+}
+
+@DSL
+class DeploymentStrategy {
+    @Owner Object owner
+    String mode
+    Integer maxUnavailable
+}
+
+// Complete the shared strategy before starting the environment's Construction session.
+def shared = DeploymentStrategy.Create.With {
+    mode 'rolling'
+    maxUnavailable 2
+}
+
+def environment = StrategyEnvironment.Create.With {
+    strategy {
+        mode 'rolling'
+        maxUnavailable 1
+    }
+    application('inherited')
+    application('local') {
+        strategy {
+            mode 'recreate'
+            maxUnavailable 0
+        }
+    }
+    application('shared') { strategy shared }
+}
+
+def applications = environment.applications.collectEntries { [(it.name): it] }
+assert applications.inherited.strategy.is(environment.strategy)
+assert environment.strategy.owner.is(environment)
+assert !applications.local.strategy.is(environment.strategy)
+assert applications.local.strategy.owner.is(applications.local)
+assert applications.local.strategy.mode == 'recreate'
+assert applications.shared.strategy.is(shared)
+assert shared.owner == null
+```
+
+The inherited default is an alias of the environment-owned strategy. The local strategy is a separate child owned by its
+application; its callback supplies its configuration rather than copying or merging the inherited strategy. The external
+shared strategy retains its identity and owner and is not reconfigured by attachment. Auto-Link leaves both explicit
+choices intact. This example describes ordinary construction and attachment; [copy strategies](Copy-Strategies.md)
+have their own contracts.
 
 ## What Cluster supplies
 
