@@ -273,6 +273,9 @@ owned composition; supplying a completed strategy links that exact object. Here 
 name, so no provider expression is needed:
 
 ```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Owner
 import com.blackbuild.klum.ast.layer3.LinkTo
 
 @DSL
