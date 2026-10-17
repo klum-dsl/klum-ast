@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testing Models and Schemas — KlumAST 4.1.0-rc.1</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.1 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="./">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="./">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="testing-models-and-schemas">Testing Models and Schemas</h1>
+<p>Schema tests are focused, local tests for the completed Models your Schema constructs. They give a Schema Developer a
+fast feedback loop for defaults, relationships, and domain rules without contacting a deployment target. They complement
+integration and acceptance tests: keep those outer tests for target contracts, adapters, and environment behavior.</p>
+<p>Start with the small Schema Gradle feedback loop in <a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a>: put the Schema in
+<code>src/main/groovy</code>, its Spock tests in <code>src/test/groovy</code>, and run <code>./gradlew test</code>. The Schema plugin supplies the normal
+KlumAST compiler/runtime and matching Groovy/Spock setup.</p>
+<p>For a new one-module direct-schema project, the copyable <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/start-klum-project"><code>start-klum-project</code> skill</a> pins its setup and validation guidance to public 4.0.1. Its <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/fixtures/direct-schema-public-4.0.1">public-coordinate mission</a> exercises a completed Model and a semantic validation-message assertion with native Spock tests.</p>
+<h2 id="assert-a-completed-model">Assert a completed Model</h2>
+<p>Construct through the generated root factory, then assert the completed Model's public state. The callback configures a
+Builder; the value returned by <code>Create.With</code> is the completed Model under test.</p>
+<p>(See: <code>TestingModelsAndSchemasDocumentaryTest#'constructs and asserts a completed Model'</code>.)</p>
+<pre><code class="language-groovy">class DeploymentSpec extends Specification {
+
+    def 'builds the catalog deployment'() {
+        when:
+        def deployment = Deployment.Create.With('catalog') {
+            image 'catalog:1.0'
+        }
+
+        then:
+        deployment.name == 'catalog'
+        deployment.image == 'catalog:1.0'
+    }
+}
+</code></pre>
+<p>Keep assertions at the public completed-model boundary. A focused model test is the right place to prove that the Schema
+constructs the expected model; an integration or acceptance test still proves that a target system accepts and uses its
+separate projection.</p>
+<h2 id="test-a-separately-compiled-model">Test a separately compiled Model</h2>
+<p>A Schema unit test constructs a small Model inline. To test a separately compiled Model, load its real entry-point script
+and descriptor instead of repeating its configuration in the test. The Model plugin's <code>topLevelScript</code> connects the root
+type used by <code>Create.FromClasspath()</code> to the compiled script class. For a Model using the
+<a rel="nofollow" href="../Layer3/#end-to-end-environment-example">Layer 3 environment Schema</a>, give the Schema types an <code>example.schema</code> package
+and place the production script in <code>model/src/main/groovy/example/model/Production.groovy</code>:</p>
+<pre><code class="language-groovy">package example.model
+
+import example.schema.CustomerEnvironment
+
+CustomerEnvironment.Create.With('production') {
+    applications {
+        shipping {
+            displayName 'Shipping'
+            database { url 'jdbc:postgresql://shipping/prod' }
+            frontend { replicas 3; ssl true }
+        }
+        billing {
+            displayName 'Billing'
+            database { url 'jdbc:postgresql://billing/prod' }
+            service { endpoint 'https://billing.example.test' }
+        }
+    }
+}
+</code></pre>
+<p>Using the shared plugin/version setup from <a rel="nofollow" href="../Gradle-Plugins/#multi-module">Gradle Plugins</a>, configure the Model project:</p>
+<pre><code class="language-groovy">// model/build.gradle
+plugins {
+    id 'com.blackbuild.klum-ast-model'
+}
+
+klumModel {
+    schemas { schema project(':schema') }
+    topLevelScript 'example.schema.CustomerEnvironment', 'example.model.Production'
+}
+</code></pre>
+<p><code>processResources</code> includes the generated <code>META-INF/klum-model/example.schema.CustomerEnvironment.properties</code> descriptor
+in the Model output and JAR, with <code>model-class=example.model.Production</code>. The first argument must match the factory's
+root type; it is not inferred from the abstract Domain API. The second names the compiled class, not a source path.</p>
+<p>Place a Spock test in <code>model/src/test/groovy</code> and run <code>./gradlew :model:test</code>. The Model plugin supplies matching test
+dependencies and JUnit Platform configuration; the normal test runtime includes the compiled Model and descriptor:</p>
+<pre><code class="language-groovy">import example.schema.CustomerEnvironment
+import spock.lang.Specification
+
+class ProductionModelTest extends Specification {
+    def 'production exposes deployable shipping configuration'() {
+        when:
+        def environment = CustomerEnvironment.Create.FromClasspath()
+
+        then:
+        environment.name == 'production'
+        environment.applications.keySet() == ['shipping', 'billing'] as Set
+        environment.shipping.frontend.ssl
+        environment.shipping.frontend.replicas == 3
+        environment.shipping.database.url.startsWith('jdbc:postgresql:')
+    }
+}
+</code></pre>
+<p>For a separate consumer test project, depend on the published Model artifact with <code>testImplementation</code> (or
+<code>project(':model')</code> within the same build), and configure Groovy/Spock as described in
+<a rel="nofollow" href="../Gradle-Plugins/#comblackbuildconventiongroovy">Gradle Plugins</a>. Its test runtime needs the Model JAR, its descriptor,
+the Schema and Domain API artifacts, KlumAST runtime, and the selected Groovy runtime. Keep one intended descriptor per
+root type visible; classpath discovery does not combine multiple Models. <code>Create.FromClasspath()</code> uses the thread context
+class loader; use <code>Create.FromClasspath(loader)</code> when a host supplies a separate loader that can see those inputs.</p>
+<p>If the real recipe requires external context, provide that context through the application's existing mechanism before
+loading it, and restore test-scoped context afterward. <code>topLevelScript</code> declares discovery metadata; it does not inject
+application inputs. Assert the completed Model's semantic values and relationships. Keep serialized output or deployment
+assertions in the corresponding projection/acceptance test. See <a rel="nofollow" href="../Convenience-Factories/#classpath">classpath factories</a>
+for the manual marker recipe.</p>
+<h2 id="reuse-a-domain-api-contract-across-schema-realizations">Reuse a Domain API contract across Schema realizations</h2>
+<p>When one Layer 3 Domain API has several Schema realizations, keep reusable generic assertions with the Domain API rather
+than copying them into each Schema test. In an application-owned multi-project build, enable Gradle's
+<code>java-test-fixtures</code> capability in the Domain API project. Each Schema realization explicitly consumes that fixture and
+supplies the concrete Model creation hook for the shared contract:</p>
+<pre><code class="language-groovy">// schema/build.gradle
+dependencies {
+    testImplementation(testFixtures(project(':domain-api')))
+}
+</code></pre>
+<p>The shared contract names Domain API types only; Schema tests retain their concrete Schema assertions. Every
+participating Domain API, Schema, and Model module must select the same Groovy/Spock pair. KlumAST plugins do not infer
+an application's Domain API test dependency or map it to a project, so keep each fixture dependency explicit.</p>
+<h2 id="assert-a-validation-failure">Assert a validation failure</h2>
+<p>Give a domain rule an explicit message and assert its stable semantic fragment. The full exception also includes the
+construction path and reporting details, which are useful diagnostics but unnecessarily brittle as a test's whole
+expectation.</p>
+<pre><code class="language-groovy">@DSL
+class Deployment {
+    @Validate(message = 'A deployment image is required')
+    String image
+}
+</code></pre>
+<p>(See: <code>TestingModelsAndSchemasDocumentaryTest#'reports an explicit validation message for an invalid completed Model'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
+
+when:
+Deployment.Create.One()
+
+then:
+def exception = thrown(KlumValidationException)
+exception.message.contains('A deployment image is required')
+</code></pre>
+<p>See <a rel="nofollow" href="../Validation/">Validation</a> for choosing <code>@Required</code>, field validation, and cross-field validation methods.</p>
+<h2 id="reuse-templates-across-a-spock-feature">Reuse Templates across a Spock feature</h2>
+<p>For a Schema or Model module, the corresponding plugin already provides the published test-only <code>TemplateScope</code> artifact on
+<code>testImplementation</code>. Do not add a second <code>klum-ast-test-support</code> dependency. That test-classpath convenience is
+independent of the plugin's optional Spock setup, so the scope is available to Java/JUnit tests as well.</p>
+<p>Only a direct Java or Groovy consumer that applies <strong>neither</strong> plugin declares the normal runtime and test-support artifacts
+itself. Keep those versions aligned with the KlumAST BOM:</p>
+<pre><code class="language-groovy">dependencies {
+    testImplementation platform('com.blackbuild.klum.ast:klum-ast-bom:4.1.0-rc.1')
+    testImplementation 'com.blackbuild.klum.ast:klum-ast-runtime'
+    testImplementation 'com.blackbuild.klum.ast:klum-ast-test-support'
+}
+</code></pre>
+<p><code>TemplateScope</code> receives already materialized Templates from the normal <code>Create.Template.With(...)</code> API. Declare a
+non-<code>@Shared</code> instance field and let Spock close it with <code>@AutoCleanup</code>; Spock calls <code>close()</code> after <code>cleanup</code>, so template
+defaults remain available to cleanup work. Create a scope with its constructor—there is no static open operation.</p>
+<p>(See: <code>TemplateScopeTest#'keeps setup Templates active for the feature and owned Builder creation'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.testsupport.TemplateScope
+import spock.lang.AutoCleanup
+
+class DeploymentSpec extends Specification {
+
+    @AutoCleanup
+    TemplateScope templates = new TemplateScope()
+
+    def setup() {
+        templates.with(Deployment.Create.Template.With(image: 'catalog:1.0'))
+    }
+
+    def 'uses the baseline template'() {
+        expect:
+        Deployment.Create.One().image == 'catalog:1.0'
+    }
+
+    def cleanup() {
+        assert Deployment.Create.One().image == 'catalog:1.0'
+    }
+}
+</code></pre>
+<p>Use a separate <code>TemplateScope</code> instance for each test feature. For a small lexical Java-only test, ordinary
+try-with-resources with <code>new TemplateScope().with(template)</code> is equivalent. The scope accepts materialized Templates; it
+does not create Templates or provide a general production construction mechanism. See <a rel="nofollow" href="../Templates/">Templates</a> for
+Template creation and ordinary callback-scoped application.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
