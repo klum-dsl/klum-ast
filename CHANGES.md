@@ -31,7 +31,7 @@
   compiled Java/Groovy libraries; duplicate diagnostics identify both occurrences, and container/default
   use locations survive projection and Required/Optional lowering. Collector selections are rejected;
   early collector rewriting remains unsupported. Domain values are retained without forwarding. Uses the neutral KlumCast contributor seam
-  and aligned public `0.5.0-rc.2` artifacts from Central. Recompile consuming Schemas after changing
+  and aligned public `0.5.0` artifacts from Central. Recompile consuming Schemas after changing
   requests and remove newly duplicated explicit annotations. Direct-annotation parity is qualified for
   abstract/source/binary inheritance, public Builder/Factory and cluster signatures, Java/static Groovy
   consumers, source mirrors, Required/Optional lowering and AutoCreate lifecycle ordering. Separate-artifact

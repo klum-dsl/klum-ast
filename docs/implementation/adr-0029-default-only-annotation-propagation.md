@@ -5,7 +5,8 @@ Status: AP-1 through AP-4 merged at `ce897d5f7bd4aec2380f8369d12337fec30bf00a`; 
 consumer guidance is prepared and real ScHelm development-consumer admission is PASS. Draft delivery
 and final-head CI/SonarCloud follow. The
 [AP-5 acceptance ledger](issue-890-ap5-evidence.md) consolidates slice delivery and open conditions.
-Public KlumCast `0.5.0-rc.2` remains the Central-only prerequisite pairing.
+The current Central-only prerequisite pairing is released KlumCast `0.5.0`. The AP-1 through AP-5
+records retain the exact `0.5.0-rc.2` inputs used for their historical qualification.
 
 ## AP-1 authorization and current implementation boundary (2026-10-14)
 

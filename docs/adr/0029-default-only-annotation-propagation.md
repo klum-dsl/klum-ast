@@ -9,7 +9,8 @@ draft delivery and final-head CI/SonarCloud verification follow.
 Implementation status (2026-10-15): production propagation and AP-2 diagnostics, AP-3 contract parity,
 and AP-4 artifact/module qualification are merged through `ce897d5f7bd4aec2380f8369d12337fec30bf00a`
 ([PR #900](https://github.com/klum-dsl/klum-ast/pull/900)). Public KlumCast `0.5.0-rc.2`, resolved normally
-from Central for annotations, SPI and compiler, remains the qualification input. See the
+from Central for annotations, SPI and compiler, was the AP-1 through AP-5 qualification input.
+The current dependency pairing uses released `0.5.0`; the RC records below retain their historical inputs. See the
 [AP-5 acceptance ledger](../implementation/issue-890-ap5-evidence.md) for the merged slice references,
 local documentation and the admitted real ScHelm result with its development-only and diagnostic/editor
 limits. Earlier KlumCast dev/Maven-Local

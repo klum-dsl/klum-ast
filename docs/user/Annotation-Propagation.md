@@ -245,7 +245,7 @@ annotations with a propagating policy, remove the now-duplicate explicit annotat
 
 Use a matching KlumAST 4.1 compiler and annotation library that both provide this feature. Adding the
 marker library to an older compiler is insufficient. The qualified dependency pairing uses KlumCast
-`0.5.0-rc.2` consistently across annotations, SPI and compiler, with Java 17 and Groovy 3/4/5
+`0.5.0` consistently across annotations, SPI and compiler, with Java 17 and Groovy 3/4/5
 (Groovy 3 on the classpath; Groovy 4/5 also in named modules). This is development qualification, not
 a promise that an older or mixed compiler/annotation combination works.
 
