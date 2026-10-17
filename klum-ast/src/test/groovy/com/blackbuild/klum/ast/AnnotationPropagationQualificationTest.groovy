@@ -41,9 +41,9 @@ class AnnotationPropagationQualificationTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
     private static final Path FIXTURES = Path.of('src/test/fixtures/annotation-propagation-artifacts')
     private static final Map<String, String> CAST_HASHES = [
-            'klum-cast-annotations': 'ac0908461574e0023db5ae39902bb5c7a237f26c9f2c2ab57e0a64c117aa3515',
-            'klum-cast-spi': '7eecfcf861f4995909fc28ff9bbbd9d022eb7ddf155c2acdf5c13e4d98bbd074',
-            'klum-cast-compile': '7789b1104ff72152b904c1987265fa390ba6e25f3e51e93c387b08436ca8dd87'
+            'klum-cast-annotations': '3bb36f43fc90f27a04568673988fb8afb128d6ef00d7fe4c6de658eec5e981d2',
+            'klum-cast-spi': '7aa1cfc700de2ca275f6c9124e28859f93d313023896c582fa8bf7d7a14d8e52',
+            'klum-cast-compile': 'aa04039be352872bf48c9f60e6f45f140d88c1428886cb334c21529471cf71a2'
     ]
 
     def 'shipped artifacts qualify separate libraries foreign discovery and binary snapshots (named=#named)'() {
@@ -221,8 +221,8 @@ class AnnotationPropagationQualificationTest extends Specification {
         assert descriptor.exports().empty
         assert descriptor.provides().find { it.service() == service }.providers() == [provider]
         CAST_HASHES.each { artifact, hash ->
-            Path jar = shipped.find { it.fileName.toString() == "$artifact-0.5.0-rc.2.jar" }
-            assert jar != null : "Missing exact public RC.2 artifact: $artifact"
+            Path jar = shipped.find { it.fileName.toString() == "$artifact-0.5.0.jar" }
+            assert jar != null : "Missing exact public 0.5.0 artifact: $artifact"
             assert MessageDigest.getInstance('SHA-256').digest(Files.readAllBytes(jar)).encodeHex().toString() == hash
         }
     }

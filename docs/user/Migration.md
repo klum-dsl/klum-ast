@@ -16,7 +16,7 @@ Builder; generated `Create` Factory selectors retain the exact selected Builder 
 [Annotation propagation](Annotation-Propagation.md) adds default-only composition on DSL Schema
 classes, fields and methods. Upgrade the KlumAST compiler and annotation library together to a pairing
 that provides the marker and contributor; a new marker alone does not enable an older compiler.
-Use aligned KlumCast annotations/SPI/compiler `0.5.0-rc.2` dependencies. Compile domain annotation
+Use aligned KlumCast annotations/SPI/compiler `0.5.0` dependencies. Compile domain annotation
 libraries first, then recompile consuming Schemas after adding or changing requests.
 
 When adopting a domain that now requests AutoCreate, remove the former bare explicit `@AutoCreate`

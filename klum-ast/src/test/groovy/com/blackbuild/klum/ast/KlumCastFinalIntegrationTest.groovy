@@ -35,7 +35,7 @@ import java.util.jar.JarFile
 @Issue(["459", "524"])
 class KlumCastFinalIntegrationTest extends Specification {
 
-    private static final String SUPPORTED_VERSION = "0.5.0-rc.2"
+    private static final String SUPPORTED_VERSION = "0.5.0"
     private static final String AST_TRANSFORMATION_SERVICE = "META-INF/services/org.codehaus.groovy.transform.ASTTransformation"
 
     @Issue("890")
