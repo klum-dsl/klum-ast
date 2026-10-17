@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Scalar `FieldType.LINK` copying with default or explicit `Single.MERGE` now selects a non-null ordinary completed
+  donor by identity when the receiver already holds a completed target. Null donors preserve the receiver; neither
+  referent is recursively configured or has lifecycle/validation replayed. Owned scalar merges and other strategies
+  retain their behavior. See [copy strategies](docs/user/Copy-Strategies.md#merge)
+  ([#917](https://github.com/klum-dsl/klum-ast/issues/917)).
+
 - Class-selected relationship creators now return the declared polymorphic Builder instead of the `defaultImpl`
   Builder, avoiding sibling-subtype cast failures for OPTIONAL_LINK, owned, keyed, Collection, and Map creation.
   Implicit default creation, Templates, completed targets, and existing-child guards retain their behavior.

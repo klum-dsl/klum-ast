@@ -184,7 +184,8 @@ public class CopyHandler {
                 break;
             case MERGE:
                 if (templateValue != null) {
-                    if (currentValue == null || !isDslType(field.getType()))
+                    if (currentValue == null || !isDslType(field.getType())
+                            || isCompletedLinkMerge(field, currentValue, templateValue))
                         replaceValue(field, templateValue);
                     else
                         copyNested(currentValue, templateValue);
@@ -194,6 +195,14 @@ public class CopyHandler {
             default:
                 throwInvalidStrategy(strategy);
         }
+    }
+
+    private static boolean isCompletedLinkMerge(Field field, Object currentValue, Object donorValue) {
+        return DslHelper.isLink(field)
+                && currentValue instanceof InternalKlumBuilder
+                && ((InternalKlumBuilder<?>) currentValue).isSealed()
+                && DslHelper.isDslObject(donorValue)
+                && !TemplateManager.isTemplate(donorValue);
     }
 
     private <T> T getTemplateValue(String fieldName, Class<T> type) {
