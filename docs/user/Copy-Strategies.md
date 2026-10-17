@@ -61,8 +61,9 @@ The metadata capability changes neither route; see the linked copy boundary befo
 
 Single object strategies handle how a single object field is copied from a donor recipe. The behaviour differs for DSL
 Objects and ordinary values. Ordinary values are retained, so donor and completed model share the same value instance.
-A DSL Object donor is treated as a recipe: its state is rehydrated into a fresh child Builder and copied using that DSL
-Object type's overwrite strategies. The completed donor object itself is never adopted as owned composition.
+For owned composition, a DSL Object donor is treated as a recipe: its state is rehydrated into a fresh child Builder and
+copied using that DSL Object type's overwrite strategies. The completed donor object itself is never adopted as owned composition.
+A completed aggregation target assigned to a `FieldType.LINK` field retains its exact identity.
 
 The strategy is determined by checking in the following order and using the first match:
 
@@ -124,6 +125,13 @@ The target field is on set if it was null before. This can be used to set defaul
 ### MERGE
 
 Merge is the default strategy. For non-DSL fields, this behaves exactly as `REPLACE`. For DSL fields, the donor's value is copied into the targets value (or a newly created object if the target's value is null). The nested fields are copied over using the overwrite strategies of the target's field's type.
+
+For a scalar `FieldType.LINK` already holding a completed aggregation target, a non-null ordinary completed donor replaces
+that target by exact identity; a null donor preserves the existing target. This applies to both default and explicit
+`MERGE`, whether the containing donor is a Model, a Template, or a Map. Neither completed referent is recursively
+configured, rehydrated, or subjected to lifecycle or validation again. A nested Template or Map recipe cannot be merged
+into the sealed target; use an ordinary completed LINK value. Live same-session Builder aliases, `OPTIONAL_LINK`, and
+Collection/Map strategies retain their existing behavior. Regression coverage is in `ScalarLinkCopyTest` ([#917](https://github.com/klum-dsl/klum-ast/issues/917)).
 
 ## Collections
 

@@ -9,6 +9,11 @@ keeps its breadcrumb and model path; a completed object supplied to a `FieldType
 model. Templates cannot be assigned directly to any relationship, including `LINK`: apply them through `Template.With`,
 `copyFrom`, or another Template/copy API so KlumAST can build a fresh owned graph.
 
+When `copyFrom` applies a Template to an already populated scalar `LINK` with default or explicit `MERGE`, an ordinary
+completed LINK value in the Template replaces the recipient's completed target by identity. A null LINK value preserves
+the recipient's target. Neither referent replays lifecycle or validation; the containing Template's recipe still replays
+on the recipient. See [scalar copy strategies](Copy-Strategies.md#merge).
+
 Deferred `applyLater` actions live only in immutable Template recipe state, never in ordinary completed models. Recipe
 closures are detached and their captured graph is checked when the Template materializes. Captured Builders and
 non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
