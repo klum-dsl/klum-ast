@@ -1,5 +1,9 @@
 # 4.1.0 (unreleased)
 
+- Restored compilation of `@Overwrite` declarations that configure only `missing`, including meta-annotations;
+  declarations with no configured strategy remain invalid
+  ([#921](https://github.com/klum-dsl/klum-ast/issues/921)).
+
 - Expanded [Layer 3 guidance](docs/user/Layer3.md) with additive Schema evolution behind an unchanged Domain API and
   local versus shared strategy relationships. Added [compiled-Model testing](docs/user/Testing-Models-and-Schemas.md#test-a-separately-compiled-model)
   through classpath descriptors and a [Gradle topology checklist](docs/user/Gradle-Plugins.md#layer-3-topology-checklist).

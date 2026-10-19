@@ -335,8 +335,9 @@ Note that only one level of nesting is supported, i.e. you cannot nest annotatio
 
 ## Missing field handling
 
-The `@Overwrite` annotation as well as nested annotations can contain an additional member named `missing` of type
-`OverwriteStrategy.Missing`, which controls the handling of fields in the donor that are not present in the target
-object. This can either be `FAIL` (the default) or `IGNORE`.
+The `@Overwrite` annotation as well as nested annotations can configure the `missing` member with
+`@Overwrite.Missing(OverwriteStrategy.Missing.IGNORE)` to ignore fields in the donor that are not present in the target
+object. The default is `OverwriteStrategy.Missing.FAIL`. The `missing` member can be configured on its own, without
+setting `singles`, `collections`, or `maps`.
 
 Note that `Overwrite.Missing` itself can only be used on annotation types. Since the missing-strategy is checked on the target class, it is resolved from the target class (including its `@Overwrite`, package and superclasses), not from a field.

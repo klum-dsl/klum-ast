@@ -33,7 +33,7 @@ import java.util.List;
 
 public class OverwriteStrategiesCheck implements Check {
 
-    private static final List<String> STRATEGY_MEMBERS = List.of("singles", "collections", "maps");
+    private static final List<String> STRATEGY_MEMBERS = List.of("singles", "collections", "maps", "missing");
 
     @Override
     public List<Diagnostic> check(CheckContext context) {

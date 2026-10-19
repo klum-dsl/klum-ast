@@ -527,6 +527,56 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         target.args == []
     }
 
+    @Issue("921")
+    def "missing-only direct overwrite declaration compiles"() {
+        when:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
+
+            @Overwrite(missing = @Overwrite.Missing(OverwriteStrategy.Missing.IGNORE))
+            @DSL class Configuration {
+                String image
+            }
+        """
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("921")
+    def "missing-only meta overwrite declaration compiles"() {
+        when:
+        createSecondaryClass """
+            package pk
+
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
+            import java.lang.annotation.ElementType
+            import java.lang.annotation.Retention
+            import java.lang.annotation.RetentionPolicy
+            import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.TYPE)
+            @Overwrite(missing = @Overwrite.Missing(OverwriteStrategy.Missing.IGNORE))
+            @interface IgnoreMissingFields {}
+        """
+        createClass """
+            package pk
+
+            @IgnoreMissingFields
+            @DSL class Configuration {
+                String image
+            }
+        """
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     @Issue("581")
     def "incomplete direct overwrite declaration remains rejected"() {
         when:
@@ -543,7 +593,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
 
         then:
         def error = thrown(MultipleCompilationErrorsException)
-        error.message.contains("At least one of [singles, collections, maps] must be set")
+        error.message.contains("At least one of [singles, collections, maps, missing] must be set")
     }
 
 }
