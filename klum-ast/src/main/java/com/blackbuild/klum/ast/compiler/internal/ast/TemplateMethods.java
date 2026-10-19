@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
@@ -67,8 +68,10 @@ class TemplateMethods {
     private final InnerClassNode builderClass;
 
     public TemplateMethods(DSLASTTransformation transformation) {
-        annotatedClass = transformation.annotatedClass;
-        builderClass = transformation.builderClass;
+        annotatedClass = Objects.requireNonNull(transformation.annotatedClass,
+                "DSL class must be initialized before Template generation");
+        builderClass = Objects.requireNonNull(transformation.builderClass,
+                "Builder must be initialized before Template generation");
         dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 

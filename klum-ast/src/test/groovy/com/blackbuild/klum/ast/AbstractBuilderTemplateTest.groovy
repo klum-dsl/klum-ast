@@ -74,8 +74,11 @@ class AbstractBuilderTemplateTest extends AbstractDSLSpec {
         schema()
         when:
         Parent.Create.Template.With {
-            if (indirect) invokeRender()
-            else render('!', 2)
+            if (indirect) {
+                invokeRender()
+            } else {
+                render('!', 2)
+            }
         }
         then:
         def error = thrown(KlumModelException)
