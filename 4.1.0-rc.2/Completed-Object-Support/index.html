@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Completed Object Support — KlumAST 4.1.0-rc.2</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.2 · Public release candidate</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="./">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="./">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="public-rc">4.1.0-rc.2 is a prerelease, not stable. <a href="../status/">Version status</a>.</aside>
+      <h1 id="completed-object-support">Completed Object Support</h1>
+<p>Completed DSL Objects are immutable results of KlumAST construction. Client code may still need to inspect where an
+object came from, navigate its ownership structure, or traverse its composed children. <code>KlumObjectSupport</code> is the stable,
+Java-first entry point for those operations without exposing the object's internal Model companion.</p>
+<p>The facade accepts either a completed root object or any completed DSL Object in its subtree:</p>
+<pre><code class="language-java">import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
+import java.util.List;
+import java.util.Map;
+
+KlumObjectSupport&lt;Deployment&gt; support = KlumObjectSupport.of(deployment);
+
+Deployment object = support.getObject();
+String constructionPath = support.getConstructionPath();
+String modelPath = support.getModelPath();
+
+KlumObjectSupport.Structure&lt;Deployment&gt; structure = support.getStructure();
+Map&lt;String, Service&gt; services = structure.findAll(Service.class);
+
+KlumObjectSupport.Validation&lt;Deployment&gt; validation = support.getValidation();
+KlumValidationResult result = validation.getResult();
+List&lt;KlumValidationResult&gt; subtreeResults = validation.getSubtreeResults();
+</code></pre>
+<p>The Javadoc for <code>KlumObjectSupport</code> and its nested <code>Structure</code> and <code>Validation</code> helpers is the source of truth for complete
+signatures, overloads, return types, and exceptional cases.</p>
+<h2 id="construction-and-structural-model-paths">Construction and structural model paths</h2>
+<p>The final 4.0 facade names the Builder/factory call path <code>getConstructionPath()</code>. It is the immutable construction path
+through which the object was created. <code>getModelPath()</code> reports the object's structural location in the completed model.
+These answer different questions and are not interchangeable.</p>
+<p>(See: <code>CompletedObjectSupportDocumentaryTest#'reports distinct construction and structural paths for a completed deployment'</code>.)</p>
+<pre><code class="language-groovy">given:
+@DSL class Deployment {
+    Service service
+}
+
+@DSL class Service {
+}
+
+when:
+def deployment = Deployment.Create.With {
+    service {}
+}
+def deploymentSupport = KlumObjectSupport.of(deployment)
+def serviceSupport = KlumObjectSupport.of(deployment.service)
+
+then:
+assert deploymentSupport.constructionPath == '$/Deployment.With'
+assert serviceSupport.constructionPath == '$/Deployment.With/service'
+assert deploymentSupport.modelPath == '&lt;root&gt;'
+assert serviceSupport.modelPath == '&lt;root&gt;.service'
+</code></pre>
+<p>There is no public <code>getBreadcrumbPath()</code> alias. <code>BreadcrumbCollector</code> remains an internal implementation name. The
+construction path is not provenance: KlumAST does not retain a source-lineage, applied-Template, or lifecycle-event
+record.</p>
+<p>Traversal methods produce contextual traversal paths. Managed import contributes an import source, and validation records a
+validation location. Neither is a substitute for the construction or structural model path.</p>
+<h2 id="ownership-paths-and-traversal">Ownership, paths, and traversal</h2>
+<p><code>getStructure()</code> groups operations that inspect the completed composition graph:</p>
+<ul>
+<li>direct and single-owner lookup, owner hierarchy, and nearest ancestors by type;</li>
+<li>full paths from the composition root and relative paths from one object to an owned descendant; and</li>
+<li>typed <code>findAll</code> and <code>visit</code> traversal. The public traversal signatures are
+<code>visit(Class&lt;R&gt;, BiConsumer&lt;String, R&gt;)</code> and <code>findAll(Class&lt;R&gt;)</code>; the runtime traversal visitor is internal.</li>
+</ul>
+<p>Traversal follows composed DSL values only. Owner and <code>LINK</code> edges are not followed, and identity-based cycle protection
+ensures that object graphs remain safe even when DSL types override <code>equals</code>.</p>
+<p>(See: <code>CompletedObjectSupportDocumentaryTest#'traverses a deployment composition without following linked services'</code>.)</p>
+<pre><code class="language-groovy">given:
+@DSL class Deployment {
+    Service api
+    List&lt;Service&gt; services
+    @Field(FieldType.LINK) Service catalogService
+}
+
+@DSL class Service {
+    @Key String name
+    @Owner Deployment deployment
+}
+
+def catalog = Service.Create.With('catalog') {}
+
+when:
+def deployment = Deployment.Create.With {
+    api('api') {}
+    services {
+        service('worker') {}
+    }
+    catalogService catalog
+}
+def structure = KlumObjectSupport.of(deployment).structure
+
+then:
+assert structure.getRelativePath(deployment.services[0]) == 'services[0]'
+assert KlumObjectSupport.of(deployment.api).structure.singleOwner.get().is(deployment)
+assert structure.findAll(Service).keySet() == ['&lt;root&gt;.api', '&lt;root&gt;.services[0]']
+</code></pre>
+<h2 id="owning-schema-declarations">Owning Schema declarations</h2>
+<p>The <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/856">#856</a> capability for 4.1 adds read-only declaration queries to both
+completed Object Structure and active Builder Structure. When authoritative ownership is available, the immutable
+declaration identifies the accepted owning Schema field, including its original declaring class when inherited.
+It works without an <code>@Owner</code> backreference; valid objects without authority return <code>Optional.empty()</code>.</p>
+<pre><code class="language-java">import java.util.Optional;
+import com.blackbuild.klum.ast.runtime.KlumBuilderSupport;
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+import com.blackbuild.klum.ast.runtime.KlumSchemaRelationship;
+
+// receiver is a Builder in an active callback after OWNER(15).
+Optional&lt;Binding&gt; binding = KlumBuilderSupport.of(receiver).getStructure()
+    .getOwningRelationshipAnnotation(Binding.class);
+// candidate is an independently completed Model.
+Optional&lt;Source&gt; source = KlumObjectSupport.of(candidate).getStructure()
+    .getOwningRelationshipAnnotation(Source.class);
+Optional&lt;KlumSchemaRelationship&gt; declaration = KlumObjectSupport.of(candidate).getStructure()
+    .getOwningRelationship();
+</code></pre>
+<p><code>Binding</code>, <code>Source</code>, and <code>DefaultSource</code> in this example are consumer-defined, runtime-retained field annotations.
+KlumAST supplies no provider-selection rules. A consuming Schema may use these annotations in its inherited AUTO_LINK
+callback and pass the selected completed value to the existing typed relationship method.</p>
+<p>(See: <code>OwningRelationshipTracerTest#'inherited AUTO_LINK selects a completed provider through consumer-owned annotations'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Facts { String topic }
+@DSL class ProviderBase {
+    @Source('primary') @DefaultSource(Facts) Facts primary
+    @Source('secondary') Facts secondary
+}
+@DSL class Provider extends ProviderBase {}
+@DSL class ReceiverBase {
+    @Field(FieldType.LINK) Facts facts
+    @AutoLink void bindFacts() {
+        if (facts != null) return
+        def binding = KlumBuilderSupport.of(this).structure
+            .getOwningRelationshipAnnotation(Binding).orElseThrow()
+        facts Policy.choose(binding.value(), Facts)
+    }
+}
+@DSL class Receiver extends ReceiverBase {}
+@DSL class ApplicationBase { @Binding('secondary') Receiver receiver }
+@DSL class Application extends ApplicationBase {}
+
+// Policy belongs to this Schema. Its completed candidates are supplied before construction.
+def provider = Provider.Create.With {
+    primary { topic 'main' }
+    secondary { topic 'alternative' }
+}
+Policy.candidates = [provider.primary, provider.secondary]
+def application = Application.Create.With { receiver {} }
+assert application.receiver.facts.is(provider.secondary)
+assert KlumObjectSupport.of(provider.secondary).structure
+    .getOwningRelationshipAnnotation(Source).orElseThrow().value() == 'secondary'
+</code></pre>
+<p>The executable example's <code>Policy.choose</code> reads Source/default markers through completed Object Structure. Its explicit
+binding and requested-type default behavior is example consumer policy, not a framework precedence contract. An explicit
+<code>facts</code> value remains selected by the callback's own early return.</p>
+<p>Both views provide <code>getOwningRelationship()</code> and <code>&lt;A extends Annotation&gt; getOwningRelationshipAnnotation(Class&lt;A&gt;)</code>.
+An eligible root, absent retained declaration, or missing annotation yields <code>Optional.empty()</code>. Absence means no known
+declaration; it does not prove that an object is a root. A descriptor exposes <code>getDeclaringClass()</code>, <code>getName()</code> and
+<code>getAnnotation(Class&lt;A&gt;)</code>. Equality uses declaring Class identity and field name, independent of receiver or path.
+Annotation lookup reads only annotations directly present on the field, including private fields, without reading the
+field value or expanding repeatable/meta-annotations.</p>
+<p>A Builder Structure view can be acquired during configuration, but <strong>each ownership query</strong> requires that Builder to
+belong to the current thread's active Construction session and the current numeric phase to be strictly after
+<code>OWNER(15)</code>. Configuration and phases at or below 15 throw <code>KlumModelException</code>, including root and missing-annotation
+queries. Normal sealing during materialization does not end this read lifetime: same-session queries remain eligible
+through phase 40 and later phases. Completed LINK wrappers read their target's original retained declaration, not the
+importing LINK field. After completion/abort, on another thread, or in another session, the live view rejects. Retained
+immutable descriptors remain readable. Use completed Object support for normal work after construction returns.</p>
+<p>Null receivers and annotation Classes throw <code>NullPointerException</code> naming the argument. An explicit retained declaration
+that cannot resolve throws <code>KlumSchemaException</code> naming the Schema and field. Marked Templates retain their existing
+public rejection, and this capability adds no mutation, Builder traversal, or Model extraction.</p>
+<p>Normal direct, List, Set, and Map composition retains the containing Schema declaration, including inherited fields.
+Repeated LINK/OPTIONAL_LINK aliases retain the target's original declaration. Container position and map key do not change
+declaration identity.</p>
+<h3 id="templates-copies-and-imports">Templates, copies, and imports</h3>
+<p>(See: <code>RelationshipTemplateCopyTest#'a Template child is recaptured under the recipient field on each application'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Node { String value }
+@DSL class Definition { Node child }
+@DSL class Recipient { Node actual }
+
+def recipe = Definition.Create.Template.With {
+    child { value 'configured' }
+}
+def result = Recipient.Create.With {
+    actual { copyFrom recipe.child }
+}
+
+assert KlumObjectSupport.of(result.actual).structure.owningRelationship.orElseThrow().name == 'actual'
+</code></pre>
+<p>Templates retain accepted definition declarations internally, while public Object support still rejects marked Templates
+and their owned nodes. Application/copy captures fresh recipient claims; it never adopts donor metadata as an owning
+edge. Standalone copy roots have no owning declaration. Single-field copies from ordinary Models, Templates, Maps and
+active same-session Builders, and merges into already claimed children, retain the recipient placement.</p>
+<p>Direct copied-container insertions preserve existing alias identity but establish no authoritative owning claim, even
+for a unique placement. Their metadata remains empty. A copied container alias of an already claimed child retains that
+accepted declaration. Empty metadata does not identify a root and is not an instruction to infer ownership from a path,
+Owner or occurrence order.</p>
+<p>Normal OPTIONAL_LINK attachments adopt fresh same-session Builders and preserve already claimed or completed aggregation
+targets. OPTIONAL_LINK copy inputs instead follow the existing recipe-rehydration route: unclaimed copied container
+entries can materialize as <code>null</code>. This capability preserves that behavior; it does not turn those entries into owned
+composition or repair their materialization. Normal generated relationship operations remain the route for preserving
+an existing completed aggregation target's identity.</p>
+<p>Managed Jackson root, Builder, and apply-to-Builder imports retain new owned declarations; explicit references retain the
+original target's declaration and identity. Value-only Template imports retain their accepted definition edges internally
+without running a lifecycle. Jackson export adds no declaration/companion wire metadata, and normal export still rejects
+Templates. JSON/YAML projections do not establish a persistence round trip.</p>
+<p>Java serialization is qualified within the same KlumAST version with compatible available Schema definitions. Ordinary
+graph identity, Template recipe replay, and retained declarations survive that round trip; metadata does not retain the
+old owner instance. Historical streams and Schema evolution are not promised. Empty lookup applies only to otherwise
+readable absent metadata. Companion serialized forms may change; regenerate old serialized models/Templates from their
+source configuration or recipes when upgrading.</p>
+<p>Java 17 and dynamic/static Groovy 3/4/5 consumers are qualified against separately compiled Schema/annotation artifacts.
+Groovy 4/5 named modules use the existing qualified construction opens; annotation lookup needs no additional opens.
+The revised copied-container authority policy is qualified without a runtime change. This qualification supplies no
+provider-selection policy, historical Schema/runtime ABI guarantee, or cross-version serialization promise.</p>
+<h3 id="copied-providers-and-absent-authority">Copied providers and absent authority</h3>
+<p>Consumer code must handle absent metadata. This example policy skips candidates whose Source annotation is unavailable;
+another consumer may choose a different fallback. KlumAST supplies no selection rule.</p>
+<p>(See: <code>CopyOwnershipConsumerDocumentaryTest#'inherited AUTO_LINK skips providers without authoritative declarations and preserves selected identity'</code>.)</p>
+<pre><code class="language-groovy">@DSL class ProviderBase {
+    @Source('primary') List&lt;Facts&gt; primary
+    @Source('secondary') @Field(keyMapping = { it.topic }) Map&lt;String, Facts&gt; secondary
+}
+@DSL class ReceiverBase {
+    @Field(FieldType.LINK) Facts facts
+    @AutoLink void bind() {
+        if (facts != null) return
+        def binding = KlumBuilderSupport.of(this).structure
+            .getOwningRelationshipAnnotation(Binding).map { it.value() }.orElse('secondary')
+        def selected = Policy.choose(binding)
+        if (selected != null) facts selected
+    }
+}
+class Policy {
+    static List&lt;Facts&gt; candidates
+    static Facts choose(String binding) {
+        candidates.find { candidate -&gt;
+            KlumObjectSupport.of(candidate).structure.getOwningRelationshipAnnotation(Source)
+                .map { it.value() == binding }.orElse(false)
+        }
+    }
+}
+
+// provider was built with normal List/Map attachment; copied providers lack those claims.
+def copied = Provider.Create.With { copyFrom provider }
+Policy.candidates = copied.primary + copied.secondary.values() + provider.primary + provider.secondary.values()
+def application = Application.Create.With { receiver {} }
+assert application.receiver.facts.is(provider.secondary.chosen)
+assert KlumObjectSupport.of(copied.secondary.chosen).structure.owningRelationship.empty
+</code></pre>
+<p>Source and Binding annotations in the executable example belong to its consumer Schema. It also verifies the case where
+all candidates lack authority: the callback leaves <code>facts</code> absent instead of treating missing metadata as a root marker
+or inventing an annotation. The selected target keeps its original declaration and identity.</p>
+<h2 id="stored-validation">Stored validation</h2>
+<p>(See: <code>CompletedObjectSupportDocumentaryTest#'reads stored validation results for a completed deployment'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With {
+    service {}
+}
+def validation = KlumObjectSupport.of(deployment).validation
+
+assert validation.result.issues
+assert validation.subtreeResults == [
+    validation.result,
+    KlumObjectSupport.of(deployment.service).validation.result
+]
+</code></pre>
+<p><code>getValidation().getResult()</code> returns the result already stored for the target object.
+<code>getValidation().getSubtreeResults()</code> reads all stored results for that target and its owned composition subtree.
+<code>verify()</code> uses the configured failure level, while <code>verify(level)</code> uses the supplied level. These operations only inspect
+lifecycle results: they do not execute <code>InstanceValidator</code>s, create results, or mutate recorded issues.</p>
+<p>The facade may also start at a subtree:</p>
+<pre><code class="language-java">import java.util.Optional;
+
+KlumObjectSupport&lt;Service&gt; serviceSupport = KlumObjectSupport.of(service);
+
+Optional&lt;Object&gt; owner = serviceSupport.getStructure().getSingleOwner();
+String pathFromDeployment = support.getStructure().getRelativePath(service);
+</code></pre>
+<h2 id="compatibility-apis">Compatibility APIs</h2>
+<p><code>StructureUtil</code> remains as a deprecated adapter for existing callers. New completed-object code should use
+<code>KlumObjectSupport</code> directly. <code>KlumModelProxy</code> and its raw metadata are internal implementation details and are not a
+supported client extension API.</p>
+<p><code>Validator</code> result readers are removed in 4.0 with no compatibility adapter. Completed-object code uses
+<code>KlumObjectSupport.getValidation()</code> as described in <a rel="nofollow" href="../Validation/">Validation</a>.</p>
+<h2 id="discovering-the-model-type-of-a-builder">Discovering the Model type of a Builder</h2>
+<p><code>KlumBuilderSupport.of(builder).getModelType()</code> returns the concrete represented Model class, including a
+subtype reached through a base-typed relationship or <code>KlumBuilder&lt;?&gt;</code>. The facade accepts only generated
+Builders; null and unsupported marker implementations retain the usual targeted diagnostics.</p>
+<p>Java consumers retain the generic Model type:</p>
+<pre><code class="language-java">Class&lt;T&gt; modelType = KlumBuilderSupport.of(builder).getModelType();
+</code></pre>
+<p>Groovy consumers can use the property spelling:</p>
+<pre><code class="language-groovy">Class&lt;?&gt; modelType = KlumBuilderSupport.of(builder).modelType
+</code></pre>
+<p>(See: <code>BuilderModelTypeTest#'discovers concrete Model types through base typed owned and LINK relationships'</code>.)</p>
+<pre><code class="language-groovy">def completed = SpecialRegistry.Create.With(host: 'packages.example.test')
+def deployment = Deployment.Create.With {
+    def owned = registry(SpecialRegistry.Create) { host 'owned.example.test' }
+    linked completed
+    assert KlumBuilderSupport.of(owned).modelType == SpecialRegistry
+    assert KlumBuilderSupport.of(delegate.linked).modelType == SpecialRegistry
+}
+assert deployment.linked.is(completed)
+</code></pre>
+<p>Here both Deployment relationships are declared as Registry; linked is a LINK relationship. Type reading works
+before OWNER and throughout construction, including sealed wrappers of completed LINK targets. Captured Builders
+retain this immutable metadata after completion or abort, independently of owning-relationship queries, which still
+require the current active session and a phase after OWNER. Reading the type does not create, adopt, unseal or
+materialize anything and grants no mutation eligibility. Templates, ownership, lifecycle and materialization retain
+their existing behavior. <code>KlumBuilder&lt;T&gt;</code> remains a zero-operation marker.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
