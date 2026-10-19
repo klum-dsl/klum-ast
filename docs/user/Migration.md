@@ -2,6 +2,15 @@
 
 ## To 4.1
 
+### Abstract Builder operations
+
+Recompile Schemas to use general abstract `@Builder.Method` contracts on abstract DSL classes. Concrete subtype
+Builders must implement them; a subtype property may supply an inherited setter. These methods are absent from both
+completed Models and abstract Template Models. Parent-field Templates remain supported; executing an unrealized
+abstract Builder operation during Template definition requires defining the Template on an implementing concrete
+subtype. Abstract `@Builder.Input`/`@Builder.Result` methods remain rejected. See
+[inheritance](Inheritance.md#abstract-builder-operations) and [Templates](Templates.md#templates-for-abstract-classes).
+
 ### Explicit subtype creation with defaultImpl
 
 Recompile Schemas whose abstract DSL relationship type declares `defaultImpl` and clients compiled against their

@@ -1,5 +1,12 @@
 # 4.1.0 (unreleased)
 
+- Support general abstract `@Builder.Method` operations with compiler-enforced concrete subtype implementations,
+  including inherited setters backed by subtype storage/defaults. Abstract-parent field Templates remain supported;
+  invoking an unrealized abstract Builder operation during Template definition reports that an implementing concrete
+  subtype is required. Builder-only methods remain absent from completed and Template Models. See
+  [inheritance](docs/user/Inheritance.md#abstract-builder-operations)
+  ([#925](https://github.com/klum-dsl/klum-ast/issues/925)).
+
 - Restored compilation of `@Overwrite` declarations that configure only `missing`, including meta-annotations;
   declarations with no configured strategy remain invalid
   ([#921](https://github.com/klum-dsl/klum-ast/issues/921)).
