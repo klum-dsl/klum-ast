@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IntelliJ completion for DelegatingScripts — KlumAST 4.1.0-rc.2</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.2 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="./">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="./">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="intellij-completion-for-delegatingscripts">IntelliJ completion for DelegatingScripts</h1>
+<p>KlumAST 4.1 adds an opt-in Gradle workflow for <code>DelegatingScript</code> recipes with an intentional filename suffix.
+The Schema Developer declares which Model type the script family configures; KlumAST generates and delivers IntelliJ
+GDSL that resolves the Model's real public Builder. Model Writers can then complete bare Builder calls and navigate
+to their declarations in source mirrors or compiled Schema classes.</p>
+<p>This guide describes the 4.1 unreleased candidate tracked by
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/805">#805</a>. Use matching Schema and Model plugin versions that include this
+facility; it is not available in 4.0.1. The qualified path uses regular, non-nested DSL Models whose public Builders are
+available through the supported source-Schema or published-binary Schema workflow. Nested DSL Models are outside this
+qualification; their source-mirror and publication limitations are separately tracked in
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/826">#826</a>.</p>
+<h2 id="declare-the-schema-mapping">Declare the Schema mapping</h2>
+<p>For example, define <code>src/main/groovy/example/Environment.groovy</code>:</p>
+<pre><code class="language-groovy">package example
+
+import com.blackbuild.klum.ast.DSL
+
+@DSL
+class Environment {
+    String region
+}
+</code></pre>
+<p>The Schema project owns the reusable naming convention. In a Schema project named <code>environment-schema</code>, enable
+metadata and declare its mapping in <code>build.gradle</code>:</p>
+<p>(See: <code>KlumSchemaGdslProducerTest#'metadata generation is lazy reproducible relocatable cacheable and supports empty retirement'</code>.)</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema' version '4.1.0-rc.2'
+    id 'maven-publish' // needed only when publishing the Schema
+}
+
+group = 'org.example'
+version = '1.2.0'
+
+klumSchema {
+    gdsl {
+        publish = true
+        mappings {
+            environment {
+                fileNameSuffix = '.environment.groovy'
+                modelType = 'example.Environment'
+            }
+        }
+    }
+}
+</code></pre>
+<p><code>publish</code> defaults to <code>false</code>. Setting it to <code>true</code> also contributes the mapping to local source authoring, even
+without <code>maven-publish</code> or a separate Model project. <code>environment</code> is a stable Schema-local mapping ID: use lowercase
+ASCII letters, digits, and hyphens, beginning with a letter. <code>modelType</code> names the Model, so authors do not need to
+spell a generated Builder type.</p>
+<p><code>fileNameSuffix</code> is a case-sensitive literal suffix ending in <code>.groovy</code>. <code>.environment.groovy</code> matches
+<code>catalog.environment.groovy</code>, but not <code>catalog.other.groovy</code>, <code>catalog.Environment.groovy</code>, or <code>catalog.environment</code>.
+It applies to the final filename, without directory scoping. Choose a distinctive suffix for each target family.
+Regular expressions, arbitrary predicates, and Model-local mapping overrides are outside this format.</p>
+<p>With the normal Maven publication configured as described in <a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a>, publishing the
+Schema adds a separate <code>gdsl</code> classifier JAR and a Gradle Module Metadata variant with a dedicated capability.
+<code>generateKlumGdslMetadata</code> generates the metadata; <code>klumGdslJar</code> assembles its archive. Neither task refreshes the IDE.
+Ordinary Schema JARs, sources/Javadocs, and POM dependency graphs do not carry this new metadata. Keep the normal
+publication group, artifact name, and version equal to the project identity; inconsistent <code>mavenJava</code> identity overrides
+are rejected.</p>
+<p>The mapping is versioned with the Schema's normal group, artifact, and version. Change or remove a mapping in a new
+Schema version and describe it in that Schema's release notes; do not replace released classifier bytes. A Model
+artifact does not republish this metadata for downstream consumers.</p>
+<h2 id="consume-a-source-schema">Consume a source Schema</h2>
+<p>In a multi-project build, the Model declares both its normal Schema dependency and its explicit metadata selection:</p>
+<p>(See: <code>KlumGdslProjectWideValidationTest#'source authoring and two explicit project consumers share one root and one archive with #order evaluation'</code>.)</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-model' version '4.1.0-rc.2'
+}
+
+klumModel {
+    schemas { schema project(':schema') }
+    gdsl { enabled = true }
+}
+
+dependencies {
+    klumGdsl project(':schema')
+}
+</code></pre>
+<p>The selected Schema must enable its metadata. Source authoring needs the Schema's refreshed <code>Environment_DSL</code> mirror
+to expose the actual public Builder. The producer contributes locally even when no Model module exists; when several
+Models select the same producer, its metadata is materialized once. Refresh through the tasks below.</p>
+<h2 id="consume-a-published-binary-schema">Consume a published binary Schema</h2>
+<p>A separate Model-only build applies the Model plugin and uses the normal repository containing the Schema's library
+and metadata publication. It needs no producer checkout, Schema plugin, generated source mirrors, or attached sources.</p>
+<p>(See: <code>KlumModelGdslConsumerTest#'binary Model follows the normal Schema constraint without a second metadata version and caches refresh'</code>.)</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-model' version '4.1.0-rc.2'
+}
+
+repositories {
+    maven { url = uri('https://repo.example.org/releases') }
+    mavenCentral()
+}
+
+klumModel {
+    schemas { schema 'org.example:environment-schema:1.2.0' }
+    gdsl { enabled = true }
+}
+
+dependencies {
+    klumGdsl 'org.example:environment-schema'
+}
+</code></pre>
+<p><code>enabled</code> defaults to <code>false</code>. Enabling it does not select metadata automatically: explicitly name each desired
+Schema in <code>klumGdsl</code>. This dedicated dependency scope is non-transitive and stays outside normal compilation,
+runtime, tests, resources, and Model publication dependencies. Ordinary builds and Gradle import do not run the
+metadata refresh.</p>
+<p>The preferred Gradle Module Metadata selection is versionless. BOMs, constraints, locks, substitutions, and conflict
+resolution select the normal Schema dependency; metadata follows that same origin and version. A separate version on
+this <code>klumGdsl</code> selection is rejected. Missing or mismatched metadata fails clearly; there is no silent fallback.</p>
+<h3 id="explicit-classifier-fallback">Explicit classifier fallback</h3>
+<p>For a repository that exposes only POM/artifact metadata, replace the versionless selection with an exact classifier
+request:</p>
+<pre><code class="language-groovy">dependencies {
+    klumGdsl 'org.example:environment-schema:1.2.0:gdsl@jar'
+}
+</code></pre>
+<p>A POM cannot describe the metadata capability, so this fallback intentionally repeats the exact Schema version.
+It must match the normal selected Schema identity/version; dynamic or range versions are rejected. Update it when the
+normal Schema selection changes. KlumAST never retries this classifier automatically. Non-Gradle consumers must
+resolve, extract, and register editor content themselves; native Maven IDE integration is not qualified here.
+For standalone <code>@Grab</code> Models, see <a rel="nofollow" href="../Grab-Model-Scripts/#standalone-scripts-and-portable-gdsl-metadata">Grape classifier retrieval and separate manual editor preparation</a>.
+Paired grabs attach metadata to the script loader; they do not provide this managed editor-only transport, and native
+Grape-project completion is not qualified.</p>
+<h2 id="write-and-execute-the-recipe">Write and execute the recipe</h2>
+<p>Write <code>catalog.environment.groovy</code> with a <code>DelegatingScript</code> base:</p>
+<pre><code class="language-groovy">import groovy.transform.BaseScript
+import groovy.util.DelegatingScript
+
+@BaseScript DelegatingScript script
+
+region 'eu'
+</code></pre>
+<p>The mapping supplies IntelliJ context only. Execute the recipe through its actual receiving factory:</p>
+<pre><code class="language-groovy">def environment = Environment.Create.From(new File('catalog.environment.groovy'))
+assert environment.region == 'eu'
+</code></pre>
+<p><code>Environment</code> is deliberately unkeyed in this example. Keyed file, compiled-script, and classpath routes retain their
+existing naming rules; see <a rel="nofollow" href="../Convenience-Factories/#delegating-scripts">Convenience Factories</a>.
+An ordinary typed <code>Environment.Create.With { region 'eu' }</code> remains the direct factory alternative.
+For owned-child recipes, use the existing active-session Builder-producing route described in
+<a rel="nofollow" href="../Convenience-Factories/#script-and-delegating-script-for-collections-and-maps">Convenience Factories</a>.</p>
+<p>The suffix does not set a runtime receiver, change script compilation, enforce runtime typing, or make a regular
+<code>Script</code> into a <code>DelegatingScript</code>. Calling the recipe through another Model's factory still uses that factory's
+Builder, even if IntelliJ offers Environment operations. Test the actual receiving factory and completed result;
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/269">#269</a> separately tracks typed script API investigation.</p>
+<h2 id="refresh-intellij-metadata">Refresh IntelliJ metadata</h2>
+<p>Import the build as a Gradle project, then run the appropriate explicit refresh:</p>
+<table>
+<thead>
+<tr>
+<th>Authoring setup</th>
+<th>Task run from the build root</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single source Schema</td>
+<td><code>./gradlew createKlumDslSourceMirrors</code></td>
+</tr>
+<tr>
+<td>Multiple source Schema projects</td>
+<td><code>./gradlew generateAllKlumDslSourceMirrors</code></td>
+</tr>
+<tr>
+<td>Binary-only Model build</td>
+<td><code>./gradlew materializeKlumDslGdsl</code></td>
+</tr>
+</tbody>
+</table>
+<p>Source mirror refresh first runs the shared materializer, then projects the actual compiled public interfaces.
+The binary path resolves the compiled Builder directly. One root task owns
+<code>build/generated/klum-dsl-ide/gdsl</code>, containing both framework contributors and the selected Schema contributors.
+Participating Schema/opted-in Model modules register that directory as generated IDEA resource content. Source mirrors
+are generated IDEA sources. Both stay outside Gradle SourceSets, compilation, packaging, and downstream classpaths.</p>
+<p>After a successful refresh, use <strong>Sync All Gradle Projects</strong> and <strong>File → Reload All from Disk</strong> in IntelliJ, then wait
+for indexing. Reloading from disk matters when mirrors have been removed and recreated. No descriptor activation was
+needed in the qualified clean-profile runs; if your IDEA configuration presents an activation prompt, enable the
+generated descriptor. Optional file watchers or continuous mirror refresh do not replace IDE synchronization.</p>
+<p>Refresh after mapping edits, suffix renames, removals, or Schema upgrades, then sync/reload. Removing a mapping or
+upgrading to an enabled empty catalog retires its contributor on a successful refresh. If the final owner opts out and
+no materializer remains, run root <code>./gradlew clean</code> to remove the previous generated IDE state, then sync/reload.
+The Model plugin ensures the root has Gradle's standard Base lifecycle and cleanup even after final opt-out; this
+does not create a root Java/Model project or enable metadata consumption.</p>
+<h2 id="project-wide-mappings-and-failures">Project-wide mappings and failures</h2>
+<p>IntelliJ mappings are project-wide, even though the files have Schema-specific paths. A Model opting out does not
+isolate its scripts from a mapping still supplied by another module. Keep the target Model and its public Builder
+visible; a missing/non-DSL Model or missing Builder contributes no invented operations. The generated contributor
+is scoped to scripts; ordinary classes in files with the suffix do not receive the mapped Builder operations.</p>
+<p>The refresh validates all managed mappings before changing output. It rejects conflicting Schema versions across
+participating projects, including normal Schema selections in Models that did not opt into GDSL, distinct duplicate
+payloads, and overlapping suffixes. <code>.groovy</code> overlaps <code>.environment.groovy</code>; identical suffixes also conflict even
+when they target the same Model. There is no longest-suffix priority or module-local override. Select compatible
+Schema versions and disjoint suffixes, then refresh again.</p>
+<p>A failed refresh labels prior successful output stale and retains those previous bytes. Existing editor hints after
+that failure are not evidence of accepted current metadata. Correct the reported conflict or invalid/missing archive
+and obtain a successful refresh before relying on them.</p>
+<p>Validation covers the portable managed metadata only. Arbitrary <code>.gdsl</code> files in normal sources, resources, or
+dependency JARs remain user-owned IntelliJ configuration: KlumAST does not parse, transport, reject, or conflict-check
+them. If you tried the unreleased copied-resource recipe from PR #809, remove those copied contributors when adopting
+this workflow. There is no migration scanner or automatic deletion of external files.</p>
+<h2 id="qualified-ide-boundary">Qualified IDE boundary</h2>
+<p>Native Gradle imports were verified in IntelliJ IDEA Ultimate 2026.2.3, build <code>262.10968.63</code>, with its bundled Groovy
+plugin and Gradle 8.14.4. The source and binary paths demonstrated Basic Completion, navigation to source-mirror or
+compiled/decompiled Builder declarations, Parameter Info, wrong-argument diagnostics, and persistence/retirement across
+restart. Independent real binary fixtures exercised the receiving factories on Groovy 3, 4, and 5.</p>
+<p>This is version-specific IntelliJ evidence for regular non-nested Models. It does not establish unknown-method
+inspection parity, Quick Documentation, Eclipse DSLD, VS Code, arbitrary GDSL support, included/composite builds,
+or Gradle Isolated Projects. Quick Documentation uses its separate AnnoDocimal integration. See
+<a rel="nofollow" href="../Gradle-Onboarding/#intellij-and-generated-dsl-support">Gradle Onboarding</a> for ordinary generated-API assistance,
+and the <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/implementation/evidence/issue-805-portable-gdsl-intellij.md">native evidence and repeatable fixture</a>
+for the qualification matrix.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
