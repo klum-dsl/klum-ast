@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inheritance — KlumAST 4.1.0-rc.3</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.3 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="./">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="./">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="inheritance">Inheritance</h1>
+<p>DSLObjects can inherit from other DSL-Objects (but the child class <em>must</em> be annotated with DSL as well). This
+allows polymorphic usage of fields. To allow to specify the concrete implementation, setter methods are generated
+which take an additional Class parameter.</p>
+<h2 id="choosing-a-derived-implementation">Choosing a derived implementation</h2>
+<p>(See: <code>InheritanceDocumentaryTest#'configures a derived project through an unkeyed field'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Config {
+    Project project 
+}
+
+@DSL
+class Project {
+    String name
+}
+
+@DSL
+class MavenProject extends Project{
+    List&lt;String&gt; mvnOpts
+}
+
+Config.Create.With {
+    project(MavenProject) {
+        name &quot;demo&quot;
+        mvnOpts &quot;a&quot;, &quot;b&quot;
+    }
+}
+</code></pre>
+<p>The generated Builder hierarchy mirrors the DSL Object hierarchy: a derived DSL Object receives a derived Builder whose
+superclass is the parent DSL Object's Builder. Parent and child field initializers therefore run on Builders, and the
+completed inheritance chain is materialized only after construction phases finish.</p>
+<p>These typed methods are not generated, if the declared type is final. Likewise, if the declared type is abstract,
+<em>only</em> the typed methods are generated.</p>
+<h2 id="abstract-builder-operations">Abstract Builder operations</h2>
+<p>An abstract DSL class may declare abstract <code>@Builder.Method</code> operations. They move to the generated Builder,
+including its public <code>Parent_DSL.Builder</code> contract, and disappear from completed Models. A concrete subtype must
+implement each operation on its Builder; normal compiler checks reject a missing implementation. The generated
+property setter can satisfy an inherited abstract setter when the subtype declares the corresponding storage.
+An abstract Model getter remains on the Model and can be implemented by that same subtype property.</p>
+<p>(See: <code>AbstractBuilderMethodTest#'abstract Builder operations dispatch through concrete subtype storage and implementations'</code>.)</p>
+<pre><code class="language-groovy">@DSL abstract class Parent {
+    abstract String getDisplayName()
+    @Builder.Method abstract void setDisplayName(String value)
+    @Builder.Method abstract String render(String prefix, int times)
+    @Builder.Method void rename(String value) { setDisplayName(value) }
+}
+@DSL class Child extends Parent {
+    @Default(code = { 'fallback' }) String displayName
+    @Builder.Method String render(String prefix, int times) { prefix * times + displayName }
+}
+
+def child = Child.Create.With {
+    rename 'chosen'
+    assert render('!', 2) == '!!chosen'
+}
+assert child.displayName == 'chosen'
+assert Child.Create.One().displayName == 'fallback'
+</code></pre>
+<p>This applies to arbitrary Builder operations, including non-void methods, rather than only accessors.
+Abstract <code>@Builder.Input</code> and <code>@Builder.Result</code> methods still require an implementation and retain their targeted
+compilation diagnostics. An ordinary Model method does not satisfy a Builder-only abstract operation.</p>
+<p>Abstract-parent <a rel="nofollow" href="../Templates/#templates-for-abstract-classes">Templates</a> can still define field recipes. If a Template
+definition invokes an unrealized abstract Builder operation, directly or through another Builder method, it fails
+with a diagnostic asking for a concrete subtype which implements the operation. Define that Template on the concrete
+subtype to execute its behavior. Templates neither infer nor defer abstract operations.</p>
+<h2 id="instance-storage-names">Instance storage names</h2>
+<p>Since 4.1, each instance field/property name that participates in DSL construction storage must be unique across a DSL inheritance hierarchy
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/371">#371</a>). Redeclaring an inherited name fails compilation at the descendant
+declaration with a message identifying both declarations. This includes ordinary fields/properties, <code>@Owner</code>,
+<code>@Default</code>, and construction-only <code>@Field(FieldType.BUILDER)</code> storage, including ancestors compiled separately.</p>
+<p>Configure the inherited property directly and declare only additional storage on the descendant.</p>
+<p>(See: <code>DslPropertyShadowingTest#'configures inherited storage without redeclaring it'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Service {
+    String name
+    @Default(code = { 'https' }) String protocol
+}
+@DSL class WebService extends Service { Integer port }
+
+def service = WebService.Create.With {
+    name 'frontend'
+    port 443
+}
+assert service.name == 'frontend'
+assert service.protocol == 'https'
+assert service.port == 443
+</code></pre>
+<p>Static fields may shadow static ancestor fields: they remain class state and never become Builder storage. <code>$</code>-prefixed
+implementation fields are also outside the diagnostic because they are excluded from Builder storage, configuration,
+and materialization. A generation marker such as <code>@KlumGenerated</code>, or a JVM synthetic flag, does not by itself exempt
+an ordinary field name: that field can still become construction storage and conflict with an inherited declaration.
+Ordinary method/getter overrides, a property implementing an abstract getter, and Java ancestor fields remain legal.</p>
+<p>The implementation-field boundary and consistent inherited configuration, lifecycle, defaults, and owners are covered by
+<code>DslPropertyShadowingTest#'#category implementation fields are invisible to DSL storage with a #compilation ancestor'</code>.</p>
+<h2 id="keyed-inheritance">Keyed inheritance</h2>
+<p>This works identically with keyed objects.</p>
+<p>(See: <code>InheritanceDocumentaryTest#'configures a keyed derived project through an inherited key'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Config {
+    Project project 
+}
+
+@DSL
+class Project {
+    @Key String name
+}
+
+@DSL
+class MavenProject extends Project{
+    List&lt;String&gt; mvnOpts
+}
+
+Config.Create.With {
+    project(MavenProject, &quot;demo&quot;) {
+        mvnOpts &quot;a&quot;, &quot;b&quot;
+    }
+}
+</code></pre>
+<h2 id="key-hierarchy-constraints">Key hierarchy constraints</h2>
+<p>Note that it is illegal to let a keyed class inherit from a not keyed non abstract class. The topmost non abstract dsl class in the hierarchy
+decides whether the hierarchy is keyed or not.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

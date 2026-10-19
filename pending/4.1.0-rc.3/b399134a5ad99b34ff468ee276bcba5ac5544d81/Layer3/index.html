@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layer 3 — KlumAST 4.1.0-rc.3</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.3 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="./">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="./">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="layer-3">Layer 3</h1>
+<p>Layer 3 is the API–Schema–Model pattern in which concrete Schema fields are projected through a stable Domain API by
+<code>@Cluster</code>. The Domain API gives generic clients a useful contract without exposing Schema-specific types, while the
+Schema gives Model Writers a precise, discoverable language for one concrete domain.</p>
+<p><code>@Cluster</code> is the defining KlumAST feature of this pattern. Inheritance, separate projects, or an extra API abstraction
+alone do not make a design Layer 3.</p>
+<h2 id="recognizing-a-layer-3-design">Recognizing a Layer 3 design</h2>
+<p>A design uses Layer 3 when all of these statements are true:</p>
+<ol>
+<li>Distinct abstract Domain API DSL classes define the completed-model contract.</li>
+<li>Concrete Schema classes subclass and specialize those API classes; the API does not depend on the Schema.</li>
+<li>Model configuration uses the Schema's generated construction surface.</li>
+<li>At least one <code>@Cluster</code> projects concrete Schema members through the Domain API.</li>
+<li>A meaningful generic client can compile against the Domain API without Schema-only types in its signatures or
+dependencies.</li>
+</ol>
+<p>The dependency direction is:</p>
+<pre><code class="language-text">Domain API &lt;--- Schema &lt;--- Model configuration
+     ^
+     |
+generic client
+</code></pre>
+<p>A Schema-specific client may additionally depend on the Schema. This does not invalidate the pattern; it is a second
+consumer of the same completed Model and does not replace the generic API-only boundary.</p>
+<p>Layer 3 is not a package layout, Gradle convention, Java-module boundary, or organizational arrangement. Separate <code>api</code>,
+<code>schema</code>, and <code>model</code> projects can enforce the dependencies, but colocated sources can preserve the same architecture.
+There is no <code>@Layer3</code> marker.</p>
+<p>Abstract DSL base classes are the supported Domain API form. DSL interfaces currently cover only a subset of Schema
+features and are not a Layer 3 API alternative: a <code>@Cluster</code> property or getter declared by a <code>@DSL</code> interface is rejected
+during Schema compilation. Move that member to an abstract DSL base class until first-class interface projection support is
+designed. See <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/753">#753</a> for the separate interface projection question.</p>
+<h2 id="discovery-order-is-not-architecture">Discovery order is not architecture</h2>
+<p>API-first is the normal workflow: define a useful generic contract, then realize it with a Schema. Schema-first and even
+Model-first exploration are also valid ways to discover that contract. For example, a team may first design a pleasant
+domain Model, derive a Schema from it, and later extract a stable API.</p>
+<p>These are development workflows, not Layer 3 variants. The resulting architecture is Layer 3 only when it has the
+dependency direction and Cluster projection above.</p>
+<h2 id="the-four-roles">The four roles</h2>
+<p>One person or team may hold several roles. The roles describe responsibility, not required organizational boundaries.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Owns</th>
+<th>Depends on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain API Developer</td>
+<td>Abstract, stable completed-model types and operations for generic clients</td>
+<td>KlumAST's documented Schema-authoring contract</td>
+</tr>
+<tr>
+<td>Schema Developer</td>
+<td>Concrete DSL Object types, relationships, lifecycle behavior, validation, and mappings</td>
+<td>The Domain API and KlumAST Schema APIs</td>
+</tr>
+<tr>
+<td>Model Writer</td>
+<td>Concrete configuration in Groovy, structured inputs, Templates, or combinations of them</td>
+<td>The Schema's generated construction surface</td>
+</tr>
+<tr>
+<td>Client Developer</td>
+<td>Integrations that read completed models</td>
+<td>The Domain API for a generic client; optionally the Schema for a Schema-specific client</td>
+</tr>
+</tbody>
+</table>
+<h2 id="end-to-end-environment-example">End-to-end environment example</h2>
+<p>Consider an environment model consumed by both a generic deployment tool and application-specific tests. The Domain API
+defines the generic language; the Schema defines more specific nouns and verbs in that language.</p>
+<h3 id="domain-api-developer-define-the-generic-contract">Domain API Developer: define the generic contract</h3>
+<p>The Domain API names environments and applications without knowing which applications a particular customer runs:</p>
+<pre><code class="language-groovy">@DSL
+abstract class Environment {
+    @Key String name
+
+    @Cluster(bounded = true, fixedKeys = true)
+    abstract Map&lt;String, Application&gt; getApplications()
+}
+
+@DSL
+abstract class Application {
+    @Key String name
+    String displayName
+}
+
+@DSL
+abstract class Database {
+    String url
+}
+</code></pre>
+<p>The <code>applications</code> Cluster is the architectural projection. Generic clients can read every concrete application through
+<code>Map&lt;String, Application&gt;</code> without knowing any Schema class.</p>
+<p><code>bounded = true</code> is optional, but recommended when the named Cluster factory should be the clear construction boundary.
+<code>fixedKeys = true</code> makes each selected child inherit its key from the concrete Schema field name.</p>
+<h3 id="schema-developer-specialize-the-language">Schema Developer: specialize the language</h3>
+<p>The Schema supplies named, domain-specific applications and their details:</p>
+<pre><code class="language-groovy">@DSL
+class CustomerEnvironment extends Environment {
+    Shipping shipping
+    Billing billing
+}
+
+@DSL
+class Shipping extends Application {
+    ShippingDatabase database
+    ShippingFrontend frontend
+}
+
+@DSL
+class Billing extends Application {
+    BillingDatabase database
+    BillingService service
+}
+
+@DSL class ShippingDatabase extends Database { }
+@DSL class BillingDatabase extends Database { }
+@DSL class ShippingFrontend { int replicas; boolean ssl }
+@DSL class BillingService { String endpoint }
+</code></pre>
+<p>The concrete <code>shipping</code> and <code>billing</code> fields need no key annotations. The Domain API owns the fixed-key convention through
+its Cluster, and the Schema merely supplies the selected relationships.</p>
+<h3 id="model-writer-configure-one-model">Model Writer: configure one Model</h3>
+<p>The bounded Cluster makes the <code>applications</code> factory the intended home for its application methods:</p>
+<pre><code class="language-groovy">def production = CustomerEnvironment.Create.With('production') {
+    applications {
+        shipping {
+            displayName 'Shipping'
+            database { url 'jdbc:postgresql://shipping/prod' }
+            frontend {
+                replicas 3
+                ssl true
+            }
+        }
+        billing {
+            displayName 'Billing'
+            database { url 'jdbc:postgresql://billing/prod' }
+            service { endpoint 'https://billing.example.test' }
+        }
+    }
+}
+
+assert production.shipping.name == 'shipping'
+assert production.billing.name == 'billing'
+</code></pre>
+<p>The Model Writer depends on <code>CustomerEnvironment</code> and its generated construction API. The returned object is completed
+and read-only.</p>
+<h3 id="client-developer-consume-the-intended-boundary">Client Developer: consume the intended boundary</h3>
+<p>A generic Java deployer—comparable to a Helm-style consumer—depends only on the Domain API:</p>
+<pre><code class="language-java">public void deploy(Environment environment) {
+    environment.getApplications().forEach((name, application) -&gt;
+            deployApplication(name, application));
+}
+</code></pre>
+<p>A Schema-specific Groovy client can intentionally use the richer concrete language:</p>
+<pre><code class="language-groovy">void verifyShipping(CustomerEnvironment environment) {
+    assert environment.shipping.frontend.ssl
+    assert environment.shipping.database.url.startsWith('jdbc:postgresql:')
+}
+</code></pre>
+<p>Schema tests and application-specific integrations are valid Schema consumers. The first client remains portable across
+Schema realizations; the second deliberately does not. Both consume the same completed Model.</p>
+<p>When several Schema realizations must prove the same generic Domain API behavior, keep the reusable contract with the
+Domain API and let each Schema opt in explicitly. <a rel="nofollow" href="../Testing-Models-and-Schemas/#reuse-a-domain-api-contract-across-schema-realizations">Testing Models and Schemas</a>
+shows the application-owned fixture wiring and its Groovy/Spock alignment boundary.</p>
+<h2 id="fixed-cluster-keys">Fixed Cluster keys</h2>
+<p><code>@Cluster(fixedKeys = true)</code> is a Cluster-level quality-of-life convention for direct, single, keyed DSL Object
+relationships. It uses the selected Schema member name as the child key and removes the key parameter from its generated
+creator. The policy belongs to the Domain API Cluster, so concrete Schema fields stay annotation-free.</p>
+<p>Before this option, every selected field had to repeat the equivalent policy:</p>
+<pre><code class="language-groovy">@DSL
+class CustomerEnvironment extends Environment {
+    @Field(key = Field.FieldName) Shipping shipping
+    @Field(key = Field.FieldName) Billing billing
+}
+</code></pre>
+<p>Do not combine those field annotations with <code>fixedKeys = true</code>. Selected unkeyed fields, collections or maps, and fields
+with an explicit <code>@Field(key = ...)</code> are rejected at Schema compilation. Unselected fields retain their ordinary creator
+methods. The option changes neither ownership nor lifecycle behavior and can also be useful for Clusters outside a Layer
+3 architecture.</p>
+<h2 id="evolve-a-schema-behind-the-domain-api">Evolve a Schema behind the Domain API</h2>
+<p>Suppose Shipping now needs monitoring, but Model Writers should not have to repeat its baseline configuration. Add an
+auto-created child to the concrete <code>Shipping</code> Schema above, with a default and a link to its existing database:</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Default
+import com.blackbuild.klum.ast.layer3.AutoCreate
+import com.blackbuild.klum.ast.layer3.AutoLink
+
+@DSL
+class Shipping extends Application {
+    ShippingDatabase database
+    ShippingFrontend frontend
+
+    @AutoCreate MonitoringService monitoring
+}
+
+@DSL
+class MonitoringService {
+    @Owner Shipping application
+    @Field(FieldType.LINK) ShippingDatabase database
+    @Default(code = { 7 }) Integer retentionDays
+
+    @AutoLink
+    void connectDatabase() {
+        database ?= application.database
+    }
+}
+</code></pre>
+<p>Rebuild the Schema and run the same production Model configuration again. Neither the Model script above nor the
+API-only <code>deploy(Environment)</code> client needs a source edit for this addition:</p>
+<pre><code class="language-groovy">assert production.shipping.monitoring.retentionDays == 7
+assert production.shipping.monitoring.database.is(production.shipping.database)
+assert production.applications.shipping.is(production.shipping)
+</code></pre>
+<p>The abstract Domain API and its <code>applications</code> projection remain unchanged. The completed Model now contains the new
+owned monitoring child, but the generic client still sees <code>Application</code>. A Schema-specific projection that emits
+monitoring settings to a target system may need an explicit update and its own acceptance tests. Keeping this API and
+these Model sources unchanged is not a general binary-compatibility promise: rebuild and test the selected API, Schema,
+Model, and client artifacts together when upgrading. See the <a rel="nofollow" href="../Gradle-Plugins/#layer-3-topology-checklist">Gradle topology checklist</a>.</p>
+<h2 id="automatic-creation-and-linking">Automatic creation and linking</h2>
+<p>In the monitoring example, AutoCreate creates the child before AutoLink resolves its database, and Default fills its
+retention period before Materialization returns the completed Model.</p>
+<p>The explicit <code>LINK</code> relationship reuses the database already owned by <code>Shipping</code>, while <code>?=</code> preserves any target set by
+the Model Writer. <code>@AutoCreate</code> and <code>@AutoLink</code> were initially useful drivers for environment models like this one, but
+they are not Layer 3 features. They work in direct-schema designs as well. See <a rel="nofollow" href="../Basics/">Basics</a>,
+<a rel="nofollow" href="../Model-Phases/">Model Phases</a>, and <a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a> for their ownership,
+relationship, and lifecycle rules.</p>
+<p>For general Builder-backed <code>@LinkTo</code> provider reads, see
+<a rel="nofollow" href="../Behind-the-Curtain/#builder-backed-linkto-providers">Behind the Curtain</a>.</p>
+<h3 id="choose-a-local-or-shared-strategy">Choose a local or shared strategy</h3>
+<p>A relationship may need an owner-provided default while still allowing a local override. <code>@LinkTo</code> selects
+<code>OPTIONAL_LINK</code>: leaving the relationship unset links the matching owner field; creating a child in its callback makes
+owned composition; supplying a completed strategy links that exact object. Here <code>strategy</code> matches the owner's field
+name, so no provider expression is needed:</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.layer3.LinkTo
+
+@DSL
+class StrategyEnvironment {
+    DeploymentStrategy strategy
+    List&lt;StrategyApplication&gt; applications
+}
+
+@DSL
+class StrategyApplication {
+    @Key String name
+    @Owner StrategyEnvironment environment
+    @LinkTo DeploymentStrategy strategy
+}
+
+@DSL
+class DeploymentStrategy {
+    @Owner Object owner
+    String mode
+    Integer maxUnavailable
+}
+
+// Complete the shared strategy before starting the environment's Construction session.
+def shared = DeploymentStrategy.Create.With {
+    mode 'rolling'
+    maxUnavailable 2
+}
+
+def environment = StrategyEnvironment.Create.With {
+    strategy {
+        mode 'rolling'
+        maxUnavailable 1
+    }
+    application('inherited')
+    application('local') {
+        strategy {
+            mode 'recreate'
+            maxUnavailable 0
+        }
+    }
+    application('shared') { strategy shared }
+}
+
+def applications = environment.applications.collectEntries { [(it.name): it] }
+assert applications.inherited.strategy.is(environment.strategy)
+assert environment.strategy.owner.is(environment)
+assert !applications.local.strategy.is(environment.strategy)
+assert applications.local.strategy.owner.is(applications.local)
+assert applications.local.strategy.mode == 'recreate'
+assert applications.shared.strategy.is(shared)
+assert shared.owner == null
+</code></pre>
+<p>The inherited default is an alias of the environment-owned strategy. The local strategy is a separate child owned by its
+application; its callback supplies its configuration rather than copying or merging the inherited strategy. The external
+shared strategy retains its identity and owner and is not reconfigured by attachment. Auto-Link leaves both explicit
+choices intact. This example describes ordinary construction and attachment; <a rel="nofollow" href="../Copy-Strategies/">copy strategies</a>
+have their own contracts.</p>
+<h2 id="what-cluster-supplies">What Cluster supplies</h2>
+<p>For a Layer 3 Domain API property such as <code>applications</code>, <code>@Cluster</code> supplies the two useful projection surfaces:</p>
+<ul>
+<li>the completed-model getter, such as <code>getApplications()</code>, which projects matching concrete fields; and</li>
+<li>the generated named Cluster factory, such as <code>applications { ... }</code>, which groups the matching construction methods.</li>
+</ul>
+<p>By default, the factory is optional. <code>bounded = true</code> makes matching methods <code>protected</code> on the general Builder while
+retaining them inside the named factory. The annotation can filter fields by a runtime-retained annotation and can also
+project matching collections.</p>
+<p>These generated getter and factory contracts are the Layer 3-specific benefit. The general generated Builder API and
+<a rel="nofollow" href="../Completed-Object-Support/"><code>KlumObjectSupport</code></a> remain ordinary KlumAST surfaces. Runtime <code>ClusterModel</code> helpers,
+compiler transformations, companions, proxies, and other <code>internal</code> types are implementation details, not a Layer 3 SPI.</p>
+<h2 id="counterexamples">Counterexamples</h2>
+<h3 id="direct-schema">Direct Schema</h3>
+<p>If concrete environment types are themselves the consumer contract, the Schema Developer also owns the Domain API
+responsibility:</p>
+<pre><code class="language-groovy">@DSL
+class DirectEnvironment {
+    ShippingConfiguration shipping
+    BillingConfiguration billing
+}
+
+@DSL class ShippingConfiguration { String databaseUrl }
+@DSL class BillingConfiguration { String endpoint }
+</code></pre>
+<p>This can be the right design, but it is direct-schema modeling. Splitting it across packages or projects does not make it
+Layer 3 because it has no distinct abstract API and no Cluster projection.</p>
+<h3 id="interface-only-boundary">Interface-only boundary</h3>
+<p>An interface can help communicate a border:</p>
+<pre><code class="language-groovy">@DSL
+interface EnvironmentApi {
+    Map&lt;String, Application&gt; getApplications()
+}
+
+@DSL
+class CustomerEnvironment implements EnvironmentApi {
+    Shipping shipping
+    Billing billing
+}
+</code></pre>
+<p>This is not the supported Layer 3 pattern: it has no Cluster projection, and DSL interfaces are not currently full Schema
+citizens. Abstract API base classes remain mandatory for Layer 3 documentation until interface support matures.</p>
+<h2 id="choosing-the-pattern">Choosing the pattern</h2>
+<p>Choose Layer 3 when a real generic consumer needs a stable domain language independent of concrete Schema types. If no
+meaningful API-only consumer exists, the extra API is ceremonial and should not be presented as Layer 3. Choose
+direct-schema when the Schema types themselves are the appropriate consumer contract.</p>
+<p>This choice is independent of <a rel="nofollow" href="../Domain-First-Modeling/">domain-first</a> versus
+<a rel="nofollow" href="../Target-Contract-Modeling/">target-contract</a> discovery. There are no separately named Layer 3 variants for different
+source layouts, role assignments, or discovery orders.</p>
+<p>The optional <a rel="nofollow" href="https://github.com/klum-dsl/klum-catwalk/tree/519404ebc259e24bb24086f86c2ef6322d8bcbb7/showcases/domain-first-smart-home">domain-first smart-home showcase</a> runs this pattern across independent Domain API, Schema, API-only Client, and Model leaves using public 4.0.1 coordinates. Use this guide for the Layer 3 contract and <a rel="nofollow" href="../Gradle-Onboarding/">Gradle onboarding</a> for setup; Catwalk provides the executable consumer evidence.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

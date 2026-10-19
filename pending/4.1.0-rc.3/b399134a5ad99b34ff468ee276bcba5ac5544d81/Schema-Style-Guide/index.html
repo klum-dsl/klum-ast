@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schema Style Guide — KlumAST 4.1.0-rc.3</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.3 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="./">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="./">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="schema-style-guide">Schema Style Guide</h1>
+<p>An idiomatic KlumAST Schema makes the model's meaning easy to see: what can be configured, how its parts relate, and
+what makes a configuration valid. The advice here is about readability and design, not additional compiler restrictions.
+Use the documentation matching your KlumAST release.</p>
+<h2 id="design-the-domain-and-model-dsl-together">Design the domain and Model DSL together</h2>
+<p>A Schema should express domain concepts and make them pleasant to configure. Ask early: <strong>how will this read in the
+Model DSL?</strong> Sketch a small representative Model, ideally as a test, even before implementing the Schema:</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With('catalog') {
+    image 'catalog:1.0'
+    capacity {
+        minimumReplicas 2
+        replicas 3
+    }
+}
+</code></pre>
+<p>Then shape the Schema around that example, adjusting both as the domain and the authoring syntax become clearer.
+A useful domain model can still be awkward to configure; trying the DSL early exposes that friction. Tests through the
+public construction API can check the resulting domain state and meaningful invalid cases; see
+<a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a>.</p>
+<p>KlumAST supplies the Builders and factories behind this syntax. They need not become extra domain state or handwritten
+implementation helpers. Prefer descriptive names for nested helpers, such as <code>CapacityChecks</code>. Names resembling
+generated implementation types make a Schema harder to read and can collide with types KlumAST generates. Actual
+collisions are diagnosed by the compiler; leading underscores alone are not prohibited. See
+<a rel="nofollow" href="../Migration/#generated-inner-name-collisions-41">the exact collision rules</a> when a diagnostic asks you to rename a type.</p>
+<h2 id="keep-the-structure-obvious">Keep the structure obvious</h2>
+<p>Fields describe domain state, and their types make relationships visible. Here a <code>Deployment</code> has an <code>Image</code> value and
+a <code>Capacity</code> configured through its own DSL. The Schema mirrors the concepts visible in the Model above:</p>
+<pre><code class="language-groovy">package example.deployments
+
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Required
+import com.blackbuild.klum.ast.Validate
+
+@DSL
+class Deployment {
+    @Key String name
+
+    @Required Image image
+
+    @Required Capacity capacity
+}
+
+@DSL
+class Capacity {
+    /** Number of simultaneously running service instances. */
+    @Validate({ it in 1..20 })
+    int replicas = 1
+
+    /** Lower bound required for this deployment's availability. */
+    int minimumReplicas = 1
+
+    @Validate
+    void replicasMeetMinimum() {
+        assert replicas &gt;= minimumReplicas : 'replicas must meet the configured minimum'
+    }
+
+    boolean isScaledOut() { replicas &gt; 1 }
+}
+</code></pre>
+<p>Choose composition when something is a part of another concept, and inheritance when types share a meaningful domain
+contract. A separate <a rel="nofollow" href="../Layer3/">Layer 3</a> Domain API can serve generic clients that should not depend on a concrete
+Schema. These choices should explain the model or its consumer boundary, rather than merely organize implementation
+helpers. Domain-first and target-contract modeling can both produce readable Schemas; <a rel="nofollow" href="../Gradle-Onboarding/#choose-the-model-shape-first">Gradle Onboarding</a>
+explains those independent choices.</p>
+<h2 id="use-domain-values-with-convenient-input">Use domain values with convenient input</h2>
+<p>Consider immutable domain objects instead of primitives or Strings, especially when the consuming client already needs
+those types. A converter or factory method lets Model Writers keep concise input while clients receive a meaningful
+value. In the same package as the Schema, this small non-DSL <code>Image</code> accepts just <code>name:tag</code>:</p>
+<pre><code class="language-groovy">final class Image {
+    final String name
+    final String tag
+
+    Image(String name, String tag) {
+        if (!name?.trim() || !tag?.trim())
+            throw new IllegalArgumentException('Image name and tag must be nonblank')
+        this.name = name
+        this.tag = tag
+    }
+
+    static Image fromString(String reference) {
+        String[] parts = reference?.split(':', -1)
+        if (parts?.length != 2)
+            throw new IllegalArgumentException('Use an image reference in name:tag form')
+        new Image(parts[0], parts[1])
+    }
+}
+</code></pre>
+<p>KlumAST discovers <code>fromString</code> as a factory-method converter, so <code>image 'catalog:1.0'</code> stores an <code>Image</code> whose <code>name</code> and
+<code>tag</code> the client can use directly. For a real image format, reuse the client's established value type and parser where
+possible. See <a rel="nofollow" href="../Converters/#factory-method-converters">Converters</a> for factory discovery and explicit field converters.</p>
+<p>A value like <code>Image</code> does not need to be a DSL Object. Its constructor/factory validates immediately when the input is
+converted; an invalid value fails at that point, rather than joining completed-model validation. That suits a
+self-contained value. DSL validation runs after the owned model tree is completed, which suits rules needing other
+fields or relationships. Choose with both the desired authoring syntax and validation timing in mind;
+see <a rel="nofollow" href="../Validation/#validation-of-nested-objects">Validation</a> for the model-wide boundary.</p>
+<h2 id="keep-constraints-close-to-the-state-they-constrain">Keep constraints close to the state they constrain</h2>
+<p>The example puts each small rule beside its field: <code>image</code> is required, and <code>replicas</code> has a local range. <code>@Required</code>
+uses the default presence/Groovy-truth rule, not a universal non-null check. Here it requires an <code>Image</code> value;
+that value's factory and constructor enforce its format and components. The field-type details belong in
+<a rel="nofollow" href="../Validation/#required-and-optional">Validation</a>.</p>
+<p>A short field <code>@Validate</code> suits a local rule. The relationship between <code>replicas</code> and <code>minimumReplicas</code> deserves a
+named method, because its meaning spans fields. Named validation methods also make substantial or reusable rules easier
+to understand than dense closures. Keep their messages in domain language. See <a rel="nofollow" href="../Validation/#choose-a-validation-form">choosing a validation form</a>
+for the full contract and further validation options.</p>
+<h2 id="keep-substantial-behavior-out-of-declarative-structure">Keep substantial behavior out of declarative structure</h2>
+<p><code>isScaledOut()</code> is a small query derived from capacity state. It helps consumers ask a domain question without repeating
+the calculation. Methods like this fit a <a rel="nofollow" href="../Static-Models/">static data model</a>; deployment execution, network calls, or
+coordination with external services usually belong in a client or adapter that consumes the completed Model.</p>
+<p>That separation keeps the Schema readable as a declaration of valid state, rather than turning it into a procedural
+service object. It is design guidance, not a prohibition on methods or on the supported construction lifecycle.</p>
+<h2 id="document-domain-meaning">Document domain meaning</h2>
+<p>Use types, converters/factory methods, and validation to express and enforce the contract before relying on prose.
+The image format is checked in code; a comment saying it needs a name and tag would not protect a client from invalid
+input. Documentation complements those checks by explaining meaning and rationale.</p>
+<p>The comments above explain what is counted by <code>replicas</code> and why <code>minimumReplicas</code> exists. Likewise, document units,
+semantics, constraints, and non-obvious relationships where their meaning is not already clear from the code. A comment
+that merely repeats <code>capacity</code> or <code>image</code> adds little.</p>
+<p>KlumAST projects property documentation onto generated public Model and Builder accessors, so these explanations also
+help Model Writers and consumers at the point of use. See <a rel="nofollow" href="../Javadoc/">Javadoc for models</a> for projection details and
+explicit accessor documentation.</p>
+<p>For ordinary package and source layout, follow <a rel="nofollow" href="../Gradle-Onboarding/#create-the-gradle-project">Gradle Onboarding</a>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
