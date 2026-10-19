@@ -156,6 +156,110 @@ class AbstractBuilderTemplateTest extends AbstractDSLSpec {
         def error = thrown(KlumModelException)
         error.message.contains('int count()')
     }
+    def "abstract Templates realize inherited Builder operations across #arrangement"() {
+        given:
+        Map<String, String> sources = [
+                Root: '''
+                    @DSL abstract class Root {
+                        String region
+                        @Builder.Method abstract String render(String prefix)
+                        @Builder.Method String decorate(String prefix) { render(prefix) }
+                    }
+                ''',
+                Parent: '''
+                    @DSL abstract class Parent extends Root { String label }
+                ''',
+                Child: '''
+                    @DSL class Child extends Parent {
+                        @Builder.Method String render(String prefix) { prefix + region }
+                    }
+                '''
+        ]
+        List<String> compiled = []
+        sourceGroups.eachWithIndex { group, index ->
+            if (index > 0) {
+                reloadBinaryHierarchy()
+                // Only class files are on this fresh loader's classpath; no ancestor source AST is retained.
+                compiled.each { name ->
+                    assert loader.loadClass(name).protectionDomain.codeSource.location ==
+                            compilerConfiguration.targetDirectory.toURI().toURL()
+                }
+            }
+            createClass(group.collect { sources[it] }.join('\n'))
+            compiled.addAll(group)
+        }
+        reloadBinaryHierarchy()
+        Class rootType = getClass('Root')
+        Class parentType = getClass('Parent')
+        Class childType = getClass('Child')
+        Class rootBuilder = getBuilderClass('Root')
+        Class parentBuilder = getBuilderClass('Parent')
+        Class childBuilder = getBuilderClass('Child')
+        Class rootTemplateBuilder = getClass('Root$_TemplateBuilder')
+        Class parentTemplateBuilder = getClass('Parent$_TemplateBuilder')
+
+        when:
+        def rootRecipe = rootType.Create.Template.With(region: 'root')
+        def recipe = parentType.Create.Template.With(region: 'eu', label: 'shared')
+        def scoped = parentType.Template.With(recipe) {
+            childType.Create.With {
+                assert render('!') == '!eu'
+                assert decorate('?') == '?eu'
+            }
+        }
+        def copied = childType.Create.With { copyFrom(recipe); assert render('>') == '>eu' }
+
+        then:
+        Modifier.isAbstract(rootBuilder.modifiers)
+        Modifier.isAbstract(parentBuilder.modifiers)
+        !Modifier.isAbstract(childBuilder.modifiers)
+        !Modifier.isAbstract(rootTemplateBuilder.modifiers)
+        !Modifier.isAbstract(parentTemplateBuilder.modifiers)
+        rootBuilder.isAssignableFrom(rootTemplateBuilder)
+        parentBuilder.isAssignableFrom(parentTemplateBuilder)
+        !Modifier.isAbstract(parentTemplateBuilder.getDeclaredMethod('render', String).modifiers)
+        rootRecipe.region == 'root'
+        recipe.region == 'eu'
+        recipe.label == 'shared'
+        scoped.region == 'eu'
+        scoped.label == 'shared'
+        copied.region == 'eu'
+        copied.label == 'shared'
+        [rootType, parentType, childType, rootRecipe.class, recipe.class, scoped.class].every { type ->
+            hasNoMethod(type, 'render', String) && hasNoMethod(type, 'decorate', String)
+        }
+
+        when:
+        parentType.Create.Template.With { render('!') }
+        then:
+        def directError = thrown(KlumModelException)
+        directError.message.contains('java.lang.String render(java.lang.String)')
+        directError.message.contains('while defining a Template for Parent')
+        directError.message.contains('define the Template on a concrete subtype which implements that operation')
+
+        when:
+        parentType.Create.Template.With { decorate('!') }
+        then:
+        def helperError = thrown(KlumModelException)
+        helperError.message.contains('java.lang.String render(java.lang.String)')
+        helperError.message.contains('while defining a Template for Parent')
+        helperError.message.contains('define the Template on a concrete subtype which implements that operation')
+
+        where:
+        arrangement                 | sourceGroups
+        'all source'                | [['Root', 'Parent', 'Child']]
+        'binary Root'               | [['Root'], ['Parent', 'Child']]
+        'binary Root and Parent'    | [['Root', 'Parent'], ['Child']]
+        'binary Root then Parent'   | [['Root'], ['Parent'], ['Child']]
+    }
+
+    private void reloadBinaryHierarchy() {
+        loader = new GroovyClassLoader(oldLoader, compilerConfiguration)
+        loader.addClasspath(compilerConfiguration.targetDirectory.path)
+        classPool.clear()
+        Thread.currentThread().contextClassLoader = loader
+    }
+
     def "nested abstract Template recipes survive serialization and copy into concrete children"() {
         given:
         createClass('''

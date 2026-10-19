@@ -48,9 +48,39 @@ rejection, file/legacy-alias inputs, abstract intermediate inheritance, nested a
 `JpmsPackageBoundaryTest` adds concrete dispatch, abstract Template creation, and precise failure through a Java
 consumer; its Groovy 4/5 lanes exercise the named schema and runtime modules.
 
-The focused core matrix passes all 20 cases on each of Groovy 3, 4, and 5 (60 executions). Error signatures are
+The focused core matrix passes all 24 cases on each of Groovy 3, 4, and 5 (72 executions). Error signatures are
 formatted explicitly because Groovy 5 changed `MethodNode.getTypeDescriptor()` formatting. Full repository validation is recorded in the
 pull request and completion handoff against the final revision.
+
+## Separately compiled abstract ancestors
+
+`AbstractBuilderTemplateTest#'abstract Templates realize inherited Builder operations across #arrangement'`
+qualifies the inherited `String render(String prefix)` operation through `Root -> Parent -> Child`.
+`Root` also declares concrete Builder helper `decorate`, which dispatches to `render`. All four arrangements
+pass on Groovy 3, 4, and 5:
+
+| Arrangement | Compilation units, in order | Result |
+|---|---|---|
+| A | Root + Parent + Child | Pass |
+| B | Root; Parent + Child | Pass |
+| C | Root + Parent; Child | Pass |
+| D | Root; Parent; Child | Pass |
+
+Each boundary replaces the Groovy class loader with a fresh loader whose ancestor input is the emitted class-file
+directory. The fixture verifies each ancestor's binary code-source location before compiling the next unit; source
+ASTs are not retained. Runtime assertions use another fresh loader over all emitted classes.
+
+In every arrangement, Root/Parent hidden Builders remain abstract, Child's Builder is concrete, and both abstract
+ancestors have concrete Template-only Builders. Parent Templates preserve `region` and `label` through scoped
+application and `copyFrom`; concrete Child `render` and inherited helper dispatch execute normally. Direct `render`
+and inherited `decorate` calls during Parent Template definition throw `KlumModelException` identifying the inherited
+operation and requiring an implementing concrete subtype. Completed Models and both Template Models omit both
+Builder operations.
+
+The existing `builderClass.getAbstractMethods()` resolves the binary inherited operation correctly. This
+qualification adds tests and evidence only: no inheritance resolver, public API, runtime ABI hook, or Template
+semantics change is necessary. The separate Sonar follow-up makes the Template helper's existing initialization
+preconditions explicit and adds test braces; it does not alter inheritance resolution.
 
 ## Scope and delivery
 
