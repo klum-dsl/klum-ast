@@ -103,7 +103,11 @@ class TemplateMethods {
     }
 
     private MethodNode unrealizedTemplateOperation(MethodNode method) {
-        String message = "Cannot invoke abstract Builder operation " + method.getTypeDescriptor()
+        // Groovy 5 changed getTypeDescriptor() formatting; keep this user diagnostic stable across lanes.
+        String parameters = Arrays.stream(method.getParameters())
+                .map(parameter -> parameter.getType().getName()).collect(Collectors.joining(", "));
+        String signature = method.getReturnType().getName() + " " + method.getName() + "(" + parameters + ")";
+        String message = "Cannot invoke abstract Builder operation " + signature
                 + " while defining a Template for " + annotatedClass.getName()
                 + "; define the Template on a concrete subtype which implements that operation.";
         MethodNode implementation = new MethodNode(method.getName(), method.getModifiers() & ~ACC_ABSTRACT,

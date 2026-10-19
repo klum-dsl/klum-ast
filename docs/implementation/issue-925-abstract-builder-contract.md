@@ -48,7 +48,8 @@ rejection, file/legacy-alias inputs, abstract intermediate inheritance, nested a
 `JpmsPackageBoundaryTest` adds concrete dispatch, abstract Template creation, and precise failure through a Java
 consumer; its Groovy 4/5 lanes exercise the named schema and runtime modules.
 
-The focused Groovy 3 core run passes all 20 cases. Full repository and compatibility validation is recorded in the
+The focused core matrix passes all 20 cases on each of Groovy 3, 4, and 5 (60 executions). Error signatures are
+formatted explicitly because Groovy 5 changed `MethodNode.getTypeDescriptor()` formatting. Full repository validation is recorded in the
 pull request and completion handoff against the final revision.
 
 ## Scope and delivery
