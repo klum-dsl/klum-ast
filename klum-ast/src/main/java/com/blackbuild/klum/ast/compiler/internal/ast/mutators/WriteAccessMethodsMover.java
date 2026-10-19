@@ -110,6 +110,7 @@ public class WriteAccessMethodsMover {
     }
 
     private static void retargetFieldVariables(MethodNode method, ClassNode builderClass) {
+        if (method.getCode() == null) return;
         method.getCode().visit(new CodeVisitorSupport() {
             @Override
             public void visitVariableExpression(VariableExpression expression) {

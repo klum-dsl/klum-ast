@@ -381,7 +381,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626", "693", "729", "799"])
+    @Issue(["620", "622", "626", "693", "729", "799", "925"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -661,6 +661,8 @@ class JpmsPackageBoundaryTest extends Specification {
         '''
             package fixture.schema
 
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.runtime.KlumModelException
             import com.blackbuild.klum.ast.DSL
             import com.blackbuild.klum.ast.RelationshipConstraint
             import com.blackbuild.klum.ast.Key
@@ -775,11 +777,13 @@ class JpmsPackageBoundaryTest extends Specification {
 
             @DSL
             abstract class Endpoint {
+                @Builder.Method abstract int adjustedCapacity(int increment)
                 int capacity
             }
 
             @DSL
             class DynamicHttpEndpoint extends Endpoint {
+                @Builder.Method int adjustedCapacity(int increment) { capacity + increment }
                 String url
             }
 
@@ -794,6 +798,22 @@ class JpmsPackageBoundaryTest extends Specification {
             }
 
             class DynamicSchemaConsumer {
+                static void verifyAbstractTemplates() {
+                    def recipe = Endpoint.Create.Template.With(capacity: 6)
+                    def model = DynamicHttpEndpoint.Create.With {
+                        copyFrom(recipe)
+                        assert adjustedCapacity(2) == 8
+                    }
+                    assert model.capacity == 6
+                    assert !recipe.metaClass.respondsTo(recipe, 'adjustedCapacity', Integer.TYPE)
+                    try {
+                        Endpoint.Create.Template.With { adjustedCapacity(2) }
+                        throw new AssertionError('Expected abstract Template operation rejection')
+                    } catch (KlumModelException expected) {
+                        assert expected.message.contains('define the Template on a concrete subtype')
+                    }
+                }
+
                 static Deployment create() {
                     Deployment.Create.With {
                         classEndpoint(DynamicHttpEndpoint) {
@@ -891,6 +911,7 @@ class JpmsPackageBoundaryTest extends Specification {
 
             public class Main {
                 public static void main(String[] arguments) throws Exception {
+                    DynamicSchemaConsumer.verifyAbstractTemplates();
                     Station_DSL.Factory factory = Station.Create;
                     BuilderFactoryProvider<HttpEndpoint, HttpEndpoint_DSL.Builder<HttpEndpoint>> endpointFactory =
                             HttpEndpoint.Create;

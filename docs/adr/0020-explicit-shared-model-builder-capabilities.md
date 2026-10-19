@@ -149,6 +149,15 @@ as a stronger alternative. That alternative needs independent evidence because i
 improving method selection. One authored interface must never be shared unchanged by Model and Builder when DSL Object
 parameter or result types differ. This ADR reserves neither the `BuilderState` name nor any companion shape.
 
+### Abstract Builder-only operations
+
+[Issue #925](https://github.com/klum-dsl/klum-ast/issues/925) extends `@Builder.Method` movement to abstract declarations.
+Hidden Builders for abstract DSL classes are abstract; concrete subtype Builders must realize inherited operations.
+Abstract Template definition uses a separate internal concrete Builder whose unresolved operations throw a precise
+error requiring an implementing concrete subtype. Field recipes and existing Template application semantics remain
+unchanged. Builder-only methods are absent from completed Models, including generated Template Models. Abstract
+`@Builder.Input`/`@Builder.Result` methods remain rejected with their existing diagnostics.
+
 ### Project types only at annotated positions
 
 At a `@Builder.Input` or `@Builder.Result` position, a concrete DSL Object type `M` projects to

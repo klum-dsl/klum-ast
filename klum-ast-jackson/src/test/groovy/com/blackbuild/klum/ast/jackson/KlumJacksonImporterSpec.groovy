@@ -39,6 +39,28 @@ import javax.tools.ToolProvider
 @Issue("463")
 class KlumJacksonImporterSpec extends AbstractDSLSpec {
 
+    @Issue("925")
+    def "readTemplate imports an abstract parent with an unrealized Builder operation"() {
+        given:
+        createClass('''
+            @DSL abstract class Parent {
+                String region
+                @Builder.Method abstract void normalize()
+            }
+            @DSL class Child extends Parent {
+                @Builder.Method void normalize() { region = region.toUpperCase() }
+            }
+        ''')
+        when:
+        def recipe = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules()).readTemplate(Parent,
+                KlumJacksonInput.map([region: 'eu']))
+        def child = Child.Create.With { copyFrom(recipe); normalize() }
+        then:
+        TemplateManager.isTemplate(recipe)
+        child.region == 'EU'
+        !recipe.metaClass.respondsTo(recipe, 'normalize')
+    }
+
     def "readRoot applies one captured input through the generated Builder lifecycle"() {
         given:
         createClass('''

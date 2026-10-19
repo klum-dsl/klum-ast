@@ -483,12 +483,17 @@ Note that Groovy requires the key object to be in parentheses if it is not a Str
 
 ## Templates for Abstract Classes
 
-For abstract classes, an inner class named `Template` is created with the following properties:
+For abstract classes, the compiler generates an internal concrete Template Model and a separate concrete
+Template-only Builder. Abstract completed-Model methods retain placeholder implementations; validation does not run
+during Template definition. Ordinary construction of an abstract Model remains unavailable.
 
-- all abstract methods are implemented empty
-- validation is turned of
+Parent field recipes work through map/closure creation, scoped application, and `copyFrom`. Abstract
+[`@Builder.Method` operations](Inheritance.md#abstract-builder-operations) remain Builder-only and never appear on the
+Template Model. Invoking one during Template definition throws a precise error asking you to define the Template on a
+concrete subtype which implements the operation. Concrete-subtype Templates execute their actual Builder behavior.
 
-Anonymous templates automatically use the Template class.
+(See: `AbstractBuilderTemplateTest#'abstract parent field recipes support creation scope and copyFrom with abstract operation #operation'`
+and `AbstractBuilderTemplateTest#'unrealized Template operations throw precisely for direct and inherited concrete calls: #indirect'`.)
 
 (See: `TemplatesDocumentaryTest#'creates a template implementation for an abstract configuration type'`.)
 

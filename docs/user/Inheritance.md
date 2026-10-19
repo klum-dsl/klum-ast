@@ -39,6 +39,45 @@ completed inheritance chain is materialized only after construction phases finis
 These typed methods are not generated, if the declared type is final. Likewise, if the declared type is abstract,
 *only* the typed methods are generated.
 
+## Abstract Builder operations
+
+An abstract DSL class may declare abstract `@Builder.Method` operations. They move to the generated Builder,
+including its public `Parent_DSL.Builder` contract, and disappear from completed Models. A concrete subtype must
+implement each operation on its Builder; normal compiler checks reject a missing implementation. The generated
+property setter can satisfy an inherited abstract setter when the subtype declares the corresponding storage.
+An abstract Model getter remains on the Model and can be implemented by that same subtype property.
+
+(See: `AbstractBuilderMethodTest#'abstract Builder operations dispatch through concrete subtype storage and implementations'`.)
+
+```groovy
+@DSL abstract class Parent {
+    abstract String getDisplayName()
+    @Builder.Method abstract void setDisplayName(String value)
+    @Builder.Method abstract String render(String prefix, int times)
+    @Builder.Method void rename(String value) { setDisplayName(value) }
+}
+@DSL class Child extends Parent {
+    @Default(code = { 'fallback' }) String displayName
+    @Builder.Method String render(String prefix, int times) { prefix * times + displayName }
+}
+
+def child = Child.Create.With {
+    rename 'chosen'
+    assert render('!', 2) == '!!chosen'
+}
+assert child.displayName == 'chosen'
+assert Child.Create.One().displayName == 'fallback'
+```
+
+This applies to arbitrary Builder operations, including non-void methods, rather than only accessors.
+Abstract `@Builder.Input` and `@Builder.Result` methods still require an implementation and retain their targeted
+compilation diagnostics. An ordinary Model method does not satisfy a Builder-only abstract operation.
+
+Abstract-parent [Templates](Templates.md#templates-for-abstract-classes) can still define field recipes. If a Template
+definition invokes an unrealized abstract Builder operation, directly or through another Builder method, it fails
+with a diagnostic asking for a concrete subtype which implements the operation. Define that Template on the concrete
+subtype to execute its behavior. Templates neither infer nor defer abstract operations.
+
 ## Instance storage names
 
 Since 4.1, each instance field/property name that participates in DSL construction storage must be unique across a DSL inheritance hierarchy

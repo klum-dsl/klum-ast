@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedTemplateFactorySupport;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedTemplateSupport;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -39,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
@@ -66,8 +68,10 @@ class TemplateMethods {
     private final InnerClassNode builderClass;
 
     public TemplateMethods(DSLASTTransformation transformation) {
-        annotatedClass = transformation.annotatedClass;
-        builderClass = transformation.builderClass;
+        annotatedClass = Objects.requireNonNull(transformation.annotatedClass,
+                "DSL class must be initialized before Template generation");
+        builderClass = Objects.requireNonNull(transformation.builderClass,
+                "Builder must be initialized before Template generation");
         dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 
@@ -77,6 +81,43 @@ class TemplateMethods {
         createTemplateField();
         createTemplateFactory();
         return templateClass;
+    }
+
+    static void completeTemplateBuilder(DSLASTTransformation transformation) {
+        new TemplateMethods(transformation).createTemplateBuilderIfNecessary();
+    }
+
+    /** A concrete recipe receiver; ordinary construction still uses the abstract Builder. */
+    private void createTemplateBuilderIfNecessary() {
+        if (!builderClass.isAbstract()) return;
+        InnerClassNode templateBuilder = new InnerClassNode(
+                annotatedClass,
+                DslAstHelper.checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + "$_TemplateBuilder",
+                        "abstract Template Builder implementations"),
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
+                makeClassSafeWithGenerics(builderClass, new GenericsType(annotatedClass)));
+        templateBuilder.addConstructor(ACC_PROTECTED, params(param(STRING_TYPE, "key")),
+                CommonAstHelper.NO_EXCEPTIONS, block(ctorSuperS(args(varX("key")))));
+        List<MethodNode> abstractMethods = builderClass.getAbstractMethods();
+        if (abstractMethods != null)
+            abstractMethods.forEach(method -> templateBuilder.addMethod(unrealizedTemplateOperation(method)));
+        templateBuilder.addAnnotation(createGeneratedAnnotation(TemplateMethods.class));
+        annotatedClass.getModule().addClass(templateBuilder);
+    }
+
+    private MethodNode unrealizedTemplateOperation(MethodNode method) {
+        // Groovy 5 changed getTypeDescriptor() formatting; keep this user diagnostic stable across lanes.
+        String parameters = Arrays.stream(method.getParameters())
+                .map(parameter -> parameter.getType().getName()).collect(Collectors.joining(", "));
+        String signature = method.getReturnType().getName() + " " + method.getName() + "(" + parameters + ")";
+        String message = "Cannot invoke abstract Builder operation " + signature
+                + " while defining a Template for " + annotatedClass.getName()
+                + "; define the Template on a concrete subtype which implements that operation.";
+        MethodNode implementation = new MethodNode(method.getName(), method.getModifiers() & ~ACC_ABSTRACT,
+                method.getReturnType(), cloneParamsWithAdjustedNames(method), method.getExceptions(),
+                block(throwS(ctorX(make(KlumModelException.class), args(constX(message))))));
+        implementation.setGenericsTypes(method.getGenericsTypes());
+        return implementation;
     }
 
     private void createTemplateField() {
