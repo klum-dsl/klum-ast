@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gradle onboarding (4.0 preview) — KlumAST 4.1.0-rc.3</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.3 · Public release candidate</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="./">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="./">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="public-rc">4.1.0-rc.3 is a prerelease, not stable. <a href="../status/">Version status</a>.</aside>
+      <h1 id="gradle-onboarding-40-preview">Gradle onboarding (4.0 preview)</h1>
+<blockquote>
+<p>This is a 4.0 preview pending field testing. Read the documentation that matches the KlumAST version you adopt; <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/456">#456</a> owns versioned documentation and Javadocs.</p>
+</blockquote>
+<h2 id="choose-the-model-shape-first">Choose the model shape first</h2>
+<p>Before creating a Schema, answer two independent questions.</p>
+<ol>
+<li>What drives the Schema?
+<ul>
+<li><strong>Domain-first</strong>: the completed model is the product's domain abstraction; adapters to target systems remain downstream.</li>
+<li><strong>Target-contract</strong>: an external contract such as Helm values is authoritative; the Schema provides validated authoring and useful defaults without claiming to replace that contract.</li>
+</ul>
+</li>
+<li>Do client consumers need a distinct stable Domain API?
+<ul>
+<li><strong>Layer 3</strong>: abstract Domain API DSL classes constrain the Schema and project its concrete fields through <code>@Cluster</code>;
+generic Client Developers do not compile against Schema types.</li>
+<li><strong>Direct-schema</strong>: Schema types are the consumer-facing API, and the Schema Developer also owns that role.</li>
+</ul>
+</li>
+</ol>
+<p>Record the choices near the project architecture. Layer 3 is a modeling pattern for a real generic consumer boundary, not
+a requirement for every Gradle project or a name for an API project without Cluster projection.
+For route-specific guidance, read <a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a> or <a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a>; the settled Layer 3 pattern
+is explained in <a rel="nofollow" href="../Layer3/">Layer 3</a>.</p>
+<p><code>author-klum-model</code> is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. <code>start-klum-project</code> establishes the Schema project and its selected structure, while <code>feature-advisor</code> reviews both Schemas and configured models for supported improvements. For a domain-first Layer 3 journey, use <code>build-domain-first-schema</code> with the executable <a rel="nofollow" href="../Domain-First-Modeling/#smart-home-journey">smart-home fixture</a>; this keeps the shared Model Writer workflow intact rather than redefining it. <code>build-target-contract-schema</code> is the target-contract Schema Developer route; its <a rel="nofollow" href="../Target-Contract-Modeling/">executable Helm journey</a> demonstrates intentional external mappings without redefining these role boundaries. The <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/470">#470</a> baseline established the common setup.</p>
+<h2 id="create-the-gradle-project">Create the Gradle project</h2>
+<p>For a cohesive example of a readable Schema and the reasoning behind its design, see the
+<a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a>.</p>
+<p>Apply the schema plugin to a Schema project. It supplies the KlumAST BOM, compiler/runtime dependencies, Groovy convention, and sources/Javadocs.</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema' version '4.1.0-rc.3'
+}
+
+klumSchema {
+    groovyVersion = 3
+}
+</code></pre>
+<p>For a new project, Groovy 3 is the justified default: it is KlumAST's baseline and keeps the first build small. Keep an existing supported Groovy line instead. Groovy 3 uses <code>org.codehaus.groovy</code>; Groovy 4 and 5 use <code>org.apache.groovy</code>. The plugin selects matching Groovy and Spock dependencies.</p>
+<p>If this Schema must be a Java named module, use Groovy 4 or 5 and add the
+user-owned <code>src/main/java/module-info.java</code> described in <a rel="nofollow" href="../Migration/#named-modules-and-groovy">Migration#named-modules-and-groovy</a>.
+The Schema plugin validates that descriptor as part of
+<code>check</code> (and Maven publication) but never writes it. Groovy 3 remains an
+ordinary-classpath setup; do not create a descriptor or add JPMS workaround
+flags for it.</p>
+<p>Place Schema classes in <code>src/main/groovy</code>, add one root <code>@DSL</code> type, and write a test in <code>src/test/groovy</code> that constructs a completed model through <code>Create.With</code>. Run <code>./gradlew test</code> before expanding the model. Use the model plugin only when a separate configured-model artifact is needed; see <a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a>.
+For focused construction, validation, and Template-backed test examples, see <a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a>.</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Validate
+
+@DSL
+class Deployment {
+    @Key String name
+    @Validate({ it in ['development', 'production', 'test'] }) String environment
+    Service service
+}
+
+@DSL
+class Service {
+    String image
+}
+
+def deployment = Deployment.Create.With('catalog') {
+    environment 'production'
+    service { image 'catalog:1.0' }
+}
+</code></pre>
+<p><code>deployment</code> is the completed model. The callback configures its Builder; owned children must be created through the parent callback. See <a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a> for the construction boundary and <a rel="nofollow" href="../Validation/">Validation</a> for domain invariants.</p>
+<h2 id="intellij-and-generated-dsl-support">IntelliJ and generated DSL support</h2>
+<p>Import the project as a Gradle project. After changing a Schema, run the explicit mirror refresh task, then reload Gradle:</p>
+<pre><code class="language-shell">./gradlew createKlumDslSourceMirrors
+</code></pre>
+<p>In a multi-project build, use the root aggregate instead:</p>
+<pre><code class="language-shell">./gradlew generateAllKlumDslSourceMirrors
+</code></pre>
+<p>These explicit tasks are the portable baseline. If it suits your local workflow, you may run the per-Schema task (or
+the root aggregate in a multi-project build) from an IDE/Gradle file watcher, or use Gradle continuous mode:</p>
+<pre><code class="language-shell">./gradlew --continuous createKlumDslSourceMirrors
+</code></pre>
+<p>This is optional automation, not automatic IDE synchronization: reload the Gradle project when your IDE needs to see
+the refreshed generated sources.</p>
+<p>It refreshes every project that applies the Schema plugin, including both <code>api</code> and <code>schema</code> projects in a Layer 3 layout. Before each per-Schema mirror task, one root-owned task materializes the packaged IntelliJ GDSL contributors in <code>build/generated/klum-dsl-ide/gdsl</code> and registers that same physical directory as generated resource content for every Schema module. This makes the packaged contributor discoverable to IntelliJ without duplicating it into module outputs. The generated <code>Foo_DSL</code> mirrors provide the matching public declarations. After a refresh, the contributor resolves source-level <code>Foo.Create</code> as static <code>Foo_DSL.Factory</code> and <code>Foo.Template</code> as static <code>Foo_DSL.TemplateScope</code>, so completion continues through their public methods. IntelliJ's documented GDSL property helper cannot preserve those capitalized names, so 4.0 uses a version-sensitive internal raw-member hook, validated with IntelliJ IDEA 2026.2. <a rel="nofollow" href="https://youtrack.jetbrains.com/issue/IDEA-392559/GDSL-property-cannot-contribute-a-literal-uppercase-static-property-name">IDEA-392559</a> tracks the supported IntelliJ API needed to replace that bridge. It is IDE metadata only: it neither changes runtime bytecode nor supplies an independent read-only guarantee. It contributes nothing for ordinary classes or when the public namespace cannot be resolved. Neither GDSL root nor mirrors are compiled, packaged, published, or added to downstream classpaths. The aggregate still has no payload of its own; each Schema project remains the owner of its mirror task.</p>
+<p>The packaged framework GDSL contributes literal generated fields that source PSI lacks, currently <code>Create</code> and <code>Template</code>. <code>AsBuilder()</code> is
+an explicit operation in both Java and Groovy, not GDSL property metadata: uppercase JavaBean-property spelling would be
+normalized differently by IntelliJ and could not truthfully represent the generated contract.</p>
+<p>Quick Documentation for compiled declarations is separate from these mirrors. <a rel="nofollow" href="https://github.com/blackbuild/annodoc-intellij">AnnoDoc Support for IntelliJ IDEA</a> is currently a locally installable <code>0.1.0-alpha.1</code> release candidate; Marketplace publication is pending explicit maintainer approval. Follow its current installation instructions only when you choose to install it. Other IDEs should use their ordinary Gradle import and compilation support; KlumAST makes no unverified IDE-parity claim.</p>
+<h3 id="delegatingscript-recipes-in-41">DelegatingScript recipes in 4.1</h3>
+<p>For bare Builder calls in a regular, non-nested <code>DelegatingScript</code>, explicitly declare a Schema-owned filename suffix
+and select its metadata in the Model. Follow <a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a> for the
+source-project and separate binary-consumer setup. Source authoring uses the mirror tasks above; binary-only Model
+builds run <code>./gradlew materializeKlumDslGdsl</code> and resolve compiled public Builders without mirrors. Sync Gradle and
+reload from disk after refresh. The mapping is project-wide editor context and does not set the runtime receiver.
+The guide records the tested IntelliJ build and the separate nested-Model limitation in #826.</p>
+<h2 id="portable-adopter-skills">Portable adopter skills</h2>
+<p>The repository's <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills"><code>agent-skills/</code></a> distribution contains portable, task-oriented workflows. For one direct-schema Schema project, copy the complete <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/start-klum-project"><code>start-klum-project</code> directory</a>, including its <code>references/</code>, into the skill-discovery location supported by your agent client. Its frozen 4.0.1 record identifies the matching public plugin, tagged documentation, canonical imports, Builder guidance, and validation contract. The <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/master/agent-skills/fixtures/direct-schema-public-4.0.1">public-coordinate adopter mission</a> is a separate copyable one-module example. <code>build-domain-first-schema</code>, <code>author-klum-model</code>, <code>feature-advisor</code>, and <code>build-target-contract-schema</code> remain available for their stated workflows. Repository-maintainer skills in <code>.agents/skills/</code> are not adopter packages.</p>
+<p><code>feature-advisor</code> is a KlumAST-specific, evidence-based improvement review. It first assesses whether the adopted KlumAST version and installed skill distribution are needed, recommended, unnecessary, or unknown updates, then reviews supported features. It stays read-only unless you request selected changes, then explains the supported feature, fit, benefit, trade-offs, confidence, migration risk, effort, documentation source, and validation result.</p>
+<p>The minimal fixture at <code>agent-skills/fixtures/minimal-gradle-project</code> exercises the baseline locally against the 4.0 sources. Its <code>ADOPTER-DRY-RUN.md</code> captures the setup, Model Writer, and feature-advisor field-test flow, including a deliberately improvable Schema case.</p>
+<p>After the direct-schema start, the optional <a rel="nofollow" href="https://github.com/klum-dsl/klum-catwalk/tree/519404ebc259e24bb24086f86c2ef6322d8bcbb7/showcases/domain-first-smart-home">domain-first smart-home Layer 3 showcase</a> demonstrates independent Domain API, Schema, API-only Client, and Model leaves with public 4.0.1 coordinates and explicit artifact handoff. This guide and the version-matched KlumAST skills own setup and model concepts; Catwalk provides the runnable consumer example. The in-repository <code>agent-skills/fixtures/domain-first-smart-home</code> remains a local companion and field-test starting point.</p>
+<p>For an external target such as Helm, start from two representative values files, retain the target contract as authoritative, and use <code>build-target-contract-schema</code> to choose intentional mappings. <a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a> uses the same <code>agent-skills/fixtures/helm-target-contract</code> fixture as the skill, including its direct-schema rationale, golden generated values, and later field-test prompt. For an optional real-chart consumer journey, follow the <a rel="nofollow" href="https://github.com/klum-dsl/klum-catwalk/tree/main/showcases/helm-target-contract">Catwalk Podinfo Helm showcase</a>, with separate Schema and values projects, public 4.0.1 coordinates, semantic values goldens, and offline Helm rendering. The KlumAST guide and fixture own the modeling explanation; Catwalk owns this runnable consumer example and does not become a KlumAST release gate.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

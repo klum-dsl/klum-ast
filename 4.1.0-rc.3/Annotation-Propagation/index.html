@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Annotation Propagation — KlumAST 4.1.0-rc.3</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0-rc.3 · Public release candidate</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="./">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="./">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="public-rc">4.1.0-rc.3 is a prerelease, not stable. <a href="../status/">Version status</a>.</aside>
+      <h1 id="annotation-propagation">Annotation Propagation</h1>
+<p><code>@PropagateAnnotation</code> lets a domain annotation request a bare annotation on the DSL Schema class,
+field or method carrying it. Each selected annotation uses its own declared defaults. Domain member
+values remain on the original annotation and are never forwarded to the selected annotation.
+Direct annotations remain supported, including their configured members.</p>
+<h2 id="default-only-composition">Default-only composition</h2>
+<p>Compile reusable domain annotations in an annotation library before compiling the consuming Schemas,
+as required by their ordinary KlumCast constraints. No lifecycle participant or custom handler is needed
+for this example.</p>
+<p>(See: <code>AnnotationPropagationTest#'AutoCreate keeps retained DefaultValues members and normal lifecycle behavior'</code>.)</p>
+<pre><code class="language-groovy">// Annotation library
+@DefaultValues
+@PropagateAnnotation(AutoCreate)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface Configured { String name() default '' }
+
+// Consuming Schemas
+@DSL class Service { String name }
+@DSL class Application {
+    @Configured(name = 'orders') Service child
+}
+
+assert Application.Create.One().child.name == 'orders'
+assert Application.Create.With { child { name 'supplied' } }.child.name == 'supplied'
+</code></pre>
+<p>Here the copied bare <code>@AutoCreate</code> creates the child through the normal lifecycle. The retained
+<code>@Configured(name = 'orders')</code> then supplies DefaultValues. Supplying the child explicitly keeps its
+ordinary precedence. Customized AutoCreate <code>key</code>, <code>type</code> or <code>value</code> arguments must remain explicit;
+use a domain annotation that does not also request AutoCreate for that case.</p>
+<h2 id="creating-related-services">Creating related services</h2>
+<p>Each annotated relationship makes its own creation request. AutoCreate can therefore create a missing
+messaging object and its topics, while DefaultValues reads the retained domain members on each field.
+These are ordinary concrete, unkeyed owned relationships; the policy does not select existing providers.</p>
+<p>(See: <code>AnnotationPropagationDocumentaryTest#'creates related services while retaining domain defaults'</code>.)</p>
+<pre><code class="language-groovy">// Compile this domain annotation in the annotation library first.
+@DefaultValues
+@PropagateAnnotation(AutoCreate)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface ServiceDefaults { String name() default '' }
+
+@DSL class Topic { String name }
+@DSL class Messaging {
+    String name
+    @ServiceDefaults(name = 'orders') Topic orderTopic
+    @ServiceDefaults(name = 'results') Topic resultTopic
+}
+@DSL class Service { String name }
+@DSL class Application {
+    @ServiceDefaults(name = 'messaging') Messaging messaging
+    @ServiceDefaults(name = 'database') Service database
+    @ServiceDefaults(name = 'workload') Service workload
+    @ServiceDefaults(name = 'api') Service api
+}
+
+def application = Application.Create.With {
+    messaging { orderTopic { name 'priority-orders' } }
+}
+assert application.messaging.name == 'messaging'
+assert application.messaging.orderTopic.name == 'priority-orders'
+assert application.messaging.resultTopic.name == 'results'
+assert application.database.name == 'database'
+assert application.workload.name == 'workload'
+assert application.api.name == 'api'
+</code></pre>
+<h2 id="keeping-customized-creation-explicit">Keeping customized creation explicit</h2>
+<p>A defaults-only policy can configure an existing child without requiring that child to exist. Use that
+policy with explicit AutoCreate when a particular relationship needs a configured <code>key</code>, <code>type</code> or
+<code>value</code>. Do not also request AutoCreate from that domain: explicit plus propagated is always a duplicate,
+even when the arguments would agree.</p>
+<p>(See: <code>AnnotationPropagationDocumentaryTest#'keeps optional defaults and customized creation explicit'</code>.)</p>
+<pre><code class="language-groovy">// Separately compiled annotation library: no propagation request here.
+@DefaultValues
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface ServiceDefaults { String name() default '' }
+
+@DSL class Service { String name }
+@DSL class Database extends Service { String engine = 'postgres' }
+@DSL class Application {
+    @ServiceDefaults(name = 'optional') Service optional
+    @AutoCreate(type = Database)
+    @ServiceDefaults(name = 'orders') Service database
+}
+
+def application = Application.Create.One()
+assert application.optional == null
+assert application.database instanceof Database
+assert application.database.name == 'orders'
+assert application.database.engine == 'postgres'
+assert Application.Create.With { optional { name 'supplied' } }.optional.name == 'supplied'
+</code></pre>
+<p>These are alternative domain definitions for different creation policies. The domain's Schema Developer
+chooses whether an annotation implies existence or only supplies defaults when a child is present.
+A lifecycle participant is optional and continues to receive the original domain annotation; propagation
+adds no handler or provider-selection behavior.</p>
+<h2 id="repeatable-requests-and-containers">Repeatable requests and containers</h2>
+<p>Requests are repeatable, using one selected type per request. Java and Groovy annotation libraries
+may spell the requests separately or use the explicit nested <code>PropagateAnnotation.List</code> container.
+Both forms have the same default-only behavior in source and compiled metadata.</p>
+<p>(See: <code>AnnotationPropagationContributionTest#'repeated and explicit request containers retain domains and selected defaults (#kind, #policy)'</code>.)</p>
+<pre><code class="language-groovy">@PropagateAnnotation(AutoCreate)
+@PropagateAnnotation(Required)
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface RequiredService {}
+</code></pre>
+<p>The explicit spelling for those requests is:</p>
+<pre><code class="language-groovy">@PropagateAnnotation.List([
+    @PropagateAnnotation(AutoCreate), @PropagateAnnotation(Required)
+])
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface RequiredService {}
+</code></pre>
+<p>Genuine repeatable containers of applied domain annotations also contribute their nested domain uses,
+including a container's default <code>value</code>. The physical container and original members remain intact.
+An arbitrary annotation-array member is not a domain container: the component annotation must declare
+that exact container through <code>@Repeatable</code>. Two nested uses selecting the same annotation still fail.</p>
+<p>Other legal default-only selections include <code>Builder.Query</code> on methods and <code>Cluster</code> on its supported
+fields/methods. The generated Builder/Factory contracts and source mirrors match equivalent direct
+annotations. The selected annotation's normal shape, coannotation and lifecycle restrictions still apply.</p>
+<h2 id="inherited-and-generated-contracts">Inherited and generated contracts</h2>
+<p>An abstract DSL base expands its own declarations once. Same-unit subclasses inherit the resulting
+behavior; subclasses compiled later inherit the emitted parent contract without expanding it again.
+Overrides use their own annotations. DSL field shadowing remains an error.</p>
+<p>(See: <code>AnnotationPropagationContractTest#'abstract bases retain public Query and Cluster contracts through #binary inheritance'</code>.)</p>
+<pre><code class="language-groovy">// Compiled annotation library
+@PropagateAnnotation(Builder.Query)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
+@interface ReadOnly {}
+
+@PropagateAnnotation(Cluster)
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.METHOD])
+@interface Group {}
+
+// Consuming Schemas
+@DSL class Service { String name }
+@DSL abstract class ApplicationBase {
+    String name
+    @Group Map&lt;String, Service&gt; services
+    @ReadOnly String summary() { name.toUpperCase() }
+}
+@DSL class Application extends ApplicationBase { Service secondary }
+
+def application = Application.Create.With {
+    name 'orders'
+    assert summary() == 'ORDERS' // current Builder state
+    services { secondary { name 'typed' } }
+}
+assert application.summary() == 'ORDERS'
+assert application.services.secondary.name == 'typed'
+</code></pre>
+<p>Query and Cluster retain the same public <code>Application_DSL.Builder</code>, <code>Factory</code> and nested cluster
+factory signatures as direct annotations, including Java and statically compiled Groovy consumers.
+IDE source mirrors retain the original Query domain annotation as well as the selected annotation;
+those projections are output, never new propagation sites. Editor recognition is a separate qualification.</p>
+<p>Required and Optional continue through their ordinary local converters exactly once. A propagated
+Required uses an empty message and ERROR level even when the domain has similarly named configured
+members; explicit Required can still customize both. Optional lowers to <code>Validate.Ignore</code>, including
+under class-level Validate. Non-DSL uses of these direct shortcuts keep their existing behavior.
+The current direct Required shortcut does not reject primitive boolean during compilation, unlike
+direct Validate; propagation preserves this existing limitation. Prefer boxed Boolean for required flags.</p>
+<p>AutoCreate retains normal assignment, ownership, Templates and supplied-child precedence. Direct
+field creation precedes Cluster fallback; creation precedes participant mutation and callbacks.
+Cluster fallback does not replay skipped field mutations, and children created in later phases do
+not catch up earlier AutoCreate callbacks. Bare AutoCreate retains keyed/abstract creation failures
+and same-phase Creator conflicts.</p>
+<h2 id="boundaries-and-diagnostics">Boundaries and diagnostics</h2>
+<p>Propagation executes only on original declarations of explicitly annotated DSL Schemas, including
+abstract Schemas. Annotation definitions are metadata, not execution sites. Ordinary classes, DSL
+interfaces, constructors, parameters, packages and type uses do not expand requests. Inherited source
+declarations expand at their declaring Schema; already compiled parents keep their emitted behavior.
+<code>DSL</code> cannot be selected. Generated Builders, projections and IDE mirrors do not expand requests again.</p>
+<p>Every selected type must be an annotation, permit the declaration's target, and have a default for every
+member. A selected annotation that itself requests propagation is rejected: requests are one-hop only.
+Every duplicate involving propagation is an error, including explicit-plus-propagated, repeated requests,
+multiple domain contributors and repeatable selected types. There is no precedence, merge or silent
+deduplication. Ordinary explicit-only repeatable annotations keep their normal behavior.</p>
+<p>Propagation errors identify the domain annotation, selected type and Schema declaration. Duplicate
+errors identify both contributions, including occurrence numbers or container <code>value</code> indexes. Defaulted
+containers report the applied container's source position; downstream Required/Optional lowering and
+Query/Cluster projections preserve applied annotation positions. KlumCast
+validates the final effective annotation set through its supported contributor seam; its constraint
+errors include contribution provenance. Ordinary local transformations retain their normal phases.
+There is no general ordering guarantee for unrelated AST rewriting or annotations introduced after the
+contributor handoff.</p>
+<p><code>AnnotationCollector</code> is not a propagation mechanism. Selecting a collector type is rejected before
+local rewriting. Combining <code>@AnnotationCollector</code> and <code>@PropagateAnnotation</code> on a domain definition is
+unsupported: Groovy can replace the domain use before the contributor sees it, moving the propagation
+marker onto the Schema declaration. Source and compiled-library controls produce Groovy's ordinary
+“PropagateAnnotation is not allowed on element FIELD” diagnostic for a field use. The original domain
+identity is already unavailable at this boundary. Keep propagating domains as ordinary annotations;
+do not rely on collector modes to merge or prioritize them. Other rewrites are qualified only for the
+effective annotation set present at KlumCast's handoff, with no late rescan or scheduling promise.</p>
+<p>Normal SOURCE/CLASS/RUNTIME retention applies to the original and added annotations. Runtime consumers
+need no propagation interpreter or compiler. Recompile consuming Schemas after changing requests;
+previous binaries retain their emitted annotations and behavior. When replacing repeated explicit
+annotations with a propagating policy, remove the now-duplicate explicit annotation.</p>
+<h2 id="dependency-and-editor-requirements">Dependency and editor requirements</h2>
+<p>Use a matching KlumAST 4.1 compiler and annotation library that both provide this feature. Adding the
+marker library to an older compiler is insufficient. The qualified dependency pairing uses KlumCast
+<code>0.5.0</code> consistently across annotations, SPI and compiler, with Java 17 and Groovy 3/4/5
+(Groovy 3 on the classpath; Groovy 4/5 also in named modules). This is development qualification, not
+a promise that an older or mixed compiler/annotation combination works.</p>
+<p>IntelliJ/editor recognition of a domain annotation as its selected annotation remains unqualified.
+Compiled contracts, typed consumers and generated source mirrors do not establish source-editor alias
+recognition. See <a rel="nofollow" href="../Migration/#composing-domain-annotations">migration guidance</a> for recompilation and
+explicit-annotation cleanup.</p>
+<h2 id="choosing-the-right-mechanism">Choosing the right mechanism</h2>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A domain use implies bare AutoCreate (or another legal default-valued annotation)</td>
+<td>Propagation on that domain annotation</td>
+</tr>
+<tr>
+<td>Configure a selected annotation's members</td>
+<td>A direct annotation; no member forwarding or configured annotation instances</td>
+</tr>
+<tr>
+<td>Defaults on fields that have no domain annotation</td>
+<td>Separate class-level policy work under <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/888">#888</a></td>
+</tr>
+<tr>
+<td>Reuse Schema source declarations</td>
+<td>Separate source composition work under <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/548">#548</a></td>
+</tr>
+<tr>
+<td>Execute arbitrary or recursively nested meta-annotations</td>
+<td>Outside propagation's one-hop contract</td>
+</tr>
+<tr>
+<td>Select or bind ScHelm providers</td>
+<td>ScHelm's own policy, outside KlumAST propagation</td>
+</tr>
+</tbody>
+</table>
+<p>KlumAST supplies generic propagation. A consumer such as ScHelm owns its domain annotation meanings,
+provider selection and the decision to create or only bind when present. Compiler qualification does
+not establish acceptance of a particular consumer integration.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
