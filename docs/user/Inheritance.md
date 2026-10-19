@@ -111,9 +111,16 @@ def renamed = WindowSensor.Create.With {
 assert renamed.displayName == 'custom sensor'
 ```
 
-The abstract setter must return `void`, take exactly one argument, and match an abstract `getX()` getter's type and name.
+The abstract setter must return `void` and take exactly one argument. Its property name and declared parameter type must
+match the abstract `getX()` getter's property name and return type exactly. Assignment-compatible types are insufficient:
+for example, a `CharSequence` getter with a `String` setter is rejected with an accessor diagnostic.
+
+The getter may be declared in a DSL ancestor of the class declaring the setter. This works when the hierarchy is compiled
+together or in separate compilations, including an independently compiled getter ancestor, as covered by
+`InheritedBuilderSetterTest#'abstract setter resolves an ancestor getter with #compilation compilation'`.
 Other abstract Builder-only method shapes receive a compilation diagnostic; provide an implementation for those methods.
-The concrete subtype owns the backing property. Redeclaring stored properties across the hierarchy remains prohibited.
+Only the concrete subtype owns the backing property; completed Models expose the getter and no Builder-only setter.
+Redeclaring stored properties across the hierarchy remains prohibited.
 Java and statically compiled Groovy consumers can call the setter through `Sensor_DSL.Builder`.
 
 ## Keyed inheritance

@@ -107,6 +107,79 @@ class InheritedBuilderSetterTest extends AbstractDSLSpec {
         'binary'    | 'a default'        | "@Default(code = { 'default sensor' })"
     }
 
+    def "abstract setter resolves an ancestor getter with #compilation compilation"() {
+        given:
+        String sensor = '''
+            @DSL abstract class Sensor {
+                abstract String getDisplayName()
+            }
+        '''
+        String configurable = '''
+            @DSL abstract class ConfigurableSensor extends Sensor {
+                @Builder.Method abstract void setDisplayName(String value)
+                @Builder.Method void rename(String value) { setDisplayName(value) }
+            }
+        '''
+        String concrete = '''
+            @DSL class WindowSensor extends ConfigurableSensor {
+                String displayName
+            }
+        '''
+        switch (compilation) {
+            case 'all source':
+                createClass(sensor + configurable + concrete)
+                break
+            case 'binary parents':
+                createClass(sensor + configurable)
+                createSecondaryClass(concrete)
+                break
+            case 'binary getter ancestor':
+                createClass(sensor)
+                createSecondaryClass(configurable + concrete)
+                break
+            case 'all separate':
+                createClass(sensor)
+                createSecondaryClass(configurable)
+                createSecondaryClass(concrete)
+                break
+        }
+        Class<?> hiddenBuilder = getBuilderClass('ConfigurableSensor')
+        Class<?> publicBuilder = getClass('ConfigurableSensor_DSL$Builder')
+        Class<?> publicSubtypeBuilder = getClass('WindowSensor_DSL$Builder')
+        def retained
+
+        when:
+        def direct = WindowSensor.Create.With {
+            setDisplayName('direct sensor')
+            retained = delegate
+        }
+        def renamed = WindowSensor.Create.With { rename('renamed sensor') }
+
+        then:
+        direct.displayName == 'direct sensor'
+        renamed.displayName == 'renamed sensor'
+        !Modifier.isAbstract(hiddenBuilder.getDeclaredMethod('setDisplayName', String).modifiers)
+        publicBuilder.getDeclaredMethod('setDisplayName', String).returnType == Void.TYPE
+        publicSubtypeBuilder.getMethod('setDisplayName', String).returnType == Void.TYPE
+        publicBuilder.isAssignableFrom(publicSubtypeBuilder)
+        WindowSensor.getMethod('getDisplayName').returnType == String
+        hasNoMethod(Sensor, 'setDisplayName', String)
+        hasNoMethod(ConfigurableSensor, 'setDisplayName', String)
+        hasNoMethod(WindowSensor, 'setDisplayName', String)
+        !Sensor.declaredFields.any { it.name == 'displayName' }
+        !ConfigurableSensor.declaredFields.any { it.name == 'displayName' }
+        WindowSensor.declaredFields.count { it.name == 'displayName' } == 1
+
+        when:
+        retained.rename('late sensor')
+
+        then:
+        thrown(KlumModelException)
+
+        where:
+        compilation << ['all source', 'binary parents', 'binary getter ancestor', 'all separate']
+    }
+
     def "getter-only parent supports subtype default"() {
         when:
         createClass('''
@@ -222,6 +295,24 @@ class InheritedBuilderSetterTest extends AbstractDSLSpec {
                 'abstract void setOtherName(String value)',
                 'abstract void setDisplayName()'
         ]
+    }
+
+    def "abstract accessor requires exact types even when the setter type is a subtype"() {
+        when:
+        createClass('''
+            @DSL abstract class Sensor {
+                abstract CharSequence getDisplayName()
+            }
+            @DSL abstract class ConfigurableSensor extends Sensor {
+                @Builder.Method abstract void setDisplayName(String value)
+            }
+        ''')
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('Abstract @Builder.Method requires a void setX(value) accessor matching an abstract Model getX()')
+        !error.message.contains('NullPointerException')
+        !error.message.contains('BUG!')
     }
 
     private static String sensorSchema() {
