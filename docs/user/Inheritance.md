@@ -75,6 +75,47 @@ Ordinary method/getter overrides, a property implementing an abstract getter, an
 The implementation-field boundary and consistent inherited configuration, lifecycle, defaults, and owners are covered by
 `DslPropertyShadowingTest#'#category implementation fields are invisible to DSL storage with a #compilation ancestor'`.
 
+## Abstract Model properties with Builder setters
+
+An abstract parent can declare a read-only Model getter together with an abstract `@Builder.Method` setter. A concrete
+subtype supplies the actual property and may derive its default from subtype context. The setter exists only on the
+Builder; inherited Builder helpers and lifecycle methods can use it without adding parent storage.
+
+(See: `InheritedBuilderSetterTest#'abstract Builder setter binds to subtype storage and default'`.)
+
+```groovy
+@DSL abstract class Sensor {
+    abstract String getDisplayName()
+    @Builder.Method abstract void setDisplayName(String displayName)
+
+    @Builder.Method void rename(String value) { setDisplayName(value) }
+}
+
+@DSL class Window { String displayName }
+
+@DSL class WindowSensor extends Sensor {
+    Window window
+    @Default(code = { "window sensor $window.displayName" })
+    String displayName
+}
+
+def sensor = WindowSensor.Create.With {
+    window { displayName 'kitchen' }
+}
+assert sensor.displayName == 'window sensor kitchen'
+
+def renamed = WindowSensor.Create.With {
+    window { displayName 'kitchen' }
+    rename 'custom sensor'
+}
+assert renamed.displayName == 'custom sensor'
+```
+
+The abstract setter must return `void`, take exactly one argument, and match an abstract `getX()` getter's type and name.
+Other abstract Builder-only method shapes receive a compilation diagnostic; provide an implementation for those methods.
+The concrete subtype owns the backing property. Redeclaring stored properties across the hierarchy remains prohibited.
+Java and statically compiled Groovy consumers can call the setter through `Sensor_DSL.Builder`.
+
 ## Keyed inheritance
 
 This works identically with keyed objects.

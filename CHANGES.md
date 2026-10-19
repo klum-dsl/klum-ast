@@ -1,5 +1,11 @@
 # 4.1.0 (unreleased)
 
+- Abstract `@Builder.Method` setters paired with abstract Model getters now bind to concrete subtype property storage,
+  including subtype defaults and inherited Builder/default methods. Generated public Builder contracts and IDE mirrors
+  expose the setter while completed Models remain getter-only. Unsupported abstract Builder method shapes receive an
+  accessor diagnostic instead of a compiler NPE; the property-shadowing prohibition remains intact
+  ([#925](https://github.com/klum-dsl/klum-ast/issues/925)).
+
 - Restored compilation of `@Overwrite` declarations that configure only `missing`, including meta-annotations;
   declarations with no configured strategy remain invalid
   ([#921](https://github.com/klum-dsl/klum-ast/issues/921)).

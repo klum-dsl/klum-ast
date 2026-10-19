@@ -152,6 +152,14 @@ and treat the completed-model export as a separately owned external projection. 
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
 owns source-neutral composition.
 
+### Abstract property contracts with Builder setters (4.1)
+
+When an abstract parent needs to configure a property stored by a concrete subtype, declare an abstract Model `getX()`
+plus `@Builder.Method abstract void setX(Type value)`. Keep the property and its subtype-specific `@Default` only on the
+concrete subtype. The generated Builder implements the setter; completed Models expose only the getter. See
+[abstract property inheritance](Inheritance.md#abstract-model-properties-with-builder-setters). This replaces the former
+shadowed-property workaround without relaxing the unique-storage rule.
+
 ### Dynamic Template lookup in abstract hierarchies (4.1)
 
 Recompile Schemas with the corrected 4.1 compiler to use ordinary `Child.Template` property syntax below an abstract

@@ -40,6 +40,7 @@ import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.Variable;
 import org.codehaus.groovy.ast.expr.VariableExpression;
 
+import java.beans.Introspector;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -47,9 +48,11 @@ import static com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation
 import static com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getNullSafeClassMember;
+import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 /**
  * Helper class to move mutating methods to Builder class.
@@ -71,6 +74,7 @@ public class WriteAccessMethodsMover {
     static void moveMethodFromModelToBuilderClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
         ClassNode builderClass = declaringClass.getNodeMetaData(DSLASTTransformation.BUILDER_CLASS_METADATA_KEY);
+        if (method.isAbstract() && !implementAbstractSetter(method)) return;
         BuilderMethodProjection.projectExplicitMovedMethod(method, builderClass);
         BuilderMethodProjection.projectQualifiedStaticCallsInBuilderMethod(method);
         retargetOwnerParameters(method);
@@ -79,6 +83,28 @@ public class WriteAccessMethodsMover {
         declaringClass.removeMethod(method);
         // if method is public, it will already have been added by delegateTo, replace it again
         CommonAstHelper.replaceMethod(builderClass, method);
+    }
+
+    /** Abstract Models still need concrete Builders for Template recipes. Bind accessor contracts through
+     * the same checked storage operation as ordinary generated setters, including subtype-owned storage. */
+    private static boolean implementAbstractSetter(MethodNode method) {
+        String name = method.getName();
+        Parameter[] parameters = method.getParameters();
+        MethodNode getter = name.startsWith("set") && name.length() > 3
+                ? method.getDeclaringClass().getMethod("get" + name.substring(3), Parameter.EMPTY_ARRAY)
+                : null;
+        if (method.isStatic() || !method.isVoidMethod() || parameters.length != 1
+                || getter == null || !getter.isAbstract()
+                || !getter.getReturnType().equals(parameters[0].getType())) {
+            CommonAstHelper.addCompileError(method.getDeclaringClass().getModule().getContext(),
+                    "Abstract @Builder.Method requires a void setX(value) accessor matching an abstract Model getX(); "
+                            + "other Builder-only methods must declare an implementation", method);
+            return false;
+        }
+        String propertyName = Introspector.decapitalize(name.substring(3));
+        method.setModifiers(method.getModifiers() & ~ACC_ABSTRACT);
+        method.setCode(stmt(callThisX("setInstanceAttribute", args(constX(propertyName), varX(parameters[0])))));
+        return true;
     }
 
     private static void retargetOwnerParameters(MethodNode method) {
@@ -110,6 +136,7 @@ public class WriteAccessMethodsMover {
     }
 
     private static void retargetFieldVariables(MethodNode method, ClassNode builderClass) {
+        if (method.getCode() == null) return;
         method.getCode().visit(new CodeVisitorSupport() {
             @Override
             public void visitVariableExpression(VariableExpression expression) {
