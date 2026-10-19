@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 
+import java.lang.reflect.Modifier;
+
 /**
  * Single internal indirection for the provisional generated Builder layout.
  * Issue #394 may replace this lookup without changing the construction model.
@@ -40,6 +42,16 @@ final class GeneratedBuilderSupport {
             return (Class<? extends InternalKlumBuilder<?>>) modelType.getClassLoader().loadClass(modelType.getName() + CURRENT_SUFFIX);
         } catch (ClassNotFoundException e) {
             throw new KlumModelException("No generated Builder found for " + modelType.getName(), e);
+        }
+    }
+
+    static Class<? extends InternalKlumBuilder<?>> templateBuilderTypeFor(Class<?> modelType) {
+        Class<? extends InternalKlumBuilder<?>> builderType = builderTypeFor(modelType);
+        if (!Modifier.isAbstract(builderType.getModifiers())) return builderType;
+        try {
+            return (Class<? extends InternalKlumBuilder<?>>) modelType.getClassLoader().loadClass(modelType.getName() + "$_TemplateBuilder");
+        } catch (ClassNotFoundException e) {
+            throw new KlumModelException("No generated Template Builder found for " + modelType.getName(), e);
         }
     }
 

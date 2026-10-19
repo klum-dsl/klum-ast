@@ -197,13 +197,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         diagnoseNonSetterConfiguratorOverrides();
         setPropertyAccessors();
         createApplyMethods();
-        createTemplateMethods();
         createFactoryField();
         createClusterFactories();
         convertValidationClosures();
         projectBuilderQueries();
         projectBuilderCapabilities();
         moveMutatorsToBuilderClass();
+        // Completed Template Models must only realize the remaining Model operations.
+        createTemplateMethods();
         createOwnerClosureMethods();
         retargetBuilderAnnotationClosures();
 
@@ -216,6 +217,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         runDelayedActions(annotatedClass);
         OmittedProjectionCatalog.complete(builderClass);
         GeneratedDslSupport.complete(annotatedClass);
+        // Realize only schema operations after all framework hooks and interfaces exist.
+        TemplateMethods.completeTemplateBuilder(this);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
         new VariableScopeVisitor(sourceUnit, true).visitClass(builderClass);
@@ -365,7 +368,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         builderClass = new InnerClassNode(
                 annotatedClass,
                 checkedGeneratedInnerClassName(annotatedClass, annotatedClass.getName() + BUILDER_CLASS_SUFFIX, "Builder implementations"),
-                ACC_PUBLIC | ACC_STATIC,
+                ACC_PUBLIC | ACC_STATIC | (isAbstract(annotatedClass) ? ACC_ABSTRACT : 0),
                 builderBase,
                 new ClassNode[] { make(Serializable.class) },
                 MixinNode.EMPTY_ARRAY);

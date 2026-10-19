@@ -89,7 +89,8 @@ public class FactoryHelper extends GroovyObjectSupport {
         if (!template && !DslHelper.isInstantiable(type))
             throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         try {
-            Class<? extends InternalKlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
+            Class<? extends InternalKlumBuilder<?>> builderType = template
+                    ? GeneratedBuilderSupport.templateBuilderTypeFor(type) : GeneratedBuilderSupport.builderTypeFor(type);
             Constructor<? extends InternalKlumBuilder<?>> constructor = builderType.getDeclaredConstructor(String.class);
             if (!constructor.trySetAccessible())
                 throw new KlumModelException("Cannot access generated Builder constructor for " + type.getName());
