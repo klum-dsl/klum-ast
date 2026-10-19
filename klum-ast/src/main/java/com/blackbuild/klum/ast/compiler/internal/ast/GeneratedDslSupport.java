@@ -429,13 +429,14 @@ public final class GeneratedDslSupport {
         method.setGenericsTypes(projectGenericsTypes(method.getGenericsTypes()));
     }
 
-    private static Parameter[] cloneParameters(Parameter[] source) {
+    private Parameter[] cloneParameters(Parameter[] source) {
         Parameter[] result = new Parameter[source.length];
         for (int index = 0; index < source.length; index++) {
             Parameter parameter = source[index];
             Parameter clone = new Parameter(publicType(parameter.getType()), parameter.getName(), parameter.getInitialExpression());
             copyAnnotationsFromSourceToTarget(parameter, clone, Collections.emptyList());
             NamedMapMetadata.copyTarget(parameter, clone);
+            DelegatesToRWTransformation.normalizePublicParameter(model, clone);
             projectDelegatesTo(clone);
             result[index] = clone;
         }

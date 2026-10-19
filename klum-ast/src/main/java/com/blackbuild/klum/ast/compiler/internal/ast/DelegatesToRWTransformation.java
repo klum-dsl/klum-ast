@@ -69,6 +69,14 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
         transformation.visitSourceHierarchy(factory);
     }
 
+    /** Expands closure hints on public signature copies without changing hidden implementation metadata. */
+    static void normalizePublicParameter(ClassNode model, Parameter parameter) {
+        DelegatesToRWTransformation transformation = new DelegatesToRWTransformation();
+        transformation.model = model;
+        transformation.sourceUnit = model.getModule().getContext();
+        transformation.new Visitor(true).visitAnnotations(parameter);
+    }
+
     private void visitSourceHierarchy(ClassNode innerClass) {
         while (innerClass != null && !innerClass.isResolved()) {
             visitor.visitClass(innerClass);
