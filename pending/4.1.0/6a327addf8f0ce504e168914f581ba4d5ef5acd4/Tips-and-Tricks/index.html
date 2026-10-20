@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tips and Tricks — KlumAST 4.1.0</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.0 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="./">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="./">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="tips-and-tricks">Tips and Tricks</h1>
+<p>These patterns help Schema Developers give Model Writers concise, domain-meaningful construction methods using existing
+KlumAST capabilities. The Builder annotations in this example require KlumAST 4.1; see
+<a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a> for their contracts.</p>
+<h2 id="name-a-builder-helper-for-a-seeded-relationship">Name a Builder Helper for a Seeded Relationship</h2>
+<p>Sometimes a Model Writer wants to start a child from an existing room configuration, then specialize it. A domain
+converter may already accept that same input type with a different meaning. An automatic overload such as
+<code>bedroom(seed) { ... }</code> would compete with that converter or a Schema-defined Builder method.</p>
+<p>Choose an explicit name such as <code>bedroomFrom</code> and wrap the existing named-map <code>copyFrom</code> creator. The Schema Developer
+chooses the name; it is an ordinary method, not a framework naming convention. The normal <code>bedroom(seed)</code> converter
+keeps its meaning.</p>
+<p>(See: <code>BuilderRelationshipHelpersDocumentaryTest#'names a seeded relationship helper without replacing a domain converter'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.DelegatesToBuilder
+import com.blackbuild.klum.ast.Owner
+import groovy.transform.CompileStatic
+
+// Schema
+@CompileStatic
+@DSL class House {
+    String name
+    Room baseline
+    Bedroom bedroom
+
+    @Builder.Method
+    void bedroomFrom(@Builder.Input Room seed,
+                     @DelegatesToBuilder(Bedroom) Closure body) {
+        bedroom(copyFrom: seed, body)
+    }
+}
+
+@DSL class Room {
+    String name
+    boolean heated
+    @Owner House house
+}
+
+@DSL class Bedroom extends Room {
+    int beds
+
+    // This converter intentionally has different semantics from copying a seed.
+    static Bedroom fromRoom(@Builder.Input Room source) {
+        Bedroom.Create.With(name: &quot;converted:$source.name&quot;, heated: false)
+    }
+}
+
+// Model
+def house = House.Create.With {
+    name 'Home'
+    def seed = baseline {
+        name 'Heated room'
+        heated true
+    }
+    bedroomFrom(seed) {
+        name 'Main bedroom'
+        beds 2
+    }
+}
+
+def convertedHouse = House.Create.With {
+    name 'Converted home'
+    def seed = baseline {
+        name 'Heated room'
+        heated true
+    }
+    bedroom seed
+}
+
+// Assertions
+assert house.bedroom.heated
+assert house.bedroom.name == 'Main bedroom'
+assert house.bedroom.beds == 2
+assert !house.bedroom.is(house.baseline)
+assert house.bedroom.house.is(house)
+assert house.baseline.name == 'Heated room'
+assert convertedHouse.bedroom.name == 'converted:Heated room'
+assert !convertedHouse.bedroom.heated
+</code></pre>
+<p><code>@Builder.Method</code> moves <code>bedroomFrom</code> onto the generated House Builder and keeps it off the completed House Model.
+<code>@Builder.Input</code> changes the selected <code>Room</code> parameter to its public Builder type in that construction method. The
+same input annotation lets the recognized <code>fromRoom</code> converter read the live Room Builder during relationship
+construction; a direct completed-Model call still accepts a completed Room. Unannotated Model parameters retain
+completed-Model semantics. See <a rel="nofollow" href="../Advanced-Techniques/#flowing-builders-through-explicit-inputs-and-results">explicit inputs and results</a>.</p>
+<p><code>@DelegatesToBuilder(Bedroom)</code> supplies IDE and static-checker hints for the forwarded closure. The helper returns
+<code>void</code> and attaches the child through the generated relationship creator, so it needs no <code>@Builder.Result</code>.</p>
+<p>The helper creates the relationship's declared <code>Bedroom</code> type, applies the donor through the existing <code>copyFrom</code> protocol
+before running <code>body</code>, and attaches the fresh child as owned composition. The donor remains a separate object. Normal
+Owner assignment, lifecycle, and graph-wide Materialization still apply; the documentary test also checks the Owner seen during <code>@PostTree</code> and one
+lifecycle pass per child. This is copying, not a <code>LINK</code> relationship or adoption of the source Builder.</p>
+<p>The shown helper accepts a live ancestor-typed Builder in the same active Construction session. A sealed Builder or a
+Builder from another session is not a valid live copy source. A completed Model or marked Template needs a separately
+named helper with an ordinary, unannotated Model parameter, or the existing <code>bedroom(copyFrom: donor) { ... }</code> form.
+The source category determines the contribution:</p>
+<ul>
+<li>An ordinary completed Model contributes values only.</li>
+<li>A marked Template contributes values plus Template recipe replay.</li>
+<li>An eligible live same-session Builder contributes current values plus the pending-action snapshot allowed by the
+existing copy-source protocol.</li>
+</ul>
+<p>Copying follows the configured overwrite strategies; it is not an unconditional clone. See
+<a rel="nofollow" href="../Copy-Strategies/#copy-source-protocol">Copy Strategies</a> and <a rel="nofollow" href="../Templates/#copyfrom">Templates</a>.</p>
+<p>The relationship fixes the target type: this helper does not infer a runtime subtype from the donor. It adds no automatic
+seeded overloads and does not implement <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/342">issue #342</a>. Explicit helpers are
+useful precisely because the Schema author controls the name, input contract, target relationship, and copy policy while
+<a rel="nofollow" href="../Converters/">Converters</a> retain their domain meaning. This is the supported practical route in 4.1. The automatic
+<code>relationship(seed) { ... }</code> design is preserved in
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0024-seeded-relationship-creation.md#current-disposition">ADR 0024</a>
+for future reconsideration; SEED-0 through SEED-3 are deferred beyond 4.1 and are neither a release commitment nor a
+release gate.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
