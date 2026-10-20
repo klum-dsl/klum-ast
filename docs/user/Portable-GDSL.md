@@ -5,7 +5,7 @@ The Schema Developer declares which Model type the script family configures; Klu
 GDSL that resolves the Model's real public Builder. Model Writers can then complete bare Builder calls and navigate
 to their declarations in source mirrors or compiled Schema classes.
 
-This guide describes the 4.1 unreleased candidate tracked by
+This guide describes the 4.1 release tracked by
 [#805](https://github.com/klum-dsl/klum-ast/issues/805). Use matching Schema and Model plugin versions that include this
 facility; it is not available in 4.0.1. The qualified path uses regular, non-nested DSL Models whose public Builders are
 available through the supported source-Schema or published-binary Schema workflow. Nested DSL Models are outside this

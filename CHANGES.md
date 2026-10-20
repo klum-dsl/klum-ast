@@ -1,4 +1,4 @@
-# 4.1.0 (unreleased)
+# 4.1.0 (2026-10-20)
 
 - Added annotation-driven external lifecycle creators and mutators on direct DSL relationship fields in AutoCreate,
   AutoLink, Default and PostTree, with creation before mutation, checked assignment, exact annotation typing and
