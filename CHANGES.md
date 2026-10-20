@@ -1,4 +1,4 @@
-# 4.1.0 (unreleased)
+# 4.1.0 (2026-10-20)
 
 - Support general abstract `@Builder.Method` operations with compiler-enforced concrete subtype implementations,
   including inherited setters backed by subtype storage/defaults. Abstract-parent field Templates remain supported;
