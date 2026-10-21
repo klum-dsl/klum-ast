@@ -16,7 +16,6 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [public generated contracts](0005-generated-dsl-support-api.md),
 [Jackson interoperability](0009-jackson-interoperability.md),
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
-[generated-schema runtime linkage](0015-generated-schema-runtime-linkage.md),
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
 ## Problem and ownership
@@ -119,9 +118,10 @@ If retained annotations suffice, prefer them. If a carrier is necessary, record 
 and emit the smallest supportable binary contract. Such a carrier is not a public Schema Developer API, but published Schema
 artifacts still make its identity and encoding generated ABI: separately compiled Schema/API artifacts from supported older
 4.x lines must remain readable by supported newer KlumAST tooling. Package privacy does not remove that compatibility duty;
-[ADR 0015](0015-generated-schema-runtime-linkage.md) and [#896](https://github.com/klum-dsl/klum-ast/issues/896) provide the
-directional context. This decision adds no version negotiation, compatibility shim, runtime-floor enforcement or public
-descriptor version protocol.
+proposed [ADR 0015](0015-generated-schema-runtime-linkage.md) and
+[#896](https://github.com/klum-dsl/klum-ast/issues/896) provide the directional context without becoming parent decisions.
+This decision adds no version negotiation, compatibility shim, runtime-floor enforcement or public descriptor version
+protocol.
 
 Consumers own packaging, distribution, final location and use. No Maven classifier, embedding requirement, deployment
 lookup, publication framework or universal registry is prescribed. JSON Schema is the only initial generator artifact;
