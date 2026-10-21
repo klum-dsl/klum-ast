@@ -95,7 +95,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             kind().name() == 'MAP' && keyType() == 'java.lang.String' && item().kind().name() == 'LIST' && item().item().kind().name() == 'SCALAR'
         }
         plan.entries().find { it.externalName() == 'children' }.with {
-            mapKeyType() == 'java.lang.String' && excludedChildKeyMember() == 'name'
+            mapKeyType() == 'java.lang.String' && excludedChildKeyMember() == 'name' && payload().builder() == 'admission.Child_DSL$Builder'
         }
         plan.entries()*.operation().every { it.declaringBuilder().endsWith('_DSL$Builder') && it.descriptorGroup() }
         plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']

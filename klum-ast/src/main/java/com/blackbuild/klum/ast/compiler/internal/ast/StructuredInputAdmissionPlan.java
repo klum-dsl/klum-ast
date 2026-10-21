@@ -203,24 +203,26 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static Payload payloadForModel(ClassNode model) {
-        return new Payload(PayloadKind.NESTED_OBJECT, model.redirect().getName(), null, null);
+        ClassNode target = model.redirect();
+        return new Payload(PayloadKind.NESTED_OBJECT, target.getName(),
+                GeneratedDslSupport.of(target).getBuilderInterface().redirect().getName(), null, null);
     }
 
     private static Payload payloadForValue(ClassNode type) {
         if (type == null || type.isGenericsPlaceHolder() || type.equals(ClassHelper.OBJECT_TYPE)) return null;
         if (isLeaf(type)) return new Payload(type.isEnum() ? PayloadKind.ENUM : PayloadKind.SCALAR,
-                type.redirect().getName(), null, null);
+                type.redirect().getName(), null, null, null);
         if (isCollection(type)) {
             ClassNode element = getElementTypeForCollection(type);
             Payload nested = payloadForValue(element);
             return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null
-                    : new Payload(PayloadKind.LIST, type.redirect().getName(), null, nested);
+                    : new Payload(PayloadKind.LIST, type.redirect().getName(), null, null, nested);
         }
         if (isMap(type)) {
             if (!ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))) return null;
             Payload nested = payloadForValue(getElementTypeForMap(type));
             return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null
-                    : new Payload(PayloadKind.MAP, type.redirect().getName(), ClassHelper.STRING_TYPE.getName(), nested);
+                    : new Payload(PayloadKind.MAP, type.redirect().getName(), null, ClassHelper.STRING_TYPE.getName(), nested);
         }
         return null;
     }
@@ -312,7 +314,7 @@ final class StructuredInputAdmissionPlan {
     enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, IGNORE }
-    record Payload(PayloadKind kind, String type, String keyType, Payload item) { }
+    record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }
     record PublicOperation(String declaringBuilder, String name, List<String> descriptorGroup) {
         PublicOperation {
             descriptorGroup = List.copyOf(descriptorGroup);
