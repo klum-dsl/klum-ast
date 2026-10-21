@@ -202,6 +202,11 @@ public final class GeneratedDslSupport {
             method.setNodeMetaData(RELATIONSHIP_CREATOR_METADATA_KEY, Boolean.TRUE);
     }
 
+    /** Returns the exact public-contract projection for a generated implementation method, if one exists. */
+    static MethodNode publicProjectionOf(MethodNode implementationMethod) {
+        return implementationMethod.getNodeMetaData(API_METHOD_METADATA_KEY);
+    }
+
     /** Resolves the public API type through an explicit generated {@code implements} link. */
     public static ClassNode publicType(ClassNode type) {
         if (type == null) return null;
