@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.FieldType;
+import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -38,6 +39,7 @@ import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -67,6 +69,7 @@ final class StructuredInputAdmissionPlan {
     static final String METADATA_KEY = StructuredInputAdmissionPlan.class.getName() + ".plan";
     private static final String JSON_IGNORE = "com.fasterxml.jackson.annotation.JsonIgnore";
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
+    private static final ClassNode BUILDER_METHOD = ClassHelper.make(Builder.Method.class);
 
     private final String model;
     private final String builder;
@@ -91,12 +94,13 @@ final class StructuredInputAdmissionPlan {
             rejections.addAll(inherited.rejections);
         }
 
-        transformation.builderFields.keySet().forEach(field -> classifyField(transformation, field, entries, rejections));
+        transformation.builderFields.keySet().forEach(field -> classifyField(field, entries, rejections));
         transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .filter(MethodNode::isPublic)
                 .filter(method -> !method.isStatic())
                 .filter(method -> WriteAccessHelper.isBuilderMethod(method))
+                .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
                 .forEach(method -> classifyOperation(method, entries, rejections));
 
         rejectCollisions(entries, rejections);
@@ -126,12 +130,11 @@ final class StructuredInputAdmissionPlan {
         return rejections;
     }
 
-    private static void classifyField(DSLASTTransformation transformation, FieldNode field, List<Entry> entries,
-                                      List<Rejection> rejections) {
+    private static void classifyField(FieldNode field, List<Entry> entries, List<Rejection> rejections) {
         if (field.getName().startsWith("$") || (field.getModifiers() & Modifier.TRANSIENT) != 0
                 || getFieldType(field) == FieldType.TRANSIENT || field.equals(getKeyField(field.getOwner()))
                 || field.getAnnotations().stream().anyMatch(annotation -> annotation.getClassNode().getName()
-                .equals("com.blackbuild.klum.ast.Owner"))) return;
+                .equals(Owner.class.getName()))) return;
 
         Name name = externalName(field);
         String source = source(field);
@@ -146,7 +149,10 @@ final class StructuredInputAdmissionPlan {
                 rejections.add(new Rejection(source, "requires one concrete owned relationship"));
                 return;
             }
-            entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, field.getName(), payloadForModel(type), name.origin()));
+            PublicOperation operation = publicOperation(field, rejections);
+            if (operation != null)
+                entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
+                        payloadForModel(type), name.origin(), null, null));
             return;
         }
 
@@ -157,7 +163,10 @@ final class StructuredInputAdmissionPlan {
                 rejections.add(new Rejection(source, "requires Map<String, concrete keyed DSL Object> ownership"));
                 return;
             }
-            entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, field.getName(), payloadForModel(child), name.origin()));
+            PublicOperation operation = publicOperation(field, rejections);
+            if (operation != null)
+                entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, operation,
+                        payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName()));
             return;
         }
 
@@ -166,7 +175,9 @@ final class StructuredInputAdmissionPlan {
             rejections.add(new Rejection(source, "has no admitted scalar, enum, List, or Map payload"));
             return;
         }
-        entries.add(new Entry(name.value(), Role.PROPERTY, source, field.getName(), payload, name.origin()));
+        PublicOperation operation = publicOperation(field, rejections);
+        if (operation != null)
+            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null));
     }
 
     private static void classifyOperation(MethodNode method, List<Entry> entries, List<Rejection> rejections) {
@@ -186,25 +197,30 @@ final class StructuredInputAdmissionPlan {
             rejections.add(new Rejection(source, "@Builder.Method payload is outside the admitted grammar"));
             return;
         }
-        entries.add(new Entry(name.value(), Role.OPERATION, source, method.getName(), payload, name.origin()));
+        PublicOperation operation = publicOperation(method, rejections);
+        if (operation == null) return;
+        entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null));
     }
 
     private static Payload payloadForModel(ClassNode model) {
-        return new Payload(PayloadKind.NESTED_OBJECT, model.redirect().getName());
+        return new Payload(PayloadKind.NESTED_OBJECT, model.redirect().getName(), null, null);
     }
 
     private static Payload payloadForValue(ClassNode type) {
         if (type == null || type.isGenericsPlaceHolder() || type.equals(ClassHelper.OBJECT_TYPE)) return null;
-        if (isLeaf(type)) return new Payload(type.isEnum() ? PayloadKind.ENUM : PayloadKind.SCALAR, type.redirect().getName());
+        if (isLeaf(type)) return new Payload(type.isEnum() ? PayloadKind.ENUM : PayloadKind.SCALAR,
+                type.redirect().getName(), null, null);
         if (isCollection(type)) {
             ClassNode element = getElementTypeForCollection(type);
             Payload nested = payloadForValue(element);
-            return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null : new Payload(PayloadKind.LIST, nested.type());
+            return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null
+                    : new Payload(PayloadKind.LIST, type.redirect().getName(), null, nested);
         }
         if (isMap(type)) {
             if (!ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))) return null;
             Payload nested = payloadForValue(getElementTypeForMap(type));
-            return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null : new Payload(PayloadKind.MAP, nested.type());
+            return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null
+                    : new Payload(PayloadKind.MAP, type.redirect().getName(), ClassHelper.STRING_TYPE.getName(), nested);
         }
         return null;
     }
@@ -213,6 +229,43 @@ final class StructuredInputAdmissionPlan {
         return type.isEnum() || ClassHelper.STRING_TYPE.equals(type) || ClassHelper.boolean_TYPE.equals(type)
                 || ClassHelper.Boolean_TYPE.equals(type) || ClassHelper.isPrimitiveType(type)
                 || type.isDerivedFrom(ClassHelper.make(Number.class));
+    }
+
+    private static PublicOperation publicOperation(FieldNode field, List<Rejection> rejections) {
+        return publicOperation(field.getOwner(), field.getName(), source(field), rejections);
+    }
+
+    private static PublicOperation publicOperation(MethodNode method, List<Rejection> rejections) {
+        MethodNode api = GeneratedDslSupport.publicProjectionOf(method);
+        if (api == null) {
+            rejections.add(new Rejection(source(method), "@Builder.Method is absent from the final public Builder contract"));
+            return null;
+        }
+        return new PublicOperation(api.getDeclaringClass().redirect().getName(), api.getName(), List.of(descriptor(api)));
+    }
+
+    private static PublicOperation publicOperation(ClassNode model, String name, String source, List<Rejection> rejections) {
+        ClassNode builder = GeneratedDslSupport.of(model.redirect()).getBuilderInterface().redirect();
+        List<String> descriptors = builder.getDeclaredMethods(name).stream()
+                .filter(MethodNode::isPublic)
+                .filter(method -> !method.isStatic())
+                .map(StructuredInputAdmissionPlan::descriptor)
+                .sorted()
+                .toList();
+        if (descriptors.isEmpty()) {
+            rejections.add(new Rejection(source, "field is absent from the final public Builder contract"));
+            return null;
+        }
+        return new PublicOperation(builder.getName(), name, descriptors);
+    }
+
+    private static String descriptor(MethodNode method) {
+        String parameters = Arrays.stream(method.getParameters())
+                .map(Parameter::getOriginType)
+                .map(type -> type.redirect().getName())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("");
+        return method.getName() + "(" + parameters + "):" + method.getReturnType().redirect().getName();
     }
 
     private static Name externalName(AnnotatedNode node) {
@@ -253,19 +306,20 @@ final class StructuredInputAdmissionPlan {
         if (node instanceof FieldNode field) return field.getOwner().getName() + "#" + field.getName();
         MethodNode method = (MethodNode) node;
         ClassNode model = getModelClassFor(method.getDeclaringClass());
-        String parameters = java.util.Arrays.stream(method.getParameters())
-                .map(Parameter::getOriginType)
-                .map(type -> type.redirect().getName())
-                .reduce((left, right) -> left + ", " + right)
-                .orElse("");
-        return (model == null ? method.getDeclaringClass() : model).getName() + "#" + method.getName() + "(" + parameters + ")";
+        return (model == null ? method.getDeclaringClass() : model).getName() + "#" + descriptor(method);
     }
 
     enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, IGNORE }
-    record Payload(PayloadKind kind, String type) { }
-    record Entry(String externalName, Role role, String source, String operation, Payload payload, NameOrigin nameOrigin) { }
+    record Payload(PayloadKind kind, String type, String keyType, Payload item) { }
+    record PublicOperation(String declaringBuilder, String name, List<String> descriptorGroup) {
+        PublicOperation {
+            descriptorGroup = List.copyOf(descriptorGroup);
+        }
+    }
+    record Entry(String externalName, Role role, String source, PublicOperation operation, Payload payload,
+                 NameOrigin nameOrigin, String mapKeyType, String excludedChildKeyMember) { }
     record Rejection(String source, String reason) { }
     private record Name(String value, NameOrigin origin, boolean ignored) { }
 }

@@ -48,6 +48,10 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                 @JsonProperty('renamed') Region region
                 @JsonIgnore(true) String secret
                 @JsonIgnore(true) @JsonProperty('still-hidden') String ignoredRename
+                @JsonIgnore(false) @JsonProperty('') String fallback
+
+                @Builder.Method
+                void inheritedOperation(String level) { }
             }
 
             @DSL class Child {
@@ -58,6 +62,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             @DSL class Parent extends Base {
                 List<String> labels
                 Map<String, String> annotations
+                Map<String, List<String>> nestedAnnotations
                 Child child
                 Map<String, Child> children
 
@@ -73,16 +78,26 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         then:
         plan.model() == 'admission.Parent'
         plan.builder() == 'admission.Parent_DSL$Builder'
-        plan.entries().collect { [it.externalName(), it.role().name(), it.operation(), it.payload().kind().name()] } == [
+        plan.entries().collect { [it.externalName(), it.role().name(), it.operation().name(), it.payload().kind().name()] } == [
                 ['annotations', 'PROPERTY', 'annotations', 'MAP'],
                 ['child', 'OWNED_OBJECT', 'child', 'NESTED_OBJECT'],
                 ['children', 'KEYED_OWNED_MAP', 'children', 'NESTED_OBJECT'],
+                ['fallback', 'PROPERTY', 'fallback', 'SCALAR'],
                 ['inheritedLabel', 'PROPERTY', 'inheritedLabel', 'SCALAR'],
+                ['inheritedOperation', 'OPERATION', 'inheritedOperation', 'SCALAR'],
                 ['labels', 'PROPERTY', 'labels', 'LIST'],
+                ['nestedAnnotations', 'PROPERTY', 'nestedAnnotations', 'MAP'],
                 ['promote', 'OPERATION', 'promote', 'SCALAR'],
                 ['renamed', 'PROPERTY', 'region', 'ENUM']
         ]
         plan.entries().find { it.externalName() == 'renamed' }.nameOrigin().name() == 'JSON_PROPERTY'
+        plan.entries().find { it.externalName() == 'nestedAnnotations' }.payload().with {
+            kind().name() == 'MAP' && keyType() == 'java.lang.String' && item().kind().name() == 'LIST' && item().item().kind().name() == 'SCALAR'
+        }
+        plan.entries().find { it.externalName() == 'children' }.with {
+            mapKeyType() == 'java.lang.String' && excludedChildKeyMember() == 'name'
+        }
+        plan.entries()*.operation().every { it.declaringBuilder().endsWith('_DSL$Builder') && it.descriptorGroup() }
         plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
     }
 
@@ -100,8 +115,13 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                 @Key String name
             }
 
+            @DSL abstract class AbstractChild {
+            }
+
             @DSL class Parent {
                 List<Child> unkeyedChildren
+                AbstractChild abstractChild
+                Map<Integer, Child> numberedChildren
 
                 @JsonProperty('duplicate') String first
                 @JsonProperty('duplicate') String second
@@ -111,6 +131,12 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
                 @Builder.Method
                 void replace(String first, String second) { }
+
+                @JsonProperty('operation') @Builder.Method
+                void firstOperation(String value) { }
+
+                @JsonProperty('operation') @Builder.Method
+                void secondOperation(String value) { }
             }
         ''')
 
@@ -120,13 +146,16 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
         then:
         plan.entries().empty
-        plan.rejections().collect { [it.source(), it.reason()] } == [
-                ['rejection.Parent#first', "external-name collision for 'duplicate': rejection.Parent#first, rejection.Parent#second"],
-                ['rejection.Parent#replace(java.lang.String, java.lang.String)', '@Builder.Method must declare exactly one payload'],
-                ['rejection.Parent#reset()', '@Builder.Method must declare exactly one payload'],
-                ['rejection.Parent#second', "external-name collision for 'duplicate': rejection.Parent#first, rejection.Parent#second"],
-                ['rejection.Parent#unkeyedChildren', 'has no admitted scalar, enum, List, or Map payload']
-        ]
+        plan.rejections()*.source() == plan.rejections()*.source().sort()
+        plan.rejections().collectEntries { [it.source(), it.reason()] }.with {
+            get('rejection.Parent#abstractChild') == 'requires one concrete owned relationship'
+            get('rejection.Parent#numberedChildren') == 'requires Map<String, concrete keyed DSL Object> ownership'
+            get('rejection.Parent#unkeyedChildren') == 'has no admitted scalar, enum, List, or Map payload'
+            get('rejection.Parent#firstOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
+            get('rejection.Parent#secondOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
+            get('rejection.Parent#replace(java.lang.String, java.lang.String):void') == '@Builder.Method must declare exactly one payload'
+            get('rejection.Parent#reset():void') == '@Builder.Method must declare exactly one payload'
+        }
     }
 
     private CompilationUnit compilationUnit(String schema) {
