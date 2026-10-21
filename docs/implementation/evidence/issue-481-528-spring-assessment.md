@@ -2,6 +2,9 @@
 
 Date: 2026-10-21. Status: **provisional design/triage assessment, not an accepted architecture or implementation plan**.
 
+The original research is retained below as historical evidence. The
+[maintainer/Schelm reconciliation](#follow-up-maintainer-and-schelm-reconciliation) governs the current recommendations.
+
 Assessment source baseline: KlumAST `b3fcf827e03787f6341d61c0a38b76653cc01234`.
 Publication rebase/check baseline: `be36b45198be3fe98ad2a465c8cc21ea6e46b6e8`. The subsequently delivered
 structured-input probe remains separate evidence and supplies no adopted language/API decision to this assessment.
@@ -351,3 +354,72 @@ Keep the first experiment within these limits:
 
 No implementation readiness, Spring compatibility success or deployment success is inferred from this note. The bounded
 assessment is complete; issue delivery and all recommendations remain pending maintainer/Hive reconciliation.
+
+## Follow-up: maintainer and Schelm reconciliation
+
+Date: 2026-10-21. This additive note supersedes the assumptions and recommendations identified here; it preserves the
+original research rather than presenting it as a current delivery plan. Authority: maintainer clarification and an
+explicitly authorized, read-only consultation with Schelm Hive, which inspected clean Schelm `main` at `7c767e8`
+and this PR's original head `50eccac8`. The consumer acknowledgement is a scope/source review, not a new acceptance run.
+
+### Changed assumptions and confirmed boundaries
+
+Schelm's intended architecture is **Application + Environment → assembly/enrichment → Deployment/Projection model
+→ output Sinks**. Conventional Spring applications consume standard configuration files without a KlumAST/Schelm
+runtime. Spring configuration output and Kubernetes resources consume prepared deployment information; native Spring
+model injection is not a phase in that pipeline. Init-container model execution is an optional deployment topology,
+not Schelm's intended default.
+
+Schelm Hive confirmed the following implementation boundary:
+
+- Explicit Application/Environment assembly, fact binding, naming resolution, application configuration projection,
+  and ConfigMap/Strimzi YAML rendering exist. A universal DeploymentModel or pluggable Sink framework does not.
+- Current projections produce application-specific string entries that the platform wraps in a ConfigMap. Shared
+  resolved topic names also feed Strimzi resources. This does not prove Spring binding or `application.yml` generation;
+  standalone Spring files, Terraform and documentation sinks remain intended extensions.
+- The harness completes the shared Environment provider, builds typed inputs, selects and type-checks an Environment,
+  and supplies that exact completed object while loading the Application. Scoped Templates and authored
+  `ForEnvironment` factories are existing construction paths. `ApplicationHolder` is a proposed alternative, not current
+  Schelm implementation, and this context supply is unrelated to Spring runtime injection.
+- Schema authors own contracts/defaults/validation; Operations supplies deployment inputs; Schelm orchestrates selection
+  and assembly; application projections own configuration names/mappings; platform adapters own target resources and
+  serialization. KlumAST supplies construction/lifecycle semantics. Current Strimzi adapters consume Schelm API types;
+  do not generalize the small ConfigMap adapter's dependency boundary to the whole renderer module.
+
+No generic KlumAST blocker is demonstrated for this ordinary output route. Schelm Hive reports existing published-4.1.0
+consumer qualification, but neither that rendering evidence nor this consultation proves a Spring startup, init-container
+deployment, or native Spring integration. The later [Holder probe](issue-932-structured-input-probe.md#ordinary-applicationholder--completed-environment)
+is separate construction evidence; it creates no dependency from ordinary output to a new input language.
+
+### Superseded recommendations and retained findings
+
+Withdraw the original recommendation to retain #481 as a provisional KlumAST 4.2 capability **on the strength of Schelm
+demand**. No missing generic code/API capability has been established. Its possible residual value is a reusable
+documentation/deployment recipe using existing construction and output APIs, including an optional init container;
+that needs its own actor, use case, need horizon and owner. The earlier chart/init-container fixture is therefore a
+conditional recipe test, not Schelm's normal acceptance path or an established KlumAST release gate.
+
+Retain #528 as an **independent conditional future capability for applications deliberately using KlumAST at runtime**.
+Remove Schelm's default workflow as its motivation. Consumer-owned `@Bean` wiring remains the baseline comparison;
+no Spring integration module, selector framework or runtime compatibility success is approved. Partial Models are only
+a possible future relationship to this runtime use case, never a dependency or an acceptance requirement.
+
+The Spring file/profile/secret research, explicit namespace mapping, factory/Template/Holder lifecycle semantics,
+completed Environment identity, resource/proxy qualifications and validation-policy gap remain useful within their
+stated boundaries. Runtime-specific findings belong to #528's optional route. Holder/context construction can also serve
+deployment-time assembly without implying Spring runtime integration. #932/#529 remain independently useful reusable
+KlumAST work and are unchanged; neither they, #829, nor partial Models block ordinary configuration generation.
+
+### Precise recommendations returned to the Hive
+
+1. **#481:** decide whether a concrete consumer independently justifies the optional recipe. If retained, describe its
+   actual actor/topology and existing-API documentation value; otherwise reconsider its generic-capability/release-plan
+   presence. Do not infer closure, transfer or continued 4.2 commitment from this assessment.
+2. **#528:** replace the Schelm-default-runtime motivation and the blanket inability-to-consume claim with the specific
+   unmet requirement beyond ordinary bean wiring. Identify a runtime consumer before scheduling a tracer or approving
+   an optional module; retain the issue as independent and conditional.
+3. **Readiness/ownership:** reconsider the issues' combined “Spring ready” release claim in light of ordinary file
+   consumption versus optional native consumption. Acknowledge recipe/sink ownership only if the owning project agrees.
+
+These are recommended tracker/curation decisions, not applied updates. Both issues remain open; this follow-up changes
+no issue scope, milestone, label, ownership, release commitment, #932/#529 contract, or implementation. No merge is authorized.
