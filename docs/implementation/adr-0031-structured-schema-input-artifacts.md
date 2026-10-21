@@ -67,12 +67,12 @@ External-name precedence is exact:
 
 1. `@JsonIgnore(true)` excludes the entry.
 2. A literal, nonempty `@JsonProperty` supplies the only external spelling.
-3. Otherwise one selected identity, camel or kebab fallback supplies the only external spelling.
+3. Otherwise the selected fallback supplies the only external spelling. `WIRE-PLAN` selects identity.
 
-`@JsonIgnore(false)` does not exclude and an empty `@JsonProperty` falls through. The selected fallback applies to domain
-entry names only, never to ordinary data-map or keyed-domain-map instance keys. Inherited, transformed-name and overload-
-group collisions reject deterministically with all conflicting declarations named. The tracer exercises all three fallback
-policies internally; it does not choose or publish a configuration interface.
+`@JsonIgnore(false)` does not exclude and an empty `@JsonProperty` falls through. Identity applies to domain entry names
+only, never to ordinary data-map or keyed-domain-map instance keys. Inherited, explicit-rename and overload-group collisions
+reject deterministically with all conflicting declarations named. Camel/kebab fallback selection remains outside this
+tracer; no unused strategy hook or configuration interface is introduced.
 
 The grammar does not admit generic Builder call records, `$args`, positional spreading, zero-argument commands, duplicate
 keys, repeated calls, source-order guarantees, an ordering escape hatch, unkeyed relationship collections, polymorphic or
@@ -84,8 +84,8 @@ user syntax.
 ## Smallest compiler-owned plan
 
 The plan is a deep internal module: classification, naming, collision detection and payload shape stay behind one small
-compiler interface. A concrete target plan contains only its generated Model/Builder identity, the selected fallback and
-a deterministic map of entries. Each entry contains:
+compiler interface. A concrete target plan contains only its generated Model/Builder identity and a deterministic map of
+entries. Identity fallback is a `WIRE-PLAN` compile-time constant, not carried plan data. Each entry contains:
 
 | Fact | Why both future consumers need it |
 | --- | --- |
@@ -142,7 +142,7 @@ Reuse the merged #933 fixtures where they already prove behavior. Add only compi
 | concrete nesting | one nested owned child uses its own plan | abstract target, dynamic selector and unkeyed relationship list absent with explicit reason |
 | keyed domain map | outer String key plus concrete child payload; generated key member excluded | non-String key, child key duplicate/conflict and key-as-operation interpretation reject |
 | ordinary data map | labels, annotations and topic names preserve punctuation/case literally | fallback policy never transforms data keys |
-| names | ignore, literal rename, identity/camel/kebab fallback and inherited members | inherited/transformed/overload collision lists every declaration; empty rename falls back |
+| names | ignore, literal rename, identity fallback and inherited members | inherited/explicit-rename/overload collision lists every declaration; empty rename falls back |
 | domain operation | inherited/direct one-payload `@Builder.Method`; Map/List remains one payload | genuine multi-/zero-argument, query/helper/copy/session/lifecycle/Template controls and competing authored overloads reject |
 | active Builder | #933 ApplicationHolder route remains unsealed and unmaterialized while input is applied | no public manual-session interface and no nested root lifecycle |
 | completed LINK | caller attaches completed Environment before enclosing completion; identity and later lifecycle remain intact | serialized context acquisition/reference registry absent |
@@ -233,7 +233,7 @@ domain-tree example; #529 documents structural-validation limits with its plugin
 | Risk / question | Control |
 | --- | --- |
 | A private carrier accidentally becomes generated public ABI. | Package-private inventory, JPMS fixture and the carrier stop gate; no exported plan type or client reader. |
-| Identity/camel/kebab policy needs a public configuration surface. | `WIRE-PLAN` accepts one injected internal selection and proves exactly one spelling; it does not invent the later surface. Runtime work waits until the selected policy reaches runtime and #529 identically. |
+| A later camel/kebab fallback needs a selection surface. | `WIRE-PLAN` fixes identity and adds no strategy hook. A later slice requires concrete adopter need and must feed one selected spelling to runtime and #529 identically. |
 | Converter overloads imply more than one wire payload shape. | Admit only compiler-proven one-payload groups in this tracer; record the first irreducible converter case and stop instead of adding coercion rules. |
 | A separately compiled parent plan cannot be composed without loading code. | The binary/no-execution gate must demonstrate composition from carrier class files; source fallback is forbidden. |
 | Internal deterministic application order becomes observable. | Domain input remains unordered and no escape hatch is added. Runtime planning must characterize a fixed framework order before executing side-effecting operations. |
