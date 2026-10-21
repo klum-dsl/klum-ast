@@ -158,6 +158,32 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         }
     }
 
+    def "classifies an owned relationship before the target namespace is generated"() {
+        given:
+        def unit = compilationUnit('''
+            package consumer
+
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Parent {
+                Child child
+            }
+
+            @DSL class Child {
+                String value
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'consumer.Parent' })
+
+        then:
+        plan.entries()[0].payload().with {
+            type() == 'consumer.Child' && builder() == 'consumer.Child_DSL$Builder'
+        }
+    }
+
     private CompilationUnit compilationUnit(String schema) {
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
         unit.addSource('JsonAnnotations.groovy', '''

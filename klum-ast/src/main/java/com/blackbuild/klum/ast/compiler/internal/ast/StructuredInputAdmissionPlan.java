@@ -205,7 +205,7 @@ final class StructuredInputAdmissionPlan {
     private static Payload payloadForModel(ClassNode model) {
         ClassNode target = model.redirect();
         return new Payload(PayloadKind.NESTED_OBJECT, target.getName(),
-                GeneratedDslSupport.of(target).getBuilderInterface().redirect().getName(), null, null);
+                GeneratedDslSupport.builderTypeFor(target).redirect().getName(), null, null);
     }
 
     private static Payload payloadForValue(ClassNode type) {
