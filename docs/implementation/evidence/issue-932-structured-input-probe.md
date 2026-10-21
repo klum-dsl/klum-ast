@@ -306,7 +306,72 @@ unsupported existing behavior rather than changing production):
 ./gradlew :klum-ast-jackson:test --tests '*StructuredInput*ProbeTest' --console=plain
 ```
 
-Final module suites, compatibility/checks, schema validation, two-axis review and delivery outcome are recorded below
-once completed. No user feature or production behavior changes, so CHANGES.md/user pages/migration navigation and issue
+Final verification below qualifies this evidence only; it does not authorize production implementation. No user feature or production behavior changes, so CHANGES.md/user pages/migration navigation and issue
 milestones/scopes remain unchanged. Tracker impact: related evidence for #932 and #529, both stay open; no closing syntax.
 Hive reconciliation is requested after draft delivery; this worker does not self-archive or merge.
+
+
+### Final verification
+
+Runtime: Gradle 8.14.4; launcher JDK 25.0.4.1; repository Groovy lanes 3.0.25, 4.0.32 and 5.0.6; configured Java 17
+production target unchanged. Baseline suite was run before compatibility lanes. Final commands:
+
+```shell
+./gradlew :klum-ast-jackson:test --console=plain
+./gradlew :klum-ast-jackson:check --console=plain
+python3 -m venv /private/tmp/structured-input-schema-validator
+/private/tmp/structured-input-schema-validator/bin/python -m pip install jsonschema==4.23.0
+/private/tmp/structured-input-schema-validator/bin/python klum-ast-jackson/src/test/resources/structured-input-probe/validate_schema.py
+git diff --check
+```
+
+| Check | Result |
+| --- | --- |
+| Complete Jackson Groovy 3 suite, final check | **121 tests, 0 failures** |
+| Complete Jackson Groovy 4 suite | **119 tests, 0 failures** |
+| Complete Jackson Groovy 5 suite | **119 tests, 0 failures** |
+| New probe cases | **39 per lane, all pass** |
+| Module check | **PASS**, includes license checks and verifyTestLaneIsolation |
+| Draft 2020-12 metaschema | **PASS**, each lane's emitted artifact; schemas equal across lanes |
+| Representative structural cases | **6 valid + 23 invalid per lane, PASS** |
+| Diff and report local links | **PASS** |
+
+The two extra baseline cases are the existing consumer acceptance tests excluded from Groovy 4/5 by existing module
+configuration. Root-wide check was not repeated: this diff changes only Jackson test fixtures, one validator resource and
+this report; production modules/build logic are unchanged, and the full affected-module check covers all three lanes.
+The external Python validator is a pinned temporary environment, not a new Gradle/runtime dependency; its reproducible
+source is committed as [a test resource](../../../klum-ast-jackson/src/test/resources/structured-input-probe/validate_schema.py).
+
+Groovy 5 initially exposed a **test-harness** collision between Map's `properties` entry and Groovy's property access;
+explicit `get('properties')` preserves the same assertion on every lane. The Python resource uses the license plugin's
+standard SCRIPT_STYLE header; no plugin configuration or file-type bypass was needed. Existing JPMS/Gradle deprecation
+warnings remain outside this test-only scope.
+
+### Standards review
+
+Independent Standards review against `b3fcf827e...934d131f9`: **0 actionable findings**. New tests have Test suffix and
+class-level Issue annotations; no production/API/build changes, unrelated edits, suppressed tests or unnecessary
+qualified types. Follow-up review of shape checks, Environment instrumentation, Map access and Python header: **0 new
+findings**. The fixture-specific allowlists are appropriate bounded research; generalization would add unsupported scope.
+
+### Specification review
+
+Independent Specification review found **2 P2 evidence gaps**, both addressed and re-reviewed: reject non-string
+sequence/map values and malformed selected shapes before invocation, matching the projection; instrument the supplied
+Environment's create/tree/validation events and prove they remain unchanged across all four Holder routes. Added
+rejection cases and lifecycle assertions pass in every lane. Follow-up review: **0 unresolved findings**; no production
+scope creep. Standards total unresolved **0**; Specification total unresolved **0**.
+
+### Delivery boundary and history audit
+
+The local sequence was reviewed before publication: one bounded feasibility-evidence commit followed by its review and
+compatibility qualifications. Each step has a distinct reason; no production behavior is delivered or implied. Final
+checks above cover the final source tree. A source-unchanged final documentation/delivery commit requires only applicable
+diff/link checks. The PR is authorized as a **draft evidence PR only**; no merge, ready-for-review transition, issue
+closure, milestone/scope mutation or new implementation task is authorized here.
+
+Delivery authorization audit: Git push channel **authorized** (dry-run accepted); GitHub CLI PR channel **authorized**
+(repository capability verified). Connected GitHub App was not used for remote delivery. Credentials/authentication details
+are not recorded. Remote CI/SonarCloud state belongs to the eventual draft PR revision and must be checked there; local
+success is not a claim that pending remote checks passed. Request Hive reconciliation with the final commit, draft PR,
+related #932/#529 and the remaining maintainer choices; retain PR:open until live merged evidence exists.

@@ -192,11 +192,11 @@ class StructuredInputSchemaProbeTest extends AbstractDSLSpec {
                 'inputprobe.schema.ProbeChild_DSL$Builder',
                 'inputprobe.schema.SchemaRoot_DSL$Builder'] as Set
         result.schema.'$defs'.values().every { !it.containsKey('required') && !it.containsKey('default') }
-        result.schema.'$defs'.'inputprobe.schema.SchemaRoot_DSL$Builder'.properties.keySet() == [
+        result.schema.'$defs'.'inputprobe.schema.SchemaRoot_DSL$Builder'.get('properties').keySet() == [
                 'child', 'class', 'enabled', 'endpoint', 'entries', 'externalChild', 'inheritedLocale', 'items', 'labels',
                 'mapping', 'mode', 'port', 'region', 'requiredValue', 'sequence', 'service-name', 'shout'] as Set
         !result.schema.'$defs'.keySet().any { it.contains('ApiChild') }
-        result.schema.'$defs'.'inputprobe.schema.SchemaRoot_DSL$Builder'.properties.externalChild.'$ref' ==
+        result.schema.'$defs'.'inputprobe.schema.SchemaRoot_DSL$Builder'.get('properties').externalChild.'$ref' ==
                 '#/$defs/inputprobe.api.ProbeChild_DSL%24Builder'
         result.unsupportedAbstract == 'abstract target inputprobe.api.ApiChild: no admitted concrete mapping'
         result.facts.inheritedRegionOwner == 'inputprobe.api.ApiRoot_DSL$Builder'
@@ -220,7 +220,7 @@ class StructuredInputSchemaProbeTest extends AbstractDSLSpec {
 
         then:
         changed.schema != result.schema
-        changed.schema.'$defs'.'inputprobe.schema.SchemaRoot_DSL$Builder'.properties.zone == [type: 'string']
+        changed.schema.'$defs'.'inputprobe.schema.SchemaRoot_DSL$Builder'.get('properties').zone == [type: 'string']
         !changed.executed
 
         when: 'a Schema dependency was compiled without optional Java parameter-name attributes'

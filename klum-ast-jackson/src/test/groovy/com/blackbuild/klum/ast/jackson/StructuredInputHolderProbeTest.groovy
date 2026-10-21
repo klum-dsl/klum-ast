@@ -53,6 +53,10 @@ class StructuredInputHolderProbeTest extends AbstractDSLSpec {
             @Validate void checked() { events << 'holder:validate' }
         }
         @DSL class Environment {
+            static List<String> events = []
+            @PostCreate void created() { events << 'environment:create' }
+            @PostTree void tree() { events << 'environment:tree' }
+            @Validate void checked() { events << 'environment:validate' }
             String name
             String region
             int retryCount
@@ -92,6 +96,7 @@ class StructuredInputHolderProbeTest extends AbstractDSLSpec {
         def applicationType = getClass('holderprobe.Application')
         def environmentType = getClass('holderprobe.Environment')
         def suppliedEnvironment = environmentType.Create.With(name: 'production', region: 'eu-west', retryCount: 7)
+        def environmentEvents = new ArrayList(environmentType.events)
         def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
         def values = [name: 'orders', retries: 0, enabled: false]
         def capturedApplication
@@ -126,6 +131,8 @@ class StructuredInputHolderProbeTest extends AbstractDSLSpec {
 
         then:
         model.application.name == 'orders'
+        environmentEvents == ['environment:create', 'environment:tree', 'environment:validate']
+        environmentType.events == environmentEvents
         model.application.owner.is(model)
         model.application.environment.is(suppliedEnvironment)
         model.application.linkedEnvironment.is(suppliedEnvironment)

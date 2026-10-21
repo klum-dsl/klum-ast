@@ -309,6 +309,15 @@ class StructuredInputDispatchProbeTest extends AbstractDSLSpec {
         'endpoint' | ['api']
         'fail'     | 'inside'
         'unknown'  | 'x'
+        'sequence' | ['a', 5]
+        'mapping'  | [a: 5]
+        'labels'   | [a: 5]
+        'port'     | '8080'
+        'enabled'  | 'false'
+        'mode'     | 'UNKNOWN'
+        'items'    | [[missing: 'x']]
+        'entries'  | []
+        'child'    | [value: 5]
     }
 
 }

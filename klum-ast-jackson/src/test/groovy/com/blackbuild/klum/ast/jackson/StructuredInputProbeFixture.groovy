@@ -97,22 +97,30 @@ class StructuredInputProbeFixture {
             try {
                 if (!operation) throw new NoSuchMethodException('excluded or unknown')
                 Object value = call[1]
+                if (operation in ['serviceName', 'category', 'region', 'requiredValue', 'shout', 'inheritedLocale', 'append', 'fail'] && !(value instanceof String))
+                    throw new IllegalArgumentException('expected String')
+                if (operation == 'port' && !(value instanceof Integer)) throw new IllegalArgumentException('expected int')
+                if (operation == 'enabled' && !(value instanceof Boolean)) throw new IllegalArgumentException('expected boolean')
                 if (operation in ['child', 'externalChild', 'labels', 'mapping', 'entries']) {
                     if (!(value instanceof Map)) throw new IllegalArgumentException('expected data object, no Class/Factory selector')
                 }
+                if (operation in ['labels', 'mapping'] && !value.every { key, entry -> key instanceof String && entry instanceof String })
+                    throw new IllegalArgumentException('expected String map keys and values')
+                if (operation == 'sequence' && (!(value instanceof List) || !value.every { it instanceof String }))
+                    throw new IllegalArgumentException('expected List<String>')
                 if (operation in ['child', 'externalChild']) {
                     String property = operation == 'child' ? 'value' : 'apiValue'
-                    if (!value.keySet().every { it == property })
+                    if (!value.keySet().every { it == property } || !value.values().every { it instanceof String })
                         throw new IllegalArgumentException('nested controls are not admitted')
                 }
-                if (operation == 'entries' && !value.values().every { it instanceof Map && it.keySet().every { it == 'value' } })
+                if (operation == 'entries' && (!value.keySet().every { it instanceof String } || !value.values().every { it instanceof Map && it.keySet().every { it == 'value' } && it.values().every { it instanceof String } }))
                     throw new IllegalArgumentException('nested entry controls are not admitted')
                 if (operation in ['items', 'sequence'] && !(value instanceof List))
                     throw new IllegalArgumentException('expected data list')
                 if (operation == 'mode') value = builder.class.classLoader.loadClass(builder.class.packageName + '.Mode').valueOf(value)
                 Object[] arguments
                 if (operation == 'endpoint') {
-                    if (!(value instanceof List) || value.size() != 2)
+                    if (!(value instanceof List) || value.size() != 2 || !(value[0] instanceof String) || !(value[1] instanceof Integer))
                         throw new IllegalArgumentException('expected [String,int] positional pair')
                     arguments = value.toArray()
                 } else if (operation == 'entries') {
@@ -120,7 +128,7 @@ class StructuredInputProbeFixture {
                     return
                 } else if (operation == 'items') {
                     value.each { item ->
-                        if (!(item instanceof Map) || !item.keySet().every { it == 'value' })
+                        if (!(item instanceof Map) || !item.keySet().every { it == 'value' } || !item.values().every { it instanceof String })
                             throw new IllegalArgumentException('nested item controls are not admitted')
                         InvokerHelper.invokeMethod(builder, 'item', [item] as Object[])
                     }
