@@ -3,7 +3,8 @@
 Date: 2026-10-20. Architecture revised: 2026-10-21.
 
 Status: **Accepted direction; implementation not started**. The merged feasibility probe established the reuse and
-compiled-contract seams. Runtime implementation remains gated by the private admission-plan tracer in the linked plan.
+compiled-contract seams. Runtime and generator implementation remain gated by the shared admission-contract tracer in
+the linked plan.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -15,6 +16,7 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [public generated contracts](0005-generated-dsl-support-api.md),
 [Jackson interoperability](0009-jackson-interoperability.md),
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
+[generated-schema runtime linkage](0015-generated-schema-runtime-linkage.md),
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
 ## Problem and ownership
@@ -35,18 +37,35 @@ Managed Jackson import remains independently supported foreign-format interopera
 replaced by the interpreter nor the sole grammar for structured input. Any new opt-in operation language leaves existing
 Jackson public signatures, modes, mapper behavior and diagnostics intact; this ADR does not redefine Jackson's wire contract.
 
-## Initial interpreter admission
+## Accepted principles and first-tracer boundary
 
-The initial language is a concise, descriptor-directed domain tree rather than a generic Builder call record. It admits
-scalar/enum and ordinary declared collection/map properties, concrete nested owned objects, keyed domain maps whose outer
-keys are instance keys, and explicitly classified Schema-authored `@Builder.Method` operations with exactly one payload.
-A declared Map or List remains one payload and is never globally spread into arguments. An admitted operation may still
-change several Builder properties; its input describes the declared payload, not inferred Model effects.
+### Accepted architectural principles
+
+The accepted language direction is a concise, descriptor-directed domain tree rather than a generic Builder call record.
+Compiler-owned admission, deterministic external naming, existing Builder-first construction and a shared structural
+contract for runtime and generator are architectural principles, not tracer conveniences. Schema-authored custom Builder
+methods are first-class language operations; they are not exceptional escape hatches or inferred storage properties.
+
+### Deliberately limited `WIRE-PLAN` grammar
+
+`WIRE-PLAN` deliberately proves only scalar/enum and ordinary declared collection/map properties, concrete nested owned
+objects, keyed domain maps whose outer keys are instance keys, and explicitly classified Schema-authored `@Builder.Method`
+operations with exactly one payload. It uses identity fallback with explicit rename/exclusion. A declared Map or List
+remains one payload and is never globally spread into arguments. An admitted operation may still change several Builder
+properties; its input describes the declared payload, not inferred Model effects.
 
 Generated setters/adders may share a property representation where justified; custom operations must not be flattened into
 invented storage properties. Public visibility, NamedParam eligibility or an arbitrary method-name pattern alone is not
-admission. Unknown/ambiguous roles require diagnostics. Genuine multi-argument and zero-argument operations, ordered or
-repeated-call carriers, reset/clear conventions and polymorphic aliases are deferred.
+admission. Unknown/ambiguous roles require diagnostics.
+
+### Intended extensions requiring separate decisions
+
+The following remain intended language extensions but require separate syntax, admission and projection decisions after
+the tracer: multi-argument `@Builder.Method` operations; custom converter and factory operations; camelCase and kebab-case
+naming strategies; unkeyed relationship collections; `CollectionFactory` scopes and element creators; and additional
+argument representations where justified. Zero-argument operations, ordered/repeated-call carriers, reset/clear conventions
+and polymorphic aliases remain deferred questions. None is permanently rejected merely because `WIRE-PLAN` omits it, and
+this ADR selects no deferred syntax.
 
 Accepted guardrails:
 
@@ -87,9 +106,22 @@ Compiled Schema + public Foo_DSL.Builder/Factory contracts + proven admission/na
 An optional Gradle plugin accepts explicit roots and compiled dependencies, generating reproducible JSON Schema as ordinary
 task outputs with incremental/up-to-date and configuration-cache behavior. Prefer fully qualified generated class identities
 for `$defs`; prove deterministic references, escaping and collision handling across modules. Existing retained Schema
-annotations may supplement absent facts; narrowly supplementary compiler data requires a measured gap. Source/mirror
-reconstruction is not primary discovery. No Schema constructor, factory, initializer/default, converter, lifecycle method
-or annotation closure executes during extraction. Runtime interpretation intentionally executes admitted Schema code.
+annotations and generated public Builder/Factory methods are the first candidate binary source. `WIRE-PLAN` compares their
+retained facts with one package-private generated carrier and selects the carrier only if annotations cannot preserve a
+required operation role, external name, payload shape or source identity across separately compiled artifacts. The bounded
+comparison covers metadata completeness, binary retention, no-execution extraction, runtime lookup, JPMS access, generated
+ABI compatibility and implementation/maintenance complexity; it does not introduce a third architecture or descriptor
+framework. Source/mirror reconstruction is not primary discovery. No Schema constructor, factory, initializer/default,
+converter, lifecycle method or annotation closure executes during extraction. Runtime interpretation intentionally executes
+admitted Schema code.
+
+If retained annotations suffice, prefer them. If a carrier is necessary, record the concrete missing annotation capability
+and emit the smallest supportable binary contract. Such a carrier is not a public Schema Developer API, but published Schema
+artifacts still make its identity and encoding generated ABI: separately compiled Schema/API artifacts from supported older
+4.x lines must remain readable by supported newer KlumAST tooling. Package privacy does not remove that compatibility duty;
+[ADR 0015](0015-generated-schema-runtime-linkage.md) and [#896](https://github.com/klum-dsl/klum-ast/issues/896) provide the
+directional context. This decision adds no version negotiation, compatibility shim, runtime-floor enforcement or public
+descriptor version protocol.
 
 Consumers own packaging, distribution, final location and use. No Maven classifier, embedding requirement, deployment
 lookup, publication framework or universal registry is prescribed. JSON Schema is the only initial generator artifact;
@@ -121,5 +153,9 @@ The shared feasibility probe is complete in [PR #933](https://github.com/klum-ds
 [evidence report](../implementation/evidence/issue-932-structured-input-probe.md). It proves existing dispatch/session reuse,
 all four managed Jackson modes, active-Builder loading, completed LINK attachment, compiled cross-module discovery and
 no-execution Draft 2020-12 projection. The next bounded step is the implementation plan's `WIRE-PLAN` compiler-owned
-admission-plan tracer. It must pass its private-carrier, cross-Groovy, no-execution and dual-consumer gates before runtime
-interpretation starts. #529 remains downstream of #932's admitted language and may describe only the accepted subset.
+admission-plan tracer. It must pass its binary-representation comparison, cross-Groovy, no-execution and dual-consumer gates
+before either production consumer starts. Once the common contract is accepted and available, #932 runtime interpretation
+and #529 JSON Schema generation may proceed independently from the same acceptance corpus. #932 owns language semantics and
+runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
+interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
+honestly.
