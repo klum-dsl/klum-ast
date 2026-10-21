@@ -1,0 +1,108 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.4/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+> Task :clean
+
+> Task :resolutionProof
+GRADLE 8.14.4 JVM 17.0.3
+PROJECT runtime-consumer
+CONFIGURATION compileClasspath
+COMPONENT com.blackbuild.annodocimal:anno-docimal-annotations:1.0.1 REASON requested
+COMPONENT com.blackbuild.klum.ast:klum-ast-annotations:4.1.0 REASON constraint
+COMPONENT com.blackbuild.klum.ast:klum-ast-bom:4.1.0 REASON requested
+COMPONENT com.blackbuild.klum.ast:klum-ast-runtime:4.1.0 REASON requested
+COMPONENT com.blackbuild.klum.cast:klum-cast-annotations:0.5.0 REASON requested
+COMPONENT org.codehaus.groovy:groovy:3.0.25 REASON requested
+COMPONENT org.example.issue896:query-model:query-old-runtime REASON requested
+COMPONENT org.example.issue896:query-schema:4.1.0 REASON requested
+COMPONENT org.jspecify:jspecify:1.0.0 REASON requested
+COMPONENT root project : REASON root
+ARTIFACT com.blackbuild.annodocimal:anno-docimal-annotations:1.0.1 anno-docimal-annotations-1.0.1.jar SHA256 54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.annodocimal/anno-docimal-annotations/1.0.1/e4251be592e66871ee7817117df3b1dff72b92ba/anno-docimal-annotations-1.0.1.jar
+ARTIFACT com.blackbuild.klum.ast:klum-ast-annotations:4.1.0 klum-ast-annotations-4.1.0.jar SHA256 da5d45ccc60afc0857376142097b1bac109ab33a54f9f8fdc391fd5f7159b240 PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.ast/klum-ast-annotations/4.1.0/41ee10664a453cab3ef5c137bd1a2facaa7f182c/klum-ast-annotations-4.1.0.jar
+ARTIFACT com.blackbuild.klum.ast:klum-ast-runtime:4.1.0 klum-ast-runtime-4.1.0.jar SHA256 6d41ec0b0971ce122f2ff31f969dd40b543f3106503d715458226fcc89775e37 PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.ast/klum-ast-runtime/4.1.0/8a9e956527d8258cbb3ee4285c753cc8181b1574/klum-ast-runtime-4.1.0.jar
+ARTIFACT com.blackbuild.klum.cast:klum-cast-annotations:0.5.0 klum-cast-annotations-0.5.0.jar SHA256 3bb36f43fc90f27a04568673988fb8afb128d6ef00d7fe4c6de658eec5e981d2 PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.cast/klum-cast-annotations/0.5.0/22eaf72130946e8c3ea2aca1c7fa763e81b59e05/klum-cast-annotations-0.5.0.jar
+ARTIFACT org.codehaus.groovy:groovy:3.0.25 groovy-3.0.25.jar SHA256 ad009e985dd84e4f524f4ed1751866da5bef816b691851bfbcefa48a01180a07 PATH $GRADLE_HOME/caches/modules-2/files-2.1/org.codehaus.groovy/groovy/3.0.25/afc7f7a3b2e3e86482d1f636aa3c1733f9c7473/groovy-3.0.25.jar
+ARTIFACT org.example.issue896:query-model:query-old-runtime query-model-query-old-runtime.jar SHA256 2ec3c7f2161ed3c3fe5f95dde326d37b240edfe3de05b7b128471524db022e47 PATH $FIXTURE/repository/org/example/issue896/query-model/query-old-runtime/query-model-query-old-runtime.jar
+ARTIFACT org.example.issue896:query-schema:4.1.0 query-schema-4.1.0.jar SHA256 3e338a0c6230b4680ee10a9c80652436fcb749f03bcde9cadd6589339173f749 PATH $FIXTURE/repository/org/example/issue896/query-schema/4.1.0/query-schema-4.1.0.jar
+ARTIFACT org.jspecify:jspecify:1.0.0 jspecify-1.0.0.jar SHA256 1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab PATH $GRADLE_HOME/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/7425a601c1c7ec76645a78d22b8c6a627edee507/jspecify-1.0.0.jar
+CONFIGURATION runtimeClasspath
+COMPONENT com.blackbuild.annodocimal:anno-docimal-annotations:1.0.1 REASON requested
+COMPONENT com.blackbuild.klum.ast:klum-ast-annotations:4.0.1 REASON by ancestor
+COMPONENT com.blackbuild.klum.ast:klum-ast-bom:4.1.0 REASON requested
+COMPONENT com.blackbuild.klum.ast:klum-ast-runtime:4.0.1 REASON by ancestor
+COMPONENT com.blackbuild.klum.cast:klum-cast-annotations:0.4.0 REASON requested
+COMPONENT org.codehaus.groovy:groovy-bom:3.0.25 REASON requested
+COMPONENT org.codehaus.groovy:groovy:3.0.25 REASON constraint
+COMPONENT org.example.issue896:query-model:query-old-runtime REASON requested
+COMPONENT org.example.issue896:query-schema:4.1.0 REASON requested
+COMPONENT org.jspecify:jspecify:1.0.0 REASON requested
+COMPONENT root project : REASON root
+ARTIFACT com.blackbuild.annodocimal:anno-docimal-annotations:1.0.1 anno-docimal-annotations-1.0.1.jar SHA256 54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.annodocimal/anno-docimal-annotations/1.0.1/e4251be592e66871ee7817117df3b1dff72b92ba/anno-docimal-annotations-1.0.1.jar
+ARTIFACT com.blackbuild.klum.ast:klum-ast-annotations:4.0.1 klum-ast-annotations-4.0.1.jar SHA256 9a68e1a07682986f954358808af5b7e887bb05687b90ed1306d9d27a4f504925 PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.ast/klum-ast-annotations/4.0.1/4062dfe661ea623a874d854432612fb0d857ddcc/klum-ast-annotations-4.0.1.jar
+ARTIFACT com.blackbuild.klum.ast:klum-ast-runtime:4.0.1 klum-ast-runtime-4.0.1.jar SHA256 2c5e339a741f97fef07d5360c326856c466a3a0ed882fd876450d78d3bd3900c PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.ast/klum-ast-runtime/4.0.1/cdcae4ec03179103bfa035d2e7c5cc5668e01cb5/klum-ast-runtime-4.0.1.jar
+ARTIFACT com.blackbuild.klum.cast:klum-cast-annotations:0.4.0 klum-cast-annotations-0.4.0.jar SHA256 b6e33ba5f89bff0a6ad20b280d8e398adac1964e834d7461765ecf8bb5e793b9 PATH $GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.cast/klum-cast-annotations/0.4.0/a719d1e9506250eafd3751b470ec176558a94346/klum-cast-annotations-0.4.0.jar
+ARTIFACT org.codehaus.groovy:groovy:3.0.25 groovy-3.0.25.jar SHA256 ad009e985dd84e4f524f4ed1751866da5bef816b691851bfbcefa48a01180a07 PATH $GRADLE_HOME/caches/modules-2/files-2.1/org.codehaus.groovy/groovy/3.0.25/afc7f7a3b2e3e86482d1f636aa3c1733f9c7473/groovy-3.0.25.jar
+ARTIFACT org.example.issue896:query-model:query-old-runtime query-model-query-old-runtime.jar SHA256 2ec3c7f2161ed3c3fe5f95dde326d37b240edfe3de05b7b128471524db022e47 PATH $FIXTURE/repository/org/example/issue896/query-model/query-old-runtime/query-model-query-old-runtime.jar
+ARTIFACT org.example.issue896:query-schema:4.1.0 query-schema-4.1.0.jar SHA256 3e338a0c6230b4680ee10a9c80652436fcb749f03bcde9cadd6589339173f749 PATH $FIXTURE/repository/org/example/issue896/query-schema/4.1.0/query-schema-4.1.0.jar
+ARTIFACT org.jspecify:jspecify:1.0.0 jspecify-1.0.0.jar SHA256 1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab PATH $GRADLE_HOME/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/7425a601c1c7ec76645a78d22b8c6a627edee507/jspecify-1.0.0.jar
+CONFIGURATION buildscriptClasspath
+COMPONENT root project : REASON root
+
+> Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+
+> Task :run FAILED
+RUNTIME_ORIGIN file:$GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.ast/klum-ast-runtime/4.0.1/cdcae4ec03179103bfa035d2e7c5cc5668e01cb5/klum-ast-runtime-4.0.1.jar
+Exception in thread "main" java.lang.NoSuchMethodError: 'java.lang.Object com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder.$klum$completedModelOrNull()'
+	at example.CustomerEnvironment$Builder.regionName(EnvironmentApi.groovy)
+	at example.ConfiguredModel$_get_closure1.doCall(ConfiguredModel.groovy:12)
+	at example.ConfiguredModel$_get_closure1.call(ConfiguredModel.groovy)
+	at com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder.applyClosure(InternalKlumBuilder.java:600)
+	at com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder.applyOnly(InternalKlumBuilder.java:580)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.lambda$create$9(FactoryHelper.java:350)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.prepareBuilder(FactoryHelper.java:192)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.lambda$doCreate$6(FactoryHelper.java:329)
+	at com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver.withBuilderLifecycle(PhaseDriver.java:147)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.lambda$doCreate$7(FactoryHelper.java:329)
+	at com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector.withBreadcrumb(BreadcrumbCollector.java:69)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.doCreate(FactoryHelper.java:328)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.create(FactoryHelper.java:350)
+	at com.blackbuild.klum.ast.runtime.KlumFactory$Unkeyed.With(KlumFactory.java:426)
+	at example.CustomerEnvironment$_Factory.super$3$With(EnvironmentApi.groovy)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:107)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1254)
+	at groovy.lang.ProxyMetaClass.lambda$invokeMethod$1(ProxyMetaClass.java:142)
+	at groovy.lang.ProxyMetaClass.doCall(ProxyMetaClass.java:221)
+	at groovy.lang.ProxyMetaClass.invokeMethod(ProxyMetaClass.java:142)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.invokeMethodOnSuperN(ScriptBytecodeAdapter.java:145)
+	at example.CustomerEnvironment$_Factory.With(EnvironmentApi.groovy)
+	at example.ConfiguredModel.get(ConfiguredModel.groovy:10)
+	at example.RuntimeConsumer.main(RuntimeConsumer.java:8)
+
+[Incubating] Problems report is available at: file://$FIXTURE/query-consumer/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':run'.
+> Process 'command '$JAVA_HOME/bin/java'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.4/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 3s
+4 actionable tasks: 4 executed

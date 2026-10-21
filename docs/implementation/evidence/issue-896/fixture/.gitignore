@@ -1,0 +1,7 @@
+.gradle/
+build/
+**/build/
+repository/
+results/
+
+__pycache__/

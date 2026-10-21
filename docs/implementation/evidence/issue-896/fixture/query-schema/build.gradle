@@ -1,0 +1,8 @@
+plugins { id 'com.blackbuild.klum-ast-schema'; id 'maven-publish' }
+repositories { mavenCentral() }
+group = 'org.example.issue896'
+version = providers.gradleProperty('klumVersion').get()
+publishing { repositories { maven { name = 'Fixture'; url = uri('../repository') } } }
+apply from: '../proof.gradle'
+// Binary investigation; source-mirror/Javadoc tasks are qualified separately by projection_run.py.
+components.java.withVariantsFromConfiguration(configurations.javadocElements) { skip() }

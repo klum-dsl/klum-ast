@@ -1,0 +1,30 @@
+plugins { id 'com.blackbuild.klum-ast-model'; id 'maven-publish' }
+repositories { maven { url = uri('../repository') }; mavenCentral() }
+dependencies { runtimeOnly 'org.codehaus.groovy:groovy:3.0.25' }
+group = 'org.example.issue896'
+version = providers.gradleProperty('row').get()
+klumModel { schemas { schema "org.example.issue896:query-schema:${providers.gradleProperty('schemaVersion').get()}" } }
+def selected = providers.gradleProperty('selectedVersion')
+def selection = providers.gradleProperty('selection').getOrElse('normal')
+if (selected.present) {
+    dependencies {
+        constraints {
+            runtimeOnly('com.blackbuild.klum.ast:klum-ast-runtime') { version { strictly(selected.get()) } }
+            runtimeOnly('com.blackbuild.klum.ast:klum-ast-annotations') { version { strictly(selected.get()) } }
+            if (selection == 'all') {
+                implementation('com.blackbuild.klum.ast:klum-ast-runtime') { version { strictly(selected.get()) } }
+                implementation('com.blackbuild.klum.ast:klum-ast-annotations') { version { strictly(selected.get()) } }
+            }
+        }
+    }
+}
+publishing { repositories { maven { name = 'Fixture'; url = uri('../repository') } } }
+tasks.register('executeModel', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'example.ConfiguredModel'
+}
+apply from: '../proof.gradle'
+
+// Explicitly invoked expected-failure diagnostic probe, excluded from ordinary classes/check.
+sourceSets { negative { groovy.srcDir 'src/negative/groovy'; compileClasspath = sourceSets.main.compileClasspath } }

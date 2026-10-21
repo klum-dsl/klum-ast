@@ -1,0 +1,2 @@
+pluginManagement { repositories { mavenCentral(); gradlePluginPortal() }; plugins { id 'com.blackbuild.klum-ast-model' version providers.gradleProperty('klumVersion').get() } }
+rootProject.name = 'binary-model'
