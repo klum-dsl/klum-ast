@@ -229,7 +229,10 @@ final class StructuredInputAdmissionPlan {
 
     private static boolean isLeaf(ClassNode type) {
         return type.isEnum() || ClassHelper.STRING_TYPE.equals(type) || ClassHelper.boolean_TYPE.equals(type)
-                || ClassHelper.Boolean_TYPE.equals(type) || ClassHelper.isPrimitiveType(type)
+                || ClassHelper.Boolean_TYPE.equals(type) || ClassHelper.byte_TYPE.equals(type)
+                || ClassHelper.short_TYPE.equals(type) || ClassHelper.int_TYPE.equals(type)
+                || ClassHelper.long_TYPE.equals(type) || ClassHelper.float_TYPE.equals(type)
+                || ClassHelper.double_TYPE.equals(type)
                 || type.isDerivedFrom(ClassHelper.make(Number.class));
     }
 
@@ -272,7 +275,7 @@ final class StructuredInputAdmissionPlan {
 
     private static Name externalName(AnnotatedNode node) {
         AnnotationNode ignore = annotation(node, JSON_IGNORE);
-        if (ignore != null && Boolean.TRUE.equals(literal(ignore.getMember("value"))))
+        if (ignore != null && (ignore.getMember("value") == null || Boolean.TRUE.equals(literal(ignore.getMember("value")))))
             return new Name(null, NameOrigin.IGNORE, true);
         AnnotationNode property = annotation(node, JSON_PROPERTY);
         Object value = property == null ? null : literal(property.getMember("value"));

@@ -48,6 +48,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                 @JsonProperty('renamed') Region region
                 @JsonIgnore(true) String secret
                 @JsonIgnore(true) @JsonProperty('still-hidden') String ignoredRename
+                @JsonIgnore String implicitSecret
                 @JsonIgnore(false) @JsonProperty('') String fallback
 
                 @Builder.Method
@@ -98,7 +99,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             mapKeyType() == 'java.lang.String' && excludedChildKeyMember() == 'name' && payload().builder() == 'admission.Child_DSL$Builder'
         }
         plan.entries()*.operation().every { it.declaringBuilder().endsWith('_DSL$Builder') && it.descriptorGroup() }
-        plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
+        plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
     }
 
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {
@@ -122,6 +123,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                 List<Child> unkeyedChildren
                 AbstractChild abstractChild
                 Map<Integer, Child> numberedChildren
+                char marker
 
                 @JsonProperty('duplicate') String first
                 @JsonProperty('duplicate') String second
@@ -151,6 +153,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             get('rejection.Parent#abstractChild') == 'requires one concrete owned relationship'
             get('rejection.Parent#numberedChildren') == 'requires Map<String, concrete keyed DSL Object> ownership'
             get('rejection.Parent#unkeyedChildren') == 'has no admitted scalar, enum, List, or Map payload'
+            get('rejection.Parent#marker') == 'has no admitted scalar, enum, List, or Map payload'
             get('rejection.Parent#firstOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#secondOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#replace(java.lang.String, java.lang.String):void') == '@Builder.Method must declare exactly one payload'
