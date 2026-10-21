@@ -1,0 +1,55 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.4/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+> Task :compileJava NO-SOURCE
+> Task :compileGroovy UP-TO-DATE
+> Task :createModelDescriptors UP-TO-DATE
+> Task :processResources NO-SOURCE
+> Task :classes UP-TO-DATE
+
+> Task :executeModel FAILED
+RUNTIME_ORIGIN file:$GRADLE_HOME/caches/modules-2/files-2.1/com.blackbuild.klum.ast/klum-ast-runtime/4.0.1/cdcae4ec03179103bfa035d2e7c5cc5668e01cb5/klum-ast-runtime-4.0.1.jar
+Exception in thread "main" java.lang.NoSuchMethodError: 'java.lang.Object com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder.$klum$completedModelOrNull()'
+	at example.CustomerEnvironment$Builder.regionName(EnvironmentApi.groovy)
+	at example.ConfiguredModel$_get_closure1.doCall(ConfiguredModel.groovy:12)
+	at example.ConfiguredModel$_get_closure1.call(ConfiguredModel.groovy)
+	at com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder.applyClosure(InternalKlumBuilder.java:600)
+	at com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder.applyOnly(InternalKlumBuilder.java:580)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.lambda$create$9(FactoryHelper.java:350)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.prepareBuilder(FactoryHelper.java:192)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.lambda$doCreate$6(FactoryHelper.java:329)
+	at com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver.withBuilderLifecycle(PhaseDriver.java:147)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.lambda$doCreate$7(FactoryHelper.java:329)
+	at com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector.withBreadcrumb(BreadcrumbCollector.java:69)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.doCreate(FactoryHelper.java:328)
+	at com.blackbuild.klum.ast.runtime.internal.FactoryHelper.create(FactoryHelper.java:350)
+	at com.blackbuild.klum.ast.runtime.KlumFactory$Unkeyed.With(KlumFactory.java:426)
+	at example.CustomerEnvironment$_Factory.super$3$With(EnvironmentApi.groovy)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:107)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1254)
+	at groovy.lang.ProxyMetaClass.lambda$invokeMethod$1(ProxyMetaClass.java:142)
+	at groovy.lang.ProxyMetaClass.doCall(ProxyMetaClass.java:221)
+	at groovy.lang.ProxyMetaClass.invokeMethod(ProxyMetaClass.java:142)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.invokeMethodOnSuperN(ScriptBytecodeAdapter.java:145)
+	at example.CustomerEnvironment$_Factory.With(EnvironmentApi.groovy)
+	at example.ConfiguredModel.get(ConfiguredModel.groovy:10)
+	at example.ConfiguredModel.main(ConfiguredModel.groovy:24)
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':executeModel'.
+> Process 'command '$JAVA_HOME/bin/java'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+3 actionable tasks: 1 executed, 2 up-to-date

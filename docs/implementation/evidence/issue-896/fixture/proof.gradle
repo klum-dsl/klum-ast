@@ -1,0 +1,33 @@
+import java.security.MessageDigest
+
+tasks.register('resolutionProof') {
+    doLast {
+        println "GRADLE ${gradle.gradleVersion} JVM ${System.getProperty('java.version')}"
+        println "PROJECT ${project.name}"
+        def proof = { String name, configuration ->
+            println "CONFIGURATION ${name}"
+            configuration.incoming.resolutionResult.allComponents.sort { it.id.displayName }.each { component ->
+                println "COMPONENT ${component.id.displayName} REASON ${component.selectionReason}"
+            }
+            configuration.resolvedConfiguration.resolvedArtifacts.sort { it.moduleVersion.id.toString() }.each { artifact ->
+                def hash = MessageDigest.getInstance('SHA-256').digest(artifact.file.bytes).encodeHex()
+                println "ARTIFACT ${artifact.moduleVersion.id} ${artifact.file.name} SHA256 ${hash} PATH ${artifact.file}"
+            }
+        }
+        ['compileClasspath', 'runtimeClasspath', 'groovy'].each { name ->
+            def conf = configurations.findByName(name)
+            if (conf != null && conf.canBeResolved) proof(name, conf)
+        }
+        proof('buildscriptClasspath', project.buildscript.configurations.classpath)
+        plugins.each { plugin ->
+            if (plugin.class.name.startsWith('com.blackbuild.')) {
+                def jar = new File(plugin.class.protectionDomain.codeSource.location.toURI())
+                println "PLUGIN_CLASS ${plugin.class.name} ORIGIN ${jar} SHA256 ${MessageDigest.getInstance('SHA-256').digest(jar.bytes).encodeHex()}"
+            }
+        }
+        tasks.withType(GroovyCompile).matching { it.name == 'compileGroovy' }.each { task ->
+            println "GROOVY_COMPILER_CLASSPATH ${task.groovyClasspath.asPath}"
+            println "SCHEMA_OR_MODEL_COMPILE_CLASSPATH ${task.classpath.asPath}"
+        }
+    }
+}

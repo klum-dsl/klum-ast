@@ -1,0 +1,12 @@
+plugins { id 'java'; id 'application' }
+repositories { maven { url = uri('../repository') }; mavenCentral() }
+dependencies { implementation 'org.codehaus.groovy:groovy:3.0.25'; implementation "org.example.issue896:query-model:${providers.gradleProperty('row').get()}" }
+def selected = providers.gradleProperty('selectedVersion')
+if (selected.present) {
+    dependencies { constraints {
+        runtimeOnly('com.blackbuild.klum.ast:klum-ast-runtime') { version { strictly(selected.get()) } }
+        runtimeOnly('com.blackbuild.klum.ast:klum-ast-annotations') { version { strictly(selected.get()) } }
+    } }
+}
+application { mainClass = 'example.RuntimeConsumer' }
+apply from: '../proof.gradle'
