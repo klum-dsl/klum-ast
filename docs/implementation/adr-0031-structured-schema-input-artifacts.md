@@ -1,150 +1,161 @@
-# ADR 0031 plan — a JSON Schema tracer, then Gradle integration
+# ADR 0031 plan — one shared structured-input feasibility probe
 
-Date: 2026-10-20. Status: **Planning only; all phases unstarted**.
+Date: 2026-10-21. Status: **Planning only; probe not started; no production implementation authorized**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
-Related: [#529](https://github.com/klum-dsl/klum-ast/issues/529). No issue acceptance/ownership or release placement changes.
+Language/interpreter: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
+Generator: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 
-The accepted architecture is compiled Schema/public Builder contracts → internal property normalization → JSON Schema
-Draft 2020-12. The optional Gradle plugin is the producer; consumers own the file's packaging, distribution and use.
-This plan replaces SA-0–SA-5. Only Phase A may receive immediate implementation authorization after review; none is granted
-by this documentation PR. Phase B follows its evidence, and Phase C is not a committed backlog.
+## Ownership and stopping boundary
 
-## Phase A — executable JSON Schema tracer
+#932 owns the shared probe's admission/naming/argument/dispatch decision record; #529 owns its JSON Schema and Gradle
+feasibility evidence. Produce **one report from one bounded probe**, using the same fixtures and proposed admitted subset.
+Execution ownership is unassigned until the maintainer authorizes the probe; no new worker or implementation task is
+launched by this plan. The prior SA-0–SA-5 and Phase A/B/C implementation sequences are superseded.
 
-**Hypothesis:** generated public Foo_DSL contracts, supplemented by existing retained annotations where necessary, contain
-enough information to generate a useful concrete input schema. A public generic descriptor is not needed to test this.
+The probe stops with a measured reuse comparison, minimal admission-contract hypothesis, generated-schema evidence,
+missing metadata and concrete maintainer choices. It does not deliver a production interpreter/plugin, select public
+APIs, add annotations or alter generated contracts/importer behavior. Implementation planning follows the evidence.
 
-Use one small real Schema fixture with a concrete root, scalar/enum fields, a concrete nested child, a collection,
-ordinary Map<String,V>, a keyed concrete relationship map and inherited properties. Include a separately compiled base
-or child dependency and annotation metadata; extract from JARs without Schema source or mirrors where feasible. Keep
-normalization private to the tracer. Generate one JSON Schema and validate representative JSON-compatible input with a
-pinned Draft 2020-12 validator, then compare admitted JSON and YAML input with the existing managed importer.
+## Prior art: observed behavior and reuse candidates
 
-The naming fixture includes these existing Groovy annotations (setup omitted):
+These are source/test observations, not executions performed in this documentation revision. Internal visibility is not
+proof of an available public seam: record accessibility and the smallest needed bridge, without promoting internals now.
+
+| Path / source | Existing mechanism | Probe question |
+| --- | --- | --- |
+| [InternalKlumBuilder](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/InternalKlumBuilder.java), [named-map documentary test](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/NamedMapBuilderOperationsDocumentaryTest.groovy) | applyNamedParameters iterates entries and invokes one value through InvokerHelper; normal Groovy overload/method-first resolution, inherited operations, converters and copyFrom participate | Can restricted admission/name translation reuse dispatch without changing existing named-map semantics? How are a collection/map single value and multi-argument call distinguished? |
+| [KlumJacksonImporter](../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumJacksonImporter.java), [ADR 0009](../adr/0009-jackson-interoperability.md) | Explicit readRoot/readTemplate/readBuilder/applyToBuilder, caller-owned input/reader, session checks, diagnostics and mode-specific lifecycle | Which lifecycle/input/diagnostic seams are reusable, and where does property-oriented mapping differ from Schema-authored operation dispatch? |
+| [KlumDeserializer](../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/internal/KlumDeserializer.java) | Resolves mapper properties to configurable Schema fields, discovers owned Builders before binding, handles same-session composition and existing explicit LINK codecs | Measure preallocation/binding order and field-binding versus method-side-effect semantics; do not treat this as the sole operation grammar |
+| [FactoryHelper](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/FactoryHelper.java), [PhaseDriver](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/process/PhaseDriver.java) | Existing root/nested/AsBuilder/Template construction, PostCreate/PostApply, active Construction sessions and graph materialization | Can admitted root/factory/nested operations reuse these paths without prebuilt Models, synthetic closures or another construction engine? |
+| [GeneratedDslSupport](../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupport.java), [metadata tests](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/NamedMapMetadataTest.groovy) | Public contracts preserve types, inheritance, parameters/delegation and documentation; NamedParam catalog is intentionally broader than admission | Which role/name/argument facts survive binary compilation, especially custom Builder.Method and factory operations? |
+| [Schema Gradle plugin](../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.java) | Compiled-input AnnoDocimal generation lifecycle; mirrors stay IDE-only | How can an optional generator expose reproducible task outputs and invalidation without consuming mirrors or owning distribution? |
+
+The minimum hypothesis is a private admission/name/argument plan feeding existing dispatch/session mechanisms and a JSON
+Schema projection. This is not a public descriptor. A Schema-authored operation remains an operation even when it changes
+several properties; its schema describes input arguments, not inferred Model effects. No need to recreate named dispatch,
+Jackson lifecycle, overload resolution or construction may be asserted without an executable counterexample and reuse audit.
+
+## Probe sequence
+
+### 1. One compiled fixture and baseline observations
+
+Build separately resolved API → Schema → consumer binary artifacts. Use actual [Layer 3](../user/Layer3.md): abstract
+Domain API DSL types, concrete Schema types, at least one Cluster projection and an API-only completed-model client.
+Include an inherited API scalar property, a concrete Schema dependency/child and explicit concrete roots; abstract bases
+are not themselves abstract input targets. Add an abstract relationship as a deliberate unsupported negative. Modify an
+API property/dependency and prove metadata/output invalidation, without source/mirrors on extraction inputs where feasible.
+Do not assume proposed generic-specialization support or classpath subtype discovery.
+
+Exercise scalar/enum values, ordinary Map<K,V> (String keys first), collections, keyed/unkeyed nested relationships,
+CollectionFactory scope, inherited custom Builder.Method, an operation changing multiple properties, and a concrete
+Schema-authored factory requiring caller-supplied context. Include helper/query/copyFrom, dynamic Map/Class/Factory and
+untargeted-closure negatives. Do not serialize generated control signatures as operations; measure whether existing
+fixed-target creator/value-map paths can support internal dispatch without exposing those control forms externally.
+
+### 2. Compare three paths on the same cases
+
+Record success, failure, missing seam and semantics for (a) existing named-map calls, (b) managed Jackson, and (c) minimal
+restricted operation interpretation. Use ordinary supported Groovy construction as a baseline, not a generated closure
+program. Probe code remains private and disposable; no new overload resolver, synthetic closures or lifecycle engine.
+
+| Existing Jackson mode | Required comparison |
+| --- | --- |
+| readRoot | One independent completed root; reject inappropriate active-session root use; observe allocation and lifecycle |
+| readTemplate | Value-only marked Template, no lifecycle now; retain its distinct mode without promising interpreter Template syntax |
+| readBuilder | Exact generated child Builder in active session; attach it as owned composition without prior Model creation |
+| applyToBuilder | Identical active unsealed Builder; characterize repeated application without claiming layering/merge policy |
+
+Compare ownership, delegate targets, keys, state and overload resolution as well as final values. Use counters/events to
+observe once-only PostCreate/PostApply, later AutoLink/PostTree, materialization and validation. Exercise ordinary LINK/
+AutoLink lifecycle resolution and a supplied-context factory; no generic ref registry or provider/context acquisition.
+Jackson's existing custom codecs/polymorphism and sealed LINK wrapper behavior remain supported independently; do not
+silently narrow or extend them. Compare only overlapping semantics and explain differences.
+
+### 3. Admission, naming, arguments, ordering and diagnostics
+
+Use this classification table as a probe aid, not automatic implementation admission:
+
+| Candidate | Question / guardrail |
+| --- | --- |
+| Generated scalar/enum and collection/map property operations | Canonical structured shape versus synonymous setter/adder calls; no inferred Model-effect schema |
+| Schema-authored Builder.Method / inherited method | First-class scalar, enum, multi-arg and multi-property inputs; distinguish explicit operations from internal controls |
+| Concrete authored Factory / nested Builder or CollectionFactory | Fixed target, caller context, attachment and session reuse; no prebuilt Models |
+| Generated leading Map values-bag / Class/Factory selector | Excluded serializable control form; ordinary Map-valued property stays eligible |
+| Query/getter, copyFrom, Template/lifecycle/session/helper, untargeted closure | Excluded operation; preserve existing broader named-map/Jackson API behavior |
+| Abstract target / ambiguous role / unresolved key encoding | Diagnostic failure; no permissive schema or inferred subtype/role |
+
+Compare identity/camel/kebab and explicit rename/exclusion once for interpreter and generator. Include service-name,
+reserved class and ignored internal configuration using existing JsonProperty/JsonIgnore declarations, plus inherited
+and transformed-name collisions. Measure whether annotations on fields versus authored methods suffice; do not invent
+factory-argument annotations. Report naming precedence choices rather than choosing Jackson semantics by implication.
+
+For one Schema operation, compare the following **alternative argument encodings**, not accepted syntax. Example Schema
+uses existing Groovy syntax (setup omitted):
 
 ```groovy
 @DSL
 class Service {
-    @JsonProperty('service-name') String serviceName
-    @JsonProperty('class') String serviceClass
-    @JsonIgnore String internalState
+    String host
+    int port
+    @Builder.Method void endpoint(String host, int port = 8080) {
+        this.host = host
+        this.port = port
+    }
 }
 ```
 
-**Acceptance criteria:**
+Compare an endpoint input value `{host: 'api', port: 8080}` with `['api', 8080]` and the currently accepted one-map-argument
+call when a real Map-taking overload exists. Inspect binary parameter names, omission/default-generated overloads,
+ambiguity, nulls and Map/List-as-one-value cases. Reuse Groovy resolution; do not choose an argument envelope or resolver.
 
-1. The generated schema passes Draft 2020-12 meta-schema validation and correctly describes scalar/enum, nested, collection,
-   ordinary map, keyed concrete and inherited input. Repeated generation of unchanged input produces identical output.
-2. External properties include service-name and class, omit internalState, and agree with managed JSON/YAML binding under
-   the recorded mapper/parser configuration. Pin validator, Jackson, YAML and KlumAST versions in the evidence. Test name
-   collisions and unsupported naming metadata as diagnostics, not guessed mappings.
-3. Helper/query/copyFrom, Template/lifecycle/session, dynamic Class/Factory selectors and values-bag parameters do not
-   become input properties. Ordinary Map<String,V> remains eligible. Prove map entry keys and child-key input follow the
-   existing importer, including explicit child key versus map-key hint; no key becomes a subtype tag.
-4. Successful and rejected extraction do not initialize Schema classes or run constructors, factories, property/default
-   initializers, converters, lifecycle code or annotation closures. Use a forked extraction process with observable
-   throwing/marker controls; class initialization must not be hidden by an in-process counter check.
-5. Compare omitted/null/empty/false/zero examples where relevant to the admitted shapes. Demonstrate that structural
-   success can coexist with completed validation failure and that defaults/lifecycle can satisfy completed Required
-   without mandatory raw input. Do not translate or execute those rules during generation.
-6. Abstract targets, ambiguous operation roles and other unqualified shapes produce declaration-linked diagnostics;
-   generation of the affected root fails rather than producing permissive placeholders. Unsupported mapper behavior is
-   reported without changing importer semantics. Full LINK, Template, virtual-field or other advanced coverage is not a gate.
-7. Record each required fact unavailable from public contracts, the existing retained annotation that can supplement it,
-   or the smallest possible future capture seam. If a necessary fact is absent, report the limitation and stop expansion;
-   this phase does not implicitly authorize new annotations, generated-contract changes or runtime APIs.
+Measure two side-effecting operations in opposite orders, repeat/apply behavior, unordered versus ordered parsed maps,
+list order, and Jackson's discovery-before-binding behavior. Record whether each representation can express repetition;
+do not assume YAML order or invent duplicate-key semantics. Ordering and multi-arg syntax need explicit policy if observable.
 
-Use existing Spock/compiler-test seams and lane-local Groovy 3/4/5 Schema compilation for the binary metadata proof.
-New tests carry @Issue('529') and the Test suffix. A future documentary example carries @Tag('documentary') and @See.
-A single green tracer commit can contain extraction, normalization, generated-schema checks and importer controls;
-a separate evidence commit is useful only if it records independently meaningful findings. Keep code and passing tests
-together. Record exact revisions, commands/results, supported shapes, omissions and missing metadata. No second consumer,
-public reader, metadata codec or publication experiment is required.
+Failure checks cover unknown/ambiguous external name, excluded control, wrong argument shape/count/type, missing context,
+wrong target/session, key conflict and an exception inside an admitted operation. Diagnostics must report source, input
+path, external operation, selected contract (or candidate contracts if unresolved), expected/actual and preserved cause.
+Retain existing Jackson exception identity/path guarantees and avoid changing importer behavior to make tests agree.
 
-**Gate:** review the evidence before promoting the tracer. No maintainer architecture decision currently blocks starting
-Phase A once separately authorized; parser/validator versions and internal implementation choices belong to the tracer.
+### 4. One schema for the measured admitted subset
 
-## Phase B — optional Gradle integration
+Generate Draft 2020-12 from compiled public Foo_DSL.Builder/Factory contracts and the *same* private admission/naming plan.
+Use `$defs`/`$ref`, preferring fully qualified generated class identities; test deterministic escaping/collisions and
+cross-module references, inherited API inputs and invalidation. Existing retained Schema annotations supplement missing
+facts first. Record the smallest compiler seam only for a demonstrated irrecoverable gap; do not implement it implicitly.
 
-Promote the successful tracer into an optional Gradle plugin following existing compiled-input tooling conventions.
-Provide explicit root types, compiled Schema/dependency inputs, reproducible JSON Schema task outputs in the plugin's own
-build output, up-to-date/incremental behavior and configuration-cache compatibility. Exact plugin/task/extension names and
-internal helper packaging remain provisional until the tracer shows the needed configuration. Keep JSON Schema/tooling
-dependencies out of core/runtime; applying the plugin does not change managed import.
+Validate emitted schema and representative parsed inputs with a pinned validator; compare actual minimal interpretation,
+named dispatch and overlapping Jackson behavior. No second consumer, public codec or digest/publication protocol is needed.
+Structural success may still fail runtime Required/lifecycle/validation. Omitted/null/empty/false/zero and computed default
+controls must expose that limit; do not evaluate closures, emit false raw-input required or generic LINK reference promises.
 
-Use Gradle/TestKit checks for clean and repeated generation, changed dependency/property input, deletion/stale-output
-cleanup, configuration-cache reuse and deterministic output without machine paths or timestamps. Demonstrate a small
-consumer task taking a generated file and independently copying or packaging it, as ScHelm could. Do not implement Maven
-classifiers, Schema-JAR embedding, publication coordinates, external distribution layout, lookup, deployment or registry
-infrastructure. A green plugin/task integration commit followed by an independent consumer example/docs commit is a
-reasonable provisional boundary; refine it from Phase A evidence.
+In a separate extraction process, prove class initialization, constructors, factories, initializers/defaults, converters,
+lifecycle and annotation closures never execute during successful or rejected metadata extraction. Runtime interpretation
+intentionally executes admitted Schema operations. Repeat generation for deterministic output; assess Gradle task inputs,
+outputs, up-to-date/configuration-cache feasibility and one independent consumer copy/package action without building a
+publication framework. A production plugin is outside this probe.
 
-Future delivery includes a documentary test, a concise docs/user page and Gradle/Jackson guidance for supported shapes
-and limitations, with sidebar/navigation and CHANGES updates as applicable. Run affected module tests and Groovy 3/4/5
-qualification under repository rules, plus plugin checks and current-head CI/SonarCloud. None of these capability or
-release-note claims belongs in this documentation-only revision.
+## Single report and maintainer gate
 
-## Phase C — evidence-driven extensions
+Record exact commits, binary inputs, supported/unsupported cases, commands/results and lane-local Groovy 3/4/5 metadata
+behavior. Reuse existing Spock/compiler/Gradle fixtures; any later probe tests use Test suffix and the appropriate driving
+issue's @Issue, with documentary Tag/See only for settled examples. No pending tests or stable syntax for open decisions.
+The report contains the three-path comparison, reuse/accessibility inventory, minimal admission-contract hypothesis,
+metadata gaps, generator/cross-module/no-execution evidence and explicit limits. Stop rather than silently expanding scope.
 
-Potential extensions are abstract polymorphic aliases, additional default metadata, declarative validation constraints,
-more relationship shapes, advanced Jackson compatibility and optional companion metadata. These are candidates, not
-mandatory implementation slices. Do not choose carriers, APIs, formats or acceptance matrices before Phase A evidence and
-a demonstrated consumer requirement justify a separate decision. Abstract targets need a closed set and unambiguous tags
-separate from instance keys; never infer them from classpaths, Class/Factory overloads or overlapping payloads.
+Present evidence-backed choices for multi-argument syntax, naming precedence and Jackson interoperability/coexistence;
+also identify any observable ordering policy requiring maintainer selection. Closed alias carrier/tag syntax remains a
+separate deferred decision. Unknown/ambiguous aliases eventually reject; reuse literal Field.alternatives where applicable
+without executing its closure. No subtype scan, Class/factory inference, class-name selection or payload-shape guessing.
 
-## Supporting property-normalization matrix
+#930, #481/#528, #304/#310/#349 and #929 remain independently releasable. ScHelm's abstract NamingStrategy and
+Map<String, Environment> demand is reported consumer evidence, not implemented support. Provider/environment/root/package
+selection, context injection, OPTIONAL_LINK fallback and scaffolding stay external. Overengineering gate: no universal
+deserializer, synthetic closure, ref registry, public descriptor/codec/registry, publication or annotation/lifecycle framework.
 
-This research guides classification; it does not require full support for every row before the initial concrete artifact.
-Only supported structured-input properties become schema properties. Unsupported requested shapes fail with diagnostics;
-known helper/control operations are excluded. Phase A's concrete acceptance list defines the initial proof.
+## This documentation/tracker delivery
 
-| Observed shape | Normalization guidance |
-| --- | --- |
-| Scalar/enum field configurator and setX aliases | One property; generated spelling is not an additional external name |
-| Concrete nested/fixed-target creator | Resolve public child Builder and attachment role; targeted DelegatesTo helps identify shape |
-| Collection and singular/varargs adders | One array-valued property; no automatic uniqueItems or sorting claim from Java container type |
-| Ordinary Map<String,V> and entry adders | One object-map property, distinct key/value roles |
-| Keyed creator / map relationship | Normalize property and instance key separately; preserve importer key precedence |
-| Inherited configurable property | Use effective supported public typing; unresolved generics are unsupported rather than guessed |
-| Creator's leading Map values bag | Control parameter, never an input property |
-| Runtime Class/Factory selector | Excluded call form, never a static subtype/alias declaration |
-| Getter, query, helper, copyFrom, Template, lifecycle/session | Excluded operation; one-value NamedParam eligibility alone is insufficient |
-| Untargeted/custom closure or ambiguous method-first override | Do not infer property role or target from body/return/bound |
-| Abstract target | Unsupported initially; no permissive placeholder or inferred closed subtype set |
-| BUILDER, PROTECTED/IGNORED, Owner/Role, virtual field | Check actual managed-input participation; public Builder availability does not prove input binding |
-| LINK/OPTIONAL_LINK, custom Simple Value, unresolved/raw shape | No automatic owned-object, codec or generic POJO interpretation; qualify separately if demanded |
-
-## Supporting source inventory and historical findings
-
-These observations explain the approach and its risks; they are not an expanded initial delivery contract. Source/tests
-were inspected, not executed as implementation evidence in this documentation revision.
-
-| Source seam | Useful finding |
-| --- | --- |
-| [GeneratedDslSupport](../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupport.java), [contract tests](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupportSpec.groovy) | Public signatures, inherited interfaces, parameter annotations and AnnoDoc survive projection; measure operation/property identity in real binary extraction |
-| [Factory delegation tests](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/FactoryClosureDelegationTest.groovy), [named-map tests](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/NamedMapMetadataTest.groovy) | Fixed delegates are useful; custom/dynamic delegates differ. NamedParam includes helpers/converters/copyFrom, so its catalog is broader than structured properties |
-| [Schema Gradle plugin](../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.java) | AnnoDocimal source projection provides a compiled-input task lifecycle precedent; mirrors remain IDE-only and are not extraction inputs |
-| [KlumDeserializer](../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/internal/KlumDeserializer.java), [YAML tests](../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/JacksonYamlInteroperabilityDocumentaryTest.groovy) | Configurable Model field binding and mapper metadata jointly define managed input; explicit child key precedes map hint. Existing richer mapping/export behavior must stay intact |
-| [DefaultValues](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/layer3/DefaultValues.java), [DefaultPhase](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/DefaultPhase.java) | Declared candidates can depend on context, coercion and closures; do not evaluate them or mistake annotation defaults for effective input defaults |
-| [Field](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/Field.java), [copy exceptions](../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/AnnotationCopyExceptions.java) | Literal alternatives use a closure-class carrier; it must not be executed. Bean Validation annotations intentionally do not copy to Builder fields; advanced extraction can be deferred |
-
-The [#529 history](https://github.com/klum-dsl/klum-ast/issues/529) records contract-first discovery, operation filtering,
-ordinary-map eligibility and ScHelm's abstract NamingStrategy/Environment demand. Earlier feasibility/research is retained
-at local commit `192acd255196f37d11651c11d6547d5c06ef9b00` in
-`docs/implementation/issue-529-structured-metadata-feasibility.md` and
-`docs/implementation/evidence/issue-529-json-schema-research.md`; these are historical paths, not files on this PR's base.
-Its Required/default/lifecycle counterexample remains useful. Its generic descriptor/publication machinery and provisional
-“4.2” scope are superseded; no companion format, digest protocol or future-consumer architecture is carried forward.
-
-Standards references: [JSON Schema 2020-12 Core](https://json-schema.org/draft/2020-12/json-schema-core),
-[Validation](https://json-schema.org/draft/2020-12/json-schema-validation) and
-[YAML 1.2.2](https://yaml.org/spec/1.2.2/). JSON Schema checks a JSON-compatible instance model, not YAML syntax;
-record the tested parser normalization boundary rather than promising arbitrary YAML tags, aliases or key semantics.
-
-## Documentation revision validation and handoff
-
-Validate both documents with Markdown/local-link/diff checks and standards/spec review. No generator, plugin, annotation,
-API, Builder contract, importer, issue or milestone changes are part of this PR. Groovy lanes are omitted for this
-non-executable documentation-only change. Preserve reviewed commits and add this revision as a follow-up commit.
-Tracker impact remains related #529 with no curation/state change. Maintainer acceptance of the revised ADR and separate
-Phase A authorization are the next actions; request Hive reconciliation rather than archiving the task.
+Only this ADR/plan revision and the explicitly requested issue creation/scope normalization are delivered. The probe has
+not run. Validate Markdown/local links/diffs and standards/spec correspondence; omit Groovy lanes under the documentation
+rule. Keep reviewed commits, PR #931 draft/open and issue milestones untouched. Update the PR body and consolidated response;
+request Hive reconciliation with new #932, revised #529, exact head and validation, not archive or implementation admission.

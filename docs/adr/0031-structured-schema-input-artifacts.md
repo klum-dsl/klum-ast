@@ -1,120 +1,127 @@
-# Gradle-driven JSON Schema generation from compiled KlumAST Schemas
+# Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Date: 2026-10-20
+Date: 2026-10-20. Architecture revised: 2026-10-21.
 
-Status: **Proposed revision for maintainer acceptance**. The architecture below records accepted maintainer decisions;
-plugin names and implementation mechanics remain provisional. This documentation does not authorize implementation.
+Status: **Proposed revision for maintainer review**. Ownership and guardrails below record maintainer direction;
+operation syntax, naming precedence and interoperability choices require evidence. No production implementation is authorized.
 
-Tracking issue: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
-Plan and supporting research: [ADR 0031 plan](../implementation/adr-0031-structured-schema-input-artifacts.md).
-Need horizon: provisional next 4.x integration line; no release milestone assigned.
+Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
+Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
+[One shared feasibility-probe plan](../implementation/adr-0031-structured-schema-input-artifacts.md).
+Need horizon: identified ScHelm demand, provisional next 4.x integration line; no milestone assigned.
 
-Parent decisions: [public generated contracts](0005-generated-dsl-support-api.md),
+Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
+[AsBuilder composition](0004-asbuilder-composition-protocol.md),
+[public generated contracts](0005-generated-dsl-support-api.md),
 [Jackson interoperability](0009-jackson-interoperability.md),
-[multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md), and
-[named-map safety](0022-conservative-named-map-safety.md).
+[multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
+[named-map dispatch](0022-conservative-named-map-safety.md).
 
-## Problem and primary need
+## Problem and ownership
 
-Schema Developers need JSON Schema for the structured YAML/JSON inputs of KlumAST DSL Models. Model Writers should get
-useful structural guidance, including readable external property names, without inspecting generated code or maintaining
-another description by hand. ScHelm is a primary consumer; it owns how the generated file reaches its users.
+Model Writers need structured input capable of invoking Schema-authored construction operations, including operations
+that configure several properties. Schema Developers also need JSON Schema describing that language for authoring tools.
+A field-binding schema alone cannot establish the semantics of custom Builder methods, argument forms or nested scopes.
 
-The maintainer's refocusing decision supersedes the earlier descriptor-first proposal. Existing metadata-extraction
-research remains useful evidence, but neither a generic metadata product nor complete KlumAST feature coverage is needed
-before a useful concrete JSON Schema can be generated.
+Two related but independent capabilities address these needs:
 
-## Accepted architecture
+| Capability | Owns | Boundary |
+| --- | --- | --- |
+| Structured Input Interpreter (#932) | Restricted operation admission, naming, arguments, nested dispatch, ordering, diagnostics and Construction-session integration over a parsed Map/List/scalar tree | Optional; parsers caller-owned, no YAML/Jackson dependency in core; not a second Model construction engine |
+| JSON Schema Generator (#529) | Optional Gradle-driven Draft 2020-12 generation describing the admitted language from compiled contracts | Does not execute input or own language semantics; no public descriptor protocol |
 
-JSON Schema Draft 2020-12 is the primary and only initial public artifact. An **optional Gradle plugin** generates it from
-explicitly selected compiled Schema root types and their dependencies:
+They share the admission/naming contract proven by one probe, not a mandatory runtime dependency or public metadata SPI.
+Managed Jackson import remains independently supported foreign-format interoperability under ADR 0009. It is neither
+replaced by the interpreter nor the sole grammar for structured input. Any new opt-in operation language leaves existing
+Jackson public signatures, modes, mapper behavior and diagnostics intact; this ADR does not redefine Jackson's wire contract.
+
+## Interpreter admission hypothesis, not settled syntax
+
+The minimum hypothesis is to recognize Schema-authored public operations on Foo_DSL.Builder/Factory, distinguish their
+roles from internal controls, normalize external names/arguments privately, and dispatch through reusable existing
+construction and Groovy overload machinery. `@Builder.Method` operations are first-class candidates even when they have
+no matching Model field or change several fields. Assess scalar/enum, multi-argument, inherited and nested operations,
+concrete custom factories, CollectionFactories and keyed/unkeyed relationships. Return type alone does not prove attachment.
+
+Generated setters/adders may share a property representation where justified; custom operations must not be flattened into
+invented storage properties. Public visibility, NamedParam eligibility or an arbitrary method-name pattern alone is not
+admission. Unknown/ambiguous roles require diagnostics. The probe must establish what can be expressed without synthetic
+closures or new lifecycle/overload engines before any public API or syntax is selected.
+
+Accepted guardrails:
+
+- Generated dynamic factory overloads with leading generic Map values-bag and/or first/second-position runtime Class/Factory
+  selectors are not serializable operations. Ordinary Map<K,V>-valued properties remain eligible with a qualified key/value
+  representation; do not confuse data maps with control arguments or every custom factory with a generated selector.
+- Filter untargeted closures and framework lifecycle/session/helper/copy controls. Do not blanket-exclude Schema-authored
+  Builder methods as helpers. Existing broad named-map calls, including copyFrom, retain their behavior unchanged.
+- Nested owned values use Builders and the existing Construction session, not prebuilt Models. LINK/AutoLink resolution
+  belongs to ordinary lifecycle work; no generic reference registry or external-context injection framework is introduced.
+  Factories are a workaround for required construction context; context acquisition/provider selection remains external.
+- Characterize ordering experimentally; a parsed Map's iteration or YAML source order is not an accepted language guarantee.
+
+## Naming and unresolved language decisions
+
+Assess identity/camel/kebab naming and explicit rename/exclusion once for both capabilities, with collision diagnostics.
+Existing `@JsonProperty` names such as service-name and class, and `@JsonIgnore`, are narrow compatibility candidates;
+no current ScHelm need requires Jackson annotations on factory arguments. These annotations do not imply arbitrary mapper
+introspection, naming strategies, JsonAlias, mixins/views, codecs, coercion or Jackson polymorphism support.
+
+The shared probe must present concrete choices for **multi-argument representation** (named objects, positional sequences
+or existing maps), binary parameter names/defaults/overloads, **naming precedence** and **Jackson interoperability**.
+In particular a Map/List may itself be one argument. Existing importer behavior must not be changed to force parity.
+Where semantics overlap, compare them; where they differ, report a qualification boundary rather than invent equivalence.
+Diagnostics must include source identity, input path, external operation, selected public contract, expected versus actual
+shape/type and preserved cause, while leaving ADR 0009 diagnostics unchanged.
+
+## Generator architecture and fidelity
 
 ```text
-Compiled Schema + generated Builder contracts
-                    |
-                    v
-       Internal property normalization
-                    |
-                    v
-            JSON Schema 2020-12
+Compiled Schema + public Foo_DSL.Builder/Factory contracts + proven admission/naming
+                                |
+                                v
+                  Internal operation/property normalization
+                                |
+                                v
+                       JSON Schema Draft 2020-12
 ```
 
-The plugin consumes compiled classes and required metadata, generates reproducible files as ordinary Gradle task outputs,
-and supports incremental/up-to-date execution and configuration cache. Its dependencies stay outside KlumAST core and
-runtime. Extraction reads class files without initializing Schema classes or executing constructors, factories, defaults,
-converters, lifecycle methods or annotation closures. It does not reconstruct raw Schema source or scrape IDE mirrors.
+An optional Gradle plugin accepts explicit roots and compiled dependencies, generating reproducible JSON Schema as ordinary
+task outputs with incremental/up-to-date and configuration-cache behavior. Prefer fully qualified generated class identities
+for `$defs`; prove deterministic references, escaping and collision handling across modules. Existing retained Schema
+annotations may supplement absent facts; narrowly supplementary compiler data requires a measured gap. Source/mirror
+reconstruction is not primary discovery. No Schema constructor, factory, initializer/default, converter, lifecycle method
+or annotation closure executes during extraction. Runtime interpretation intentionally executes admitted Schema code.
 
-A small internal normalized property representation is acceptable. It is neither a serialized/versioned descriptor nor a
-public reader API or metadata SPI. Exact plugin/task/extension names and internal packaging can follow the first tracer.
+Consumers own packaging, distribution, final location and use. No Maven classifier, embedding requirement, deployment
+lookup, publication framework or universal registry is prescribed. JSON Schema is the only initial generator artifact;
+normalization stays private, without serialized generic descriptors, codecs, migrations or public readers. Plugin/task/
+extension names and internal packaging remain provisional; tooling dependencies do not enter core/runtime.
 
-The plugin owns generation and its own build output. **Consumers own artifact distribution, location and use**: ScHelm or
-another consumer may copy, publish or embed the generated file independently. The plugin prescribes no Maven classifier,
-publication coordinates, Schema-JAR embedding, external distribution directory, deployment lookup or registry.
+Structural validity does not imply successful interpretation, binding, materialization or completed validation. Required
+may be satisfied by defaults/lifecycle and is not raw-input required. Do not evaluate default closures, translate arbitrary
+Groovy validation or imply that schema references encode LINK identities. Advanced defaults/constraints may be omitted
+honestly. [Draft 2020-12](https://json-schema.org/draft/2020-12/json-schema-validation) distinguishes presence assertions
+from default annotations; no merge/patch, execution-order or round-trip promise follows from schema generation.
 
-## Discovery and property normalization
+## Polymorphism and independent concerns
 
-Generated public Foo_DSL.Builder and Factory contracts are the primary discovery source. Existing retained Schema
-annotations may supplement facts missing from those contracts. Fixed public Builder targets and DelegatesTo metadata can
-identify nested input; delegation alone does not establish attachment, key handling or a closed subtype set.
+ScHelm needs scalar abstract NamingStrategy and Map<String, Environment>. Generated factories describe calls, not a closed
+subtype set or serialized aliases. Abstract input targets remain explicit unsupported negatives until a qualified mapping
+is decided. Eventually require closed Schema-owned aliases, reuse literal Field.alternatives where applicable, and reject
+unknown/ambiguous aliases. Instance keys are data, not discriminators. No subtype/classpath/factory inference, class-name
+wire selection, overlapping-shape inference or annotation-closure execution. Alias carrier/tag syntax remains open.
 
-Normalize configurable scalar/enum properties, concrete nested DSL objects, collections, ordinary Map<String,V>, keyed
-concrete relationships and inherited configurable properties. Equivalent setter/adder/creator operations describe one
-property, rather than additional external keys. The tracer starts with a useful concrete subset; the supporting matrix
-is a classification aid, not a demand to implement every relationship or Builder feature initially.
+#930 examples, #929 Jackson 3, #481 deployment, #528 Spring and #304/#310/#349 composition/copy stay related and independently
+releasable. ScHelm provider/environment/root/package selection, context injection, OPTIONAL_LINK fallback, profiles and
+scaffold rendering remain out of the interpreter's generic scope. No universal deserializer, synthetic closures, reference
+registry, public descriptor/codec/registry, publication system, annotation DSL or lifecycle framework is approved.
 
-Exclude helper methods, queries, copyFrom, Template, lifecycle/session and other construction-control operations.
-A leading creator Map values bag is a control parameter; an ordinary Map-valued property remains eligible. Dynamic
-Class/Factory selectors do not define a static wire contract. Map entry keys identify instances, never subtype aliases.
-Do not guess unknown or ambiguous operation roles. Diagnose unsupported requested shapes and fail the affected root's
-generation rather than silently publishing a misleading permissive schema.
+## Evidence gate
 
-## Supported Jackson naming and exclusion
-
-The initial subset reads field/property-level `@JsonProperty`'s explicit name and `@JsonIgnore`'s exclusion marker.
-It must support names such as `service-name` and `class`, and omit ignored input properties. Other annotation attributes,
-conflicting bindings or unsupported placement are qualification boundaries rather than implied support.
-
-Qualify generated names, exclusions and admitted shapes against actual managed Jackson/YAML input. This does not claim
-compatibility with arbitrary ObjectMapper configuration. Naming strategies, JsonAlias, mixins/views, custom codecs,
-Jackson polymorphism, general mapper introspection and arbitrary coercion are deferred. The generator must not modify
-the existing importer to force agreement; an unsafe representation is a reported qualification limitation.
-
-## Structural validation and fidelity limits
-
-Emit only demonstrably correct structural constraints initially. KlumAST completed-model Required is not JSON Schema
-raw-input required: defaults or lifecycle processing may supply a value. Do not execute default closures, synthesize
-contextual values, translate arbitrary Groovy validation or infer input permissions from completed-model immutability.
-Advanced default and validation metadata may be omitted; document those omissions without inventing approximations.
-
-JSON Schema validation does not replace KlumAST runtime/completed-model validation. Structurally valid input can still
-fail binding, lifecycle or completed validation. The standard's required keyword checks presence and default does not
-supply a missing value ([Draft 2020-12 Validation §§6.5.3, 9.2](https://json-schema.org/draft/2020-12/json-schema-validation)).
-Existing importer key precedence, unknown/null/empty behavior, ownership, materialization and diagnostics remain intact;
-no merge/patch or import/export round-trip promise is added.
-
-## Exclusions and deferred decisions
-
-Abstract NamingStrategy and Environment inputs are real ScHelm needs, but they do not block the concrete generator.
-An abstract target without a qualified mapping is unsupported and must not produce a permissive schema. Future support
-needs an explicit closed subtype set and tags distinct from instance keys. No classpath subtype scanning, class-name wire
-selection, dynamic-factory alias inference, overlapping-payload inference or annotation-closure execution is permitted.
-This PR chooses no new alias annotation, carrier, tag syntax or importer adapter; a separate maintainer decision is needed.
-
-Additional defaults, declarative constraints, more relationship shapes, advanced Jackson compatibility and optional
-companion metadata are evidence-driven extension candidates only. No companion format is designed now. Structured
-examples remain [#930](https://github.com/klum-dsl/klum-ast/issues/930); Jackson 3 remains
-[#929](https://github.com/klum-dsl/klum-ast/issues/929). Spring/deployment, composition, provider selection, profiles and
-scaffold generation stay independently owned. No general schema framework, publication framework or docs DSL is required.
-
-## First tracer and consequences
-
-Phase A proves generation of one useful JSON Schema from real compiled artifacts: concrete types/containers, keys,
-inheritance, rename/ignore, excluded operations, representative structured input and managed-import comparison. It must
-prove extraction executes no Schema user code, and record missing metadata with the smallest possible supplementation
-point. [Acceptance criteria](../implementation/adr-0031-structured-schema-input-artifacts.md#phase-a--executable-json-schema-tracer)
-make that proof actionable. Only Phase A is eligible for separate immediate authorization after review; it has not begun.
-
-Phase B integrates the successful tracer into the optional Gradle producer. Phase C considers extensions only when
-consumer evidence justifies them. No unresolved architectural choice blocks Phase A. Existing generated APIs, core/runtime
-dependencies, Model serialization and import behavior are unchanged by this decision; future implementation must qualify
-its compiled-metadata assumptions across Groovy 3/4/5. Accepting this ADR does not establish tracer success or delivery.
+Plan one bounded shared feasibility probe comparing named-parameter dispatch, all four managed Jackson modes and minimal
+Builder-operation interpretation, then emitting a schema for the measured admitted subset. Include the compiled cross-module
+Layer 3 and no-execution checks in the plan. #932 owns language/reuse findings; #529 owns generator findings in the same
+report. No probe is run here; execution awaits separate authorization. Do not preassign implementation slices or workers.
+After evidence, the maintainer selects syntax/interoperability and any implementation scope. This revision changes no
+production contract and makes no implementation-readiness claim for unresolved semantics.
