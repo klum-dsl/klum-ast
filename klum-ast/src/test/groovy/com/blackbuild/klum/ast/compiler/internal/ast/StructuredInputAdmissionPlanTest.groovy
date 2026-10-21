@@ -134,6 +134,9 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                 @Builder.Method
                 void replace(String first, String second) { }
 
+                @Builder.Method
+                void raw(Map values) { }
+
                 @JsonProperty('operation') @Builder.Method
                 void firstOperation(String value) { }
 
@@ -157,7 +160,53 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             get('rejection.Parent#firstOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#secondOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#replace(java.lang.String, java.lang.String):void') == '@Builder.Method must declare exactly one payload'
+            get('rejection.Parent#raw(java.util.Map):void') == '@Builder.Method payload is outside the admitted grammar'
             get('rejection.Parent#reset():void') == '@Builder.Method must declare exactly one payload'
+        }
+    }
+
+    def "retains unrelated entries while rejecting an ambiguous external name deterministically"() {
+        given:
+        def unit = compilationUnit('''
+            package collision
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import com.fasterxml.jackson.annotation.JsonProperty
+
+            @DSL class Configuration {
+                @JsonProperty('endpoint') String primaryEndpoint
+                @JsonProperty('endpoint') String secondaryEndpoint
+                String region
+
+                @JsonProperty('endpoint') @Builder.Method
+                void configure(String value) { }
+
+                @Builder.Method
+                void refresh(String value) { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'collision.Configuration' })
+
+        then:
+        plan.entries().collect { [it.externalName(), it.role().name()] } == [
+                ['refresh', 'OPERATION'],
+                ['region', 'PROPERTY']
+        ]
+        plan.entries().find { it.externalName() == 'refresh' }.operation().descriptorGroup().any {
+            it.startsWith('refresh(java.lang.String):')
+        }
+        plan.rejections()*.source() == plan.rejections()*.source().sort()
+        plan.rejections()*.source() == [
+                'collision.Configuration#configure(java.lang.String):void',
+                'collision.Configuration#primaryEndpoint',
+                'collision.Configuration#secondaryEndpoint'
+        ]
+        plan.rejections()*.reason().every {
+            it == "external-name collision for 'endpoint': collision.Configuration#configure(java.lang.String):void, collision.Configuration#primaryEndpoint, collision.Configuration#secondaryEndpoint"
         }
     }
 

@@ -219,8 +219,9 @@ final class StructuredInputAdmissionPlan {
                     : new Payload(PayloadKind.LIST, type.redirect().getName(), null, null, nested);
         }
         if (isMap(type)) {
-            if (!ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))) return null;
-            Payload nested = payloadForValue(getElementTypeForMap(type));
+            GenericsType[] generics = type.getGenericsTypes();
+            if (generics == null || generics.length < 2 || !ClassHelper.STRING_TYPE.equals(generics[0].getType())) return null;
+            Payload nested = payloadForValue(generics[1].getType());
             return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null
                     : new Payload(PayloadKind.MAP, type.redirect().getName(), null, ClassHelper.STRING_TYPE.getName(), nested);
         }
