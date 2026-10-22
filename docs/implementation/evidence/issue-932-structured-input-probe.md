@@ -375,3 +375,72 @@ Delivery authorization audit: Git push channel **authorized** (dry-run accepted)
 are not recorded. Remote CI/SonarCloud state belongs to the eventual draft PR revision and must be checked there; local
 success is not a claim that pending remote checks passed. Request Hive reconciliation with the final commit, draft PR,
 related #932/#529 and the remaining maintainer choices; retain PR:open until live merged evidence exists.
+
+## WIRE-PLAN/B carrier qualification
+
+Date: 2026-10-22. This tracer records one package-private, generated sibling class named
+`<Model>_DSL$WirePlan`. Its sole member is private static final `String DATA`, containing the canonical direct admission
+plan. It is emitted as a minimal Java 8 class file because a Groovy AST class would acquire public `GroovyObject` members;
+the emitted carrier has no methods, public members, runtime dependencies, classpath scan, or Schema-class load.
+
+Candidate A (annotations alone) is insufficient: the observed public/retained annotations do not retain compiler
+normalization such as property/owned/keyed role, relationship provenance, collision/rejection decision, or complete
+source identity. A bounded class-file comparison finds `@Builder.Method` only on the authored operation; it has no
+structured retained fact for the generated property, owned relationship, keyed relationship, or their source identity.
+Candidate B consequently preserves only the compiler-normalized facts that a later reader cannot safely recover.
+Inheritance is deliberately composed by the test-only readers following the corresponding public generated
+`*_DSL$Builder` interface hierarchy to explicit sibling carriers; the compiler does not gain a binary classpath resolver.
+
+`StructuredInputAdmissionPlanTest` qualifies the carrier boundary. Independent runtime-shaped and schema-shaped
+class-file adapters compare decoded name, role, payload-tree token, source identity and rejection facts, including
+separately compiled inheritance. Its fresh JVM launches `WirePlanCarrierReader` with a carrier class-file path, parses
+only the class-file `DATA` constant with ASM, and verifies accepted and rejected facts while Schema, enum,
+generated-factory-target, and lifecycle callback traps would throw if initialized. A separate class-file ABI inspection
+verifies the generated carrier is not public, has no public members, and has no linkage to
+`com/blackbuild/klum/ast/runtime/internal`. The tests use no reflective Schema loading. `JpmsPackageBoundaryTest` also
+compiles the existing named Schema fixture and runs a temporary
+consumer module with no `--add-reads`, `--add-exports`, `--add-opens`, or `--patch-module` option. A probe physically
+packaged into a copy of the real runtime module obtains the package-private carrier's private `DATA` field through that
+fixture's existing qualified runtime opening and prints the normalized plan. This proves the planned reader's
+module/package access rather
+than merely locating a class-file path. The named-module proof passes on Groovy 4 and 5.
+
+The targeted Groovy 3, Groovy 4 and Groovy 5 lanes pass for that test. The repository root `./gradlew check
+--console=plain` also passed before this final test-only qualification addition; it is repeated on the final tree before
+delivery. This is compiler-internal feasibility evidence only: it does not publish a metadata format or authorize an
+interpreter, Gradle task, schema projection, or runtime reader.
+
+### Carrier output lifecycle
+
+The carrier remains a direct raw class-file write. Classification occurs during the existing Schema transformation, while
+the existing local model verifier emits the already-classified bytes only after its instruction-selection validation
+succeeds. This retains the established annotation transform boundary: consumers which do not have the compiler
+transformation do not gain a new required class. Emission is suppressed when that source unit has already collected
+errors. This is local Schema-verification evidence, not a transaction for the whole compiler invocation: a later compiler
+error, another source unit's failure, or bytecode-generation failure can leave emitted carrier bytes in the output
+directory. The emitter additionally does nothing when the compiler has no target directory; AST-only/in-memory
+inspection therefore keeps its normalized plan but publishes no carrier and does not fail.
+
+`StructuredInputAdmissionPlanTest` exercises the supported binary-Schema boundary: clean output places the carrier beside
+the generated Builder classes; a second clean compilation has byte-identical carrier bytes; a changed Schema replaces
+those bytes; and Gradle's Schema JAR contains the carrier. It also compiles parent and child Schemas in
+separate compiler invocations, proving each output is retained for the reader's existing Builder-interface composition.
+The failed-compilation probe first records a successful carrier, then rejects a changed Schema, and proves the original
+bytes remain untouched for that specific validation failure path; it is not a general rollback guarantee for every
+possible compilation failure.
+
+The same test creates a minimal Gradle binary-Schema project, compiles it, renames the Schema source, and recompiles it.
+Gradle removes the obsolete Schema class and its sibling carrier while retaining the renamed carrier. This cleanup belongs
+to Gradle's managed task output, not to the compiler transformation: the compiler writes the sibling for each successful
+local verification, while Gradle owns deletion of outputs for removed or renamed sources. A published Schema artifact
+requires successful completion of compilation and packaging in the supported Gradle build lifecycle; an output-directory
+carrier alone is not publication evidence. Arbitrary compiler invocations with no target directory are outside that
+durable-output contract and are intentionally supported as non-publishing AST inspections.
+
+### Carrier format limit
+
+WIRE-PLAN/B stores its complete canonical plan in the carrier's single `DATA` JVM `String` constant. The class-file
+constant-pool UTF-8 entry for that value is limited to 65,535 encoded bytes, so this format does not claim to support
+every possible Schema size. An oversized plan may currently surface as an ASM-level failure rather than a targeted DSL
+diagnostic; a dedicated diagnostic is warranted only if this limit becomes practically relevant. No chunking, alternate
+serialization, resource carrier, or format version is introduced by this qualification.

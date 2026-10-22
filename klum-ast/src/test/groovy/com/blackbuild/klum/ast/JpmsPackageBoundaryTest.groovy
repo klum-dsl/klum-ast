@@ -381,7 +381,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626", "693", "729", "799", "925"])
+    @Issue(["620", "622", "626", "693", "729", "799", "925", "932"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -510,6 +510,9 @@ class JpmsPackageBoundaryTest extends Specification {
             assertGeneratedRelationshipHooksDirectlyInvokeRuntimeHooks(schemaClasses)
 
         Path schemaArtifact = named ? compileAndPackageNamedSchema(schemaSources, schemaClasses) : schemaClasses
+
+        if (named)
+            assertRuntimeModuleCanReadWirePlanCarrier(schemaArtifact, fixture)
 
         ProcessResult staticConsumerCompilation = compileStaticGroovyConsumer(
                 schemaArtifact, consumerSources, consumerClasses, named)
@@ -640,6 +643,86 @@ class JpmsPackageBoundaryTest extends Specification {
         List<String> command = [javacExecutable()]
         command.addAll(arguments)
         execute(command, output)
+    }
+
+    private static void assertRuntimeModuleCanReadWirePlanCarrier(Path schemaArtifact, Path fixture) {
+        Path probeSource = fixture.resolve('probe-source/com/blackbuild/klum/ast/runtime/WirePlanCarrierProbe.java')
+        Path probeClasses = fixture.resolve('probe-classes')
+        Path runtimeWithProbe = fixture.resolve('klum-runtime-with-wire-plan-probe.jar')
+        Files.createDirectories(probeSource.parent)
+        Files.createDirectories(probeClasses)
+        Files.writeString(probeSource, '''
+            package com.blackbuild.klum.ast.runtime;
+
+            import java.lang.reflect.Field;
+
+            public final class WirePlanCarrierProbe {
+                public static String read() throws Exception {
+                    Module schema = ModuleLayer.boot().findModule("fixture.schema").orElseThrow();
+                    Class<?> carrier = Class.forName(schema, "fixture.schema.Station_DSL$WirePlan");
+                    Field data = carrier.getDeclaredField("DATA");
+                    if (!data.trySetAccessible())
+                        throw new IllegalStateException("fixture.schema is not open to the runtime module");
+                    return (String) data.get(null);
+                }
+            }
+        '''.stripIndent())
+
+        ProcessResult compilation = compileJava([
+                '-d', probeClasses.toString(), probeSource.toString()
+        ], probeClasses)
+        assert compilation.exitCode == 0 : compilation.output
+
+        Files.copy(runtimeJar(), runtimeWithProbe)
+        ProcessResult packaging = execute([
+                jarExecutable(), '--update', '--file', runtimeWithProbe.toString(),
+                '-C', probeClasses.toString(), 'com/blackbuild/klum/ast/runtime/WirePlanCarrierProbe.class'
+        ], probeClasses)
+        assert packaging.exitCode == 0 : packaging.output
+
+        Path consumerSource = fixture.resolve('probe-consumer-source')
+        Path consumerClasses = fixture.resolve('probe-consumer-classes')
+        Files.createDirectories(consumerSource.resolve('fixture/probe'))
+        Files.createDirectories(consumerClasses)
+        Files.writeString(consumerSource.resolve('module-info.java'), '''
+            module fixture.wireplanprobe {
+                requires com.blackbuild.klum.ast.runtime;
+                requires fixture.schema;
+            }
+        '''.stripIndent())
+        Files.writeString(consumerSource.resolve('fixture/probe/Main.java'), '''
+            package fixture.probe;
+
+            import com.blackbuild.klum.ast.runtime.WirePlanCarrierProbe;
+
+            public final class Main {
+                public static void main(String[] arguments) throws Exception {
+                    System.out.println(WirePlanCarrierProbe.read());
+                }
+            }
+        '''.stripIndent())
+
+        List<String> moduleEntries = modulePathEntries().collect { entry ->
+            entry == runtimeJar().toString() ? runtimeWithProbe.toString() : entry
+        }
+        String modulePath = [schemaArtifact, *moduleEntries].join(File.pathSeparator)
+        ProcessResult consumerCompilation = compileJava([
+                '--module-path', modulePath,
+                '-d', consumerClasses.toString(),
+                consumerSource.resolve('module-info.java').toString(),
+                consumerSource.resolve('fixture/probe/Main.java').toString()
+        ], consumerClasses)
+        assert consumerCompilation.exitCode == 0 : consumerCompilation.output
+
+        List<String> command = [
+                javaExecutable(), '--module-path', [consumerClasses, *modulePath.tokenize(File.pathSeparator)].join(File.pathSeparator),
+                '-m', 'fixture.wireplanprobe/fixture.probe.Main'
+        ]
+        assertNoPortabilityWorkarounds(command)
+        ProcessResult extraction = execute(command, fixture)
+        assert extraction.exitCode == 0 : extraction.output
+        assert extraction.output.contains('WIRE-PLAN/B')
+        assert extraction.output.contains('Zml4dHVyZS5zY2hlbWEuU3RhdGlvbg')
     }
 
     private static ProcessResult execute(List<String> command, Path output) {
