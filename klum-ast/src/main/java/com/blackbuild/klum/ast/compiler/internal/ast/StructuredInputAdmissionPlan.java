@@ -71,7 +71,6 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.i
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
-import static org.codehaus.groovy.ast.stmt.EmptyStatement.INSTANCE;
 
 /**
  * Compiler-only normalization for the deliberately small WIRE-PLAN input grammar.
@@ -139,6 +138,8 @@ final class StructuredInputAdmissionPlan {
      */
     static void emitCarrier(DSLASTTransformation transformation) {
         ClassNode model = transformation.annotatedClass.redirect();
+        if (model == null)
+            throw new IllegalStateException("No model for WIRE-PLAN carrier");
         StructuredInputAdmissionPlan plan = planOf(model);
         if (plan == null)
             throw new IllegalStateException("No WIRE-PLAN classification for " + model.getName());
