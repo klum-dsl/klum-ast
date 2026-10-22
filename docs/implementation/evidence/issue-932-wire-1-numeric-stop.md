@@ -94,3 +94,7 @@ Correction validation: the rejection reproduction failed on the old admission as
 admission specification passes **30 cases on each Groovy 3/4/5 lane**, including all 14 approved scalar targets and
 unsupported custom numbers nested inside List/Map fields. Module license passes. No runtime code is part of this
 separate correction commit.
+
+The current retained rejection feature is
+`StructuredInputAdmissionPlanTest#'rejects custom Number admission with an actionable source and type diagnostic'`.
+The earlier `numeric carrier admission...` command above describes the historical stop commit, not the corrected test name.

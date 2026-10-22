@@ -20,17 +20,17 @@ and descriptor groups, invokes exact public methods, and completes ordinary cons
 
 | Declared Schema field | Supplied external payload | Baseline carrier role/group | Generated population path |
 | --- | --- | --- | --- |
-| List<String> | List of String | PROPERTY; values(Iterable), values(String[]) | addValue(String), or values(Iterable) |
-| Set<String> | List of String | PROPERTY; same group | same; normal deduplication |
-| SortedSet<String> | List of String | PROPERTY; same group | same; normal sorted storage |
-| NavigableSet<String> | List of String | PROPERTY; same group | same; normal navigable sorted storage |
-| EnumSet<Mode> | List of enum text | PROPERTY; values(Iterable), values(Mode[]) | addValue(Mode), or values(Iterable) after enum materialization |
-| Map<String,String> | Map from literal String key to String | PROPERTY; values(Map) | addValue(String key,String value), or values(Map) |
-| SortedMap<String,String> | same Map shape | PROPERTY; values(Map) | same; normal sorted keys |
-| NavigableMap<String,String> | same Map shape | PROPERTY; values(Map) | same; normal navigable sorted keys |
-| Map<String,Entry> (concrete keyed owned) | Map from literal instance key to child domain Map | KEYED_OWNED_MAP; plural relationship group | addEntry(String,Closure) / its existing internal fixed-target Consumer creator path |
-| SortedMap<String,Entry> | same keyed domain Map | same role/group | same fixed-target keyed creator |
-| NavigableMap<String,Entry> | same keyed domain Map | same role/group | same fixed-target keyed creator |
+| `List<String>` | List of String | PROPERTY; values(Iterable), values(String[]) | addValue(String), or values(Iterable) |
+| `Set<String>` | List of String | PROPERTY; same group | same; normal deduplication |
+| `SortedSet<String>` | List of String | PROPERTY; same group | same; normal sorted storage |
+| `NavigableSet<String>` | List of String | PROPERTY; same group | same; normal navigable sorted storage |
+| `EnumSet<Mode>` | List of enum text | PROPERTY; values(Iterable), values(Mode[]) | addValue(Mode), or values(Iterable) after enum materialization |
+| `Map<String,String>` | Map from literal String key to String | PROPERTY; values(Map) | addValue(String key,String value), or values(Map) |
+| `SortedMap<String,String>` | same Map shape | PROPERTY; values(Map) | same; normal sorted keys |
+| `NavigableMap<String,String>` | same Map shape | PROPERTY; values(Map) | same; normal navigable sorted keys |
+| `Map<String,Entry> (concrete keyed owned)` | Map from literal instance key to child domain Map | KEYED_OWNED_MAP; plural relationship group | addEntry(String,Closure) / its existing internal fixed-target Consumer creator path |
+| `SortedMap<String,Entry>` | same keyed domain Map | same role/group | same fixed-target keyed creator |
+| `NavigableMap<String,Entry>` | same keyed domain Map | same role/group | same fixed-target keyed creator |
 
 The actual collection descriptor encoding includes both JVM array names for resolved JDK types (`[Ljava.lang.String;`)
 and source array spellings for generated types (`Mode[]`). These are existing carrier spellings, not a new format.
@@ -117,3 +117,21 @@ carrier-reader, four existing runtime-boundary probes. The 23 contract cases inc
 keyed categories, the authored Iterable boundary, plural and element shadowing, eight forbidden whole-container targets,
 and nested ordinary versus sorted-container arguments. Compatibility/full-root validation and independent local review
 remain pending for this correction. No public runtime feature, user page or CHANGES claim is part of this commit.
+
+## Final qualification of the bounded correction
+
+Root `./gradlew check --console=plain --no-daemon` passed on production correction `19ffad17` (12m29s), including
+Groovy 3/4/5, module suites, licenses and lane isolation. Compiler suites: **2,198 Groovy 3 cases and 2,200 cases on each Groovy 4/5 lane, zero failures/errors,
+15 existing skips per lane**. No new test suppression was introduced. The original opaque fixtures are rejection coverage.
+
+The two explicitly authorized read-only reviewers examined only `f0bd1a643..19ffad17`:
+
+- Standards: no documented-standard violations; one optional low-priority shared-Map-helper suggestion. The two short
+  constructions remain localized and retain the distinct field-declaration and operation-argument admission boundaries.
+- Specification: no actionable findings or scope creep; all eight ordinary and three keyed categories, authored Iterable
+  rejection, ordinary List/Map operations, nested targets and provenance behavior match the clarification.
+
+Reviewers performed no edits, builds, remote actions or delegation. Markdown links/fences, final diff and local history
+review pass. The characterization commit precedes the policy commit as required; no unrelated changes are included.
+This completes the bounded collection clarification, not the runtime reader, preflight/dispatcher, lifecycle integration
+or public first-slice delivery. #932/#529 remain open; no push/PR or merge has occurred.
