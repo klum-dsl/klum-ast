@@ -58,8 +58,11 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
         def captured
         def result = configuration.Create.With {
             captured = delegate
-            if (isMap) supplied.each { key, value -> operation.invoke(captured, [key, value] as Object[]) }
-            else supplied.each { value -> operation.invoke(captured, [value] as Object[]) }
+            if (isMap) {
+                supplied.each { key, value -> operation.invoke(captured, [key, value] as Object[]) }
+            } else {
+                supplied.each { value -> operation.invoke(captured, [value] as Object[]) }
+            }
         }
         println declaration + ' carrier=' + fact.operation().descriptorGroup() + ' single=' + single.toGenericString()
         def actual = isMap ? result.values.keySet().toList() : result.values.collect { it.toString() }

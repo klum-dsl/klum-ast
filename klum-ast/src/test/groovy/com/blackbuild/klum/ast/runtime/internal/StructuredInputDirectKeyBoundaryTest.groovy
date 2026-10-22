@@ -80,7 +80,9 @@ class StructuredInputDirectKeyBoundaryTest extends AbstractDSLSpec {
             ''')
         }
         def locations = [compilerConfiguration.targetDirectory.toURI().toURL()]
-        if (parentDirectory) locations << parentDirectory.toURI().toURL()
+        if (parentDirectory) {
+            locations << parentDirectory.toURI().toURL()
+        }
         def artifactLoader = new URLClassLoader(locations as URL[], getClass().classLoader)
         def floorPlan = Class.forName('fixedkeyboundary.FloorPlan', false, artifactLoader)
         def kitchenType = Class.forName('fixedkeyboundary.Kitchen', false, artifactLoader)

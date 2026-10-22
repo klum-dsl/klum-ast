@@ -113,47 +113,13 @@ final class StructuredInputPlan {
                                 List<Entry> entries, List<Rejection> rejections)
             throws ReflectiveOperationException, IOException {
         if (!visited.add(contract)) return;
-        String[] lines = carrier(model).split("\n", -1);
-        if (lines.length < 3 || !lines[0].equals("WIRE-PLAN/B") || !lines[lines.length - 1].isEmpty())
-            throw invalid("Malformed WIRE-PLAN/B header or terminator");
-        String[] identity = lines[1].split("\\|", -1);
-        if (identity.length != 3 || !identity[0].equals("model")
-                || !model.getName().equals(token(identity[1])) || !contract.getName().equals(token(identity[2])))
-            throw invalid("Carrier Model/Builder identity mismatch");
+        String[] lines = carrierLines(model, contract);
         for (int i = 2; i < lines.length - 1; i++) {
             String[] fields = lines[i].split("\\|", -1);
             if (fields.length == 3 && fields[0].equals("rejection")) {
                 rejections.add(new Rejection(required(fields[1]), required(fields[2])));
             } else if (fields.length == 12 && fields[0].equals("entry")) {
-                Class<?> declaring = type(model, required(fields[4]));
-                if (!declaring.isAssignableFrom(contract) || !declaring.getName().endsWith(BUILDER_SUFFIX))
-                    throw invalid("Entry declares an unrelated Builder contract");
-                String source = required(fields[3]);
-                String sourceOwner = declaring.getName().substring(0, declaring.getName().length() - BUILDER_SUFFIX.length());
-                if (!source.startsWith(sourceOwner + "#") || source.length() == sourceOwner.length() + 1)
-                    throw invalid("Entry source does not belong to its declared Builder contract");
-                String name = required(fields[5]);
-                List<Method> methods = methods(model, declaring, name, required(fields[6]));
-                if (!Set.of("IDENTITY", "JSON_PROPERTY").contains(fields[7])) throw invalid("Invalid name origin");
-                PayloadParser parser = new PayloadParser(model, fields[10]);
-                Payload payload = parser.parse();
-                if (parser.position != fields[10].length()) throw invalid("Trailing payload data");
-                Role role = Role.valueOf(fields[2]);
-                validatePayload(payload, role == Role.PROPERTY);
-                if ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT))
-                    throw invalid("Relationship role/payload mismatch");
-                if (role == Role.OPERATION && (methods.size() != 1 || methods.get(0).getParameterCount() != 1
-                        || methods.get(0).getParameterTypes()[0] != payload.type()))
-                    throw invalid("Operation does not have its exact single-payload signature");
-                String keyType = token(fields[8]);
-                String excludedKey = token(fields[9]);
-                if (role == Role.KEYED_OWNED_MAP && (!"java.lang.String".equals(keyType) || excludedKey == null))
-                    throw invalid("Keyed relationship has no String key declaration");
-                String fixedKey = token(fields[11]);
-                if (fixedKey != null && (fixedKey.isEmpty() || role != Role.OWNED_OBJECT || !DslHelper.isKeyed(payload.type())))
-                    throw invalid("Fixed direct-child key requires a keyed OWNED_OBJECT: " + source);
-                entries.add(new Entry(required(fields[1]), role, source, declaring, name,
-                        List.copyOf(methods), payload, keyType, excludedKey, fixedKey));
+                entries.add(readEntry(model, contract, fields));
             } else throw invalid("Malformed carrier record " + i);
         }
         for (Class<?> parent : contract.getInterfaces()) {
@@ -163,6 +129,59 @@ final class StructuredInputPlan {
             if (!parentType.isAssignableFrom(model)) throw invalid("Unrelated generated Builder parent");
             collect(parentType, parent, visited, entries, rejections);
         }
+    }
+
+    private static String[] carrierLines(Class<?> model, Class<?> contract) throws IOException {
+        String[] lines = carrier(model).split("\n", -1);
+        if (lines.length < 3 || !lines[0].equals("WIRE-PLAN/B") || !lines[lines.length - 1].isEmpty())
+            throw invalid("Malformed WIRE-PLAN/B header or terminator");
+        String[] identity = lines[1].split("\\|", -1);
+        if (identity.length != 3 || !identity[0].equals("model")
+                || !model.getName().equals(token(identity[1])) || !contract.getName().equals(token(identity[2])))
+            throw invalid("Carrier Model/Builder identity mismatch");
+        return lines;
+    }
+
+    private static Entry readEntry(Class<?> model, Class<?> contract, String[] fields)
+            throws ReflectiveOperationException {
+        Class<?> declaring = type(model, required(fields[4]));
+        String source = entrySource(contract, declaring, fields[3]);
+        String name = required(fields[5]);
+        List<Method> methods = methods(model, declaring, name, required(fields[6]));
+        if (!Set.of("IDENTITY", "JSON_PROPERTY").contains(fields[7])) throw invalid("Invalid name origin");
+        PayloadParser parser = new PayloadParser(model, fields[10]);
+        Payload payload = parser.parse();
+        if (parser.position != fields[10].length()) throw invalid("Trailing payload data");
+        Role role = Role.valueOf(fields[2]);
+        validateRole(role, methods, payload);
+        String keyType = token(fields[8]);
+        String excludedKey = token(fields[9]);
+        if (role == Role.KEYED_OWNED_MAP && (!"java.lang.String".equals(keyType) || excludedKey == null))
+            throw invalid("Keyed relationship has no String key declaration");
+        String fixedKey = token(fields[11]);
+        if (fixedKey != null && (fixedKey.isEmpty() || role != Role.OWNED_OBJECT || !DslHelper.isKeyed(payload.type())))
+            throw invalid("Fixed direct-child key requires a keyed OWNED_OBJECT: " + source);
+        return new Entry(required(fields[1]), role, source, declaring, name,
+                List.copyOf(methods), payload, keyType, excludedKey, fixedKey);
+    }
+
+    private static String entrySource(Class<?> contract, Class<?> declaring, String encodedSource) {
+        if (!declaring.isAssignableFrom(contract) || !declaring.getName().endsWith(BUILDER_SUFFIX))
+            throw invalid("Entry declares an unrelated Builder contract");
+        String source = required(encodedSource);
+        String sourceOwner = declaring.getName().substring(0, declaring.getName().length() - BUILDER_SUFFIX.length());
+        if (!source.startsWith(sourceOwner + "#") || source.length() == sourceOwner.length() + 1)
+            throw invalid("Entry source does not belong to its declared Builder contract");
+        return source;
+    }
+
+    private static void validateRole(Role role, List<Method> methods, Payload payload) {
+        validatePayload(payload, role == Role.PROPERTY);
+        if ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT))
+            throw invalid("Relationship role/payload mismatch");
+        if (role == Role.OPERATION && (methods.size() != 1 || methods.get(0).getParameterCount() != 1
+                || methods.get(0).getParameterTypes()[0] != payload.type()))
+            throw invalid("Operation does not have its exact single-payload signature");
     }
 
     private static void validatePayload(Payload payload, boolean field) {
@@ -286,7 +305,7 @@ final class StructuredInputPlan {
             if (kind == Kind.MAP && (!Map.class.isAssignableFrom(type) || !Objects.equals(key, "java.lang.String")))
                 throw invalid("Invalid data-map payload");
             if (kind == Kind.ENUM && !type.isEnum()) throw invalid("Invalid enum payload");
-            if (kind == Kind.NESTED_OBJECT && (builder == null || !builder.getName().equals(type.getName() + BUILDER_SUFFIX)
+            if (kind == Kind.NESTED_OBJECT && (builder == null || builder != type(model, type.getName() + BUILDER_SUFFIX)
                     || !KlumBuilder.class.isAssignableFrom(builder) || Modifier.isAbstract(type.getModifiers())))
                 throw invalid("Invalid concrete relationship identity");
             return new Payload(kind, type, builder, key, item);

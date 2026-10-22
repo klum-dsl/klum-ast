@@ -572,7 +572,7 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     private static @NotNull String extractKeyFromFilename(String filename) {
         int endIndex = filename.lastIndexOf('.');
-        return endIndex != -1 ? filename.substring(0, endIndex) : filename;
+        return endIndex == -1 ? filename : filename.substring(0, endIndex);
     }
 
     public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {

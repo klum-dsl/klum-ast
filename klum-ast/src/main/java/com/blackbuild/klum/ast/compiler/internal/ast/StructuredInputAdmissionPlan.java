@@ -222,61 +222,75 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void classifyField(ClassNode model, FieldNode field, List<Entry> entries, List<Rejection> rejections) {
-        if (field.getName().startsWith("$") || (field.getModifiers() & Modifier.TRANSIENT) != 0
-                || getFieldType(field) == FieldType.TRANSIENT || field.equals(getKeyField(field.getOwner()))
-                || field.getAnnotations().stream().anyMatch(annotation -> annotation.getClassNode().getName()
-                .equals(Owner.class.getName()))) return;
-
+        if (excludedField(field)) return;
         Name name = externalName(field);
-        String source = source(field);
         if (name.ignored()) {
-            rejections.add(new Rejection(source, "excluded by @JsonIgnore(true)"));
+            rejections.add(new Rejection(source(field), "excluded by @JsonIgnore(true)"));
             return;
         }
-
         ClassNode type = field.getType();
         if (isDSLObject(type)) {
-            if (getFieldType(field) != FieldType.DEFAULT || Modifier.isAbstract(type.getModifiers())) {
-                rejections.add(new Rejection(source, "requires one concrete owned relationship"));
-                return;
-            }
-            PublicOperation operation = publicOperation(field, rejections);
-            String fixedKey = getKeyField(type) != null && ClusterFactoryBuilder.isFixedKeysClusterMember(model, field)
-                    ? field.getName() : null;
-            if (operation != null)
-                entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
-                        payloadForModel(type), name.origin(), null, null, fixedKey));
+            classifyOwnedObject(model, field, name, entries, rejections);
+        } else if (isMap(type) && isDSLObject(getElementTypeForMap(type))) {
+            classifyOwnedMap(field, name, entries, rejections);
+        } else {
+            classifyProperty(field, name, entries, rejections);
+        }
+    }
+
+    private static boolean excludedField(FieldNode field) {
+        return field.getName().startsWith("$") || (field.getModifiers() & Modifier.TRANSIENT) != 0
+                || getFieldType(field) == FieldType.TRANSIENT || field.equals(getKeyField(field.getOwner()))
+                || field.getAnnotations().stream().anyMatch(annotation -> annotation.getClassNode().getName()
+                .equals(Owner.class.getName()));
+    }
+
+    private static void classifyOwnedObject(ClassNode model, FieldNode field, Name name,
+                                            List<Entry> entries, List<Rejection> rejections) {
+        ClassNode type = field.getType();
+        String source = source(field);
+        if (getFieldType(field) != FieldType.DEFAULT || Modifier.isAbstract(type.getModifiers())) {
+            rejections.add(new Rejection(source, "requires one concrete owned relationship"));
             return;
         }
+        PublicOperation operation = publicOperation(field, rejections);
+        String fixedKey = getKeyField(type) != null && ClusterFactoryBuilder.isFixedKeysClusterMember(model, field)
+                ? field.getName() : null;
+        if (operation != null)
+            entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
+                    payloadForModel(type), name.origin(), null, null, fixedKey));
+    }
 
-        if (isMap(type) && isDSLObject(getElementTypeForMap(type))) {
-            ClassNode child = getElementTypeForMap(type);
-            if (getFieldType(field) != FieldType.DEFAULT || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
-                    || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) == null) {
-                rejections.add(new Rejection(source, "requires Map<String, concrete keyed DSL Object> ownership"));
-                return;
-            }
-            AnnotationNode fieldOptions = annotation(field, Field.class.getName());
-            if (fieldOptions != null && fieldOptions.getMember("keyMapping") != null) {
-                rejections.add(new Rejection(source,
-                        "literal structured instance keys conflict with @Field.keyMapping-derived keys"));
-                return;
-            }
-            PublicOperation operation = publicOperation(field, rejections);
-            if (operation != null)
-                entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, operation,
-                        payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null));
+    private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
+        ClassNode type = field.getType();
+        ClassNode child = getElementTypeForMap(type);
+        String source = source(field);
+        if (getFieldType(field) != FieldType.DEFAULT || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
+                || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) == null) {
+            rejections.add(new Rejection(source, "requires Map<String, concrete keyed DSL Object> ownership"));
             return;
         }
+        AnnotationNode fieldOptions = annotation(field, Field.class.getName());
+        if (fieldOptions != null && fieldOptions.getMember("keyMapping") != null) {
+            rejections.add(new Rejection(source,
+                    "literal structured instance keys conflict with @Field.keyMapping-derived keys"));
+            return;
+        }
+        PublicOperation operation = publicOperation(field, rejections);
+        if (operation != null)
+            entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, operation,
+                    payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null));
+    }
 
+    private static void classifyProperty(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
+        ClassNode type = field.getType();
+        String source = source(field);
         String unsupported = unsupportedNumericType(type);
         if (unsupported != null) {
             rejections.add(new Rejection(source, numericRejection(unsupported)));
             return;
         }
-        ClassNode valueType = isCollection(type) ? getElementTypeForCollection(type)
-                : isMap(type) ? getElementTypeForMap(type) : type;
-        String unsupportedContainer = unsupportedContainerTarget(valueType);
+        String unsupportedContainer = unsupportedContainerTarget(fieldValueType(type));
         if (unsupportedContainer != null) {
             rejections.add(new Rejection(source, containerRejection(unsupportedContainer)));
             return;
@@ -290,6 +304,12 @@ final class StructuredInputAdmissionPlan {
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
         if (operation != null)
             entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null));
+    }
+
+    private static ClassNode fieldValueType(ClassNode type) {
+        if (isCollection(type)) return getElementTypeForCollection(type);
+        if (isMap(type)) return getElementTypeForMap(type);
+        return type;
     }
 
     private static void classifyOperation(MethodNode method, List<Entry> entries, List<Rejection> rejections) {
