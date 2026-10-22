@@ -83,6 +83,10 @@ final class StructuredInputAdmissionPlan {
     static final String METADATA_KEY = StructuredInputAdmissionPlan.class.getName() + ".plan";
     private static final String JSON_IGNORE = "com.fasterxml.jackson.annotation.JsonIgnore";
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
+    private static final Set<String> NUMERIC_TYPES = Set.of(
+            "byte", "short", "int", "long", "float", "double",
+            "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long",
+            "java.lang.Float", "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
     private static final ClassNode BUILDER_METHOD = ClassHelper.make(Builder.Method.class);
 
     private final String model;
@@ -254,6 +258,11 @@ final class StructuredInputAdmissionPlan {
             return;
         }
 
+        String unsupported = unsupportedNumericType(type);
+        if (unsupported != null) {
+            rejections.add(new Rejection(source, numericRejection(unsupported)));
+            return;
+        }
         Payload payload = payloadForValue(type);
         if (payload == null) {
             rejections.add(new Rejection(source, "has no admitted scalar, enum, List, or Map payload"));
@@ -274,6 +283,11 @@ final class StructuredInputAdmissionPlan {
         Parameter[] parameters = method.getParameters();
         if (parameters.length != 1) {
             rejections.add(new Rejection(source, "@Builder.Method must declare exactly one payload"));
+            return;
+        }
+        String unsupported = unsupportedNumericType(parameters[0].getOriginType());
+        if (unsupported != null) {
+            rejections.add(new Rejection(source, numericRejection(unsupported)));
             return;
         }
         Payload payload = payloadForValue(parameters[0].getOriginType());
@@ -314,11 +328,21 @@ final class StructuredInputAdmissionPlan {
 
     private static boolean isLeaf(ClassNode type) {
         return type.isEnum() || ClassHelper.STRING_TYPE.equals(type) || ClassHelper.boolean_TYPE.equals(type)
-                || ClassHelper.Boolean_TYPE.equals(type) || ClassHelper.byte_TYPE.equals(type)
-                || ClassHelper.short_TYPE.equals(type) || ClassHelper.int_TYPE.equals(type)
-                || ClassHelper.long_TYPE.equals(type) || ClassHelper.float_TYPE.equals(type)
-                || ClassHelper.double_TYPE.equals(type)
-                || type.isDerivedFrom(ClassHelper.make(Number.class));
+                || ClassHelper.Boolean_TYPE.equals(type) || NUMERIC_TYPES.contains(type.redirect().getName());
+    }
+
+    private static String unsupportedNumericType(ClassNode type) {
+        if (type == null || type.isGenericsPlaceHolder()) return null;
+        if (type.isDerivedFrom(ClassHelper.make(Number.class)) && !NUMERIC_TYPES.contains(type.redirect().getName()))
+            return type.redirect().getName();
+        if (isCollection(type)) return unsupportedNumericType(getElementTypeForCollection(type));
+        if (isMap(type)) return unsupportedNumericType(getElementTypeForMap(type));
+        return null;
+    }
+
+    private static String numericRejection(String type) {
+        return "unsupported numeric type " + type
+                + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
     }
 
     private static PublicOperation publicOperation(FieldNode field, List<Rejection> rejections) {

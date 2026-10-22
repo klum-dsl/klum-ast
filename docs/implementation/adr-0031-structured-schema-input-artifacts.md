@@ -323,3 +323,12 @@ probe on Groovy 3/4/5 alongside the existing admission and Jackson characterizat
 independent Standards and Specification reviews against the branch base. A focused documentation commit may be pushed as a
 draft PR only after those reviews are clean; use `Related: #932` and `Related: #529`, never closing either. Request KlumAST
 Hive reconciliation with the exact commit, review findings and validation. An open PR remains `(PR:open)`, not archive-safe.
+
+## WIRE-1 numeric admission clarification
+
+The maintainer-approved numeric scalar targets are exactly `byte`, `short`, `int`, `long`, `float`, `double`, their boxed
+JDK types, `BigInteger` and `BigDecimal`. Every other `Number` type is rejected during compiler admission, including
+inside supported List/Map payloads, with the unsupported type and source field or Builder operation identified.
+The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
+branch, custom constructor/converter policy, versioning or public API for this correction.
+[The stop reproduction and decision](evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.

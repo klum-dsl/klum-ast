@@ -1,6 +1,6 @@
 # WIRE-1 numeric admission stop
 
-Date: 2026-10-22. Status: **production implementation blocked; maintainer decision required**.
+Date: 2026-10-22. Status: **maintainer decision accepted; compiler correction implemented before runtime work**.
 
 Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932),
 [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -80,3 +80,17 @@ characterization of the pre-existing carrier fact that prevents that cycle from 
 
 Tracker impact: related evidence for #932/#529; both remain open. No push, PR, issue update or merge is part of this
 blocked return. Hive reconciliation and the maintainer admission decision remain outstanding.
+
+## Accepted correction
+
+The maintainer approved the finite numeric set: primitive/boxed byte, short, int, long, float, double plus BigInteger and
+BigDecimal. Other Number targets receive compiler admission rejection records naming the unsupported type and originating
+field/Builder operation. The original opaque-Number reproduction is retained as rejection coverage. The carrier is
+unreleased, so the earlier recommendation for legacy-carrier handling was explicitly declined: no runtime fallback,
+compatibility branch, custom conversion, versioning or public API is authorized. Production WIRE-1 may resume after
+this correction is committed separately. Historical stop results above describe the pre-decision baseline.
+
+Correction validation: the rejection reproduction failed on the old admission as expected. After the correction, the full
+admission specification passes **30 cases on each Groovy 3/4/5 lane**, including all 14 approved scalar targets and
+unsupported custom numbers nested inside List/Map fields. Module license passes. No runtime code is part of this
+separate correction commit.

@@ -117,7 +117,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
     }
 
-    def "numeric carrier admission includes a custom Number that has no permitted scalar conversion"() {
+    def "rejects custom Number admission with an actionable source and type diagnostic"() {
         given:
         def unit = compilationUnit('''
             package numericboundary
@@ -135,6 +135,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
             @DSL class Configuration {
                 OpaqueNumber budget
+                List<OpaqueNumber> budgets
+                Map<String, OpaqueNumber> limits
                 @Builder.Method void allocate(OpaqueNumber value) { budget = value }
             }
         ''')
@@ -145,15 +147,47 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         def carrier = new File(compilerConfiguration.targetDirectory, 'numericboundary/Configuration_DSL$WirePlan.class')
 
         then:
-        plan.entries().collect { [it.externalName(), it.role().name(), it.payload().kind().name(), it.payload().type()] } == [
-                ['allocate', 'OPERATION', 'SCALAR', 'numericboundary.OpaqueNumber'],
-                ['budget', 'PROPERTY', 'SCALAR', 'numericboundary.OpaqueNumber']
+        plan.entries().empty
+        plan.rejections()*.source() == [
+                'numericboundary.Configuration#allocate(numericboundary.OpaqueNumber):void',
+                'numericboundary.Configuration#budget',
+                'numericboundary.Configuration#budgets',
+                'numericboundary.Configuration#limits'
         ]
-        plan.entries().find { it.externalName() == 'allocate' }.operation().descriptorGroup() == [
-                'allocate(numericboundary.OpaqueNumber):void'
-        ]
-        plan.rejections().empty
+        plan.rejections()*.reason().every {
+            it.contains('unsupported numeric type numericboundary.OpaqueNumber') &&
+                    it.contains('primitive/boxed numeric types, BigInteger or BigDecimal')
+        }
         readCarrierData(carrier) == plan.canonicalForm()
+    }
+
+    def "admits only the approved standard numeric targets: #type"() {
+        given:
+        def unit = compilationUnit("""
+            package standardnumeric
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import java.math.BigInteger
+            import java.math.BigDecimal
+
+            @DSL class Configuration {
+                $type budget
+                @Builder.Method void allocate($type value) { budget = value }
+            }
+        """)
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'standardnumeric.Configuration' })
+
+        then:
+        plan.entries()*.externalName() == ['allocate', 'budget']
+        plan.entries().every { it.payload().kind().name() == 'SCALAR' }
+        plan.rejections().empty
+
+        where:
+        type << ['byte', 'short', 'int', 'long', 'float', 'double',
+                 'Byte', 'Short', 'Integer', 'Long', 'Float', 'Double', 'BigInteger', 'BigDecimal']
     }
 
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {

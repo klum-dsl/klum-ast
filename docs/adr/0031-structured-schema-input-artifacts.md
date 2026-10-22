@@ -172,3 +172,12 @@ and #529 JSON Schema generation may proceed independently from the same acceptan
 runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
 honestly.
+
+## WIRE-1 numeric admission clarification
+
+The maintainer-approved numeric scalar targets are exactly `byte`, `short`, `int`, `long`, `float`, `double`, their boxed
+JDK types, `BigInteger` and `BigDecimal`. Every other `Number` type is rejected during compiler admission, including
+inside supported List/Map payloads, with the unsupported type and source field or Builder operation identified.
+The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
+branch, custom constructor/converter policy, versioning or public API for this correction.
+[The stop reproduction and decision](../implementation/evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.

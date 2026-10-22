@@ -353,3 +353,12 @@ zero failures/errors/skips. Module license and test-lane isolation tasks, change
 `git diff --check` pass. Local Standards/Specification review found no remaining discrepancy with the maintainer's six
 refinements. No planning blocker remains; the existing production reader/creator/property-group qualification gates
 still apply to a separately authorized implementation. #932/#529 remain open and no milestone or production behavior changes.
+
+## WIRE-1 numeric admission clarification
+
+The maintainer-approved numeric scalar targets are exactly `byte`, `short`, `int`, `long`, `float`, `double`, their boxed
+JDK types, `BigInteger` and `BigDecimal`. Every other `Number` type is rejected during compiler admission, including
+inside supported List/Map payloads, with the unsupported type and source field or Builder operation identified.
+The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
+branch, custom constructor/converter policy, versioning or public API for this correction.
+[The stop reproduction and decision](evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.
