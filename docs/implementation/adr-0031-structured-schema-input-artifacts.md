@@ -1,13 +1,13 @@
 # ADR 0031 implementation plan — compiler seam and `WIRE-RUNTIME` v1
 
-Date: 2026-10-21. Updated: 2026-10-22. Status: **`WIRE-PLAN` merged; `WIRE-RUNTIME` v1 proposed; no production interpreter or generator authorized**.
+Date: 2026-10-21. Updated: 2026-10-22. Status: **`WIRE-PLAN` merged; approved WIRE-1 runtime slice implemented on its issue branch; generator not implemented**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Language/interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
 
-## Current handoff — `WIRE-PLAN` complete, `WIRE-RUNTIME` proposed
+## Current handoff — `WIRE-PLAN` merged, WIRE-1 runtime implemented
 
 [PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
 [PR #938](https://github.com/klum-dsl/klum-ast/pull/938) delivered the compiler-owned admission seam. The selected binary
@@ -16,16 +16,21 @@ roles and source identities. [Carrier qualification](evidence/issue-932-structur
 records separate-artifact inheritance, classfile-only/no-execution extraction, generated ABI, JPMS, Groovy 3/4/5 and Gradle
 output-lifecycle evidence. The production baseline for the next plan is merge `3d13ffa2d`.
 
-The next reviewable proposal is [WIRE-RUNTIME v1](adr-0031-wire-runtime-v1.md). It keeps the accepted grammar, defines root
-and active-Builder boundaries, and names the internal Consumer extension needed to preserve relationship creation without
-synthetic closures. This planning revision adds only that proposal and a bounded runtime-boundary test. No interpreter
-API, runtime reader, dispatcher, parser or behavior change is delivered. The maintainer refinement fixes runtime traversal
-to supplied Map/List order and leaves deterministic carrier normalization/serialization untouched. #932 and #529 remain
-open and independent.
+The maintainer-approved [WIRE-RUNTIME v1 plan](adr-0031-wire-runtime-v1.md) is implemented by WIRE-1. It adds the
+`KlumStructuredInput.readRoot` and `applyToBuilder` facade, a strict private classfile reader, complete input preflight,
+and ordered dispatch through admitted public Builder contracts. Internal Consumer callbacks preserve ordinary child
+creation and Construction lifecycle behavior without synthetic closures. Parser integrations and the #529 generator
+remain outside this slice. Supplied Map/List traversal order remains separate from deterministic carrier serialization.
+
+The approved refinements bound numeric and container admission, exclude keyed owned-map `@Field.keyMapping`, and persist
+compiler-known fixed direct-child keys in the unreleased private carrier. Original pre-refinement entry records reject
+with recompile guidance; no legacy reader is introduced. [Runtime evidence](evidence/issue-932-wire-1-runtime.md) records
+qualification and delivery status. The implementation is not yet merged or released; #932 and #529 remain open and
+independent.
 
 The remaining `WIRE-PLAN` sections below preserve the original tracer specification and its stop conditions as historical
 acceptance criteria. Their prospective representation comparison and implementation gates have been satisfied by the
-linked merged work; they are not instructions to repeat that work or authorization to implement either consumer.
+linked merged work; they are not instructions to repeat that work or authorization to expand WIRE-1 or implement the generator.
 
 ## Outcome and stopping boundary
 

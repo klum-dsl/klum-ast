@@ -2,9 +2,11 @@
 
 Date: 2026-10-20. Architecture revised: 2026-10-22.
 
-Status: **Accepted direction; compiler admission seam implemented; runtime and generator not implemented**.
-Merged #937/#938 completed `WIRE-PLAN`. The [WIRE-RUNTIME v1 proposal](../implementation/adr-0031-wire-runtime-v1.md)
-plans the first #932 runtime slice; it does not authorize production implementation or settle a new public API.
+Status: **Accepted direction; compiler admission seam merged; approved WIRE-1 runtime slice implemented on its issue branch; generator not implemented**.
+Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
+is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, private classfile reader, ordered
+preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
+records qualification and delivery status. This branch is not a merged or released runtime delivery; #932 remains open.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -166,9 +168,11 @@ no-execution Draft 2020-12 projection. The shared compiler-owned admission trace
 [PR #938](https://github.com/klum-dsl/klum-ast/pull/938). The selected package-private carrier preserves normalized roles,
 source identity and rejection facts missing from retained annotations. The linked evidence qualifies separate-artifact
 inheritance, no-execution extraction, JPMS, Groovy 3/4/5, generated linkage and the supported Gradle output lifecycle.
-The [runtime proposal](../implementation/adr-0031-wire-runtime-v1.md) is the next planning boundary; no production consumer
-starts in this revision. Once the common contract is accepted and available, #932 runtime interpretation
-and #529 JSON Schema generation may proceed independently from the same acceptance corpus. #932 owns language semantics and
+The approved [runtime plan](../implementation/adr-0031-wire-runtime-v1.md) now has its first production consumer in
+WIRE-1: parser-free root and active-Builder interpretation through admitted public contracts. Its bounded numeric and
+container policies, keyMapping exclusion and unreleased private fixed-child-key carrier refinement are recorded in that
+plan and the linked evidence. The remaining broader #932 work and #529 JSON Schema generation remain independent
+from this first runtime slice and can share the acceptance corpus. #932 owns language semantics and
 runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
 honestly.

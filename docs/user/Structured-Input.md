@@ -8,6 +8,8 @@ then pass the resulting data together with an opaque source name for diagnostics
 
 A Schema can expose domain operations that configure several properties:
 
+(See: `StructuredInputDocumentaryTest#'one structured operation configures several root properties'`.)
+
 ```groovy
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
@@ -32,6 +34,8 @@ Application app = KlumStructuredInput.readRoot(Application.class, null, parsed, 
 ```
 
 The same route in Groovy:
+
+(See: `StructuredInputDocumentaryTest#'one structured operation configures several root properties'`.)
 
 ```groovy
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
@@ -61,6 +65,8 @@ Application_DSL.Builder<Application> same =
 ```
 
 In Groovy, the Builder can be prepared through the ordinary enclosing construction:
+
+(See: `StructuredInputDocumentaryTest#'Holder supplies completed LINK context for later phases after applying an already-prepared Builder'`.)
 
 ```groovy
 ApplicationHolder.Create.With {
