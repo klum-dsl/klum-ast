@@ -265,7 +265,8 @@ final class StructuredInputAdmissionPlan {
         ClassNode type = field.getType();
         ClassNode child = getElementTypeForMap(type);
         String source = source(field);
-        if (getFieldType(field) != FieldType.DEFAULT || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
+        if (child == null || getFieldType(field) != FieldType.DEFAULT
+                || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
                 || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) == null) {
             rejections.add(new Rejection(source, "requires Map<String, concrete keyed DSL Object> ownership"));
             return;
