@@ -375,3 +375,37 @@ Delivery authorization audit: Git push channel **authorized** (dry-run accepted)
 are not recorded. Remote CI/SonarCloud state belongs to the eventual draft PR revision and must be checked there; local
 success is not a claim that pending remote checks passed. Request Hive reconciliation with the final commit, draft PR,
 related #932/#529 and the remaining maintainer choices; retain PR:open until live merged evidence exists.
+
+## WIRE-PLAN/B carrier qualification
+
+Date: 2026-10-22. This tracer records one package-private, generated sibling class named
+`<Model>_DSL$WirePlan`. Its sole member is private static final `String DATA`, containing the canonical direct admission
+plan. It is emitted as a minimal Java 8 class file because a Groovy AST class would acquire public `GroovyObject` members;
+the emitted carrier has no methods, public members, runtime dependencies, classpath scan, or Schema-class load.
+
+Candidate A (annotations alone) is insufficient: the observed public/retained annotations do not retain compiler
+normalization such as property/owned/keyed role, relationship provenance, collision/rejection decision, or complete
+source identity. A bounded class-file comparison finds `@Builder.Method` only on the authored operation; it has no
+structured retained fact for the generated property, owned relationship, keyed relationship, or their source identity.
+Candidate B consequently preserves only the compiler-normalized facts that a later reader cannot safely recover.
+Inheritance is deliberately composed by the test-only readers following the corresponding public generated
+`*_DSL$Builder` interface hierarchy to explicit sibling carriers; the compiler does not gain a binary classpath resolver.
+
+`StructuredInputAdmissionPlanTest` qualifies the carrier boundary. Independent runtime-shaped and schema-shaped
+class-file adapters compare decoded name, role, payload-tree token, source identity and rejection facts, including
+separately compiled inheritance. Its fresh JVM launches `WirePlanCarrierReader` with a carrier class-file path, parses
+only the class-file `DATA` constant with ASM, and verifies accepted and rejected facts while Schema, enum,
+generated-factory-target, and lifecycle callback traps would throw if initialized. A separate class-file ABI inspection
+verifies the generated carrier is not public, has no public members, and has no linkage to
+`com/blackbuild/klum/ast/runtime/internal`. The tests use no reflective Schema loading. `JpmsPackageBoundaryTest` also
+compiles the existing named Schema fixture and runs a temporary
+consumer module with no `--add-reads`, `--add-exports`, `--add-opens`, or `--patch-module` option. A probe physically
+packaged into a copy of the real runtime module obtains the package-private carrier's private `DATA` field through that
+fixture's existing qualified runtime opening and prints the normalized plan. This proves the planned reader's
+module/package access rather
+than merely locating a class-file path. The named-module proof passes on Groovy 4 and 5.
+
+The targeted Groovy 3, Groovy 4 and Groovy 5 lanes pass for that test. The repository root `./gradlew check
+--console=plain` also passed before this final test-only qualification addition; it is repeated on the final tree before
+delivery. This is compiler-internal feasibility evidence only: it does not publish a metadata format or authorize an
+interpreter, Gradle task, schema projection, or runtime reader.

@@ -24,15 +24,16 @@
 package com.blackbuild.klum.ast.compiler.internal.ast
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.control.CompilationUnit
 import spock.lang.Issue
+import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
 import groovyjarjarasm.asm.ClassVisitor
 import groovyjarjarasm.asm.FieldVisitor
+import groovyjarjarasm.asm.MethodVisitor
 import groovyjarjarasm.asm.Opcodes
 
-import java.lang.reflect.Modifier
+import java.util.Base64
 
 @Issue('932')
 class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
@@ -259,30 +260,93 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
         when:
         unit.compile()
-        def carrier = unit.AST.classes.find { it.name == 'carrier.Configuration_DSL$WirePlan' }
+        def carrier = new File(compilerConfiguration.targetDirectory, 'carrier/Configuration_DSL$WirePlan.class')
         def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'carrier.Configuration' })
+        def access = new int[1]
+        def members = [:]
+        def methods = []
+        new ClassReader(carrier.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            void visit(int version, int flags, String name, String signature, String superName, String[] interfaces) {
+                access[0] = flags
+            }
+
+            @Override
+            FieldVisitor visitField(int flags, String name, String descriptor, String signature, Object value) {
+                members[name] = [flags, descriptor, value]
+                null
+            }
+
+            @Override
+            MethodVisitor visitMethod(int flags, String name, String descriptor, String signature, String[] exceptions) {
+                methods << [flags, name, descriptor]
+                null
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
 
         then:
-        carrier != null
-        !Modifier.isPublic(carrier.modifiers)
-        def data = carrier.getDeclaredField('DATA')
-        data.private
-        data.static
-        data.final
-        data.type == ClassHelper.STRING_TYPE
-        data.initialExpression.value == plan.canonicalForm()
-        carrier.fields.findAll { !['DATA', '\$staticClassInfo', '__\$stMC', 'metaClass'].contains(it.name) }.empty
+        carrier.file
+        (access[0] & Opcodes.ACC_PUBLIC) == 0
+        members == [DATA: [Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL, 'Ljava/lang/String;', plan.canonicalForm()]]
+        methods.empty
         plan.canonicalForm().startsWith("WIRE-PLAN/B\nmodel|")
         plan.canonicalForm().contains('entry|')
     }
 
-    def "two test-only binary readers agree on direct inherited and rejected WIRE-PLAN facts without loading schema code"() {
+    def "retained public Builder annotations cannot preserve the normalized relationship roles or source identities"() {
+        given:
+        def unit = compilationUnit('''
+            package annotationcandidate
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+
+            @DSL class Child { @Key String name }
+
+            @DSL class Parent {
+                String title
+                Child child
+                Map<String, Child> children
+                @Builder.Method void rename(String value) { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'annotationcandidate.Parent' })
+        def annotations = []
+        def builder = new File(compilerConfiguration.targetDirectory, 'annotationcandidate/Parent_DSL$Builder.class')
+        new ClassReader(builder.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM9) {
+                    @Override
+                    AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                        annotations << [method: name, annotation: annotation]
+                        null
+                    }
+                }
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+
+        then:
+        plan.entries()*.role()*.name().containsAll(['PROPERTY', 'OWNED_OBJECT', 'KEYED_OWNED_MAP', 'OPERATION'])
+        annotations.findAll { it.annotation == 'Lcom/blackbuild/klum/ast/Builder$Method;' }*.method == ['rename']
+        readCarrierData(new File(compilerConfiguration.targetDirectory, 'annotationcandidate/Parent_DSL$WirePlan.class')).contains('KEYED_OWNED_MAP')
+        plan.canonicalForm().contains(Base64.urlEncoder.withoutPadding().encodeToString('annotationcandidate.Parent#children'.bytes))
+    }
+
+    def "runtime and schema bytecode projections agree on direct inherited and rejected WIRE-PLAN facts"() {
         given:
         def unit = compilationUnit('''
             package binarycarrier
 
             import com.blackbuild.klum.ast.Builder
             import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+
+            @DSL class Nested { @Key String name }
 
             @DSL class Parent {
                 static { throw new AssertionError('Schema initialization is forbidden during extraction') }
@@ -292,6 +356,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
             @DSL class Child extends Parent {
                 String directValue
+                Nested child
+                Map<String, Nested> children
                 @Builder.Method void reset() { }
             }
         ''')
@@ -299,16 +365,17 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         when:
         unit.compile()
         def carrier = new File(compilerConfiguration.targetDirectory, 'binarycarrier/Child_DSL$WirePlan.class')
-        def runtimeDump = runtimeShapedDump(carrier)
-        def schemaDump = jsonSchemaShapedDump(carrier)
+        def runtimeFacts = runtimeShapedFacts(carrier)
+        def schemaFacts = schemaShapedFacts(carrier)
 
         then:
         carrier.file
-        runtimeDump == schemaDump
-        runtimeDump.contains('aW5oZXJpdGVkVmFsdWU')
-        runtimeDump.contains('ZGlyZWN0VmFsdWU')
-        runtimeDump.contains('aW5oZXJpdGVkT3BlcmF0aW9u')
-        runtimeDump.contains('rejection|')
+        runtimeFacts == schemaFacts
+        runtimeFacts.entries*.name.containsAll(['inheritedValue', 'directValue', 'child', 'children'])
+        runtimeFacts.entries*.role.containsAll(['PROPERTY', 'OWNED_OBJECT', 'KEYED_OWNED_MAP', 'OPERATION'])
+        runtimeFacts.entries*.payload.any { it.contains('NESTED_OBJECT') }
+        runtimeFacts.entries*.source.contains('binarycarrier.Parent#inheritedValue')
+        runtimeFacts.rejections*.reason.contains('@Builder.Method must declare exactly one payload')
     }
 
     def "separately compiled carrier readers compose inherited public Builder contracts"() {
@@ -329,30 +396,143 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             @DSL class Child extends Parent { String directValue }
         '''
         def carrier = new File(compilerConfiguration.targetDirectory, 'separatecarrier/Child_DSL$WirePlan.class')
-        def runtimeDump = runtimeShapedDump(carrier)
-        def schemaDump = jsonSchemaShapedDump(carrier)
+        def runtimeFacts = runtimeShapedFacts(carrier)
+        def schemaFacts = schemaShapedFacts(carrier)
         then:
-        runtimeDump == schemaDump
-        runtimeDump.contains('aW5oZXJpdGVkVmFsdWU')
-        runtimeDump.contains('aW5oZXJpdGVkT3BlcmF0aW9u')
-        runtimeDump.contains('ZGlyZWN0VmFsdWU')
+        runtimeFacts == schemaFacts
+        runtimeFacts.entries*.name.containsAll(['inheritedValue', 'inheritedOperation', 'directValue'])
     }
 
-    private static String runtimeShapedDump(File carrier) {
-        readCarrierConstant(carrier)
+    def "a fresh JVM extracts accepted and rejected facts without initializing a schema class"() {
+        given:
+        def unit = compilationUnit('''
+            package freshcarrier
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.PostApply
+            import com.blackbuild.klum.ast.PostCreate
+            import com.blackbuild.klum.ast.Validate
+
+            enum ExplosiveMode {
+                SAFE
+                static { throw new AssertionError('Enum initialization is forbidden during extraction') }
+            }
+
+            @DSL class FactoryTrap {
+                static { throw new AssertionError('Factory target initialization is forbidden during extraction') }
+            }
+
+            @DSL class Configuration {
+                static { throw new AssertionError('Schema initialization is forbidden during extraction') }
+
+                String title
+                ExplosiveMode mode
+                FactoryTrap factoryTarget
+                @Builder.Method void promote(String level) { }
+                @Builder.Method void reset() { }
+                @PostCreate void afterCreate() { throw new AssertionError('Callback execution is forbidden during extraction') }
+                @PostApply void afterApply() { throw new AssertionError('Callback execution is forbidden during extraction') }
+                @Validate void validateConfiguration() { throw new AssertionError('Callback execution is forbidden during extraction') }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def carrier = new File(compilerConfiguration.targetDirectory, 'freshcarrier/Configuration_DSL$WirePlan.class')
+        def process = new ProcessBuilder(
+                new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+                '-cp', System.getProperty('java.class.path'),
+                WirePlanCarrierReader.name,
+                carrier.absolutePath
+        ).redirectErrorStream(true).start()
+        def output = process.inputStream.text
+
+        then:
+        process.waitFor() == 0
+        output.contains('entry|')
+        output.contains('rejection|')
+        output.contains('dGl0bGU')
+        output.contains('cHJvbW90ZQ')
+        output.contains('cmVzZXQ')
     }
 
-    private static String jsonSchemaShapedDump(File carrier) {
-        readCarrierConstant(carrier)
+    def "compiled carrier has no public or runtime-internal linkage"() {
+        given:
+        def unit = compilationUnit('''
+            package carrierabi
+
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Configuration { String title }
+        ''')
+
+        when:
+        unit.compile()
+        def carrier = new File(compilerConfiguration.targetDirectory, 'carrierabi/Configuration_DSL$WirePlan.class')
+        def access = new int[1]
+        def references = new LinkedHashSet<String>()
+        new ClassReader(carrier.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            void visit(int version, int flags, String name, String signature, String superName, String[] interfaces) {
+                access[0] = flags
+                references.addAll([name, signature, superName])
+                references.addAll(interfaces ?: [])
+            }
+
+            @Override
+            FieldVisitor visitField(int flags, String name, String descriptor, String signature, Object value) {
+                references.addAll([descriptor, signature])
+                null
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+
+        then:
+        carrier.file
+        (access[0] & Opcodes.ACC_PUBLIC) == 0
+        !references.findAll().any { it.contains('com/blackbuild/klum/ast/runtime/internal') }
     }
 
-    private static String readCarrierConstant(File carrier) {
-        def facts = new LinkedHashSet<String>()
-        collectCarrier(carrier, facts)
-        facts.join('\n')
+    private static Map runtimeShapedFacts(File carrier) {
+        def result = [entries: new LinkedHashSet<>(), rejections: new LinkedHashSet<>()]
+        collectRuntimeFacts(carrier, result)
+        result
     }
 
-    private static void collectCarrier(File carrier, Set<String> facts) {
+    private static void collectRuntimeFacts(File carrier, Map result) {
+        readCarrierData(carrier).readLines().each { line ->
+            def fields = line.split('\\|', -1)
+            if (fields[0] == 'entry')
+                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10]]
+            if (fields[0] == 'rejection')
+                result.rejections << [source: decode(fields[1]), reason: decode(fields[2])]
+        }
+        def parent = parentCarrier(carrier)
+        if (parent?.file) collectRuntimeFacts(parent, result)
+    }
+
+    private static Map schemaShapedFacts(File carrier) {
+        def result = [entries: new LinkedHashSet<>(), rejections: new LinkedHashSet<>()]
+        collectSchemaFacts(carrier, result)
+        result
+    }
+
+    private static void collectSchemaFacts(File carrier, Map result) {
+        readCarrierData(carrier).readLines().each { line ->
+            if (line.startsWith('entry|')) {
+                def fields = line.tokenize('|')
+                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10]]
+            }
+            if (line.startsWith('rejection|')) {
+                def fields = line.tokenize('|')
+                result.rejections << [source: decode(fields[1]), reason: decode(fields[2])]
+            }
+        }
+        def parent = parentCarrier(carrier)
+        if (parent?.file) collectSchemaFacts(parent, result)
+    }
+
+    private static String readCarrierData(File carrier) {
         String[] data = new String[1]
         new ClassReader(carrier.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
             @Override
@@ -362,7 +542,10 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             }
         }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
         assert data[0] != null
-        data[0].readLines().findAll { it.startsWith('entry|') || it.startsWith('rejection|') }.each(facts::add)
+        data[0]
+    }
+
+    private static File parentCarrier(File carrier) {
         String[] parents = new String[1]
         def builder = new File(carrier.parentFile, carrier.name.replace('_DSL$WirePlan.class', '_DSL$Builder.class'))
         new ClassReader(builder.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
@@ -372,9 +555,13 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             }
         }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
         if (parents[0] != null) {
-            def parentCarrier = new File(carrier.parentFile.parentFile, parents[0].replace('_DSL$Builder', '_DSL$WirePlan') + '.class')
-            if (parentCarrier.file) collectCarrier(parentCarrier, facts)
+            return new File(carrier.parentFile.parentFile, parents[0].replace('_DSL$Builder', '_DSL$WirePlan') + '.class')
         }
+        null
+    }
+
+    private static String decode(String token) {
+        token == '-' ? null : new String(Base64.urlDecoder.decode(token), 'UTF-8')
     }
 
     private CompilationUnit compilationUnit(String schema) {

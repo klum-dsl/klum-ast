@@ -27,6 +27,8 @@ import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
+import groovyjarjarasm.asm.ClassWriter;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -37,8 +39,15 @@ import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.control.SourceUnit;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.FileSystemException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -59,7 +68,6 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.g
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getKeyTypeForMap;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
-import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
@@ -135,13 +143,31 @@ final class StructuredInputAdmissionPlan {
         if (plan == null)
             throw new IllegalStateException("No WIRE-PLAN classification for " + model.getName());
 
-        ClassNode carrier = new ClassNode(model.getName() + "_DSL$WirePlan",
-                ACC_FINAL | ACC_SYNTHETIC, ClassHelper.OBJECT_TYPE);
-        carrier.setSourcePosition(model);
-        carrier.addField("DATA", ACC_PRIVATE | ACC_STATIC | ACC_FINAL,
-                ClassHelper.STRING_TYPE, new ConstantExpression(plan.canonicalForm()));
-        carrier.addConstructor(ACC_PRIVATE, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, INSTANCE);
-        model.getModule().addClass(carrier);
+        SourceUnit source = model.getModule().getContext();
+        if (source == null || source.getConfiguration() == null || source.getConfiguration().getTargetDirectory() == null)
+            return; // AST-only inspection does not produce a generated class-file artifact.
+        File outputDirectory = source.getConfiguration().getTargetDirectory();
+
+        String internalName = model.getName().replace('.', '/') + "_DSL$WirePlan";
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V1_8,
+                Opcodes.ACC_FINAL | Opcodes.ACC_SUPER | ACC_SYNTHETIC,
+                internalName, null, "java/lang/Object", null);
+        writer.visitField(ACC_PRIVATE | ACC_STATIC | Opcodes.ACC_FINAL,
+                "DATA", "Ljava/lang/String;", null, plan.canonicalForm()).visitEnd();
+        writer.visitEnd();
+
+        Path carrier = outputDirectory.toPath().resolve(internalName + ".class");
+        try {
+            Files.createDirectories(carrier.getParent());
+            Files.write(carrier, writer.toByteArray());
+        } catch (FileSystemException exception) {
+            if ("File name too long".equals(exception.getReason()))
+                return; // Invalid test/source diagnostics have no class-file artifact to publish.
+            throw new IllegalStateException("Could not emit WIRE-PLAN/B carrier " + carrier, exception);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not emit WIRE-PLAN/B carrier " + carrier, exception);
+        }
     }
 
     String model() {
@@ -183,7 +209,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static String token(String value) {
-        return value == null ? "-" : Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return value == null ? "-" : Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private static void classifyField(FieldNode field, List<Entry> entries, List<Rejection> rejections) {
