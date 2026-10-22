@@ -621,8 +621,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return this Builder
      */
     public Object apply(Map<String, ?> values, Closure<?> body) {
+        return applyConfiguration(builder -> builder.applyOnly(values, body));
+    }
+
+    InternalKlumBuilder<M> applyConfiguration(Consumer<InternalKlumBuilder<M>> configuration) {
         assertMutable();
-        applyOnly(values, body);
+        configuration.accept(this);
         LifecycleHelper.executeLifecycleMethods(this, PostApply.class);
         return this;
     }
@@ -866,16 +870,22 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created or existing Builder
      */
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, boolean explicitType, String key, Closure<T> body) {
+        return (T) createSingleChildWithConfiguration(fieldOrMethodName, type, explicitType, key,
+                builder -> builder.applyOnly(namedParams, body));
+    }
+
+    <T> InternalKlumBuilder<T> createSingleChildWithConfiguration(String fieldOrMethodName, Class<T> type,
+                boolean explicitType, String key, Consumer<InternalKlumBuilder<T>> configuration) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             ChildTarget target = resolveSingleChildTarget(fieldOrMethodName, type);
             String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, target.member()).orElse(key);
             if (target.existingBuilder() != null)
-                return configureExistingChild(target.existingBuilder(), type, explicitType, effectiveKey, namedParams, body);
+                return configureExistingChild(target.existingBuilder(), type, explicitType, effectiveKey, configuration);
 
-            InternalKlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, effectiveKey, namedParams, body);
+            InternalKlumBuilder<T> created = FactoryHelper.prepareNestedBuilder(type, effectiveKey, template, configuration);
             callSetterOrMethod(fieldOrMethodName, created);
-            return (T) created;
+            return created;
         });
     }
 
@@ -911,16 +921,16 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return new ChildTarget(virtualSetter, null);
     }
 
-    private <T> T configureExistingChild(InternalKlumBuilder<?> existingBuilder, Class<T> type, boolean explicitType,
-                                         String effectiveKey, Map<String, Object> namedParams, Closure<T> body) {
+    private <T> InternalKlumBuilder<T> configureExistingChild(InternalKlumBuilder<?> existingBuilder, Class<T> type,
+                boolean explicitType, String effectiveKey, Consumer<InternalKlumBuilder<T>> configuration) {
         if (explicitType && !type.isAssignableFrom(existingBuilder.getModelType()))
             throw new KlumModelException(format("Type mismatch: %s is not compatible with %s",
                     existingBuilder.getModelType().getName(), type.getName()));
         if (!Objects.equals(effectiveKey, existingBuilder.getNullableKey()))
             throw new KlumModelException(format("Key mismatch: %s != %s", effectiveKey, existingBuilder.getNullableKey()));
         existingBuilder.increaseBreadcrumbQuantifier();
-        existingBuilder.apply(namedParams, body);
-        return (T) existingBuilder;
+        InternalKlumBuilder<T> typedBuilder = (InternalKlumBuilder<T>) existingBuilder;
+        return typedBuilder.applyConfiguration(configuration);
     }
 
     private record ChildTarget(AnnotatedElement member, InternalKlumBuilder<?> existingBuilder) {
@@ -1175,6 +1185,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        return (T) addNewDslElementToMapWithConfiguration(mapName, type, explicitType, key,
+                builder -> builder.applyOnly(namedParams, body));
+    }
+
+    <T> InternalKlumBuilder<T> addNewDslElementToMapWithConfiguration(String mapName, Class<T> type,
+                boolean explicitType, String key, Consumer<InternalKlumBuilder<T>> configuration) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             InternalKlumBuilder<?> existing = ((Map<String, InternalKlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);
@@ -1182,12 +1198,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                 if (explicitType && !type.isAssignableFrom(existing.getModelType()))
                     throw new KlumModelException(format("Type mismatch: %s is not compatible with %s",
                             existing.getModelType().getName(), type.getName()));
-                existing.apply(namedParams, body);
-                return (T) existing;
+                InternalKlumBuilder<T> typedBuilder = (InternalKlumBuilder<T>) existing;
+                return typedBuilder.applyConfiguration(configuration);
             }
-            InternalKlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
+            InternalKlumBuilder<T> created = FactoryHelper.prepareNestedBuilder(type, key, template, configuration);
             doAddElementToMap(mapName, key, created);
-            return (T) created;
+            return created;
         });
     }
 

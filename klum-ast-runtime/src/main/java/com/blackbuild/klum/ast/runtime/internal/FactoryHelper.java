@@ -362,6 +362,12 @@ public class FactoryHelper extends GroovyObjectSupport {
         );
     }
 
+    /** Configuration-only root adapter; retains the ordinary preparation and completion lifecycle. */
+    static <T> T createWithConfiguration(Class<T> type, @Nullable String key,
+                                         Consumer<InternalKlumBuilder<T>> configuration) {
+        return doCreate(key, () -> createBuilder(type, key), configuration);
+    }
+
     /**
      * Creates a new instance of the given type using the provided values, key and config closure.
      * <p>
