@@ -311,6 +311,33 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         runtimeDump.contains('rejection|')
     }
 
+    def "separately compiled carrier readers compose inherited public Builder contracts"() {
+        given:
+        createClass '''
+            package separatecarrier
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Parent {
+                String inheritedValue
+                @Builder.Method void inheritedOperation(String value) { }
+            }
+        '''
+        when:
+        createSecondaryClass '''
+            package separatecarrier
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Child extends Parent { String directValue }
+        '''
+        def carrier = new File(compilerConfiguration.targetDirectory, 'separatecarrier/Child_DSL$WirePlan.class')
+        def runtimeDump = runtimeShapedDump(carrier)
+        def schemaDump = jsonSchemaShapedDump(carrier)
+        then:
+        runtimeDump == schemaDump
+        runtimeDump.contains('aW5oZXJpdGVkVmFsdWU')
+        runtimeDump.contains('aW5oZXJpdGVkT3BlcmF0aW9u')
+        runtimeDump.contains('ZGlyZWN0VmFsdWU')
+    }
+
     private static String runtimeShapedDump(File carrier) {
         readCarrierConstant(carrier)
     }
@@ -320,6 +347,12 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
     }
 
     private static String readCarrierConstant(File carrier) {
+        def facts = new LinkedHashSet<String>()
+        collectCarrier(carrier, facts)
+        facts.join('\n')
+    }
+
+    private static void collectCarrier(File carrier, Set<String> facts) {
         String[] data = new String[1]
         new ClassReader(carrier.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
             @Override
@@ -329,7 +362,19 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             }
         }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
         assert data[0] != null
-        data[0]
+        data[0].readLines().findAll { it.startsWith('entry|') || it.startsWith('rejection|') }.each(facts::add)
+        String[] parents = new String[1]
+        def builder = new File(carrier.parentFile, carrier.name.replace('_DSL$WirePlan.class', '_DSL$Builder.class'))
+        new ClassReader(builder.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                parents[0] = interfaces.find { it.endsWith('_DSL$Builder') }
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+        if (parents[0] != null) {
+            def parentCarrier = new File(carrier.parentFile.parentFile, parents[0].replace('_DSL$Builder', '_DSL$WirePlan') + '.class')
+            if (parentCarrier.file) collectCarrier(parentCarrier, facts)
+        }
     }
 
     private CompilationUnit compilationUnit(String schema) {
