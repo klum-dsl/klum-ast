@@ -78,7 +78,7 @@ separate applications, with no merge/layer/repetition language promise.
 
 | Existing mechanism | Reuse | Why direct delegation/extension is insufficient |
 | --- | --- | --- |
-| `InternalKlumBuilder.applyNamedParameters` | Existing `InvokerHelper` behavior for a selected admitted property/operation | Private helper accepts broader names, follows input iteration, and can spread a List; invoking it would bypass admission and nested external-name translation. Leave it unchanged. |
+| `InternalKlumBuilder.applyNamedParameters` | Existing Groovy dispatch machinery after exact admitted-signature selection | Private helper accepts broader names, follows input iteration, and can spread a List; invoking it would bypass admission and nested external-name translation. Leave it unchanged. |
 | Generated public Builder/Factory contracts | Verify recorded descriptors and concrete receiver scope; dispatch only an admitted group | Public visibility/NamedParam catalogs do not establish admission. Plural relationship methods are factory scopes, not universal Map setters. |
 | `createSingleChild`, `addNewDslElementToMap` | Target resolution, existing-child reuse, key checks, breadcrumbs, templates, ownership and attachment | Their configuration parameter is currently Map/Closure. Add an internal Consumer configuration variant sharing the existing implementation, without changing generated public signatures. |
 | `FactoryHelper.prepareNestedBuilder` / private `prepareBuilder` | Existing Consumer allocation/configuration between PostCreate and PostApply | Already suitable for fresh children. Do not allocate empty children and configure afterward to simulate this ordering. |
@@ -152,11 +152,19 @@ collection interfaces; qualify conversion through existing generated collection 
 not assignment of an unchecked List to an arbitrary declared collection. Any unsupported admitted container is a stop,
 not permission to narrow the shared grammar silently. Preserve List element order and literal data-map keys.
 
-For a property or authored operation, dispatch the admitted native name with an explicit single-element `Object[]` around
-the prepared value. A Map/List is one argument. Existing Groovy method/converter machinery still selects within the
-verified generated group; the interpreter does not rank arbitrary reflective overloads. The only custom operations are
-carrier OPERATION entries with exactly one supported payload on the public Builder. Ignore, rename and identity fallback
-have already been decided by the compiler; do not reinterpret Jackson annotations at runtime.
+For a property or authored operation, keep an explicit single-element `Object[]` around the prepared payload. A Map/List
+is one argument. Native-name-only `InvokerHelper.invokeMethod` is insufficient: `choose(int)` and `choose(Integer)` can
+have different external names or exclusions, yet boxed input selects the wrapper overload regardless of admission.
+For an OPERATION, take the exact declared parameter signature from its carrier descriptor and resolve it through Groovy's
+existing `MetaClass.pickMethod`, not the runtime payload's class. Verify the selected method against that exact public
+contract signature before invoking the same selected `MetaMethod`; never perform a second native-name lookup. The bounded
+primitive/wrapper fixture proves that this preserves the primitive call even when an Integer overload is ignored.
+For a PROPERTY, use its declared carrier payload type with the same existing Groovy selection and verify membership in
+the compiler-recorded property group. Stop if bridges/projection or a generated collection/converter group cannot satisfy
+this check; do not rank arbitrary reflective candidates or invoke outside the group. Full property-group qualification
+remains a production acceptance gate. The only custom operations are carrier OPERATION entries with exactly one supported
+payload on the public Builder. Ignore, rename and identity fallback have already been decided by the compiler; do not
+reinterpret Jackson annotations at runtime.
 
 Use one deterministic traversal for execution: canonical external-name order within each domain scope, depth-first child
 configuration, and literal String-key order for keyed child creation. Preserve data-container contents and List order.
@@ -210,7 +218,10 @@ The planned creator Consumer factoring, strict runtime decoding, numeric adaptat
 The new [StructuredInputRuntimeBoundaryProbeTest](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputRuntimeBoundaryProbeTest.groovy)
 contains fixed calls, not an interpreter or fixture-name admission engine. It proves existing Consumer child preparation,
 explicit one-argument List/Map dispatch, owner/key identity, pre-completion Builder state, normal final phases and
-cause/session cleanup on failure. Its Groovy closures are authored test configuration/SAM fixtures, not synthesized
+cause/session cleanup on failure. A third fixture proves that native-name dispatch can invoke an ignored primitive/boxed
+overload, while exact carrier-signature selection through existing Groovy MetaClass preserves the admitted operation.
+The companion admission test verifies the distinct renamed descriptors and ignored-overload rejection in the carrier
+plan. Its Groovy closures are authored test configuration/SAM fixtures, not synthesized
 interpreter closures. It deliberately attaches through current operations and the existing internal map-adder; it does
 not claim to have qualified reused-child Consumer creators, root Consumer access, the reader or full diagnostics.
 
@@ -240,7 +251,7 @@ Acceptance inventory, shared with #529 where structurally meaningful:
 
 | Requirement | Executable acceptance for production work |
 | --- | --- |
-| Scalar/property/operation | String/boolean/numeric boundaries/enum; ordinary nested List/Map; renamed and inherited one-payload operations change several properties; List/Map never spread; standard collection target conversion |
+| Scalar/property/operation | String/boolean/numeric boundaries/enum; ordinary nested List/Map; renamed and inherited one-payload operations change several properties; List/Map never spread; renamed/ignored primitive-wrapper overloads cannot escape the selected descriptor; standard collection target conversion |
 | Concrete nesting and keyed maps | Child uses its plan; outer keys `a/b~c`, empty/punctuated strings stay literal under existing key rules; duplicate/conflicting child key member rejects; direct keyed child uses only existing declared key derivation |
 | Admission and names | Ignore/rename/identity; inherited/overload collisions report every source; unrelated admitted entries remain usable; unknown/helper/copy/query/lifecycle and zero/multi-arg controls reject before any admitted operation |
 | No broadened grammar | Null/reset, abstract/polymorphic targets, dynamic selector, unkeyed relationship collections, CollectionFactory/custom factory/converter operations, references and arbitrary caller objects reject |
@@ -264,7 +275,7 @@ an optional-module bridge or a different public surface. The concrete alternativ
 above versus active-Builder-only delivery using ordinary roots; neither requires a new lifecycle API. A separate optional
 artifact would need a fresh module/access decision and is not silently substituted.
 
-During the proposed implementation, stop if exact contract/role resolution needs a public descriptor/reader/SPI, registry,
+During the proposed implementation, stop if exact contract/role resolution or property-group selection needs a public descriptor/reader/SPI, registry,
 reflection-based discovery, synthetic closures, generated internal linkage or a changed carrier encoding; if named-module
 classfile access fails; if concrete keyed direct targets need an unspecified external key encoding; if a supported numeric/
 collection contract cannot consume the declared payload without new conversion policy; or if existing creator semantics
@@ -274,3 +285,19 @@ No parser dependency, Jackson behavior change, generic reflection resolver, life
 syntax, polymorphism, collection factory, zero/multi-argument call, reset/clear, reference mechanism or source-order promise
 belongs to this slice. Any need for these ends the slice's current authorization. #932 and #529 stay open; a planning PR
 uses Related links, remains draft and is not merged by this worker.
+
+## Validation of this planning revision
+
+- Final `StructuredInputAdmissionPlanTest` and `StructuredInputRuntimeBoundaryProbeTest` run on `test`, `groovy4Tests`
+  and `groovy5Tests`: **18 cases per lane, zero failures/errors/skips**. The added runtime fixtures use fixed calls only.
+- Compiler and Jackson full Groovy 3/4/5 suites were exercised. All unchanged cases passed; the added Groovy 5 overload
+  fixture exposed an annotation-loading setup error, corrected before the final focused run above. This does not claim
+  that a production reader, property-group adapter or interpreter has been implemented or qualified.
+- Jackson module suites: **121 / 119 / 119 cases**, zero failures. Both modules' `license` and
+  `verifyTestLaneIsolation` tasks pass. Markdown fences/local file links and `git diff --check` pass.
+- Independent Standards review: zero findings. Specification review's descriptor-selection gap was addressed with the
+  exact-signature proposal and paired fixtures, then accepted on re-review subject to the passing checks above.
+
+The draft planning PR keeps Related links to #932/#529. Public behavior, generated contracts and Jackson production
+sources are unchanged. Remote CI/SonarCloud must be inspected on the published revision; local success is not remote CI
+or implementation approval.

@@ -145,6 +145,58 @@ class StructuredInputRuntimeBoundaryProbeTest extends AbstractDSLSpec {
         fresh != null
     }
 
+    def 'existing Groovy exact-signature selection preserves renamed and excluded overload boundaries'() {
+        given:
+        loader.parseClass '''
+            package com.fasterxml.jackson.annotation
+            @interface JsonProperty { String value() default '' }
+            @interface JsonIgnore { boolean value() default true }
+        '''
+        createClass '''
+            package overloadboundary
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import com.fasterxml.jackson.annotation.JsonIgnore
+            import com.fasterxml.jackson.annotation.JsonProperty
+
+            @DSL class Choice {
+                String selected
+                @Builder.Method @JsonProperty('primitive')
+                void choose(int value) { selected = "primitive:$value" }
+                @Builder.Method @JsonProperty('wrapper')
+                void choose(Integer value) { selected = "wrapper:$value" }
+                @Builder.Method @JsonProperty('admitted')
+                void filtered(int value) { selected = "admitted:$value" }
+                @Builder.Method @JsonIgnore(true)
+                void filtered(Integer value) { selected = "excluded:$value" }
+            }
+        '''
+        def choice = getClass('overloadboundary.Choice')
+        def contract = getClass('overloadboundary.Choice_DSL$Builder')
+        def value = Integer.valueOf(7)
+
+        when:
+        def model = choice.Create.With {
+            // Ordinary name dispatch prefers the boxed overload, including the ignored one.
+            InvokerHelper.invokeMethod(delegate, 'choose', [value] as Object[])
+            assert delegate.selected == 'wrapper:7'
+            InvokerHelper.invokeMethod(delegate, 'filtered', [value] as Object[])
+            assert delegate.selected == 'excluded:7'
+
+            // Fixed signatures stand for the two compiler-admitted primitive descriptors.
+            for (String name : ['choose', 'filtered']) {
+                def publicMethod = contract.getMethod(name, Integer.TYPE)
+                def selectedMethod = delegate.metaClass.pickMethod(name, [Integer.TYPE] as Class[])
+                assert selectedMethod.nativeParameterTypes.toList() == publicMethod.parameterTypes.toList()
+                selectedMethod.invoke(delegate, [value] as Object[])
+                assert delegate.selected == (name == 'choose' ? 'primitive:7' : 'admitted:7')
+            }
+        }
+
+        then:
+        model.selected == 'admitted:7'
+    }
+
     private static List<Throwable> causeChain(Throwable failure) {
         List<Throwable> result = []
         for (Throwable current = failure; current != null; current = current.cause) result.add(current)

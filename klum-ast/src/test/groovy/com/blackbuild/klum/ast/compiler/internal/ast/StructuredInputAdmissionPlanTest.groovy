@@ -300,6 +300,38 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.canonicalForm().contains('entry|')
     }
 
+    def "retains distinct renamed primitive and wrapper descriptors and excludes ignored overloads"() {
+        given:
+        def unit = compilationUnit('''
+            package overloadadmission
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import com.fasterxml.jackson.annotation.JsonIgnore
+            import com.fasterxml.jackson.annotation.JsonProperty
+
+            @DSL class Choice {
+                @Builder.Method @JsonProperty('primitive')
+                void choose(int value) { }
+                @Builder.Method @JsonProperty('wrapper')
+                void choose(Integer value) { }
+                @Builder.Method @JsonProperty('admitted')
+                void filtered(int value) { }
+                @Builder.Method @JsonIgnore(true)
+                void filtered(Integer value) { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'overloadadmission.Choice' })
+
+        then:
+        plan.entries().collectEntries { [(it.externalName()): it.operation().descriptorGroup()] } == [
+                admitted: ['filtered(int):void'], primitive: ['choose(int):void'], wrapper: ['choose(java.lang.Integer):void']
+        ]
+        plan.rejections().any { it.source().contains('filtered(java.lang.Integer)') && it.reason() == 'excluded by @JsonIgnore(true)' }
+    }
+
     def "retained public Builder annotations cannot preserve the normalized relationship roles or source identities"() {
         given:
         def unit = compilationUnit('''
