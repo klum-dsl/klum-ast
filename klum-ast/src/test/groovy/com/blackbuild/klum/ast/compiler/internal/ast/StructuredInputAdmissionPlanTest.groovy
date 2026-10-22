@@ -117,6 +117,45 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
     }
 
+    def "numeric carrier admission includes a custom Number that has no permitted scalar conversion"() {
+        given:
+        def unit = compilationUnit('''
+            package numericboundary
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            final class OpaqueNumber extends Number {
+                private OpaqueNumber() { throw new AssertionError('No input construction route') }
+                int intValue() { throw new UnsupportedOperationException() }
+                long longValue() { throw new UnsupportedOperationException() }
+                float floatValue() { throw new UnsupportedOperationException() }
+                double doubleValue() { throw new UnsupportedOperationException() }
+            }
+
+            @DSL class Configuration {
+                OpaqueNumber budget
+                @Builder.Method void allocate(OpaqueNumber value) { budget = value }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'numericboundary.Configuration' })
+        def carrier = new File(compilerConfiguration.targetDirectory, 'numericboundary/Configuration_DSL$WirePlan.class')
+
+        then:
+        plan.entries().collect { [it.externalName(), it.role().name(), it.payload().kind().name(), it.payload().type()] } == [
+                ['allocate', 'OPERATION', 'SCALAR', 'numericboundary.OpaqueNumber'],
+                ['budget', 'PROPERTY', 'SCALAR', 'numericboundary.OpaqueNumber']
+        ]
+        plan.entries().find { it.externalName() == 'allocate' }.operation().descriptorGroup() == [
+                'allocate(numericboundary.OpaqueNumber):void'
+        ]
+        plan.rejections().empty
+        readCarrierData(carrier) == plan.canonicalForm()
+    }
+
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {
         given:
         def unit = compilationUnit('''
