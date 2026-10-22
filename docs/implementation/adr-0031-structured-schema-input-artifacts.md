@@ -343,3 +343,14 @@ grammar. WIRE-PLAN/B uses its existing role/source/name/descriptor slots, with c
 the selected method. There is no new carrier encoding, public API or runtime reflection policy.
 [Actual generated field/operation characterization](evidence/issue-932-wire-1-collection-contracts.md) records the eight
 ordinary and three keyed categories, preserved traversal behavior, and the red-to-green correction evidence.
+
+## WIRE-1 literal owned-map key clarification
+
+V1 compiler admission excludes keyed owned-map declarations carrying `@Field.keyMapping`. Literal structured instance
+keys conflict with keyMapping-derived keys: ordinary attachment evaluates the mapping even when an explicit key is
+supplied, and distinct input keys may then collapse. Record the owning source field and this reason as a rejection;
+unrelated admitted fields remain available. Owned maps without keyMapping retain their existing literal String-key path.
+
+This restriction changes structured admission only. Ordinary Builder DSL keyMapping, generated contracts, WIRE-PLAN/B
+encoding and attachment/reuse semantics stay unchanged. It introduces no structured-key projection, collision/reuse rule,
+preflight closure execution, runtime-only rejection, legacy handling or public API.

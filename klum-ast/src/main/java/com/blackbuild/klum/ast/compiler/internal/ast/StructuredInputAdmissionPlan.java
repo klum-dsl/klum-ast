@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.Builder;
+import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
@@ -249,6 +250,12 @@ final class StructuredInputAdmissionPlan {
             if (getFieldType(field) != FieldType.DEFAULT || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
                     || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) == null) {
                 rejections.add(new Rejection(source, "requires Map<String, concrete keyed DSL Object> ownership"));
+                return;
+            }
+            AnnotationNode fieldOptions = annotation(field, Field.class.getName());
+            if (fieldOptions != null && fieldOptions.getMember("keyMapping") != null) {
+                rejections.add(new Rejection(source,
+                        "literal structured instance keys conflict with @Field.keyMapping-derived keys"));
                 return;
             }
             PublicOperation operation = publicOperation(field, rejections);

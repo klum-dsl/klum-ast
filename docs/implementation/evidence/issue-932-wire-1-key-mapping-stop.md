@@ -1,6 +1,6 @@
 # WIRE-1 keyed-map semantic stop
 
-Date: 2026-10-22. Status: **maintainer decision required before interpreter execution work**.
+Date: 2026-10-22. Status: **maintainer approved compiler exclusion; correction validated**.
 Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932),
 [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md),
 [approved runtime plan](../adr-0031-wire-runtime-v1.md).
@@ -54,7 +54,7 @@ The earlier collection clarification dealt with whole-container argument constru
 2. Explicitly revise the structured language to permit Schema-derived map keys and define how they interact with literal
    outer keys, duplicate derived keys, existing-child reuse and the #529 projection. This is a new semantic decision.
 
-No option has been implemented. This evidence does not authorize key remapping, a new key encoding, a generic reflection
+The maintainer approved alternative 1. The historical reproduction and alternatives below remain the decision record; compiler rejection coverage now replaces the earlier admission assertion. No structured-key policy is added. This evidence does not authorize key remapping, a new key encoding, a generic reflection
 admission check, closure execution during preflight or bypassing ordinary attachment.
 
 ## Validation and delivery boundary
@@ -67,3 +67,20 @@ Manual review and documentation/diff checks pass for this evidence-only boundary
 Private reader qualification is complete as a preparatory checkpoint. Consumer factoring, preflight, dispatcher, public
 facade, final user documentation and full runtime acceptance are still pending. No push, PR, issue closure or merge.
 #932/#529 remain open. The task requests Hive/maintainer resolution of this concrete contradiction, not archive reconciliation.
+
+## Accepted correction
+
+The compiler excludes a keyed owned map when its source `@Field` declares `keyMapping`, recording
+`literal structured instance keys conflict with @Field.keyMapping-derived keys` against the owning source field.
+The original remapping/collision reproduction remains executable as ordinary Builder DSL coverage; its carrier
+assertions now require the rejection. An adjacent ordinary keyed owned map remains admitted and preserves both
+`a/b~c` and `second` literally even when their children have the same `route` value.
+
+No runtime-only guard, generated contract or attachment change implements the policy. Numeric and container admission
+rules are unaffected. After focused correction validation, resume the approved runtime slice without another decision
+request. Full runtime delivery and its final qualification remain separate from this bounded policy correction.
+
+Correction validation: the changed assertion first failed against the old compiler admission (Groovy 3), then passed
+with the compiler correction. The key-mapping, admission, collection-contract and reader suites pass **69 cases per
+Groovy 3/4/5 lane** (1 + 31 + 23 + 14), zero failures/errors/skips. Module license, lane isolation, Markdown links/fences
+and `git diff --check` pass. The correction is committed separately before continuing runtime implementation.

@@ -26,11 +26,11 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import spock.lang.Issue
 
-/** Characterizes an admitted relationship whose normal creator does not preserve literal input keys. */
+/** Keeps mapped relationships outside wire admission while preserving ordinary DSL key mapping. */
 @Issue('932')
 class StructuredInputKeyMappingBoundaryTest extends AbstractDSLSpec {
 
-    def 'admitted keyed owned map remaps explicit child keys and can collapse distinct literal keys'() {
+    def 'wire rejects mapped keyed ownership while ordinary Builder mapping and literal ownership remain intact'() {
         given:
         createClass '''
             package mappedboundary
@@ -38,6 +38,7 @@ class StructuredInputKeyMappingBoundaryTest extends AbstractDSLSpec {
             @DSL class Configuration {
                 @Field(keyMapping = { it.route })
                 Map<String, Entry> entries
+                Map<String, Entry> literalEntries
             }
             @DSL class Entry {
                 @Key String name
@@ -52,15 +53,17 @@ class StructuredInputKeyMappingBoundaryTest extends AbstractDSLSpec {
         def plan = StructuredInputPlan.read(configuration)
 
         then:
-        plan.entries().get('entries').role().name() == 'KEYED_OWNED_MAP'
-        plan.entries().get('entries').source() == 'mappedboundary.Configuration#entries'
-        plan.entries().get('entries').keyType() == 'java.lang.String'
-        plan.rejections().empty
+        !plan.entries().containsKey('entries')
+        plan.entries().get('literalEntries').role().name() == 'KEYED_OWNED_MAP'
+        plan.rejections()*.source() == ['mappedboundary.Configuration#entries']
+        plan.rejections()*.reason() == ['literal structured instance keys conflict with @Field.keyMapping-derived keys']
 
         when:
         def model = getClass('mappedboundary.Configuration').Create.With {
             entry('a/b~c') { route 'mapped'; value 'first' }
             entry('second') { route 'mapped'; value 'second' }
+            literalEntry('a/b~c') { route 'mapped'; value 'first' }
+            literalEntry('second') { route 'mapped'; value 'second' }
         }
 
         then:
@@ -69,6 +72,9 @@ class StructuredInputKeyMappingBoundaryTest extends AbstractDSLSpec {
         model.entries.mapped.value == 'second'
         !model.entries.containsKey('a/b~c')
         !model.entries.containsKey('second')
+        model.literalEntries.keySet() == ['a/b~c', 'second'] as Set
+        model.literalEntries['a/b~c'].name == 'a/b~c'
+        model.literalEntries.second.name == 'second'
 
         cleanup:
         binaryLoader?.close()
