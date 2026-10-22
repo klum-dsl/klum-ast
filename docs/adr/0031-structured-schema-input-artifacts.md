@@ -1,10 +1,10 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Date: 2026-10-20. Architecture revised: 2026-10-21.
+Date: 2026-10-20. Architecture revised: 2026-10-22.
 
-Status: **Accepted direction; implementation not started**. The merged feasibility probe established the reuse and
-compiled-contract seams. Runtime and generator implementation remain gated by the shared admission-contract tracer in
-the linked plan.
+Status: **Accepted direction; compiler admission seam implemented; runtime and generator not implemented**.
+Merged #937/#938 completed `WIRE-PLAN`. The [WIRE-RUNTIME v1 proposal](../implementation/adr-0031-wire-runtime-v1.md)
+plans the first #932 runtime slice; it does not authorize production implementation or settle a new public API.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -75,8 +75,17 @@ Accepted guardrails:
   Builder methods as helpers. Existing broad named-map calls, including copyFrom, retain their behavior unchanged.
 - Nested owned values use Builders and the existing Construction session, not prebuilt Models. LINK/AutoLink resolution
   belongs to ordinary lifecycle work; no generic reference registry or external-context injection framework is introduced.
-  Factories are a workaround for required construction context; context acquisition/provider selection remains external.
-- Domain-object members are not a call sequence; parsed Map iteration or YAML source order is not a language guarantee.
+  Schema-specific factories must supply dependencies needed by PostCreate/early PostApply before those callbacks run.
+  The interpreter configures an already-prepared Builder; it neither injects dependencies, delays phases nor reorders
+  callbacks. Context acquisition/provider selection remains external; AutoLink/LinkTo keep their normal lifecycle.
+- Runtime traverses supplied Maps recursively in their own iteration order and preserves List element order. Insertion-
+  ordered Maps preserve caller-selected order; unordered Maps expose implementation-defined order. Use order-sensitive
+  custom Builder operations deliberately. There is no sorting, scheduler, ordering configuration, commutativity claim or
+  portable YAML/JSON source-order guarantee. Domain objects do not gain a repeated-call or generic call-record syntax.
+- Complete preflight validates and prepares the entire supplied tree in supplied traversal order without invoking user
+  code or mutating an active Builder. Execution follows that prepared order; ordinary side effects have no rollback
+  promise. Deterministic carrier ordering and inherited-name lookup validate names without reordering execution. JSON
+  Schema may sort metadata for reproducible artifacts independently. WIRE-PLAN/B normalization/serialization is unchanged.
 
 ## Naming and coexistence
 
@@ -152,9 +161,13 @@ registry, public descriptor/codec/registry, publication system, annotation DSL o
 The shared feasibility probe is complete in [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [evidence report](../implementation/evidence/issue-932-structured-input-probe.md). It proves existing dispatch/session reuse,
 all four managed Jackson modes, active-Builder loading, completed LINK attachment, compiled cross-module discovery and
-no-execution Draft 2020-12 projection. The next bounded step is the implementation plan's `WIRE-PLAN` compiler-owned
-admission-plan tracer. It must pass its binary-representation comparison, cross-Groovy, no-execution and dual-consumer gates
-before either production consumer starts. Once the common contract is accepted and available, #932 runtime interpretation
+no-execution Draft 2020-12 projection. The shared compiler-owned admission tracer is now complete in
+[PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
+[PR #938](https://github.com/klum-dsl/klum-ast/pull/938). The selected package-private carrier preserves normalized roles,
+source identity and rejection facts missing from retained annotations. The linked evidence qualifies separate-artifact
+inheritance, no-execution extraction, JPMS, Groovy 3/4/5, generated linkage and the supported Gradle output lifecycle.
+The [runtime proposal](../implementation/adr-0031-wire-runtime-v1.md) is the next planning boundary; no production consumer
+starts in this revision. Once the common contract is accepted and available, #932 runtime interpretation
 and #529 JSON Schema generation may proceed independently from the same acceptance corpus. #932 owns language semantics and
 runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed

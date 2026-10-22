@@ -1,11 +1,31 @@
-# ADR 0031 implementation plan — `WIRE-PLAN` admission tracer
+# ADR 0031 implementation plan — compiler seam and `WIRE-RUNTIME` v1
 
-Date: 2026-10-21. Status: **bounded tracer planned; no production interpreter or generator authorized**.
+Date: 2026-10-21. Updated: 2026-10-22. Status: **`WIRE-PLAN` merged; `WIRE-RUNTIME` v1 proposed; no production interpreter or generator authorized**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Language/interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
+
+## Current handoff — `WIRE-PLAN` complete, `WIRE-RUNTIME` proposed
+
+[PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
+[PR #938](https://github.com/klum-dsl/klum-ast/pull/938) delivered the compiler-owned admission seam. The selected binary
+representation is the package-private, constant-only `<Model>_DSL$WirePlan` carrier; annotations alone lose normalized
+roles and source identities. [Carrier qualification](evidence/issue-932-structured-input-probe.md#wire-planb-carrier-qualification)
+records separate-artifact inheritance, classfile-only/no-execution extraction, generated ABI, JPMS, Groovy 3/4/5 and Gradle
+output-lifecycle evidence. The production baseline for the next plan is merge `3d13ffa2d`.
+
+The next reviewable proposal is [WIRE-RUNTIME v1](adr-0031-wire-runtime-v1.md). It keeps the accepted grammar, defines root
+and active-Builder boundaries, and names the internal Consumer extension needed to preserve relationship creation without
+synthetic closures. This planning revision adds only that proposal and a bounded runtime-boundary test. No interpreter
+API, runtime reader, dispatcher, parser or behavior change is delivered. The maintainer refinement fixes runtime traversal
+to supplied Map/List order and leaves deterministic carrier normalization/serialization untouched. #932 and #529 remain
+open and independent.
+
+The remaining `WIRE-PLAN` sections below preserve the original tracer specification and its stop conditions as historical
+acceptance criteria. Their prospective representation comparison and implementation gates have been satisfied by the
+linked merged work; they are not instructions to repeat that work or authorization to implement either consumer.
 
 ## Outcome and stopping boundary
 
@@ -80,8 +100,9 @@ The `WIRE-PLAN` grammar does not admit generic Builder call records, `$args`, po
 keys, repeated calls, source-order guarantees, an ordering escape hatch, unkeyed relationship collections, polymorphic or
 abstract targets, aliases, dynamic Class/Factory selection, generic values bags, Template/copy/session/lifecycle/query
 controls, context acquisition, reference ids, layering/patch input or round trips. Domain-object member order is not a
-language contract; a future runtime must use deterministic framework ordering without treating parser iteration order as
-user syntax.
+portable YAML/JSON source-order contract. The maintainer's runtime refinement preserves each supplied Map's iteration
+order recursively and each List's element order. Deterministic carrier metadata order is separate from runtime traversal;
+lookup/inherited-plan composition must not reorder prepared entries. WIRE-PLAN/B serialization/normalization is unchanged.
 
 Those omissions bound this tracer; they are not permanent product exclusions. Intended later language extensions include
 multi-argument `@Builder.Method` operations, custom converter and factory operations, camelCase and kebab-case naming,
@@ -173,7 +194,7 @@ Reuse the merged #933 fixtures where they already prove behavior. Add only compi
 | names | ignore, literal rename, identity fallback and inherited members | inherited/explicit-rename/overload collision lists every declaration; empty rename falls back |
 | domain operation | inherited/direct one-payload `@Builder.Method`; Map/List remains one payload | genuine multi-/zero-argument, query/helper/copy/session/lifecycle/Template controls and competing authored overloads reject |
 | active Builder | #933 ApplicationHolder route remains unsealed and unmaterialized while input is applied | no public manual-session interface and no nested root lifecycle |
-| completed LINK | caller attaches completed Environment before enclosing completion; identity and later lifecycle remain intact | serialized context acquisition/reference registry absent |
+| completed LINK / early context | Caller attaches late-phase Environment before enclosing completion; Schema-specific factories supply dependencies before any early callback needing them | No interpreter dependency injection, phase delay or callback reordering; normal AutoLink/LinkTo retained |
 | managed Jackson | all four importer modes retain their existing characterization tests | no signature, callback-count, mapping or diagnostic parity rewrite |
 | diagnostics | source identity, escaped input path, external name, selected contract, expected/actual and preserved cause | unknown/ambiguous names and malformed nested/keyed shapes reject before invocation |
 | compiled contracts | both candidates preserve the same separate Layer 3 API -> Schema -> API-only consumer facts, inherited roles and dependency invalidation | no source mirror, subtype scan or Schema initialization |
@@ -186,7 +207,7 @@ evidence; do not promote it into production.
 ## Proof gates before runtime implementation
 
 1. **Admission gate:** every accepted grammar production has one plan role and every non-goal has an explicit compile-time
-   rejection or omission. Plan order and diagnostics are byte-for-byte deterministic across repeated compilation.
+   rejection or omission. Carrier metadata order and diagnostics are byte-for-byte deterministic across repeated compilation.
 2. **Binary gate:** inherited and concrete plan facts survive separate API/Schema compilation and dependency changes;
    source and AnnoDocimal mirrors are absent from extraction inputs.
 3. **Representation gate:** compare retained annotations and one package-private carrier on the bounded dimensions above.
@@ -280,7 +301,7 @@ domain-tree example; #529 documents structural-validation limits with its plugin
 | A later camel/kebab fallback needs a selection surface. | `WIRE-PLAN` fixes identity and adds no strategy hook. A later slice requires concrete adopter need and must feed one selected spelling to runtime and #529 identically. |
 | Converter overloads imply more than one wire payload shape. | Admit only compiler-proven one-payload groups in this tracer; record the first irreducible converter case and stop instead of adding coercion rules. |
 | Separately compiled parent facts cannot be composed without loading code. | The binary/no-execution gate must demonstrate composition from retained annotation or carrier class bytes, according to the selected representation; source fallback is forbidden. |
-| Internal deterministic application order becomes observable. | Domain input remains unordered and no escape hatch is added. Runtime planning must characterize a fixed framework order before executing side-effecting operations. |
+| Carrier order is mistaken for runtime order. | Carrier metadata remains deterministic; runtime preserves caller Map iteration recursively and List element order. Insertion-ordered Maps preserve caller-selected order; unordered Maps expose implementation-defined order. No sorting or portable YAML/JSON source-order promise. |
 
 ## Overengineering audit
 
@@ -297,8 +318,8 @@ would add interface without serving the first grammar and therefore fails the au
 
 ## Validation and delivery for this planning revision
 
-This revision changes only ADR and implementation-plan Markdown. Validate CommonMark structure, local file links and
-`git diff --check`; Groovy 3/4/5 lanes are intentionally omitted under the documentation-only rule. Conduct the repository's
+For the current runtime-planning revision, validate Markdown links and `git diff --check`, and run the bounded runtime
+probe on Groovy 3/4/5 alongside the existing admission and Jackson characterization. No production source changes. Conduct the repository's
 independent Standards and Specification reviews against the branch base. A focused documentation commit may be pushed as a
 draft PR only after those reviews are clean; use `Related: #932` and `Related: #529`, never closing either. Request KlumAST
 Hive reconciliation with the exact commit, review findings and validation. An open PR remains `(PR:open)`, not archive-safe.
