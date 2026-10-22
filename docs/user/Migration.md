@@ -1,6 +1,6 @@
 # Migration
 
-## To 4.1
+## Unreleased
 
 ### Opt-in structured Builder input
 
@@ -8,6 +8,8 @@ For caller-parsed Map/List/scalar data that should invoke admitted domain Builde
 [Structured Input](Structured-Input.md). Recompile and package Schema-generated metadata for this route. It adds no
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
 callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
+
+## To 4.1
 
 ### Abstract Builder operations
 
