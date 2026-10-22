@@ -767,7 +767,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         readCarrierData(carrier).readLines().each { line ->
             def fields = line.split('\\|', -1)
             if (fields[0] == 'entry')
-                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10]]
+                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10], fixedChildKey: decode(fields[11])]
             if (fields[0] == 'rejection')
                 result.rejections << [source: decode(fields[1]), reason: decode(fields[2])]
         }
@@ -785,7 +785,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         readCarrierData(carrier).readLines().each { line ->
             if (line.startsWith('entry|')) {
                 def fields = line.tokenize('|')
-                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10]]
+                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10], fixedChildKey: decode(fields[11])]
             }
             if (line.startsWith('rejection|')) {
                 def fields = line.tokenize('|')

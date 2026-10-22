@@ -1,7 +1,7 @@
 # WIRE-1 private carrier reader qualification
 
 Date: 2026-10-22. Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
-Scope: internal metadata reading only; the production interpreter/facade is not delivered.
+Historical checkpoint before the approved fixed-key refinement. Scope: internal metadata reading only; the production interpreter/facade is not delivered.
 
 `StructuredInputPlan` reads only the exact Model's packaged WIRE-PLAN/B class bytes through its defining module.
 It validates the single private constant, header, Model/Builder identity, source owner, recursive payload facts and
@@ -55,3 +55,10 @@ Qualification command:
 No Consumer creator factoring, complete input preflight, exact execution dispatcher, public facade, user-documentation
 claim, tracker closure, push or pull request follows from this checkpoint. Full interpreter acceptance and final
 Standards/Specification review remain required for eventual delivery.
+
+## Approved pre-release refinement
+
+The fixed direct-child key refinement supersedes the original #938 success expectation above. The original binary
+fixture is unchanged, but its eleven-token entries now reject with recompile/package guidance. The current strict
+reader requires a twelfth optional fixed-key token and verifies that a non-null fact belongs to a keyed owned object.
+See [the resolved direct-key gate](issue-932-wire-1-direct-key-stop.md#accepted-resolution). No legacy handling was added.

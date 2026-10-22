@@ -4,6 +4,8 @@
 KlumAST compiler sources pinned to merged PR #938, commit `3d13ffa2db91aa2245ec1041952b16de43e01d4c`.
 It retains the original carrier bytes, including pre-correction plural property descriptor groups.
 The runtime reader test loads this JAR directly; it never regenerates its carrier with the current compiler.
+After the approved unreleased fixed-child-key refinement, its original eleven-token entries must reject with
+recompile/package guidance. Historical successful reading predates that explicit format change; no legacy decoder is used.
 
 The isolated historical build used `:klum-ast:classes` and its main compile classpath, followed by
 `org.codehaus.groovy.tools.FileSystemCompiler -d classes Original.groovy` and `jar --create`.

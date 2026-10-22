@@ -38,7 +38,7 @@ import spock.lang.Issue
 @Issue('932')
 class StructuredInputPlanReaderTest extends AbstractDSLSpec {
 
-    def 'reads untouched carrier bytes produced by merged 938 compiler'() {
+    def 'untouched 938 artifact requires recompilation after the approved unreleased format refinement'() {
         given:
         def resource = getClass().getResource('/structured-input-938/wire-plan-b-938.jar')
         assert resource != null
@@ -46,15 +46,12 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def original = Class.forName('original938.Original', false, binaryLoader)
 
         when:
-        def plan = StructuredInputPlan.read(original)
+        StructuredInputPlan.read(original)
 
         then:
-        plan.entries().keySet() == ['title', 'mode', 'words', 'labels'] as Set
-        plan.rejections().empty
-        plan.entries().get('words').operation() == 'words'
-        plan.entries().get('words').methods().size() > 1
-        plan.entries().get('labels').operation() == 'labels'
-        plan.entries().get('mode').payload().kind().name() == 'ENUM'
+        def failure = thrown(KlumModelException)
+        failure.message.contains('recompile and package the Schema')
+        failure.cause.message.contains('Malformed carrier record')
 
         cleanup:
         binaryLoader?.close()
@@ -65,17 +62,25 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         createClass '''
             package runtimeplan
             import com.blackbuild.klum.ast.*
+            import com.blackbuild.klum.ast.layer3.Cluster
             @DSL class Document {
                 static { throw new AssertionError('Schema initialized during extraction') }
                 String title
                 Stage stage
                 Branch branch
+                @SlotMarker Slot slot
+                @Cluster(value = SlotMarker, fixedKeys = true) Map<String, Slot> getSlots() {}
                 Map<String, Entry> entries
                 @Builder.Method void words(List<String> value) { }
             }
             enum Stage {
                 READY
                 static { throw new AssertionError('Enum initialized during extraction') }
+            }
+            @interface SlotMarker {}
+            @DSL class Slot {
+                static { throw new AssertionError('Fixed-key child initialized during extraction') }
+                @Key String name
             }
             @DSL class Branch { String text }
             @DSL class Entry { @Key String name; String text }
@@ -87,7 +92,8 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def plan = StructuredInputPlan.read(document)
 
         then:
-        plan.entries().keySet() == ['branch', 'entries', 'stage', 'title', 'words'] as Set
+        plan.entries().keySet() == ['branch', 'entries', 'slot', 'stage', 'title', 'words'] as Set
+        plan.entries().get('slot').fixedChildKey() == 'slot'
         plan.entries().get('branch').role().name() == 'OWNED_OBJECT'
         plan.entries().get('entries').role().name() == 'KEYED_OWNED_MAP'
         nameOf(plan.entries().get('stage').payload().type()) == 'runtimeplan.Stage'
@@ -106,6 +112,7 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
             @DSL class Configuration {
                 static { throw new AssertionError('Schema initialized during rejected extraction') }
                 String title
+                List<String> words
                 Mode mode
             }
             enum Mode {
@@ -122,6 +129,13 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
             case 'identity': replaceData(file, data.replace(token('damagedplan.Configuration'), token('damagedplan.Other'))); break
             case 'signature': replaceData(file, data.replace(token('title(java.lang.String):java.lang.String'), token('title(java.lang.Integer):java.lang.String'))); break
             case 'source owner': replaceData(file, data.replace(token('damagedplan.Configuration#title'), token('damagedplan.Other#title'))); break
+            case 'scalar type': replaceData(file, data.replace('[SCALAR,' + token('java.lang.String'), '[SCALAR,' + token('java.lang.Object'))); break
+            case 'container type': replaceData(file, data.replace('[LIST,' + token('java.util.List'), '[LIST,' + token('java.util.ArrayList'))); break
+            case 'fixed key on property':
+                replaceData(file, data.readLines().collect { line ->
+                    line.startsWith('entry|' + token('title') + '|') ? line.substring(0, line.lastIndexOf('|') + 1) + token('forged') : line
+                }.join('\n') + '\n')
+                break
             case 'enum type': replaceData(file, data.replace('[ENUM,' + token('damagedplan.Mode'), '[ENUM,' + token('java.lang.String'))); break
         }
         def binaryLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
@@ -134,12 +148,13 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def failure = thrown(KlumModelException)
         failure.message.contains('recompile and package the Schema')
         failure.cause != null
+        if (damage == 'fixed key on property') assert failure.cause.message.contains('Fixed direct-child key')
 
         cleanup:
         binaryLoader?.close()
 
         where:
-        damage << ['missing', 'truncated class', 'header', 'identity', 'signature', 'source owner', 'enum type']
+        damage << ['missing', 'truncated class', 'header', 'identity', 'signature', 'source owner', 'enum type', 'scalar type', 'container type', 'fixed key on property']
     }
 
     def 'follows only explicit separately compiled Builder parents and requires their carrier: missing=#missingParent'() {

@@ -36,6 +36,8 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -51,6 +53,12 @@ import java.util.regex.Pattern;
 /** Reads only the compiler's private WIRE-PLAN/B contract; never discovers admission by reflection. */
 final class StructuredInputPlan {
     private static final String BUILDER_SUFFIX = "_DSL$Builder";
+    private static final Set<Class<?>> SCALARS = Set.of(String.class, boolean.class, Boolean.class,
+            byte.class, Byte.class, short.class, Short.class, int.class, Integer.class, long.class, Long.class,
+            float.class, Float.class, double.class, Double.class, BigInteger.class, BigDecimal.class);
+    private static final Set<String> FIELD_COLLECTIONS = Set.of("java.util.List", "java.util.Set", "java.util.SortedSet",
+            "java.util.NavigableSet", "java.util.EnumSet");
+    private static final Set<String> FIELD_MAPS = Set.of("java.util.Map", "java.util.SortedMap", "java.util.NavigableMap");
     private final Class<?> contract;
     private final Map<String, Entry> entries;
     private final List<Rejection> rejections;
@@ -116,7 +124,7 @@ final class StructuredInputPlan {
             String[] fields = lines[i].split("\\|", -1);
             if (fields.length == 3 && fields[0].equals("rejection")) {
                 rejections.add(new Rejection(required(fields[1]), required(fields[2])));
-            } else if (fields.length == 11 && fields[0].equals("entry")) {
+            } else if (fields.length == 12 && fields[0].equals("entry")) {
                 Class<?> declaring = type(model, required(fields[4]));
                 if (!declaring.isAssignableFrom(contract) || !declaring.getName().endsWith(BUILDER_SUFFIX))
                     throw invalid("Entry declares an unrelated Builder contract");
@@ -131,6 +139,7 @@ final class StructuredInputPlan {
                 Payload payload = parser.parse();
                 if (parser.position != fields[10].length()) throw invalid("Trailing payload data");
                 Role role = Role.valueOf(fields[2]);
+                validatePayload(payload, role == Role.PROPERTY);
                 if ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT))
                     throw invalid("Relationship role/payload mismatch");
                 if (role == Role.OPERATION && (methods.size() != 1 || methods.get(0).getParameterCount() != 1
@@ -140,8 +149,11 @@ final class StructuredInputPlan {
                 String excludedKey = token(fields[9]);
                 if (role == Role.KEYED_OWNED_MAP && (!"java.lang.String".equals(keyType) || excludedKey == null))
                     throw invalid("Keyed relationship has no String key declaration");
+                String fixedKey = token(fields[11]);
+                if (fixedKey != null && (fixedKey.isEmpty() || role != Role.OWNED_OBJECT || !DslHelper.isKeyed(payload.type())))
+                    throw invalid("Fixed direct-child key requires a keyed OWNED_OBJECT: " + source);
                 entries.add(new Entry(required(fields[1]), role, source, declaring, name,
-                        List.copyOf(methods), payload, keyType, excludedKey));
+                        List.copyOf(methods), payload, keyType, excludedKey, fixedKey));
             } else throw invalid("Malformed carrier record " + i);
         }
         for (Class<?> parent : contract.getInterfaces()) {
@@ -151,6 +163,16 @@ final class StructuredInputPlan {
             if (!parentType.isAssignableFrom(model)) throw invalid("Unrelated generated Builder parent");
             collect(parentType, parent, visited, entries, rejections);
         }
+    }
+
+    private static void validatePayload(Payload payload, boolean field) {
+        if (payload.kind() == Kind.SCALAR && !SCALARS.contains(payload.type()))
+            throw invalid("Unsupported scalar payload " + payload.type().getName());
+        if (payload.kind() == Kind.LIST && !(field ? FIELD_COLLECTIONS.contains(payload.type().getName()) : payload.type() == List.class))
+            throw invalid("Unsupported collection payload " + payload.type().getName());
+        if (payload.kind() == Kind.MAP && !(field ? FIELD_MAPS.contains(payload.type().getName()) : payload.type() == Map.class))
+            throw invalid("Unsupported map payload " + payload.type().getName());
+        if (payload.item() != null) validatePayload(payload.item(), false);
     }
 
     private static List<Method> methods(Class<?> model, Class<?> contract, String name, String descriptors)
@@ -238,7 +260,7 @@ final class StructuredInputPlan {
     enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
-                 List<Method> methods, Payload payload, String keyType, String excludedKey) { }
+                 List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey) { }
     record Rejection(String source, String reason) { }
 
     private static final class PayloadParser {

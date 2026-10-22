@@ -1,6 +1,6 @@
 # WIRE-1 direct fixed-key resolution gate
 
-Date: 2026-10-22. Status: **maintainer decision required; no workaround implemented**.
+Date: 2026-10-22. Status: **maintainer approved a precise private fact; refinement validated**.
 Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932),
 [approved runtime plan](../adr-0031-wire-runtime-v1.md).
 
@@ -83,3 +83,23 @@ suites, root check, final history review and delivery remain pending. The subseq
 Runtime facade/preflight/dispatch, associated user documentation and latest strict-payload reader hardening remain local
 candidate edits. This gate's test and evidence can stand on the committed private reader/Consumer seams without shipping
 the candidate facade. No push, PR, issue closure or merge. #932/#529 remain open; Hive/maintainer resolution is required.
+
+## Accepted resolution
+
+The maintainer approved the precise compiler-owned fact rather than excluding a normal DSL capability. The compiler
+records `fixedChildKey` as the twelfth entry token only for affected fixed-key Cluster owned objects, preserving null
+for absence. Runtime consumes the literal directly via the committed Consumer seam. No Cluster scan, synthetic Field
+annotation, overload inference, callback replay or generated public contract was introduced.
+
+The original characterization now requires equal ordinary/Consumer child keys. It has direct-fact and separately
+compiled inherited-fact rows, and retains the no-Field-annotation assertion. The reader rejects a fixed-key token on a
+scalar property with its source declaration in the cause. The historical #938 JAR is unchanged and now proves strict
+recompile guidance for pre-refinement entries; no compatibility branch was introduced. The candidate public route also
+covers a renamed external field whose native fixed child key remains `kitchen`, plus Java/static Groovy named-module use.
+
+Refinement validation: the expected missing-fact and old-artifact cases went red before implementation, then the full
+structured-input matrix passed **125 per Groovy 3/4/5 lane**, plus the real named-module feature on Groovy 4/5; zero
+failures/errors/skips. A subsequent reader run with a fixed-key child initialization trap passed **17 per lane**.
+Direct/inherited Consumer parity is 2 cases per lane. License, lane isolation, Markdown/diff checks pass.
+The refinement is committed separately from the facade/interpreter delivery, retaining the source no-Field assertion
+and keeping the original #938 fixture bytes unchanged.

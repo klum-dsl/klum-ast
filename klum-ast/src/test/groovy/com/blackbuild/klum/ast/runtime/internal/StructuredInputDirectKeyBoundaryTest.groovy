@@ -26,59 +26,99 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.Field
 import groovy.transform.CompileStatic
+import org.codehaus.groovy.control.CompilationUnit
+import org.codehaus.groovy.control.CompilerConfiguration
 import spock.lang.Issue
 
 import java.util.function.Consumer
 
 @Issue('932')
 class StructuredInputDirectKeyBoundaryTest extends AbstractDSLSpec {
-    def 'fixed Cluster key exists in the public creator but not the current fixed-target Consumer path'() {
+    def 'compiler fixed key reaches ordinary Consumer preparation: separately compiled parent=#separateParent'() {
         given:
-        createClass '''
+        String imports = '''
             package fixedkeyboundary
             import com.blackbuild.klum.ast.*
             import com.blackbuild.klum.ast.layer3.Cluster
             import java.lang.annotation.Retention
             import java.lang.annotation.RetentionPolicy
-            @DSL abstract class Home {
-                @Cluster(value = ManagedZone, fixedKeys = true)
-                abstract Map<String, Kitchen> getZones()
-            }
+        '''
+        String declarations = '''
             @Retention(RetentionPolicy.RUNTIME) @interface ManagedZone {}
             @DSL class Kitchen { @Key String name; String purpose }
-            @DSL class FloorPlan extends Home { @ManagedZone Kitchen kitchen }
         '''
-        def artifactLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def parentDirectory
+        def parentLoader
+        if (separateParent) {
+            parentDirectory = tempFolder.newFolder('parent')
+            def parentConfiguration = new CompilerConfiguration(compilerConfiguration)
+            parentConfiguration.targetDirectory = parentDirectory
+            parentLoader = new GroovyClassLoader(getClass().classLoader, parentConfiguration)
+            def unit = new CompilationUnit(parentConfiguration, null, parentLoader)
+            unit.addSource('Home.groovy', imports + '''
+                @DSL abstract class Home {
+                    @Cluster(value = ManagedZone, fixedKeys = true)
+                    abstract Map<String, Kitchen> getZones()
+                    @ManagedZone Kitchen kitchen
+                    Kitchen pantry
+                }
+            ''' + declarations)
+            unit.compile()
+            loader.addClasspath(parentDirectory.absolutePath)
+            createClass(imports + '@DSL class FloorPlan extends Home {}')
+        } else {
+            createClass(imports + '''
+                @DSL abstract class Home {
+                    @Cluster(value = ManagedZone, fixedKeys = true)
+                    abstract Map<String, Kitchen> getZones()
+                }
+            ''' + declarations + '''
+                @DSL class FloorPlan extends Home {
+                    @ManagedZone Kitchen kitchen
+                    Kitchen pantry
+                }
+            ''')
+        }
+        def locations = [compilerConfiguration.targetDirectory.toURI().toURL()]
+        if (parentDirectory) locations << parentDirectory.toURI().toURL()
+        def artifactLoader = new URLClassLoader(locations as URL[], getClass().classLoader)
         def floorPlan = Class.forName('fixedkeyboundary.FloorPlan', false, artifactLoader)
         def kitchenType = Class.forName('fixedkeyboundary.Kitchen', false, artifactLoader)
+        def declaringType = Class.forName('fixedkeyboundary.' + (separateParent ? 'Home' : 'FloorPlan'), false, artifactLoader)
 
         when:
         def plan = StructuredInputPlan.read(floorPlan)
         def entry = plan.entries().get('kitchen')
         def ordinary = floorPlan.Create.With { kitchen(purpose: 'ordinary') }
         def callback = FactoryHelper.createWithConfiguration(floorPlan, null, { root ->
-            StructuredInputDirectKeyBoundaryTest.configureKitchen(root, kitchenType)
+            StructuredInputDirectKeyBoundaryTest.configureKitchen(root, kitchenType, entry.fixedChildKey())
         } as Consumer)
 
         then:
         entry.role().name() == 'OWNED_OBJECT'
-        entry.source() == 'fixedkeyboundary.FloorPlan#kitchen'
+        entry.source() == declaringType.name + '#kitchen'
+        entry.fixedChildKey() == 'kitchen'
+        plan.entries().get('pantry').fixedChildKey() == null
         entry.keyType() == null
         entry.excludedKey() == null
         entry.methods().any { it.parameterCount == 0 }
-        !floorPlan.getDeclaredField('kitchen').isAnnotationPresent(Field)
+        !declaringType.getDeclaredField('kitchen').isAnnotationPresent(Field)
         ordinary.kitchen.name == 'kitchen'
         ordinary.kitchen.purpose == 'ordinary'
-        callback.kitchen.name == null
+        callback.kitchen.name == 'kitchen'
         callback.kitchen.purpose == 'callback'
 
         cleanup:
         artifactLoader?.close()
+        parentLoader?.close()
+
+        where:
+        separateParent << [false, true]
     }
 
     @CompileStatic
-    private static <T> void configureKitchen(InternalKlumBuilder<?> root, Class<T> type) {
-        root.createSingleChildWithConfiguration('kitchen', type, false, null, { InternalKlumBuilder<T> child ->
+    private static <T> void configureKitchen(InternalKlumBuilder<?> root, Class<T> type, String fixedKey) {
+        root.createSingleChildWithConfiguration('kitchen', type, false, fixedKey, { InternalKlumBuilder<T> child ->
             child.applyOnly([purpose: 'callback'], null)
         } as Consumer<InternalKlumBuilder<T>>)
     }

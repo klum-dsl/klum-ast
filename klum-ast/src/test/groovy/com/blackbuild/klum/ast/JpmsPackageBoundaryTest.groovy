@@ -673,7 +673,13 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (!read.trySetAccessible() || !entries.trySetAccessible())
                         throw new IllegalStateException("Cannot call the private reader from its own runtime module");
                     Object plan = read.invoke(null, model);
-                    return (String) data.get(null) + "\\nRUNTIME_READER:" + ((Map<?, ?>) entries.invoke(plan)).keySet();
+                    Map<?, ?> facts = (Map<?, ?>) entries.invoke(plan);
+                    Object slot = facts.get("slot");
+                    Method fixedKey = slot.getClass().getDeclaredMethod("fixedChildKey");
+                    if (!fixedKey.trySetAccessible())
+                        throw new IllegalStateException("Cannot read the private fixed child key fact");
+                    return (String) data.get(null) + "\\nRUNTIME_READER:" + facts.keySet()
+                            + "\\nFIXED_CHILD_KEY:" + fixedKey.invoke(slot);
                 }
             }
         '''.stripIndent())
@@ -733,6 +739,7 @@ class JpmsPackageBoundaryTest extends Specification {
         assert extraction.exitCode == 0 : extraction.output
         assert extraction.output.contains('WIRE-PLAN/B')
         assert extraction.output.contains('RUNTIME_READER:')
+        assert extraction.output.contains('FIXED_CHILD_KEY:slot')
         assert extraction.output.contains('Zml4dHVyZS5zY2hlbWEuU3RhdGlvbg')
     }
 
@@ -758,6 +765,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.Builder
             import com.blackbuild.klum.ast.runtime.KlumModelException
             import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.layer3.Cluster
             import com.blackbuild.klum.ast.RelationshipConstraint
             import com.blackbuild.klum.ast.Key
             import com.blackbuild.klum.ast.PostCreate
@@ -793,6 +801,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 static final List<String> EVENTS = []
 
                 String name = 'North'
+                StationSlot slot
+                @Cluster(fixedKeys = true) Map<String, StationSlot> getSlots() {}
 
                 @Min(1L)
                 int capacity = 4
@@ -820,6 +830,8 @@ class JpmsPackageBoundaryTest extends Specification {
                     EVENTS
                 }
             }
+
+            @DSL class StationSlot { @Key String name; String description }
 
             @DSL
             class Deployment {

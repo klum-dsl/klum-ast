@@ -402,3 +402,22 @@ unrelated admitted fields remain available. Owned maps without keyMapping retain
 This restriction changes structured admission only. Ordinary Builder DSL keyMapping, generated contracts, WIRE-PLAN/B
 encoding and attachment/reuse semantics stay unchanged. It introduces no structured-key projection, collision/reuse rule,
 preflight closure execution, runtime-only rejection, legacy handling or public API.
+
+## WIRE-1 unreleased fixed direct-child key refinement
+
+The maintainer approved one private carrier-format refinement before release: append a twelfth `entry` token,
+`fixedChildKey`, after the existing recursive payload token. `-` means absent; otherwise the token is the existing
+canonical Base64-encoded nonempty String literal. The WIRE-PLAN/B header, carrier class/DATA identity and preceding
+fields stay unchanged. A non-null fixed key is valid only for a keyed concrete `OWNED_OBJECT` entry.
+
+The compiler uses its existing fixedKeys Cluster membership decision to persist the native field-name key. Runtime
+passes that literal directly to the existing Consumer creator; it does not inspect Cluster membership, infer from
+public overloads, substitute the external alias, synthesize `@Field` metadata, replay application or change attachment.
+An unrelated/nonselected field retains an absent fact. Explicit `@Field.key` continues through ordinary creator logic.
+Direct and separately compiled inherited facts, malformed-role diagnostics and actual named-module byte reading are
+qualified. This adds no public API or generated public contract.
+
+This is an explicitly approved refinement of an unreleased private ABI, not a compatibility-free precedent. The reader
+requires the refined record shape; earlier eleven-token entries, including the untouched #938 binary fixture, reject
+with recompile/package guidance. There is no legacy decoder, version negotiation or inference fallback. The original
+fixture bytes and provenance remain intact. The historical reader acceptance result predates this approved change.

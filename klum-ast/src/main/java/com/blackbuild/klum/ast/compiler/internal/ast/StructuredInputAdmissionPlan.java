@@ -28,6 +28,7 @@ import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
+import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import groovyjarjarasm.asm.ClassWriter;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -113,7 +114,7 @@ final class StructuredInputAdmissionPlan {
             rejections.addAll(inherited.rejections);
         }
 
-        transformation.builderFields.keySet().forEach(field -> classifyField(field, entries, rejections));
+        transformation.builderFields.keySet().forEach(field -> classifyField(model, field, entries, rejections));
         transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .filter(MethodNode::isPublic)
@@ -201,7 +202,8 @@ final class StructuredInputAdmissionPlan {
                 .append(token(entry.operation().declaringBuilder())).append('|').append(token(entry.operation().name())).append('|')
                 .append(token(String.join(",", entry.operation().descriptorGroup()))).append('|')
                 .append(entry.nameOrigin()).append('|').append(token(entry.mapKeyType())).append('|')
-                .append(token(entry.excludedChildKeyMember())).append('|').append(payloadToken(entry.payload())).append('\n'));
+                .append(token(entry.excludedChildKeyMember())).append('|').append(payloadToken(entry.payload())).append('|')
+                .append(token(entry.fixedChildKey())).append('\n'));
         rejections.forEach(rejection -> result.append("rejection|").append(token(rejection.source())).append('|')
                 .append(token(rejection.reason())).append('\n'));
         return result.toString();
@@ -219,7 +221,7 @@ final class StructuredInputAdmissionPlan {
         return value == null ? "-" : Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static void classifyField(FieldNode field, List<Entry> entries, List<Rejection> rejections) {
+    private static void classifyField(ClassNode model, FieldNode field, List<Entry> entries, List<Rejection> rejections) {
         if (field.getName().startsWith("$") || (field.getModifiers() & Modifier.TRANSIENT) != 0
                 || getFieldType(field) == FieldType.TRANSIENT || field.equals(getKeyField(field.getOwner()))
                 || field.getAnnotations().stream().anyMatch(annotation -> annotation.getClassNode().getName()
@@ -239,9 +241,11 @@ final class StructuredInputAdmissionPlan {
                 return;
             }
             PublicOperation operation = publicOperation(field, rejections);
+            String fixedKey = getKeyField(type) != null && ClusterFactoryBuilder.isFixedKeysClusterMember(model, field)
+                    ? field.getName() : null;
             if (operation != null)
                 entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
-                        payloadForModel(type), name.origin(), null, null));
+                        payloadForModel(type), name.origin(), null, null, fixedKey));
             return;
         }
 
@@ -261,7 +265,7 @@ final class StructuredInputAdmissionPlan {
             PublicOperation operation = publicOperation(field, rejections);
             if (operation != null)
                 entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, operation,
-                        payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName()));
+                        payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null));
             return;
         }
 
@@ -285,7 +289,7 @@ final class StructuredInputAdmissionPlan {
         PublicOperation operation = isCollection(type) || isMap(type)
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
         if (operation != null)
-            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null));
+            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null));
     }
 
     private static void classifyOperation(MethodNode method, List<Entry> entries, List<Rejection> rejections) {
@@ -317,7 +321,7 @@ final class StructuredInputAdmissionPlan {
         }
         PublicOperation operation = publicOperation(method, rejections);
         if (operation == null) return;
-        entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null));
+        entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null));
     }
 
     private static Payload payloadForModel(ClassNode model) {
@@ -508,7 +512,7 @@ final class StructuredInputAdmissionPlan {
         }
     }
     record Entry(String externalName, Role role, String source, PublicOperation operation, Payload payload,
-                 NameOrigin nameOrigin, String mapKeyType, String excludedChildKeyMember) { }
+                 NameOrigin nameOrigin, String mapKeyType, String excludedChildKeyMember, String fixedChildKey) { }
     record Rejection(String source, String reason) { }
     private record Name(String value, NameOrigin origin, boolean ignored) { }
 }
