@@ -655,6 +655,8 @@ class JpmsPackageBoundaryTest extends Specification {
             package com.blackbuild.klum.ast.runtime;
 
             import java.lang.reflect.Field;
+            import java.lang.reflect.Method;
+            import java.util.Map;
 
             public final class WirePlanCarrierProbe {
                 public static String read() throws Exception {
@@ -663,7 +665,15 @@ class JpmsPackageBoundaryTest extends Specification {
                     Field data = carrier.getDeclaredField("DATA");
                     if (!data.trySetAccessible())
                         throw new IllegalStateException("fixture.schema is not open to the runtime module");
-                    return (String) data.get(null);
+                    Class<?> model = Class.forName(schema, "fixture.schema.Station");
+                    Class<?> reader = Class.forName(WirePlanCarrierProbe.class.getModule(),
+                            "com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan");
+                    Method read = reader.getDeclaredMethod("read", Class.class);
+                    Method entries = reader.getDeclaredMethod("entries");
+                    if (!read.trySetAccessible() || !entries.trySetAccessible())
+                        throw new IllegalStateException("Cannot call the private reader from its own runtime module");
+                    Object plan = read.invoke(null, model);
+                    return (String) data.get(null) + "\\nRUNTIME_READER:" + ((Map<?, ?>) entries.invoke(plan)).keySet();
                 }
             }
         '''.stripIndent())
@@ -722,6 +732,7 @@ class JpmsPackageBoundaryTest extends Specification {
         ProcessResult extraction = execute(command, fixture)
         assert extraction.exitCode == 0 : extraction.output
         assert extraction.output.contains('WIRE-PLAN/B')
+        assert extraction.output.contains('RUNTIME_READER:')
         assert extraction.output.contains('Zml4dHVyZS5zY2hlbWEuU3RhdGlvbg')
     }
 
