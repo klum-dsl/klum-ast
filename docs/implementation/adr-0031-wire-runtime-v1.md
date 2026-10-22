@@ -1,11 +1,17 @@
 # WIRE-RUNTIME — proposed first #932 production slice
 
-Date: 2026-10-22. Status: **implementation proposal for review; production work not authorized**.
+Date: 2026-10-22. Status: **approved first runtime slice; approved WIRE-1 implementation undergoing final qualification**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent static projection: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Baseline: `3d13ffa2d` (merged [#938](https://github.com/klum-dsl/klum-ast/pull/938)), after
 [#937](https://github.com/klum-dsl/klum-ast/pull/937) and [#933](https://github.com/klum-dsl/klum-ast/pull/933).
+
+The planning text and initial-probe validation below retain their historical revision vocabulary. The separately
+assigned WIRE-1 work now implements the two proposed facade methods, private carrier reading, shared Consumer creator
+paths, complete ordered preflight and exact execution. Current implementation evidence, including the resolved key-derivation decision, is tracked in
+[WIRE-1 runtime qualification](evidence/issue-932-wire-1-runtime.md); user behavior is documented in
+[Structured Input](../user/Structured-Input.md). This does not authorize a parser, generator, additional grammar or merge.
 
 ## Smallest useful delivery
 

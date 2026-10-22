@@ -990,6 +990,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.runtime.PhaseAction;
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.KlumStructuredInput;
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
@@ -1035,6 +1036,11 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new AssertionError("Named schema could not retain the reporter diagnostic");
                     if (KlumSchemaSupport.klumValidationForObject(station).getFailLevel() != Validate.Level.ERROR)
                         throw new AssertionError("Named Java consumer could not access the validation reporter");
+                    Station structured = KlumStructuredInput.readRoot(Station.class, null,
+                            Map.of("name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
+                    if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
+                            || !"slot".equals(structured.getSlot().getName()))
+                        throw new AssertionError("Named Java structured-input consumer did not link or populate");
                     Deployment deployment = Deployment.Create.One();
                     if (!"https://direct.example.test".equals(deployment.getEndpoint().getUrl()) ||
                             !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
@@ -1117,8 +1123,10 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.HttpEndpoint
             import fixture.schema.HttpEndpoint_DSL
             import fixture.schema.Station
+            import fixture.schema.Station_DSL
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+            import com.blackbuild.klum.ast.runtime.KlumStructuredInput
             import groovy.transform.CompileStatic
             import java.util.Map
             import java.util.Set
@@ -1139,6 +1147,17 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
                     assert station.capacity == 4
+                    Station structured = KlumStructuredInput.readRoot(Station, null, [name: 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
+                    assert structured.name == 'Structured static'
+                    assert structured.capacity == 6
+                    assert structured.slot.name == 'slot'
+                    Station applied = Station.Create.With {
+                        Station_DSL.Builder<Station> builder = (Station_DSL.Builder<Station>) delegate
+                        Station_DSL.Builder<Station> same = KlumStructuredInput.applyToBuilder(builder, [name: 'Active static', slot: [description: 'active']], 'station.json')
+                        assert same.is(builder)
+                    }
+                    assert applied.name == 'Active static'
+                    assert applied.slot.name == 'slot'
                     assert klumValidation.failLevel == Validate.Level.ERROR
                     Deployment deployment = Deployment.Create.One()
                     Map<String, HttpEndpoint> endpoints = KlumObjectSupport.of(deployment).structure.findAll(HttpEndpoint)

@@ -34,6 +34,7 @@
   * [Advanced Techniques](Advanced-Techniques.md)
   * [Tips and Tricks](Tips-and-Tricks.md)
   * [Layer 3](Layer3.md)
+  * [Structured Input](Structured-Input.md)
   * [Jackson Integration](Jackson-Integration.md)
 * More
   * [FAQ](FAQ.md)

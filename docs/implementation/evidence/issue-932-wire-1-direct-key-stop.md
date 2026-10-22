@@ -4,6 +4,9 @@ Date: 2026-10-22. Status: **maintainer approved a precise private fact; refineme
 Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932),
 [approved runtime plan](../adr-0031-wire-runtime-v1.md).
 
+The reproduction and alternatives below describe the historical stopped revision; the accepted resolution at the end
+records the implemented compiler fact and supersedes that stop.
+
 ## Concrete mismatch
 
 `StructuredInputDirectKeyBoundaryTest` uses the existing `ClusterFixedKeysTest` contract:

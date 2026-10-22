@@ -2,6 +2,13 @@
 
 ## To 4.1
 
+### Opt-in structured Builder input
+
+For caller-parsed Map/List/scalar data that should invoke admitted domain Builder operations, see
+[Structured Input](Structured-Input.md). Recompile and package Schema-generated metadata for this route. It adds no
+parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
+callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
+
 ### Abstract Builder operations
 
 Recompile Schemas to use general abstract `@Builder.Method` contracts on abstract DSL classes. Concrete subtype
