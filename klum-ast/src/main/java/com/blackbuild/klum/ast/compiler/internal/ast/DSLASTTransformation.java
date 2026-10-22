@@ -390,7 +390,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         GeneratedDslSupport.create(annotatedClass, builderClass);
     }
 
-    private static final Set<String> SUPPORTED_COLLECTION_TYPES = Set.of(
+    static final Set<String> SUPPORTED_COLLECTION_TYPES = Set.of(
             List.class.getName(),
             Set.class.getName(),
             SortedSet.class.getName(),

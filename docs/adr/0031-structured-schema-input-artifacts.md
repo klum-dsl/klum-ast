@@ -181,3 +181,28 @@ inside supported List/Map payloads, with the unsupported type and source field o
 The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
 branch, custom constructor/converter policy, versioning or public API for this correction.
 [The stop reproduction and decision](../implementation/evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.
+
+## WIRE-1 collection population clarification
+
+Supported field declarations and authored-operation arguments are separate admission decisions. Keep the existing finite
+DSL field container set: List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap. External collection
+field data is a List of admitted element payloads; external map field data is a Map of literal String keys to admitted
+value payloads. The interpreter adds those prepared elements/entries in caller-supplied order through compiler-selected
+generated element/keyed population operations. Normal Builder mechanics allocate and manage the actual declared
+container, including set deduplication and sorted storage. A supported NavigableSet field is not a request to construct a
+NavigableSet argument or invoke a replacement setter.
+
+The compiler must select and record the generated population method using its owning-field provenance, including explicit
+Field.members names. A same-named authored override in a broad plural descriptor group is not population authority.
+Existing carrier name/descriptor/source/role slots encode this selection; no carrier-format change or runtime guessing is
+required. Keyed owned maps retain the existing fixed-target nested Builder Consumer creator and attachment path.
+Generated keyed-add calls may use key and value internally; no authored multi-argument wire operation is introduced.
+
+Authored operations keep the admitted exactly-one-payload scalar/enum/ordinary List/Map grammar. Reject whole-container
+targets requiring Set/NavigableSet, broad Collection, concrete/custom Collection/Map implementations or construction
+heuristics. Nested ordinary data payloads must likewise require no guessed container. Authored Iterable methods are not
+currently admitted and stay rejected; generated Iterable population of a field does not extend that grammar.
+The opaque List/Map reproduction is retained as rejection coverage. No constructor/converter policy, replacement-container
+policy, legacy handling, public API, parser/Jackson change or CollectionFactory syntax follows from this clarification.
+
+[Actual generated field/operation characterization](../implementation/evidence/issue-932-wire-1-collection-contracts.md) records all supported categories and the authored Iterable boundary.

@@ -263,12 +263,20 @@ final class StructuredInputAdmissionPlan {
             rejections.add(new Rejection(source, numericRejection(unsupported)));
             return;
         }
-        Payload payload = payloadForValue(type);
+        ClassNode valueType = isCollection(type) ? getElementTypeForCollection(type)
+                : isMap(type) ? getElementTypeForMap(type) : type;
+        String unsupportedContainer = unsupportedContainerTarget(valueType);
+        if (unsupportedContainer != null) {
+            rejections.add(new Rejection(source, containerRejection(unsupportedContainer)));
+            return;
+        }
+        Payload payload = payloadForField(type);
         if (payload == null) {
             rejections.add(new Rejection(source, "has no admitted scalar, enum, List, or Map payload"));
             return;
         }
-        PublicOperation operation = publicOperation(field, rejections);
+        PublicOperation operation = isCollection(type) || isMap(type)
+                ? populationOperation(field, rejections) : publicOperation(field, rejections);
         if (operation != null)
             entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null));
     }
@@ -290,6 +298,11 @@ final class StructuredInputAdmissionPlan {
             rejections.add(new Rejection(source, numericRejection(unsupported)));
             return;
         }
+        String unsupportedContainer = unsupportedContainerTarget(parameters[0].getOriginType());
+        if (unsupportedContainer != null) {
+            rejections.add(new Rejection(source, containerRejection(unsupportedContainer)));
+            return;
+        }
         Payload payload = payloadForValue(parameters[0].getOriginType());
         if (payload == null) {
             rejections.add(new Rejection(source, "@Builder.Method payload is outside the admitted grammar"));
@@ -306,17 +319,49 @@ final class StructuredInputAdmissionPlan {
                 GeneratedDslSupport.builderTypeFor(target).redirect().getName(), null, null);
     }
 
+    private static Payload payloadForField(ClassNode type) {
+        if (!isCollection(type) && !isMap(type)) return payloadForValue(type);
+        if (!DSLASTTransformation.SUPPORTED_COLLECTION_TYPES.contains(type.redirect().getName())) return null;
+        if (isCollection(type)) {
+            Payload item = payloadForValue(getElementTypeForCollection(type));
+            return item == null ? null : new Payload(PayloadKind.LIST, type.redirect().getName(), null, null, item);
+        }
+        GenericsType[] generics = type.getGenericsTypes();
+        if (generics == null || generics.length < 2 || !ClassHelper.STRING_TYPE.equals(generics[0].getType())) return null;
+        Payload item = payloadForValue(generics[1].getType());
+        return item == null ? null : new Payload(PayloadKind.MAP, type.redirect().getName(), null,
+                ClassHelper.STRING_TYPE.getName(), item);
+    }
+
+    private static String unsupportedContainerTarget(ClassNode type) {
+        if (type == null || type.isGenericsPlaceHolder()) return null;
+        if (isCollection(type)) {
+            if (!type.redirect().getName().equals(List.class.getName())) return type.redirect().getName();
+            return unsupportedContainerTarget(getElementTypeForCollection(type));
+        }
+        if (isMap(type)) {
+            if (!type.redirect().getName().equals(Map.class.getName())) return type.redirect().getName();
+            return unsupportedContainerTarget(getElementTypeForMap(type));
+        }
+        return null;
+    }
+
+    private static String containerRejection(String type) {
+        return "unsupported whole-container payload target " + type
+                + "; use ordinary List/Map payloads or a supported field's generated element population";
+    }
+
     private static Payload payloadForValue(ClassNode type) {
         if (type == null || type.isGenericsPlaceHolder() || type.equals(ClassHelper.OBJECT_TYPE)) return null;
         if (isLeaf(type)) return new Payload(type.isEnum() ? PayloadKind.ENUM : PayloadKind.SCALAR,
                 type.redirect().getName(), null, null, null);
-        if (isCollection(type)) {
+        if (isCollection(type) && type.redirect().getName().equals(List.class.getName())) {
             ClassNode element = getElementTypeForCollection(type);
             Payload nested = payloadForValue(element);
             return nested == null || nested.kind() == PayloadKind.NESTED_OBJECT ? null
                     : new Payload(PayloadKind.LIST, type.redirect().getName(), null, null, nested);
         }
-        if (isMap(type)) {
+        if (isMap(type) && type.redirect().getName().equals(Map.class.getName())) {
             GenericsType[] generics = type.getGenericsTypes();
             if (generics == null || generics.length < 2 || !ClassHelper.STRING_TYPE.equals(generics[0].getType())) return null;
             Payload nested = payloadForValue(generics[1].getType());
@@ -343,6 +388,29 @@ final class StructuredInputAdmissionPlan {
     private static String numericRejection(String type) {
         return "unsupported numeric type " + type
                 + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+    }
+
+    private static PublicOperation populationOperation(FieldNode field, List<Rejection> rejections) {
+        String name = DslAstHelper.getElementNameForCollectionField(field);
+        ClassNode type = field.getType();
+        List<String> parameters = isCollection(type)
+                ? List.of(getElementTypeForCollection(type).redirect().getName())
+                : List.of(ClassHelper.STRING_TYPE.getName(), getElementTypeForMap(type).redirect().getName());
+        ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
+        List<MethodNode> candidates = implementation.getDeclaredMethods(name).stream()
+                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
+                .map(GeneratedDslSupport::publicProjectionOf)
+                .filter(method -> method != null && method.isPublic() && !method.isStatic())
+                .filter(method -> Arrays.stream(method.getParameters())
+                        .map(parameter -> parameter.getOriginType().redirect().getName()).toList().equals(parameters))
+                .toList();
+        if (candidates.size() != 1) {
+            rejections.add(new Rejection(source(field), "has no unambiguous compiler-generated element population method "
+                    + name + "(" + String.join(", ", parameters) + "); replacement setters and authored overrides are not input paths"));
+            return null;
+        }
+        MethodNode operation = candidates.get(0);
+        return new PublicOperation(operation.getDeclaringClass().redirect().getName(), name, List.of(descriptor(operation)));
     }
 
     private static PublicOperation publicOperation(FieldNode field, List<Rejection> rejections) {

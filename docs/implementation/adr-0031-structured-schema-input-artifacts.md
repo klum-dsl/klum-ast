@@ -332,3 +332,14 @@ inside supported List/Map payloads, with the unsupported type and source field o
 The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
 branch, custom constructor/converter policy, versioning or public API for this correction.
 [The stop reproduction and decision](evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.
+
+## WIRE-1 collection population clarification
+
+[ADR 0031](../adr/0031-structured-schema-input-artifacts.md#wire-1-collection-population-clarification) distinguishes the
+existing supported field declarations from one-payload authored-operation argument admission. Fields retain the finite
+DSL container set and use compiler-selected generated population methods; ordinary authored List/Map payloads stay
+admitted, while whole-container targets requiring construction/guessing reject and authored Iterable remains outside the
+grammar. WIRE-PLAN/B uses its existing role/source/name/descriptor slots, with compiler-local field provenance determining
+the selected method. There is no new carrier encoding, public API or runtime reflection policy.
+[Actual generated field/operation characterization](evidence/issue-932-wire-1-collection-contracts.md) records the eight
+ordinary and three keyed categories, preserved traversal behavior, and the red-to-green correction evidence.

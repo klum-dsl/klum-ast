@@ -1,6 +1,6 @@
 # WIRE-1 container admission stop
 
-Date: 2026-10-22. Status: **runtime implementation blocked by an admitted container that cannot receive parsed input**.
+Date: 2026-10-22. Status: **maintainer clarification accepted; generated field population characterized before correction**.
 
 Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932),
 [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -90,3 +90,12 @@ blocked implementation. These fixture results do not satisfy the remaining runti
 
 Tracker impact: Related #932/#529, both remain open. No push, PR, issue update or merge. Maintainer decision and Hive
 reconciliation remain outstanding; the worker does not self-archive or treat this stop as completion.
+
+## Maintainer clarification
+
+The maintainer retained all existing supported DSL container field declarations and selected generated element/iterable/
+keyed population paths. This supersedes the open target-set alternatives above: it is not a blanket restriction of fields
+to List/Map. Authored whole-container targets that require concrete/custom construction reject; authored Iterable remains
+outside the existing grammar. [The actual generated-contract characterization](issue-932-wire-1-collection-contracts.md)
+records the field/operation distinction, ordered population, keyed ownership, and provenance requirements before policy
+changes. The carrier's existing slots suffice; no public API or new encoding is needed.

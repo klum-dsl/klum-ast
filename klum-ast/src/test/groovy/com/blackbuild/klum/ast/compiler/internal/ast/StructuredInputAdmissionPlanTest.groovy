@@ -95,14 +95,14 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.model() == 'admission.Parent'
         plan.builder() == 'admission.Parent_DSL$Builder'
         plan.entries().collect { [it.externalName(), it.role().name(), it.operation().name(), it.payload().kind().name()] } == [
-                ['annotations', 'PROPERTY', 'annotations', 'MAP'],
+                ['annotations', 'PROPERTY', 'annotation', 'MAP'],
                 ['child', 'OWNED_OBJECT', 'child', 'NESTED_OBJECT'],
                 ['children', 'KEYED_OWNED_MAP', 'children', 'NESTED_OBJECT'],
                 ['fallback', 'PROPERTY', 'fallback', 'SCALAR'],
                 ['inheritedLabel', 'PROPERTY', 'inheritedLabel', 'SCALAR'],
                 ['inheritedOperation', 'OPERATION', 'inheritedOperation', 'SCALAR'],
-                ['labels', 'PROPERTY', 'labels', 'LIST'],
-                ['nestedAnnotations', 'PROPERTY', 'nestedAnnotations', 'MAP'],
+                ['labels', 'PROPERTY', 'label', 'LIST'],
+                ['nestedAnnotations', 'PROPERTY', 'nestedAnnotation', 'MAP'],
                 ['promote', 'OPERATION', 'promote', 'SCALAR'],
                 ['renamed', 'PROPERTY', 'region', 'ENUM']
         ]
@@ -190,7 +190,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                  'Byte', 'Short', 'Integer', 'Long', 'Float', 'Double', 'BigInteger', 'BigDecimal']
     }
 
-    def "qualifies opaque List and Map operations against the runtime container stop gate"() {
+    def "rejects opaque List and Map whole-container operation targets"() {
         given:
         def unit = compilationUnit('''
             package collectionboundary
@@ -214,19 +214,15 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'collectionboundary.Configuration' })
 
         then:
-        plan.entries()*.externalName() == ['labels', 'words']
-        plan.entries().find { it.externalName() == 'words' }.payload().with {
-            kind().name() == 'LIST' && type() == 'collectionboundary.OpaqueWords' &&
-                    item().kind().name() == 'SCALAR' && item().type() == 'java.lang.String'
-        }
-        plan.entries().find { it.externalName() == 'labels' }.payload().with {
-            kind().name() == 'MAP' && type() == 'collectionboundary.OpaqueLabels' &&
-                    keyType() == 'java.lang.String' && item().kind().name() == 'SCALAR' && item().type() == 'java.lang.String'
-        }
-        plan.entries().collectEntries { [(it.externalName()): it.operation().descriptorGroup()] } == [
-                labels: ['labels(collectionboundary.OpaqueLabels):void'], words: ['words(collectionboundary.OpaqueWords):void']
+        plan.entries().empty
+        plan.rejections()*.source() == [
+                'collectionboundary.Configuration#labels(collectionboundary.OpaqueLabels):void',
+                'collectionboundary.Configuration#words(collectionboundary.OpaqueWords):void'
         ]
-        plan.rejections().empty
+        plan.rejections().every {
+            it.reason().contains('unsupported whole-container payload target collectionboundary.Opaque') &&
+                    it.reason().contains('generated element population')
+        }
     }
 
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {

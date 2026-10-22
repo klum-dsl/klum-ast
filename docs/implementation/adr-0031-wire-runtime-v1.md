@@ -158,10 +158,12 @@ must be exact for integral targets (range/fraction checks); floating targets rej
 or boolean strings, compact Duration syntax, arbitrary Object binding, constructors, codecs or converter discovery.
 Recognize the standard numeric types represented by the existing corpus; if the compiler's broad Number-subclass
 classification admits an unimplementable type, stop with that concrete mismatch rather than silently widening conversion.
-List/Map payloads recursively use their declared item/value nodes. Carrier LIST facts can describe supported declared
-collection interfaces; qualify conversion through existing generated collection contracts (including sets/sorted forms),
-not assignment of an unchecked List to an arbitrary declared collection. Any unsupported admitted container is a stop,
-not permission to narrow the shared grammar silently. Preserve List element order and literal data-map keys.
+List/Map payloads recursively use their declared item/value nodes. Carrier LIST facts for fields describe supported
+Schema collection declarations, including sets/sorted forms, whose Builder-managed containers are populated through the
+compiler-selected generated element path. Do not construct a whole container argument or assign an unchecked List to
+those declarations. Authored operations retain ordinary List/Map arguments and reject whole-container targets requiring
+construction or guessing. Any unsupported admitted container is a stop, not permission to narrow the shared grammar
+silently. Preserve List element order and literal data-map keys.
 
 For a property or authored operation, keep an explicit single-element `Object[]` around the prepared payload. A Map/List
 is one argument. Native-name-only `InvokerHelper.invokeMethod` is insufficient: `choose(int)` and `choose(Integer)` can
@@ -171,8 +173,10 @@ existing `MetaClass.pickMethod` during execution, using the declared signature r
 Preflight checks contract descriptors without dynamic dispatch. Verify the selected method against that exact public
 contract signature before invoking the same selected `MetaMethod`; never perform a second native-name lookup. The bounded
 primitive/wrapper fixture proves that this preserves the primitive call even when an Integer overload is ignored.
-For a PROPERTY, use its declared carrier payload type with the same existing Groovy selection and verify membership in
-the compiler-recorded property group. Stop if bridges/projection or a generated collection/converter group cannot satisfy
+For a scalar PROPERTY, use its declared payload type with the same existing Groovy selection and verify membership in
+the compiler-recorded property group. For a collection/map PROPERTY, visit the prepared elements/entries in supplied order
+and invoke its compiler-selected generated element/keyed population descriptor using the declared item/key/value types.
+The declared field container type is not a whole-container invocation argument. Stop if bridges/projection or a generated collection/converter group cannot satisfy
 this check; do not rank arbitrary reflective candidates or invoke outside the group. Full property-group qualification
 remains a production acceptance gate. The only custom operations are carrier OPERATION entries with exactly one supported
 payload on the public Builder. Ignore, rename and identity fallback have already been decided by the compiler; do not
@@ -362,3 +366,28 @@ inside supported List/Map payloads, with the unsupported type and source field o
 The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
 branch, custom constructor/converter policy, versioning or public API for this correction.
 [The stop reproduction and decision](evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.
+
+## WIRE-1 collection population clarification
+
+Supported field declarations and authored-operation arguments are separate admission decisions. Keep the existing finite
+DSL field container set: List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap. External collection
+field data is a List of admitted element payloads; external map field data is a Map of literal String keys to admitted
+value payloads. The interpreter adds those prepared elements/entries in caller-supplied order through compiler-selected
+generated element/keyed population operations. Normal Builder mechanics allocate and manage the actual declared
+container, including set deduplication and sorted storage. A supported NavigableSet field is not a request to construct a
+NavigableSet argument or invoke a replacement setter.
+
+The compiler must select and record the generated population method using its owning-field provenance, including explicit
+Field.members names. A same-named authored override in a broad plural descriptor group is not population authority.
+Existing carrier name/descriptor/source/role slots encode this selection; no carrier-format change or runtime guessing is
+required. Keyed owned maps retain the existing fixed-target nested Builder Consumer creator and attachment path.
+Generated keyed-add calls may use key and value internally; no authored multi-argument wire operation is introduced.
+
+Authored operations keep the admitted exactly-one-payload scalar/enum/ordinary List/Map grammar. Reject whole-container
+targets requiring Set/NavigableSet, broad Collection, concrete/custom Collection/Map implementations or construction
+heuristics. Nested ordinary data payloads must likewise require no guessed container. Authored Iterable methods are not
+currently admitted and stay rejected; generated Iterable population of a field does not extend that grammar.
+The opaque List/Map reproduction is retained as rejection coverage. No constructor/converter policy, replacement-container
+policy, legacy handling, public API, parser/Jackson change or CollectionFactory syntax follows from this clarification.
+
+[Actual generated field/operation characterization](evidence/issue-932-wire-1-collection-contracts.md) records all supported categories and the authored Iterable boundary.

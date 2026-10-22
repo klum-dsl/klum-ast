@@ -44,6 +44,8 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
 @SuppressWarnings("unchecked")
 public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> {
 
+    static final String SOURCE_FIELD_METADATA_KEY = AbstractMethodBuilder.class.getName() + ".sourceField";
+
     protected static final ClassNode CLASSLOADER_TYPE = make(ClassLoader.class);
     protected static final ClassNode THREAD_TYPE = make(Thread.class);
     protected static final ClassNode PARAMETER_ANNOTATION_TYPE = make(ParameterAnnotation.class);
@@ -194,6 +196,8 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
+        if (sourceLinkTo instanceof FieldNode field)
+            method.setNodeMetaData(SOURCE_FIELD_METADATA_KEY, field);
 
         if (deprecationType != null)
             method.addAnnotation(deprecationType.toNode());

@@ -30,7 +30,7 @@ import spock.lang.Issue
 @Issue('932')
 class StructuredInputCollectionContractTest extends AbstractDSLSpec {
 
-    def 'characterizes #declaration field population through its recorded public group'() {
+    def 'populates #declaration through its compiler-selected generated element path'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
         unit.addSource('Schema.groovy', """
@@ -50,14 +50,16 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
         def binaryLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         def configuration = Class.forName('collectioncontracts.Configuration', true, binaryLoader)
         def contract = Class.forName('collectioncontracts.Configuration_DSL$Builder', false, binaryLoader)
-        def operation = contract.getMethod('values', parameter)
         def itemType = isEnum ? Class.forName('collectioncontracts.Mode', true, binaryLoader) : String
         def single = isMap ? contract.getMethod('addValue', String, itemType) : contract.getMethod('addValue', itemType)
+        def operation = isMap ? contract.getMethod(fact.operation().name(), String, itemType) : contract.getMethod(fact.operation().name(), itemType)
+        def bulk = contract.getMethod('values', parameter)
         def supplied = isMap ? ['z/key~': 'z', 'a/key': 'a'] : isEnum ? [itemType.Z, itemType.A, itemType.Z] : ['z', 'a', 'z']
         def captured
         def result = configuration.Create.With {
             captured = delegate
-            operation.invoke(delegate, [supplied] as Object[])
+            if (isMap) supplied.each { key, value -> operation.invoke(captured, [key, value] as Object[]) }
+            else supplied.each { value -> operation.invoke(captured, [value] as Object[]) }
         }
         println declaration + ' carrier=' + fact.operation().descriptorGroup() + ' single=' + single.toGenericString()
         def actual = isMap ? result.values.keySet().toList() : result.values.collect { it.toString() }
@@ -68,8 +70,10 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
         fact.payload().type() == declaration.tokenize('<')[0].with { simple ->
             simple == 'EnumSet' ? 'java.util.EnumSet' : 'java.util.' + simple
         }
-        fact.operation().name() == 'values'
-        fact.operation().descriptorGroup().contains('values(' + parameter.name + '):void')
+        fact.operation().name() == 'addValue'
+        fact.operation().descriptorGroup().size() == 1
+        operation == single
+        bulk.parameterTypes.toList() == [parameter]
         single.name == 'addValue'
         actual == expected
         captured.sealed
@@ -140,7 +144,8 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
 
         then:
         fact.role().name() == 'PROPERTY'
-        fact.operation().descriptorGroup().contains('values(java.lang.Iterable):void')
+        fact.operation().name() == 'addValue'
+        fact.operation().descriptorGroup() == ['addValue(java.lang.String):java.lang.String']
         plural.annotations*.classNode*.name.contains('com.blackbuild.klum.ast.Builder$Method')
         !element.annotations*.classNode*.name.contains('com.blackbuild.klum.ast.Builder$Method')
         plan.rejections().any { it.source().contains('#values(java.lang.Iterable)') }
@@ -196,6 +201,90 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
         'Map<String, Entry>'            | ['z/key~', 'a/key']
         'SortedMap<String, Entry>'      | ['a/key', 'z/key~']
         'NavigableMap<String, Entry>'   | ['a/key', 'z/key~']
+    }
+
+    def 'rejects whole-container operation argument #target without restricting supported field declarations'() {
+        given:
+        def unit = new CompilationUnit(compilerConfiguration, null, loader)
+        unit.addSource('Schema.groovy', """
+            package restrictedarguments
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                NavigableSet<String> fieldValues
+                @Builder.Method void consume($target value) { }
+            }
+            enum Mode { A, Z }
+        """)
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'restrictedarguments.Configuration' })
+
+        then:
+        plan.entries()*.externalName() == ['fieldValues']
+        plan.entries()[0].payload().type() == 'java.util.NavigableSet'
+        plan.rejections().any {
+            it.source().startsWith('restrictedarguments.Configuration#consume(') &&
+                    it.reason().contains('unsupported whole-container payload target java.util.' + target.tokenize('<')[0])
+        }
+
+        where:
+        target << ['Set<String>', 'SortedSet<String>', 'NavigableSet<String>', 'EnumSet<Mode>', 'Collection<String>',
+                   'ArrayList<String>', 'LinkedHashMap<String, String>', 'TreeMap<String, String>']
+    }
+
+    def 'a shadowed element method is not mistaken for a generated field population path'() {
+        given:
+        def unit = new CompilationUnit(compilerConfiguration, null, loader)
+        unit.addSource('Schema.groovy', '''
+            package shadowedelement
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                @Field(members='store') Set<String> values
+                @Builder.Method void store(String value) { throw new AssertionError('Authored method selected') }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'shadowedelement.Configuration' })
+
+        then:
+        plan.entries()*.externalName() == ['store']
+        plan.entries()[0].role().name() == 'OPERATION'
+        plan.rejections().any {
+            it.source() == 'shadowedelement.Configuration#values' &&
+                    it.reason().contains('no unambiguous compiler-generated element population method store(java.lang.String)')
+        }
+    }
+
+    def 'nested ordinary payloads use generated element signatures while nested sorted container arguments reject'() {
+        given:
+        def unit = new CompilationUnit(compilerConfiguration, null, loader)
+        unit.addSource('Schema.groovy', '''
+            package nestedpopulation
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                @Field(members='addRecord') List<Map<String, List<String>>> records
+                @Field(members='putRecord') Map<String, List<Map<String, String>>> mappings
+                List<NavigableSet<String>> unsupported
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'nestedpopulation.Configuration' })
+
+        then:
+        plan.entries()*.externalName() == ['mappings', 'records']
+        plan.entries().collectEntries { [(it.externalName()): it.operation().descriptorGroup()] } == [
+                mappings: ['putRecord(java.lang.String, java.util.List):java.util.List'],
+                records: ['addRecord(java.util.Map):java.util.Map']
+        ]
+        plan.rejections().any {
+            it.source() == 'nestedpopulation.Configuration#unsupported' &&
+                    it.reason().contains('unsupported whole-container payload target java.util.NavigableSet')
+        }
     }
 
 }

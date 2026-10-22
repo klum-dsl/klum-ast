@@ -1,6 +1,6 @@
 # WIRE-1 generated collection population contract
 
-Date: 2026-10-22. Status: **field/operation distinction characterized before policy changes**.
+Date: 2026-10-22. Status: **characterized before policy; compiler-selected population correction implemented locally**.
 Related: [#932](https://github.com/klum-dsl/klum-ast/issues/932),
 [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Decision context: [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md),
@@ -87,3 +87,33 @@ Carrier WIRE-PLAN/B remains unreleased and unchanged in format, with no legacy/v
 
 Tracker impact: related evidence for #932/#529, both stay open. No user-facing feature or release claim is delivered by
 this characterization; no user page or CHANGES update is warranted until runtime delivery.
+
+## Compiler correction after characterization
+
+The new tests first failed against the old compiler: PROPERTY records still named the plural group instead of the required
+generated element method, and the opaque whole-container operations remained admitted. After that red run, the compiler
+was corrected without a carrier-format change:
+
+- The existing generated-method builder records the owning field as private AST-only metadata. Optional methods that
+  lose to authored signatures acquire no generated provenance.
+- Ordinary collection/map PROPERTY records select the owning field's generated element/keyed adder by exact declared
+  signature, preserving explicit members names. Collection descriptors have the element argument; map descriptors have
+  the String key and value arguments. Only that selected public signature is persisted in the existing descriptor slot.
+- Supported top-level field declaration types reuse DSLASTTransformation's existing finite set. Authored and nested plain
+  payloads retain the ordinary List/Map grammar and reject other collection/map argument targets with source/type-specific
+  admission diagnostics. Authored Iterable remains rejected.
+- An authored plural Iterable override cannot hijack the field path. If an authored element method replaces the actual
+  generated element path, field admission records the missing generated path rather than using the authored operation.
+  The authored method can still be independently admitted under its own normal operation name.
+
+The normative collection tests now execute the compiler-recorded generated element/keyed signatures, adding prepared
+values one at a time in supplied order. The original baseline matrix above remains historical evidence of available
+public bulk and element methods before narrowing compiler selection. Keyed owned-map roles continue to use the already
+approved fixed-target internal Consumer creator/attachment path; no singular-name inference or replacement Map call is
+introduced. The opaque List/Map fixture is now rejection coverage.
+
+Final focused Groovy 3: **59 cases, zero failures/errors/skips**: 31 admission, 23 collection-contract, one initial
+carrier-reader, four existing runtime-boundary probes. The 23 contract cases include all eight field categories, three
+keyed categories, the authored Iterable boundary, plural and element shadowing, eight forbidden whole-container targets,
+and nested ordinary versus sorted-container arguments. Compatibility/full-root validation and independent local review
+remain pending for this correction. No public runtime feature, user page or CHANGES claim is part of this commit.
