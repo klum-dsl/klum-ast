@@ -24,7 +24,10 @@
 package com.blackbuild.klum.ast.compiler.internal.ast
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
+import groovy.lang.GroovyClassLoader
+import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.CompilationUnit
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -33,7 +36,11 @@ import groovyjarjarasm.asm.FieldVisitor
 import groovyjarjarasm.asm.MethodVisitor
 import groovyjarjarasm.asm.Opcodes
 
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.Base64
+import java.util.jar.JarFile
+import java.util.regex.Pattern
 
 @Issue('932')
 class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
@@ -493,6 +500,123 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         !references.findAll().any { it.contains('com/blackbuild/klum/ast/runtime/internal') }
     }
 
+    def "a failed compilation does not replace the last successful carrier"() {
+        given:
+        def successful = compilationUnit('''
+            package outputlifecycle
+
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Configuration { String stable }
+        ''')
+        successful.compile()
+        File carrier = new File(compilerConfiguration.targetDirectory, 'outputlifecycle/Configuration_DSL$WirePlan.class')
+        byte[] stableCarrier = carrier.bytes
+        def failed = compilationUnit('''
+            package outputlifecycle
+
+            import com.blackbuild.klum.ast.DSL
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            @DSL class Configuration {
+                Integer changed = 'not an Integer'
+            }
+        ''')
+
+        when:
+        failed.compile()
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+        carrier.bytes == stableCarrier
+    }
+
+    def "clean compiler output is deterministic and updates with its Schema"() {
+        given:
+        File output = tempFolder.newFolder('carrier-output')
+        File initial = compileCarrier(output, 'title')
+        byte[] initialBytes = initial.bytes
+
+        when: 'the same Schema is compiled cleanly into the same binary-output directory'
+        File repeated = compileCarrier(output, 'title')
+        byte[] repeatedBytes = repeated.bytes
+
+        and: 'a changed Schema is compiled into that output directory'
+        File changed = compileCarrier(output, 'revision')
+
+        then:
+        repeatedBytes == initialBytes
+        changed.bytes != initialBytes
+        readCarrierData(changed).contains('cmV2aXNpb24')
+    }
+
+    def "in-memory compilation does not require a carrier output directory"() {
+        given:
+        File defaultOutput = new File('memoryonly')
+        assert !defaultOutput.exists()
+        CompilerConfiguration configuration = new CompilerConfiguration()
+        def unit = compilationUnit(configuration, '''
+            package memoryonly
+
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Configuration { String title }
+        ''')
+
+        when:
+        unit.compile()
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'memoryonly.Configuration' }) != null
+        !new File(defaultOutput, 'Configuration_DSL$WirePlan.class').exists()
+
+        cleanup:
+        defaultOutput.deleteDir()
+    }
+
+    def "Gradle removes a renamed Schema carrier with the obsolete source output"() {
+        given:
+        Path project = tempFolder.newFolder('gradle-schema').toPath()
+        Files.writeString(project.resolve('settings.gradle'), "rootProject.name = 'carrier-lifecycle'\n")
+        Files.writeString(project.resolve('build.gradle'), '''
+            plugins { id 'groovy' }
+
+            repositories { mavenCentral() }
+
+            dependencies {
+                implementation localGroovy()
+                implementation files(System.getenv('WIRE_PLAN_CLASSPATH').split(File.pathSeparator))
+            }
+        '''.stripIndent())
+        Path sources = Files.createDirectories(project.resolve('src/main/groovy/outputlifecycle'))
+        Path oldSchema = sources.resolve('OldConfiguration.groovy')
+        Files.writeString(oldSchema, schemaSource('OldConfiguration', 'title'))
+
+        when:
+        def initial = gradle(project, 'compileGroovy')
+        Path classes = project.resolve('build/classes/groovy/main/outputlifecycle')
+        Path oldCarrier = classes.resolve('OldConfiguration_DSL$WirePlan.class')
+        boolean initialCarrier = Files.isRegularFile(oldCarrier)
+        Path renamedSchema = sources.resolve('RenamedConfiguration.groovy')
+        Files.move(oldSchema, renamedSchema)
+        Files.writeString(renamedSchema, schemaSource('RenamedConfiguration', 'revision'))
+        def renamed = gradle(project, 'compileGroovy')
+        def packaged = gradle(project, 'jar')
+
+        then:
+        assert initial.exitCode == 0 : initial.output
+        initialCarrier
+        assert renamed.exitCode == 0 : renamed.output
+        !Files.exists(oldCarrier)
+        Files.isRegularFile(classes.resolve('RenamedConfiguration_DSL$WirePlan.class'))
+        assert packaged.exitCode == 0 : packaged.output
+        new JarFile(project.resolve('build/libs/carrier-lifecycle.jar').toFile()).withCloseable {
+            it.getJarEntry('outputlifecycle/RenamedConfiguration_DSL$WirePlan.class') != null
+        }
+    }
+
     private static Map runtimeShapedFacts(File carrier) {
         def result = [entries: new LinkedHashSet<>(), rejections: new LinkedHashSet<>()]
         collectRuntimeFacts(carrier, result)
@@ -562,6 +686,54 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
     private static String decode(String token) {
         token == '-' ? null : new String(Base64.urlDecoder.decode(token), 'UTF-8')
+    }
+
+    private static File compileCarrier(File output, String field) {
+        def unit = compilationUnit(output, schemaSource('Configuration', field))
+        unit.compile()
+        new File(output, 'outputlifecycle/Configuration_DSL$WirePlan.class')
+    }
+
+    private static CompilationUnit compilationUnit(File output, String schema) {
+        CompilerConfiguration configuration = new CompilerConfiguration()
+        configuration.targetDirectory = output
+        compilationUnit(configuration, schema)
+    }
+
+    private static CompilationUnit compilationUnit(CompilerConfiguration configuration, String schema) {
+        def compilerLoader = new GroovyClassLoader(StructuredInputAdmissionPlanTest.classLoader, configuration)
+        def unit = new CompilationUnit(configuration, null, compilerLoader)
+        unit.addSource('Schema.groovy', schema)
+        unit
+    }
+
+    private static String schemaSource(String name, String field) {
+        """
+            package outputlifecycle
+
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class $name { String $field }
+        """.stripIndent()
+    }
+
+    private static Map gradle(Path project, String task) {
+        ProcessBuilder builder = new ProcessBuilder(
+                Path.of(System.getProperty('user.dir')).parent.resolve('gradlew').toString(), '--no-daemon', '-p', project.toString(), task)
+                .redirectErrorStream(true)
+        builder.environment().put('WIRE_PLAN_CLASSPATH', compilerClasspath())
+        Process process = builder.start()
+        String output = process.inputStream.text
+        [exitCode: process.waitFor(), output: output]
+    }
+
+    private static String compilerClasspath() {
+        System.getProperty('java.class.path').split(Pattern.quote(File.pathSeparator))
+                .findAll { entry ->
+                    String name = new File(entry).name
+                    !name.startsWith('groovy-') && !name.startsWith('spock-')
+                }
+                .join(File.pathSeparator)
     }
 
     private CompilationUnit compilationUnit(String schema) {

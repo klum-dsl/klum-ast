@@ -136,17 +136,18 @@ final class StructuredInputAdmissionPlan {
      * identity that makes collision diagnostics deterministic.  This deliberately has no reader
      * API: future consumers inspect the constant from class bytes without loading Schema code.</p>
      */
-    static void emitCarrier(DSLASTTransformation transformation) {
-        ClassNode model = transformation.annotatedClass.redirect();
+    static void emitCarrier(ClassNode model) {
+        model = model.redirect();
         if (model == null)
             throw new IllegalStateException("No model for WIRE-PLAN carrier");
         StructuredInputAdmissionPlan plan = planOf(model);
         if (plan == null)
-            throw new IllegalStateException("No WIRE-PLAN classification for " + model.getName());
+            return; // A compiler without this transformation's classification does not publish a carrier.
 
         SourceUnit source = model.getModule().getContext();
-        if (source == null || source.getConfiguration() == null || source.getConfiguration().getTargetDirectory() == null)
-            return; // AST-only inspection does not produce a generated class-file artifact.
+        if (source == null || source.getErrorCollector().hasErrors()
+                || source.getConfiguration() == null || source.getConfiguration().getTargetDirectory() == null)
+            return; // Failed and AST-only compilation does not publish a generated class-file artifact.
         File outputDirectory = source.getConfiguration().getTargetDirectory();
 
         String internalName = model.getName().replace('.', '/') + "_DSL$WirePlan";
