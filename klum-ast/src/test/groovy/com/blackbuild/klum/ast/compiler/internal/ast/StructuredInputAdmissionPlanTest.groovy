@@ -190,6 +190,45 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
                  'Byte', 'Short', 'Integer', 'Long', 'Float', 'Double', 'BigInteger', 'BigDecimal']
     }
 
+    def "qualifies opaque List and Map operations against the runtime container stop gate"() {
+        given:
+        def unit = compilationUnit('''
+            package collectionboundary
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            final class OpaqueWords<E> extends ArrayList<E> {
+                private OpaqueWords() { throw new AssertionError('No input construction route') }
+            }
+            final class OpaqueLabels<K, V> extends LinkedHashMap<K, V> {
+                private OpaqueLabels() { throw new AssertionError('No input construction route') }
+            }
+            @DSL class Configuration {
+                @Builder.Method void words(OpaqueWords<String> value) { }
+                @Builder.Method void labels(OpaqueLabels<String, String> value) { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'collectionboundary.Configuration' })
+
+        then:
+        plan.entries()*.externalName() == ['labels', 'words']
+        plan.entries().find { it.externalName() == 'words' }.payload().with {
+            kind().name() == 'LIST' && type() == 'collectionboundary.OpaqueWords' &&
+                    item().kind().name() == 'SCALAR' && item().type() == 'java.lang.String'
+        }
+        plan.entries().find { it.externalName() == 'labels' }.payload().with {
+            kind().name() == 'MAP' && type() == 'collectionboundary.OpaqueLabels' &&
+                    keyType() == 'java.lang.String' && item().kind().name() == 'SCALAR' && item().type() == 'java.lang.String'
+        }
+        plan.entries().collectEntries { [(it.externalName()): it.operation().descriptorGroup()] } == [
+                labels: ['labels(collectionboundary.OpaqueLabels):void'], words: ['words(collectionboundary.OpaqueWords):void']
+        ]
+        plan.rejections().empty
+    }
+
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {
         given:
         def unit = compilationUnit('''
