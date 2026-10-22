@@ -415,20 +415,32 @@ interpreter, Gradle task, schema projection, or runtime reader.
 The carrier remains a direct raw class-file write. Classification occurs during the existing Schema transformation, while
 the existing local model verifier emits the already-classified bytes only after its instruction-selection validation
 succeeds. This retains the established annotation transform boundary: consumers which do not have the compiler
-transformation do not gain a new required class. A rejected Schema compilation cannot replace the carrier left by the
-preceding successful compilation. The emitter additionally does nothing when the compiler has no target directory;
-AST-only/in-memory inspection therefore keeps its normalized plan but publishes no carrier and does not fail.
+transformation do not gain a new required class. Emission is suppressed when that source unit has already collected
+errors. This is local Schema-verification evidence, not a transaction for the whole compiler invocation: a later compiler
+error, another source unit's failure, or bytecode-generation failure can leave emitted carrier bytes in the output
+directory. The emitter additionally does nothing when the compiler has no target directory; AST-only/in-memory
+inspection therefore keeps its normalized plan but publishes no carrier and does not fail.
 
 `StructuredInputAdmissionPlanTest` exercises the supported binary-Schema boundary: clean output places the carrier beside
 the generated Builder classes; a second clean compilation has byte-identical carrier bytes; a changed Schema replaces
 those bytes; and Gradle's Schema JAR contains the carrier. It also compiles parent and child Schemas in
 separate compiler invocations, proving each output is retained for the reader's existing Builder-interface composition.
 The failed-compilation probe first records a successful carrier, then rejects a changed Schema, and proves the original
-bytes remain untouched.
+bytes remain untouched for that specific validation failure path; it is not a general rollback guarantee for every
+possible compilation failure.
 
 The same test creates a minimal Gradle binary-Schema project, compiles it, renames the Schema source, and recompiles it.
 Gradle removes the obsolete Schema class and its sibling carrier while retaining the renamed carrier. This cleanup belongs
 to Gradle's managed task output, not to the compiler transformation: the compiler writes the sibling for each successful
-Schema class, while Gradle owns deletion of outputs for removed or renamed sources and only packages successful task
-outputs. Arbitrary compiler invocations with no target directory are outside that durable-output contract and are
-intentionally supported as non-publishing AST inspections.
+local verification, while Gradle owns deletion of outputs for removed or renamed sources. A published Schema artifact
+requires successful completion of compilation and packaging in the supported Gradle build lifecycle; an output-directory
+carrier alone is not publication evidence. Arbitrary compiler invocations with no target directory are outside that
+durable-output contract and are intentionally supported as non-publishing AST inspections.
+
+### Carrier format limit
+
+WIRE-PLAN/B stores its complete canonical plan in the carrier's single `DATA` JVM `String` constant. The class-file
+constant-pool UTF-8 entry for that value is limited to 65,535 encoded bytes, so this format does not claim to support
+every possible Schema size. An oversized plan may currently surface as an ASM-level failure rather than a targeted DSL
+diagnostic; a dedicated diagnostic is warranted only if this limit becomes practically relevant. No chunking, alternate
+serialization, resource carrier, or format version is introduced by this qualification.
