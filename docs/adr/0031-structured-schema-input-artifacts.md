@@ -2,9 +2,9 @@
 
 Date: 2026-10-20. Architecture revised: 2026-10-21.
 
-Status: **Accepted direction; implementation not started**. The merged feasibility probe established the reuse and
-compiled-contract seams. Runtime and generator implementation remain gated by the shared admission-contract tracer in
-the linked plan.
+Status: **Accepted direction; compiler admission seam implemented; runtime and generator not implemented**.
+Merged #937/#938 completed `WIRE-PLAN`. The [WIRE-RUNTIME v1 proposal](../implementation/adr-0031-wire-runtime-v1.md)
+plans the first #932 runtime slice; it does not authorize production implementation or settle a new public API.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -152,9 +152,13 @@ registry, public descriptor/codec/registry, publication system, annotation DSL o
 The shared feasibility probe is complete in [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [evidence report](../implementation/evidence/issue-932-structured-input-probe.md). It proves existing dispatch/session reuse,
 all four managed Jackson modes, active-Builder loading, completed LINK attachment, compiled cross-module discovery and
-no-execution Draft 2020-12 projection. The next bounded step is the implementation plan's `WIRE-PLAN` compiler-owned
-admission-plan tracer. It must pass its binary-representation comparison, cross-Groovy, no-execution and dual-consumer gates
-before either production consumer starts. Once the common contract is accepted and available, #932 runtime interpretation
+no-execution Draft 2020-12 projection. The shared compiler-owned admission tracer is now complete in
+[PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
+[PR #938](https://github.com/klum-dsl/klum-ast/pull/938). The selected package-private carrier preserves normalized roles,
+source identity and rejection facts missing from retained annotations. The linked evidence qualifies separate-artifact
+inheritance, no-execution extraction, JPMS, Groovy 3/4/5, generated linkage and the supported Gradle output lifecycle.
+The [runtime proposal](../implementation/adr-0031-wire-runtime-v1.md) is the next planning boundary; no production consumer
+starts in this revision. Once the common contract is accepted and available, #932 runtime interpretation
 and #529 JSON Schema generation may proceed independently from the same acceptance corpus. #932 owns language semantics and
 runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
