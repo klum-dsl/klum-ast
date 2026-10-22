@@ -90,7 +90,7 @@ final class StructuredInputPlan {
                 }
             });
             return new StructuredInputPlan(contract, entries, rejections);
-        } catch (ReflectiveOperationException | IOException | IllegalArgumentException exception) {
+        } catch (ReflectiveOperationException | IOException | RuntimeException exception) {
             throw new KlumModelException("Cannot read structured-input carrier for " + model.getName()
                     + "; recompile and package the Schema with its generated WIRE-PLAN/B carrier: "
                     + exception.getMessage(), exception);
@@ -120,6 +120,10 @@ final class StructuredInputPlan {
                 Class<?> declaring = type(model, required(fields[4]));
                 if (!declaring.isAssignableFrom(contract) || !declaring.getName().endsWith(BUILDER_SUFFIX))
                     throw invalid("Entry declares an unrelated Builder contract");
+                String source = required(fields[3]);
+                String sourceOwner = declaring.getName().substring(0, declaring.getName().length() - BUILDER_SUFFIX.length());
+                if (!source.startsWith(sourceOwner + "#") || source.length() == sourceOwner.length() + 1)
+                    throw invalid("Entry source does not belong to its declared Builder contract");
                 String name = required(fields[5]);
                 List<Method> methods = methods(model, declaring, name, required(fields[6]));
                 if (!Set.of("IDENTITY", "JSON_PROPERTY").contains(fields[7])) throw invalid("Invalid name origin");
@@ -136,7 +140,7 @@ final class StructuredInputPlan {
                 String excludedKey = token(fields[9]);
                 if (role == Role.KEYED_OWNED_MAP && (!"java.lang.String".equals(keyType) || excludedKey == null))
                     throw invalid("Keyed relationship has no String key declaration");
-                entries.add(new Entry(required(fields[1]), role, required(fields[3]), declaring, name,
+                entries.add(new Entry(required(fields[1]), role, source, declaring, name,
                         List.copyOf(methods), payload, keyType, excludedKey));
             } else throw invalid("Malformed carrier record " + i);
         }
