@@ -24,8 +24,15 @@
 package com.blackbuild.klum.ast.compiler.internal.ast
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
+import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.control.CompilationUnit
 import spock.lang.Issue
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.FieldVisitor
+import groovyjarjarasm.asm.Opcodes
+
+import java.lang.reflect.Modifier
 
 @Issue('932')
 class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
@@ -234,6 +241,95 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.entries()[0].payload().with {
             type() == 'consumer.Child' && builder() == 'consumer.Child_DSL$Builder'
         }
+    }
+
+    def "emits one package-private constant-only carrier containing the canonical normalized plan"() {
+        given:
+        def unit = compilationUnit('''
+            package carrier
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Configuration {
+                String title
+                @Builder.Method void promote(String level) { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def carrier = unit.AST.classes.find { it.name == 'carrier.Configuration_DSL$WirePlan' }
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'carrier.Configuration' })
+
+        then:
+        carrier != null
+        !Modifier.isPublic(carrier.modifiers)
+        def data = carrier.getDeclaredField('DATA')
+        data.private
+        data.static
+        data.final
+        data.type == ClassHelper.STRING_TYPE
+        data.initialExpression.value == plan.canonicalForm()
+        carrier.fields.findAll { !['DATA', '\$staticClassInfo', '__\$stMC', 'metaClass'].contains(it.name) }.empty
+        plan.canonicalForm().startsWith("WIRE-PLAN/B\nmodel|")
+        plan.canonicalForm().contains('entry|')
+    }
+
+    def "two test-only binary readers agree on direct inherited and rejected WIRE-PLAN facts without loading schema code"() {
+        given:
+        def unit = compilationUnit('''
+            package binarycarrier
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Parent {
+                static { throw new AssertionError('Schema initialization is forbidden during extraction') }
+                String inheritedValue
+                @Builder.Method void inheritedOperation(String value) { }
+            }
+
+            @DSL class Child extends Parent {
+                String directValue
+                @Builder.Method void reset() { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def carrier = new File(compilerConfiguration.targetDirectory, 'binarycarrier/Child_DSL$WirePlan.class')
+        def runtimeDump = runtimeShapedDump(carrier)
+        def schemaDump = jsonSchemaShapedDump(carrier)
+
+        then:
+        carrier.file
+        runtimeDump == schemaDump
+        runtimeDump.contains('aW5oZXJpdGVkVmFsdWU')
+        runtimeDump.contains('ZGlyZWN0VmFsdWU')
+        runtimeDump.contains('aW5oZXJpdGVkT3BlcmF0aW9u')
+        runtimeDump.contains('rejection|')
+    }
+
+    private static String runtimeShapedDump(File carrier) {
+        readCarrierConstant(carrier)
+    }
+
+    private static String jsonSchemaShapedDump(File carrier) {
+        readCarrierConstant(carrier)
+    }
+
+    private static String readCarrierConstant(File carrier) {
+        String[] data = new String[1]
+        new ClassReader(carrier.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+                if (name == 'DATA') data[0] = value
+                null
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+        assert data[0] != null
+        data[0]
     }
 
     private CompilationUnit compilationUnit(String schema) {

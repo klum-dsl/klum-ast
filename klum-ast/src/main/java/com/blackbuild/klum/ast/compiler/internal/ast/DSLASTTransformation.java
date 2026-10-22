@@ -218,6 +218,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         OmittedProjectionCatalog.complete(builderClass);
         GeneratedDslSupport.complete(annotatedClass);
         StructuredInputAdmissionPlan.classify(this);
+        StructuredInputAdmissionPlan.emitCarrier(this);
         // Realize only schema operations after all framework hooks and interfaces exist.
         TemplateMethods.completeTemplateBuilder(this);
 

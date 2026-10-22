@@ -47,6 +47,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Base64;
+import java.util.StringJoiner;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
@@ -57,6 +59,11 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.g
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getKeyTypeForMap;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
+import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
+import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
+import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static org.codehaus.groovy.ast.stmt.EmptyStatement.INSTANCE;
 
 /**
  * Compiler-only normalization for the deliberately small WIRE-PLAN input grammar.
@@ -114,6 +121,29 @@ final class StructuredInputAdmissionPlan {
         return model == null ? null : model.redirect().getNodeMetaData(METADATA_KEY);
     }
 
+    /**
+     * Emits the selected WIRE-PLAN/B binary form beside the generated public namespace.
+     *
+     * <p>The existing retained public annotations cannot distinguish generated property,
+     * owned-relationship and keyed-map operations, nor can they retain the source declaration
+     * identity that makes collision diagnostics deterministic.  This deliberately has no reader
+     * API: future consumers inspect the constant from class bytes without loading Schema code.</p>
+     */
+    static void emitCarrier(DSLASTTransformation transformation) {
+        ClassNode model = transformation.annotatedClass.redirect();
+        StructuredInputAdmissionPlan plan = planOf(model);
+        if (plan == null)
+            throw new IllegalStateException("No WIRE-PLAN classification for " + model.getName());
+
+        ClassNode carrier = new ClassNode(model.getName() + "_DSL$WirePlan",
+                ACC_FINAL | ACC_SYNTHETIC, ClassHelper.OBJECT_TYPE);
+        carrier.setSourcePosition(model);
+        carrier.addField("DATA", ACC_PRIVATE | ACC_STATIC | ACC_FINAL,
+                ClassHelper.STRING_TYPE, new ConstantExpression(plan.canonicalForm()));
+        carrier.addConstructor(ACC_PRIVATE, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, INSTANCE);
+        model.getModule().addClass(carrier);
+    }
+
     String model() {
         return model;
     }
@@ -128,6 +158,32 @@ final class StructuredInputAdmissionPlan {
 
     List<Rejection> rejections() {
         return rejections;
+    }
+
+    String canonicalForm() {
+        StringBuilder result = new StringBuilder("WIRE-PLAN/B\n");
+        result.append("model|").append(token(model)).append('|').append(token(builder)).append('\n');
+        entries.forEach(entry -> result.append("entry|").append(token(entry.externalName())).append('|')
+                .append(entry.role()).append('|').append(token(entry.source())).append('|')
+                .append(token(entry.operation().declaringBuilder())).append('|').append(token(entry.operation().name())).append('|')
+                .append(token(String.join(",", entry.operation().descriptorGroup()))).append('|')
+                .append(entry.nameOrigin()).append('|').append(token(entry.mapKeyType())).append('|')
+                .append(token(entry.excludedChildKeyMember())).append('|').append(payloadToken(entry.payload())).append('\n'));
+        rejections.forEach(rejection -> result.append("rejection|").append(token(rejection.source())).append('|')
+                .append(token(rejection.reason())).append('\n'));
+        return result.toString();
+    }
+
+    private static String payloadToken(Payload payload) {
+        StringJoiner result = new StringJoiner(",", "[", "]");
+        result.add(payload.kind().name()).add(token(payload.type())).add(token(payload.builder())).add(token(payload.keyType()));
+        if (payload.item() != null)
+            result.add(payloadToken(payload.item()));
+        return result.toString();
+    }
+
+    private static String token(String value) {
+        return value == null ? "-" : Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private static void classifyField(FieldNode field, List<Entry> entries, List<Rejection> rejections) {
