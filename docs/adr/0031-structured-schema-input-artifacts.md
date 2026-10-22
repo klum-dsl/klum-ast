@@ -1,6 +1,6 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Date: 2026-10-20. Architecture revised: 2026-10-21.
+Date: 2026-10-20. Architecture revised: 2026-10-22.
 
 Status: **Accepted direction; compiler admission seam implemented; runtime and generator not implemented**.
 Merged #937/#938 completed `WIRE-PLAN`. The [WIRE-RUNTIME v1 proposal](../implementation/adr-0031-wire-runtime-v1.md)
@@ -75,8 +75,17 @@ Accepted guardrails:
   Builder methods as helpers. Existing broad named-map calls, including copyFrom, retain their behavior unchanged.
 - Nested owned values use Builders and the existing Construction session, not prebuilt Models. LINK/AutoLink resolution
   belongs to ordinary lifecycle work; no generic reference registry or external-context injection framework is introduced.
-  Factories are a workaround for required construction context; context acquisition/provider selection remains external.
-- Domain-object members are not a call sequence; parsed Map iteration or YAML source order is not a language guarantee.
+  Schema-specific factories must supply dependencies needed by PostCreate/early PostApply before those callbacks run.
+  The interpreter configures an already-prepared Builder; it neither injects dependencies, delays phases nor reorders
+  callbacks. Context acquisition/provider selection remains external; AutoLink/LinkTo keep their normal lifecycle.
+- Runtime traverses supplied Maps recursively in their own iteration order and preserves List element order. Insertion-
+  ordered Maps preserve caller-selected order; unordered Maps expose implementation-defined order. Use order-sensitive
+  custom Builder operations deliberately. There is no sorting, scheduler, ordering configuration, commutativity claim or
+  portable YAML/JSON source-order guarantee. Domain objects do not gain a repeated-call or generic call-record syntax.
+- Complete preflight validates and prepares the entire supplied tree in supplied traversal order without invoking user
+  code or mutating an active Builder. Execution follows that prepared order; ordinary side effects have no rollback
+  promise. Deterministic carrier ordering and inherited-name lookup validate names without reordering execution. JSON
+  Schema may sort metadata for reproducible artifacts independently. WIRE-PLAN/B normalization/serialization is unchanged.
 
 ## Naming and coexistence
 

@@ -37,13 +37,17 @@ open. `rootKey` is null for an unkeyed root and an explicit String for a keyed r
 carrier-excluded key member is never reintroduced as a domain property. The runtime must not choose a subtype/default
 implementation from an abstract root. The caller selects an exact concrete Schema.
 
-Candidate Java usage, followed by Groovy (illustrative only; no callable facade exists yet):
+Candidate Java usage, followed by Groovy (illustrative only; no callable facade exists yet). The root example assumes
+self-contained early construction; externally supplied early dependencies require an already-prepared Builder:
 
 ```java
 Application result = KlumStructuredInput.readRoot(Application.class, null, parsed, "application.yaml");
 Application_DSL.Builder<Application> same =
         KlumStructuredInput.applyToBuilder(activeApplication, parsed, "application.yaml");
 ```
+
+The Holder example below supplies LINK context for later lifecycle phases only. It is valid only when PostCreate and
+any early PostApply do not need that dependency; it is not a context-aware factory example.
 
 ```groovy
 ApplicationHolder.Create.With {
@@ -139,10 +143,17 @@ Preflight the complete supplied tree before the first admitted operation: reject
 nested key members, null at any level, unsupported targets and inconsistent contracts. Validate domain and data-map keys
 as Strings. Detect cyclic caller containers by identity on the current traversal stack; a repeated acyclic shared value
 can be read twice. Do not mutate input; snapshot containers for preparation so later dispatch cannot observe its own
-input mutation. This is local preparation, not a serialized invocation plan or new descriptor protocol.
+input mutation. Build the prepared representation by visiting supplied entries in their own iteration order recursively,
+including keyed-map entries, and retain List element order. Complete preflight neither invokes user code nor mutates an
+active Builder: no factory/constructor, initializer, callback, operation, converter, enum initialization or dynamic
+MetaClass selection runs here. Validate names, shape, types and contract descriptors through metadata only. This is local
+preparation, not a serialized invocation plan or new descriptor protocol. A failure anywhere prevents all execution for
+this input, including entries that preceded the failure during preflight.
 
 Use the carrier payload kind/type only. Scalars are String, boolean, supported integral/decimal numbers and enums.
-Enum text must match an exact declared constant; convert only during intentional runtime preparation. Numeric conversion
+Enum text must match an exact declared constant discovered without initialization (for example, enum field declarations
+in class bytes). Materialize enum values only during execution; `getEnumConstants`/`Enum.valueOf` must not run in preflight.
+Numeric conversion
 must be exact for integral targets (range/fraction checks); floating targets reject non-finite/overflow values. No numeric
 or boolean strings, compact Duration syntax, arbitrary Object binding, constructors, codecs or converter discovery.
 Recognize the standard numeric types represented by the existing corpus; if the compiler's broad Number-subclass
@@ -156,7 +167,8 @@ For a property or authored operation, keep an explicit single-element `Object[]`
 is one argument. Native-name-only `InvokerHelper.invokeMethod` is insufficient: `choose(int)` and `choose(Integer)` can
 have different external names or exclusions, yet boxed input selects the wrapper overload regardless of admission.
 For an OPERATION, take the exact declared parameter signature from its carrier descriptor and resolve it through Groovy's
-existing `MetaClass.pickMethod`, not the runtime payload's class. Verify the selected method against that exact public
+existing `MetaClass.pickMethod` during execution, using the declared signature rather than the runtime payload's class.
+Preflight checks contract descriptors without dynamic dispatch. Verify the selected method against that exact public
 contract signature before invoking the same selected `MetaMethod`; never perform a second native-name lookup. The bounded
 primitive/wrapper fixture proves that this preserves the primitive call even when an Integer overload is ignored.
 For a PROPERTY, use its declared carrier payload type with the same existing Groovy selection and verify membership in
@@ -166,13 +178,20 @@ remains a production acceptance gate. The only custom operations are carrier OPE
 payload on the public Builder. Ignore, rename and identity fallback have already been decided by the compiler; do not
 reinterpret Jackson annotations at runtime.
 
-Use one deterministic traversal for execution: canonical external-name order within each domain scope, depth-first child
-configuration, and literal String-key order for keyed child creation. Preserve data-container contents and List order.
-This is a proposed fixed framework order, not source ordering, a caller-selectable sequence or repetition syntax. The
-existing carrier already sorts direct entries; inherited merge must also canonicalize. Reversed parsed-Map insertion
-order must produce identical observed operation traces. Side-effecting operations can still interact: document this
-fixed order, never claim commutativity, infer Model effects, or invent conflict detection between a property and an
-operation that changes it. If a real adopter requires a different sequencing policy, stop for a separate decision.
+Execute the prepared traversal in the caller-supplied order: visit each Map in its own iteration order recursively,
+including nested domain scopes and keyed-child creation, preserve List payload element order, and invoke admitted Builder
+operations in that order. Insertion-ordered Maps preserve the caller's selected order. Unordered Maps expose their
+implementation-defined iteration order; the runtime must not impose sorting to make it reproducible. There is no
+scheduler, ordering configuration, commutativity claim or portable YAML/JSON source-order guarantee. Model Writers should
+use order-sensitive custom `@Builder.Method` operations deliberately: reversing entries may change both traces and Model
+values. No inferred effect/conflict analysis or repeated-call syntax follows from this contract.
+
+Carrier metadata retains its deterministic ordering. Carrier lookup and inherited-plan composition resolve and validate
+names only; they must not drive iteration or reorder the prepared traversal. Walk the supplied entries and look each one
+up in the resolved admission map, rather than filtering/iterating carrier entries to construct execution order. JSON Schema
+may sort properties for reproducible artifacts without affecting interpreter behavior. Do not change WIRE-PLAN/B
+serialization or normalization. Preflight builds the ordered representation completely; execution follows it without
+re-reading or reordering the input. Once execution starts, ordinary side effects remain and no rollback is promised.
 
 ## Lifecycle, ownership and error boundary
 
@@ -189,10 +208,18 @@ PostApply for an entire orchestration with explicit additional applications. Roo
 internals rather than public `applyToBuilder` and accidentally add another PostApply. Jackson's measured readBuilder and
 applyToBuilder create/apply replay remains unchanged, including its different callback counts.
 
-Caller-provided completed LINK context attaches through normal Builder calls before enclosing configuration returns.
-Defaults/Owner/AutoLink/PostTree/materialization/validation remain existing phases. Early create/apply callbacks cannot
-assume context attached afterward; use an existing context-aware Schema factory/attach-before-apply arrangement if needed.
-No serialized LINK/reference lookup, context injection, session API or phase scheduling is added.
+Construction dependencies belong to the Schema/caller. Schema-specific factories must prepare dependencies needed by
+PostCreate or early PostApply before those callbacks run; the interpreter configures the resulting already-prepared,
+active unsealed Builder. `AsBuilder().One()` has already run create/apply: attaching a dependency afterward cannot satisfy
+those earlier callbacks. No generic context-aware factory API is proposed here, and no unqualified factory example is
+claimed. If the Schema has no existing construction path meeting that constraint, integration waits for an appropriate
+Schema-specific path rather than making the interpreter inject dependencies, delay phases or reorder callbacks.
+
+Caller-provided completed LINK context needed only by later phases can attach through normal Builder calls before
+enclosing configuration returns, as in the qualified Holder example. Defaults/Owner/AutoLink/LinkTo/PostTree/materialization/
+validation retain their normal lifecycle. The interpreter does not change callback timing or responsibility for context.
+No serialized LINK/reference lookup, context injection, session API or phase scheduling is added. The proposed
+`readRoot`/`applyToBuilder` signatures stay unchanged; callers with externally prepared early dependencies use the latter.
 
 For local input/dispatch failures, use KlumModelException with source identity, escaped JSON Pointer (`~` to `~0`, `/` to
 `~1`, list indices), external name, selected public contract, expected shape/type, actual shape/type, and original cause.
@@ -216,13 +243,17 @@ The implementation source shows that root Consumer preparation is private and ne
 The planned creator Consumer factoring, strict runtime decoding, numeric adaptation and facade are not implemented here.
 
 The new [StructuredInputRuntimeBoundaryProbeTest](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputRuntimeBoundaryProbeTest.groovy)
-contains fixed calls, not an interpreter or fixture-name admission engine. It proves existing Consumer child preparation,
+contains bounded fixture-only experiments, not a production reader or interpreter. It proves existing Consumer child preparation,
 explicit one-argument List/Map dispatch, owner/key identity, pre-completion Builder state, normal final phases and
 cause/session cleanup on failure. A third fixture proves that native-name dispatch can invoke an ignored primitive/boxed
 overload, while exact carrier-signature selection through existing Groovy MetaClass preserves the admitted operation.
 The companion admission test verifies the distinct renamed descriptors and ignored-overload rejection in the carrier
-plan. Its Groovy closures are authored test configuration/SAM fixtures, not synthesized
-interpreter closures. It deliberately attaches through current operations and the existing internal map-adder; it does
+plan. One compact order-sensitive fixture then reads its actual carrier names, composes the explicitly selected parent
+carrier, and separates complete preparation from execution for three fixed operation signatures and two concrete
+relationships. Reversed LinkedHashMaps change traces and values; nested Maps, keyed children and List payloads retain
+supplied order. Unknown entries first, last, nested or in a later keyed child prevent all execution and leave the active
+Builder unchanged. This bounded experiment is not full production preflight, decoding or inheritance qualification.
+Its Groovy closures are authored test configuration/SAM fixtures, not synthesized interpreter closures. It deliberately attaches through current operations and the existing internal map-adder; it does
 not claim to have qualified reused-child Consumer creators, root Consumer access, the reader or full diagnostics.
 
 The first run tried to pass a Builder-valued Map to the generated plural `entries` operation and failed: that contract
@@ -242,8 +273,8 @@ Keep WIRE-RUNTIME as the work label. These are commits within one proposed deliv
    keyed maps and existing-child apply, retaining current Map/Closure paths as adapters. Acceptance: paired legacy/new
    callback traces, Template/default/key/owner behavior, preconfigured/reused child identity, completed-LINK identity,
    session/thread/sealing rejection, nested-root rejection, failure cleanup and all four Jackson modes unchanged.
-3. **Deliver the restricted route and documentation together.** Add proposed facade, preflight/payload preparation,
-   admitted dispatch and diagnostics, using the previous commits. Acceptance: every grammar production and negative below;
+3. **Deliver the restricted route and documentation together.** Add proposed facade, complete code-free preflight/payload
+   preparation retaining supplied traversal order, admitted dispatch and diagnostics, using the previous commits. Acceptance: every grammar production and negative below;
    Java/static/dynamic Groovy consumers; Groovy 3/4/5; documentary test and release documentation. No partial API shipment
    between commits 1 and 3. Review the local sequence before first publication.
 
@@ -255,22 +286,23 @@ Acceptance inventory, shared with #529 where structurally meaningful:
 | Concrete nesting and keyed maps | Child uses its plan; outer keys `a/b~c`, empty/punctuated strings stay literal under existing key rules; duplicate/conflicting child key member rejects; direct keyed child uses only existing declared key derivation |
 | Admission and names | Ignore/rename/identity; inherited/overload collisions report every source; unrelated admitted entries remain usable; unknown/helper/copy/query/lifecycle and zero/multi-arg controls reject before any admitted operation |
 | No broadened grammar | Null/reset, abstract/polymorphic targets, dynamic selector, unkeyed relationship collections, CollectionFactory/custom factory/converter operations, references and arbitrary caller objects reject |
-| Session and completion | Both routes; Holder + completed Environment; fresh/reused child; one root late lifecycle; no premature sealing; wrong thread/stale/sealed/Template targets reject; no nested root |
+| Session and completion | Both routes; Holder + late-phase completed Environment; Schema-specific construction supplies dependencies before early callbacks; interpreter configures an already-prepared Builder; fresh/reused child; normal AutoLink/LinkTo; one root late lifecycle; no premature sealing; wrong thread/stale/sealed/Template targets reject; no nested root |
 | Diagnostics/failures | Escaped nested/keyed/list paths; source/contract/expected/actual/cause; late lifecycle keeps existing failure types and no invented leaf pointer; operation mutation then throw; fresh root succeeds after failed root |
-| Source-order independence | Opposite Map insertion orders, inherited/local names and keyed-child maps have identical canonical operation traces; List payload order stays intact |
+| Supplied traversal order | Reversed LinkedHashMaps reverse operation traces and order-sensitive results; nested maps preserve nested operation order; keyed-child creation follows entry order; List payload element order is retained; carrier lookup/inheritance never reorders prepared entries |
+| Complete preflight | Unknown/invalid entries at the start, end or in nested/keyed input prevent all execution and leave an active Builder unchanged; preparation invokes no user code and retains supplied traversal order |
 | Metadata/module compatibility | Packaged #938 artifacts, separately compiled inherited Schema/API, missing/malformed carrier, generated linkage inventory, fresh-JVM no-execution and actual runtime-module named-schema byte reading |
 | Preserved behavior | Existing named-map suites and `StructuredInput*ProbeTest`/`KlumJacksonImporterSpec` retain all four independent modes; no mapper, callback-order or diagnostic parity rewrite |
 
 Use existing Spock/compiler fixtures and `klum-ast/src/test/scenarios/` where appropriate. Every new test carries
 `@Issue("932")`; a first public feature example adds `@Tag("documentary")` and `@See` for its matching user page.
 Production delivery updates `docs/user/Structured-Input.md`, `_Sidebar.md`, applicable Builder-first/import migration
-navigation, `CHANGES.md` and the #932 acceptance links; it states numeric, canonical-order, null, callback and error
+navigation, `CHANGES.md` and the #932 acceptance links; it states numeric, supplied-traversal-order, null, callback/context and error
 limits. No release/user documentation claims this feature exists in the planning PR. #529 stays independently open;
 its corpus follows the same grammar without depending on runtime execution.
 
 ## Stop conditions and review boundary
 
-Stop before implementation if plan review requires different root/active callback semantics, caller-controlled order,
+Stop before implementation if plan review requires different root/active callback semantics, additional ordering configuration,
 an optional-module bridge or a different public surface. The concrete alternatives are the recommended runtime facade
 above versus active-Builder-only delivery using ordinary roots; neither requires a new lifecycle API. A separate optional
 artifact would need a fresh module/access decision and is not silently substituted.
@@ -286,7 +318,7 @@ syntax, polymorphism, collection factory, zero/multi-argument call, reset/clear,
 belongs to this slice. Any need for these ends the slice's current authorization. #932 and #529 stay open; a planning PR
 uses Related links, remains draft and is not merged by this worker.
 
-## Validation of this planning revision
+## Validation of the initial planning revision
 
 - Final `StructuredInputAdmissionPlanTest` and `StructuredInputRuntimeBoundaryProbeTest` run on `test`, `groovy4Tests`
   and `groovy5Tests`: **18 cases per lane, zero failures/errors/skips**. The added runtime fixtures use fixed calls only.
@@ -301,3 +333,23 @@ uses Related links, remains draft and is not merged by this worker.
 The draft planning PR keeps Related links to #932/#529. Public behavior, generated contracts and Jackson production
 sources are unchanged. Remote CI/SonarCloud must be inspected on the published revision; local success is not remote CI
 or implementation approval.
+
+## Maintainer traversal/context refinement
+
+The maintainer refinement replaces the earlier canonical execution-order proposal with supplied Map iteration recursively
+and retained List element order. Deterministic carrier lookup/inheritance and JSON Schema artifact ordering remain separate;
+WIRE-PLAN/B normalization/serialization is untouched. Complete preflight prepares that same traversal without user-code
+execution or Builder mutation. Dependencies needed by early callbacks remain Schema-specific construction responsibilities;
+normal AutoLink/LinkTo and the proposed entry signatures are unchanged.
+
+`StructuredInputRuntimeBoundaryProbeTest#'prepared caller traversal survives inherited carrier lookup and complete preflight precedes execution'`
+uses one closed, order-sensitive fixture. Its actual fixture/parent carrier lookup cannot reorder preparation. It covers
+reversed LinkedHashMaps, nested operation order, keyed-child creation order, retained List order and first/last/deep
+preflight errors preventing all execution. These are bounded planning experiments, not a production adapter or a test
+framework extension.
+
+Validation of this follow-up: the affected runtime-boundary specification passes **4 cases per Groovy 3/4/5 lane**, with
+zero failures/errors/skips. Module license and test-lane isolation tasks, changed Markdown local links/fences and
+`git diff --check` pass. Local Standards/Specification review found no remaining discrepancy with the maintainer's six
+refinements. No planning blocker remains; the existing production reader/creator/property-group qualification gates
+still apply to a separately authorized implementation. #932/#529 remain open and no milestone or production behavior changes.
