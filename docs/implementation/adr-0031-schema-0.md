@@ -1,6 +1,6 @@
 # SCHEMA-0 — JSON Schema delivery plan after WIRE-1
 
-Date: 2026-10-23. Status: **planning proposal; generator and Gradle integration not implemented or authorized**.
+Date: 2026-10-23. Status: **accepted architecture; simplified feasibility plan for maintainer acceptance; no implementation started**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
@@ -13,6 +13,13 @@ JSON Schema Draft 2020-12 for the admitted structured-input language. The compil
 language semantics. Generation reads compiled public Builder/Factory contracts and their private compiler carrier,
 without invoking the interpreter. [ADR 0009](../adr/0009-jackson-interoperability.md) independently governs Jackson;
 this schema describes neither an arbitrary configured ObjectMapper nor completed-Model serialization.
+
+The maintainer's simplification retains that architecture and separates three levels: SCHEMA-0 records the plan;
+SCHEMA-0/T proves the three bounded feasibility questions below using one synthetic API -> Schema fixture; subsequent
+generator implementation delivers production functionality, the optional Gradle plugin and applicable hardening.
+The detailed binary/projection inventory is a production contract, not an implicit expansion of SCHEMA-0/T acceptance.
+Float/double structural approximation and ordinary Gradle task outputs are decided; real ScHelm qualification is a
+production-completion requirement. None of these decisions starts implementation in this documentation-only PR.
 
 | Evidence | Current consequence |
 | --- | --- |
@@ -54,11 +61,15 @@ Their fidelity cautions survive; their generic metadata architecture and provisi
 
 Retain only a private in-memory representation needed to decode/compose carrier facts and emit schema. It is not a public
 descriptor, serialized intermediate artifact, SPI or second semantic authority. Do not expose the runtime's private
-`StructuredInputPlan` or make generation call it reflectively. A small tooling-local byte reader, checked against the
-same carrier corpus, is the initial approach. Consider source-level decoder sharing only if the tracer demonstrates a
-concrete maintenance requirement without introducing public API, runtime coupling or new generated linkage.
+`StructuredInputPlan` or make generation call it reflectively. A small tooling-local byte reader is sufficient;
+SCHEMA-0/T proves it only for the selected fixture, and production qualification uses the broader carrier corpus.
+Source-level decoder sharing is a later implementation choice only if a concrete maintenance need appears, without
+introducing public API, runtime coupling, new generated linkage or another metadata representation decision.
 
-## Binary-only extraction, roots and identity
+## Production contract — binary-only extraction, roots and identity
+
+The comprehensive requirements in this section apply to production implementation. SCHEMA-0/T exercises only its
+explicit roots, one inherited API property, concrete nested Schema identities and the selected public signatures.
 
 Inputs are explicit concrete Model binary names, their compiled output/JARs, and an explicit dependency classpath
 including separately compiled API/Schema dependencies. Do not scan for roots, instantiate `Create`, infer a default
@@ -101,7 +112,7 @@ an inherited declaration follows that declaration; ambiguous/absent documentatio
 not change admission or block otherwise valid generation. Never scrape IDE source mirrors, require source JARs, resolve
 Javadoc links over the network, instantiate annotation proxies/closures, or infer a default value from documentation.
 
-## Conservative projection and fidelity
+## Production contract — conservative projection and fidelity
 
 Each domain definition is an object with its admitted external names in `properties`, `additionalProperties: false`,
 and no inferred `required`. Every property is optional at the raw-input boundary. Do not emit `{}`, `true`, arbitrary
@@ -112,7 +123,7 @@ Object recursion, permissive union branches or guessed conversion formats for an
 | String / boolean | `type: string` / `boolean`; no numeric/boolean strings, null or arbitrary caller objects. |
 | byte/short/int/long and wrappers | `type: integer` plus exact signed target bounds; mathematical integral JSON values, including `1.0`, are not rejected for their lexical spelling. |
 | BigInteger / BigDecimal | `integer` / `number`; use an exact-number validator fixture and document parser precision. Do not round large integers through binary double. |
-| float/double and wrappers | `number` is only a candidate: runtime rejects overflow/non-finite conversion and rounds finite values. The tracer must qualify decimal overflow thresholds, underflow and boundary rounding. If exact safe assertions cannot be established, report this admitted target as unsupported projection and fail that selected root; no unconditional `number` placeholder. A narrower first useful subset requires the explicit coverage gate below. |
+| float/double and wrappers | **Accepted structural approximation:** `type: number`. JSON Schema numeric validity does not guarantee successful Java floating-point conversion. WIRE-1 retains overflow, non-finite and conversion checks; the schema does not reproduce every rounding or representability boundary. This approximation is supported projection and does not block the first useful schema. No custom numeric vocabulary, decimal conversion framework or exhaustive range encoding. |
 | Enum | String `enum` of exact declared constant field names from class bytes; never call `values`, `valueOf`, `getEnumConstants` or `toString` during extraction. No ordinal/case/codec aliases. |
 | Supported collection PROPERTY | Array with recursive `items`. List, Set, SortedSet, NavigableSet and EnumSet field storage uses compiler-selected generated element population. No `uniqueItems`, sorting or guessed replacement container; repeated inputs remain legal even if Model storage deduplicates. |
 | Data-map PROPERTY | Object with recursive `additionalProperties` value schema; Map, SortedMap and NavigableMap field storage does not change literal String data keys. Do not close data maps as domain objects. |
@@ -140,6 +151,8 @@ does not guarantee successful operation execution, binding, lifecycle, materiali
 not a Jackson schema, a complete description of all Groovy DSL calls, or a configuration composer. Include the selected
 root/Builder and projection coverage in generation diagnostics. Standard keywords remain meaningful when tools ignore
 comments. No custom vocabulary or companion descriptor is needed to express these limits.
+The fidelity statement also documents the accepted float/double approximation: successful numeric validation does not
+guarantee Java conversion or Model construction, and WIRE-1's conversion checks remain authoritative.
 
 [Core §§8.2.3–8.2.4](https://json-schema.org/draft/2020-12/json-schema-core) define references/definitions;
 [Validation §§6 and 9.2](https://json-schema.org/draft/2020-12/json-schema-validation) distinguish type/presence assertions
@@ -155,6 +168,8 @@ to invent their external aliases. A collision omits all colliding entries with e
 Conversely, an **admitted** entry with an unprojectable type, missing nested artifact or unknown carrier fact is a
 generation failure for the selected root. Do not silently omit it and label the result complete. An optional member
 whose nested target is unreadable still requires failure: lack of a supplied value at generation time proves nothing.
+Float/double `number` projection with its documented structural limits is explicitly accepted and is **not** such an
+unprojectable entry. Do not turn the accepted conversion/rounding gap into a generation failure or a first-delivery gate.
 Any proposed partial-root mode or newly unsupported admitted shape returns to the maintainer with a concrete fixture.
 Emit deterministic diagnostics containing root, declaring Builder/source, external name when known, selected descriptor,
 payload location, expected/actual metadata and corrective action. Optional prose absence is informational; corrupt
@@ -163,47 +178,80 @@ On failure do not publish a new schema for that root or leave an earlier success
 
 ## Executable feasibility proposal — SCHEMA-0/T
 
-This is the smallest proposed **test-only** tracer after plan approval. It must emit and validate actual Draft 2020-12,
-not stop at a descriptor dump. Reuse the Spock separate-compilation harness from
+This **test-only** tracer answers exactly three feasibility questions using one small, synthetic, separately compiled
+API -> Schema fixture. It produces useful Draft 2020-12 as early as possible; it does not qualify the complete generator.
+Reuse the Spock separate-compilation harness from
 [`StructuredInputSchemaProbeTest`](../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/StructuredInputSchemaProbeTest.groovy)
 and the compiler's
 [`StructuredInputAdmissionPlanTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/compiler/internal/ast/StructuredInputAdmissionPlanTest.groovy).
-Place new carrier/projection feasibility tests in `klum-ast`, without a Jackson production dependency. Test adapter names
-are provisional; use `StructuredInputSchemaCarrierTest` and `StructuredInputSchemaDocumentaryTest` only when implemented.
+Place new carrier/projection feasibility tests in `klum-ast`, without a Jackson production dependency. Test class names
+remain provisional; no dedicated documentary suite or product entry point is needed to prove this tracer.
 Each new test carries `@Issue("529")`; add #932 only to actual shared-admission contract tests.
 
-1. **API artifact:** separately compile an abstract API root with an inherited scalar/one-payload operation and a Cluster
-   exposing an abstract child API. Include a concrete API dependency child sharing a simple name with a Schema child.
-2. **Schema artifact:** compile against the API JAR alone. The concrete root realizes the Cluster with concrete keyed
-   children, one direct concrete child, renamed/ignored/inherited members, enum, supported field containers, plain data
-   maps and one-payload Map/List operations. Include the fixedKeys Cluster case, with a renamed external field whose
-   native fixed child key remains unchanged. Package public contracts and all current twelve-token carriers successfully.
-3. **Binary-only extraction consumer:** launch a fresh JVM with explicit root names, packaged API/Schema dependencies and
-   the test adapter; no producer sources, source mirrors, AST nodes, compiler transformation or interpreter invocation.
-   Read class bytes, produce a schema file, diagnostics and a canonical private fact dump for comparison only.
-4. **Independent consumer:** an API-only Java client compiles without Schema-specific types; separately, the validator
-   consumes only the emitted JSON Schema and JSON fixtures. An intentional runtime parity phase can then use Schema
-   plus `KlumStructuredInput`; it is a separate process from extraction and may execute Schema code by design.
+### A. Binary extraction
 
-All producer static initializers, enum initialization, constructors, initializers, factories, default/converter/validation
-closures, lifecycle callbacks and annotation closures have traps visible across the extraction process boundary.
-Accepted extraction and every rejected path leave the trap marker absent. Include an intentional-execution control
-proving the instrumentation works. No annotation proxy, Groovy dynamic Class property access or enum reflection shortcut
-may bypass this test; #933 already demonstrated that dynamic Class access can initialize user code unexpectedly.
+Separately compile an API artifact declaring one inherited property, then a concrete Schema root extending it with one
+concrete nested Schema relationship. The same fixture can include a concrete keyed child type, scalar/enum members,
+one one-payload `@Builder.Method`, a rename and an exclusion for question B. Do not add a Cluster, diamond, recursive
+graph or separate API-only Java client merely to enlarge the proof.
 
-| Tracer acceptance group | Executable assertion |
+A fresh extraction JVM receives the explicit root, packaged API/Schema artifacts and test-only reader, with no source
+files, IDE mirrors, AST nodes or compiler transformation. Read current twelve-token WIRE-PLAN/B carriers and the public
+generated Builder contracts to verify the selected identities/signatures and resolve the inherited property and nested
+relationship across artifacts. No Schema initialization or invocation occurs, and extraction does not call WIRE-1.
+Use initialization/user-code traps in this small fixture and an intentional-execution control to demonstrate they work.
+Do not use annotation evaluation, dynamic Class access or enum-value reflection that can initialize user code.
+
+### B. Actual JSON Schema generation
+
+Emit one real document with `$schema: https://json-schema.org/draft/2020-12/schema`, a root `$ref`, and reusable `$defs`
+keyed by fully qualified generated Builder binary names. Include scalar and enum properties, the inherited property,
+one concrete nested object, one keyed Map of concrete DSL objects, one admitted single-payload operation, external rename
+and exclusion. Reuse a child definition from multiple locations to demonstrate references rather than inline duplication.
+Keep keyed outer entries literal data and preserve each operation's complete single payload.
+
+Validate the emitted document against the Draft 2020-12 metaschema and representative positive/negative JSON instances,
+using the existing pinned `jsonschema==4.23.0` approach. A descriptor dump or merely decoding the carrier does not pass.
+There is no production Gradle plugin, published metadata representation or consumer packaging prerequisite.
+
+### C. WIRE-1 structural alignment
+
+Use representative JSON-compatible structured inputs for the same fixture and selected subset. Valid examples cover
+scalar/enum, nested/keyed child input, renamed input and the operation payload. Negatives cover wrong scalar/enum or
+nested shape, unknown/excluded/raw renamed names, duplicate child-key input and a wrong operation payload shape.
+Check that the schema and WIRE-1 agree on those admitted shapes. Run intentional WIRE-1 construction in a separate phase
+from no-execution extraction; the generator/test-only reader never depends on the interpreter.
+
+Do not require complete runtime equivalence, exact private runtime-reader fact equality or every failure path. JSON
+Schema checks structure; WIRE-1 performs conversion, operation execution, construction and lifecycle processing. Preserve
+that fidelity statement, including the accepted floating-point approximation. Small representative numeric values
+suffice here; exhaustive numeric conversion boundaries are not tracer prerequisites.
+
+The tracer passes when A, B and C pass. No complete inheritance, JPMS, malformed-carrier, compatibility or ScHelm matrix
+is required. If it succeeds, return evidence to the maintainer/Hive for the decision whether to implement the generator;
+do not reopen metadata representation design or automatically start production work.
+
+## Production acceptance inventory — deferred from SCHEMA-0/T
+
+Retain the research and acceptance inventory below for subsequent production implementation, where applicable. These
+checks do **not** gate the initial tracer and are not a mandatory chain of separate implementation slices.
+
+| Production acceptance group | Retained executable assertion |
 | --- | --- |
 | Binary identity and composition | Separate API -> Schema -> consumer; inherited facts/diamond deduplication, same-simple-name `$defs`, recursion, escaped references, dependency-only byte change; exact equality with current runtime reader facts via test-only access, without exporting that reader. |
 | Current ABI and module access | Missing/corrupt carrier, invalid fixed-key role, eleven-token #938 recompile negative, absent parent, mismatched/duplicate class identities; direct named-module JAR reading on Groovy 4/5 without runtime-module friendship or new flags. |
-| Real projection | Metaschema check and valid/invalid fixtures with the existing pinned `jsonschema==4.23.0` approach; exact integers/decimals, overflow/fraction/enum/null boundaries, every supported field container, literal maps, nested/keyed refs and single-payload operations. Resolve float/double fidelity before claiming coverage. |
+| Projection coverage | Metaschema/instance checks over all supported collection and map declarations, concrete/keyed relationships and one-payload forms. Exact integral bounds and BigInteger/BigDecimal semantics; complete applicable numeric boundary tests respect the accepted float/double structural approximation rather than demanding exhaustive range encoding or conversion equivalence. |
+| Documentation and references | Safely retained prose attribution, inherited/missing/ambiguous documentation; advanced JSON Pointer/URI-fragment escaping, non-ASCII identities and reference/name collisions. No source-mirror or executable fallback. |
 | Name/shape negatives | Unknown/raw renamed/ignored/helper names, nested child key duplication, keyMapping rejection, abstract/polymorphic target, raw/unresolved generics, custom Number/container, unkeyed relationship list and zero/multi-argument operation. Distinguish compiler rejection from an admitted projection failure. |
 | Honest semantic limits | Omitted Required satisfied by lifecycle/defaults; structurally valid invalid-completed value; false/zero/empty; caller-supplied late LINK via Holder; OPTIONAL_LINK/Templates excluded as input. The schema does not invent Environment or replay Template actions. |
 | Determinism and order separation | Fresh-process byte equality across Groovy 3/4/5, shuffled archive entries and relocated paths; unrelated bytes do not change output, relevant API/Schema/docs bytes do. Reversed ordered runtime Maps can change operation results while emitted schema stays identical. |
 | Failure and no execution | All supported/rejected extraction paths keep traps silent; no stale success file after failure, and no use of sources/mirrors when binary facts are missing. |
+| Gradle integration and consumer acceptance | Ordinary task outputs through the optional plugin; relevant dependency invalidation, root/member deletion, cache/configuration-cache and relocation tests; failure atomicity/stale cleanup; at least one real ScHelm root and output qualified through a consumer-owned acceptance process before production completion. |
 
-The test adapter may decode the current carrier and implement only the closed projection branches above. Do not promote
-the old fixture allowlist, add a product API/module/plugin, commit generated sample outputs as authority, or modify #932
-to make projection easier. Stop with the failing fixture if an admitted fact cannot be read or represented safely.
+The tracer's test-only adapter consumes compiler admission facts rather than promoting the historical allowlist.
+No product API/module/plugin, authoritative generated samples or #932 change belongs in SCHEMA-0/T. Stop only for a
+failure of A/B/C or an architectural guardrail; return a discovered production-hardening gap to the inventory without
+making it a new tracer prerequisite. An unsupported shape outside the selected fixture does not expand that fixture.
 
 Illustrative Schema syntax for the future shared documentary case (not a test added in this planning revision):
 
@@ -227,20 +275,29 @@ import com.blackbuild.klum.ast.DSL
 The schema describes one String-valued map payload for `endpoint`. It does not promise that every string parses as an
 integer or infer a hidden port constraint. No new DSL syntax or hypothetical public generator signature is selected.
 
-## Subsequent slices, dependencies and reasoned commits
+## Delivery sequence and reasoned commits
 
-All slices below require separate admission. SCHEMA-0 is this plan only; no implementation begins automatically.
+SCHEMA-0 is this planning PR. SCHEMA-0/T is the bounded test-only proof above. Successful feasibility leads directly to
+a maintainer decision whether to implement the production generator; it does not require another metadata design phase.
+Production functionality, Gradle integration and hardening form one delivery scope, not mandatory separately published
+micro-slices. All implementation requires a separate assignment; none starts automatically from this plan.
 
-| Slice / owner | Smallest delivery and commit boundaries | Acceptance and documentation |
+| Stage / owner | Proportional work and commit guidance | Acceptance and documentation |
 | --- | --- | --- |
-| SCHEMA-0/T — #529 feasibility | (1) Package separate API/Schema and current carrier corpus with no-execution/negative controls. (2) Add private byte reader plus actual schema/validator proof; do not publish a reader by itself. (3) Record measured coverage, unresolved float/docs/artifact gaps and consumer evidence. | Full tracer matrix above, baseline Groovy 3 then 4/5, licenses/module checks and independent Standards/Specification review. Evidence report updates this plan; no release/user feature claim. |
-| SCHEMA-1 — #529 first useful generator | After coverage/consumer gates: (1) Implement optional tooling-local extraction and projection together with binary-consumer acceptance. (2) Complete diagnostics, safe prose, definitions, deterministic file generation and failed-output handling. (3) Add the selected narrow caller boundary and documentation together. No published descriptor-only intermediate API. | All admitted initial scalar/enum/container/concrete/keyed/one-payload forms, or an explicitly accepted smaller coverage contract. No generator dependency enters core/runtime; no call to interpreter internals. Add documentary `@Tag("documentary")`/`@See`, current user page, `_Sidebar.md`, migration navigation and `CHANGES.md` at public delivery, without assigning a release here. |
-| SCHEMA-2 — #529 optional Gradle adapter | Only if producer/editor workflows need build automation: (1) Add a thin task around SCHEMA-1 with explicit roots, compiled outputs/dependency inputs and output directory. (2) Add TestKit lifecycle/cache coverage and opt-in wiring. No new carrier or projection semantics. | Clean/repeat/up-to-date, relevant dependency change, root/member deletion, failure/stale removal, relocation/build cache and configuration-cache reuse; no source-mirror input, eager resolution or classloading during configuration. Document setup/output ownership alongside tests. |
+| SCHEMA-0/T — #529 feasibility | Keep the small API/Schema fixture, test-only extraction, real schema output and representative validator/WIRE-1 shape checks together as a useful vertical proof; record A/B/C evidence in the same focused change. | Only A/B/C above, with applicable focused module/license checks and review under repository testing policy. Do not require the full production qualification matrix or a production plugin. No release/user feature claim. |
+| Subsequent generator implementation — #529 | After successful feasibility and a new assignment, implement tooling-local extraction/projection and the optional Gradle plugin with ordinary task output files. Use reasoned commits for the usable path, applicable hardening/diagnostics, and final consumer/documentation qualification; no public descriptor-only intermediate API. | Cover the admitted initial grammar and applicable production inventory above, preserving the accepted float/double approximation. No generator dependency enters core/runtime or calls interpreter internals. Add documentary `@Tag("documentary")`/`@See`, user page/navigation/migration and `CHANGES.md` at delivery. Qualify at least one real ScHelm root/output through its consumer-owned acceptance process before declaring production complete; no release is assigned here. |
 
-The exact optional tooling artifact/package, callable entry point and task/plugin/extension names stay provisional until
-SCHEMA-0/T establishes the necessary boundary. Do not put the projector in core merely to avoid this choice, or build a
-plugin before there is a caller needing it. The Gradle adapter can be delivered with SCHEMA-1 if the maintainer selects
-that as the minimum useful entry point; an automatic separate plugin is not an architectural prerequisite.
+The optional Gradle plugin is the intended production integration mechanism. Its task exposes ordinary generated JSON
+Schema files, with explicit roots, compiled Schema outputs/dependency artifacts and an output directory. Exact artifact,
+package and task/plugin/extension names are routine implementation choices; they do not reopen the accepted architecture.
+The feasibility tracer needs no production plugin. Production task coverage includes clean/repeat/up-to-date behavior,
+relevant dependency changes, root/member deletion, failure/stale-output removal, relocation/build cache and
+configuration-cache reuse, with no source-mirror input, eager resolution or classloading during configuration.
+
+Consumers choose whether to embed the schema, copy it into a distribution, publish it alongside other artifacts, or use
+it for editor/validation tooling. No Maven classifier convention, published Gradle variant, registry, automatic publication
+wiring or consumer-specific packaging policy is required or implemented. A future published artifact/variant requires a
+real demonstrated consumer need; it does not block either feasibility or first production delivery.
 
 Reproducible output uses sorted roots/definitions/properties/diagnostics, canonical JSON encoding, fixed line endings and
 no timestamps, machine paths or archive-entry-order dependence. List/enum semantic order is preserved where meaningful.
@@ -252,25 +309,33 @@ and stale-root cleanup must prevent a previous artifact masquerading as successf
 None of that imposes runtime execution order. WIRE-1 traverses supplied Maps recursively in their own iteration order and
 preserves List order. Sorted metadata is not a scheduler, commutativity guarantee, YAML source-order promise or layer plan.
 
-## Maintainer decisions before implementation delivery
+## Confirmed maintainer decisions and later consumer coordination
 
-| Gate | Recommendation for review; decision remains with maintainer |
+| Decision | Accepted boundary |
 | --- | --- |
-| First useful projection versus descriptor-only delivery | Require actual JSON Schema plus explicit limits as the first useful #529 delivery. SCHEMA-0/T can prove it privately. Descriptor-only delivery is outside accepted ADR 0031 and would require an explicit architectural revision, not a quiet preparatory product. Confirm whether a narrower useful projection is acceptable if float/double or another admitted shape fails qualification; otherwise those are delivery blockers. |
-| Normal task output versus companion artifact/variant | Start with ordinary generated JSON Schema files. Confirm whether a demonstrated consumer requires an optional published schema artifact/variant aligned to Schema binaries. This is distribution of JSON Schema, not revival of a generic companion descriptor. No classifier, embedding, registry or publication task is selected here. |
-| Mandatory ScHelm acceptance | Decide which concrete ScHelm package/root and consumer-owned command constitute required first-delivery acceptance, who supplies the fixture and whether synthetic Layer 3 proof alone can admit the tracer. Recommend one real concrete application input with literal labels/topic maps and externally supplied Environment; no inferred claim that the whole existing ScHelm Schema is currently admitted. |
+| First useful artifact | Actual Draft 2020-12 with reusable definitions, not descriptor-only delivery. A/B/C establish feasibility; no additional representation decision follows success. |
+| Floating-point fidelity | Float/double and wrappers use `type: number` with explicit structural limits. WIRE-1 conversion checks remain authoritative; exhaustive rounding/range equivalence cannot block first useful output. Straightforward integral bounds and mathematical BigInteger/BigDecimal semantics remain. |
+| Gradle delivery | Ordinary task output files through the optional Gradle plugin. Consumers own packaging/distribution; a published artifact/variant is deferred until a real need appears. |
+| ScHelm timing | Synthetic separately compiled API -> Schema input suffices for SCHEMA-0/T. Before production completion, qualify at least one real ScHelm Schema root and generated output through a consumer-owned acceptance process. The Hive may later coordinate root, command and fixture owner with the ScHelm maintainer; none is a tracer prerequisite. |
 
 ScHelm requirements are evidenced by #529/#932 and the shared probe's recorded consumer inspection, not by product policy
 in this plan. In particular abstract NamingStrategy and Map<String, Environment>, compact Duration `30s`, provider/package/
 root selection, profiles, fixed/advanced fields, OPTIONAL_LINK fallback and YAML scaffold rendering remain consumer needs
 or separate #932 decisions. [Existing ScHelm Fact-binding evidence](evidence/issue-867-schelm-map-closure.md) demonstrates
 ordinary consumer/lifecycle code, not permission to execute its annotation closure during generation or create a Klum
-policy framework. Do not edit or fabricate a real adopter fixture without a selected contract and authorization.
+policy framework. This PR neither modifies the ScHelm repository nor selects its packaging conventions. Root/command
+coordination is later production acceptance work, not a reason to delay the synthetic feasibility tracer.
 
 ## Stop conditions and planning delivery
 
-Stop implementation on an unprojectable admitted shape, unavailable required binary fact, unknown carrier encoding,
-conflicting artifact identity, initialization trap, named-module access requirement, or runtime/generator name/role drift.
+SCHEMA-0/T stops for a genuine failure of A/B/C, such as unavailable binary facts for the selected fixture, an
+initialization trap, invalid emitted schema or a selected-subset admission/name/shape mismatch with WIRE-1. It does not
+stop for a deferred hardening case, missing real ScHelm coordination or the accepted floating-point fidelity gap.
+No genuine blocker to beginning that bounded tracer is currently identified; starting it still requires a separate
+assignment because this request authorizes documentation changes only.
+
+Production implementation must address applicable unprojectable admitted shapes, unavailable required binary facts,
+unknown carrier encodings, conflicting artifact identities, initialization traps, named-module access and semantic drift.
 Return the smallest failing fixture and alternatives to the Hive; do not change #932 semantics, generated ABI or public
 contracts, add a public generic descriptor/codec/registry, parser, universal declaration format, Jackson-wire promise,
 runtime dependency, execution-order policy or ScHelm policy API to unblock generation.
@@ -282,7 +347,7 @@ carry the executable checks described here and must not cite this plan as passin
 
 The requested delivery is a committed draft planning PR with `Related: #529` and `Related: #932`; both remain open.
 Tracker impact: **related issue**; curation impact: **none** for this plan (no changed release gate, owner, placement or
-implementation acceptance). The decision queue remains explicit. Report the exact worktree, branch, base/head, review,
+implementation acceptance). Accepted decisions and later production qualification remain explicit. Report the exact worktree, branch, base/head, review,
 validation, authorization channel and live PR/check status to the Hive. Request reconciliation; retain `(PR:open)` and do
 not merge, self-archive, start a generator or dispatch subsequent slices.
 
@@ -294,3 +359,5 @@ the illustrative Groovy snippet, issue/publication boundaries) and Specification
 fidelity, fixture and decision gate). No outstanding finding was identified; no independent review is claimed.
 Groovy lanes, generator execution, metaschema/instance validation and ScHelm acceptance were not run for this plan.
 The merged PR states were verified live; historical results above remain attributed to their original evidence.
+This records the original planning commit's validation; the simplification follow-up receives its own documentation
+checks and Standards/Specification review before publication, without rerunning the full Groovy matrix.
