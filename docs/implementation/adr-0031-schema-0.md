@@ -1,12 +1,30 @@
 # SCHEMA-0 — reflective JSON Schema delivery plan
 
-Date: 2026-10-23. Status: **revised maintainer decision; SCHEMA-R inventory/probe next; SCHEMA-1 paused**.
+Date: 2026-10-23. Status: **SCHEMA-R measured; annotation-access safety decision pending before production; SCHEMA-1 paused**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#generator-architecture-and-fidelity).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Independent interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Reviewed master: `de76710dfc649f17857215d5c86cbd88165ab85c` (merged #942).
 Classification: **B — revise ADR 0031 and its implementation plan**, under the explicit 2026-10-23 maintainer decision.
 This documentation revision changes no production code, generated contract, WIRE carrier or runtime implementation.
+
+## SCHEMA-R measured checkpoint
+
+[SCHEMA-R evidence](evidence/issue-529-schema-r.md) now measures the source-derived inventory below against separately
+compiled public contracts. Two concrete corrections govern subsequent implementation:
+
+- Type-level `KlumGenerated` tags survive, but public generated population/relationship methods in the probe do not
+  carry implementation role tags. Use measured field/source enrichment rather than assuming those method hints exist.
+- Even selecting `getAnnotation(AnnoDoc)` can initialize a user enum through an unrelated retained annotation on that
+  declaration. The bounded hazard control reproduces this; initialization-disabled class loading alone is insufficient.
+  A production-safe annotation access strategy needs explicit selection before the generator resumes. The evidence
+  recommends selective reading of exact public-contract annotation resources while retaining reflective type discovery;
+  this checkpoint neither implements nor approves that strategy.
+
+The measured inventory proposes only field attribution/admission/population/naming facts and otherwise invisible
+exclusion provenance. No companion-only datum is demonstrated. Fixed-child keys and child-key-specific diagnostics
+need no new metadata for the first structural projection. The original table remains the planning hypothesis/history;
+use the evidence for actual R/A/N/C outcomes. SCHEMA-1 remains paused and #932/WIRE are unchanged.
 
 ## Authority and issue boundary
 
