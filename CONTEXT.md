@@ -14,6 +14,7 @@ This repository is modularised into a set of focused subprojects. The main modul
 - `klum-ast` — core compile-time helpers and entrypoints for DSL creation
 - `klum-ast-runtime` — runtime library used by generated/config DSL objects
 - `klum-ast-jackson` — Jackson integration for KlumAST runtime objects
+- `klum-ast-json-schema` — optional binary-only Draft 2020-12 structured-input tooling; no runtime dependency
 - `klum-ast-gradle-plugin` — Gradle plugin(s) shipped by this project
 - `klum-ast-bean-validation`, `klum-ast-bom`, `code-coverage-report` — auxiliary modules
 

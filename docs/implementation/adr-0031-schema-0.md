@@ -1,6 +1,6 @@
 # SCHEMA-0 — JSON Schema delivery plan after WIRE-1
 
-Date: 2026-10-23. Status: **accepted architecture; SCHEMA-T test-only A/B/C feasibility validated; production generator unimplemented**.
+Date: 2026-10-23. Status: **accepted architecture; SCHEMA-T A/B/C validated; standalone generator slice implemented; plugin and consumer qualification pending**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
@@ -10,7 +10,8 @@ Reviewed baseline: `c9a8918fba103544209e53cadfc8b51d996e8e63` (merged WIRE-1).
 
 The separately assigned test-only tracer now has [A/B/C executable evidence](evidence/issue-529-schema-t.md).
 This checkpoint updates implementation status only. The plan below retains its original proposal/history and the deferred
-production inventory; no production generator or Gradle plugin has been implemented or automatically authorized.
+production inventory; the separately authorized standalone generator slice is recorded in [its evidence](evidence/issue-529-schema-generator.md).
+The dedicated Gradle plugin and real consumer acceptance remain pending; the original production inventory still applies.
 
 ## Authority and reconciled baseline
 

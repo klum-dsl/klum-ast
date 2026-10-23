@@ -1,0 +1,35 @@
+plugins {
+    id 'klum-ast.multigroovy-conventions'
+    id 'klum-ast.jacoco-conventions'
+    id 'application'
+}
+
+description = 'Optional binary-only KlumAST JSON Schema generator'
+
+application {
+    mainClass = 'com.blackbuild.klum.ast.schema.JsonSchemaGenerator'
+}
+
+dependencies {
+    implementation libs.asm
+    sharedTests project(':klum-ast')
+    sharedTests libs.asm
+    testImplementation libs.groovy.json.v3
+    groovy4TestsImplementation libs.groovy.json.v4
+    groovy5TestsImplementation libs.groovy.json.v5
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn tasks.named('classes')
+    inputs.files(sourceSets.main.output, configurations.runtimeClasspath)
+    systemProperty 'schemaToolClasspath', files(sourceSets.main.output, configurations.runtimeClasspath).asPath
+    outputs.dir layout.buildDirectory.dir('test-classes')
+    // Fresh tool JVMs contribute to this lane's ordinary coverage file.
+    doFirst { systemProperty 'schemaToolAgent', jacoco.asJvmArg }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) { from(components.java) }
+    }
+}
