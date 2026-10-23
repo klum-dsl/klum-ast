@@ -215,20 +215,45 @@ final class CompiledBuilderSchema {
     }
 
     private static String unsupportedReason(Type type) {
-        Class<?> raw = type instanceof Class<?> leaf ? leaf : type instanceof ParameterizedType parameterized
-                && parameterized.getRawType() instanceof Class<?> container ? container : null;
-        if (raw != null && Number.class.isAssignableFrom(raw) && !NUMBERS.contains(raw.getName()))
-            return "unsupported numeric type " + raw.getName() + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
-        if (raw != null && ((Collection.class.isAssignableFrom(raw) && raw != List.class)
-                || (Map.class.isAssignableFrom(raw) && raw != Map.class)))
-            return "unsupported whole-container payload target " + raw.getName()
+        String numeric = unsupportedNumericType(type);
+        if (numeric != null)
+            return "unsupported numeric type " + numeric + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+        String container = unsupportedContainerType(type);
+        if (container != null)
+            return "unsupported whole-container payload target " + container
                     + "; use ordinary List/Map payloads or a supported field's generated element population";
-        if (type instanceof ParameterizedType parameterized) {
-            Type[] arguments = parameterized.getActualTypeArguments();
-            if (raw == List.class && arguments.length == 1) return unsupportedReason(arguments[0]);
-            if (raw == Map.class && arguments.length == 2 && arguments[0] == String.class) return unsupportedReason(arguments[1]);
-        }
         return "@Builder.Method payload is outside the admitted grammar";
+    }
+
+    private static String unsupportedNumericType(Type type) {
+        Class<?> raw = rawType(type);
+        if (raw != null && Number.class.isAssignableFrom(raw) && !NUMBERS.contains(raw.getName())) return raw.getName();
+        Type nested = containerValue(type);
+        return nested == null ? null : unsupportedNumericType(nested);
+    }
+
+    private static String unsupportedContainerType(Type type) {
+        Class<?> raw = rawType(type);
+        if (raw != null && ((Collection.class.isAssignableFrom(raw) && raw != List.class)
+                || (Map.class.isAssignableFrom(raw) && raw != Map.class))) return raw.getName();
+        Type nested = containerValue(type);
+        return nested == null ? null : unsupportedContainerType(nested);
+    }
+
+    private static Class<?> rawType(Type type) {
+        if (type instanceof Class<?> raw) return raw;
+        if (type instanceof ParameterizedType parameterized && parameterized.getRawType() instanceof Class<?> raw) return raw;
+        return null;
+    }
+
+    /** The compiler checks nested numeric/container exclusions before ordinary map-key grammar eligibility. */
+    private static Type containerValue(Type type) {
+        if (!(type instanceof ParameterizedType parameterized)) return null;
+        Class<?> raw = rawType(type);
+        Type[] arguments = parameterized.getActualTypeArguments();
+        if (raw != null && Collection.class.isAssignableFrom(raw) && arguments.length == 1) return arguments[0];
+        if (raw != null && Map.class.isAssignableFrom(raw) && arguments.length == 2) return arguments[1];
+        return null;
     }
 
     private static final class MethodMetadata {

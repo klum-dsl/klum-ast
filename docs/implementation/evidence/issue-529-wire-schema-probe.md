@@ -82,7 +82,7 @@ join only for comparison. **Missing** means the facade reports unavailable/unkno
 | Payload keyType | Exact String generic arguments and selected signatures equal after association | Literal data/instance keys remain data. |
 | Payload item recursively | Nested Map/List types equal; operation is one whole payload | No spreading a Map/List into arguments. |
 | Rejection source | Surviving authored source equal; field/omitted-source provenance missing | A declaring-public-type annotation can retain otherwise invisible exclusions. |
-| Rejection reason | Zero/multi/raw and direct custom Number authored reasons equal; collisions and field reasons missing | Preserve compiler exclusion/collision categories; do not manufacture aliases from rejection prose. |
+| Rejection reason | Zero/multi/raw, direct/nested custom Number and unsupported container authored reasons equal; collisions and field reasons missing | Preserve compiler exclusion/collision categories; do not manufacture aliases from rejection prose. |
 | Inheritance | Equal declaring owner/signatures in same-unit and separate API/Schema JARs | Complete field provenance remains necessary for inherited-name collisions. Diamond/conflict replacement qualification remains open. |
 | Factory / Collection / Cluster shapes | Reflected exact public signatures/returns and explicit nested scope; no factory admission invented | WIRE-1 factory/control overloads remain outside input admission. No custom-factory language is introduced. |
 | Excluded helpers/query/controls and silently omitted declarations | Queries/Factory scopes excluded; unclassified Builder declarations remain UNKNOWN; child key input absent | Visibility is not admission. Complete field/protected/Owner/transient provenance is still needed before a production migration. |
@@ -160,17 +160,19 @@ criterion for the probe or permission to change #932 semantics.
 
 ## Validation and delivery
 
-Groovy 3 focused corpus: **109 cases, zero failures/errors, one reasoned named-module skip** reserved by SCHEMA-R for
-Groovy 4/5. The new probe contributes 27 cases. `licenseTest`, `licenseTestFixtures` and diff checks pass.
-Groovy 4 and 5: **109 cases per lane, zero failures/errors/skips**, including SCHEMA-R's named modules. The final
+Groovy 3 focused corpus: **114 cases, zero failures/errors, one reasoned named-module skip** reserved by SCHEMA-R for
+Groovy 4/5. The new probe contributes 32 cases. `licenseTest`, `licenseTestFixtures` and diff checks pass.
+Groovy 4 and 5: **114 cases per lane, zero failures/errors/skips**, including SCHEMA-R's named modules. The final
 seven-class corpus uses the same filters in each lane: `CompiledBuilderSchemaTest`, `SchemaReflectionTest`,
 `StructuredInputAdmissionPlanTest`, `StructuredInputCollectionContractTest`, `StructuredInputPlanReaderTest`,
 `StructuredInputDirectKeyBoundaryTest`, and `StructuredInputKeyMappingBoundaryTest`. `verifyTestLaneIsolation`, both
-license tasks, twenty local Markdown link targets, balanced fences and diff checks pass. Independent Standards and
-Specification reviews are the remaining local publication gate.
+license tasks, twenty local Markdown link targets, balanced fences and diff checks pass. Initial independent review at `b74cf9720`: Standards **zero findings**; Specification found one rejection-precedence
+mismatch for nested unsupported numerics. The additive correction adds five oracle cases and preserves compiler
+numeric-before-container-before-map-key/shape rejection precedence. Four numeric cases were first reproduced failing;
+all five and the complete 114-case corpus then passed in each lane. Final re-review is the remaining local publication gate.
 
 A broader intermediate Groovy 3 module run passed **2,291 cases, zero failures/errors, 16 existing skips** before the
-last ten probe cases were added. The final tip is qualified by the 109-case corpus per lane above; no final full-module,
+last fifteen probe cases were added. The final tip is qualified by the 114-case corpus per lane above; no final full-module,
 repository-wide root check or full-module compatibility run is claimed. Production code is unchanged. No user-visible feature, migration, documentary API or release
 entry is introduced; current user pages/CHANGES and curation/release indexes need no edit. Tracker impact is **related
 issue #529**, with **no curation impact**; #529/#932 and milestone states remain unchanged.

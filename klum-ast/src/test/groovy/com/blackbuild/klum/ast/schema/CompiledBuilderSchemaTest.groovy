@@ -431,6 +431,36 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         damage << ['kind', 'nested Builder']
     }
 
+    def 'unsupported nested payload #target preserves compiler rejection precedence'() {
+        given:
+        String source = StructuredInputContractFixtures.NUMERIC_REJECTIONS.replace(
+                '@Builder.Method void allocate(OpaqueNumber value) { budget = value }',
+                "@Builder.Method void consume($target value) { }")
+        def jar = compileJar([trapped(source)])
+        def binaries = isolated([jar])
+        def oracle = carrier(jar, 'numericboundary.Configuration')
+
+        when:
+        def schema = CompiledBuilderSchema.read(binaries, 'numericboundary.Configuration_DSL$Builder', 'numericboundary.Configuration_DSL$Factory')
+        def comparison = compare(schema, oracle)
+        def rejection = oracle.rejections.find { it.source.contains('#consume(') }
+
+        then:
+        schema.methods.find { it.name == 'consume' }.reason == rejection.reason
+        comparison.equalities.contains(rejection.source + ':rejection')
+        comparison.mismatches*.path == ['numericboundary.Configuration#budget:rejection',
+                'numericboundary.Configuration#budgets:rejection', 'numericboundary.Configuration#limits:rejection']
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        target << ['Set<OpaqueNumber>', 'Map<Integer, OpaqueNumber>', 'List<Set<OpaqueNumber>>',
+                   'Map<String, SortedSet<OpaqueNumber>>', 'Map<Integer, Set<String>>']
+    }
+
     private static String renderMismatches(Map comparison) {
         (['fact\texpected\tcontract'] + comparison.mismatches.collect { mismatch ->
             [mismatch.path, mismatch.expected, mismatch.actual].collect { it == null ? '<absent>' : it.toString() }.join('\t')

@@ -30,7 +30,7 @@ use the evidence for actual R/A/N/C outcomes. SCHEMA-1 remains paused and #932/W
 
 The [binary contract comparison and full parity matrix](evidence/issue-529-wire-schema-probe.md) consume merged
 SCHEMA-R #945. A package-private test facade observes public Builder/Factory facts with selective exact-contract
-annotation-byte access; the carrier remains solely a comparison oracle. Twenty-seven probe cases expose 77 exact admission,
+annotation-byte access; the carrier remains solely a comparison oracle. Thirty-two probe cases expose 77 exact admission,
 field/group/naming/key/exclusion differences in the admission corpus rather than declaring reflection-only parity.
 Supported container types, nested generics, inherited declarations, authored eligibility and no-execution binary loading
 are qualified. The linked evidence records explicit **WIRE-REPLACE** and **WIRE-REMOVE** exit criteria.
