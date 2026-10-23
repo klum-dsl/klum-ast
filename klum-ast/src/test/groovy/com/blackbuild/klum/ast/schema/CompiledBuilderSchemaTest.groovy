@@ -512,6 +512,28 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('SortedMap<String, String>')
         'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('NavigableMap<String, String>')
         'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Collection<String>')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('String[]')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('int[]')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('List')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Map')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Object')
+        'rejectedparent.Configuration'         | '''
+            package rejectedparent
+            import com.blackbuild.klum.ast.DSL
+            import com.fasterxml.jackson.annotation.JsonProperty
+            @DSL class Base {
+                @JsonProperty('shared') String first
+                @JsonProperty('shared') String second
+            }
+            @DSL class Configuration extends Base { @JsonProperty('shared') String available }
+        '''
+        'unresolvedinput.Configuration'         | '''
+            package unresolvedinput
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Builder
+            @DSL class Base<T> { T value; @Builder.Method void consume(T input) {} }
+            @DSL class Configuration extends Base<String> {}
+        '''
         'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Map<Integer, Set<String>>')
     }
 
@@ -718,6 +740,24 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         assert actual.entries == expected
         assert actual.rejections as Set == oracle.rejections as Set
         assert actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
+        def observed = CompiledBuilderSchema.read(binaries, oracle.builder, oracle.model + '_DSL$Factory')
+        def factory = CompiledBuilderSchemaReplacementProbe.scope(Class.forName(oracle.model + '_DSL$Factory', false, binaries))
+        assert factory as Set == observed.factories.collect {
+            [owner: it.owner, name: it.name, parameters: it.parameters, returns: it.returns, documentation: it.documentation ?: '']
+        } as Set
+        oracle.entries.each { entry ->
+            def declaration
+            if (entry.role == 'OPERATION') declaration = observed.methods.find {
+                it.owner == entry.owner && it.descriptor == canonicalDescriptor(entry.descriptors.first())
+            }
+            else {
+                String field = entry.source.substring(entry.source.indexOf('#') + 1)
+                String getter = 'get' + field.substring(0, 1).toUpperCase(Locale.ROOT) + field.substring(1)
+                declaration = observed.methods.find { it.owner == entry.owner && it.name == getter && it.parameters.empty }
+            }
+            assert declaration != null
+            assert actual.documentation[entry.source] == declaration.documentation
+        }
     }
 
     private static String renderMismatches(Map comparison) {

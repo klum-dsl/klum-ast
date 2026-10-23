@@ -41,7 +41,9 @@ public final class CompiledBuilderSchemaReplacementProbe {
         result.put("builder", schema.contract().getName());
         result.put("entries", schema.entries().values().stream().map(CompiledBuilderSchemaReplacementProbe::entry).toList());
         result.put("rejections", schema.rejections().stream().map(value -> Map.of("source", value.source(), "reason", value.reason())).toList());
-        result.put("declarations", schema.declarations());
+        Map<String, String> documentation = new LinkedHashMap<>();
+        schema.entries().values().forEach(entry -> documentation.put(entry.source(), entry.documentation()));
+        result.put("documentation", documentation);
         result.put("defaults", schema.defaultStatus());
         return result;
     }

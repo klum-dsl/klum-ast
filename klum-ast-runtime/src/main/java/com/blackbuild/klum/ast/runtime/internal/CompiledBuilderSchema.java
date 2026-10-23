@@ -114,35 +114,43 @@ final class CompiledBuilderSchema {
             Class<?> model = modelOf(builder);
             if (model == null || Arrays.stream(factory.getMethods()).noneMatch(method -> method.getName().equals("One") && method.getReturnType() == model))
                 throw invalid("Builder self bound and Factory result disagree");
-            List<Entry> candidates = new ArrayList<>();
-            List<Rejection> rejected = new ArrayList<>();
-            List<Declaration> declarations = new ArrayList<>();
-            collect(builder, new LinkedHashSet<>(), candidates, rejected, declarations);
+            Facts facts = collect(builder, new LinkedHashMap<>());
+            List<Rejection> rejected = new ArrayList<>(facts.rejections());
+            List<Declaration> declarations = new ArrayList<>(facts.declarations());
             declarations.addAll(scope(factory));
-            Map<String, Entry> sources = new LinkedHashMap<>();
-            for (Entry entry : candidates) {
-                Entry previous = sources.putIfAbsent(entry.source(), entry);
-                if (previous != null && !previous.equals(entry)) throw invalid("Conflicting input source " + entry.source());
-            }
-            Set<String> exclusions = rejected.stream().map(Rejection::source).collect(Collectors.toSet());
-            Map<String, List<Entry>> names = new LinkedHashMap<>();
-            sources.values().stream().filter(entry -> !exclusions.contains(entry.source()))
-                    .sorted(Comparator.comparing(Entry::externalName).thenComparing(Entry::source))
-                    .forEach(entry -> names.computeIfAbsent(entry.externalName(), ignored -> new ArrayList<>()).add(entry));
             Map<String, Entry> entries = new LinkedHashMap<>();
-            names.forEach((name, group) -> {
-                if (group.size() == 1) entries.put(name, group.get(0));
-                else {
-                    String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
-                    group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all)));
-                }
-            });
+            facts.entries().forEach(entry -> entries.put(entry.externalName(), entry));
             return new CompiledBuilderSchema(builder, model, entries, rejected.stream().distinct()
                     .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(), declarations);
         } catch (ReflectiveOperationException | LinkageError | IOException | RuntimeException failure) {
             throw failure(builder.getName(), failure);
         }
     }
+
+    /** Resolve each declaring hierarchy before its descendants, preserving previously rejected parent sources. */
+    private static Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected) {
+        Map<String, Entry> sources = new LinkedHashMap<>();
+        for (Entry entry : candidates) {
+            Entry previous = sources.putIfAbsent(entry.source(), entry);
+            if (previous != null && !previous.equals(entry)) throw invalid("Conflicting input source " + entry.source());
+        }
+        Set<String> exclusions = rejected.stream().map(Rejection::source).collect(Collectors.toSet());
+        Map<String, List<Entry>> names = new LinkedHashMap<>();
+        sources.values().stream().filter(entry -> !exclusions.contains(entry.source()))
+                .sorted(Comparator.comparing(Entry::externalName).thenComparing(Entry::source))
+                .forEach(entry -> names.computeIfAbsent(entry.externalName(), ignored -> new ArrayList<>()).add(entry));
+        Map<String, Entry> entries = new LinkedHashMap<>();
+        names.forEach((name, group) -> {
+            if (group.size() == 1) entries.put(name, group.get(0));
+            else {
+                String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
+                group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all)));
+            }
+        });
+        return entries;
+    }
+
+    private record Facts(List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) { }
 
     Class<?> contract() { return contract; }
     Class<?> model() { return model; }
@@ -163,9 +171,12 @@ final class CompiledBuilderSchema {
         return List.copyOf(result);
     }
 
-    private static void collect(Class<?> builder, Set<Class<?>> visited, List<Entry> entries,
-                                List<Rejection> rejections, List<Declaration> declarations) throws IOException, ClassNotFoundException {
-        if (!visited.add(builder)) return;
+    private static Facts collect(Class<?> builder, Map<Class<?>, Facts> known) throws IOException, ClassNotFoundException {
+        Facts existing = known.get(builder);
+        if (existing != null) return existing;
+        List<Entry> entries = new ArrayList<>();
+        List<Rejection> rejections = new ArrayList<>();
+        List<Declaration> declarations = new ArrayList<>();
         requirePublic(builder);
         Class<?> model = modelOf(builder);
         if (model == null) throw invalid("Missing Builder self bound: " + builder.getName());
@@ -221,8 +232,15 @@ final class CompiledBuilderSchema {
             Class<?> parentModel = modelOf(parent);
             if (parentModel == null || parentModel == Object.class || !parent.getName().endsWith("_DSL$Builder")) continue;
             if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
-            collect(parent, visited, entries, rejections, declarations);
+            Facts inherited = collect(parent, known);
+            entries.addAll(inherited.entries());
+            rejections.addAll(inherited.rejections());
+            declarations.addAll(inherited.declarations());
         }
+        Map<String, Entry> resolved = admitted(entries, rejections);
+        Facts facts = new Facts(List.copyOf(resolved.values()), List.copyOf(rejections), declarations.stream().distinct().toList());
+        known.put(builder, facts);
+        return facts;
     }
 
     private static void validateSelection(Role role, Payload payload, List<Method> methods, String source) {
@@ -241,7 +259,7 @@ final class CompiledBuilderSchema {
     }
 
     private static void operation(Method method, Literals literal, Class<?> model, List<Entry> entries, List<Rejection> rejections) {
-        String source = model.getName() + "#" + descriptor(method);
+        String source = model.getName() + "#" + sourceDescriptor(method);
         String reason = literal.ignored ? "excluded by @JsonIgnore(true)" : method.getParameterCount() != 1
                 ? "@Builder.Method must declare exactly one payload" : null;
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
@@ -254,27 +272,20 @@ final class CompiledBuilderSchema {
 
     private static String fieldReason(Type type, Literals literal) {
         if (literal.ignored) return "excluded by @JsonIgnore(true)";
-        if (!literal.exclusion.isEmpty()) return switch (literal.exclusion) {
-            case "OWNERSHIP" -> "requires one concrete owned relationship";
-            case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
-            case "KEY_MAPPING" -> "literal structured instance keys conflict with @Field.keyMapping-derived keys";
-            case "ABSENT_FIELD" -> "field is absent from the final public Builder contract";
-            case "POPULATION" -> {
+        if (!literal.exclusion.isEmpty()) {
+            String detail = literal.detail;
+            if (literal.exclusion.equals("POPULATION")) {
                 Class<?> raw = rawType(type);
                 Type item = containerValue(type);
-                String parameters = (raw != null && Map.class.isAssignableFrom(raw) ? "java.lang.String, " : "") + rawType(item).getName();
-                yield "has no unambiguous compiler-generated element population method " + literal.detail + "(" + parameters
-                        + "); replacement setters and authored overrides are not input paths";
+                detail += "(" + (raw != null && Map.class.isAssignableFrom(raw) ? "java.lang.String, " : "") + rawType(item).getName() + ")";
             }
-            default -> throw invalid("Unknown field exclusion " + literal.exclusion);
-        };
+            return exclusionReason(literal.exclusion, detail);
+        }
         String numeric = unsupportedNumericType(type);
-        if (numeric != null) return "unsupported numeric type " + numeric
-                + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+        if (numeric != null) return exclusionReason("NUMERIC", numeric);
         Type item = containerValue(type);
         String container = unsupportedContainerType(item == null ? type : item);
-        if (container != null) return "unsupported whole-container payload target " + container
-                + "; use ordinary List/Map payloads or a supported field's generated element population";
+        if (container != null) return exclusionReason("CONTAINER", container);
         return payload(type, true) == null ? "has no admitted scalar, enum, List, or Map payload" : null;
     }
 
@@ -318,11 +329,35 @@ final class CompiledBuilderSchema {
                 method.getGenericReturnType().getTypeName(), literal.doc);
     }
 
+    /** Source diagnostics historically use JVM array names; this spelling is available directly from Class. */
+    private static String sourceDescriptor(Method method) {
+        return method.getName() + "(" + Arrays.stream(method.getParameterTypes()).map(Class::getName).collect(Collectors.joining(", "))
+                + "):" + method.getReturnType().getName();
+    }
+
     private static String descriptor(Method method) {
         return method.getName() + "(" + Arrays.stream(method.getParameterTypes()).map(Class::getTypeName).collect(Collectors.joining(", "))
                 + "):" + method.getReturnType().getTypeName();
     }
     private static String signature(Method method) { return method.getName() + getMethodDescriptor(method); }
+    private static String exclusionReason(String category, String detail) {
+        return switch (category) {
+            case "IGNORE" -> "excluded by @JsonIgnore(true)";
+            case "NO_PAYLOAD" -> "has no admitted scalar, enum, List, or Map payload";
+            case "OWNERSHIP" -> "requires one concrete owned relationship";
+            case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
+            case "KEY_MAPPING" -> "literal structured instance keys conflict with @Field.keyMapping-derived keys";
+            case "NUMERIC" -> "unsupported numeric type " + requiredDetail(detail)
+                    + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+            case "CONTAINER" -> "unsupported whole-container payload target " + requiredDetail(detail)
+                    + "; use ordinary List/Map payloads or a supported field's generated element population";
+            case "POPULATION" -> "has no unambiguous compiler-generated element population method " + requiredDetail(detail)
+                    + "; replacement setters and authored overrides are not input paths";
+            case "ABSENT_FIELD" -> "field is absent from the final public Builder contract";
+            default -> throw invalid("Unknown input exclusion " + category);
+        };
+    }
+
     private static String requiredDetail(String detail) {
         if (detail.isEmpty()) throw invalid("Missing invisible exclusion detail");
         return detail;
@@ -342,11 +377,10 @@ final class CompiledBuilderSchema {
     private static String unsupportedReason(Type type) {
         String numeric = unsupportedNumericType(type);
         if (numeric != null)
-            return "unsupported numeric type " + numeric + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+            return exclusionReason("NUMERIC", numeric);
         String container = unsupportedContainerType(type);
         if (container != null)
-            return "unsupported whole-container payload target " + container
-                    + "; use ordinary List/Map payloads or a supported field's generated element population";
+            return exclusionReason("CONTAINER", container);
         return "@Builder.Method payload is outside the admitted grammar";
     }
 
@@ -451,21 +485,7 @@ final class CompiledBuilderSchema {
                                         }
                                         @Override public void visitEnd() {
                                             if (source == null || source.isEmpty() || category == null) throw invalid("Invalid invisible exclusion");
-                                            String reason = switch (category) {
-                                                case "IGNORE" -> "excluded by @JsonIgnore(true)";
-                                                case "NO_PAYLOAD" -> "has no admitted scalar, enum, List, or Map payload";
-                                                case "OWNERSHIP" -> "requires one concrete owned relationship";
-                                                case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
-                                                case "KEY_MAPPING" -> "literal structured instance keys conflict with @Field.keyMapping-derived keys";
-                                                case "NUMERIC" -> "unsupported numeric type " + requiredDetail(detail)
-                                                        + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
-                                                case "CONTAINER" -> "unsupported whole-container payload target " + requiredDetail(detail)
-                                                        + "; use ordinary List/Map payloads or a supported field's generated element population";
-                                                case "POPULATION" -> "has no unambiguous compiler-generated element population method " + requiredDetail(detail)
-                                                        + "; replacement setters and authored overrides are not input paths";
-                                                case "ABSENT_FIELD" -> "field is absent from the final public Builder contract";
-                                                default -> throw invalid("Unknown invisible exclusion " + category);
-                                            };
+                                            String reason = exclusionReason(category, detail);
                                             result.invisible.add(new Invisible(source, reason));
                                         }
                                     };

@@ -667,7 +667,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new IllegalStateException("fixture.schema is not open to the runtime module");
                     Class<?> model = Class.forName(schema, "fixture.schema.Station");
                     Class<?> reader = Class.forName(WirePlanCarrierProbe.class.getModule(),
-                            "com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan");
+                            "com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema");
                     Method read = reader.getDeclaredMethod("read", Class.class);
                     Method entries = reader.getDeclaredMethod("entries");
                     if (!read.trySetAccessible() || !entries.trySetAccessible())

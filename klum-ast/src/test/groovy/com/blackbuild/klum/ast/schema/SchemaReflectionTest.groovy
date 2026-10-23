@@ -391,9 +391,35 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         !layer.findModule('schemar.schema').get().isOpen('schemar.schema')
     }
 
-    private Map fixture(String extra = '', boolean named = false) {
+    def 'replacement preserves authored ignore on a shadowed public projection: #ignored'() {
+        given:
+        def source = SCHEMA.replace('@Builder.Method void values(Iterable<String> input)',
+                "@Builder.Method @JsonIgnore($ignored) void values(Iterable<String> input)")
+        def artifacts = fixture('', false, source)
+        def binaries = isolated(artifacts)
+        String sourceMember = 'schemar.schema.Application#values(java.lang.Iterable):void'
+        def original = carrier(artifacts.schema, 'schemar.schema.Application').find { it[0] == 'rejection' && decode(it[1]) == sourceMember }
+        assert original != null
+
+        when:
+        def replacement = CompiledBuilderSchemaReplacementProbe.read(Class.forName(ROOT, false, binaries),
+                Class.forName('schemar.schema.Application_DSL$Factory', false, binaries))
+
+        then:
+        replacement.rejections.find { it.source == sourceMember }.reason == decode(original[2])
+        System.getProperty('schema.r.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('schema.r.executed')
+
+        where:
+        ignored << [true, false]
+    }
+
+    private Map fixture(String extra = '', boolean named = false, String schemaSource = SCHEMA) {
         File api = compileJar('api', [API], [], named ? 'schemar.api' : '')
-        File schema = compileJar('schema', [SCHEMA] + NAMING + (extra ? [extra] : []), [api], named ? 'schemar.schema' : '')
+        File schema = compileJar('schema', [schemaSource] + NAMING + (extra ? [extra] : []), [api], named ? 'schemar.schema' : '')
         [api: api, schema: schema]
     }
 

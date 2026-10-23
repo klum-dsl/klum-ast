@@ -193,12 +193,20 @@ final class StructuredInputAdmissionPlan {
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
         builder.addAnnotation(schema);
         // A generated projection can occupy an authored signature before annotation copying occurs.
+        // Restore the original admission/naming annotations together; a marker alone can change rejection precedence.
+        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY);
         transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
-                .map(GeneratedDslSupport::publicProjectionOf).filter(method -> method != null)
-                .filter(method -> method.getAnnotations(BUILDER_METHOD).isEmpty())
-                .forEach(method -> method.addAnnotation(new AnnotationNode(BUILDER_METHOD)));
+                .forEach(method -> {
+                    MethodNode api = GeneratedDslSupport.publicProjectionOf(method);
+                    if (api == null) return;
+                    method.getAnnotations().stream().filter(annotation -> authoredFacts.contains(annotation.getClassNode().getName()))
+                            .forEach(annotation -> {
+                                api.getAnnotations().removeIf(existing -> existing.getClassNode().getName().equals(annotation.getClassNode().getName()));
+                                api.addAnnotation(annotation);
+                            });
+                });
     }
 
     /** These sources have no public signature from which even type-based exclusions could be recovered. */
