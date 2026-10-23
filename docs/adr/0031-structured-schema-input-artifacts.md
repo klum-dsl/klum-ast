@@ -24,6 +24,18 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
+
+## WIRE-REPLACE implementation checkpoint — 2026-10-23
+
+The separately approved [WIRE-REPLACE seam](../implementation/evidence/issue-529-wire-replace.md) replaces production carrier reads with the internal non-public
+`CompiledBuilderSchema`: reflected public signatures/types plus the measured minimal generated field/selection,
+invisible-exclusion and child/fixed-key enrichment. Exact-public-contract selective annotation bytes avoid SCHEMA-R's
+user-enum initialization hazard. No production consumer uses the old carrier; its reader/emission remain historical
+comparison support pending separately authorized WIRE-REMOVE and its recorded deletion criteria. Missing/older required
+enrichment requires recompile/package guidance, with no legacy fallback. This checkpoint does not resume SCHEMA-1,
+implement JSON Schema generation or change #932 runtime semantics. Earlier carrier/probe descriptions below retain their
+historical scope; the linked delivered evidence records the current extraction seam.
+
 ## Problem and ownership
 
 Model Writers need structured input capable of invoking Schema-authored construction operations, including operations

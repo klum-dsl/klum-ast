@@ -51,7 +51,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /** Reads only the compiler's private WIRE-PLAN/B contract; never discovers admission by reflection. */
-final class StructuredInputPlan {
+final class LegacyStructuredInputPlan {
     private static final String BUILDER_SUFFIX = "_DSL$Builder";
     private static final Set<Class<?>> SCALARS = Set.of(String.class, boolean.class, Boolean.class,
             byte.class, Byte.class, short.class, Short.class, int.class, Integer.class, long.class, Long.class,
@@ -63,13 +63,13 @@ final class StructuredInputPlan {
     private final Map<String, Entry> entries;
     private final List<Rejection> rejections;
 
-    private StructuredInputPlan(Class<?> contract, Map<String, Entry> entries, List<Rejection> rejections) {
+    private LegacyStructuredInputPlan(Class<?> contract, Map<String, Entry> entries, List<Rejection> rejections) {
         this.contract = contract;
         this.entries = Collections.unmodifiableMap(new LinkedHashMap<>(entries));
         this.rejections = List.copyOf(rejections);
     }
 
-    static StructuredInputPlan read(Class<?> model) {
+    static LegacyStructuredInputPlan read(Class<?> model) {
         try {
             Class<?> contract = type(model, model.getName() + BUILDER_SUFFIX);
             if (!contract.isInterface() || !KlumBuilder.class.isAssignableFrom(contract))
@@ -97,7 +97,7 @@ final class StructuredInputPlan {
                             "external-name collision for '" + name + "': " + declarations)));
                 }
             });
-            return new StructuredInputPlan(contract, entries, rejections);
+            return new LegacyStructuredInputPlan(contract, entries, rejections);
         } catch (ReflectiveOperationException | IOException | RuntimeException exception) {
             throw new KlumModelException("Cannot read structured-input carrier for " + model.getName()
                     + "; recompile and package the Schema with its generated WIRE-PLAN/B carrier: "

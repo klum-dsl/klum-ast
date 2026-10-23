@@ -33,7 +33,7 @@ public final class StructuredInputReaderProbe {
         boolean rejected = arguments[1].equals("rejected");
         try {
             Class<?> model = Class.forName(arguments[0], false, StructuredInputReaderProbe.class.getClassLoader());
-            StructuredInputPlan plan = StructuredInputPlan.read(model);
+            LegacyStructuredInputPlan plan = LegacyStructuredInputPlan.read(model);
             if (rejected) throw new AssertionError("Expected carrier rejection");
             System.out.println("ACCEPTED:" + plan.entries().keySet());
         } catch (KlumModelException failure) {

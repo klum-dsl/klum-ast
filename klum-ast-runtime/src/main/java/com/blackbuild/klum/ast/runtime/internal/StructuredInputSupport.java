@@ -25,10 +25,10 @@ package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
-import com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan.Entry;
-import com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan.Payload;
-import com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan.Kind;
-import com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan.Role;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Entry;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Payload;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Kind;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Role;
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
 import groovy.lang.MetaMethod;
@@ -191,13 +191,13 @@ public final class StructuredInputSupport {
         private static final Set<Class<?>> NUMBERS = Set.of(Byte.class, Short.class, Integer.class, Long.class,
                 Float.class, Double.class, BigInteger.class, BigDecimal.class);
         private final String source;
-        private final Map<Class<?>, StructuredInputPlan> plans = new HashMap<>();
+        private final Map<Class<?>, CompiledBuilderSchema> plans = new HashMap<>();
         private final Map<Object, Boolean> visiting = new IdentityHashMap<>();
         private Preparation(String source) { this.source = source; }
 
         private Domain domain(Class<?> model, Object input, String path) {
-            StructuredInputPlan plan;
-            try { plan = plans.computeIfAbsent(model, StructuredInputPlan::read); }
+            CompiledBuilderSchema plan;
+            try { plan = plans.computeIfAbsent(model, CompiledBuilderSchema::read); }
             catch (KlumModelException failure) {
                 throw new KlumModelException(source + " at '" + (path.isEmpty() ? "/" : path) + "': " + failure.getMessage(), failure);
             }

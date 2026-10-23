@@ -26,12 +26,17 @@ package com.blackbuild.klum.ast.schema
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.compiler.internal.ast.StructuredInputContractFixtures
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import groovyjarjarasm.asm.AnnotationVisitor
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.ClassWriter
 import groovyjarjarasm.asm.ClassReader
 import groovyjarjarasm.asm.ClassVisitor
 import groovyjarjarasm.asm.FieldVisitor
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchemaReplacementProbe
 import spock.lang.Issue
 
 import java.util.jar.JarEntry
@@ -123,6 +128,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def parent = carrier(api, 'admission.Base')
         def comparison = compare(schema, [model: local.model, builder: local.builder,
                 entries: (parent.entries + local.entries).unique { it.source }, rejections: parent.rejections + local.rejections])
+        replacementParity(binaries, [model: local.model, builder: local.builder,
+                entries: (parent.entries + local.entries).unique { it.source }.sort { it.externalName }, rejections: parent.rejections + local.rejections])
 
         then:
         schema.parents.contains('admission.Base_DSL$Builder')
@@ -238,6 +245,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         when:
         def schema = CompiledBuilderSchema.read(binaries, 'safeannotations.Configuration_DSL$Builder', 'safeannotations.Configuration_DSL$Factory')
+        replacementParity(binaries, carrier(jar, 'safeannotations.Configuration'))
         def configure = schema.methods.find { it.name == 'configure' }
 
         then:
@@ -306,8 +314,12 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def child = CompiledBuilderSchema.read(binaries, 'fixedschema.Entry_DSL$Builder', 'fixedschema.Entry_DSL$Factory')
         def comparison = compare(schema, oracle)
         def cluster = CompiledBuilderSchema.readScope(binaries, 'fixedschema.Configuration_DSL$Builder$ClusterFactory_slots')
+        replacementParity(binaries, oracle)
+        def actualScope = CompiledBuilderSchemaReplacementProbe.scope(Class.forName(
+                'fixedschema.Configuration_DSL$Builder$ClusterFactory_slots', false, binaries))
 
         then:
+        actualScope as Set == cluster.collect { [owner: it.owner, name: it.name, parameters: it.parameters, returns: it.returns, documentation: it.documentation ?: ''] } as Set
         comparison.mismatches.find { it.path == 'fixedschema.Configuration#primary:fixedChildKey' } ==
                 [path: 'fixedschema.Configuration#primary:fixedChildKey', expected: 'primary', actual: 'UNAVAILABLE']
         comparison.mismatches.find { it.path == 'fixedschema.Configuration#primary:externalName' }.expected == 'main-slot'
@@ -459,6 +471,324 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         where:
         target << ['Set<OpaqueNumber>', 'Map<Integer, OpaqueNumber>', 'List<Set<OpaqueNumber>>',
                    'Map<String, SortedSet<OpaqueNumber>>', 'Map<Integer, Set<String>>']
+    }
+
+    def 'production replacement has complete carrier parity with no carrier packaged: #model'() {
+        given:
+        def jar = compileJar([trapped(source)] + NAMING)
+        def binaries = isolated([withoutCarriers(jar)])
+        def oracle = carrier(jar, model)
+        oracle.entries.each { it.descriptors = it.descriptors.collect { canonicalDescriptor(it) }.sort() }
+
+        when:
+        def actual = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName(model + '_DSL$Builder', false, binaries), Class.forName(model + '_DSL$Factory', false, binaries))
+
+        then:
+        actual.model == oracle.model
+        actual.builder == oracle.builder
+        actual.entries == oracle.entries
+        actual.rejections as Set == oracle.rejections as Set
+        actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
+        System.getProperty('wire.schema.executed') == null
+        !binaries.resolved.any { it.endsWith('$WirePlan') || it.endsWith('$Builder') && !it.contains('_DSL') }
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        model                                  | source
+        'admission.Parent'                     | StructuredInputContractFixtures.ADMISSION
+        'rejection.Parent'                     | StructuredInputContractFixtures.REJECTIONS
+        'numericboundary.Configuration'        | StructuredInputContractFixtures.NUMERIC_REJECTIONS
+        'shadowedpopulation.Configuration'     | StructuredInputContractFixtures.POPULATION
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('List<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('Set<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('SortedSet<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('NavigableSet<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('EnumSet<Mode>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('Map<String, String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('SortedMap<String, String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('NavigableMap<String, String>')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Collection<String>')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('String[]')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('int[]')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('List')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Map')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Object')
+        'rejectedparent.Configuration'         | '''
+            package rejectedparent
+            import com.blackbuild.klum.ast.DSL
+            import com.fasterxml.jackson.annotation.JsonProperty
+            @DSL class Base {
+                @JsonProperty('shared') String first
+                @JsonProperty('shared') String second
+            }
+            @DSL class Configuration extends Base { @JsonProperty('shared') String available }
+        '''
+        'unresolvedinput.Configuration'         | '''
+            package unresolvedinput
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Builder
+            @DSL class Base<T> { T value; @Builder.Method void consume(T input) {} }
+            @DSL class Configuration extends Base<String> {}
+        '''
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Map<Integer, Set<String>>')
+    }
+
+    def 'otherwise invisible protected declarations preserve their exact exclusion categories'() {
+        given:
+        def jar = compileJar([trapped('''
+            package invisiblefields
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.JsonIgnore
+            @DSL class Configuration {
+                @Field(FieldType.PROTECTED) String reserved
+                @Field(FieldType.PROTECTED) char marker
+                @Field(FieldType.PROTECTED) Number budget
+                @JsonIgnore @Field(FieldType.PROTECTED) String ignored
+                @Field(FieldType.PROTECTED) List<Integer> values
+            }
+        ''')] + NAMING)
+        def binaries = isolated([withoutCarriers(jar)])
+
+        when:
+        replacementParity(binaries, carrier(jar, 'invisiblefields.Configuration'))
+
+        then:
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    def 'production replacement rejects #damage enrichment without execution'() {
+        given:
+        def jar = compileJar([trapped('''
+            package damagedenrichment
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Configuration { String title }
+        ''')])
+        def damaged = rewriteContract(jar, 'damagedenrichment/Configuration_DSL$Builder.class', damage)
+        def binaries = isolated([damaged])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName('damagedenrichment.Configuration_DSL$Builder', false, binaries),
+                Class.forName('damagedenrichment.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('damagedenrichment.Configuration_DSL$Builder')
+        failure.message.contains('recompile and package the Schema')
+        failure.cause != null
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        damage << ['schema marker', 'selection', 'source', 'role', 'fixed property key', 'exclusion']
+    }
+
+    def 'directory contracts with unescaped spaces retain exact resource origins'() {
+        given:
+        def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
+        File directory = unpackContract(jar)
+        URL directoryUrl = new URL('file:' + directory.absolutePath + '/')
+        def urls = (runtimeFiles()*.toURI()*.toURL() + [directoryUrl]) as URL[]
+        def binaries = new URLClassLoader(urls, ClassLoader.platformClassLoader)
+
+        when:
+        replacementParity(binaries, carrier(jar, 'admission.Parent'))
+
+        then:
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    def 'production replacement rejects a shadow resource or missing dependency without ambient fallback: #damage'() {
+        given:
+        def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
+        File other = unpackContract(compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING))
+        def urls = (runtimeFiles() + [jar])*.toURI()*.toURL() as URL[]
+        String contractResource = 'admission/Parent_DSL$Builder.class'
+        String resourceDamage = damage
+        def binaries = damage == 'protocol' ? new SchemaReflectionProbe.IsolatedLoader(urls,
+                'com.blackbuild.klum.ast.runtime.generated.GeneratedInput$Field') : new URLClassLoader(urls, ClassLoader.platformClassLoader) {
+            @Override URL getResource(String name) {
+                if (name == contractResource && resourceDamage == 'missing resource') return null
+                name == contractResource && resourceDamage == 'shadow resource' ?
+                        new URL('file:' + other.absolutePath + '/' + name) : super.getResource(name)
+            }
+            @Override InputStream getResourceAsStream(String name) {
+                name == contractResource && resourceDamage == 'missing resource' ? null : super.getResourceAsStream(name)
+            }
+        }
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('admission.Parent_DSL$Builder', false, binaries),
+                Class.forName('admission.Parent_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('complete API/runtime classpath')
+        failure.cause.message.contains(damage == 'shadow resource' ? 'origin' : damage == 'protocol' ? 'GeneratedInput$Field' : 'resource')
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        damage << ['shadow resource', 'missing resource', 'protocol']
+    }
+
+    def 'older compiled artifact requires enrichment recompilation without a legacy fallback'() {
+        given:
+        def original = new File(getClass().getResource('/structured-input-938/wire-plan-b-938.jar').toURI())
+        def binaries = isolated([original])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('original938.Original_DSL$Builder', false, binaries),
+                Class.forName('original938.Original_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('recompile and package the Schema')
+        failure.message.contains('Missing generated input enrichment')
+
+        cleanup:
+        binaries?.close()
+    }
+
+    def 'diamond parent paths resolve one declaring inventory without duplicate admission'() {
+        given:
+        def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
+        def diamond = rewriteContract(jar, 'admission/Parent_DSL$Builder.class', 'diamond')
+        def binaries = isolated([diamond])
+
+        when:
+        replacementParity(binaries, carrier(jar, 'admission.Parent'))
+
+        then:
+        System.getProperty('wire.schema.executed') == null
+        binaries.resolved.contains('admission.Diamond_DSL$Builder')
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    private static File unpackContract(File jar) {
+        File directory = new File(jar.parentFile, 'schema fixtures')
+        new JarFile(jar).withCloseable { archive ->
+            archive.entries().findAll { !it.directory }.each { entry ->
+                File target = new File(directory, entry.name)
+                target.parentFile.mkdirs()
+                target.bytes = archive.getInputStream(entry).bytes
+            }
+        }
+        directory
+    }
+
+    private File rewriteContract(File jar, String contract, String damage) {
+        File output = new File(jar.parentFile, 'damaged.jar')
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(output)).withCloseable { archive ->
+                input.entries().each { entry ->
+                    if (entry.name.endsWith('$WirePlan.class')) return
+                    byte[] bytes = input.getInputStream(entry).bytes
+                    if (entry.name == contract) {
+                        def writer = new ClassWriter(0)
+                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                            @Override void visit(int version, int access, String name, String signature, String parent, String[] interfaces) {
+                                if (damage == 'diamond') {
+                                    interfaces = (interfaces.toList() + 'admission/Diamond_DSL$Builder') as String[]
+                                    signature += 'Ladmission/Diamond_DSL$Builder<TSELF;>;'
+                                }
+                                super.visit(version, access, name, signature, parent, interfaces)
+                            }
+                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                                if (damage == 'schema marker' && descriptor.endsWith('GeneratedInput$Schema;')) return null
+                                super.visitAnnotation(descriptor, visible)
+                            }
+                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                                        if (damage == 'selection' && annotation.endsWith('GeneratedInput$Selection;')) return null
+                                        def delegate = super.visitAnnotation(annotation, visible)
+                                        new AnnotationVisitor(Opcodes.ASM9, delegate) {
+                                            @Override void visit(String member, Object value) {
+                                                if (damage == 'source' && annotation.endsWith('GeneratedInput$Field;') && member == 'value') value = 'forged'
+                                                if (damage == 'role' && annotation.endsWith('GeneratedInput$Selection;') && member == 'role') value = 'OPERATION'
+                                                super.visit(member, value)
+                                            }
+                                            @Override void visitEnd() {
+                                                if (annotation.endsWith('GeneratedInput$Field;')) {
+                                                    if (damage == 'fixed property key') super.visit('fixedKey', true)
+                                                    if (damage == 'exclusion') super.visit('exclusion', 'UNKNOWN')
+                                                }
+                                                super.visitEnd()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }, 0)
+                        bytes = writer.toByteArray()
+                    }
+                    archive.putNextEntry(new JarEntry(entry.name))
+                    archive.write(bytes)
+                    archive.closeEntry()
+                }
+                if (damage == 'diamond') {
+                    def writer = new ClassWriter(0)
+                    writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
+                            'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
+                            'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
+                    writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true).visitEnd()
+                    writer.visitEnd()
+                    archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
+                    archive.write(writer.toByteArray())
+                    archive.closeEntry()
+                }
+            }
+        }
+        output
+    }
+
+    private static void replacementParity(ClassLoader binaries, Map oracle) {
+        def actual = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName(oracle.builder, false, binaries), Class.forName(oracle.model + '_DSL$Factory', false, binaries))
+        def expected = oracle.entries.collect { it + [descriptors: it.descriptors.collect { canonicalDescriptor(it) }.sort()] }
+        assert actual.entries == expected
+        assert actual.rejections as Set == oracle.rejections as Set
+        assert actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
+        def observed = CompiledBuilderSchema.read(binaries, oracle.builder, oracle.model + '_DSL$Factory')
+        def factory = CompiledBuilderSchemaReplacementProbe.scope(Class.forName(oracle.model + '_DSL$Factory', false, binaries))
+        assert factory as Set == observed.factories.collect {
+            [owner: it.owner, name: it.name, parameters: it.parameters, returns: it.returns, documentation: it.documentation ?: '']
+        } as Set
+        oracle.entries.each { entry ->
+            def declaration
+            if (entry.role == 'OPERATION') declaration = observed.methods.find {
+                it.owner == entry.owner && it.descriptor == canonicalDescriptor(entry.descriptors.first())
+            }
+            else {
+                String field = entry.source.substring(entry.source.indexOf('#') + 1)
+                String getter = 'get' + field.substring(0, 1).toUpperCase(Locale.ROOT) + field.substring(1)
+                declaration = observed.methods.find { it.owner == entry.owner && it.name == getter && it.parameters.empty }
+            }
+            assert declaration != null
+            assert actual.documentation[entry.source] == declaration.documentation
+        }
     }
 
     private static String renderMismatches(Map comparison) {
