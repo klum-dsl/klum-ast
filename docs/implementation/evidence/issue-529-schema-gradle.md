@@ -77,8 +77,14 @@ no production/consumer dependency or mandatory Python build requirement.
 
 The initial full plugin suite ran **361 cases**, with all 12 new cases passing and 19 existing scenario/dependency cases
 failing while external repositories were unavailable (Maven Central/Plugin Portal DNS and incomplete resolution).
-Repository-wide cached compatibility qualification and final review results are recorded below once complete; this
-checkpoint does not claim those pending checks passed.
+The first root check completed all compiler/runtime/Bean Validation Groovy 3/4/5 lanes successfully (compiler
+2,303 / 2,305 / 2,305 cases; runtime 73 per lane). Jackson compatibility lanes also passed 119 per lane.
+It failed at 11 existing mirror fixtures because commits changed the inferred version during that run, plus two
+Jackson external-consumer cases and one published-test-support case with repository TLS failures. No production
+behavior finding was reported. The evidence validator's Python comment-header delimiters were corrected to the
+repository's existing style; license-plugin configuration is unchanged. Stable-tip requalification is pending.
+Independent Standards and Specification reviews at `fc3c847d2` both report **zero findings** against `39f9c8302`.
+The reviewers ran no builds and made no source changes.
 
 ```shell
 ./gradlew :klum-ast-gradle-plugin:test --tests '*KlumJsonSchemaGenerationTest'

@@ -1,3 +1,4 @@
+#
 # The MIT License (MIT)
 #
 # Copyright (c) 2015-2026 Stephan Pauxberger
@@ -19,14 +20,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#
 
 """Issue #529: validate emitted TestKit documents with external jsonschema==4.23.0 tooling."""
+import importlib.metadata
 import json
 import sys
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+assert importlib.metadata.version('jsonschema') == '4.23.0'
 root = Path(sys.argv[1])
 accepted = [
     {}, {"region": "eu"},
