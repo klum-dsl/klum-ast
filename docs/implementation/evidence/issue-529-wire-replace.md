@@ -6,6 +6,14 @@ Authority: [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md), the
 [implementation plan](../adr-0031-schema-0.md), and the separately approved WIRE-REPLACE assignment.
 Prerequisites: [SCHEMA-R](issue-529-schema-r.md) and [WIRE-SCHEMA-PROBE](issue-529-wire-schema-probe.md).
 
+## WIRE-REMOVE disposition — 2026-10-23
+
+This report preserves its measured migration checkpoint. [Final removal evidence](issue-529-wire-remove.md) records
+retirement of the private carrier and disposable carrier-specific helpers/resources, plus migration of durable assertions
+to the production facade's fixed expected-contract corpus. Historical file names and commands below belong to their pinned
+revision/merged PR; they are not current architecture or runnable instructions for the removed transport. The next #529
+implementation entry point is separately assigned reflective projection and Gradle delivery; no generator resumes here.
+
 ## Delivered seam
 
 Production `StructuredInputSupport` consumes the package-private runtime `CompiledBuilderSchema` facade. It resolves
@@ -98,7 +106,7 @@ corrections) followed by this evidence checkpoint. No unrelated edits or history
 Tracker relationship is **Related: #529**; curation impact is **none**. Issue/milestone/release placement is unchanged.
 PR checks and SonarCloud are separate remote evidence and must be inspected at the published head.
 
-## Remaining WIRE-REMOVE criteria
+## Historical WIRE-REMOVE criteria — satisfied by linked removal evidence
 
 WIRE-REMOVE is a separate deletion assignment. Audit and remove compiler `emitCarrier`/`emitWirePlanCarrier` plumbing,
 `StructuredInputAdmissionPlan` serialization support and `ModelVerifierTransformation` emission only after checking every

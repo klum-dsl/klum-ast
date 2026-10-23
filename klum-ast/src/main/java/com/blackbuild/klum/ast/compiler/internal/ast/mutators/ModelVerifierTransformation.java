@@ -24,8 +24,6 @@
 package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 
 import com.blackbuild.klum.ast.compiler.internal.ast.CustomEqualityDiagnostic;
-import com.blackbuild.klum.ast.compiler.internal.ast.GeneratedDslSupport;
-import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -39,12 +37,6 @@ import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
  */
 @GroovyASTTransformation(phase = CompilePhase.INSTRUCTION_SELECTION)
 public class ModelVerifierTransformation extends StaticTypesTransformation {
-
-    @Override
-    public void visit(ASTNode[] nodes, SourceUnit source) {
-        super.visit(nodes, source);
-        GeneratedDslSupport.emitWirePlanCarrier((ClassNode) nodes[1]);
-    }
 
     @Override
     protected StaticTypeCheckingVisitor newVisitor(SourceUnit unit, ClassNode node) {

@@ -8,22 +8,27 @@ Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and i
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
 
 
-## WIRE-REPLACE implementation checkpoint — 2026-10-23
+## Final compiled-contract checkpoint — 2026-10-23
 
-The separately approved [WIRE-REPLACE seam](evidence/issue-529-wire-replace.md) replaces production carrier reads with the internal non-public
-`CompiledBuilderSchema`: reflected public signatures/types plus the measured minimal generated field/selection,
-invisible-exclusion and child/fixed-key enrichment. Exact-public-contract selective annotation bytes avoid SCHEMA-R's
-user-enum initialization hazard. No production consumer uses the old carrier; its reader/emission remain historical
-comparison support pending separately authorized WIRE-REMOVE and its recorded deletion criteria. Missing/older required
-enrichment requires recompile/package guidance, with no legacy fallback. This checkpoint does not resume SCHEMA-1,
-implement JSON Schema generation or change #932 runtime semantics. Earlier carrier/probe descriptions below retain their
-historical scope; the linked delivered evidence records the current extraction seam.
+[WIRE-REPLACE #947](https://github.com/klum-dsl/klum-ast/pull/947) selected the internal, package-private
+`CompiledBuilderSchema`: reflected public Builder/Factory signatures and types, exact-contract selective annotation
+bytes, and minimal generated field/selection/exclusion and child/fixed-key facts. [WIRE-REMOVE evidence](evidence/issue-529-wire-remove.md)
+records removal of companion emission, serialization, readers, binary resources and transitional comparison machinery.
+There is no production carrier dependency, fallback or compiled-carrier compatibility promise: the carrier was internal
+and unreleased. Required missing enrichment retains recompile/package guidance. Fixed expected contracts now guard the
+final facade; useful binary/no-execution, inheritance, documentation, runtime and JPMS regressions remain.
 
-## Current handoff — `WIRE-PLAN` and WIRE-1 runtime merged
+SCHEMA-R #945 and WIRE-SCHEMA-PROBE #946 are complete historical checkpoints. The next separately assigned #529 work is
+reflective structural projection inside the Schema Gradle plugin, followed by its isolated classpath and output/cache
+qualification. No generator starts here. The historical SCHEMA-1 branch stays paused and untouched; #932 runtime language
+and lifecycle semantics remain independent. Earlier carrier descriptions and probe instructions below record migration
+history, not active architecture or outstanding assignments.
+
+## Historical handoff — `WIRE-PLAN` and WIRE-1 runtime merged
 
 [PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
-[PR #938](https://github.com/klum-dsl/klum-ast/pull/938) delivered the compiler-owned admission seam. The selected binary
-representation is the package-private, constant-only `<Model>_DSL$WirePlan` carrier; annotations alone lose normalized
+[PR #938](https://github.com/klum-dsl/klum-ast/pull/938) delivered the compiler-owned admission seam. The original binary
+representation was the package-private, constant-only `<Model>_DSL$WirePlan` carrier; annotations alone lose normalized
 roles and source identities. [Carrier qualification](evidence/issue-932-structured-input-probe.md#wire-planb-carrier-qualification)
 records separate-artifact inheritance, classfile-only/no-execution extraction, generated ABI, JPMS, Groovy 3/4/5 and Gradle
 output-lifecycle evidence. The production baseline for the next plan is merge `3d13ffa2d`.
@@ -53,16 +58,16 @@ the existing Schema Gradle plugin depending on runtime, behind an internal extra
 standalone public module, executable or CLI. No generator/rendering dependency enters runtime.
 
 #932 owns the independent optional interpreter and its Construction-session execution. The two may reuse enrichment and
-a structural acceptance corpus, but neither defines or depends on the other's implementation. WIRE-1 and its current
-carrier remain untouched. The generator receives a root contract and isolated classpath from Gradle; it has no filesystem-
+a structural acceptance corpus, but neither defines or depends on the other's implementation. WIRE-1 now consumes the final compiled-contract facade described above. The generator receives a root contract and isolated classpath from Gradle; it has no filesystem-
 discovery contract and does not inspect Schema implementation classes, initialize them or execute their code. Ordinary
 reflection lacks raw Javadoc; retained `@AnnoDoc` is explicitly available embedded documentation, subject to exact attribution.
 
-**SCHEMA-1 is paused.** Before any production generator resumes, separately assign the
-[SCHEMA-R inventory/probe](adr-0031-schema-0.md#next-required-slice--schema-r-reflection-versus-enrichment), accounting
-for every current WIRE datum and proving reflective isolation/docs availability. This revision changes no source, contract,
-carrier or runtime; it does not resume or modify SCHEMA-1's branch. The sequence and acceptance checks in SCHEMA-0 govern
-future #529 work; its old direction to bypass further metadata investigation is superseded.
+**SCHEMA-1 is paused.** SCHEMA-R #945 and the #946/#947 migration are complete. The revised SCHEMA-0 projection and
+Gradle acceptance gates govern the next separately assigned generator slice. No generator work is authorized by this
+removal; its implementation boundary is recorded in the [removal evidence](evidence/issue-529-wire-remove.md).
+
+The remaining original compiler-seam specification below is historical. Its carrier representation, encoding and
+qualification instructions are superseded by the final facade; its accepted grammar remains unchanged.
 
 ## Historical WIRE-PLAN specification
 

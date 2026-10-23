@@ -26,10 +26,6 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver
-import groovyjarjarasm.asm.ClassReader
-import groovyjarjarasm.asm.ClassVisitor
-import groovyjarjarasm.asm.FieldVisitor
-import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.runtime.InvokerHelper
 import spock.lang.Issue
 
@@ -201,7 +197,8 @@ class StructuredInputRuntimeBoundaryProbeTest extends AbstractDSLSpec {
         model.selected == 'admitted:7'
     }
 
-    def 'prepared caller traversal survives inherited carrier lookup and complete preflight precedes execution'() {
+    @Issue('529')
+    def 'prepared caller traversal survives inherited contract lookup and complete preflight precedes execution'() {
         given:
         createClass '''
             package orderboundary
@@ -232,29 +229,16 @@ class StructuredInputRuntimeBoundaryProbeTest extends AbstractDSLSpec {
         def branch = getClass('orderboundary.OrderedBranch')
         def entry = getClass('orderboundary.OrderedEntry')
 
-        // Exact fixture carriers only; metadata composition is deliberately independent of input iteration.
-        def namesFor = { Class type, Map inherited ->
-            String[] data = new String[1]
-            def carrier = new File(compilerConfiguration.targetDirectory, type.name.replace('.', '/') + '_DSL$WirePlan.class')
-            new ClassReader(carrier.bytes).accept(new ClassVisitor(Opcodes.ASM9) {
-                @Override
-                FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-                    if (name == 'DATA') data[0] = value
-                    null
+        def namesFor = { Class type ->
+            new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader).withCloseable { binaries ->
+                CompiledBuilderSchema.read(Class.forName(type.name, false, binaries)).entries().collectEntries { name, fact ->
+                    [(name): [role: fact.role().name(), operation: fact.operation()]]
                 }
-            }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
-            Map names = new LinkedHashMap(inherited)
-            data[0].readLines().findAll { it.startsWith('entry|') }.each { line ->
-                def fields = line.split('[|]', -1)
-                def decode = { String token -> new String(Base64.urlDecoder.decode(token), 'UTF-8') }
-                names[decode(fields[1])] = [role: fields[2], operation: decode(fields[5])]
             }
-            names
         }
-        def inheritedNames = namesFor(base, [:])
-        def rootNames = namesFor(document, inheritedNames)
-        def branchNames = namesFor(branch, inheritedNames)
-        def entryNames = namesFor(entry, inheritedNames)
+        def rootNames = namesFor(document)
+        def branchNames = namesFor(branch)
+        def entryNames = namesFor(entry)
 
         // Closed fixture: three fixed operation signatures and two concrete relationships, no reusable adapter.
         Closure prepare

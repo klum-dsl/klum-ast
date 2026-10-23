@@ -6,6 +6,14 @@ and [SCHEMA-R assignment](../adr-0031-schema-0.md#next-required-slice--schema-r-
 Base: `22b3cff17` (current master, including merged reflection-first revision #944).
 Scope: disposable tests and measured evidence; no generator, plugin task/dependency, generated metadata or WIRE change.
 
+## WIRE-REMOVE disposition — 2026-10-23
+
+This report preserves its measured migration checkpoint. [Final removal evidence](issue-529-wire-remove.md) records
+retirement of the private carrier and disposable carrier-specific helpers/resources, plus migration of durable assertions
+to the production facade's fixed expected-contract corpus. Historical file names and commands below belong to their pinned
+revision/merged PR; they are not current architecture or runnable instructions for the removed transport. The next #529
+implementation entry point is separately assigned reflective projection and Gradle delivery; no generator resumes here.
+
 ## Outcome and production boundary
 
 Public contracts expose Model/Builder identities, exact signatures, generic containers, inherited declarations, nested

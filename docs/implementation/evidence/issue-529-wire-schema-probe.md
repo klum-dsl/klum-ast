@@ -7,6 +7,14 @@ Authority: [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md),
 [revised implementation plan](../adr-0031-schema-0.md), and the bounded WIRE-SCHEMA-PROBE assignment.
 [#932](https://github.com/klum-dsl/klum-ast/issues/932) remains the language/runtime owner.
 
+## WIRE-REMOVE disposition — 2026-10-23
+
+This report preserves its measured migration checkpoint. [Final removal evidence](issue-529-wire-remove.md) records
+retirement of the private carrier and disposable carrier-specific helpers/resources, plus migration of durable assertions
+to the production facade's fixed expected-contract corpus. Historical file names and commands below belong to their pinned
+revision/merged PR; they are not current architecture or runnable instructions for the removed transport. The next #529
+implementation entry point is separately assigned reflective projection and Gradle delivery; no generator resumes here.
+
 ## Outcome and boundary
 
 A package-private, **test-only** `CompiledBuilderSchema` facade normalizes public Builder/Factory declarations without
@@ -14,7 +22,7 @@ returning reflection objects, ASM objects, annotations or carrier records. The p
 is **not achieved**. Its admission fixture reports **77 exact differences**: nine unavailable decisions for each of
 eight fields, two authored operations whose local eligibility cannot prove global admission, and three invisible field
 exclusions. These are repeated observations of a small set of missing compiler facts, not 77 proposed annotation members.
-The [checked-in gap snapshot](../../../klum-ast/src/test/resources/wire-schema-probe/admission-gaps.tsv) preserves
+The [checked-in gap snapshot](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/resources/wire-schema-probe/admission-gaps.tsv) preserves
 expected and actual values, including unknown absence, rather than just counting or suppressing missing facts.
 
 The probe consumes [SCHEMA-R's published inventory](issue-529-schema-r.md) before choosing this boundary. No generated
@@ -25,18 +33,18 @@ selection or authorization to resume production.
 
 ## Facade and executable comparison
 
-- [CompiledBuilderSchema](../../../klum-ast/src/test/java/com/blackbuild/klum/ast/schema/CompiledBuilderSchema.java)
+- [CompiledBuilderSchema](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/java/com/blackbuild/klum/ast/schema/CompiledBuilderSchema.java)
   takes an isolated loader and exact public Builder/Factory names. Its immutable declaration values retain declaring
   owner, erased descriptor, generic parameters/return, enum names, literal names/origin, documentation, local operation
   eligibility and explicit default unavailability. An explicitly named Collection/Cluster scope uses the same boundary.
   `UNKNOWN` never means admitted; `ELIGIBLE` needs the complete field/name inventory before admission can be decided.
-- [CompiledBuilderSchemaTest](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/schema/CompiledBuilderSchemaTest.groovy)
+- [CompiledBuilderSchemaTest](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/groovy/com/blackbuild/klum/ast/schema/CompiledBuilderSchemaTest.groovy)
   compares every entry/rejection from the oracle. Missing selected methods fail immediately. Deliberate invented
   descriptor, scalar-kind and nested-Builder damage controls prove that matching signatures cannot mask metadata drift. A complete-parity assertion deliberately fails with the expected/actual matrix;
   the test catches that failure and verifies useful attribution. The exact 77-row snapshot also detects changed expected
   values within already-known gaps. Additional fixtures check exclusions, population overrides, all eight field container
   declarations, custom Number rejection, fixed keys, child keys, LINK, keyMapping, docs and missing dependencies/resources.
-- [StructuredInputContractFixtures](../../../klum-ast/src/testFixtures/groovy/com/blackbuild/klum/ast/compiler/internal/ast/StructuredInputContractFixtures.groovy)
+- [StructuredInputContractFixtures](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/testFixtures/groovy/com/blackbuild/klum/ast/compiler/internal/ast/StructuredInputContractFixtures.groovy)
   shares the existing WIRE admission, rejection, numeric, population-override and container source fixtures with their
   original regression tests. Their source and expectations are preserved. Additional fixed-key/annotation witnesses
   extend those comparisons without changing language or runtime behavior.

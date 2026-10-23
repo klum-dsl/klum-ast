@@ -90,7 +90,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
     def cleanup() { artifactLoader?.close() }
 
-    def 'root operations follow supplied Map order instead of carrier order'() {
+    def 'root operations follow supplied Map order independently of contract order'() {
         given:
         def document = documentSchema()
 
