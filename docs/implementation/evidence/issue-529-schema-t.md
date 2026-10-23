@@ -1,6 +1,6 @@
 # SCHEMA-T — binary-only JSON Schema feasibility
 
-Date: 2026-10-23. Status: **A/B/C pass on Groovy 3; module compatibility qualification in progress**.
+Date: 2026-10-23. Status: **A/B/C and affected-module checks pass on Groovy 3/4/5; draft publication pending**.
 Related: [#529](https://github.com/klum-dsl/klum-ast/issues/529),
 [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Authority: [SCHEMA-0/T](../adr-0031-schema-0.md#executable-feasibility-proposal--schema-0t),
@@ -78,13 +78,35 @@ bundled Draft 2020-12 metaschema, and requires existing outputs instead of silen
 Outputs remain under `klum-ast/build/test-classes/<Groovy lane>/SchemaTracerTest/`: API/Schema JARs, `schema.json`,
 `facts.json`, and `instances.json`. No generated output is committed as an authoritative sample.
 
-Focused Groovy 3: two Spock features pass with no skips. Metaschema, five accepted and twelve rejected instances pass.
-Module qualification, independent Standards/Specification review and final delivery details will be recorded before
-publication. This test-only change introduces no user feature, so no documentary tag, user-page/migration/changelog
+Focused Groovy 3: two Spock features pass with no skips. The final `:klum-ast:check` passes in 10m 36s
+(53 actionable tasks: 13 executed, 40 up-to-date), including module license and test-lane isolation checks.
+
+| Compiler suite | Tests | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 | 2266 | 0 | 15 |
+| Groovy 4 | 2268 | 0 | 15 |
+| Groovy 5 | 2268 | 0 | 15 |
+
+Each lane includes both tracer features without skips. The pinned validator independently passes metaschema validation,
+five accepted and twelve rejected instances for **each** lane's output. Changed Markdown fences, 22 local link targets
+and `git diff --check` pass. Existing unknown-extension/deprecation warnings are non-failing and were not bypassed.
+The repository-wide root check was not rerun: this change affects only compiler-module test sources/resources and
+implementation evidence; no production source, dependency, build configuration or public/generated contract changes.
+
+Independent Standards and Specification reviews of `d4724f8...9f67add9` each returned **zero findings**. The implementation
+commit `9f67add9bc5dfe1ebe16f8beedc1453ba556f8f6` is preserved; the final qualification record is an additive documentation
+commit. History review confirms a cohesive vertical proof followed by its final evidence. No unrelated changes remain.
+
+This test-only change introduces no user feature, so no documentary tag, user-page/migration/changelog
 entry is warranted under SCHEMA-0/T.
 
 ## Delivery and next decision
 
 The assigned outcome is only SCHEMA-0/T feasibility. Success returns the production-generator decision to the maintainer;
-it does not start production work or reopen metadata representation design. Both related issues remain open. Hive owns
-final delivery/archive reconciliation; the worker must retain `(PR:open)` after draft publication and must not merge.
+it does not start production work or reopen metadata representation design. Both related issues remain open.
+Worktree: `/private/tmp/klum-ast-529-schema-t`; branch: `codex/529-schema-t-binary-tracer`.
+Refreshed `origin/master` still equals the assigned base above; no rebase is needed.
+Tracker impact: **related issue** (#529 and #932); curation impact: **none** (no release gate, owner or placement change).
+The assignment explicitly authorizes a draft PR with these non-closing relationships. GitHub CLI repository capability
+is authorized; the actual branch-push/PR outcomes and live revision checks are reported in the delivery handoff.
+Hive owns final delivery/archive reconciliation; the worker must retain `(PR:open)` after draft publication and must not merge.

@@ -1,6 +1,6 @@
 # SCHEMA-0 — JSON Schema delivery plan after WIRE-1
 
-Date: 2026-10-23. Status: **accepted architecture; SCHEMA-T test-only feasibility in qualification; production generator unimplemented**.
+Date: 2026-10-23. Status: **accepted architecture; SCHEMA-T test-only A/B/C feasibility validated; production generator unimplemented**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
