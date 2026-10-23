@@ -655,6 +655,8 @@ class JpmsPackageBoundaryTest extends Specification {
             package com.blackbuild.klum.ast.runtime;
 
             import java.lang.reflect.Field;
+            import java.lang.reflect.Method;
+            import java.util.Map;
 
             public final class WirePlanCarrierProbe {
                 public static String read() throws Exception {
@@ -663,7 +665,21 @@ class JpmsPackageBoundaryTest extends Specification {
                     Field data = carrier.getDeclaredField("DATA");
                     if (!data.trySetAccessible())
                         throw new IllegalStateException("fixture.schema is not open to the runtime module");
-                    return (String) data.get(null);
+                    Class<?> model = Class.forName(schema, "fixture.schema.Station");
+                    Class<?> reader = Class.forName(WirePlanCarrierProbe.class.getModule(),
+                            "com.blackbuild.klum.ast.runtime.internal.StructuredInputPlan");
+                    Method read = reader.getDeclaredMethod("read", Class.class);
+                    Method entries = reader.getDeclaredMethod("entries");
+                    if (!read.trySetAccessible() || !entries.trySetAccessible())
+                        throw new IllegalStateException("Cannot call the private reader from its own runtime module");
+                    Object plan = read.invoke(null, model);
+                    Map<?, ?> facts = (Map<?, ?>) entries.invoke(plan);
+                    Object slot = facts.get("slot");
+                    Method fixedKey = slot.getClass().getDeclaredMethod("fixedChildKey");
+                    if (!fixedKey.trySetAccessible())
+                        throw new IllegalStateException("Cannot read the private fixed child key fact");
+                    return (String) data.get(null) + "\\nRUNTIME_READER:" + facts.keySet()
+                            + "\\nFIXED_CHILD_KEY:" + fixedKey.invoke(slot);
                 }
             }
         '''.stripIndent())
@@ -722,6 +738,8 @@ class JpmsPackageBoundaryTest extends Specification {
         ProcessResult extraction = execute(command, fixture)
         assert extraction.exitCode == 0 : extraction.output
         assert extraction.output.contains('WIRE-PLAN/B')
+        assert extraction.output.contains('RUNTIME_READER:')
+        assert extraction.output.contains('FIXED_CHILD_KEY:slot')
         assert extraction.output.contains('Zml4dHVyZS5zY2hlbWEuU3RhdGlvbg')
     }
 
@@ -747,6 +765,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.Builder
             import com.blackbuild.klum.ast.runtime.KlumModelException
             import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.layer3.Cluster
             import com.blackbuild.klum.ast.RelationshipConstraint
             import com.blackbuild.klum.ast.Key
             import com.blackbuild.klum.ast.PostCreate
@@ -782,6 +801,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 static final List<String> EVENTS = []
 
                 String name = 'North'
+                StationSlot slot
+                @Cluster(fixedKeys = true) Map<String, StationSlot> getSlots() {}
 
                 @Min(1L)
                 int capacity = 4
@@ -809,6 +830,8 @@ class JpmsPackageBoundaryTest extends Specification {
                     EVENTS
                 }
             }
+
+            @DSL class StationSlot { @Key String name; String description }
 
             @DSL
             class Deployment {
@@ -967,6 +990,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.runtime.PhaseAction;
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.KlumStructuredInput;
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
@@ -1012,6 +1036,11 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new AssertionError("Named schema could not retain the reporter diagnostic");
                     if (KlumSchemaSupport.klumValidationForObject(station).getFailLevel() != Validate.Level.ERROR)
                         throw new AssertionError("Named Java consumer could not access the validation reporter");
+                    Station structured = KlumStructuredInput.readRoot(Station.class, null,
+                            Map.of("name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
+                    if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
+                            || !"slot".equals(structured.getSlot().getName()))
+                        throw new AssertionError("Named Java structured-input consumer did not link or populate");
                     Deployment deployment = Deployment.Create.One();
                     if (!"https://direct.example.test".equals(deployment.getEndpoint().getUrl()) ||
                             !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
@@ -1094,8 +1123,10 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.HttpEndpoint
             import fixture.schema.HttpEndpoint_DSL
             import fixture.schema.Station
+            import fixture.schema.Station_DSL
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+            import com.blackbuild.klum.ast.runtime.KlumStructuredInput
             import groovy.transform.CompileStatic
             import java.util.Map
             import java.util.Set
@@ -1116,6 +1147,17 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
                     assert station.capacity == 4
+                    Station structured = KlumStructuredInput.readRoot(Station, null, [name: 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
+                    assert structured.name == 'Structured static'
+                    assert structured.capacity == 6
+                    assert structured.slot.name == 'slot'
+                    Station applied = Station.Create.With {
+                        Station_DSL.Builder<Station> builder = (Station_DSL.Builder<Station>) delegate
+                        Station_DSL.Builder<Station> same = KlumStructuredInput.applyToBuilder(builder, [name: 'Active static', slot: [description: 'active']], 'station.json')
+                        assert same.is(builder)
+                    }
+                    assert applied.name == 'Active static'
+                    assert applied.slot.name == 'slot'
                     assert klumValidation.failLevel == Validate.Level.ERROR
                     Deployment deployment = Deployment.Create.One()
                     Map<String, HttpEndpoint> endpoints = KlumObjectSupport.of(deployment).structure.findAll(HttpEndpoint)

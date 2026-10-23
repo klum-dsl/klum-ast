@@ -2,9 +2,11 @@
 
 Date: 2026-10-20. Architecture revised: 2026-10-22.
 
-Status: **Accepted direction; compiler admission seam implemented; runtime and generator not implemented**.
-Merged #937/#938 completed `WIRE-PLAN`. The [WIRE-RUNTIME v1 proposal](../implementation/adr-0031-wire-runtime-v1.md)
-plans the first #932 runtime slice; it does not authorize production implementation or settle a new public API.
+Status: **Accepted direction; compiler admission seam merged; approved WIRE-1 runtime slice implemented on its issue branch; generator not implemented**.
+Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
+is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, private classfile reader, ordered
+preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
+records qualification and delivery status. This branch is not a merged or released runtime delivery; #932 remains open.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -166,9 +168,75 @@ no-execution Draft 2020-12 projection. The shared compiler-owned admission trace
 [PR #938](https://github.com/klum-dsl/klum-ast/pull/938). The selected package-private carrier preserves normalized roles,
 source identity and rejection facts missing from retained annotations. The linked evidence qualifies separate-artifact
 inheritance, no-execution extraction, JPMS, Groovy 3/4/5, generated linkage and the supported Gradle output lifecycle.
-The [runtime proposal](../implementation/adr-0031-wire-runtime-v1.md) is the next planning boundary; no production consumer
-starts in this revision. Once the common contract is accepted and available, #932 runtime interpretation
-and #529 JSON Schema generation may proceed independently from the same acceptance corpus. #932 owns language semantics and
+The approved [runtime plan](../implementation/adr-0031-wire-runtime-v1.md) now has its first production consumer in
+WIRE-1: parser-free root and active-Builder interpretation through admitted public contracts. Its bounded numeric and
+container policies, keyMapping exclusion and unreleased private fixed-child-key carrier refinement are recorded in that
+plan and the linked evidence. The remaining broader #932 work and #529 JSON Schema generation remain independent
+from this first runtime slice and can share the acceptance corpus. #932 owns language semantics and
 runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
 honestly.
+
+## WIRE-1 numeric admission clarification
+
+The maintainer-approved numeric scalar targets are exactly `byte`, `short`, `int`, `long`, `float`, `double`, their boxed
+JDK types, `BigInteger` and `BigDecimal`. Every other `Number` type is rejected during compiler admission, including
+inside supported List/Map payloads, with the unsupported type and source field or Builder operation identified.
+The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
+branch, custom constructor/converter policy, versioning or public API for this correction.
+[The stop reproduction and decision](../implementation/evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.
+
+## WIRE-1 collection population clarification
+
+Supported field declarations and authored-operation arguments are separate admission decisions. Keep the existing finite
+DSL field container set: List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap. External collection
+field data is a List of admitted element payloads; external map field data is a Map of literal String keys to admitted
+value payloads. The interpreter adds those prepared elements/entries in caller-supplied order through compiler-selected
+generated element/keyed population operations. Normal Builder mechanics allocate and manage the actual declared
+container, including set deduplication and sorted storage. A supported NavigableSet field is not a request to construct a
+NavigableSet argument or invoke a replacement setter.
+
+The compiler must select and record the generated population method using its owning-field provenance, including explicit
+Field.members names. A same-named authored override in a broad plural descriptor group is not population authority.
+Existing carrier name/descriptor/source/role slots encode this selection; no carrier-format change or runtime guessing is
+required. Keyed owned maps retain the existing fixed-target nested Builder Consumer creator and attachment path.
+Generated keyed-add calls may use key and value internally; no authored multi-argument wire operation is introduced.
+
+Authored operations keep the admitted exactly-one-payload scalar/enum/ordinary List/Map grammar. Reject whole-container
+targets requiring Set/NavigableSet, broad Collection, concrete/custom Collection/Map implementations or construction
+heuristics. Nested ordinary data payloads must likewise require no guessed container. Authored Iterable methods are not
+currently admitted and stay rejected; generated Iterable population of a field does not extend that grammar.
+The opaque List/Map reproduction is retained as rejection coverage. No constructor/converter policy, replacement-container
+policy, legacy handling, public API, parser/Jackson change or CollectionFactory syntax follows from this clarification.
+
+[Actual generated field/operation characterization](../implementation/evidence/issue-932-wire-1-collection-contracts.md) records all supported categories and the authored Iterable boundary.
+
+## WIRE-1 literal owned-map key clarification
+
+V1 compiler admission excludes keyed owned-map declarations carrying `@Field.keyMapping`. Literal structured instance
+keys conflict with keyMapping-derived keys: ordinary attachment evaluates the mapping even when an explicit key is
+supplied, and distinct input keys may then collapse. Record the owning source field and this reason as a rejection;
+unrelated admitted fields remain available. Owned maps without keyMapping retain their existing literal String-key path.
+
+This restriction changes structured admission only. Ordinary Builder DSL keyMapping, generated contracts, WIRE-PLAN/B
+encoding and attachment/reuse semantics stay unchanged. It introduces no structured-key projection, collision/reuse rule,
+preflight closure execution, runtime-only rejection, legacy handling or public API.
+
+## WIRE-1 unreleased fixed direct-child key refinement
+
+The maintainer approved one private carrier-format refinement before release: append a twelfth `entry` token,
+`fixedChildKey`, after the existing recursive payload token. `-` means absent; otherwise the token is the existing
+canonical Base64-encoded nonempty String literal. The WIRE-PLAN/B header, carrier class/DATA identity and preceding
+fields stay unchanged. A non-null fixed key is valid only for a keyed concrete `OWNED_OBJECT` entry.
+
+The compiler uses its existing fixedKeys Cluster membership decision to persist the native field-name key. Runtime
+passes that literal directly to the existing Consumer creator; it does not inspect Cluster membership, infer from
+public overloads, substitute the external alias, synthesize `@Field` metadata, replay application or change attachment.
+An unrelated/nonselected field retains an absent fact. Explicit `@Field.key` continues through ordinary creator logic.
+Direct and separately compiled inherited facts, malformed-role diagnostics and actual named-module byte reading are
+qualified. This adds no public API or generated public contract.
+
+This is an explicitly approved refinement of an unreleased private ABI, not a compatibility-free precedent. The reader
+requires the refined record shape; earlier eleven-token entries, including the untouched #938 binary fixture, reject
+with recompile/package guidance. There is no legacy decoder, version negotiation or inference fallback. The original
+fixture bytes and provenance remain intact. The historical reader acceptance result predates this approved change.

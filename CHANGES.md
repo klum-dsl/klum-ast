@@ -1,3 +1,11 @@
+# Unreleased
+
+- Added opt-in parser-free `KlumStructuredInput.readRoot` and `applyToBuilder` for caller-parsed Map/List/scalar data.
+  Complete preflight precedes ordered Builder execution; concrete ownership, literal keyed maps and admitted one-payload
+  operations preserve ordinary construction/lifecycle semantics. Numeric/container/keyMapping admission is bounded;
+  named parameters and Jackson retain their existing behavior. Recompile Schemas and ship generated metadata. See
+  [structured input](docs/user/Structured-Input.md) ([#932](https://github.com/klum-dsl/klum-ast/issues/932)).
+
 # 4.1.0 (2026-10-20)
 
 - Support general abstract `@Builder.Method` operations with compiler-enforced concrete subtype implementations,

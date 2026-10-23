@@ -1,11 +1,17 @@
 # WIRE-RUNTIME — proposed first #932 production slice
 
-Date: 2026-10-22. Status: **implementation proposal for review; production work not authorized**.
+Date: 2026-10-22. Status: **approved first runtime slice; approved WIRE-1 implementation undergoing final qualification**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent static projection: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Baseline: `3d13ffa2d` (merged [#938](https://github.com/klum-dsl/klum-ast/pull/938)), after
 [#937](https://github.com/klum-dsl/klum-ast/pull/937) and [#933](https://github.com/klum-dsl/klum-ast/pull/933).
+
+The planning text and initial-probe validation below retain their historical revision vocabulary. The separately
+assigned WIRE-1 work now implements the two proposed facade methods, private carrier reading, shared Consumer creator
+paths, complete ordered preflight and exact execution. Current implementation evidence, including the resolved key-derivation decision, is tracked in
+[WIRE-1 runtime qualification](evidence/issue-932-wire-1-runtime.md); user behavior is documented in
+[Structured Input](../user/Structured-Input.md). This does not authorize a parser, generator, additional grammar or merge.
 
 ## Smallest useful delivery
 
@@ -158,10 +164,12 @@ must be exact for integral targets (range/fraction checks); floating targets rej
 or boolean strings, compact Duration syntax, arbitrary Object binding, constructors, codecs or converter discovery.
 Recognize the standard numeric types represented by the existing corpus; if the compiler's broad Number-subclass
 classification admits an unimplementable type, stop with that concrete mismatch rather than silently widening conversion.
-List/Map payloads recursively use their declared item/value nodes. Carrier LIST facts can describe supported declared
-collection interfaces; qualify conversion through existing generated collection contracts (including sets/sorted forms),
-not assignment of an unchecked List to an arbitrary declared collection. Any unsupported admitted container is a stop,
-not permission to narrow the shared grammar silently. Preserve List element order and literal data-map keys.
+List/Map payloads recursively use their declared item/value nodes. Carrier LIST facts for fields describe supported
+Schema collection declarations, including sets/sorted forms, whose Builder-managed containers are populated through the
+compiler-selected generated element path. Do not construct a whole container argument or assign an unchecked List to
+those declarations. Authored operations retain ordinary List/Map arguments and reject whole-container targets requiring
+construction or guessing. Any unsupported admitted container is a stop, not permission to narrow the shared grammar
+silently. Preserve List element order and literal data-map keys.
 
 For a property or authored operation, keep an explicit single-element `Object[]` around the prepared payload. A Map/List
 is one argument. Native-name-only `InvokerHelper.invokeMethod` is insufficient: `choose(int)` and `choose(Integer)` can
@@ -171,8 +179,10 @@ existing `MetaClass.pickMethod` during execution, using the declared signature r
 Preflight checks contract descriptors without dynamic dispatch. Verify the selected method against that exact public
 contract signature before invoking the same selected `MetaMethod`; never perform a second native-name lookup. The bounded
 primitive/wrapper fixture proves that this preserves the primitive call even when an Integer overload is ignored.
-For a PROPERTY, use its declared carrier payload type with the same existing Groovy selection and verify membership in
-the compiler-recorded property group. Stop if bridges/projection or a generated collection/converter group cannot satisfy
+For a scalar PROPERTY, use its declared payload type with the same existing Groovy selection and verify membership in
+the compiler-recorded property group. For a collection/map PROPERTY, visit the prepared elements/entries in supplied order
+and invoke its compiler-selected generated element/keyed population descriptor using the declared item/key/value types.
+The declared field container type is not a whole-container invocation argument. Stop if bridges/projection or a generated collection/converter group cannot satisfy
 this check; do not rank arbitrary reflective candidates or invoke outside the group. Full property-group qualification
 remains a production acceptance gate. The only custom operations are carrier OPERATION entries with exactly one supported
 payload on the public Builder. Ignore, rename and identity fallback have already been decided by the compiler; do not
@@ -353,3 +363,67 @@ zero failures/errors/skips. Module license and test-lane isolation tasks, change
 `git diff --check` pass. Local Standards/Specification review found no remaining discrepancy with the maintainer's six
 refinements. No planning blocker remains; the existing production reader/creator/property-group qualification gates
 still apply to a separately authorized implementation. #932/#529 remain open and no milestone or production behavior changes.
+
+## WIRE-1 numeric admission clarification
+
+The maintainer-approved numeric scalar targets are exactly `byte`, `short`, `int`, `long`, `float`, `double`, their boxed
+JDK types, `BigInteger` and `BigDecimal`. Every other `Number` type is rejected during compiler admission, including
+inside supported List/Map payloads, with the unsupported type and source field or Builder operation identified.
+The private carrier is unreleased: retain WIRE-PLAN/B unchanged and add no legacy-carrier fallback, compatibility
+branch, custom constructor/converter policy, versioning or public API for this correction.
+[The stop reproduction and decision](evidence/issue-932-wire-1-numeric-stop.md) record why this correction precedes runtime implementation.
+
+## WIRE-1 collection population clarification
+
+Supported field declarations and authored-operation arguments are separate admission decisions. Keep the existing finite
+DSL field container set: List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap. External collection
+field data is a List of admitted element payloads; external map field data is a Map of literal String keys to admitted
+value payloads. The interpreter adds those prepared elements/entries in caller-supplied order through compiler-selected
+generated element/keyed population operations. Normal Builder mechanics allocate and manage the actual declared
+container, including set deduplication and sorted storage. A supported NavigableSet field is not a request to construct a
+NavigableSet argument or invoke a replacement setter.
+
+The compiler must select and record the generated population method using its owning-field provenance, including explicit
+Field.members names. A same-named authored override in a broad plural descriptor group is not population authority.
+Existing carrier name/descriptor/source/role slots encode this selection; no carrier-format change or runtime guessing is
+required. Keyed owned maps retain the existing fixed-target nested Builder Consumer creator and attachment path.
+Generated keyed-add calls may use key and value internally; no authored multi-argument wire operation is introduced.
+
+Authored operations keep the admitted exactly-one-payload scalar/enum/ordinary List/Map grammar. Reject whole-container
+targets requiring Set/NavigableSet, broad Collection, concrete/custom Collection/Map implementations or construction
+heuristics. Nested ordinary data payloads must likewise require no guessed container. Authored Iterable methods are not
+currently admitted and stay rejected; generated Iterable population of a field does not extend that grammar.
+The opaque List/Map reproduction is retained as rejection coverage. No constructor/converter policy, replacement-container
+policy, legacy handling, public API, parser/Jackson change or CollectionFactory syntax follows from this clarification.
+
+[Actual generated field/operation characterization](evidence/issue-932-wire-1-collection-contracts.md) records all supported categories and the authored Iterable boundary.
+
+## WIRE-1 literal owned-map key clarification
+
+V1 compiler admission excludes keyed owned-map declarations carrying `@Field.keyMapping`. Literal structured instance
+keys conflict with keyMapping-derived keys: ordinary attachment evaluates the mapping even when an explicit key is
+supplied, and distinct input keys may then collapse. Record the owning source field and this reason as a rejection;
+unrelated admitted fields remain available. Owned maps without keyMapping retain their existing literal String-key path.
+
+This restriction changes structured admission only. Ordinary Builder DSL keyMapping, generated contracts, WIRE-PLAN/B
+encoding and attachment/reuse semantics stay unchanged. It introduces no structured-key projection, collision/reuse rule,
+preflight closure execution, runtime-only rejection, legacy handling or public API.
+
+## WIRE-1 unreleased fixed direct-child key refinement
+
+The maintainer approved one private carrier-format refinement before release: append a twelfth `entry` token,
+`fixedChildKey`, after the existing recursive payload token. `-` means absent; otherwise the token is the existing
+canonical Base64-encoded nonempty String literal. The WIRE-PLAN/B header, carrier class/DATA identity and preceding
+fields stay unchanged. A non-null fixed key is valid only for a keyed concrete `OWNED_OBJECT` entry.
+
+The compiler uses its existing fixedKeys Cluster membership decision to persist the native field-name key. Runtime
+passes that literal directly to the existing Consumer creator; it does not inspect Cluster membership, infer from
+public overloads, substitute the external alias, synthesize `@Field` metadata, replay application or change attachment.
+An unrelated/nonselected field retains an absent fact. Explicit `@Field.key` continues through ordinary creator logic.
+Direct and separately compiled inherited facts, malformed-role diagnostics and actual named-module byte reading are
+qualified. This adds no public API or generated public contract.
+
+This is an explicitly approved refinement of an unreleased private ABI, not a compatibility-free precedent. The reader
+requires the refined record shape; earlier eleven-token entries, including the untouched #938 binary fixture, reject
+with recompile/package guidance. There is no legacy decoder, version negotiation or inference fallback. The original
+fixture bytes and provenance remain intact. The historical reader acceptance result predates this approved change.

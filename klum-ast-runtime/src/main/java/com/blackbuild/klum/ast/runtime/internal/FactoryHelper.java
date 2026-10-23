@@ -362,6 +362,12 @@ public class FactoryHelper extends GroovyObjectSupport {
         );
     }
 
+    /** Configuration-only root adapter; retains the ordinary preparation and completion lifecycle. */
+    static <T> T createWithConfiguration(Class<T> type, @Nullable String key,
+                                         Consumer<InternalKlumBuilder<T>> configuration) {
+        return doCreate(key, () -> createBuilder(type, key), configuration);
+    }
+
     /**
      * Creates a new instance of the given type using the provided values, key and config closure.
      * <p>
@@ -566,7 +572,7 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     private static @NotNull String extractKeyFromFilename(String filename) {
         int endIndex = filename.lastIndexOf('.');
-        return endIndex != -1 ? filename.substring(0, endIndex) : filename;
+        return endIndex == -1 ? filename : filename.substring(0, endIndex);
     }
 
     public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {

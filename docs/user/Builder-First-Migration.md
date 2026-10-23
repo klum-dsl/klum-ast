@@ -353,6 +353,13 @@ The migration checklist above is sufficient for ordinary Schema and Model work. 
 generated producer projection, lifecycle state, and the public-versus-synthetic generated API, see
 [Behind the Curtain#builder-first-materialization](Behind-the-Curtain.md#builder-first-materialization).
 
+## Opt-in structured Builder input
+
+For caller-parsed Map/List/scalar data that should invoke admitted domain Builder operations, see
+[Structured Input](Structured-Input.md). Recompile and package Schema-generated metadata for this route. It adds no
+parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
+callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
+
 ## Templates, Serialization, and Jackson
 
 Templates remain client-facing DSL Object recipes. Every owned node created in Template mode has persistent Template

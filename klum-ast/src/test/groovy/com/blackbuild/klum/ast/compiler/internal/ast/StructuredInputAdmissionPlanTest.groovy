@@ -95,14 +95,14 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.model() == 'admission.Parent'
         plan.builder() == 'admission.Parent_DSL$Builder'
         plan.entries().collect { [it.externalName(), it.role().name(), it.operation().name(), it.payload().kind().name()] } == [
-                ['annotations', 'PROPERTY', 'annotations', 'MAP'],
+                ['annotations', 'PROPERTY', 'annotation', 'MAP'],
                 ['child', 'OWNED_OBJECT', 'child', 'NESTED_OBJECT'],
                 ['children', 'KEYED_OWNED_MAP', 'children', 'NESTED_OBJECT'],
                 ['fallback', 'PROPERTY', 'fallback', 'SCALAR'],
                 ['inheritedLabel', 'PROPERTY', 'inheritedLabel', 'SCALAR'],
                 ['inheritedOperation', 'OPERATION', 'inheritedOperation', 'SCALAR'],
-                ['labels', 'PROPERTY', 'labels', 'LIST'],
-                ['nestedAnnotations', 'PROPERTY', 'nestedAnnotations', 'MAP'],
+                ['labels', 'PROPERTY', 'label', 'LIST'],
+                ['nestedAnnotations', 'PROPERTY', 'nestedAnnotation', 'MAP'],
                 ['promote', 'OPERATION', 'promote', 'SCALAR'],
                 ['renamed', 'PROPERTY', 'region', 'ENUM']
         ]
@@ -115,6 +115,114 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         }
         plan.entries()*.operation().every { it.declaringBuilder().endsWith('_DSL$Builder') && it.descriptorGroup() }
         plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
+    }
+
+    def "rejects custom Number admission with an actionable source and type diagnostic"() {
+        given:
+        def unit = compilationUnit('''
+            package numericboundary
+
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            final class OpaqueNumber extends Number {
+                private OpaqueNumber() { throw new AssertionError('No input construction route') }
+                int intValue() { throw new UnsupportedOperationException() }
+                long longValue() { throw new UnsupportedOperationException() }
+                float floatValue() { throw new UnsupportedOperationException() }
+                double doubleValue() { throw new UnsupportedOperationException() }
+            }
+
+            @DSL class Configuration {
+                OpaqueNumber budget
+                List<OpaqueNumber> budgets
+                Map<String, OpaqueNumber> limits
+                @Builder.Method void allocate(OpaqueNumber value) { budget = value }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'numericboundary.Configuration' })
+        def carrier = new File(compilerConfiguration.targetDirectory, 'numericboundary/Configuration_DSL$WirePlan.class')
+
+        then:
+        plan.entries().empty
+        plan.rejections()*.source() == [
+                'numericboundary.Configuration#allocate(numericboundary.OpaqueNumber):void',
+                'numericboundary.Configuration#budget',
+                'numericboundary.Configuration#budgets',
+                'numericboundary.Configuration#limits'
+        ]
+        plan.rejections()*.reason().every {
+            it.contains('unsupported numeric type numericboundary.OpaqueNumber') &&
+                    it.contains('primitive/boxed numeric types, BigInteger or BigDecimal')
+        }
+        readCarrierData(carrier) == plan.canonicalForm()
+    }
+
+    def "admits only the approved standard numeric targets: #type"() {
+        given:
+        def unit = compilationUnit("""
+            package standardnumeric
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import java.math.BigInteger
+            import java.math.BigDecimal
+
+            @DSL class Configuration {
+                $type budget
+                @Builder.Method void allocate($type value) { budget = value }
+            }
+        """)
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'standardnumeric.Configuration' })
+
+        then:
+        plan.entries()*.externalName() == ['allocate', 'budget']
+        plan.entries().every { it.payload().kind().name() == 'SCALAR' }
+        plan.rejections().empty
+
+        where:
+        type << ['byte', 'short', 'int', 'long', 'float', 'double',
+                 'Byte', 'Short', 'Integer', 'Long', 'Float', 'Double', 'BigInteger', 'BigDecimal']
+    }
+
+    def "rejects opaque List and Map whole-container operation targets"() {
+        given:
+        def unit = compilationUnit('''
+            package collectionboundary
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            final class OpaqueWords<E> extends ArrayList<E> {
+                private OpaqueWords() { throw new AssertionError('No input construction route') }
+            }
+            final class OpaqueLabels<K, V> extends LinkedHashMap<K, V> {
+                private OpaqueLabels() { throw new AssertionError('No input construction route') }
+            }
+            @DSL class Configuration {
+                @Builder.Method void words(OpaqueWords<String> value) { }
+                @Builder.Method void labels(OpaqueLabels<String, String> value) { }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'collectionboundary.Configuration' })
+
+        then:
+        plan.entries().empty
+        plan.rejections()*.source() == [
+                'collectionboundary.Configuration#labels(collectionboundary.OpaqueLabels):void',
+                'collectionboundary.Configuration#words(collectionboundary.OpaqueWords):void'
+        ]
+        plan.rejections().every {
+            it.reason().contains('unsupported whole-container payload target collectionboundary.Opaque') &&
+                    it.reason().contains('generated element population')
+        }
     }
 
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {
@@ -659,7 +767,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         readCarrierData(carrier).readLines().each { line ->
             def fields = line.split('\\|', -1)
             if (fields[0] == 'entry')
-                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10]]
+                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10], fixedChildKey: decode(fields[11])]
             if (fields[0] == 'rejection')
                 result.rejections << [source: decode(fields[1]), reason: decode(fields[2])]
         }
@@ -677,7 +785,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         readCarrierData(carrier).readLines().each { line ->
             if (line.startsWith('entry|')) {
                 def fields = line.tokenize('|')
-                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10]]
+                result.entries << [name: decode(fields[1]), role: fields[2], source: decode(fields[3]), payload: fields[10], fixedChildKey: decode(fields[11])]
             }
             if (line.startsWith('rejection|')) {
                 def fields = line.tokenize('|')
