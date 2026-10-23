@@ -51,7 +51,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             diagnostics.clear();
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
-                definition(builder);
+                definition(builder, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(builder));
@@ -72,15 +72,25 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (root == null || root.isBlank() || Arrays.stream(root.split("\\.", -1)).anyMatch(part -> part.isEmpty()
                 || !Character.isJavaIdentifierStart(part.codePointAt(0))
                 || part.codePoints().anyMatch(value -> !Character.isJavaIdentifierPart(value))))
-            throw new IllegalArgumentException("Expected a binary Schema or generated Builder type name: " + root);
-        return root.endsWith(BUILDER) ? root : root + BUILDER;
+            throw new IllegalArgumentException("Expected a fully qualified DSL Model binary name: " + root);
+        if (root.endsWith(BUILDER))
+            throw new IllegalArgumentException("Generated Builder names are not rootTypes values; use DSL Model name '"
+                    + root.substring(0, root.length() - BUILDER.length()) + "' instead of '" + root + "'");
+        return root + BUILDER;
     }
 
     private void definition(Class<?> builder) throws ClassNotFoundException {
+        definition(builder, null);
+    }
+
+    private void definition(Class<?> builder, String rootModel) throws ClassNotFoundException {
         if (definitions.containsKey(builder.getName())) return;
         Class<?> factory = Class.forName(builder.getName().substring(0, builder.getName().length() - "Builder".length())
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
+        if (rootModel != null && !schema.model().getName().equals(rootModel))
+            throw new IllegalArgumentException("Resolved Builder contract '" + builder.getName() + "' belongs to DSL Model '"
+                    + schema.model().getName() + "', not requested DSL Model '" + rootModel + "'");
         if (Modifier.isAbstract(schema.model().getModifiers()))
             throw new IllegalArgumentException("Abstract root/owned target requires a separately qualified alias policy: " + builder.getName());
         Map<String, Object> object = new LinkedHashMap<>();

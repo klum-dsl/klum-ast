@@ -8,18 +8,19 @@ Authority: [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md), its
 ## Delivered surface and placement
 
 The existing Schema plugin registers `generateKlumJsonSchema`; only an explicit task request selects generation.
-`klumSchema.jsonSchema` exposes `rootTypes` (a set of binary-name strings), `classpath` (a configurable file collection)
-and `outputDirectory` (default `build/generated/klum-json-schema`). A Schema name resolves its exact generated Builder
-name without loading the Model as an inspection target; explicit `Foo_DSL$Builder` names are also accepted. Roots are
-never discovered. Default classpath inputs are main runtime outputs/dependencies plus the convention's Groovy selection,
+`klumSchema.jsonSchema` exposes `rootTypes` (`SetProperty<String>` of fully qualified DSL Model binary names),
+`classpath` (a configurable file collection) and `outputDirectory` (default `build/generated/klum-json-schema`). A DSL Model name resolves its exact generated Builder
+name internally; `CompiledBuilderSchema` verifies that the resolved contract belongs to the requested Model, without
+inspecting or initializing the Model implementation. Generated `Foo_DSL$Builder` names are rejected as public root values
+with guidance suggesting `Foo`. Roots are never discovered. Default classpath inputs are main runtime outputs/dependencies plus the convention's Groovy selection,
 which otherwise remains compile-only for consumers. The extension can replace them with a complete binary-only classpath.
 
 `topLevelSchemaClass` was assessed against `klumModel.topLevelScript` and `klumSchema.gdsl` vocabulary. The Model property
-selects one construction script. JSON Schema generation supports several independent explicit roots and accepts public
-Builder names without loading Schema classes. The nested `klumSchema.jsonSchema.rootTypes` follows the existing
+selects one construction script. JSON Schema generation supports several independent explicit roots selected by DSL Model
+names without loading Model classes during configuration. The nested `klumSchema.jsonSchema.rootTypes` follows the existing
 feature-specific `gdsl` block and avoids suggesting one global top-level Schema or requesting a configuration-time Class.
-No alias or competing singular property is added. This is the implementation's naming choice for draft review, with no
-unresolved naming decision blocking this slice.
+No alias or competing singular property is added. The maintainer-directed refinement retains this property name and
+selects only DSL Model names; generated Builders remain internal resolution details.
 
 `JsonSchemaProjection` is package-private plugin implementation in the facade's internal package. The plugin has a
 compile-only runtime project dependency solely to link this class to package-private `CompiledBuilderSchema`; no runtime
@@ -115,6 +116,28 @@ The pinned external validator again passes all three metaschemas and 6 accepted 
 Independent Standards and Specification follow-up reviews both report zero findings. The complete root check above
 remains the full-suite qualification; it is not claimed to have been repeated for this source-annotation-only follow-up.
 The next remote analysis must confirm the finding is absent at the follow-up revision.
+
+## Maintainer refinement — DSL Model roots
+
+The public root contract is refined from the reviewed `ae783d052` revision: only fully qualified DSL Model names are
+accepted in `SetProperty<String> rootTypes`, matching the GDSL export convention. No `Class<?>` configuration value or
+configuration-time Model loading is introduced. The private projector appends the existing `_DSL$Builder` suffix and
+uses `CompiledBuilderSchema` to compare the contract's Model name with the requested name. It never resolves the requested
+Model implementation as an inspection target. A generated Builder root is rejected with a diagnostic suggesting its
+corresponding DSL Model name. Builder-based filenames, `$defs` identities and references are unchanged.
+
+The documentary fixture and all positive root selections use Model names. Two focused negative cases cover a generated
+Builder name and a deliberately misdirected binary contract whose Builder/Factory agree on a different Model. The latter
+has no requested Model implementation at all, qualifying the identity check without Model inspection. All **14 focused
+TestKit cases pass** with no failures/errors/skips (**48s**), including the existing multiple-root, stale-output,
+dependency/prose invalidation, configuration/build-cache, relocation, isolation and execution-trap cases. All three Groovy
+generations retain byte-identical output; pinned external validation passes each metaschema and 6 accepted / 14 rejected
+instances per generation. An initial negative-fixture iteration put a Java contract ahead of its Groovy Model dependency;
+co-compiling the malformed fixture with the existing Groovy fixture corrects that test setup. No production defect was
+involved. The repository-wide final-head check and live CI/SonarCloud results for this follow-up are reported in PR #949.
+
+No facade/generated-annotation, projection-shape, task/output, runtime, loader, publication or packaging behavior changes.
+This refinement does not complete the separate consumer-owned ScHelm acceptance gate or change issue/milestone state.
 
 ## Delivery boundary
 

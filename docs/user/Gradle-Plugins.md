@@ -85,7 +85,7 @@ the following things:
 
 ### Opt-in JSON Schema generation
 
-`klumSchema.jsonSchema { rootTypes.add('example.Deployment_DSL$Builder') }` selects explicit compiled roots for
+`klumSchema.jsonSchema { rootTypes.add('example.Deployment') }` selects fully qualified DSL Model names for
 `generateKlumJsonSchema`. The task writes ordinary Draft 2020-12 files without executing Schema code. It is selected
 explicitly and adds no publication wiring. See [JSON Schema generation](Json-Schema.md) for classpath configuration,
 cache/output behavior and structural limits.

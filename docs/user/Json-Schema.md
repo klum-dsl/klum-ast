@@ -6,15 +6,19 @@ or executing Schema code. Use matching plugin, compiler and runtime versions wit
 
 ## Generating files
 
-Apply `com.blackbuild.klum-ast-schema` as described in [Gradle Plugins](Gradle-Plugins.md). Select roots by binary name;
-a Schema name such as `example.Deployment` is shorthand for its generated `example.Deployment_DSL$Builder` contract.
-Use strings rather than class literals so build configuration does not load Schema classes. Several roots are supported.
+Apply `com.blackbuild.klum-ast-schema` as described in [Gradle Plugins](Gradle-Plugins.md). Select roots by fully qualified DSL Model binary name,
+consistent with GDSL export. `rootTypes` is a `SetProperty<String>`; use strings rather than class literals so build
+configuration does not load Model classes. Several roots are supported. The task resolves each Model name to its generated
+Builder contract internally and verifies the contract's Model identity through `CompiledBuilderSchema`, without inspecting
+or initializing the Model implementation. Generated Builder names are rejected as root configuration values, with guidance
+to use the corresponding Model name.
 
-(See: `KlumJsonSchemaGenerationTest#'generate structural input schemas from explicit binary roots with Groovy #generation'`.)
+(See: `KlumJsonSchemaGenerationTest#'generate structural input schemas from explicit DSL Model roots with Groovy #generation'`.)
 
 ```groovy
 klumSchema.jsonSchema {
-    rootTypes.addAll('example.Deployment_DSL$Builder', 'example.Service')
+    rootTypes.add('example.Deployment')
+    rootTypes.add('example.Service')
 }
 ```
 
@@ -48,6 +52,7 @@ successful output; it must not be mistaken for a successful fresh generation. Em
 
 ## Supported input and limits
 
+Reusable definition identities and references retain fully qualified generated Builder names internally.
 The generated document uses reusable `$defs`/`$ref` for concrete owned objects, closed object properties, literal String
 keys for ordinary data maps and keyed owned maps, scalar/enum values, supported field containers, and admitted authored
 `@Builder.Method` operations with one payload. Inherited members and retained prose are preserved. A Map/List operation

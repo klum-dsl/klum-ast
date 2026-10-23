@@ -3,7 +3,7 @@
 ## Opt-in JSON Schema tooling
 
 The Schema plugin's `generateKlumJsonSchema` task uses compiled public contracts with current generated input enrichment.
-Recompile older Schemas and keep plugin/compiler/runtime versions aligned before enabling it. Configure explicit roots;
+Recompile older Schemas and keep plugin/compiler/runtime versions aligned before enabling it. Configure explicit DSL Model names as strings;
 no source discovery, input parser or publication change is required. See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased

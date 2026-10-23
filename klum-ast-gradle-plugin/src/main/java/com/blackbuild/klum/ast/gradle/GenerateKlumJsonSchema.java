@@ -88,7 +88,7 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
     @TaskAction
     public void generate() throws IOException {
         List<String> roots = getRootTypes().get().stream().sorted().toList();
-        if (roots.isEmpty()) throw new GradleException("Configure klumSchema.jsonSchema.rootTypes with at least one explicit Schema or generated Builder binary name");
+        if (roots.isEmpty()) throw new GradleException("Configure klumSchema.jsonSchema.rootTypes with at least one fully qualified DSL Model binary name");
         Map<String, String> documents = project(roots);
         Path output = getOutputDirectory().get().getAsFile().toPath();
         Set<String> previous = previousOutputs(output);

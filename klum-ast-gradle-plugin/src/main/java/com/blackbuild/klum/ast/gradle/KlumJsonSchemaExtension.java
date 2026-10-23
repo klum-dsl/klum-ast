@@ -29,7 +29,7 @@ import org.gradle.api.provider.SetProperty;
 
 /** Explicit roots and binary inputs for opt-in structural JSON Schema generation. */
 public abstract class KlumJsonSchemaExtension {
-    /** Binary Schema names or generated Builder names; no discovery is performed. */
+    /** Fully qualified DSL Model binary names; generated Builder names are not accepted. */
     public abstract SetProperty<String> getRootTypes();
     /** Complete Schema/API/runtime/annotation classpath, isolated from the Gradle daemon. */
     public abstract ConfigurableFileCollection getClasspath();

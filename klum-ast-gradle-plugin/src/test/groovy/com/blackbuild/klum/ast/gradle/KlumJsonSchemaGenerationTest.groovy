@@ -43,7 +43,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')
-    def 'generate structural input schemas from explicit binary roots with Groovy #generation'() {
+    def 'generate structural input schemas from explicit DSL Model roots with Groovy #generation'() {
         given:
         fixture(generation)
 
@@ -178,10 +178,39 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         where:
         roots                           | message
-        '[]'                            | 'at least one explicit Schema or generated Builder'
-        "['../Deployment']"             | 'Expected a binary Schema or generated Builder type name'
+        '[]'                            | 'at least one fully qualified DSL Model'
+        "['../Deployment']"             | 'Expected a fully qualified DSL Model binary name'
         "['java.lang.String']"          | "root 'java.lang.String'"
         "['example.AbstractDeployment']" | 'Builder self bound and Factory result disagree'
+    }
+
+    def 'rejects generated Builder root names with DSL Model guidance'() {
+        given:
+        fixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Deployment_DSL\$Builder'])\n")
+
+        when:
+        def result = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        result.output.contains('Generated Builder names are not rootTypes values')
+        result.output.contains("use DSL Model name 'example.Deployment'")
+        !trap.exists()
+        !output('example.Deployment').exists()
+    }
+
+    def 'rejects a Builder contract belonging to a different DSL Model'() {
+        given:
+        fixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Misdirected'])\n")
+
+        when:
+        def result = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        result.output.contains("belongs to DSL Model 'example.Service', not requested DSL Model 'example.Misdirected'")
+        !trap.exists()
+        !output('example.Misdirected').exists()
     }
 
     def 'missing isolated runtime cannot fall back to plugin or daemon runtime classes'() {
@@ -310,6 +339,15 @@ import java.lang.annotation.*
         File deployment = new File(producer, 'schema/src/main/groovy/example/Deployment.groovy')
         deployment.text = deployment.text.replace('import java.lang.annotation.*', 'import java.lang.annotation.*\nimport com.fasterxml.jackson.annotation.JsonProperty')
                 .replace('@Builder.Method @Policy', "@Builder.Method @JsonProperty('configure-input') @Policy")
+        // Malformed binary contract: no Misdirected Model exists, and both contract signatures name Service.
+        writeSource('schema/src/main/groovy/example/Misdirected_DSL.groovy', """
+package example
+import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
+class Misdirected_DSL {
+    @GeneratedInput.Schema interface Builder<SELF extends Service> {}
+    interface Factory { Service One() }
+}
+""")
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -323,7 +361,8 @@ repositories { maven { url = '${repository.toURI()}' } }
 configurations { schemaBinary }
 dependencies { schemaBinary 'fixture:schema:1.0' }
 klumSchema.jsonSchema {
-    rootTypes.addAll('example.Deployment_DSL\$Builder', 'example.Service')
+    rootTypes.add('example.Deployment')
+    rootTypes.add('example.Service')
     ${defaults ? '' : 'classpath.setFrom(configurations.schemaBinary, files(' + runtime + ', ' + groovy + '))'}
 }
 tasks.register('initializeControl', JavaExec) {
