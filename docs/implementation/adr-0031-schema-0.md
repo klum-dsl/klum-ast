@@ -1,10 +1,16 @@
 # SCHEMA-0 — JSON Schema delivery plan after WIRE-1
 
-Date: 2026-10-23. Status: **accepted architecture; simplified feasibility plan for maintainer acceptance; no implementation started**.
+Date: 2026-10-23. Status: **accepted architecture; SCHEMA-T test-only feasibility in qualification; production generator unimplemented**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Reviewed baseline: `c9a8918fba103544209e53cadfc8b51d996e8e63` (merged WIRE-1).
+
+## SCHEMA-T implementation checkpoint
+
+The separately assigned test-only tracer now has [A/B/C executable evidence](evidence/issue-529-schema-t.md).
+This checkpoint updates implementation status only. The plan below retains its original proposal/history and the deferred
+production inventory; no production generator or Gradle plugin has been implemented or automatically authorized.
 
 ## Authority and reconciled baseline
 
