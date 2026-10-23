@@ -146,5 +146,4 @@ The executable examples live in
 [`StructuredInputDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputDocumentaryTest.groovy):
 “one structured operation configures several root properties” and
 “Holder supplies completed LINK context for later phases after applying an already-prepared Builder”.
-Related language work: [#932](https://github.com/klum-dsl/klum-ast/issues/932); optional matching JSON Schema generation
-remains [#529](https://github.com/klum-dsl/klum-ast/issues/529).
+Related language work: [#932](https://github.com/klum-dsl/klum-ast/issues/932); [optional matching standalone JSON Schema generation](Json-Schema.md) is the first tooling slice of [#529](https://github.com/klum-dsl/klum-ast/issues/529).

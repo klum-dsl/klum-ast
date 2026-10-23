@@ -1,5 +1,10 @@
 # Unreleased
 
+- Added optional standalone `klum-ast-json-schema` generation of Draft 2020-12 from current compiled private WIRE carriers
+  and public Builder contracts, without executing Schema code. Covers admitted concrete structured inputs with explicit
+  structural/numeric limits; the dedicated Gradle plugin and consumer acceptance remain subsequent delivery work.
+  See [JSON Schema](docs/user/Json-Schema.md) ([#529](https://github.com/klum-dsl/klum-ast/issues/529)).
+
 - Added opt-in parser-free `KlumStructuredInput.readRoot` and `applyToBuilder` for caller-parsed Map/List/scalar data.
   Complete preflight precedes ordered Builder execution; concrete ownership, literal keyed maps and admitted one-payload
   operations preserve ordinary construction/lifecycle semantics. Numeric/container/keyMapping admission is bounded;

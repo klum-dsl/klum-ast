@@ -32,6 +32,11 @@ dependencyResolutionManagement {
             library('groovy-v4-bom', 'org.apache.groovy', 'groovy-bom').versionRef("groovy-v4")
             library('groovy-v5-bom', 'org.apache.groovy', 'groovy-bom').versionRef("groovy-v5")
 
+            library('asm', 'org.ow2.asm:asm:9.9.1')
+            library('groovy-json-v3', 'org.codehaus.groovy', 'groovy-json').versionRef('groovy-v3')
+            library('groovy-json-v4', 'org.apache.groovy', 'groovy-json').versionRef('groovy-v4')
+            library('groovy-json-v5', 'org.apache.groovy', 'groovy-json').versionRef('groovy-v5')
+
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 
             version("klum-cast", "0.5.0")
@@ -78,6 +83,7 @@ include 'klum-ast'
 include 'klum-ast-runtime'
 include 'klum-ast-test-support'
 include 'klum-ast-jackson'
+include 'klum-ast-json-schema'
 include 'klum-ast-gradle-plugin'
 include 'klum-ast-bean-validation'
 include 'klum-ast-bom'

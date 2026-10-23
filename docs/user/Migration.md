@@ -9,6 +9,13 @@ For caller-parsed Map/List/scalar data that should invoke admitted domain Builde
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
 callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
 
+### Optional JSON Schema tooling
+
+[JSON Schema](Json-Schema.md) generation is a separate opt-in standalone tool. Supply current compiled Schema/API
+artifacts, including public generated contracts and the private twelve-token WIRE-PLAN/B carrier; recompile older
+artifacts. No runtime or Jackson migration is required. The dedicated Schema task/plugin and consumer acceptance
+remain subsequent #529 delivery work.
+
 ## To 4.1
 
 ### Abstract Builder operations
