@@ -53,5 +53,37 @@ the paused historical SCHEMA-1 branch is untouched. #932 language extensions rem
 
 ## Final qualification
 
-Full affected-module lanes, root checks, independent Standards/Specification review, history review and remote
-delivery results are recorded here after execution.
+Code qualification at `3f69d3d2e57a9fde4cf21361d640fa54df780c6b`:
+
+| Compiler module lane | Cases | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 `test` | 2,303 | 0 | 16 |
+| Groovy 4 `groovy4Tests` | 2,305 | 0 | 15 |
+| Groovy 5 `groovy5Tests` | 2,305 | 0 | 15 |
+
+The 91-case focused Groovy 3 run preceded the full affected-module command:
+
+```shell
+./gradlew :klum-ast:test :klum-ast:groovy4Tests :klum-ast:groovy5Tests --no-parallel --console=plain
+./gradlew check --continue --no-parallel --console=plain
+```
+
+Both commands pass. The final serial root check passes repository-wide: all three compiler lanes, runtime/Jackson/Bean
+Validation/Test Support suites, all 359 Gradle-plugin cases, generated-contract and JPMS qualification, license checks,
+coverage reports and lane isolation. It reran consumers of rebuilt modular artifacts against the final reviewed source.
+No test suppression was added or weakened. Markdown fences, 87 local link targets, 12 local fragments and
+`git diff --check` pass. The current user guide remains accurate: packaged generated metadata is still required, without
+specifying the retired transport. No user page, migration, navigation or CHANGES update is needed.
+
+Independent cumulative review against `de6337d43...3f69d3d2e`: **Standards zero findings; Specification zero actionable
+findings**. The Standards review explicitly accepts independent fixed expectations despite their repeated map structure;
+the Specification review confirms the coverage migration and the historical tracer's retirement. Neither reviewer ran
+builds. This follow-up records results only; the reviewed implementation commit is preserved.
+
+History review retains one cohesive removal/expected-contract migration commit, followed by this final qualification
+record. No unrelated edits or history rewrite. Refreshed master remains `de6337d434b3f46b9f0ccce478bf9c150010f8e9`;
+no rebase was required. Delivery capability audit: **Git transport authorized; GitHub CLI authorized**. The explicit
+assignment authorizes branch publication and a draft PR with **Related: #529**. Tracker/curation impact is otherwise
+**none**: no issue, milestone, release placement or curation-index mutation. Remote CI/SonarCloud results are separate
+from these local results and must be inspected at the published head. Merge and further generator work remain outside
+this assignment; Hive reconciliation is requested after handoff.
