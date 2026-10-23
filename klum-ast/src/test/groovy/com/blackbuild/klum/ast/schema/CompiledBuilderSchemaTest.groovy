@@ -32,6 +32,7 @@ import groovyjarjarasm.asm.FieldVisitor
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchemaReplacementProbe
 import spock.lang.Issue
 
 import java.util.jar.JarEntry
@@ -123,6 +124,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def parent = carrier(api, 'admission.Base')
         def comparison = compare(schema, [model: local.model, builder: local.builder,
                 entries: (parent.entries + local.entries).unique { it.source }, rejections: parent.rejections + local.rejections])
+        replacementParity(binaries, [model: local.model, builder: local.builder,
+                entries: (parent.entries + local.entries).unique { it.source }.sort { it.externalName }, rejections: parent.rejections + local.rejections])
 
         then:
         schema.parents.contains('admission.Base_DSL$Builder')
@@ -238,6 +241,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         when:
         def schema = CompiledBuilderSchema.read(binaries, 'safeannotations.Configuration_DSL$Builder', 'safeannotations.Configuration_DSL$Factory')
+        replacementParity(binaries, carrier(jar, 'safeannotations.Configuration'))
         def configure = schema.methods.find { it.name == 'configure' }
 
         then:
@@ -306,6 +310,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def child = CompiledBuilderSchema.read(binaries, 'fixedschema.Entry_DSL$Builder', 'fixedschema.Entry_DSL$Factory')
         def comparison = compare(schema, oracle)
         def cluster = CompiledBuilderSchema.readScope(binaries, 'fixedschema.Configuration_DSL$Builder$ClusterFactory_slots')
+        replacementParity(binaries, oracle)
 
         then:
         comparison.mismatches.find { it.path == 'fixedschema.Configuration#primary:fixedChildKey' } ==
@@ -459,6 +464,57 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         where:
         target << ['Set<OpaqueNumber>', 'Map<Integer, OpaqueNumber>', 'List<Set<OpaqueNumber>>',
                    'Map<String, SortedSet<OpaqueNumber>>', 'Map<Integer, Set<String>>']
+    }
+
+    def 'production replacement has complete carrier parity with no carrier packaged: #model'() {
+        given:
+        def jar = compileJar([trapped(source)] + NAMING)
+        def binaries = isolated([withoutCarriers(jar)])
+        def oracle = carrier(jar, model)
+        oracle.entries.each { it.descriptors = it.descriptors.collect { canonicalDescriptor(it) }.sort() }
+
+        when:
+        def actual = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName(model + '_DSL$Builder', false, binaries), Class.forName(model + '_DSL$Factory', false, binaries))
+
+        then:
+        actual.model == oracle.model
+        actual.builder == oracle.builder
+        actual.entries == oracle.entries
+        actual.rejections as Set == oracle.rejections as Set
+        actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
+        System.getProperty('wire.schema.executed') == null
+        !binaries.resolved.any { it.endsWith('$WirePlan') || it.endsWith('$Builder') && !it.contains('_DSL') }
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        model                                  | source
+        'admission.Parent'                     | StructuredInputContractFixtures.ADMISSION
+        'rejection.Parent'                     | StructuredInputContractFixtures.REJECTIONS
+        'numericboundary.Configuration'        | StructuredInputContractFixtures.NUMERIC_REJECTIONS
+        'shadowedpopulation.Configuration'     | StructuredInputContractFixtures.POPULATION
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('List<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('Set<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('SortedSet<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('NavigableSet<String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('EnumSet<Mode>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('Map<String, String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('SortedMap<String, String>')
+        'collectioncontracts.Configuration'    | StructuredInputContractFixtures.collection('NavigableMap<String, String>')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Collection<String>')
+        'restrictedarguments.Configuration'    | StructuredInputContractFixtures.operationArgument('Map<Integer, Set<String>>')
+    }
+
+    private static void replacementParity(ClassLoader binaries, Map oracle) {
+        def actual = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName(oracle.builder, false, binaries), Class.forName(oracle.model + '_DSL$Factory', false, binaries))
+        def expected = oracle.entries.collect { it + [descriptors: it.descriptors.collect { canonicalDescriptor(it) }.sort()] }
+        assert actual.entries == expected
+        assert actual.rejections as Set == oracle.rejections as Set
+        assert actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
     }
 
     private static String renderMismatches(Map comparison) {

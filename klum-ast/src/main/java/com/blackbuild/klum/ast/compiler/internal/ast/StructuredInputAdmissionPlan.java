@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import groovyjarjarasm.asm.ClassWriter;
@@ -41,6 +42,8 @@ import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
+import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.control.SourceUnit;
 
 import java.io.File;
@@ -123,11 +126,77 @@ final class StructuredInputAdmissionPlan {
                 .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
                 .forEach(method -> classifyOperation(method, entries, rejections));
 
+        enrichPublicContract(transformation, entries, rejections);
         rejectCollisions(entries, rejections);
         entries.sort(Comparator.comparing(Entry::externalName).thenComparing(Entry::source));
         rejections.sort(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason));
         model.setNodeMetaData(METADATA_KEY, new StructuredInputAdmissionPlan(
                 model.getName(), GeneratedDslSupport.of(model).getBuilderInterface().redirect().getName(), entries, rejections));
+    }
+
+    /** Only irreducible source/group facts; signatures, payloads, names of methods and docs stay on declarations. */
+    private static void enrichPublicContract(DSLASTTransformation transformation, List<Entry> entries, List<Rejection> rejections) {
+        ClassNode model = transformation.annotatedClass.redirect();
+        ClassNode builder = GeneratedDslSupport.of(model).getBuilderInterface().redirect();
+        AnnotationNode schema = new AnnotationNode(ClassHelper.make(GeneratedInput.Schema.class));
+        FieldNode key = getKeyField(model);
+        if (key != null) schema.setMember("key", new ConstantExpression(key.getName()));
+        ListExpression invisible = new ListExpression();
+        for (FieldNode field : transformation.builderFields.keySet()) {
+            if (excludedField(field)) continue;
+            MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(field.getName()), Parameter.EMPTY_ARRAY);
+            Rejection rejection = rejections.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
+            if (getter == null) {
+                if (rejection != null) {
+                    AnnotationNode exclusion = new AnnotationNode(ClassHelper.make(GeneratedInput.Exclusion.class));
+                    exclusion.setMember("member", new ConstantExpression(field.getName()));
+                    exclusion.setMember("category", new ConstantExpression("ABSENT_FIELD"));
+                    invisible.addExpression(new AnnotationConstantExpression(exclusion));
+                }
+                continue;
+            }
+            AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
+            fact.setMember("value", new ConstantExpression(field.getName()));
+            Name name = externalName(field);
+            if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
+            else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
+            Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
+            if (entry != null && entry.fixedChildKey() != null)
+                fact.setMember("fixedKey", new ConstantExpression(entry.fixedChildKey()));
+            // Type-based exclusions remain derivable. Ownership/mapping/population decisions are not reflected.
+            if (rejection != null && !name.ignored()) {
+                String reason = rejection.reason();
+                String category = reason.equals("requires one concrete owned relationship") ? "OWNERSHIP"
+                        : reason.equals("requires Map<String, concrete keyed DSL Object> ownership") ? "KEYED_OWNERSHIP"
+                        : reason.contains("@Field.keyMapping") ? "KEY_MAPPING"
+                        : reason.startsWith("has no unambiguous compiler-generated") ? "POPULATION"
+                        : reason.equals("field is absent from the final public Builder contract") ? "ABSENT_FIELD" : null;
+                if (category != null) {
+                    fact.setMember("exclusion", new ConstantExpression(category));
+                    if (category.equals("POPULATION"))
+                        fact.setMember("detail", new ConstantExpression(DslAstHelper.getElementNameForCollectionField(field)));
+                }
+            }
+            getter.addAnnotation(fact);
+            if (entry != null) {
+                for (MethodNode method : builder.getDeclaredMethods(entry.operation().name())) {
+                    if (!entry.operation().descriptorGroup().contains(descriptor(method))) continue;
+                    AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
+                    selected.setMember("field", new ConstantExpression(field.getName()));
+                    selected.setMember("role", new ConstantExpression(entry.role().name()));
+                    method.addAnnotation(selected);
+                }
+            }
+        }
+        if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
+        builder.addAnnotation(schema);
+        // A generated projection can occupy an authored signature before annotation copying occurs.
+        transformation.builderClass.getMethods().stream()
+                .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
+                .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
+                .map(GeneratedDslSupport::publicProjectionOf).filter(method -> method != null)
+                .filter(method -> method.getAnnotations(BUILDER_METHOD).isEmpty())
+                .forEach(method -> method.addAnnotation(new AnnotationNode(BUILDER_METHOD)));
     }
 
     static StructuredInputAdmissionPlan planOf(ClassNode model) {

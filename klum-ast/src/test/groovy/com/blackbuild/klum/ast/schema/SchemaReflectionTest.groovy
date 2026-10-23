@@ -31,6 +31,7 @@ import groovyjarjarasm.asm.FieldVisitor
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchemaReplacementProbe
 import spock.lang.Issue
 
 import java.lang.module.ModuleFinder
@@ -157,7 +158,7 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         methods.find { it.name == 'endpoint' }.parameters == ['java.util.Map<java.lang.String, java.util.List<java.lang.String>>']
         !methods.find { it.name == 'addValue' && it.parameters == ['java.lang.String'] }.annotations.containsKey(GENERATED)
         root.annotations[GENERATED].tags.contains('dsl-support-role:Builder')
-        !methods.find { it.name == 'values' && it.parameters == ['java.lang.Iterable<java.lang.String>'] }.annotations.containsKey(METHOD)
+        methods.find { it.name == 'values' && it.parameters == ['java.lang.Iterable<java.lang.String>'] }.annotations.containsKey(METHOD)
         methods.find { it.name == 'child' && it.parameters.contains('groovy.lang.Closure') && it.return == 'schemar.schema.Component_DSL$Builder<schemar.schema.Component>' }
         methods.find { it.name == 'components' && it.parameters.any { it.contains('java.util.Map') } }
         methods.any { it.parameterAnnotations.flatten().contains('groovy.lang.DelegatesTo') }
@@ -376,8 +377,13 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         def root = SchemaReflectionProbe.inspect(binaries, ROOT)
         def factory = SchemaReflectionProbe.inspect(binaries, 'schemar.schema.Application_DSL$Factory')
         def inheritedDoc = SchemaReflectionProbe.exactDoc(binaries, ROOT, 'region')
+        def replacement = CompiledBuilderSchemaReplacementProbe.read(Class.forName(ROOT, false, binaries),
+                Class.forName('schemar.schema.Application_DSL$Factory', false, binaries))
 
         then:
+        replacement.builder == ROOT
+        replacement.entries.any { it.externalName == 'service-name' }
+        replacement.rejections.any { it.source.endsWith('#reserved') }
         root.module == 'schemar.schema'
         factory.module == 'schemar.schema'
         inheritedDoc.contains('Region from the binary API.')

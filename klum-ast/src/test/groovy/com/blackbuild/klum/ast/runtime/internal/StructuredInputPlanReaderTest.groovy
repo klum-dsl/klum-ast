@@ -46,7 +46,7 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def original = Class.forName('original938.Original', false, binaryLoader)
 
         when:
-        StructuredInputPlan.read(original)
+        LegacyStructuredInputPlan.read(original)
 
         then:
         def failure = thrown(KlumModelException)
@@ -89,7 +89,7 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def document = Class.forName('runtimeplan.Document', false, binaryLoader)
 
         when:
-        def plan = StructuredInputPlan.read(document)
+        def plan = LegacyStructuredInputPlan.read(document)
 
         then:
         plan.entries().keySet() == ['branch', 'entries', 'slot', 'stage', 'title', 'words'] as Set
@@ -142,7 +142,7 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def configuration = Class.forName('damagedplan.Configuration', false, binaryLoader)
 
         when:
-        StructuredInputPlan.read(configuration)
+        LegacyStructuredInputPlan.read(configuration)
 
         then:
         def failure = thrown(KlumModelException)
@@ -192,7 +192,7 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def failure
 
         when:
-        try { plan = StructuredInputPlan.read(child) }
+        try { plan = LegacyStructuredInputPlan.read(child) }
         catch (KlumModelException caught) { failure = caught }
 
         then:
@@ -288,7 +288,7 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
         def child = Class.forName('collisionplan.Child', false, binaryLoader)
 
         when:
-        def plan = StructuredInputPlan.read(child)
+        def plan = LegacyStructuredInputPlan.read(child)
 
         then:
         plan.entries().keySet() == ['available'] as Set
