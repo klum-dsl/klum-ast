@@ -11,6 +11,7 @@
 * Project setup
   * [Usage](Usage.md)
   * [Gradle Plugins](Gradle-Plugins.md)
+  * [JSON Schema generation](Json-Schema.md)
   * [Gradle Onboarding](Gradle-Onboarding.md)
   * [Schema Style Guide](Schema-Style-Guide.md)
   * [IntelliJ completion for DelegatingScripts](Portable-GDSL.md)

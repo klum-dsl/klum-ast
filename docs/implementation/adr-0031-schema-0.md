@@ -1,6 +1,6 @@
 # SCHEMA-0 — reflective JSON Schema delivery plan
 
-Date: 2026-10-23. Status: **WIRE migration complete; next separately assigned slice is reflective projection; SCHEMA-1 paused**.
+Date: 2026-10-23. Status: **WIRE migration and SCHEMA-GRADLE implemented; ScHelm acceptance pending; SCHEMA-1 paused**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#generator-architecture-and-fidelity).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Independent interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
@@ -8,6 +8,13 @@ Reviewed master: `de76710dfc649f17857215d5c86cbd88165ab85c` (merged #942).
 Classification: **B — revise ADR 0031 and its implementation plan**, under the explicit 2026-10-23 maintainer decision.
 This documentation revision changes no production code, generated contract, WIRE carrier or runtime implementation.
 
+
+## SCHEMA-GRADLE checkpoint — 2026-10-23
+
+The separately assigned [Gradle projection delivery](evidence/issue-529-schema-gradle.md) implements the first opt-in
+`generateKlumJsonSchema` path from explicit roots/classpath, using the final `CompiledBuilderSchema` facade privately
+inside the Schema plugin. Runtime interpretation and real ScHelm root/output acceptance remain separate. The older
+standalone SCHEMA-1 branch stays paused; historical probe instructions below retain their pinned context.
 
 ## Final compiled-contract checkpoint — 2026-10-23
 

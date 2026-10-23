@@ -2,7 +2,7 @@
 
 Date: 2026-10-20. Architecture revised: 2026-10-23 (reflective generator decision). Delivery status reconciled: 2026-10-23.
 
-Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; generator not implemented**.
+Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; opt-in reflective Gradle projection implemented; real ScHelm acceptance pending**.
 Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
 is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, ordered
 preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
@@ -10,7 +10,7 @@ records the pre-publication qualification checkpoint; [PR #940](https://github.c
 Broader #932 remains open. [SCHEMA-0](../implementation/adr-0031-schema-0.md) reconciles the independent #529 delivery
 plan against that merged baseline and merged SCHEMA-T (#942). The maintainer revision below supersedes the
 carrier-first generator approach of #941/#942. SCHEMA-R and the subsequent WIRE migration are complete as recorded below.
-SCHEMA-1 remains paused; no generator or Gradle task is implemented and no release is assigned.
+The older SCHEMA-1 branch remains paused; the independently assigned SCHEMA-GRADLE delivery below adds the first Gradle path. No release is assigned.
 
 Interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -24,6 +24,17 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
+
+## SCHEMA-GRADLE delivery — 2026-10-23
+
+The separately assigned [SCHEMA-GRADLE slice](../implementation/evidence/issue-529-schema-gradle.md) adds opt-in `generateKlumJsonSchema` to the existing
+Schema plugin. `klumSchema.jsonSchema.rootTypes` selects explicit Schema/Builder binary names; declared classpath and
+ordinary output files are tracked for up-to-date, build-cache and configuration-cache behavior. A private plugin
+projector uses `CompiledBuilderSchema` as its sole metadata seam in a closeable loader with the platform loader as parent.
+The runtime link is compile-only for plugin implementation; the inspected runtime comes from the consumer's explicit
+classpath. No new runtime dependency, public generator API, CLI, carrier, registry or publication contract is added.
+Real ScHelm root/output acceptance remains consumer-owned and pending; #529 remains open, with #932 independent.
+The older standalone SCHEMA-1 branch remains paused and untouched. Earlier checkpoints below retain their dated context.
 
 ## Final compiled-contract checkpoint — 2026-10-23
 

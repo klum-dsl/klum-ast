@@ -1,12 +1,23 @@
 # ADR 0031 implementation plan — compiler seam and `WIRE-RUNTIME` v1
 
-Date: 2026-10-21. Updated: 2026-10-23 (reflective generator revision). Status: **`WIRE-PLAN` and restricted WIRE-1 runtime merged; generator not implemented**.
+Date: 2026-10-21. Updated: 2026-10-23 (reflective generator revision). Status: **`WIRE-PLAN` and restricted WIRE-1 runtime merged; opt-in reflective Gradle projection implemented; real ScHelm acceptance pending**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
 
+
+## SCHEMA-GRADLE delivery — 2026-10-23
+
+The separately assigned [SCHEMA-GRADLE slice](evidence/issue-529-schema-gradle.md) adds opt-in `generateKlumJsonSchema` to the existing
+Schema plugin. `klumSchema.jsonSchema.rootTypes` selects explicit Schema/Builder binary names; declared classpath and
+ordinary output files are tracked for up-to-date, build-cache and configuration-cache behavior. A private plugin
+projector uses `CompiledBuilderSchema` as its sole metadata seam in a closeable loader with the platform loader as parent.
+The runtime link is compile-only for plugin implementation; the inspected runtime comes from the consumer's explicit
+classpath. No new runtime dependency, public generator API, CLI, carrier, registry or publication contract is added.
+Real ScHelm root/output acceptance remains consumer-owned and pending; #529 remains open, with #932 independent.
+The older standalone SCHEMA-1 branch remains paused and untouched. Earlier checkpoints below retain their dated context.
 
 ## Final compiled-contract checkpoint — 2026-10-23
 

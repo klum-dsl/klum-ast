@@ -83,6 +83,13 @@ the following things:
   - `klum-ast-runtime` as api dependency
   - both dependencies are added without explicit versions; the version is enforced by importing the `klum-ast-bom` platform at the plugin's version
 
+### Opt-in JSON Schema generation
+
+`klumSchema.jsonSchema { rootTypes.add('example.Deployment_DSL$Builder') }` selects explicit compiled roots for
+`generateKlumJsonSchema`. The task writes ordinary Draft 2020-12 files without executing Schema code. It is selected
+explicitly and adds no publication wiring. See [JSON Schema generation](Json-Schema.md) for classpath configuration,
+cache/output behavior and structural limits.
+
 ### Opt-in DelegatingScript metadata (4.1)
 
 `klumSchema { gdsl { publish = true; mappings { ... } } }` declares Schema-owned literal filename suffixes and
