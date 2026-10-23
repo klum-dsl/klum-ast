@@ -42,6 +42,9 @@ gradlePlugin {
 
 dependencies {
     api libs.annodocimal.gradle.plugin
+    // The private projector links to the facade only in the isolated consumer contract loader.
+    // No runtime artifact enters the plugin's published dependency graph.
+    compileOnly project(':klum-ast-runtime')
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     testImplementation libs.spock.g3
     testImplementation 'org.yaml:snakeyaml:2.6'
@@ -62,6 +65,9 @@ processResources {
 
 test {
     useJUnitPlatform()
+    inputs.file(tasks.named('jar', Jar).flatMap { it.archiveFile })
+    systemProperty 'schemaPluginJar', tasks.named('jar', Jar).flatMap { it.archiveFile }.get().asFile.absolutePath
+    systemProperty 'schemaValidationDirectory', layout.buildDirectory.dir('schema-validation').get().asFile.absolutePath
 
     def releaseBuild = rootProject.layout.projectDirectory.file('build.gradle')
     def baseConventions = rootProject.layout.projectDirectory.file('buildSrc/src/main/groovy/klum-ast.base-conventions.gradle')

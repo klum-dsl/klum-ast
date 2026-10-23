@@ -1,5 +1,12 @@
 # Migration
 
+## Opt-in JSON Schema tooling
+
+The Schema plugin's `generateKlumJsonSchema` task uses compiled public contracts with current generated input enrichment.
+Recompile older Schemas and keep plugin/compiler/runtime versions aligned before enabling it. Configure explicit DSL Model names as strings;
+output filenames use those fully qualified Model names. No source discovery, input parser or publication change is required.
+See [JSON Schema generation](Json-Schema.md).
+
 ## Unreleased
 
 ### Opt-in structured Builder input

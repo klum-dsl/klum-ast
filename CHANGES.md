@@ -1,5 +1,11 @@
 # Unreleased
 
+- Added opt-in Schema-plugin `generateKlumJsonSchema` with explicit DSL Model root names, an isolated binary classpath, Draft 2020-12
+  output in fully qualified Model-named files, tracked dependency/documentation inputs and cache/stale-output handling.
+  Generation executes no Schema code;
+  output use and publication remain consumer-owned. See [JSON Schema generation](docs/user/Json-Schema.md)
+  ([#529](https://github.com/klum-dsl/klum-ast/issues/529)); real ScHelm root/output qualification remains pending.
+
 - Added opt-in parser-free `KlumStructuredInput.readRoot` and `applyToBuilder` for caller-parsed Map/List/scalar data.
   Complete preflight precedes ordered Builder execution; concrete ownership, literal keyed maps and admitted one-payload
   operations preserve ordinary construction/lifecycle semantics. Numeric/container/keyMapping admission is bounded;
