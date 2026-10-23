@@ -113,7 +113,9 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
             }
         ''')
         childUnit.compile()
-        if (missingParent) removeEnrichment(new File(parentDirectory, 'inheritedplan/Parent_DSL$Builder.class'))
+        if (missingParent) {
+            removeEnrichment(new File(parentDirectory, 'inheritedplan/Parent_DSL$Builder.class'))
+        }
         def binaryLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL(), parentDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         def child = Class.forName('inheritedplan.Child', false, binaryLoader)
         def plan
@@ -159,7 +161,9 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
                 static { throw new AssertionError('Enum initialization') }
             }
         '''
-        if (!accepted) removeEnrichment(new File(compilerConfiguration.targetDirectory, 'freshplan/Configuration_DSL$Builder.class'))
+        if (!accepted) {
+            removeEnrichment(new File(compilerConfiguration.targetDirectory, 'freshplan/Configuration_DSL$Builder.class'))
+        }
         def classpath = System.getProperty('java.class.path') + File.pathSeparator + compilerConfiguration.targetDirectory.absolutePath
 
         when:

@@ -87,3 +87,19 @@ assignment authorizes branch publication and a draft PR with **Related: #529**. 
 **none**: no issue, milestone, release placement or curation-index mutation. Remote CI/SonarCloud results are separate
 from these local results and must be inspected at the published head. Merge and further generator work remain outside
 this assignment; Hive reconciliation is requested after handoff.
+
+## SonarCloud follow-up — PR #948
+
+The first published analysis at `47c7b1b7436cf95158685b3be6f49389ed55ab7f` passed CI and the quality gate but reported
+12 test-helper findings: ten `groovydre:S8306` missing-brace findings, one `S1479` oversized fixture switch and one
+`S134` nested archive/ASM helper. The additive follow-up adds braces, uses a literal expected-fixture map, and separates
+archive entry writing from class/method/annotation bytecode damage. All 35 fixture keys and expectation bodies are
+mechanically verified unchanged; unknown-fixture rejection and fresh per-call expectations remain. Every existing
+corruption mode and the positive diamond inventory retain their assertions. No production source, assertion, case,
+suppression, generated contract, user documentation or issue state changes.
+
+Both affected test classes pass **54 cases per Groovy 3/4/5 lane, zero failures/errors/skips**. The corresponding three
+license tasks, `verifyTestLaneIsolation`, and `git diff --check` pass. Independent follow-up Standards and Specification
+reviews report **zero actionable findings**. This test-helper-only follow-up uses focused compatibility qualification;
+the prior full local root check and successful published CI remain historical evidence, with fresh CI/SonarCloud
+qualification required at the new pushed head. The previously reviewed commits are preserved.

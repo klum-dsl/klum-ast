@@ -238,7 +238,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         when:
         String variant = target == 'String[]' ? 'String-array' : target == 'int[]' ? 'int-array' : target.tokenize('<')[0]
-        if (target == 'Map<Integer, Set<String>>') variant += '-nested-set'
+        if (target == 'Map<Integer, Set<String>>') {
+            variant += '-nested-set'
+        }
         def actual = assertContract(binaries, 'restrictedarguments-' + variant)
 
         then:
@@ -366,7 +368,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def binaries = damage == 'protocol' ? new SchemaReflectionProbe.IsolatedLoader(urls,
                 'com.blackbuild.klum.ast.runtime.generated.GeneratedInput$Field') : new URLClassLoader(urls, ClassLoader.platformClassLoader) {
             @Override URL getResource(String name) {
-                if (name == contractResource && resourceDamage == 'missing resource') return null
+                if (name == contractResource && resourceDamage == 'missing resource') {
+                    return null
+                }
                 name == contractResource && resourceDamage == 'shadow resource' ?
                         new URL('file:' + other.absolutePath + '/' + name) : super.getResource(name)
             }
@@ -428,49 +432,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(output)).withCloseable { archive ->
                 input.entries().each { entry ->
-                    byte[] bytes = input.getInputStream(entry).bytes
-                    if (entry.name == contract) {
-                        def writer = new ClassWriter(0)
-                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
-                            @Override void visit(int version, int access, String name, String signature, String parent, String[] interfaces) {
-                                if (damage == 'diamond') {
-                                    interfaces = (interfaces.toList() + 'admission/Diamond_DSL$Builder') as String[]
-                                    signature += 'Ladmission/Diamond_DSL$Builder<TSELF;>;'
-                                }
-                                super.visit(version, access, name, signature, parent, interfaces)
-                            }
-                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                                if (damage == 'schema marker' && descriptor.endsWith('GeneratedInput$Schema;')) return null
-                                super.visitAnnotation(descriptor, visible)
-                            }
-                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
-                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                                        if (damage == 'selection' && annotation.endsWith('GeneratedInput$Selection;')) return null
-                                        def delegate = super.visitAnnotation(annotation, visible)
-                                        new AnnotationVisitor(Opcodes.ASM9, delegate) {
-                                            @Override void visit(String member, Object value) {
-                                                if (damage == 'source' && annotation.endsWith('GeneratedInput$Field;') && member == 'value') value = 'forged'
-                                                if (damage == 'role' && annotation.endsWith('GeneratedInput$Selection;') && member == 'role') value = 'OPERATION'
-                                                super.visit(member, value)
-                                            }
-                                            @Override void visitEnd() {
-                                                if (annotation.endsWith('GeneratedInput$Field;')) {
-                                                    if (damage == 'fixed property key') super.visit('fixedKey', true)
-                                                    if (damage == 'exclusion') super.visit('exclusion', 'UNKNOWN')
-                                                }
-                                                super.visitEnd()
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }, 0)
-                        bytes = writer.toByteArray()
-                    }
-                    archive.putNextEntry(new JarEntry(entry.name))
-                    archive.write(bytes)
-                    archive.closeEntry()
+                    rewriteEntry(input, archive, entry, contract, damage)
                 }
                 if (damage == 'diamond') {
                     def writer = new ClassWriter(0)
@@ -486,6 +448,78 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             }
         }
         output
+    }
+
+    private static void rewriteEntry(JarFile input, JarOutputStream archive, JarEntry entry, String contract, String damage) {
+        byte[] bytes = input.getInputStream(entry).bytes
+        if (entry.name == contract) {
+            bytes = damageContract(bytes, damage)
+        }
+        archive.putNextEntry(new JarEntry(entry.name))
+        archive.write(bytes)
+        archive.closeEntry()
+    }
+
+    private static byte[] damageContract(byte[] bytes, String damage) {
+        def writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override void visit(int version, int access, String name, String signature, String parent, String[] interfaces) {
+                if (damage == 'diamond') {
+                    interfaces = (interfaces.toList() + 'admission/Diamond_DSL$Builder') as String[]
+                    signature += 'Ladmission/Diamond_DSL$Builder<TSELF;>;'
+                }
+                super.visit(version, access, name, signature, parent, interfaces)
+            }
+
+            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                if (damage == 'schema marker' && descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return null
+                }
+                super.visitAnnotation(descriptor, visible)
+            }
+
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                damageMethod(super.visitMethod(access, name, descriptor, signature, exceptions), damage)
+            }
+        }, 0)
+        writer.toByteArray()
+    }
+
+    private static MethodVisitor damageMethod(MethodVisitor visitor, String damage) {
+        new MethodVisitor(Opcodes.ASM9, visitor) {
+            @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                if (damage == 'selection' && annotation.endsWith('GeneratedInput$Selection;')) {
+                    return null
+                }
+                damageAnnotation(super.visitAnnotation(annotation, visible), annotation, damage)
+            }
+        }
+    }
+
+    private static AnnotationVisitor damageAnnotation(AnnotationVisitor visitor, String annotation, String damage) {
+        new AnnotationVisitor(Opcodes.ASM9, visitor) {
+            @Override void visit(String member, Object value) {
+                if (damage == 'source' && annotation.endsWith('GeneratedInput$Field;') && member == 'value') {
+                    value = 'forged'
+                }
+                if (damage == 'role' && annotation.endsWith('GeneratedInput$Selection;') && member == 'role') {
+                    value = 'OPERATION'
+                }
+                super.visit(member, value)
+            }
+
+            @Override void visitEnd() {
+                if (annotation.endsWith('GeneratedInput$Field;')) {
+                    if (damage == 'fixed property key') {
+                        super.visit('fixedKey', true)
+                    }
+                    if (damage == 'exclusion') {
+                        super.visit('exclusion', 'UNKNOWN')
+                    }
+                }
+                super.visitEnd()
+            }
+        }
     }
 
     private static Map assertContract(ClassLoader binaries, String fixture) {

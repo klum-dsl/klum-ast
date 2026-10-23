@@ -28,8 +28,8 @@ final class CompiledInputExpectedContracts {
     private CompiledInputExpectedContracts() {}
 
     static Map contract(String fixture) {
-        switch (fixture) {
-            case 'admission': return [model: 'admission.Parent', builder: 'admission.Parent_DSL$Builder',
+        Map expectedContracts = [
+            'admission': [model: 'admission.Parent', builder: 'admission.Parent_DSL$Builder',
                     entries: [
                             [externalName: 'annotations', role: 'PROPERTY', source: 'admission.Parent#annotations',
                              owner: 'admission.Parent_DSL$Builder',
@@ -120,8 +120,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'admission.Base#ignoredRename', reason: 'excluded by @JsonIgnore(true)'],
                             [source: 'admission.Base#implicitSecret', reason: 'excluded by @JsonIgnore(true)'],
                             [source: 'admission.Base#secret', reason: 'excluded by @JsonIgnore(true)']
-                    ]]
-            case 'collectioncontracts-EnumSet': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-EnumSet': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -130,8 +130,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.EnumSet', builder: null, keyType: null, item: [kind: 'ENUM', type: 'collectioncontracts.Mode', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-List': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-List': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -140,8 +140,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.List', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-Map': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-Map': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -150,8 +150,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'MAP', type: 'java.util.Map', builder: null, keyType: 'java.lang.String', item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-NavigableMap': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-NavigableMap': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -160,8 +160,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'MAP', type: 'java.util.NavigableMap', builder: null, keyType: 'java.lang.String', item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-NavigableSet': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-NavigableSet': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -170,8 +170,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-Set': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-Set': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -180,8 +180,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.Set', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-SortedMap': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-SortedMap': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -190,8 +190,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'MAP', type: 'java.util.SortedMap', builder: null, keyType: 'java.lang.String', item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'collectioncontracts-SortedSet': return [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
+                    ]],
+            'collectioncontracts-SortedSet': [model: 'collectioncontracts.Configuration', builder: 'collectioncontracts.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'collectioncontracts.Configuration#values',
                              owner: 'collectioncontracts.Configuration_DSL$Builder',
@@ -200,8 +200,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.SortedSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
 
-                    ]]
-            case 'fixedschema': return [model: 'fixedschema.Configuration', builder: 'fixedschema.Configuration_DSL$Builder',
+                    ]],
+            'fixedschema': [model: 'fixedschema.Configuration', builder: 'fixedschema.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'entries', role: 'KEYED_OWNED_MAP', source: 'fixedschema.Configuration#entries',
                              owner: 'fixedschema.Configuration_DSL$Builder',
@@ -238,8 +238,8 @@ final class CompiledInputExpectedContracts {
                     ], rejections: [
                             [source: 'fixedschema.Configuration#derived', reason: 'literal structured instance keys conflict with @Field.keyMapping-derived keys'],
                             [source: 'fixedschema.Configuration#linked', reason: 'requires one concrete owned relationship']
-                    ]]
-            case 'invisiblefields': return [model: 'invisiblefields.Configuration', builder: 'invisiblefields.Configuration_DSL$Builder',
+                    ]],
+            'invisiblefields': [model: 'invisiblefields.Configuration', builder: 'invisiblefields.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -248,8 +248,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'invisiblefields.Configuration#marker', reason: 'has no admitted scalar, enum, List, or Map payload'],
                             [source: 'invisiblefields.Configuration#reserved', reason: 'field is absent from the final public Builder contract'],
                             [source: 'invisiblefields.Configuration#values', reason: 'has no unambiguous compiler-generated element population method value(java.lang.Integer); replacement setters and authored overrides are not input paths']
-                    ]]
-            case 'numericboundary': return [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
+                    ]],
+            'numericboundary': [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -257,8 +257,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'numericboundary.Configuration#budget', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#budgets', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#limits', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input']
-                    ]]
-            case 'numericboundary-consume-List': return [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
+                    ]],
+            'numericboundary-consume-List': [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -266,8 +266,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'numericboundary.Configuration#budgets', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#consume(java.util.List):void', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#limits', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input']
-                    ]]
-            case 'numericboundary-consume-Map': return [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
+                    ]],
+            'numericboundary-consume-Map': [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -275,8 +275,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'numericboundary.Configuration#budgets', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#consume(java.util.Map):void', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#limits', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input']
-                    ]]
-            case 'numericboundary-consume-Map-container': return [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
+                    ]],
+            'numericboundary-consume-Map-container': [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -284,8 +284,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'numericboundary.Configuration#budgets', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#consume(java.util.Map):void', reason: 'unsupported whole-container payload target java.util.Set; use ordinary List/Map payloads or a supported field\'s generated element population'],
                             [source: 'numericboundary.Configuration#limits', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input']
-                    ]]
-            case 'numericboundary-consume-Set': return [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
+                    ]],
+            'numericboundary-consume-Set': [model: 'numericboundary.Configuration', builder: 'numericboundary.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -293,8 +293,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'numericboundary.Configuration#budgets', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#consume(java.util.Set):void', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input'],
                             [source: 'numericboundary.Configuration#limits', reason: 'unsupported numeric type numericboundary.OpaqueNumber; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input']
-                    ]]
-            case 'rejectedparent': return [model: 'rejectedparent.Configuration', builder: 'rejectedparent.Configuration_DSL$Builder',
+                    ]],
+            'rejectedparent': [model: 'rejectedparent.Configuration', builder: 'rejectedparent.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'shared', role: 'PROPERTY', source: 'rejectedparent.Configuration#available',
                              owner: 'rejectedparent.Configuration_DSL$Builder',
@@ -304,8 +304,8 @@ final class CompiledInputExpectedContracts {
                     ], rejections: [
                             [source: 'rejectedparent.Base#first', reason: 'external-name collision for \'shared\': rejectedparent.Base#first, rejectedparent.Base#second'],
                             [source: 'rejectedparent.Base#second', reason: 'external-name collision for \'shared\': rejectedparent.Base#first, rejectedparent.Base#second']
-                    ]]
-            case 'rejection': return [model: 'rejection.Parent', builder: 'rejection.Parent_DSL$Builder',
+                    ]],
+            'rejection': [model: 'rejection.Parent', builder: 'rejection.Parent_DSL$Builder',
                     entries: [
 
                     ], rejections: [
@@ -320,8 +320,8 @@ final class CompiledInputExpectedContracts {
                             [source: 'rejection.Parent#second', reason: 'external-name collision for \'duplicate\': rejection.Parent#first, rejection.Parent#second'],
                             [source: 'rejection.Parent#secondOperation(java.lang.String):void', reason: 'external-name collision for \'operation\': rejection.Parent#firstOperation(java.lang.String):void, rejection.Parent#secondOperation(java.lang.String):void'],
                             [source: 'rejection.Parent#unkeyedChildren', reason: 'has no admitted scalar, enum, List, or Map payload']
-                    ]]
-            case 'restrictedarguments-ArrayList': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-ArrayList': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -330,8 +330,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.ArrayList):void', reason: 'unsupported whole-container payload target java.util.ArrayList; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-Collection': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-Collection': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -340,8 +340,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.Collection):void', reason: 'unsupported whole-container payload target java.util.Collection; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-EnumSet': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-EnumSet': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -350,8 +350,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.EnumSet):void', reason: 'unsupported whole-container payload target java.util.EnumSet; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-LinkedHashMap': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-LinkedHashMap': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -360,8 +360,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.LinkedHashMap):void', reason: 'unsupported whole-container payload target java.util.LinkedHashMap; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-List': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-List': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -370,8 +370,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.List):void', reason: '@Builder.Method payload is outside the admitted grammar']
-                    ]]
-            case 'restrictedarguments-Map': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-Map': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -380,8 +380,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.Map):void', reason: '@Builder.Method payload is outside the admitted grammar']
-                    ]]
-            case 'restrictedarguments-Map-nested-set': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-Map-nested-set': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -390,8 +390,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.Map):void', reason: 'unsupported whole-container payload target java.util.Set; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-NavigableSet': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-NavigableSet': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -400,8 +400,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.NavigableSet):void', reason: 'unsupported whole-container payload target java.util.NavigableSet; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-Object': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-Object': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -410,8 +410,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.lang.Object):void', reason: '@Builder.Method payload is outside the admitted grammar']
-                    ]]
-            case 'restrictedarguments-Set': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-Set': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -420,8 +420,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.Set):void', reason: 'unsupported whole-container payload target java.util.Set; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-SortedSet': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-SortedSet': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -430,8 +430,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.SortedSet):void', reason: 'unsupported whole-container payload target java.util.SortedSet; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-String-array': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-String-array': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -440,8 +440,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume([Ljava.lang.String;):void', reason: '@Builder.Method payload is outside the admitted grammar']
-                    ]]
-            case 'restrictedarguments-TreeMap': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-TreeMap': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -450,8 +450,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume(java.util.TreeMap):void', reason: 'unsupported whole-container payload target java.util.TreeMap; use ordinary List/Map payloads or a supported field\'s generated element population']
-                    ]]
-            case 'restrictedarguments-int-array': return [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
+                    ]],
+            'restrictedarguments-int-array': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'fieldValues', role: 'PROPERTY', source: 'restrictedarguments.Configuration#fieldValues',
                              owner: 'restrictedarguments.Configuration_DSL$Builder',
@@ -460,8 +460,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'restrictedarguments.Configuration#consume([I):void', reason: '@Builder.Method payload is outside the admitted grammar']
-                    ]]
-            case 'safeannotations': return [model: 'safeannotations.Configuration', builder: 'safeannotations.Configuration_DSL$Builder',
+                    ]],
+            'safeannotations': [model: 'safeannotations.Configuration', builder: 'safeannotations.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'computed', role: 'PROPERTY', source: 'safeannotations.Configuration#computed',
                              owner: 'safeannotations.Configuration_DSL$Builder',
@@ -480,8 +480,8 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null], fixedChildKey: null]
                     ], rejections: [
                             [source: 'safeannotations.Configuration#hidden(java.lang.String):void', reason: 'excluded by @JsonIgnore(true)']
-                    ]]
-            case 'shadowedpopulation': return [model: 'shadowedpopulation.Configuration', builder: 'shadowedpopulation.Configuration_DSL$Builder',
+                    ]],
+            'shadowedpopulation': [model: 'shadowedpopulation.Configuration', builder: 'shadowedpopulation.Configuration_DSL$Builder',
                     entries: [
                             [externalName: 'values', role: 'PROPERTY', source: 'shadowedpopulation.Configuration#values',
                              owner: 'shadowedpopulation.Configuration_DSL$Builder',
@@ -490,15 +490,19 @@ final class CompiledInputExpectedContracts {
                              payload: [kind: 'LIST', type: 'java.util.NavigableSet', builder: null, keyType: null, item: [kind: 'SCALAR', type: 'java.lang.String', builder: null, keyType: null, item: null]], fixedChildKey: null]
                     ], rejections: [
                             [source: 'shadowedpopulation.Configuration#values(java.lang.Iterable):void', reason: '@Builder.Method payload is outside the admitted grammar']
-                    ]]
-            case 'unresolvedinput': return [model: 'unresolvedinput.Configuration', builder: 'unresolvedinput.Configuration_DSL$Builder',
+                    ]],
+            'unresolvedinput': [model: 'unresolvedinput.Configuration', builder: 'unresolvedinput.Configuration_DSL$Builder',
                     entries: [
 
                     ], rejections: [
                             [source: 'unresolvedinput.Base#consume(java.lang.Object):void', reason: '@Builder.Method payload is outside the admitted grammar'],
                             [source: 'unresolvedinput.Base#value', reason: 'has no admitted scalar, enum, List, or Map payload']
                     ]]
-            default: throw new IllegalArgumentException('Unknown expected contract: ' + fixture)
+        ]
+        def expected = expectedContracts[fixture]
+        if (expected == null) {
+            throw new IllegalArgumentException('Unknown expected contract: ' + fixture)
         }
+        expected
     }
 }
