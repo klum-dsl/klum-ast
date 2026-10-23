@@ -1,12 +1,14 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Date: 2026-10-20. Architecture revised: 2026-10-22.
+Date: 2026-10-20. Architecture revised: 2026-10-22. Delivery status reconciled: 2026-10-23.
 
-Status: **Accepted direction; compiler admission seam merged; approved WIRE-1 runtime slice implemented on its issue branch; generator not implemented**.
+Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; generator not implemented**.
 Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
 is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, private classfile reader, ordered
 preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
-records qualification and delivery status. This branch is not a merged or released runtime delivery; #932 remains open.
+records the pre-publication qualification checkpoint; [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged.
+Broader #932 remains open. [SCHEMA-0](../implementation/adr-0031-schema-0.md) reconciles the independent #529 delivery
+plan against that merged baseline; it authorizes no generator or Gradle plugin implementation and assigns no release.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -102,6 +104,12 @@ remain independently supported. Diagnostics for the new route include source ide
 selected public contract, expected versus actual shape/type and preserved cause, while ADR 0009 diagnostics stay unchanged.
 
 ## Generator architecture and fidelity
+
+The representation comparison below records the original selection criteria. Merged WIRE-PLAN selected the private
+carrier for normalized facts missing from annotations; SCHEMA-0 consumes the current WIRE-1 refinement rather than
+repeating that selection. Public contracts still verify the selected operations; retained documentation may supplement
+them without redefining admission. The independent [SCHEMA-0 plan](../implementation/adr-0031-schema-0.md) records the
+proposed direct projection, binary-only tracer and remaining delivery decisions.
 
 ```text
 Compiled Schema + public Foo_DSL.Builder/Factory contracts + proven admission/naming
