@@ -47,7 +47,7 @@ public final class GeneratedInput {
         String value();
         String rename() default "";
         boolean ignored() default false;
-        String fixedKey() default "";
+        boolean fixedKey() default false;
         String exclusion() default "";
         String detail() default "";
     }
@@ -66,5 +66,6 @@ public final class GeneratedInput {
     public @interface Exclusion {
         String member();
         String category();
+        String detail() default "";
     }
 }

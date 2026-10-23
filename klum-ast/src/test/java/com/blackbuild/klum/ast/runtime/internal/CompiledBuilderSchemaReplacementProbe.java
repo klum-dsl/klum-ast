@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -43,6 +44,11 @@ public final class CompiledBuilderSchemaReplacementProbe {
         result.put("declarations", schema.declarations());
         result.put("defaults", schema.defaultStatus());
         return result;
+    }
+    public static List<Map<String, Object>> scope(Class<?> contract) throws IOException, ClassNotFoundException {
+        return CompiledBuilderSchema.scope(contract).stream().map(declaration -> Map.<String, Object>of(
+                "owner", declaration.owner(), "name", declaration.name(), "parameters", declaration.parameters(),
+                "returns", declaration.returns(), "documentation", declaration.documentation() == null ? "" : declaration.documentation())).toList();
     }
     private static Map<String, Object> entry(CompiledBuilderSchema.Entry entry) {
         Map<String, Object> result = new LinkedHashMap<>();

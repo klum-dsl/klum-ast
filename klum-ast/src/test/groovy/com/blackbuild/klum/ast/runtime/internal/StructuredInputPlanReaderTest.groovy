@@ -289,8 +289,11 @@ class StructuredInputPlanReaderTest extends AbstractDSLSpec {
 
         when:
         def plan = LegacyStructuredInputPlan.read(child)
+        def replacement = CompiledBuilderSchema.read(child)
 
         then:
+        replacement.entries().keySet() == plan.entries().keySet()
+        replacement.rejections().collect { [it.source(), it.reason()] } as Set == plan.rejections().collect { [it.source(), it.reason()] } as Set
         plan.entries().keySet() == ['available'] as Set
         plan.rejections()*.source().containsAll(['collisionplan.Child#other', 'collisionplan.Parent#first'])
         plan.rejections()*.reason().every {

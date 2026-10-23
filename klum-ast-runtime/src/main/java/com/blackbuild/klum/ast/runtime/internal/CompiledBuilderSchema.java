@@ -34,7 +34,6 @@ import groovyjarjarasm.asm.Opcodes;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.lang.reflect.TypeVariable;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -52,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static groovyjarjarasm.asm.Type.getMethodDescriptor;
 
 /** Internal compiled-contract seam. Never inspects Model implementations or reads the retired carrier. */
 final class CompiledBuilderSchema {
@@ -170,8 +171,8 @@ final class CompiledBuilderSchema {
         if (model == null) throw invalid("Missing Builder self bound: " + builder.getName());
         Metadata metadata = metadata(builder);
         if (!metadata.schema) throw invalid("Missing generated input enrichment on " + builder.getName());
-        for (String member : metadata.invisible) rejections.add(new Rejection(model.getName() + "#" + member,
-                "field is absent from the final public Builder contract"));
+        for (Invisible exclusion : metadata.invisible)
+            rejections.add(new Rejection(model.getName() + "#" + exclusion.member(), exclusion.reason()));
         Map<String, Method> getters = new LinkedHashMap<>();
         Map<String, List<Method>> selections = new LinkedHashMap<>();
         for (Method method : Arrays.stream(builder.getDeclaredMethods()).sorted(Comparator.comparing(CompiledBuilderSchema::descriptor)).toList()) {
@@ -205,14 +206,14 @@ final class CompiledBuilderSchema {
             }
             if (payload == null || ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT)))
                 throw invalid("Field role/payload mismatch: " + source);
-            if (!literal.fixed.isEmpty() && (role != Role.OWNED_OBJECT || metadata(payload.builder()).key.isEmpty()))
+            if (literal.fixed && (role != Role.OWNED_OBJECT || metadata(payload.builder()).key.isEmpty()))
                 throw invalid("Fixed direct-child key requires keyed OWNED_OBJECT: " + source);
             String key = role == Role.KEYED_OWNED_MAP ? metadata(payload.builder()).key : null;
             if (role == Role.KEYED_OWNED_MAP && key.isEmpty()) throw invalid("Keyed relationship has no Key member: " + source);
             validateSelection(role, payload, methods, source);
             String name = literal.rename.isEmpty() ? field.getKey() : literal.rename;
             entries.add(new Entry(name, role, source, builder, methods.get(0).getName(), List.copyOf(methods), payload,
-                    role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, empty(literal.fixed),
+                    role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed ? field.getKey() : null,
                     literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc));
         }
         if (!selections.isEmpty()) throw invalid("Selections lack field declarations: " + selections.keySet());
@@ -321,8 +322,11 @@ final class CompiledBuilderSchema {
         return method.getName() + "(" + Arrays.stream(method.getParameterTypes()).map(Class::getTypeName).collect(Collectors.joining(", "))
                 + "):" + method.getReturnType().getTypeName();
     }
-    private static String signature(Method method) { return method.getName() + groovyjarjarasm.asm.Type.getMethodDescriptor(method); }
-    private static String empty(String value) { return value.isEmpty() ? null : value; }
+    private static String signature(Method method) { return method.getName() + getMethodDescriptor(method); }
+    private static String requiredDetail(String detail) {
+        if (detail.isEmpty()) throw invalid("Missing invisible exclusion detail");
+        return detail;
+    }
     private static IllegalArgumentException invalid(String message) { return new IllegalArgumentException(message); }
     private static KlumModelException failure(String root, Throwable cause) {
         return new KlumModelException("Cannot read compiled Builder input contract for " + root
@@ -384,17 +388,18 @@ final class CompiledBuilderSchema {
         String role;
         String doc;
         String rename = "";
-        String fixed = "";
+        boolean fixed;
         String exclusion = "";
         String detail = "";
         boolean operation;
         boolean query;
         boolean ignored;
     }
+    private record Invisible(String member, String reason) { }
     private static final class Metadata {
         boolean schema;
         String key = "";
-        final List<String> invisible = new ArrayList<>();
+        final List<Invisible> invisible = new ArrayList<>();
         final Map<String, Literals> methods = new LinkedHashMap<>();
     }
 
@@ -437,14 +442,31 @@ final class CompiledBuilderSchema {
                                     return new AnnotationVisitor(Opcodes.ASM9) {
                                         String source;
                                         String category;
+                                        String detail = "";
                                         @Override public void visit(String member, Object value) {
                                             if (member.equals("member") && value instanceof String text) source = text;
                                             else if (member.equals("category") && value instanceof String text) category = text;
+                                            else if (member.equals("detail") && value instanceof String text) detail = text;
                                             else throw invalid("Unknown exclusion member " + member);
                                         }
                                         @Override public void visitEnd() {
-                                            if (source == null || source.isEmpty() || !"ABSENT_FIELD".equals(category)) throw invalid("Invalid absent-field exclusion");
-                                            result.invisible.add(source);
+                                            if (source == null || source.isEmpty() || category == null) throw invalid("Invalid invisible exclusion");
+                                            String reason = switch (category) {
+                                                case "IGNORE" -> "excluded by @JsonIgnore(true)";
+                                                case "NO_PAYLOAD" -> "has no admitted scalar, enum, List, or Map payload";
+                                                case "OWNERSHIP" -> "requires one concrete owned relationship";
+                                                case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
+                                                case "KEY_MAPPING" -> "literal structured instance keys conflict with @Field.keyMapping-derived keys";
+                                                case "NUMERIC" -> "unsupported numeric type " + requiredDetail(detail)
+                                                        + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+                                                case "CONTAINER" -> "unsupported whole-container payload target " + requiredDetail(detail)
+                                                        + "; use ordinary List/Map payloads or a supported field's generated element population";
+                                                case "POPULATION" -> "has no unambiguous compiler-generated element population method " + requiredDetail(detail)
+                                                        + "; replacement setters and authored overrides are not input paths";
+                                                case "ABSENT_FIELD" -> "field is absent from the final public Builder contract";
+                                                default -> throw invalid("Unknown invisible exclusion " + category);
+                                            };
+                                            result.invisible.add(new Invisible(source, reason));
                                         }
                                     };
                                 }
@@ -459,6 +481,7 @@ final class CompiledBuilderSchema {
                     return new MethodVisitor(Opcodes.ASM9) {
                         @Override public AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                             if (!PROTOCOL.contains(annotation)) return null;
+                            if (annotation.startsWith(PREFIX) && !visible) throw invalid("Generated input annotation requires runtime retention");
                             if (!seen.add(annotation)) throw invalid("Duplicate contract annotation " + annotation);
                             if (annotation.equals(OPERATION)) literal.operation = true;
                             if (annotation.equals(QUERY)) literal.query = true;
@@ -470,7 +493,7 @@ final class CompiledBuilderSchema {
                                             case "value" -> literal.field = (String) value;
                                             case "rename" -> literal.rename = (String) value;
                                             case "ignored" -> literal.ignored = (Boolean) value;
-                                            case "fixedKey" -> literal.fixed = (String) value;
+                                            case "fixedKey" -> literal.fixed = (Boolean) value;
                                             case "exclusion" -> literal.exclusion = (String) value;
                                             case "detail" -> literal.detail = (String) value;
                                             default -> throw invalid("Unknown field fact " + member);
@@ -484,6 +507,17 @@ final class CompiledBuilderSchema {
                                         if (annotation.equals(PROPERTY)) literal.rename = (String) value;
                                         if (annotation.equals(IGNORE)) literal.ignored = (Boolean) value;
                                     }
+                                }
+                                @Override public void visitEnum(String member, String descriptor, String value) {
+                                    if (annotation.startsWith(PREFIX)) throw invalid("Unexpected enum input fact " + member);
+                                }
+                                @Override public AnnotationVisitor visitArray(String member) {
+                                    if (annotation.startsWith(PREFIX)) throw invalid("Unexpected array input fact " + member);
+                                    return null;
+                                }
+                                @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+                                    if (annotation.startsWith(PREFIX)) throw invalid("Unexpected nested input fact " + member);
+                                    return null;
                                 }
                                 @Override public void visitEnd() {
                                     if (annotation.equals(FIELD) && (literal.field == null || literal.field.isEmpty())) throw invalid("Missing field association");

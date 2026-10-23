@@ -150,7 +150,9 @@ final class StructuredInputAdmissionPlan {
                 if (rejection != null) {
                     AnnotationNode exclusion = new AnnotationNode(ClassHelper.make(GeneratedInput.Exclusion.class));
                     exclusion.setMember("member", new ConstantExpression(field.getName()));
-                    exclusion.setMember("category", new ConstantExpression("ABSENT_FIELD"));
+                    String[] decision = invisibleExclusion(rejection.reason());
+                    exclusion.setMember("category", new ConstantExpression(decision[0]));
+                    if (!decision[1].isEmpty()) exclusion.setMember("detail", new ConstantExpression(decision[1]));
                     invisible.addExpression(new AnnotationConstantExpression(exclusion));
                 }
                 continue;
@@ -162,7 +164,7 @@ final class StructuredInputAdmissionPlan {
             else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
             Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
             if (entry != null && entry.fixedChildKey() != null)
-                fact.setMember("fixedKey", new ConstantExpression(entry.fixedChildKey()));
+                fact.setMember("fixedKey", ConstantExpression.TRUE);
             // Type-based exclusions remain derivable. Ownership/mapping/population decisions are not reflected.
             if (rejection != null && !name.ignored()) {
                 String reason = rejection.reason();
@@ -197,6 +199,21 @@ final class StructuredInputAdmissionPlan {
                 .map(GeneratedDslSupport::publicProjectionOf).filter(method -> method != null)
                 .filter(method -> method.getAnnotations(BUILDER_METHOD).isEmpty())
                 .forEach(method -> method.addAnnotation(new AnnotationNode(BUILDER_METHOD)));
+    }
+
+    /** These sources have no public signature from which even type-based exclusions could be recovered. */
+    private static String[] invisibleExclusion(String reason) {
+        if (reason.equals("excluded by @JsonIgnore(true)")) return new String[]{"IGNORE", ""};
+        if (reason.equals("has no admitted scalar, enum, List, or Map payload")) return new String[]{"NO_PAYLOAD", ""};
+        if (reason.equals("requires one concrete owned relationship")) return new String[]{"OWNERSHIP", ""};
+        if (reason.equals("requires Map<String, concrete keyed DSL Object> ownership")) return new String[]{"KEYED_OWNERSHIP", ""};
+        if (reason.contains("@Field.keyMapping")) return new String[]{"KEY_MAPPING", ""};
+        if (reason.startsWith("unsupported numeric type ")) return new String[]{"NUMERIC", reason.substring("unsupported numeric type ".length(), reason.indexOf(';'))};
+        if (reason.startsWith("unsupported whole-container payload target ")) return new String[]{"CONTAINER", reason.substring("unsupported whole-container payload target ".length(), reason.indexOf(';'))};
+        if (reason.startsWith("has no unambiguous compiler-generated element population method "))
+            return new String[]{"POPULATION", reason.substring("has no unambiguous compiler-generated element population method ".length(), reason.indexOf(';'))};
+        if (reason.equals("field is absent from the final public Builder contract")) return new String[]{"ABSENT_FIELD", ""};
+        throw new IllegalStateException("Unclassified invisible input exclusion: " + reason);
     }
 
     static StructuredInputAdmissionPlan planOf(ClassNode model) {
