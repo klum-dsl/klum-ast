@@ -137,29 +137,7 @@ final class SchemaProjection {
         facts(model + "_DSL$Factory").requirePublicInterface();
         ClassFacts carrier = new ClassFacts(artifacts.read(model + "_DSL$WirePlan"), true);
         WireContract plan = new WireContract(carrier.carrier, model, builder);
-        for (Entry entry : plan.entries) {
-            for (String descriptor : entry.descriptors()) {
-                ClassFacts.Method method = contract.methods.get(descriptor);
-                if (method == null || !method.publicInstance() || !method.name().equals(entry.operation()))
-                    throw invalid("Missing selected public contract " + builder + "#" + descriptor + " for " + entry.source());
-                if (entry.role() == Role.OPERATION && (entry.descriptors().size() != 1
-                        || !method.parameters().equals(List.of(entry.payload().type()))))
-                    throw invalid("Operation lacks exact single-payload contract: " + entry.source());
-            }
-            if (entry.role() == Role.PROPERTY || entry.role() == Role.OPERATION) {
-                List<String> parameters;
-                if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST)
-                    parameters = List.of(entry.payload().item().type());
-                else if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.MAP)
-                    parameters = List.of("java.lang.String", entry.payload().item().type());
-                else parameters = List.of(entry.payload().type());
-                long selected = entry.descriptors().stream().map(contract.methods::get)
-                        .filter(method -> method.parameters().equals(parameters)).count();
-                if (selected != 1) throw invalid("Missing exact payload/population signature for " + entry.source());
-            }
-            if (entry.fixedKey() != null && !keys(facts(entry.payload().type())).containsValue("java.lang.String"))
-                throw invalid("Fixed key requires keyed OWNED_OBJECT: " + entry.source());
-        }
+        for (Entry entry : plan.entries) validateEntry(entry, contract);
         entries.addAll(plan.entries);
         rejections.addAll(plan.rejections);
         for (String parent : contract.interfaces) {
@@ -167,6 +145,40 @@ final class SchemaProjection {
             String parentModel = WireContract.model(parent);
             if (!modelParent(modelFacts, parentModel, new HashSet<>())) throw invalid("Unrelated generated Builder parent " + parent);
             collect(parent, visited, entries, rejections);
+        }
+    }
+
+    private void validateEntry(Entry entry, ClassFacts contract) throws IOException {
+        for (String descriptor : entry.descriptors()) {
+            ClassFacts.Method method = contract.methods.get(descriptor);
+            if (method == null || !method.publicInstance() || !method.name().equals(entry.operation()))
+                throw invalid("Missing selected public contract " + contract.name + "#" + descriptor + " for " + entry.source());
+            if (entry.role() == Role.OPERATION && (entry.descriptors().size() != 1
+                    || !method.parameters().equals(List.of(entry.payload().type()))))
+                throw invalid("Operation lacks exact single-payload contract: " + entry.source());
+        }
+        if (entry.role() == Role.PROPERTY || entry.role() == Role.OPERATION) {
+            List<String> parameters;
+            if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST)
+                parameters = List.of(entry.payload().item().type());
+            else if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.MAP)
+                parameters = List.of("java.lang.String", entry.payload().item().type());
+            else parameters = List.of(entry.payload().type());
+            long selected = entry.descriptors().stream().map(contract.methods::get)
+                    .filter(method -> method.parameters().equals(parameters)).count();
+            if (selected != 1) throw invalid("Missing exact payload/population signature for " + entry.source());
+        }
+        if (entry.fixedKey() != null && !keys(facts(entry.payload().type())).containsValue("java.lang.String"))
+            throw invalid("Fixed key requires keyed OWNED_OBJECT: " + entry.source());
+        if (entry.role() == Role.OWNED_OBJECT || entry.role() == Role.KEYED_OWNED_MAP) {
+            List<ClassFacts.Method> selected = entry.descriptors().stream().map(contract.methods::get).toList();
+            boolean matches = entry.role() == Role.OWNED_OBJECT
+                    ? selected.stream().anyMatch(method -> method.result().equals(entry.payload().builder()))
+                    : selected.stream().anyMatch(method -> method.parameters().equals(List.of(entry.payload().builder() + "[]")));
+            if (!matches) throw invalid("Relationship payload does not match selected public contract: " + entry.source());
+            if (entry.role() == Role.KEYED_OWNED_MAP
+                    && !"java.lang.String".equals(keys(facts(entry.payload().type())).get(entry.excludedKey())))
+                throw invalid("Keyed relationship does not match child key declaration: " + entry.source());
         }
     }
 

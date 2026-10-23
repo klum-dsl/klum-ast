@@ -26,6 +26,8 @@ For example, compile this Schema normally before running the command above.
 (See: `JsonSchemaGeneratorTest#'generates a schema for a compiled application without running its code'`.)
 
 ```groovy
+package example
+
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
 
@@ -85,8 +87,9 @@ This first production-code slice provides the standalone generator and ordinary 
 tasks. It does not yet provide the dedicated optional Schema Gradle plugin. Explicit multi-root task configuration,
 tracked Schema/dependency inputs, up-to-date/configuration-cache/build-cache qualification, stale-root cleanup and
 plugin output lifecycle are the immediate next slice. The command replaces its selected file only after successful
-projection. On failure it exits nonzero and leaves an existing file unchanged; callers must treat that file as the last
-successful result, not current validation evidence.
+projection. Projection failure exits nonzero and leaves an existing file unchanged; callers must treat that file as the last
+successful result, not current validation evidence. Output I/O errors are reported; replacement is atomic when supported
+by the filesystem.
 
 Consumers own copying, embedding, publication and editor association. Real ScHelm root/output acceptance remains
 consumer-owned work before the overall generator delivery is complete. No ScHelm policy or release placement follows

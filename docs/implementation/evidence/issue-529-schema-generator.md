@@ -19,7 +19,8 @@ The command is useful through standard Gradle application `run`/`installDist` ta
 tracked multi-root generation, cache/configuration-cache/stale-output lifecycle qualification and consumer-owned real
 ScHelm acceptance remain immediate subsequent work. This slice does not claim overall #529 production completion.
 The command atomically replaces one output after projection (with a normal replacement fallback where atomic moves are
-unavailable); a failed invocation exits nonzero and preserves an existing last-successful file. Plugin stale-output
+unavailable); projection failure exits nonzero and preserves an existing last-successful file. Output I/O errors are reported;
+replacement is atomic where supported by the filesystem. Plugin stale-output
 policy is deliberately not invented here. Consumers own publication and editor integration.
 
 ## Executable coverage
@@ -43,16 +44,21 @@ The fresh tool JVMs carry the lane's JaCoCo agent only for coverage; their produ
 Schema/API binaries remain data arguments.
 
 Test-first checkpoints: the initial command test failed because the main class did not exist, then passed with extraction;
-the admitted-payload/signature corruption case failed before exact population-signature checking was added. The fixed-key
+the admitted-payload/signature corruption case failed before exact population-signature checking was added. Independent Specification review identified a relationship payload/selected-contract mismatch gap. Both owned-object
+and keyed-map corruption tests reproduced incorrect acceptance before the correction. Selected public contracts now
+must reference the exact recorded child Builder (owned return or keyed population array), and keyed child exclusion
+must agree with retained `@Key` bytes. Standards review found no documented-standard breaches; its one optional process
+invocation duplication was removed by reusing the existing test helper. The fixed-key
 fixture also exposed that child key identity is retained on the Model field, not the nested payload's unused key slot;
 classfile annotation reading now validates it without loading annotation/Schema classes.
 
 ## Validation and review
 
-The generator module check and installed-command build pass: **35 features/cases in each Groovy 3/4/5 lane**,
+The generator module check and installed-command build pass: **37 features/cases in each Groovy 3/4/5 lane**,
 zero failures/errors/skips, plus licenses and test-lane isolation. The pinned validator passes **10 documents and
 8 accepted / 24 rejected instances per lane**, with byte-identical schemas across lanes. The shared SCHEMA-T corpus
-still agrees with WIRE-1 in its deliberately separate execution phase. Root checks and independent reviews remain pending.
+still agrees with WIRE-1 in its deliberately separate execution phase. The installed application also runs successfully on Java 17 with only its own JAR and ASM; its output is byte-identical
+to the binary-only test document. Root checks and final independent re-review remain pending.
 Groovy 5 JSON test assertions use explicit `Map.get('properties')` to avoid LazyMap property introspection; emitted
 production JSON does not differ across Groovy generations.
 The pinned [Draft 2020-12 validator](../../../klum-ast-json-schema/src/test/resources/validate_schema.py) is an explicit

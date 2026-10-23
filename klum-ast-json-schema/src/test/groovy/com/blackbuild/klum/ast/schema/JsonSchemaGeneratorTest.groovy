@@ -662,6 +662,45 @@ class JsonSchemaGeneratorTest extends AbstractDSLSpec {
         !output.exists()
     }
 
+    def 'relationship payload must agree with the selected public contract for #role'() {
+        given:
+        createClass '''
+            package relationshipidentity
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                static { throw new AssertionError('Schema execution') }
+                Expected child
+                Map<String, Expected> children
+            }
+            @DSL class Expected { @Key String name; String expected }
+            @DSL class Different { @Key String name; String different }
+        '''
+        File carrier = new File(compilerConfiguration.targetDirectory, 'relationshipidentity/Configuration_DSL$WirePlan.class')
+        String changed = carrierData(carrier).readLines().collect { line ->
+            String[] fields = line.split('\\|', -1)
+            if (fields[0] == 'entry' && fields[2] == role) {
+                fields[10] = fields[10].replace(token('relationshipidentity.Expected'), token('relationshipidentity.Different'))
+                        .replace(token('relationshipidentity.Expected_DSL$Builder'), token('relationshipidentity.Different_DSL$Builder'))
+            }
+            fields.join('|')
+        }.join('\n') + '\n'
+        rewriteCarrier(carrier, changed)
+        File output = new File(compilerConfiguration.targetDirectory, 'schema.json')
+
+        when:
+        def result = runTool('relationshipidentity.Configuration', output, [compilerConfiguration.targetDirectory])
+
+        then:
+        result.exit != 0
+        result.text.contains('Relationship payload does not match selected public contract')
+        result.text.contains('relationshipidentity.Configuration#')
+        !result.text.contains('AssertionError: Schema execution')
+        !output.exists()
+
+        where:
+        role << ['OWNED_OBJECT', 'KEYED_OWNED_MAP']
+    }
+
     private static Map runTool(String root, File output, List<File> artifacts) {
         List<String> command = [new File(System.getProperty('java.home'), 'bin/java').path, System.getProperty('schemaToolAgent'),
                 '-cp', System.getProperty('schemaToolClasspath'), 'com.blackbuild.klum.ast.schema.JsonSchemaGenerator', root, output.path]
@@ -763,14 +802,10 @@ class JsonSchemaGeneratorTest extends AbstractDSLSpec {
     }
 
     private String extract(File api, File schema, File output, File facts) {
-        def process = new ProcessBuilder(new File(System.getProperty('java.home'), 'bin/java').path, System.getProperty('schemaToolAgent'),
-                '-cp', System.getProperty('schemaToolClasspath'), 'com.blackbuild.klum.ast.schema.JsonSchemaGenerator',
-                'schematracer.schema.Application', output.path, api.path, schema.path)
-                .redirectErrorStream(true).start()
-        String diagnostics = process.inputStream.text
-        assert process.waitFor() == 0: diagnostics
-        facts.text = diagnostics
-        diagnostics
+        def result = runTool('schematracer.schema.Application', output, [api, schema])
+        assert result.exit == 0: result.text
+        facts.text = result.text
+        result.text
     }
 
     private static List<Map> instances() {
