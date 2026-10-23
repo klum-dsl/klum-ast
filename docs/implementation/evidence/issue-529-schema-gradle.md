@@ -101,6 +101,21 @@ python klum-ast-gradle-plugin/src/test/resources/validate_json_schema.py klum-as
 git diff --check
 ```
 
+## SonarCloud follow-up
+
+Published revision `203540cfd` passes GitHub build, JUnit reporting, SonarCloud analysis and its quality gate
+(run `39994683010`). SonarCloud reports no security hotspots and one maintainability finding, `java:S3011`,
+for opening the package-private plugin projector constructor. This access is intentional: the helper remains private
+without adding a public generator API, while consumer Schema contracts retain public-only access. A localized
+`@SuppressWarnings("java:S3011")` with that concrete reason records the exception; executable behavior is unchanged.
+
+The follow-up reruns all **12 focused TestKit cases**, including all three Groovy generations and the packaged plugin,
+with zero failures/errors/skips, plus Gradle task validation and main/test license checks (**31 tasks, 50s**).
+The pinned external validator again passes all three metaschemas and 6 accepted / 14 rejected instances per generation.
+Independent Standards and Specification follow-up reviews both report zero findings. The complete root check above
+remains the full-suite qualification; it is not claimed to have been repeated for this source-annotation-only follow-up.
+The next remote analysis must confirm the finding is absent at the follow-up revision.
+
 ## Delivery boundary
 
 Tracker impact: **Related: #529**; no issue closure, milestone, release-placement or curation-scope change.

@@ -109,7 +109,9 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
         Files.move(manifest, output.resolve(MANIFEST), StandardCopyOption.REPLACE_EXISTING);
     }
 
-    @SuppressWarnings("unchecked") // Only JDK Strings/collections cross our private loader boundary.
+    // Only our private plugin constructor is opened (S3011); keeping it private avoids a public generator API.
+    // Consumer Schema contracts retain public-only access. Only JDK Strings/collections cross the loader boundary.
+    @SuppressWarnings({"unchecked", "java:S3011"})
     private Map<String, String> project(List<String> roots) throws IOException {
         Set<File> files = new LinkedHashSet<>(getToolClasspath().getFiles());
         files.addAll(getClasspath().getFiles());
