@@ -169,7 +169,12 @@ seven-class corpus uses the same filters in each lane: `CompiledBuilderSchemaTes
 license tasks, twenty local Markdown link targets, balanced fences and diff checks pass. Initial independent review at `b74cf9720`: Standards **zero findings**; Specification found one rejection-precedence
 mismatch for nested unsupported numerics. The additive correction adds five oracle cases and preserves compiler
 numeric-before-container-before-map-key/shape rejection precedence. Four numeric cases were first reproduced failing;
-all five and the complete 114-case corpus then passed in each lane. Final re-review is the remaining local publication gate.
+all five and the complete 114-case corpus then passed in each lane. Final independent re-review at `ab9f519e022cfed79b5687d9ebe8caf7d27346f7`: Standards **zero findings**;
+Specification **zero remaining findings**. Both reviewers checked the cumulative base-to-head change; neither independently
+reran tests. The reviewed commits are preserved, followed only by this final documentation record. Local history review
+confirms the probe, focused review correction and final evidence are separate reasoning steps with no unrelated changes.
+Delivery capability audit: **Git transport authorized; GitHub CLI authorized**. No production-metadata decision is made
+by publication of this evidence.
 
 A broader intermediate Groovy 3 module run passed **2,291 cases, zero failures/errors, 16 existing skips** before the
 last fifteen probe cases were added. The final tip is qualified by the 114-case corpus per lane above; no final full-module,
