@@ -82,8 +82,15 @@ The first root check completed all compiler/runtime/Bean Validation Groovy 3/4/5
 It failed at 11 existing mirror fixtures because commits changed the inferred version during that run, plus two
 Jackson external-consumer cases and one published-test-support case with repository TLS failures. No production
 behavior finding was reported. The evidence validator's Python comment-header delimiters were corrected to the
-repository's existing style; license-plugin configuration is unchanged. Stable-tip requalification is pending.
-Independent Standards and Specification reviews at `fc3c847d2` both report **zero findings** against `39f9c8302`.
+repository's existing style; license-plugin configuration is unchanged. Stable-tip requalification at `25b89e4a9` passes the complete **371-case plugin suite**, Gradle task validation,
+licenses, both Jackson external consumers and both published-test-support cases. The final unchanged-tip root
+`check --continue --no-parallel --offline` then passes in **11m 58s**, with **137 tasks (32 executed / 105 up-to-date)**.
+All module checks, Groovy 3/4/5 lanes, consumer fixtures, documentation renderer, licenses, lane isolation and aggregate
+coverage reports pass. Jackson baseline finishes 121 cases; test support finishes 8 / 6 / 6 across the three lanes.
+There are no remaining failures or new skips. Existing compiler/runtime skips retain their documented reasons.
+The pinned validator is rerun after the full check and again reports all three metaschemas, 6 accepted / 14 rejected
+instances per generation and byte-identical output. Markdown fences/new local links and `git diff --check` pass.
+Independent Standards and Specification reviews at `fc3c847d2`, with additive review through `25b89e4a9`, both report **zero findings** against `39f9c8302`.
 The reviewers ran no builds and made no source changes.
 
 ```shell
@@ -97,6 +104,11 @@ git diff --check
 ## Delivery boundary
 
 Tracker impact: **Related: #529**; no issue closure, milestone, release-placement or curation-scope change.
-The older standalone SCHEMA-1 branch is untouched. No merge is authorized. Independent Standards/Specification review,
-commit-history review, final branch/base verification and remote CI/SonarCloud inspection precede the final handoff.
+The older standalone SCHEMA-1 branch is untouched. No merge is authorized. The local history review retains one vertical implementation/test commit, its user/architecture documentation,
+the bounded validator-header/version correction, and this final evidence record; reviewed production commits are preserved.
+Refreshed `origin/master` is still `39f9c8302`, so no rebase is required. The final evidence-only commit changes no executable
+source from the validated/reviewed `25b89e4a9`. Delivery channels: **Git transport authorized; GitHub CLI authorized**.
+The first managed location encountered unavailable automatic write approval; implementation and validation continued in
+a separate worktree under an allowed temporary root. This changes no repository policy. Live PR/CI/SonarCloud state is
+reported separately in the handoff and is not inferred from local success.
 An open draft remains `(PR:open)`; request Hive reconciliation and retain the active worktree while delivery is pending.
