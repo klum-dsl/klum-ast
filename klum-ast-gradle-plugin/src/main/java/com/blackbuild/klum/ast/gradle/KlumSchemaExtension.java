@@ -31,12 +31,22 @@ import javax.inject.Inject;
 /** Schema-owned configuration; editor metadata is separate from normal Schema artifacts. */
 public abstract class KlumSchemaExtension extends KlumExtension {
     private final KlumSchemaGdslExtension gdsl;
+    private final KlumJsonSchemaExtension jsonSchema;
 
     // Gradle 8.14's decorated ObjectFactory injection requires a public constructor.
     @Inject
     @SuppressWarnings("java:S5993")
     public KlumSchemaExtension(ObjectFactory objects) {
         gdsl = objects.newInstance(KlumSchemaGdslExtension.class);
+        jsonSchema = objects.newInstance(KlumJsonSchemaExtension.class);
+    }
+
+    public KlumJsonSchemaExtension getJsonSchema() {
+        return jsonSchema;
+    }
+
+    public void jsonSchema(Action<? super KlumJsonSchemaExtension> action) {
+        action.execute(jsonSchema);
     }
 
     public KlumSchemaGdslExtension getGdsl() {
