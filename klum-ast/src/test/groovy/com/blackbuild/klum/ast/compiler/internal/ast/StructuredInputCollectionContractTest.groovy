@@ -56,7 +56,7 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
                 supplied.each { value -> operation.invoke(captured, [value] as Object[]) }
             }
         }
-        println declaration + ' carrier=' + fact.operation().descriptorGroup() + ' single=' + single.toGenericString()
+        println declaration + ' selection=' + fact.operation().descriptorGroup() + ' single=' + single.toGenericString()
         def actual = isMap ? result.values.keySet().toList() : result.values.collect { it.toString() }
 
         then:
@@ -167,7 +167,7 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
             creator.invoke(delegate, ['z/key~', { text 'z' }] as Object[])
             creator.invoke(delegate, ['a/key', { text 'a' }] as Object[])
         }
-        println declaration + ' carrier=' + fact.operation().descriptorGroup() + ' keyed=' + creator.toGenericString()
+        println declaration + ' selection=' + fact.operation().descriptorGroup() + ' keyed=' + creator.toGenericString()
 
         then:
         fact.role().name() == 'KEYED_OWNED_MAP'

@@ -381,7 +381,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626", "693", "729", "799", "925", "932"])
+    @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -512,7 +512,7 @@ class JpmsPackageBoundaryTest extends Specification {
         Path schemaArtifact = named ? compileAndPackageNamedSchema(schemaSources, schemaClasses) : schemaClasses
 
         if (named)
-            assertRuntimeModuleCanReadWirePlanCarrier(schemaArtifact, fixture)
+            assertRuntimeModuleCanReadCompiledInput(schemaArtifact, fixture)
 
         ProcessResult staticConsumerCompilation = compileStaticGroovyConsumer(
                 schemaArtifact, consumerSources, consumerClasses, named)
@@ -645,28 +645,23 @@ class JpmsPackageBoundaryTest extends Specification {
         execute(command, output)
     }
 
-    private static void assertRuntimeModuleCanReadWirePlanCarrier(Path schemaArtifact, Path fixture) {
-        Path probeSource = fixture.resolve('probe-source/com/blackbuild/klum/ast/runtime/WirePlanCarrierProbe.java')
+    private static void assertRuntimeModuleCanReadCompiledInput(Path schemaArtifact, Path fixture) {
+        Path probeSource = fixture.resolve('probe-source/com/blackbuild/klum/ast/runtime/CompiledInputProbe.java')
         Path probeClasses = fixture.resolve('probe-classes')
-        Path runtimeWithProbe = fixture.resolve('klum-runtime-with-wire-plan-probe.jar')
+        Path runtimeWithProbe = fixture.resolve('klum-runtime-with-compiled-input-probe.jar')
         Files.createDirectories(probeSource.parent)
         Files.createDirectories(probeClasses)
         Files.writeString(probeSource, '''
             package com.blackbuild.klum.ast.runtime;
 
-            import java.lang.reflect.Field;
             import java.lang.reflect.Method;
             import java.util.Map;
 
-            public final class WirePlanCarrierProbe {
+            public final class CompiledInputProbe {
                 public static String read() throws Exception {
                     Module schema = ModuleLayer.boot().findModule("fixture.schema").orElseThrow();
-                    Class<?> carrier = Class.forName(schema, "fixture.schema.Station_DSL$WirePlan");
-                    Field data = carrier.getDeclaredField("DATA");
-                    if (!data.trySetAccessible())
-                        throw new IllegalStateException("fixture.schema is not open to the runtime module");
                     Class<?> model = Class.forName(schema, "fixture.schema.Station");
-                    Class<?> reader = Class.forName(WirePlanCarrierProbe.class.getModule(),
+                    Class<?> reader = Class.forName(CompiledInputProbe.class.getModule(),
                             "com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema");
                     Method read = reader.getDeclaredMethod("read", Class.class);
                     Method entries = reader.getDeclaredMethod("entries");
@@ -678,7 +673,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     Method fixedKey = slot.getClass().getDeclaredMethod("fixedChildKey");
                     if (!fixedKey.trySetAccessible())
                         throw new IllegalStateException("Cannot read the private fixed child key fact");
-                    return (String) data.get(null) + "\\nRUNTIME_READER:" + facts.keySet()
+                    return "RUNTIME_READER:" + facts.keySet()
                             + "\\nFIXED_CHILD_KEY:" + fixedKey.invoke(slot);
                 }
             }
@@ -692,7 +687,7 @@ class JpmsPackageBoundaryTest extends Specification {
         Files.copy(runtimeJar(), runtimeWithProbe)
         ProcessResult packaging = execute([
                 jarExecutable(), '--update', '--file', runtimeWithProbe.toString(),
-                '-C', probeClasses.toString(), 'com/blackbuild/klum/ast/runtime/WirePlanCarrierProbe.class'
+                '-C', probeClasses.toString(), 'com/blackbuild/klum/ast/runtime/CompiledInputProbe.class'
         ], probeClasses)
         assert packaging.exitCode == 0 : packaging.output
 
@@ -709,11 +704,11 @@ class JpmsPackageBoundaryTest extends Specification {
         Files.writeString(consumerSource.resolve('fixture/probe/Main.java'), '''
             package fixture.probe;
 
-            import com.blackbuild.klum.ast.runtime.WirePlanCarrierProbe;
+            import com.blackbuild.klum.ast.runtime.CompiledInputProbe;
 
             public final class Main {
                 public static void main(String[] arguments) throws Exception {
-                    System.out.println(WirePlanCarrierProbe.read());
+                    System.out.println(CompiledInputProbe.read());
                 }
             }
         '''.stripIndent())
@@ -737,10 +732,8 @@ class JpmsPackageBoundaryTest extends Specification {
         assertNoPortabilityWorkarounds(command)
         ProcessResult extraction = execute(command, fixture)
         assert extraction.exitCode == 0 : extraction.output
-        assert extraction.output.contains('WIRE-PLAN/B')
         assert extraction.output.contains('RUNTIME_READER:')
         assert extraction.output.contains('FIXED_CHILD_KEY:slot')
-        assert extraction.output.contains('Zml4dHVyZS5zY2hlbWEuU3RhdGlvbg')
     }
 
     private static ProcessResult execute(List<String> command, Path output) {

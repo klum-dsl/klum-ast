@@ -7,6 +7,14 @@ Authority: [SCHEMA-0/T](../adr-0031-schema-0.md#executable-feasibility-proposal-
 [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md).
 Base: `d4724f85991aa856afe1a42eca28bf0f98bc2ac2` (merged #941, after WIRE-1 #940).
 
+## WIRE-REMOVE disposition — 2026-10-23
+
+This report preserves its measured migration checkpoint. [Final removal evidence](issue-529-wire-remove.md) records
+retirement of the private carrier and disposable carrier-specific helpers/resources, plus migration of durable assertions
+to the production facade's fixed expected-contract corpus. Historical file names and commands below belong to their pinned
+revision/merged PR; they are not current architecture or runnable instructions for the removed transport. The next #529
+implementation entry point is separately assigned reflective projection and Gradle delivery; no generator resumes here.
+
 ## Retrospective architecture status — 2026-10-23
 
 Merged [PR #942](https://github.com/klum-dsl/klum-ast/pull/942) preserves the successful A/B/C evidence below.
@@ -69,9 +77,9 @@ No full-runtime-reader equality, legacy-carrier decoding, interpreter dependency
 
 Test sources:
 
-- [SchemaTracerTest](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/schema/SchemaTracerTest.groovy)
-- [SchemaTracerProjector](../../../klum-ast/src/test/java/com/blackbuild/klum/ast/schema/SchemaTracerProjector.java)
-- [Pinned-validator script](../../../klum-ast/src/test/resources/schema-tracer/validate_schema.py)
+- [SchemaTracerTest](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/groovy/com/blackbuild/klum/ast/schema/SchemaTracerTest.groovy)
+- [SchemaTracerProjector](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/java/com/blackbuild/klum/ast/schema/SchemaTracerProjector.java)
+- [Pinned-validator script](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/resources/schema-tracer/validate_schema.py)
 
 ```shell
 ./gradlew :klum-ast:test --tests com.blackbuild.klum.ast.schema.SchemaTracerTest --console=plain --no-daemon

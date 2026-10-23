@@ -1,6 +1,6 @@
 # SCHEMA-0 — reflective JSON Schema delivery plan
 
-Date: 2026-10-23. Status: **WIRE-REPLACE implemented; qualification recorded in linked evidence; SCHEMA-1 paused**.
+Date: 2026-10-23. Status: **WIRE migration complete; next separately assigned slice is reflective projection; SCHEMA-1 paused**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#generator-architecture-and-fidelity).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Independent interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
@@ -9,16 +9,21 @@ Classification: **B — revise ADR 0031 and its implementation plan**, under the
 This documentation revision changes no production code, generated contract, WIRE carrier or runtime implementation.
 
 
-## WIRE-REPLACE implementation checkpoint — 2026-10-23
+## Final compiled-contract checkpoint — 2026-10-23
 
-The separately approved [WIRE-REPLACE seam](evidence/issue-529-wire-replace.md) replaces production carrier reads with the internal non-public
-`CompiledBuilderSchema`: reflected public signatures/types plus the measured minimal generated field/selection,
-invisible-exclusion and child/fixed-key enrichment. Exact-public-contract selective annotation bytes avoid SCHEMA-R's
-user-enum initialization hazard. No production consumer uses the old carrier; its reader/emission remain historical
-comparison support pending separately authorized WIRE-REMOVE and its recorded deletion criteria. Missing/older required
-enrichment requires recompile/package guidance, with no legacy fallback. This checkpoint does not resume SCHEMA-1,
-implement JSON Schema generation or change #932 runtime semantics. Earlier carrier/probe descriptions below retain their
-historical scope; the linked delivered evidence records the current extraction seam.
+[WIRE-REPLACE #947](https://github.com/klum-dsl/klum-ast/pull/947) selected the internal, package-private
+`CompiledBuilderSchema`: reflected public Builder/Factory signatures and types, exact-contract selective annotation
+bytes, and minimal generated field/selection/exclusion and child/fixed-key facts. [WIRE-REMOVE evidence](evidence/issue-529-wire-remove.md)
+records removal of companion emission, serialization, readers, binary resources and transitional comparison machinery.
+There is no production carrier dependency, fallback or compiled-carrier compatibility promise: the carrier was internal
+and unreleased. Required missing enrichment retains recompile/package guidance. Fixed expected contracts now guard the
+final facade; useful binary/no-execution, inheritance, documentation, runtime and JPMS regressions remain.
+
+SCHEMA-R #945 and WIRE-SCHEMA-PROBE #946 are complete historical checkpoints. The next separately assigned #529 work is
+reflective structural projection inside the Schema Gradle plugin, followed by its isolated classpath and output/cache
+qualification. No generator starts here. The historical SCHEMA-1 branch stays paused and untouched; #932 runtime language
+and lifecycle semantics remain independent. Earlier carrier descriptions and probe instructions below record migration
+history, not active architecture or outstanding assignments.
 
 ## SCHEMA-R measured checkpoint
 
@@ -134,12 +139,15 @@ The probe must test actual annotation access paths, not assume all annotation pr
 
 ## Next required slice — SCHEMA-R reflection versus enrichment
 
+**Historical probe specification, completed in merged #945.** The final checkpoint above supersedes its next-slice and
+carrier-preservation instructions; the measured evidence and later #946/#947 migration are prerequisites already met.
+
 This is the next bounded #529 assignment **before any production generator resumes**. SCHEMA-1 stays paused; do not
 resume it, edit its branch, reuse its commits as approved architecture, or alter WIRE runtime/carrier implementation.
 SCHEMA-R is test/probe evidence only and makes no generated contract change.
 
 Use one separately compiled API -> Schema fixture with public Builder/Factory contracts and real `@AnnoDoc`. Reuse
-[`SchemaTracerTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/schema/SchemaTracerTest.groovy) fixture shapes and
+[historical `SchemaTracerTest`](https://github.com/klum-dsl/klum-ast/blob/de6337d434b3f46b9f0ccce478bf9c150010f8e9/klum-ast/src/test/groovy/com/blackbuild/klum/ast/schema/SchemaTracerTest.groovy) fixture shapes and
 [`GeneratedDslSupportSpec`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupportSpec.groovy)
 where useful; don't promote the ASM carrier reader. Give new executable classes a `Test` suffix and `@Issue("529")`.
 
@@ -174,7 +182,7 @@ public modules/APIs or a mandatory chain of separately published PRs.
 
 | Slice / owner | Reasoned commit boundary | Executable acceptance / documentation |
 | --- | --- | --- |
-| Minimal enrichment — #529, only measured N/C facts | Add the smallest runtime-retained generated annotation(s) with emitter and attribution tests together. A companion requires the explicit concrete justification above. Skip this slice if R/A suffice. Preserve WIRE consumers and public signatures. | Separate-artifact inheritance, role/group/source fidelity, missing metadata behavior, ABI/linkage and Groovy 3/4/5. No wholesale carrier replacement or #932 reader migration. Record annotation ABI consequences and any recompile requirement. |
+| Minimal enrichment — #529, only measured N/C facts | Add the smallest runtime-retained generated annotation(s) with emitter and attribution tests together. A companion requires the explicit concrete justification above. Skip this slice if R/A suffice. Preserve WIRE consumers and public signatures. | Separate-artifact inheritance, role/group/source fidelity, missing metadata behavior, ABI/linkage and Groovy 3/4/5. Completed separately by WIRE-REPLACE/WIRE-REMOVE; no additional migration is needed. Record annotation ABI consequences and any recompile requirement. |
 | Reflective projection — #529 | A usable vertical path inside the existing Gradle-plugin implementation, depending on runtime as justified, with a private extraction/projection seam. Keep extraction and real Draft 2020-12 output/validator tests together; no public generator module/API or CLI by default. | Silent traps; reusable/recursive `$defs` and escaped `$ref`; all admitted shapes, exact names and deterministic errors. Pinned metaschema/instance validation. Interpreter comparison only as an optional overlapping test corpus, never a production dependency. |
 | Gradle delivery and qualification — #529 | Wire ordinary task outputs from explicit root contract names and isolated resolved classpath; commit cache/invalidation/failure behavior with TestKit evidence, then consumer/docs qualification. Can join projection if that is the smallest useful path. | Clean/repeat/up-to-date, dependency/docs changes, root/member deletion, relocation/build cache, configuration cache, failure/stale-output cleanup. One real ScHelm root/output through consumer-owned acceptance. Add documentary `@Tag("documentary")`/`@See`, user page/sidebar, migration navigation and `CHANGES.md` with actual delivery. |
 
@@ -207,7 +215,7 @@ Keep these useful constraints from SCHEMA-0; their binary source is now reflecti
 | Incomplete/mixed classpath yields false facts | Gradle resolves declared complete dependencies before extraction. Isolated loader/worker owns consistent Klum/Groovy/annotation versions and exact type identity; close loaders, reject linkage failures, do not borrow daemon classes. Test separate artifacts and missing/conflicting dependencies. |
 | Retention/docs loss or false attribution | Probe packaged runtime annotations and `@AnnoDoc`, including inherited declarations. New annotations specify retention/targets. No raw-Javadoc/source/mirror fallback; missing prose differs from missing semantic metadata. |
 | Incorrect Gradle incrementality | Declare root names/options, tool implementation and full resolved classpath including annotation/docs bytes; conservative classpath fingerprinting is acceptable initially. No resolution/class loading at configuration time or `Class`/loader objects in cache state. Test byte changes, deletion, relocation, build/configuration cache and stale cleanup. |
-| Generated contract compatibility | Preserve public signatures and existing consumers. New metadata is generated ABI with tested older/missing/newer behavior; do not promise support for artifacts lacking required facts. Existing WIRE carrier format and recompile policy stay intact. Compiler changes later require Groovy 3/4/5 and relevant named-module/Java/static-Groovy clients. |
+| Generated contract compatibility | Preserve public signatures and existing consumers. New metadata is generated ABI with tested older/missing/newer behavior; do not promise support for artifacts lacking required facts. The removed unreleased carrier has no compatibility promise; missing required public enrichment needs recompile guidance. Compiler changes later require Groovy 3/4/5 and relevant named-module/Java/static-Groovy clients. |
 
 There is no source or behavior change in this revision, so Groovy lanes are unnecessary. Source inspection and prior
 reported tests establish only the baseline, not successful SCHEMA-R execution.

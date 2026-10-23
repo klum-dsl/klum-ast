@@ -7,13 +7,14 @@ Independent static projection: [#529](https://github.com/klum-dsl/klum-ast/issue
 Baseline: `3d13ffa2d` (merged [#938](https://github.com/klum-dsl/klum-ast/pull/938)), after
 [#937](https://github.com/klum-dsl/klum-ast/pull/937) and [#933](https://github.com/klum-dsl/klum-ast/pull/933).
 
-The planning text and initial-probe validation below retain their historical revision vocabulary. The separately
-assigned WIRE-1 work now implements the two proposed facade methods, private carrier reading, shared Consumer creator
-paths, complete ordered preflight and exact execution. Current implementation evidence, including the resolved key-derivation decision, is tracked in
-[WIRE-1 runtime qualification](evidence/issue-932-wire-1-runtime.md); user behavior is documented in
-[Structured Input](../user/Structured-Input.md). This does not authorize a parser, generator, additional grammar or merge.
-The evidence's unpublished handoff is historical: [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged.
-[SCHEMA-0](adr-0031-schema-0.md) reconciles the independent generator plan without changing this runtime contract.
+The original planning text below is historical. WIRE-1 delivered its two facade methods, shared Consumer creator paths,
+complete ordered preflight and exact execution in merged [PR #940](https://github.com/klum-dsl/klum-ast/pull/940).
+[WIRE-REPLACE #947](https://github.com/klum-dsl/klum-ast/pull/947) migrated production admission to the package-private
+`CompiledBuilderSchema` facade; [WIRE-REMOVE](evidence/issue-529-wire-remove.md) removes the old carrier, reader, encoding
+and comparison fixtures. References below to carrier fields, private classfile extraction or format compatibility describe
+that retired implementation, not current architecture. Public-contract annotations and reflection now supply these facts.
+The behavioral grammar, dispatch and lifecycle restrictions remain unchanged; [Structured Input](../user/Structured-Input.md)
+is the current user contract. No parser, generator or additional grammar is authorized by this cleanup.
 
 ## Smallest useful delivery
 

@@ -74,11 +74,6 @@ public final class GeneratedDslSupport {
     public static final String RELATIONSHIP_CREATOR_TAG = "dsl-support-relationship-creator";
     public static final String INTERFACE_LINK_TAG = "dsl-support-interface:";
 
-    /** Emits compiler-internal WIRE-PLAN output after the model verifier succeeds. */
-    public static void emitWirePlanCarrier(ClassNode model) {
-        StructuredInputAdmissionPlan.emitCarrier(model);
-    }
-
     private static final ClassNode KLUM_GENERATED = ClassHelper.make(KlumGenerated.class);
     private static final ClassNode KLUM_BUILDER = ClassHelper.make(KlumBuilder.class);
     private static final ClassNode BUILDER_FACTORY_PROVIDER = ClassHelper.make(BuilderFactoryProvider.class);

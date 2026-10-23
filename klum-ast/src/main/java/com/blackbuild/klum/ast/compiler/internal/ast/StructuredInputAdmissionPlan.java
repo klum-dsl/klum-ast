@@ -30,8 +30,6 @@ import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
-import groovyjarjarasm.asm.ClassWriter;
-import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -44,15 +42,7 @@ import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ListExpression;
-import org.codehaus.groovy.control.SourceUnit;
-
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.FileSystemException;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -61,8 +51,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Base64;
-import java.util.StringJoiner;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
@@ -73,15 +61,11 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.g
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getKeyTypeForMap;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
-import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
-import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 
 /**
- * Compiler-only normalization for the deliberately small WIRE-PLAN input grammar.
+ * Compiler-only classification and minimal public-contract enrichment for structured input.
  *
- * <p>The plan deliberately stays on the source AST. WIRE-PLAN/B owns selecting a binary
- * representation for these facts.</p>
+ * <p>The normalized plan stays on the source AST; runtime consumers reflect the enriched public contracts.</p>
  */
 final class StructuredInputAdmissionPlan {
 
@@ -253,50 +237,6 @@ final class StructuredInputAdmissionPlan {
         return model == null ? null : model.redirect().getNodeMetaData(METADATA_KEY);
     }
 
-    /**
-     * Emits the selected WIRE-PLAN/B binary form beside the generated public namespace.
-     *
-     * <p>The existing retained public annotations cannot distinguish generated property,
-     * owned-relationship and keyed-map operations, nor can they retain the source declaration
-     * identity that makes collision diagnostics deterministic.  This deliberately has no reader
-     * API: future consumers inspect the constant from class bytes without loading Schema code.</p>
-     */
-    static void emitCarrier(ClassNode model) {
-        model = model.redirect();
-        if (model == null)
-            throw new IllegalStateException("No model for WIRE-PLAN carrier");
-        StructuredInputAdmissionPlan plan = planOf(model);
-        if (plan == null)
-            return; // A compiler without this transformation's classification does not publish a carrier.
-
-        SourceUnit source = model.getModule().getContext();
-        if (source == null || source.getErrorCollector().hasErrors()
-                || source.getConfiguration() == null || source.getConfiguration().getTargetDirectory() == null)
-            return; // Failed and AST-only compilation does not publish a generated class-file artifact.
-        File outputDirectory = source.getConfiguration().getTargetDirectory();
-
-        String internalName = model.getName().replace('.', '/') + "_DSL$WirePlan";
-        ClassWriter writer = new ClassWriter(0);
-        writer.visit(Opcodes.V1_8,
-                Opcodes.ACC_FINAL | Opcodes.ACC_SUPER | ACC_SYNTHETIC,
-                internalName, null, "java/lang/Object", null);
-        writer.visitField(ACC_PRIVATE | ACC_STATIC | Opcodes.ACC_FINAL,
-                "DATA", "Ljava/lang/String;", null, plan.canonicalForm()).visitEnd();
-        writer.visitEnd();
-
-        Path carrier = outputDirectory.toPath().resolve(internalName + ".class");
-        try {
-            Files.createDirectories(carrier.getParent());
-            Files.write(carrier, writer.toByteArray());
-        } catch (FileSystemException exception) {
-            if ("File name too long".equals(exception.getReason()))
-                return; // Invalid test/source diagnostics have no class-file artifact to publish.
-            throw new IllegalStateException("Could not emit WIRE-PLAN/B carrier " + carrier, exception);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Could not emit WIRE-PLAN/B carrier " + carrier, exception);
-        }
-    }
-
     String model() {
         return model;
     }
@@ -311,33 +251,6 @@ final class StructuredInputAdmissionPlan {
 
     List<Rejection> rejections() {
         return rejections;
-    }
-
-    String canonicalForm() {
-        StringBuilder result = new StringBuilder("WIRE-PLAN/B\n");
-        result.append("model|").append(token(model)).append('|').append(token(builder)).append('\n');
-        entries.forEach(entry -> result.append("entry|").append(token(entry.externalName())).append('|')
-                .append(entry.role()).append('|').append(token(entry.source())).append('|')
-                .append(token(entry.operation().declaringBuilder())).append('|').append(token(entry.operation().name())).append('|')
-                .append(token(String.join(",", entry.operation().descriptorGroup()))).append('|')
-                .append(entry.nameOrigin()).append('|').append(token(entry.mapKeyType())).append('|')
-                .append(token(entry.excludedChildKeyMember())).append('|').append(payloadToken(entry.payload())).append('|')
-                .append(token(entry.fixedChildKey())).append('\n'));
-        rejections.forEach(rejection -> result.append("rejection|").append(token(rejection.source())).append('|')
-                .append(token(rejection.reason())).append('\n'));
-        return result.toString();
-    }
-
-    private static String payloadToken(Payload payload) {
-        StringJoiner result = new StringJoiner(",", "[", "]");
-        result.add(payload.kind().name()).add(token(payload.type())).add(token(payload.builder())).add(token(payload.keyType()));
-        if (payload.item() != null)
-            result.add(payloadToken(payload.item()));
-        return result.toString();
-    }
-
-    private static String token(String value) {
-        return value == null ? "-" : Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private static void classifyField(ClassNode model, FieldNode field, List<Entry> entries, List<Rejection> rejections) {

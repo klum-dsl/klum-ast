@@ -25,10 +25,6 @@ package com.blackbuild.klum.ast.schema
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import groovyjarjarasm.asm.ClassReader
-import groovyjarjarasm.asm.ClassVisitor
-import groovyjarjarasm.asm.FieldVisitor
-import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchemaReplacementProbe
@@ -128,7 +124,7 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         @interface JsonIgnore { boolean value() default true }
     ''']
 
-    def 'isolated binary reflection exposes contracts docs and the precise provenance gaps'() {
+    def 'isolated binary reflection and final facade expose contracts docs and source provenance'() {
         given:
         def artifacts = fixture()
         def binaries = isolated(artifacts)
@@ -139,8 +135,9 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         def child = SchemaReflectionProbe.inspect(binaries, 'schemar.schema.Component_DSL$Builder')
         def collection = SchemaReflectionProbe.inspect(binaries, ROOT + '$CollectionFactory_components')
         def cluster = SchemaReflectionProbe.inspect(binaries, ROOT + '$ClusterFactory_slots')
-        def plan = carrier(artifacts.schema, 'schemar.schema.Application')
-        def entries = plan.findAll { it[0] == 'entry' }.collectEntries { [(decode(it[1])): it] }
+        def plan = CompiledBuilderSchemaReplacementProbe.read(Class.forName(ROOT, false, binaries),
+                Class.forName('schemar.schema.Application_DSL$Factory', false, binaries))
+        def entries = plan.entries.collectEntries { [(it.externalName): it] }
         def methods = root.methods
         new File(compilerConfiguration.targetDirectory, 'reflection.txt').text = [root, factory, child, binaries.resolved, plan].join('\n')
 
@@ -165,22 +162,22 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         SchemaReflectionProbe.enumNames(binaries, 'schemar.schema.Mode') == ['SAFE', 'FAST']
         !methods.find { it.name == 'serviceName' && it.parameters == ['java.lang.String'] }.annotations.containsKey('com.fasterxml.jackson.annotation.JsonProperty')
         !child.methods.any { it.name == 'name' }
-        entries['service-name'][7] == 'JSON_PROPERTY'
-        entries['unchanged'][7] == 'IDENTITY'
-        entries['values'][2] == 'PROPERTY'
+        entries['service-name'].nameOrigin == 'JSON_PROPERTY'
+        entries['unchanged'].nameOrigin == 'IDENTITY'
+        entries['values'].role == 'PROPERTY'
         methods.find { it.name == 'getValues' }.return == 'java.util.NavigableSet<java.lang.String>'
         methods.find { it.name == 'getLabels' }.return == 'java.util.Map<java.lang.String, java.util.List<java.lang.String>>'
         !methods.find { it.name == 'computed' && it.parameters == ['java.lang.String'] }.annotations.containsKey('com.blackbuild.klum.ast.Default')
         !methods.find { it.name == 'getSupplied' }.annotations.containsKey('com.blackbuild.klum.ast.Default')
-        decode(entries['values'][5]) == 'addValue'
-        decode(entries['values'][6]) == methods.find { it.name == 'addValue' && it.parameters == ['java.lang.String'] }.descriptor
-        decode(entries['connect'][6]) == methods.find { it.name == 'endpoint' }.descriptor
-        entries['connect'][2] == 'OPERATION'
-        decode(entries['components'][9]) == 'name'
-        decode(entries['main-slot'][11]) == 'primary'
-        plan.any { it[0] == 'rejection' && decode(it[1]).endsWith('#secret') }
-        plan.any { it[0] == 'rejection' && decode(it[1]).endsWith('#children') }
-        plan.any { it[0] == 'rejection' && decode(it[1]).endsWith('#reserved') && decode(it[2]).contains('absent') }
+        entries['values'].operation == 'addValue'
+        entries['values'].descriptors.first() == methods.find { it.name == 'addValue' && it.parameters == ['java.lang.String'] }.descriptor
+        entries['connect'].descriptors.first() == methods.find { it.name == 'endpoint' }.descriptor
+        entries['connect'].role == 'OPERATION'
+        entries['components'].excludedChildKeyMember == 'name'
+        entries['main-slot'].fixedChildKey == 'primary'
+        plan.rejections.any { it.source.endsWith('#secret') }
+        plan.rejections.any { it.source.endsWith('#children') }
+        plan.rejections.any { it.source.endsWith('#reserved') && it.reason.contains('absent') }
         !methods.any { it.name == 'reserved' }
         System.getProperty('schema.r.executed') == null
         !binaries.resolved.any { it.startsWith('schemar.') && it.contains('$') && !it.contains('_DSL$') }
@@ -191,7 +188,7 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         System.clearProperty('schema.r.executed')
     }
 
-    def 'cross-artifact name collision is invisible without original field naming provenance'() {
+    def 'cross-artifact name collision retains both original sources and selects no winner'() {
         given:
         def artifacts = fixture('''
             package schemar.schema
@@ -206,12 +203,13 @@ class SchemaReflectionTest extends AbstractDSLSpec {
 
         when:
         def root = SchemaReflectionProbe.inspect(binaries, 'schemar.schema.Collision_DSL$Builder')
-        def childEntries = carrier(artifacts.schema, 'schemar.schema.Collision').findAll { it[0] == 'entry' }
-        def parentEntries = carrier(artifacts.api, 'schemar.api.ApplicationApi').findAll { it[0] == 'entry' }
+        def plan = CompiledBuilderSchemaReplacementProbe.read(Class.forName('schemar.schema.Collision_DSL$Builder', false, binaries),
+                Class.forName('schemar.schema.Collision_DSL$Factory', false, binaries))
 
         then:
-        childEntries.find { decode(it[1]) == 'region' }[7] == 'JSON_PROPERTY'
-        parentEntries.find { decode(it[1]) == 'region' }[7] == 'IDENTITY'
+        !plan.entries.any { it.externalName == 'region' }
+        plan.rejections.findAll { it.reason.startsWith("external-name collision for 'region':") }*.source as Set ==
+                ['schemar.api.ApplicationApi#region', 'schemar.schema.Collision#local'] as Set
         root.methods.any { it.name == 'region' }
         !root.methods.find { it.name == 'local' }.annotations.containsKey('com.fasterxml.jackson.annotation.JsonProperty')
         System.getProperty('schema.r.executed') == null
@@ -398,15 +396,14 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         def artifacts = fixture('', false, source)
         def binaries = isolated(artifacts)
         String sourceMember = 'schemar.schema.Application#values(java.lang.Iterable):void'
-        def original = carrier(artifacts.schema, 'schemar.schema.Application').find { it[0] == 'rejection' && decode(it[1]) == sourceMember }
-        assert original != null
 
         when:
         def replacement = CompiledBuilderSchemaReplacementProbe.read(Class.forName(ROOT, false, binaries),
                 Class.forName('schemar.schema.Application_DSL$Factory', false, binaries))
 
         then:
-        replacement.rejections.find { it.source == sourceMember }.reason == decode(original[2])
+        replacement.rejections.find { it.source == sourceMember }.reason ==
+                (ignored ? 'excluded by @JsonIgnore(true)' : '@Builder.Method payload is outside the admitted grammar')
         System.getProperty('schema.r.executed') == null
 
         cleanup:
@@ -479,21 +476,4 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         jar
     }
 
-    private static List<List<String>> carrier(File jar, String model) {
-        String data
-        new JarFile(jar).withCloseable { archive ->
-            def bytes = archive.getInputStream(archive.getJarEntry(model.replace('.', '/') + '_DSL$WirePlan.class')).bytes
-            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9) {
-                @Override FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-                    if (name == 'DATA') data = value
-                    null
-                }
-            }, ClassReader.SKIP_CODE)
-        }
-        data.readLines().collect { it.split('\\|', -1).toList() }
-    }
-
-    private static String decode(String token) {
-        token == '-' ? null : new String(Base64.urlDecoder.decode(token), 'UTF-8')
-    }
 }

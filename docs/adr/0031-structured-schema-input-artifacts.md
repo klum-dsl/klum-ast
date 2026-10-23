@@ -4,13 +4,13 @@ Date: 2026-10-20. Architecture revised: 2026-10-23 (reflective generator decisio
 
 Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; generator not implemented**.
 Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
-is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, private classfile reader, ordered
+is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, ordered
 preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
 records the pre-publication qualification checkpoint; [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged.
 Broader #932 remains open. [SCHEMA-0](../implementation/adr-0031-schema-0.md) reconciles the independent #529 delivery
 plan against that merged baseline and merged SCHEMA-T (#942). The maintainer revision below supersedes the
-carrier-first generator approach of #941/#942. SCHEMA-1 is paused; the next required #529 slice is a reflection-versus-
-enrichment inventory/probe, not production generation. This revision implements no generator or Gradle task and assigns no release.
+carrier-first generator approach of #941/#942. SCHEMA-R and the subsequent WIRE migration are complete as recorded below.
+SCHEMA-1 remains paused; no generator or Gradle task is implemented and no release is assigned.
 
 Interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -25,16 +25,21 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
 
-## WIRE-REPLACE implementation checkpoint — 2026-10-23
+## Final compiled-contract checkpoint — 2026-10-23
 
-The separately approved [WIRE-REPLACE seam](../implementation/evidence/issue-529-wire-replace.md) replaces production carrier reads with the internal non-public
-`CompiledBuilderSchema`: reflected public signatures/types plus the measured minimal generated field/selection,
-invisible-exclusion and child/fixed-key enrichment. Exact-public-contract selective annotation bytes avoid SCHEMA-R's
-user-enum initialization hazard. No production consumer uses the old carrier; its reader/emission remain historical
-comparison support pending separately authorized WIRE-REMOVE and its recorded deletion criteria. Missing/older required
-enrichment requires recompile/package guidance, with no legacy fallback. This checkpoint does not resume SCHEMA-1,
-implement JSON Schema generation or change #932 runtime semantics. Earlier carrier/probe descriptions below retain their
-historical scope; the linked delivered evidence records the current extraction seam.
+[WIRE-REPLACE #947](https://github.com/klum-dsl/klum-ast/pull/947) selected the internal, package-private
+`CompiledBuilderSchema`: reflected public Builder/Factory signatures and types, exact-contract selective annotation
+bytes, and minimal generated field/selection/exclusion and child/fixed-key facts. [WIRE-REMOVE evidence](../implementation/evidence/issue-529-wire-remove.md)
+records removal of companion emission, serialization, readers, binary resources and transitional comparison machinery.
+There is no production carrier dependency, fallback or compiled-carrier compatibility promise: the carrier was internal
+and unreleased. Required missing enrichment retains recompile/package guidance. Fixed expected contracts now guard the
+final facade; useful binary/no-execution, inheritance, documentation, runtime and JPMS regressions remain.
+
+SCHEMA-R #945 and WIRE-SCHEMA-PROBE #946 are complete historical checkpoints. The next separately assigned #529 work is
+reflective structural projection inside the Schema Gradle plugin, followed by its isolated classpath and output/cache
+qualification. No generator starts here. The historical SCHEMA-1 branch stays paused and untouched; #932 runtime language
+and lifecycle semantics remain independent. Earlier carrier descriptions and probe instructions below record migration
+history, not active architecture or outstanding assignments.
 
 ## Problem and ownership
 
@@ -105,8 +110,8 @@ Accepted guardrails:
   portable YAML/JSON source-order guarantee. Domain objects do not gain a repeated-call or generic call-record syntax.
 - Complete preflight validates and prepares the entire supplied tree in supplied traversal order without invoking user
   code or mutating an active Builder. Execution follows that prepared order; ordinary side effects have no rollback
-  promise. Deterministic carrier ordering and inherited-name lookup validate names without reordering execution. JSON
-  Schema may sort metadata for reproducible artifacts independently. WIRE-PLAN/B normalization/serialization is unchanged.
+  promise. Deterministic contract ordering and inherited-name lookup validate names without reordering execution. JSON
+  Schema may sort metadata for reproducible artifacts independently. No serialized admission plan is emitted.
 
 ## Naming and coexistence
 
@@ -163,12 +168,11 @@ first prefer a small runtime-retained generated annotation on the relevant publi
 allowed only for a named fact that cannot be represented truthfully and economically there, such as a declaration with
 no surviving public annotation target. No companion-only requirement is currently proven for #529.
 
-The next required [SCHEMA-R inventory/probe](../implementation/adr-0031-schema-0.md#next-required-slice--schema-r-reflection-versus-enrichment)
-classifies **every** current WIRE datum as directly reflected, existing annotation, small generated annotation, or genuinely
-necessary private companion. It measures inheritance, attribution and missing metadata rather than copying the normalized
-WIRE plan wholesale. It does not alter the carrier, WIRE runtime, generated contracts or production generator. Existing
-WIRE compatibility obligations remain; reducing metadata is a later evidence-backed implementation change, not authority
-to delete fields used by #932.
+The completed [SCHEMA-R inventory/probe](../implementation/adr-0031-schema-0.md#next-required-slice--schema-r-reflection-versus-enrichment)
+classified **every** then-current WIRE datum as directly reflected, existing annotation, small generated annotation, or genuinely
+necessary private companion. Its measured inheritance, attribution and missing-metadata results justified the small generated annotations delivered
+by WIRE-REPLACE. No companion-only fact was found. WIRE-REMOVE retires the duplicated plan after migration of every
+production consumer and the useful regression corpus.
 
 `@AnnoDoc` is runtime-retained embedded bytecode documentation, readable through reflection on public declarations.
 Ordinary reflection cannot recover raw source Javadoc; that does not make this existing documentation carrier unavailable.
@@ -195,8 +199,7 @@ Generated annotations are generated ABI even when framework-owned: retention, ta
 rules need compatibility tests. Additive enrichment must preserve existing Builder/Factory signatures, client linking,
 construction, lifecycle, ownership and serialization. Missing required enrichment must produce explicit upgrade/recompile
 or unsupported-shape guidance; optional prose absence need not fail generation. This ADR adds no compatibility shim,
-legacy WIRE decoder or public descriptor version protocol. Existing WIRE-1's unreleased twelve-token/recompile boundary
-remains unchanged.
+legacy WIRE decoder or public descriptor version protocol. The unreleased carrier has been removed; required public enrichment has explicit recompile/package guidance.
 
 Gradle inputs include explicit root contract names, projection options/tool implementation and the complete resolved
 classpath including runtime annotations/docs. Contract resolution occurs at task execution, never configuration. Ordinary
@@ -223,8 +226,7 @@ It did **not** test reflective classpath loading or show that every duplicated c
 plus the maintainer's explicit 2026-10-23 decision, justify reopening the generator architecture. The old instruction to
 proceed from successful SCHEMA-T directly to production without revisiting enrichment is superseded.
 
-No production implementation resumes automatically. SCHEMA-1 remains paused and its branch is untouched. The next slice
-is SCHEMA-R; only its measured results justify subsequent enrichment, projection and Gradle-delivery work.
+No production implementation resumes automatically. SCHEMA-1 remains paused and its branch is untouched. The completed reflection/enrichment migration justifies the next separately assigned projection and Gradle-delivery work.
 
 ## Polymorphism and independent concerns
 
@@ -246,7 +248,7 @@ The shared feasibility probe is complete in [PR #933](https://github.com/klum-ds
 all four managed Jackson modes, active-Builder loading, completed LINK attachment, compiled cross-module discovery and
 no-execution Draft 2020-12 projection. The shared compiler-owned admission tracer is now complete in
 [PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
-[PR #938](https://github.com/klum-dsl/klum-ast/pull/938). The selected package-private carrier preserves normalized roles,
+[PR #938](https://github.com/klum-dsl/klum-ast/pull/938). The original package-private carrier preserved normalized roles,
 source identity and rejection facts missing from retained annotations. The linked evidence qualifies separate-artifact
 inheritance, no-execution extraction, JPMS, Groovy 3/4/5, generated linkage and the supported Gradle output lifecycle.
 The approved [runtime plan](../implementation/adr-0031-wire-runtime-v1.md) now has its first production consumer in
@@ -258,7 +260,12 @@ Construction-session integration; #529 owns reflective extraction, static projec
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
 honestly.
 
-## WIRE-1 numeric admission clarification
+## Historical WIRE-1 refinements — behavior retained, carrier retired
+
+These refinements record the original migration decisions. The behavioral restrictions remain; transport-format
+instructions and carrier identities below describe the removed implementation only.
+
+### WIRE-1 numeric admission clarification
 
 The maintainer-approved numeric scalar targets are exactly `byte`, `short`, `int`, `long`, `float`, `double`, their boxed
 JDK types, `BigInteger` and `BigDecimal`. Every other `Number` type is rejected during compiler admission, including
