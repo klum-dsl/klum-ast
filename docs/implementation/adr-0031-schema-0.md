@@ -26,6 +26,20 @@ exclusion provenance. No companion-only datum is demonstrated. Fixed-child keys 
 need no new metadata for the first structural projection. The original table remains the planning hypothesis/history;
 use the evidence for actual R/A/N/C outcomes. SCHEMA-1 remains paused and #932/WIRE are unchanged.
 
+## WIRE-SCHEMA-PROBE compatibility checkpoint
+
+The [binary contract comparison and full parity matrix](evidence/issue-529-wire-schema-probe.md) consume merged
+SCHEMA-R #945. A package-private test facade observes public Builder/Factory facts with selective exact-contract
+annotation-byte access; the carrier remains solely a comparison oracle. Thirty-two probe cases expose 77 exact admission,
+field/group/naming/key/exclusion differences in the admission corpus rather than declaring reflection-only parity.
+Supported container types, nested generics, inherited declarations, authored eligibility and no-execution binary loading
+are qualified. The linked evidence records explicit **WIRE-REPLACE** and **WIRE-REMOVE** exit criteria.
+
+Shared runtime migration needs the exact child Key member and fixed native child key that generator-only projection
+can omit. These remain small annotation candidates alongside SCHEMA-R's field/exclusion provenance, with no demonstrated
+companion necessity. This checkpoint implements no production metadata, selects no production annotation-access strategy,
+and authorizes no WIRE replacement/removal, generator resumption or #932 language/runtime change.
+
 ## Authority and issue boundary
 
 JSON Schema generation is classpath-oriented reflective tooling normally invoked by the Schema Gradle plugin. It receives

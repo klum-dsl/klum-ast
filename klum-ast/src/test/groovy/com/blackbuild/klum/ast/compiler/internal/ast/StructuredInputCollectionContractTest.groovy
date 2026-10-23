@@ -33,15 +33,7 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
     def 'populates #declaration through its compiler-selected generated element path'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
-        unit.addSource('Schema.groovy', """
-            package collectioncontracts
-            import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.Field
-            @DSL class Configuration {
-                @Field(members='addValue') $declaration values
-            }
-            enum Mode { A, Z }
-        """)
+        unit.addSource('Schema.groovy', StructuredInputContractFixtures.collection(declaration))
 
         when:
         unit.compile()
@@ -125,16 +117,7 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
     def 'distinguishes an authored plural override from the generated element path'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
-        unit.addSource('Schema.groovy', '''
-            package shadowedpopulation
-            import com.blackbuild.klum.ast.Builder
-            import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.Field
-            @DSL class Configuration {
-                @Field(members='addValue') NavigableSet<String> values
-                @Builder.Method void values(Iterable<String> values) { throw new AssertionError('Authored override selected') }
-            }
-        ''')
+        unit.addSource('Schema.groovy', StructuredInputContractFixtures.POPULATION)
 
         when:
         unit.compile()
@@ -209,15 +192,7 @@ class StructuredInputCollectionContractTest extends AbstractDSLSpec {
     def 'rejects whole-container operation argument #target without restricting supported field declarations'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
-        unit.addSource('Schema.groovy', """
-            package restrictedarguments
-            import com.blackbuild.klum.ast.*
-            @DSL class Configuration {
-                NavigableSet<String> fieldValues
-                @Builder.Method void consume($target value) { }
-            }
-            enum Mode { A, Z }
-        """)
+        unit.addSource('Schema.groovy', StructuredInputContractFixtures.operationArgument(target))
 
         when:
         unit.compile()
