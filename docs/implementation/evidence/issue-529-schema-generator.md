@@ -51,6 +51,9 @@ must agree with retained `@Key` bytes. Standards review found no documented-stan
 invocation duplication was removed by reusing the existing test helper. The fixed-key
 fixture also exposed that child key identity is retained on the Model field, not the nested payload's unused key slot;
 classfile annotation reading now validates it without loading annotation/Schema classes.
+A final specification audit also confirmed that name origin must be retained, not merely recognized: private entries
+and coverage diagnostics now retain the compiler's IDENTITY/JSON_PROPERTY category. The old command failed the added
+rename-origin assertion before this correction; inherited identity and explicit rename origins are now tested.
 
 ## Validation and review
 

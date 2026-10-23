@@ -112,7 +112,7 @@ final class SchemaProjection {
                     else diagnostics.add("prose unavailable: " + entry.source());
                     properties.put(entry.name(), shape);
                     diagnostics.add("admitted " + entry.role() + " " + entry.source() + " as " + JsonText.encode(entry.name())
-                            + "; contract " + entry.owner() + "#" + String.join(",", entry.descriptors()));
+                            + "; name origin " + entry.nameOrigin() + "; contract " + entry.owner() + "#" + String.join(",", entry.descriptors()));
                 } catch (IllegalArgumentException failure) {
                     throw invalid(entry.source() + "; contract " + entry.owner() + ": " + failure.getMessage());
                 }

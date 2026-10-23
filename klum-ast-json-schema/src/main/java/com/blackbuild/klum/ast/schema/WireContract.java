@@ -80,7 +80,7 @@ final class WireContract {
             throw invalid("Keyed relationship lacks its String key at " + source);
         if (fixedKey != null && (fixedKey.isEmpty() || role != Role.OWNED_OBJECT))
             throw invalid("Fixed key requires keyed OWNED_OBJECT at " + source);
-        return new Entry(required(fields[1]), role, source, owner, operation, normalized, payload, keyType, excludedKey, fixedKey);
+        return new Entry(required(fields[1]), role, source, owner, operation, NameOrigin.valueOf(fields[7]), normalized, payload, keyType, excludedKey, fixedKey);
     }
 
     static String model(String builder) {
@@ -118,8 +118,9 @@ final class WireContract {
     private static IllegalArgumentException invalid(String message) { return new IllegalArgumentException(message); }
 
     enum Role { PROPERTY, OPERATION, OWNED_OBJECT, KEYED_OWNED_MAP }
+    enum NameOrigin { IDENTITY, JSON_PROPERTY }
     enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
-    record Entry(String name, Role role, String source, String owner, String operation, List<String> descriptors,
+    record Entry(String name, Role role, String source, String owner, String operation, NameOrigin nameOrigin, List<String> descriptors,
                  Payload payload, String keyType, String excludedKey, String fixedKey) { }
     record Rejection(String source, String reason) { }
     record Payload(Kind kind, String type, String builder, String keyType, Payload item) {

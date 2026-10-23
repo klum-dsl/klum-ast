@@ -49,7 +49,7 @@ The document has a root `$ref` and reusable `$defs` keyed by fully qualified gen
 the domain object. Concrete recursion and repeated child types reuse local references. No registry or external `$id`
 is required. Literal map and instance keys retain punctuation, case and empty strings.
 
-Successful generation reports the root, Builder, admitted source/contract coverage, compiler rejections, and unavailable
+Successful generation reports the root, Builder, admitted source/contract coverage and name origins, compiler rejections, and unavailable
 prose on standard error. Exact retained AnnoDocimal descriptions are included when attributable to the Model declaration
 or selected public operation. Descriptions never change admission. Definitions, properties and diagnostics are sorted;
 output contains no timestamps, machine paths or archive-order details.

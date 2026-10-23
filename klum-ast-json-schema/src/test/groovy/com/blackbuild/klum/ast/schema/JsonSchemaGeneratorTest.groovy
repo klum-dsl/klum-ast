@@ -140,6 +140,8 @@ class JsonSchemaGeneratorTest extends AbstractDSLSpec {
         facts.text.contains('KEYED_OWNED_MAP')
         facts.text.contains('OPERATION')
         facts.text.contains('schematracer.schema.Application#secret')
+        facts.text.contains('"service-name"; name origin JSON_PROPERTY')
+        facts.text.contains('"region"; name origin IDENTITY')
         !output.text.contains('"secret":')
         !output.text.contains('"required":')
         !output.text.contains('"default":')
