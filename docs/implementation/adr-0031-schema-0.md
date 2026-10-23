@@ -1,12 +1,24 @@
 # SCHEMA-0 — reflective JSON Schema delivery plan
 
-Date: 2026-10-23. Status: **SCHEMA-R measured; annotation-access safety decision pending before production; SCHEMA-1 paused**.
+Date: 2026-10-23. Status: **WIRE-REPLACE implemented; qualification recorded in linked evidence; SCHEMA-1 paused**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#generator-architecture-and-fidelity).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Independent interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Reviewed master: `de76710dfc649f17857215d5c86cbd88165ab85c` (merged #942).
 Classification: **B — revise ADR 0031 and its implementation plan**, under the explicit 2026-10-23 maintainer decision.
 This documentation revision changes no production code, generated contract, WIRE carrier or runtime implementation.
+
+
+## WIRE-REPLACE implementation checkpoint — 2026-10-23
+
+The separately approved [WIRE-REPLACE seam](evidence/issue-529-wire-replace.md) replaces production carrier reads with the internal non-public
+`CompiledBuilderSchema`: reflected public signatures/types plus the measured minimal generated field/selection,
+invisible-exclusion and child/fixed-key enrichment. Exact-public-contract selective annotation bytes avoid SCHEMA-R's
+user-enum initialization hazard. No production consumer uses the old carrier; its reader/emission remain historical
+comparison support pending separately authorized WIRE-REMOVE and its recorded deletion criteria. Missing/older required
+enrichment requires recompile/package guidance, with no legacy fallback. This checkpoint does not resume SCHEMA-1,
+implement JSON Schema generation or change #932 runtime semantics. Earlier carrier/probe descriptions below retain their
+historical scope; the linked delivered evidence records the current extraction seam.
 
 ## SCHEMA-R measured checkpoint
 

@@ -7,6 +7,18 @@ Independent generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/
 Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
 
+
+## WIRE-REPLACE implementation checkpoint — 2026-10-23
+
+The separately approved [WIRE-REPLACE seam](evidence/issue-529-wire-replace.md) replaces production carrier reads with the internal non-public
+`CompiledBuilderSchema`: reflected public signatures/types plus the measured minimal generated field/selection,
+invisible-exclusion and child/fixed-key enrichment. Exact-public-contract selective annotation bytes avoid SCHEMA-R's
+user-enum initialization hazard. No production consumer uses the old carrier; its reader/emission remain historical
+comparison support pending separately authorized WIRE-REMOVE and its recorded deletion criteria. Missing/older required
+enrichment requires recompile/package guidance, with no legacy fallback. This checkpoint does not resume SCHEMA-1,
+implement JSON Schema generation or change #932 runtime semantics. Earlier carrier/probe descriptions below retain their
+historical scope; the linked delivered evidence records the current extraction seam.
+
 ## Current handoff — `WIRE-PLAN` and WIRE-1 runtime merged
 
 [PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
