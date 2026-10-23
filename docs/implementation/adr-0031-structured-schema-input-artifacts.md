@@ -1,8 +1,8 @@
 # ADR 0031 implementation plan — compiler seam and `WIRE-RUNTIME` v1
 
-Date: 2026-10-21. Updated: 2026-10-23. Status: **`WIRE-PLAN` and restricted WIRE-1 runtime merged; generator not implemented**.
+Date: 2026-10-21. Updated: 2026-10-23 (reflective generator revision). Status: **`WIRE-PLAN` and restricted WIRE-1 runtime merged; generator not implemented**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
-Language/interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
+Interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
@@ -26,12 +26,38 @@ The approved refinements bound numeric and container admission, exclude keyed ow
 compiler-known fixed direct-child keys in the unreleased private carrier. Original pre-refinement entry records reject
 with recompile guidance; no legacy reader is introduced. [Runtime evidence](evidence/issue-932-wire-1-runtime.md) records
 the pre-publication qualification checkpoint. [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged;
-#932 and #529 remain open and independent. [SCHEMA-0](adr-0031-schema-0.md) plans #529's smallest binary-to-schema
-tracer and subsequent delivery gates against merge `c9a8918fb`. It starts no generator, plugin or broader #932 work.
+#932 and #529 remain open and independent. Merged [#941](https://github.com/klum-dsl/klum-ast/pull/941) and
+[#942](https://github.com/klum-dsl/klum-ast/pull/942) delivered the original SCHEMA-0 plan and test-only SCHEMA-T.
+The revised [SCHEMA-0 plan](adr-0031-schema-0.md) now supersedes their carrier-first generator architecture under the
+explicit 2026-10-23 maintainer decision in [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#generator-architecture-and-fidelity).
 
-The remaining `WIRE-PLAN` sections below preserve the original tracer specification and its stop conditions as historical
-acceptance criteria. Their prospective representation comparison and implementation gates have been satisfied by the
-linked merged work; they are not instructions to repeat that work or authorization to expand WIRE-1 or implement the generator.
+## Current #529 boundary and next slice
+
+#529 owns classpath-oriented reflection over public generated Builder/Factory contracts and their runtime annotations,
+including embedded `@AnnoDoc`, followed by conservative JSON Schema projection and Schema Gradle-plugin integration.
+Reflection supplies signatures/types/inheritance and most container shape. Only measured missing compiler facts justify
+small generated annotations; a private companion needs a concrete necessity proof. Assess private implementation inside
+the existing Schema Gradle plugin depending on runtime, behind an internal extraction/projection seam; do not presume a
+standalone public module, executable or CLI. No generator/rendering dependency enters runtime.
+
+#932 owns the independent optional interpreter and its Construction-session execution. The two may reuse enrichment and
+a structural acceptance corpus, but neither defines or depends on the other's implementation. WIRE-1 and its current
+carrier remain untouched. The generator receives a root contract and isolated classpath from Gradle; it has no filesystem-
+discovery contract and does not inspect Schema implementation classes, initialize them or execute their code. Ordinary
+reflection lacks raw Javadoc; retained `@AnnoDoc` is explicitly available embedded documentation, subject to exact attribution.
+
+**SCHEMA-1 is paused.** Before any production generator resumes, separately assign the
+[SCHEMA-R inventory/probe](adr-0031-schema-0.md#next-required-slice--schema-r-reflection-versus-enrichment), accounting
+for every current WIRE datum and proving reflective isolation/docs availability. This revision changes no source, contract,
+carrier or runtime; it does not resume or modify SCHEMA-1's branch. The sequence and acceptance checks in SCHEMA-0 govern
+future #529 work; its old direction to bypass further metadata investigation is superseded.
+
+## Historical WIRE-PLAN specification
+
+Everything below records the original WIRE-PLAN/runtime planning and accepted WIRE-1 refinements. Prospective gates and
+the common-carrier dependency diagram are historical, not current instructions for #529. They neither require the
+generator to consume the carrier nor rule out small new generated annotations. Preserve this evidence for #932 without
+repeating WIRE-PLAN, changing its ABI or making runtime implementation a prerequisite for static tooling.
 
 ## Outcome and stopping boundary
 
@@ -265,7 +291,7 @@ generator implementation.
 These two commits are the complete tracer. No production runtime entry point, JSON Schema Gradle task, user documentation,
 `CHANGES.md` entry or parser dependency belongs in them.
 
-## Dependency sequence after `WIRE-PLAN`
+## Historical dependency sequence after `WIRE-PLAN`
 
 `WIRE-PLAN` establishes the common admission, naming and argument contract. Once it is accepted and its binary metadata is
 available, the production consumers may progress independently:
@@ -322,7 +348,7 @@ plan removed, that duplicated complexity returns. By contrast, a public descript
 generic call AST, subtype scanner, reference registry, context provider, parser, lifecycle engine or publication framework
 would add interface without serving the first grammar and therefore fails the audit.
 
-## Validation and delivery for this planning revision
+## Historical validation and delivery for the runtime-planning revision
 
 For the current runtime-planning revision, validate Markdown links and `git diff --check`, and run the bounded runtime
 probe on Groovy 3/4/5 alongside the existing admission and Jackson characterization. No production source changes. Conduct the repository's

@@ -1,6 +1,6 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Date: 2026-10-20. Architecture revised: 2026-10-22. Delivery status reconciled: 2026-10-23.
+Date: 2026-10-20. Architecture revised: 2026-10-23 (reflective generator decision). Delivery status reconciled: 2026-10-23.
 
 Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; generator not implemented**.
 Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
@@ -8,9 +8,11 @@ is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, 
 preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
 records the pre-publication qualification checkpoint; [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged.
 Broader #932 remains open. [SCHEMA-0](../implementation/adr-0031-schema-0.md) reconciles the independent #529 delivery
-plan against that merged baseline; it authorizes no generator or Gradle plugin implementation and assigns no release.
+plan against that merged baseline and merged SCHEMA-T (#942). The maintainer revision below supersedes the
+carrier-first generator approach of #941/#942. SCHEMA-1 is paused; the next required #529 slice is a reflection-versus-
+enrichment inventory/probe, not production generation. This revision implements no generator or Gradle task and assigns no release.
 
-Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
+Interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 [Implementation plan](../implementation/adr-0031-structured-schema-input-artifacts.md).
 Need horizon: identified ScHelm demand, provisional next 4.x integration line; no milestone assigned.
@@ -35,7 +37,10 @@ Two related but independent capabilities address these needs:
 | Structured Input Interpreter (#932) | Restricted operation admission, naming, arguments, nested dispatch, ordering, diagnostics and Construction-session integration over a parsed Map/List/scalar tree | Optional; parsers caller-owned, no YAML/Jackson dependency in core; not a second Model construction engine |
 | JSON Schema Generator (#529) | Optional Gradle-driven Draft 2020-12 generation describing the admitted language from compiled contracts | Does not execute input or own language semantics; no public descriptor protocol |
 
-They share the admission/naming contract proven by one probe, not a mandatory runtime dependency or public metadata SPI.
+The two capabilities share an accepted structural subset and may reuse minimal enrichment metadata. Neither defines the
+other or requires the other's implementation. In particular, #529 does not depend on WIRE runtime implementation or its
+private plan reader. #932 owns runtime admission/execution; #529 owns contract extraction and JSON Schema projection.
+Changes to their overlapping names/shapes require explicit reconciliation, not automatic adoption of one consumer's internals.
 Managed Jackson import remains independently supported foreign-format interoperability under ADR 0009. It is neither
 replaced by the interpreter nor the sole grammar for structured input. Any new opt-in operation language leaves existing
 Jackson public signatures, modes, mapper behavior and diagnostics intact; this ADR does not redefine Jackson's wire contract.
@@ -105,72 +110,109 @@ selected public contract, expected versus actual shape/type and preserved cause,
 
 ## Generator architecture and fidelity
 
-The representation comparison below records the original selection criteria. Merged WIRE-PLAN selected the private
-carrier for normalized facts missing from annotations; SCHEMA-0 consumes the current WIRE-1 refinement rather than
-repeating that selection. Public contracts still verify the selected operations; retained documentation may supplement
-them without redefining admission. The independent [SCHEMA-0 plan](../implementation/adr-0031-schema-0.md) records the
-direct projection and the maintainer-simplified binary-only tracer. SCHEMA-0/T uses one synthetic separately compiled
-API -> Schema fixture to prove extraction without Schema execution, actual metaschema/instance-validated Draft 2020-12
-with reusable definitions, and representative WIRE-1 structural alignment. Comprehensive inheritance, JPMS, numeric,
-diagnostic, determinism and output-lifecycle qualification remains production acceptance, not initial feasibility.
+### Revised decision — reflection first
+
+JSON Schema generation is classpath-oriented reflective tooling, normally invoked from the Schema Gradle plugin.
+Gradle supplies an explicit root public generated contract type and an isolated, resolved Schema/API/runtime/annotation
+classpath. Inspect `Foo_DSL.Builder` / `Foo_DSL.Factory` and reachable public contracts by reflection: methods, parameter
+and return types, generic signatures, inheritance, retained annotations and embedded `@AnnoDoc` documentation are primary
+inputs. Public visibility alone is not input admission. Keep a private extraction/projection seam that distinguishes
+reflected callable shape from compiler-proven input role and produces conservative Draft 2020-12.
+
+Do not load user Schema implementation classes as discovery/inspection targets, instantiate them, read `Foo.Create`, or
+invoke Schema methods, constructors, factories, defaults, converters, lifecycle code or annotation closures. Contract
+loading uses initialization disabled. Reflection may cause the JVM to resolve referenced Model/API types from signatures
+or annotation class literals; that is linkage, never permission to inspect hidden implementations or initialize/execute
+those types. The required probe must expose that resolution boundary and demonstrate silent initialization traps. A
+promise that no referenced Model class is ever resolved is not established by the earlier classfile-only tracer.
 
 ```text
-Compiled Schema + public Foo_DSL.Builder/Factory contracts + proven admission/naming
-                                |
-                                v
-                  Internal operation/property normalization
-                                |
-                                v
-                       JSON Schema Draft 2020-12
+Gradle: root public contract + isolated resolved classpath
+                         |
+                         v
+Reflection: public Builder/Factory signatures, annotations, @AnnoDoc
+            + only irreducible compiler enrichment
+                         |
+                         v
+Private extraction / structural projection -> Draft 2020-12 output files
 ```
 
-The first production generator uses an optional Gradle plugin accepting explicit roots and compiled dependencies and
-exposes ordinary JSON Schema task output files, with incremental/up-to-date and configuration-cache behavior. The test-only
-feasibility tracer needs no production plugin. Prefer fully qualified generated class identities
-for `$defs`; prove deterministic references, escaping and collision handling across modules. Existing retained Schema
-annotations and generated public Builder/Factory methods are the first candidate binary source. `WIRE-PLAN` compares their
-retained facts with one package-private generated carrier and selects the carrier only if annotations cannot preserve a
-required operation role, external name, payload shape or source identity across separately compiled artifacts. The bounded
-comparison covers metadata completeness, binary retention, no-execution extraction, runtime lookup, JPMS access, generated
-ABI compatibility and implementation/maintenance complexity; it does not introduce a third architecture or descriptor
-framework. Source/mirror reconstruction is not primary discovery. No Schema constructor, factory, initializer/default,
-converter, lifecycle method or annotation closure executes during extraction. Runtime interpretation intentionally executes
-admitted Schema code.
+The generator has no filesystem-discovery contract. Resolving named types/resources on the supplied classpath is an
+implementation detail, not an API for scanning directories/JARs for roots, subtypes, providers or source files. There is
+no standalone executable or CLI requirement. A later CLI, if justified, remains classpath-oriented with explicit roots.
+Sources, IDE mirrors, Model field inspection and raw classfile scanning are not the primary discovery mechanism.
 
-If retained annotations suffice, prefer them. If a carrier is necessary, record the concrete missing annotation capability
-and emit the smallest supportable binary contract. Such a carrier is not a public Schema Developer API, but published Schema
-artifacts still make its identity and encoding generated ABI: separately compiled Schema/API artifacts from supported older
-4.x lines must remain readable by supported newer KlumAST tooling. Package privacy does not remove that compatibility duty;
-proposed [ADR 0015](0015-generated-schema-runtime-linkage.md) and
-[#896](https://github.com/klum-dsl/klum-ast/issues/896) provide the directional context without becoming parent decisions.
-This decision adds no version negotiation, compatibility shim, runtime-floor enforcement or public descriptor version
-protocol.
+### Minimize compiler enrichment
 
-Consumers own packaging, distribution, final location and use. No Maven classifier, embedding requirement, deployment
-lookup, published Gradle variant, automatic publication wiring or universal registry is prescribed. Consumers may embed,
-copy, publish alongside other artifacts, or use the output for editor/validation tooling. A future published artifact or
-variant requires demonstrated consumer need. JSON Schema is the only initial generator artifact;
-normalization stays private, without serialized generic descriptors, codecs, migrations or public readers. Plugin/task/
-extension names and internal packaging remain provisional; tooling dependencies do not enter core/runtime.
+Reflection already supplies most WIRE carrier data: identities, signatures, inheritance, types and container shape.
+Existing generated annotations supply authored-operation markers, generated-role hints and documentation. Missing
+source-field provenance, property/population grouping or normalized admission facts must be demonstrated individually;
+first prefer a small runtime-retained generated annotation on the relevant public declaration. A private companion is
+allowed only for a named fact that cannot be represented truthfully and economically there, such as a declaration with
+no surviving public annotation target. No companion-only requirement is currently proven for #529.
 
-Structural validity does not imply successful interpretation, binding, materialization or completed validation. Required
-may be satisfied by defaults/lifecycle and is not raw-input required. Do not evaluate default closures, translate arbitrary
-Groovy validation or imply that schema references encode LINK identities. Advanced defaults/constraints may be omitted
-honestly. [Draft 2020-12](https://json-schema.org/draft/2020-12/json-schema-validation) distinguishes presence assertions
-from default annotations; no merge/patch, execution-order or round-trip promise follows from schema generation.
+The next required [SCHEMA-R inventory/probe](../implementation/adr-0031-schema-0.md#next-required-slice--schema-r-reflection-versus-enrichment)
+classifies **every** current WIRE datum as directly reflected, existing annotation, small generated annotation, or genuinely
+necessary private companion. It measures inheritance, attribution and missing metadata rather than copying the normalized
+WIRE plan wholesale. It does not alter the carrier, WIRE runtime, generated contracts or production generator. Existing
+WIRE compatibility obligations remain; reducing metadata is a later evidence-backed implementation change, not authority
+to delete fields used by #932.
 
-Maintainer-confirmed numeric fidelity: Java float/double and their wrappers project to JSON Schema `type: number` as a
-structural approximation. Numeric schema validity does not guarantee Java conversion or successful Model construction;
-WIRE-1 retains overflow, non-finite and conversion checks. Generation does not reproduce every rounding or
-representability boundary, add a custom numeric vocabulary/decimal conversion framework, or require exhaustive range
-encoding. This accepted approximation is supported projection and must not block first useful JSON Schema. Integral
-targets retain exact representable bounds where straightforward; BigInteger/BigDecimal retain mathematical numeric
-semantics without conversion through binary double.
+`@AnnoDoc` is runtime-retained embedded bytecode documentation, readable through reflection on public declarations.
+Ordinary reflection cannot recover raw source Javadoc; that does not make this existing documentation carrier unavailable.
+Read exact declaration annotations, preserve inherited attribution, and report missing/ambiguous documentation honestly.
+Do not parse prose to infer admission, required/default values or arbitrary validation. No source JAR, Javadoc network
+lookup, compiler AST or IDE-mirror fallback is required.
 
-Real ScHelm integration is deferred from feasibility. Before declaring the first production generator complete, qualify
-at least one real ScHelm Schema root and generated output through a consumer-owned acceptance process. The Hive may
-coordinate that later with the ScHelm maintainer; this planning PR selects no consumer packaging convention or repository
-change. A successful SCHEMA-0/T leads to a decision whether to implement the generator, not another metadata design phase.
+### Placement and compatibility consequences
+
+First assess a **private implementation inside `klum-ast-gradle-plugin` depending on `klum-ast-runtime`**, with a small
+internal extraction/projection seam. The existing plugin has no production runtime dependency today; adding/resolving it
+must be qualified for plugin-versus-Schema classloader isolation and dependency alignment. A new standalone public module,
+published generator API or reusable executable is not presumed necessary. No module or dependency is added by this design
+revision. Generator/rendering dependencies stay out of `klum-ast-runtime`; runtime interpretation remains independently
+optional. Depending on the runtime artifact for contract/annotation types does not mean invoking its interpreter.
+
+Resolve all Schema/API, Groovy, Klum runtime and annotation dependencies from declared Gradle inputs in an isolated worker
+or equivalent loader. Fail on missing/incompatible linkage with root/type/dependency context; do not fall back to daemon
+or ambient application classes. Use exact type identity within one loader, close it after use, and retain no loaded
+Schema classes in configuration-cache state. Qualification must cover Groovy 3/4/5 and separately compiled inherited
+contracts. Named-module access must be proved for public contracts without opening hidden implementations or adding flags.
+
+Generated annotations are generated ABI even when framework-owned: retention, targets, identity, defaults and inheritance
+rules need compatibility tests. Additive enrichment must preserve existing Builder/Factory signatures, client linking,
+construction, lifecycle, ownership and serialization. Missing required enrichment must produce explicit upgrade/recompile
+or unsupported-shape guidance; optional prose absence need not fail generation. This ADR adds no compatibility shim,
+legacy WIRE decoder or public descriptor version protocol. Existing WIRE-1's unreleased twelve-token/recompile boundary
+remains unchanged.
+
+Gradle inputs include explicit root contract names, projection options/tool implementation and the complete resolved
+classpath including runtime annotations/docs. Contract resolution occurs at task execution, never configuration. Ordinary
+output files must be deterministic, declared, stale-safe and qualified for relevant dependency/documentation changes,
+root deletion, relocation, up-to-date/build-cache and configuration-cache reuse. No source/mirror input or directory-
+discovery contract is added. Consumers own packaging, copying, publishing and editor association; no classifier, registry,
+publication variant or automatic embedding is prescribed.
+
+Structural validity does not imply successful interpretation, operation execution, binding, lifecycle, materialization
+or completed validation. Do not turn completed `@Required` into raw-input `required`, evaluate defaults, infer caller LINK
+context or translate arbitrary Groovy validation. Float/double and wrappers retain the accepted `type: number` structural
+approximation; Java conversion/overflow/rounding checks remain runtime concerns. Straightforward integral bounds and
+mathematical BigInteger/BigDecimal semantics remain. Reusable `$defs`/`$ref`, fully qualified generated Builder identities,
+literal data/instance keys and conservative unsupported-shape diagnostics remain required. At least one real ScHelm root
+and output still needs consumer-owned acceptance before production completion, independently of interpreter delivery.
+
+### Superseded approach and retained evidence
+
+The earlier carrier-first direct projection, classfile/JAR/directory-reader input API and standalone-tooling/module
+assumptions in SCHEMA-0 are superseded for future #529 implementation. SCHEMA-T (#942) remains valid historical evidence:
+it emitted real Draft 2020-12, reused definitions, passed representative validator checks and executed no Schema code.
+It did **not** test reflective classpath loading or show that every duplicated carrier datum was irreducible. Likewise,
+#938 compared then-existing annotations with a carrier; it did not rule out small generated annotations. Those limits,
+plus the maintainer's explicit 2026-10-23 decision, justify reopening the generator architecture. The old instruction to
+proceed from successful SCHEMA-T directly to production without revisiting enrichment is superseded.
+
+No production implementation resumes automatically. SCHEMA-1 remains paused and its branch is untouched. The next slice
+is SCHEMA-R; only its measured results justify subsequent enrichment, projection and Gradle-delivery work.
 
 ## Polymorphism and independent concerns
 
@@ -199,8 +241,8 @@ The approved [runtime plan](../implementation/adr-0031-wire-runtime-v1.md) now h
 WIRE-1: parser-free root and active-Builder interpretation through admitted public contracts. Its bounded numeric and
 container policies, keyMapping exclusion and unreleased private fixed-child-key carrier refinement are recorded in that
 plan and the linked evidence. The remaining broader #932 work and #529 JSON Schema generation remain independent
-from this first runtime slice and can share the acceptance corpus. #932 owns language semantics and
-runtime interpretation; #529 owns static projection and optional Gradle integration. The generator does not depend on the
+from this first runtime slice and can share the acceptance corpus. #932 owns runtime admission/execution and
+Construction-session integration; #529 owns reflective extraction, static projection and Gradle integration. The generator does not depend on the
 interpreter and may describe only its currently representable accepted subset, while unsupported shapes are diagnosed
 honestly.
 
@@ -267,3 +309,11 @@ This is an explicitly approved refinement of an unreleased private ABI, not a co
 requires the refined record shape; earlier eleven-token entries, including the untouched #938 binary fixture, reject
 with recompile/package guidance. There is no legacy decoder, version negotiation or inference fallback. The original
 fixture bytes and provenance remain intact. The historical reader acceptance result predates this approved change.
+
+## Genuine open maintainer decisions
+
+None blocks this documentation revision or the bounded SCHEMA-R probe. After that probe, return only concrete unresolved
+facts: any demonstrated need for a companion rather than an annotation, or a demonstrated reason the private plugin
+implementation cannot meet isolation/compatibility needs. Those are conditional evidence-driven decisions, not permission
+to invent a metadata framework, standalone module or CLI. Task/package naming and routine implementation details are not
+maintainer architecture questions. Deferred language extensions remain separate #932 work.

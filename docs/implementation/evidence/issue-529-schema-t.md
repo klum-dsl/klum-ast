@@ -7,6 +7,15 @@ Authority: [SCHEMA-0/T](../adr-0031-schema-0.md#executable-feasibility-proposal-
 [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md).
 Base: `d4724f85991aa856afe1a42eca28bf0f98bc2ac2` (merged #941, after WIRE-1 #940).
 
+## Retrospective architecture status — 2026-10-23
+
+Merged [PR #942](https://github.com/klum-dsl/klum-ast/pull/942) preserves the successful A/B/C evidence below.
+The later [ADR 0031 revision](../../adr/0031-structured-schema-input-artifacts.md#generator-architecture-and-fidelity)
+and [SCHEMA-R next slice](../adr-0031-schema-0.md#next-required-slice--schema-r-reflection-versus-enrichment) supersede
+its carrier-first/classfile-reader architecture and the instruction to proceed without reexamining enrichment. This tracer
+did not prove reflective loading, `@AnnoDoc` extraction or that all carrier facts were irreducible. Its original commands,
+results and publication checkpoint below remain historical evidence; no tests were rerun for the documentation revision.
+
 ## Outcome and proof boundaries
 
 The disposable tracer reads the current private twelve-token WIRE-PLAN/B carrier and selected public generated Builder
