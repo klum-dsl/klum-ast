@@ -1,12 +1,14 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Date: 2026-10-20. Architecture revised: 2026-10-22.
+Date: 2026-10-20. Architecture revised: 2026-10-22. Delivery status reconciled: 2026-10-23.
 
-Status: **Accepted direction; compiler admission seam merged; approved WIRE-1 runtime slice implemented on its issue branch; generator not implemented**.
+Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; generator not implemented**.
 Merged #937/#938 completed `WIRE-PLAN`. The maintainer-approved [WIRE-RUNTIME v1 plan](../implementation/adr-0031-wire-runtime-v1.md)
 is implemented by WIRE-1, including the two `KlumStructuredInput` entry points, private classfile reader, ordered
 preflight/dispatch and shared Construction callbacks. [Runtime evidence](../implementation/evidence/issue-932-wire-1-runtime.md)
-records qualification and delivery status. This branch is not a merged or released runtime delivery; #932 remains open.
+records the pre-publication qualification checkpoint; [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged.
+Broader #932 remains open. [SCHEMA-0](../implementation/adr-0031-schema-0.md) reconciles the independent #529 delivery
+plan against that merged baseline; it authorizes no generator or Gradle plugin implementation and assigns no release.
 
 Interpreter/language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -103,6 +105,15 @@ selected public contract, expected versus actual shape/type and preserved cause,
 
 ## Generator architecture and fidelity
 
+The representation comparison below records the original selection criteria. Merged WIRE-PLAN selected the private
+carrier for normalized facts missing from annotations; SCHEMA-0 consumes the current WIRE-1 refinement rather than
+repeating that selection. Public contracts still verify the selected operations; retained documentation may supplement
+them without redefining admission. The independent [SCHEMA-0 plan](../implementation/adr-0031-schema-0.md) records the
+direct projection and the maintainer-simplified binary-only tracer. SCHEMA-0/T uses one synthetic separately compiled
+API -> Schema fixture to prove extraction without Schema execution, actual metaschema/instance-validated Draft 2020-12
+with reusable definitions, and representative WIRE-1 structural alignment. Comprehensive inheritance, JPMS, numeric,
+diagnostic, determinism and output-lifecycle qualification remains production acceptance, not initial feasibility.
+
 ```text
 Compiled Schema + public Foo_DSL.Builder/Factory contracts + proven admission/naming
                                 |
@@ -113,8 +124,9 @@ Compiled Schema + public Foo_DSL.Builder/Factory contracts + proven admission/na
                        JSON Schema Draft 2020-12
 ```
 
-An optional Gradle plugin accepts explicit roots and compiled dependencies, generating reproducible JSON Schema as ordinary
-task outputs with incremental/up-to-date and configuration-cache behavior. Prefer fully qualified generated class identities
+The first production generator uses an optional Gradle plugin accepting explicit roots and compiled dependencies and
+exposes ordinary JSON Schema task output files, with incremental/up-to-date and configuration-cache behavior. The test-only
+feasibility tracer needs no production plugin. Prefer fully qualified generated class identities
 for `$defs`; prove deterministic references, escaping and collision handling across modules. Existing retained Schema
 annotations and generated public Builder/Factory methods are the first candidate binary source. `WIRE-PLAN` compares their
 retained facts with one package-private generated carrier and selects the carrier only if annotations cannot preserve a
@@ -135,7 +147,9 @@ This decision adds no version negotiation, compatibility shim, runtime-floor enf
 protocol.
 
 Consumers own packaging, distribution, final location and use. No Maven classifier, embedding requirement, deployment
-lookup, publication framework or universal registry is prescribed. JSON Schema is the only initial generator artifact;
+lookup, published Gradle variant, automatic publication wiring or universal registry is prescribed. Consumers may embed,
+copy, publish alongside other artifacts, or use the output for editor/validation tooling. A future published artifact or
+variant requires demonstrated consumer need. JSON Schema is the only initial generator artifact;
 normalization stays private, without serialized generic descriptors, codecs, migrations or public readers. Plugin/task/
 extension names and internal packaging remain provisional; tooling dependencies do not enter core/runtime.
 
@@ -144,6 +158,19 @@ may be satisfied by defaults/lifecycle and is not raw-input required. Do not eva
 Groovy validation or imply that schema references encode LINK identities. Advanced defaults/constraints may be omitted
 honestly. [Draft 2020-12](https://json-schema.org/draft/2020-12/json-schema-validation) distinguishes presence assertions
 from default annotations; no merge/patch, execution-order or round-trip promise follows from schema generation.
+
+Maintainer-confirmed numeric fidelity: Java float/double and their wrappers project to JSON Schema `type: number` as a
+structural approximation. Numeric schema validity does not guarantee Java conversion or successful Model construction;
+WIRE-1 retains overflow, non-finite and conversion checks. Generation does not reproduce every rounding or
+representability boundary, add a custom numeric vocabulary/decimal conversion framework, or require exhaustive range
+encoding. This accepted approximation is supported projection and must not block first useful JSON Schema. Integral
+targets retain exact representable bounds where straightforward; BigInteger/BigDecimal retain mathematical numeric
+semantics without conversion through binary double.
+
+Real ScHelm integration is deferred from feasibility. Before declaring the first production generator complete, qualify
+at least one real ScHelm Schema root and generated output through a consumer-owned acceptance process. The Hive may
+coordinate that later with the ScHelm maintainer; this planning PR selects no consumer packaging convention or repository
+change. A successful SCHEMA-0/T leads to a decision whether to implement the generator, not another metadata design phase.
 
 ## Polymorphism and independent concerns
 

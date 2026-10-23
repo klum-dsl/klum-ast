@@ -1,6 +1,6 @@
 # WIRE-RUNTIME — proposed first #932 production slice
 
-Date: 2026-10-22. Status: **approved first runtime slice; approved WIRE-1 implementation undergoing final qualification**.
+Date: 2026-10-22. Delivery status reconciled: 2026-10-23. Status: **approved restricted WIRE-1 slice merged in PR #940**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Language owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent static projection: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
@@ -12,6 +12,8 @@ assigned WIRE-1 work now implements the two proposed facade methods, private car
 paths, complete ordered preflight and exact execution. Current implementation evidence, including the resolved key-derivation decision, is tracked in
 [WIRE-1 runtime qualification](evidence/issue-932-wire-1-runtime.md); user behavior is documented in
 [Structured Input](../user/Structured-Input.md). This does not authorize a parser, generator, additional grammar or merge.
+The evidence's unpublished handoff is historical: [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged.
+[SCHEMA-0](adr-0031-schema-0.md) reconciles the independent generator plan without changing this runtime contract.
 
 ## Smallest useful delivery
 

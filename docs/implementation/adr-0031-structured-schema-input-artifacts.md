@@ -1,13 +1,13 @@
 # ADR 0031 implementation plan — compiler seam and `WIRE-RUNTIME` v1
 
-Date: 2026-10-21. Updated: 2026-10-22. Status: **`WIRE-PLAN` merged; approved WIRE-1 runtime slice implemented on its issue branch; generator not implemented**.
+Date: 2026-10-21. Updated: 2026-10-23. Status: **`WIRE-PLAN` and restricted WIRE-1 runtime merged; generator not implemented**.
 Decision: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md).
 Language/interpreter owner: [#932](https://github.com/klum-dsl/klum-ast/issues/932).
 Independent generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 Authority: merged [PR #933](https://github.com/klum-dsl/klum-ast/pull/933) and its
 [WIRE-ARGS/WIRE-NAMES/WIRE-ORDER evidence](evidence/issue-932-structured-input-probe.md).
 
-## Current handoff — `WIRE-PLAN` merged, WIRE-1 runtime implemented
+## Current handoff — `WIRE-PLAN` and WIRE-1 runtime merged
 
 [PR #937](https://github.com/klum-dsl/klum-ast/pull/937) and
 [PR #938](https://github.com/klum-dsl/klum-ast/pull/938) delivered the compiler-owned admission seam. The selected binary
@@ -25,8 +25,9 @@ remain outside this slice. Supplied Map/List traversal order remains separate fr
 The approved refinements bound numeric and container admission, exclude keyed owned-map `@Field.keyMapping`, and persist
 compiler-known fixed direct-child keys in the unreleased private carrier. Original pre-refinement entry records reject
 with recompile guidance; no legacy reader is introduced. [Runtime evidence](evidence/issue-932-wire-1-runtime.md) records
-qualification and delivery status. The implementation is not yet merged or released; #932 and #529 remain open and
-independent.
+the pre-publication qualification checkpoint. [PR #940](https://github.com/klum-dsl/klum-ast/pull/940) is now merged;
+#932 and #529 remain open and independent. [SCHEMA-0](adr-0031-schema-0.md) plans #529's smallest binary-to-schema
+tracer and subsequent delivery gates against merge `c9a8918fb`. It starts no generator, plugin or broader #932 work.
 
 The remaining `WIRE-PLAN` sections below preserve the original tracer specification and its stop conditions as historical
 acceptance criteria. Their prospective representation comparison and implementation gates have been satisfied by the
