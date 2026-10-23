@@ -60,6 +60,8 @@ class KlumJsonSchemaGenerationTest extends Specification {
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
         result.task(':createKlumDslSourceMirrors') == null
         schema.get('$schema') == 'https://json-schema.org/draft/2020-12/schema'
+        schema.get('$ref') == '#/$defs/example.Deployment_DSL%24Builder'
+        !new File(output('example.Deployment').parentFile, 'example.Deployment_DSL$Builder.schema.json').exists()
         root.get('additionalProperties') == false
         root.get('properties').get('region').get('description').contains('Inherited region documentation.')
         root.get('properties').get('services').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
@@ -89,15 +91,29 @@ class KlumJsonSchemaGenerationTest extends Specification {
     def 'tracks roots output ownership and binary dependency documentation without stale files'() {
         given:
         fixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.add('other.Service')\n")
         run('generateKlumJsonSchema')
         byte[] first = output('example.Deployment').bytes
         File unrelated = new File(output('example.Deployment').parentFile, 'consumer-owned.txt')
         unrelated.text = 'preserve me'
 
-        expect:
-        run('generateKlumJsonSchema').task(':generateKlumJsonSchema').outcome == TaskOutcome.UP_TO_DATE
+        when: 'unchanged roots are reused'
+        def reused = run('generateKlumJsonSchema')
+
+        then:
+        output('example.Service').exists()
+        output('other.Service').exists()
+        document('example.Service').get('$defs').get('example.Service_DSL$Builder').get('properties').containsKey('image')
+        document('other.Service').get('$defs').get('other.Service_DSL$Builder').get('properties').containsKey('endpoint')
+        reused.task(':generateKlumJsonSchema').outcome == TaskOutcome.UP_TO_DATE
 
         when: 'replace a resolved API artifact under the same coordinate with different retained prose'
+        File manifest = new File(output('example.Deployment').parentFile, '.klum-json-schema-outputs')
+        File legacy = new File(manifest.parentFile, 'example.Deployment_DSL$Builder.schema.json')
+        legacy.bytes = first
+        manifest.append(legacy.name + '\n')
+        File untracked = new File(manifest.parentFile, 'consumer-owned_DSL$Builder.schema.json')
+        untracked.text = 'consumer-owned schema'
         publishApi('Changed inherited region documentation.')
         def changed = run('generateKlumJsonSchema', '--refresh-dependencies')
 
@@ -105,16 +121,22 @@ class KlumJsonSchemaGenerationTest extends Specification {
         changed.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
         output('example.Deployment').text.contains('Changed inherited region documentation.')
         output('example.Deployment').bytes != first
+        !legacy.exists()
+        untracked.text == 'consumer-owned schema'
+        manifest.readLines() == ['example.Deployment.schema.json', 'example.Service.schema.json', 'other.Service.schema.json']
         !trap.exists()
 
-        when: 'one configured root is removed'
+        when: 'only one Model root remains'
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Service'])\n")
         run('generateKlumJsonSchema')
 
         then:
         !output('example.Deployment').exists()
+        !output('other.Service').exists()
         output('example.Service').exists()
         unrelated.text == 'preserve me'
+        untracked.text == 'consumer-owned schema'
+        manifest.readLines() == ['example.Service.schema.json']
 
         when: 'a missing root fails before replacing the last successful files'
         byte[] previous = output('example.Service').bytes
@@ -339,6 +361,11 @@ import java.lang.annotation.*
         File deployment = new File(producer, 'schema/src/main/groovy/example/Deployment.groovy')
         deployment.text = deployment.text.replace('import java.lang.annotation.*', 'import java.lang.annotation.*\nimport com.fasterxml.jackson.annotation.JsonProperty')
                 .replace('@Builder.Method @Policy', "@Builder.Method @JsonProperty('configure-input') @Policy")
+        writeSource('schema/src/main/groovy/other/Service.groovy', """
+package other
+import com.blackbuild.klum.ast.DSL
+@DSL class Service { String endpoint }
+""")
         // Malformed binary contract: no Misdirected Model exists, and both contract signatures name Service.
         writeSource('schema/src/main/groovy/example/Misdirected_DSL.groovy', """
 package example
@@ -401,7 +428,7 @@ class InitializationControl {
         source.text = text
     }
 
-    private File output(String model) { new File(consumer, 'build/generated/klum-json-schema/' + model + '_DSL$Builder.schema.json') }
+    private File output(String model) { new File(consumer, 'build/generated/klum-json-schema/' + model + '.schema.json') }
     private Map document(String model) { (Map) new JsonSlurper().parse(output(model)) }
     private static String notation(String path) { "'" + path.replace('\\', '\\\\').replace("'", "\\'") + "'" }
     private static String classpath(String value) { value.split(File.pathSeparator).collect { notation(it) }.join(', ') }

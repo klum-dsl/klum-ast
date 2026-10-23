@@ -48,7 +48,7 @@ source/reason diagnostics in `x-klum-unsupported`; malformed contracts and unrep
 
 Inputs are explicit root names, complete `@Classpath` dependency bytes (including annotations/prose), private tool bytes
 and tool version. Projection has no configurable policy switches in this slice. Every root produces one ordinary file
-named after its canonical generated Builder. Successful output replacement deletes only stale filenames recorded in the
+named after its requested and verified fully qualified DSL Model identity. Successful output replacement deletes only stale filenames recorded in the
 previous `.klum-json-schema-outputs` manifest; unrelated files are preserved. Contract/projection failure happens before
 output mutation. Consumers must keep the manifest and use a dedicated directory. I/O failures are reported; no multi-file
 transaction or preservation guarantee for partial filesystem failure is claimed.
@@ -124,7 +124,8 @@ accepted in `SetProperty<String> rootTypes`, matching the GDSL export convention
 configuration-time Model loading is introduced. The private projector appends the existing `_DSL$Builder` suffix and
 uses `CompiledBuilderSchema` to compare the contract's Model name with the requested name. It never resolves the requested
 Model implementation as an inspection target. A generated Builder root is rejected with a diagnostic suggesting its
-corresponding DSL Model name. Builder-based filenames, `$defs` identities and references are unchanged.
+corresponding DSL Model name. At this checkpoint, filenames still used Builder names; the subsequent filename
+refinement below supersedes that naming. `$defs` identities and references remain unchanged.
 
 The documentary fixture and all positive root selections use Model names. Two focused negative cases cover a generated
 Builder name and a deliberately misdirected binary contract whose Builder/Factory agree on a different Model. The latter
@@ -139,13 +140,41 @@ involved. The repository-wide final-head check and live CI/SonarCloud results fo
 No facade/generated-annotation, projection-shape, task/output, runtime, loader, publication or packaging behavior changes.
 This refinement does not complete the separate consumer-owned ScHelm acceptance gate or change issue/milestone state.
 
+## Maintainer refinement — DSL Model filenames
+
+Following `cc275e1fd`, output filenames now use the requested and facade-verified DSL Model identity:
+`example.Deployment` produces `example.Deployment.schema.json` directly in the existing output directory. Fully qualified
+names distinguish identical simple names in different packages. No naming strategy or package-directory layout is added.
+Builder identities remain internal `$defs` keys/references, including `#/$defs/example.Deployment_DSL%24Builder`.
+
+The manifest validates the shared `.schema.json` suffix with the existing path-separator/hidden-name guards, accepting
+both current Model-named entries and previously recorded Builder-named entries. Successful generation replaces the
+manifest with current Model filenames and deletes only obsolete entries from the prior manifest. It neither scans for
+untracked files nor deletes the output directory. This bounded unreleased-format cleanup adds no migration framework.
+
+The existing ownership test now selects `example.Service` and `other.Service` together, checks their distinct filenames
+and contents, seeds a previously tracked Builder filename, verifies its removal, and retains both consumer-owned text
+and an untracked Builder-suffixed file. Reducing the selection to one Model leaves exactly that Model filename in the
+manifest and removes the other tracked Model files. Existing configuration/build-cache restoration and relocation cases
+use the new output paths. Documentary cases assert the unchanged Builder-based root reference and absence of the old
+Builder filename. The focused suite remains **14 cases**, all passing without failures/errors/skips (**49s**); no broad
+matrix was added. Pinned external validation passes all three metaschemas and 6 accepted / 14 rejected inputs per lane.
+
+Byte-for-byte comparison with the emitted documents saved from `cc275e1fd` confirms unchanged JSON content for Groovy
+3/4/5. All six before/after documents have SHA-256
+`4894503e9ea917e3ffe56eb8d6d46379c2beb1b623e6529965c2b6cd7b75aac3`.
+The repository-wide final-head check, independent review results and current CI/SonarCloud status for this follow-up are
+recorded in PR #949. Public root configuration, the facade/generated annotations, structural projection, loader isolation,
+runtime, publication and packaging remain unchanged. No issue/milestone state change or ScHelm integration is included.
+
 ## Delivery boundary
 
 Tracker impact: **Related: #529**; no issue closure, milestone, release-placement or curation-scope change.
 The older standalone SCHEMA-1 branch is untouched. No merge is authorized. The local history review retains one vertical implementation/test commit, its user/architecture documentation,
 the bounded validator-header/version correction, and this final evidence record; reviewed production commits are preserved.
-Refreshed `origin/master` is still `39f9c8302`, so no rebase is required. The final evidence-only commit changes no executable
-source from the validated/reviewed `25b89e4a9`. Delivery channels: **Git transport authorized; GitHub CLI authorized**.
+Refreshed `origin/master` is still `39f9c8302`, so no rebase is required. The initial evidence-only commit changed no executable
+source from the validated/reviewed `25b89e4a9`; subsequent maintainer refinements above are additive follow-up commits
+with their own focused and final-head qualification. Delivery channels: **Git transport authorized; GitHub CLI authorized**.
 The first managed location encountered unavailable automatic write approval; implementation and validation continued in
 a separate worktree under an allowed temporary root. This changes no repository policy. Live PR/CI/SonarCloud state is
 reported separately in the handoff and is not inferred from local success.

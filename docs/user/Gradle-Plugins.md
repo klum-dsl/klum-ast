@@ -87,8 +87,8 @@ the following things:
 
 `klumSchema.jsonSchema { rootTypes.add('example.Deployment') }` selects fully qualified DSL Model names for
 `generateKlumJsonSchema`. The task writes ordinary Draft 2020-12 files without executing Schema code. It is selected
-explicitly and adds no publication wiring. See [JSON Schema generation](Json-Schema.md) for classpath configuration,
-cache/output behavior and structural limits.
+explicitly, writes fully qualified Model-named files such as `example.Deployment.schema.json`, and adds no publication
+wiring. See [JSON Schema generation](Json-Schema.md) for classpath configuration, cache/output behavior and structural limits.
 
 ### Opt-in DelegatingScript metadata (4.1)
 

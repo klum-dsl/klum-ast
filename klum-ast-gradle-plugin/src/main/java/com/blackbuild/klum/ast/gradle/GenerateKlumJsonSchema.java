@@ -156,7 +156,8 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
         if (!Files.exists(manifest)) return Set.of();
         Set<String> result = new LinkedHashSet<>(Files.readAllLines(manifest, StandardCharsets.UTF_8));
         for (String name : result) {
-            if (!name.endsWith("_DSL$Builder.schema.json") || name.contains("/") || name.contains("\\") || name.startsWith("."))
+            // Model filenames and earlier Builder filenames share this suffix; only manifest-owned files are removed.
+            if (!name.endsWith(".schema.json") || name.contains("/") || name.contains("\\") || name.startsWith("."))
                 throw new IOException("Invalid JSON Schema output manifest entry; use a dedicated output directory: " + name);
         }
         return result;

@@ -23,9 +23,10 @@ klumSchema.jsonSchema {
 ```
 
 Run `./gradlew generateKlumJsonSchema` explicitly. The task compiles local classes as needed and writes one file per root
-below `build/generated/klum-json-schema`, for example `example.Deployment_DSL$Builder.schema.json`. The ordinary
-`assemble`, `check` and publication lifecycles do not select generation. Copying, packaging, publishing and editor
-association belong to the consumer; generation adds no artifact variant, classifier or automatic embedding.
+below `build/generated/klum-json-schema`, for example `example.Deployment.schema.json`. The ordinary
+`assemble`, `check` and publication lifecycles do not select generation. Filenames retain the fully qualified Model
+name, so Models with identical simple names in different packages produce distinct files; no package directories are
+created. Copying, packaging, publishing and editor association belong to the consumer; generation adds no artifact variant, classifier or automatic embedding.
 
 The classpath defaults to the main runtime classpath plus the convention's selected Groovy configuration. It includes
 local compiled classes, declared API/Schema dependencies, Klum runtime/annotation libraries and embedded documentation.
@@ -47,12 +48,19 @@ generated enrichment fail with root/classpath and recompile guidance; the Gradle
 Use a dedicated output directory. Gradle fingerprints roots, full classpath bytes (including annotation/documentation
 changes), tool bytes/version and output location. Up-to-date, build-cache and configuration-cache reuse are supported.
 Successful regeneration removes files for deleted roots using its `.klum-json-schema-outputs` manifest, preserving
-unrelated files. Keep that manifest with the output directory. Contract/projection failure preserves the previous
-successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
+unrelated files. It also removes earlier Builder-named files recorded in that manifest when Model-named files replace them;
+untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
+previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
 
 ## Supported input and limits
 
-Reusable definition identities and references retain fully qualified generated Builder names internally.
+Reusable definition identities and references retain fully qualified generated Builder names internally. For example,
+`example.Deployment.schema.json` retains this root reference:
+
+```json
+{"$ref": "#/$defs/example.Deployment_DSL%24Builder"}
+```
+
 The generated document uses reusable `$defs`/`$ref` for concrete owned objects, closed object properties, literal String
 keys for ordinary data maps and keyed owned maps, scalar/enum values, supported field containers, and admitted authored
 `@Builder.Method` operations with one payload. Inherited members and retained prose are preserved. A Map/List operation

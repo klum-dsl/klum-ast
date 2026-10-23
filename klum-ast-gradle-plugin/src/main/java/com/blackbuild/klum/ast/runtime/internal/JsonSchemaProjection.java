@@ -58,7 +58,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                 document.put("$defs", new TreeMap<>(definitions));
                 document.put("$comment", "Structural input only; defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
-                result.put(builder.getName() + ".schema.json", json(document) + "\n");
+                result.put(root + ".schema.json", json(document) + "\n");
             } catch (ClassNotFoundException | LinkageError | RuntimeException failure) {
                 throw new IllegalArgumentException("Cannot generate JSON Schema for root '" + root
                         + "'; supply the complete resolved Schema/API/runtime/annotation classpath and recompile with generated input enrichment: "

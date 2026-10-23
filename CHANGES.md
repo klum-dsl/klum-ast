@@ -1,7 +1,8 @@
 # Unreleased
 
 - Added opt-in Schema-plugin `generateKlumJsonSchema` with explicit DSL Model root names, an isolated binary classpath, Draft 2020-12
-  output, tracked dependency/documentation inputs and cache/stale-output handling. Generation executes no Schema code;
+  output in fully qualified Model-named files, tracked dependency/documentation inputs and cache/stale-output handling.
+  Generation executes no Schema code;
   output use and publication remain consumer-owned. See [JSON Schema generation](docs/user/Json-Schema.md)
   ([#529](https://github.com/klum-dsl/klum-ast/issues/529)); real ScHelm root/output qualification remains pending.
 
