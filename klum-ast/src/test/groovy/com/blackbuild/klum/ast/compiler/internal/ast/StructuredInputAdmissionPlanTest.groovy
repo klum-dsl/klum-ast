@@ -47,45 +47,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
     def "classifies direct and inherited WIRE-PLAN entries from compiler provenance"() {
         given:
-        def unit = compilationUnit('''
-            package admission
-
-            import com.blackbuild.klum.ast.Builder
-            import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.Key
-            import com.fasterxml.jackson.annotation.JsonIgnore
-            import com.fasterxml.jackson.annotation.JsonProperty
-
-            enum Region { EU, US }
-
-            @DSL class Base {
-                String inheritedLabel
-                @JsonProperty('renamed') Region region
-                @JsonIgnore(true) String secret
-                @JsonIgnore(true) @JsonProperty('still-hidden') String ignoredRename
-                @JsonIgnore String implicitSecret
-                @JsonIgnore(false) @JsonProperty('') String fallback
-
-                @Builder.Method
-                void inheritedOperation(String level) { }
-            }
-
-            @DSL class Child {
-                @Key String name
-                String value
-            }
-
-            @DSL class Parent extends Base {
-                List<String> labels
-                Map<String, String> annotations
-                Map<String, List<String>> nestedAnnotations
-                Child child
-                Map<String, Child> children
-
-                @Builder.Method
-                void promote(String level) { }
-            }
-        ''')
+        def unit = compilationUnit(StructuredInputContractFixtures.ADMISSION)
 
         when:
         unit.compile()
@@ -119,27 +81,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
     def "rejects custom Number admission with an actionable source and type diagnostic"() {
         given:
-        def unit = compilationUnit('''
-            package numericboundary
-
-            import com.blackbuild.klum.ast.Builder
-            import com.blackbuild.klum.ast.DSL
-
-            final class OpaqueNumber extends Number {
-                private OpaqueNumber() { throw new AssertionError('No input construction route') }
-                int intValue() { throw new UnsupportedOperationException() }
-                long longValue() { throw new UnsupportedOperationException() }
-                float floatValue() { throw new UnsupportedOperationException() }
-                double doubleValue() { throw new UnsupportedOperationException() }
-            }
-
-            @DSL class Configuration {
-                OpaqueNumber budget
-                List<OpaqueNumber> budgets
-                Map<String, OpaqueNumber> limits
-                @Builder.Method void allocate(OpaqueNumber value) { budget = value }
-            }
-        ''')
+        def unit = compilationUnit(StructuredInputContractFixtures.NUMERIC_REJECTIONS)
 
         when:
         unit.compile()
@@ -227,46 +169,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
     def "rejects unsupported authored operations relationships and colliding external names deterministically"() {
         given:
-        def unit = compilationUnit('''
-            package rejection
-
-            import com.blackbuild.klum.ast.Builder
-            import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.Key
-            import com.fasterxml.jackson.annotation.JsonProperty
-
-            @DSL class Child {
-                @Key String name
-            }
-
-            @DSL abstract class AbstractChild {
-            }
-
-            @DSL class Parent {
-                List<Child> unkeyedChildren
-                AbstractChild abstractChild
-                Map<Integer, Child> numberedChildren
-                char marker
-
-                @JsonProperty('duplicate') String first
-                @JsonProperty('duplicate') String second
-
-                @Builder.Method
-                void reset() { }
-
-                @Builder.Method
-                void replace(String first, String second) { }
-
-                @Builder.Method
-                void raw(Map values) { }
-
-                @JsonProperty('operation') @Builder.Method
-                void firstOperation(String value) { }
-
-                @JsonProperty('operation') @Builder.Method
-                void secondOperation(String value) { }
-            }
-        ''')
+        def unit = compilationUnit(StructuredInputContractFixtures.REJECTIONS)
 
         when:
         unit.compile()
