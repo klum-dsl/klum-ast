@@ -39,6 +39,38 @@ import groovyjarjarasm.asm.Opcodes
 @Issue(['529', '932'])
 class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
+    @Issue('950')
+    def "admits direct and inherited ordinary scalar properties including a non-key property named key"() {
+        given:
+        def unit = compilationUnit('''
+            package ordinaryscalar
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Required
+
+            @DSL class BaseSecret {
+                String inherited
+            }
+
+            @DSL class SecretReference extends BaseSecret {
+                @Required String name
+                @Required String key
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'ordinaryscalar.SecretReference' })
+
+        then:
+        plan.entries().collect { [it.externalName(), it.role().name(), it.operation().name(), it.payload().kind().name()] } == [
+                ['inherited', 'PROPERTY', 'inherited', 'SCALAR'],
+                ['key', 'PROPERTY', 'key', 'SCALAR'],
+                ['name', 'PROPERTY', 'name', 'SCALAR']
+        ]
+        plan.rejections().empty
+    }
+
     def "classifies direct and inherited WIRE-PLAN entries from compiler provenance"() {
         given:
         def unit = compilationUnit(StructuredInputContractFixtures.ADMISSION)

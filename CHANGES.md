@@ -1,5 +1,10 @@
 # Unreleased
 
+- Restored admitted structured input and generated Draft 2020-12 JSON Schema for ordinary scalar Schema properties,
+  including an unkeyed property literally named `key`, when the generated Builder exposes its normal setter. Direct and
+  inherited properties follow the same contract; actual `@Key` members remain outside domain input
+  ([#950](https://github.com/klum-dsl/klum-ast/issues/950)).
+
 - Added opt-in Schema-plugin `generateKlumJsonSchema` with explicit DSL Model root names, an isolated binary classpath, Draft 2020-12
   output in fully qualified Model-named files, tracked dependency/documentation inputs and cache/stale-output handling.
   Generation executes no Schema code;

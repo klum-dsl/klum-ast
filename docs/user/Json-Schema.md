@@ -74,6 +74,9 @@ An abstract root, an empty enum or malformed/missing enrichment fails generation
 `values()` or initializing the enum. No Schema constructors, factories, initializers, defaults, callbacks, converters or
 annotation closures execute, including while diagnosing unsupported declarations.
 
+An ordinary unannotated property named `key` is a normal generated property. Only an actual `@Key` member is excluded
+from domain input.
+
 JSON Schema validates structure only. It does not guarantee Java numeric conversion, input interpretation, binding,
 lifecycle, materialization or completed validation. Integral primitives/wrappers retain exact bounds; float/double use
 `number` as a structural approximation, while BigInteger/BigDecimal retain mathematical numeric semantics. Completed

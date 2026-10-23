@@ -90,6 +90,40 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
     def cleanup() { artifactLoader?.close() }
 
+    @Issue('950')
+    def 'ordinary scalar properties including key remain available through nested structured input'() {
+        given:
+        def root = schema('''
+            package ordinaryscalarinput
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Required
+
+            @DSL class CredentialOwner {
+                SecretReference credentialSecret
+            }
+
+            @DSL class BaseSecret {
+                String inherited
+            }
+
+            @DSL class SecretReference extends BaseSecret {
+                @Required String name
+                @Required String key
+            }
+        ''', 'ordinaryscalarinput.CredentialOwner')
+
+        when:
+        def owner = KlumStructuredInput.readRoot(root, null,
+                [credentialSecret: [inherited: 'shared', name: 'worker-prod-kafka-credentials', key: 'password']],
+                'credentials.yaml')
+
+        then:
+        owner.credentialSecret.inherited == 'shared'
+        owner.credentialSecret.name == 'worker-prod-kafka-credentials'
+        owner.credentialSecret.key == 'password'
+    }
+
     def 'root operations follow supplied Map order independently of contract order'() {
         given:
         def document = documentSchema()

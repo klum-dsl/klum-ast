@@ -115,6 +115,7 @@ keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct key
 Schema-declared key derivation, including explicit `@Field.key` and compiler-known fixedKeys Cluster keys; there is no serialized child-key selector. LINK/reference lookup, unkeyed relationship
 collections, polymorphic selection and CollectionFactory scopes are outside v1. Null at any depth, reset/clear,
 arbitrary caller objects, helper/query/lifecycle names and zero/multi-payload authored operations reject.
+An ordinary unannotated property named `key` is normal domain input; only an actual `@Key` member is outside that input.
 
 Names follow compiler decisions: `@JsonIgnore(true)` excludes an entry; a nonempty literal `@JsonProperty` renames it;
 otherwise the declared identity name applies. Inherited or overload-name collisions reject without choosing a winner.
