@@ -88,6 +88,15 @@ final class StructuredInputAdmissionPlan {
     static final String METADATA_KEY = StructuredInputAdmissionPlan.class.getName() + ".plan";
     private static final String JSON_IGNORE = "com.fasterxml.jackson.annotation.JsonIgnore";
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
+    private static final String VALUE = "value";
+    private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
+    private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
+    private static final String KEYED_OWNERSHIP_REASON = "requires Map<String, concrete keyed DSL Object> ownership";
+    private static final String POPULATION = "POPULATION";
+    private static final String ABSENT_FIELD_REASON = "field is absent from the final public Builder contract";
+    private static final String NUMERIC_REASON_PREFIX = "unsupported numeric type ";
+    private static final String CONTAINER_REASON_PREFIX = "unsupported whole-container payload target ";
+    private static final String POPULATION_REASON_PREFIX = "has no unambiguous compiler-generated element population method ";
     private static final Set<String> NUMERIC_TYPES = Set.of(
             "byte", "short", "int", "long", "float", "double",
             "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long",
@@ -142,56 +151,72 @@ final class StructuredInputAdmissionPlan {
         FieldNode key = getKeyField(model);
         if (key != null) schema.setMember("key", new ConstantExpression(key.getName()));
         ListExpression invisible = new ListExpression();
-        for (FieldNode field : transformation.builderFields.keySet()) {
-            if (excludedField(field)) continue;
-            MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(field.getName()), Parameter.EMPTY_ARRAY);
-            Rejection rejection = rejections.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
-            if (getter == null) {
-                if (rejection != null) {
-                    AnnotationNode exclusion = new AnnotationNode(ClassHelper.make(GeneratedInput.Exclusion.class));
-                    exclusion.setMember("member", new ConstantExpression(field.getName()));
-                    String[] decision = invisibleExclusion(rejection.reason());
-                    exclusion.setMember("category", new ConstantExpression(decision[0]));
-                    if (!decision[1].isEmpty()) exclusion.setMember("detail", new ConstantExpression(decision[1]));
-                    invisible.addExpression(new AnnotationConstantExpression(exclusion));
-                }
-                continue;
-            }
-            AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
-            fact.setMember("value", new ConstantExpression(field.getName()));
-            Name name = externalName(field);
-            if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
-            else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
-            Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
-            if (entry != null && entry.fixedChildKey() != null)
-                fact.setMember("fixedKey", ConstantExpression.TRUE);
-            // Type-based exclusions remain derivable. Ownership/mapping/population decisions are not reflected.
-            if (rejection != null && !name.ignored()) {
-                String reason = rejection.reason();
-                String category = reason.equals("requires one concrete owned relationship") ? "OWNERSHIP"
-                        : reason.equals("requires Map<String, concrete keyed DSL Object> ownership") ? "KEYED_OWNERSHIP"
-                        : reason.contains("@Field.keyMapping") ? "KEY_MAPPING"
-                        : reason.startsWith("has no unambiguous compiler-generated") ? "POPULATION"
-                        : reason.equals("field is absent from the final public Builder contract") ? "ABSENT_FIELD" : null;
-                if (category != null) {
-                    fact.setMember("exclusion", new ConstantExpression(category));
-                    if (category.equals("POPULATION"))
-                        fact.setMember("detail", new ConstantExpression(DslAstHelper.getElementNameForCollectionField(field)));
-                }
-            }
-            getter.addAnnotation(fact);
-            if (entry != null) {
-                for (MethodNode method : builder.getDeclaredMethods(entry.operation().name())) {
-                    if (!entry.operation().descriptorGroup().contains(descriptor(method))) continue;
-                    AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-                    selected.setMember("field", new ConstantExpression(field.getName()));
-                    selected.setMember("role", new ConstantExpression(entry.role().name()));
-                    method.addAnnotation(selected);
-                }
-            }
-        }
+        transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
+                .forEach(field -> enrichField(builder, field, entries, rejections, invisible));
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
         builder.addAnnotation(schema);
+        restoreAuthoredFacts(transformation);
+    }
+
+    private static void enrichField(ClassNode builder, FieldNode field, List<Entry> entries,
+                                    List<Rejection> rejections, ListExpression invisible) {
+        MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(field.getName()), Parameter.EMPTY_ARRAY);
+        Rejection rejection = rejections.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
+        if (getter == null) {
+            enrichInvisibleField(field, rejection, invisible);
+            return;
+        }
+        AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
+        fact.setMember(VALUE, new ConstantExpression(field.getName()));
+        Name name = externalName(field);
+        if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
+        else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
+        Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
+        if (entry != null && entry.fixedChildKey() != null) fact.setMember("fixedKey", ConstantExpression.TRUE);
+        if (rejection != null && !name.ignored()) enrichFieldExclusion(field, rejection, fact);
+        getter.addAnnotation(fact);
+        if (entry != null) enrichSelection(builder, field, entry);
+    }
+
+    private static void enrichInvisibleField(FieldNode field, Rejection rejection, ListExpression invisible) {
+        if (rejection == null) return;
+        AnnotationNode exclusion = new AnnotationNode(ClassHelper.make(GeneratedInput.Exclusion.class));
+        exclusion.setMember("member", new ConstantExpression(field.getName()));
+        String[] decision = invisibleExclusion(rejection.reason());
+        exclusion.setMember("category", new ConstantExpression(decision[0]));
+        if (!decision[1].isEmpty()) exclusion.setMember("detail", new ConstantExpression(decision[1]));
+        invisible.addExpression(new AnnotationConstantExpression(exclusion));
+    }
+
+    private static void enrichFieldExclusion(FieldNode field, Rejection rejection, AnnotationNode fact) {
+        // Type-based exclusions remain derivable. Ownership/mapping/population decisions are not reflected.
+        String category = reflectedExclusionCategory(rejection.reason());
+        if (category == null) return;
+        fact.setMember("exclusion", new ConstantExpression(category));
+        if (category.equals(POPULATION))
+            fact.setMember("detail", new ConstantExpression(DslAstHelper.getElementNameForCollectionField(field)));
+    }
+
+    private static String reflectedExclusionCategory(String reason) {
+        if (reason.equals(OWNERSHIP_REASON)) return "OWNERSHIP";
+        if (reason.equals(KEYED_OWNERSHIP_REASON)) return "KEYED_OWNERSHIP";
+        if (reason.contains("@Field.keyMapping")) return "KEY_MAPPING";
+        if (reason.startsWith("has no unambiguous compiler-generated")) return POPULATION;
+        if (reason.equals(ABSENT_FIELD_REASON)) return "ABSENT_FIELD";
+        return null;
+    }
+
+    private static void enrichSelection(ClassNode builder, FieldNode field, Entry entry) {
+        for (MethodNode method : builder.getDeclaredMethods(entry.operation().name())) {
+            if (!entry.operation().descriptorGroup().contains(descriptor(method))) continue;
+            AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
+            selected.setMember("field", new ConstantExpression(field.getName()));
+            selected.setMember("role", new ConstantExpression(entry.role().name()));
+            method.addAnnotation(selected);
+        }
+    }
+
+    private static void restoreAuthoredFacts(DSLASTTransformation transformation) {
         // A generated projection can occupy an authored signature before annotation copying occurs.
         // Restore the original admission/naming annotations together; a marker alone can change rejection precedence.
         Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY);
@@ -211,16 +236,16 @@ final class StructuredInputAdmissionPlan {
 
     /** These sources have no public signature from which even type-based exclusions could be recovered. */
     private static String[] invisibleExclusion(String reason) {
-        if (reason.equals("excluded by @JsonIgnore(true)")) return new String[]{"IGNORE", ""};
+        if (reason.equals(IGNORED_INPUT)) return new String[]{"IGNORE", ""};
         if (reason.equals("has no admitted scalar, enum, List, or Map payload")) return new String[]{"NO_PAYLOAD", ""};
-        if (reason.equals("requires one concrete owned relationship")) return new String[]{"OWNERSHIP", ""};
-        if (reason.equals("requires Map<String, concrete keyed DSL Object> ownership")) return new String[]{"KEYED_OWNERSHIP", ""};
+        if (reason.equals(OWNERSHIP_REASON)) return new String[]{"OWNERSHIP", ""};
+        if (reason.equals(KEYED_OWNERSHIP_REASON)) return new String[]{"KEYED_OWNERSHIP", ""};
         if (reason.contains("@Field.keyMapping")) return new String[]{"KEY_MAPPING", ""};
-        if (reason.startsWith("unsupported numeric type ")) return new String[]{"NUMERIC", reason.substring("unsupported numeric type ".length(), reason.indexOf(';'))};
-        if (reason.startsWith("unsupported whole-container payload target ")) return new String[]{"CONTAINER", reason.substring("unsupported whole-container payload target ".length(), reason.indexOf(';'))};
-        if (reason.startsWith("has no unambiguous compiler-generated element population method "))
-            return new String[]{"POPULATION", reason.substring("has no unambiguous compiler-generated element population method ".length(), reason.indexOf(';'))};
-        if (reason.equals("field is absent from the final public Builder contract")) return new String[]{"ABSENT_FIELD", ""};
+        if (reason.startsWith(NUMERIC_REASON_PREFIX)) return new String[]{"NUMERIC", reason.substring(NUMERIC_REASON_PREFIX.length(), reason.indexOf(';'))};
+        if (reason.startsWith(CONTAINER_REASON_PREFIX)) return new String[]{"CONTAINER", reason.substring(CONTAINER_REASON_PREFIX.length(), reason.indexOf(';'))};
+        if (reason.startsWith(POPULATION_REASON_PREFIX))
+            return new String[]{POPULATION, reason.substring(POPULATION_REASON_PREFIX.length(), reason.indexOf(';'))};
+        if (reason.equals(ABSENT_FIELD_REASON)) return new String[]{"ABSENT_FIELD", ""};
         throw new IllegalStateException("Unclassified invisible input exclusion: " + reason);
     }
 
@@ -319,7 +344,7 @@ final class StructuredInputAdmissionPlan {
         if (excludedField(field)) return;
         Name name = externalName(field);
         if (name.ignored()) {
-            rejections.add(new Rejection(source(field), "excluded by @JsonIgnore(true)"));
+            rejections.add(new Rejection(source(field), IGNORED_INPUT));
             return;
         }
         ClassNode type = field.getType();
@@ -344,7 +369,7 @@ final class StructuredInputAdmissionPlan {
         ClassNode type = field.getType();
         String source = source(field);
         if (getFieldType(field) != FieldType.DEFAULT || Modifier.isAbstract(type.getModifiers())) {
-            rejections.add(new Rejection(source, "requires one concrete owned relationship"));
+            rejections.add(new Rejection(source, OWNERSHIP_REASON));
             return;
         }
         PublicOperation operation = publicOperation(field, rejections);
@@ -362,7 +387,7 @@ final class StructuredInputAdmissionPlan {
         if (child == null || getFieldType(field) != FieldType.DEFAULT
                 || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
                 || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) == null) {
-            rejections.add(new Rejection(source, "requires Map<String, concrete keyed DSL Object> ownership"));
+            rejections.add(new Rejection(source, KEYED_OWNERSHIP_REASON));
             return;
         }
         AnnotationNode fieldOptions = annotation(field, Field.class.getName());
@@ -411,7 +436,7 @@ final class StructuredInputAdmissionPlan {
         String source = source(method);
         Name name = externalName(method);
         if (name.ignored()) {
-            rejections.add(new Rejection(source, "excluded by @JsonIgnore(true)"));
+            rejections.add(new Rejection(source, IGNORED_INPUT));
             return;
         }
         Parameter[] parameters = method.getParameters();
@@ -473,7 +498,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static String containerRejection(String type) {
-        return "unsupported whole-container payload target " + type
+        return CONTAINER_REASON_PREFIX + type
                 + "; use ordinary List/Map payloads or a supported field's generated element population";
     }
 
@@ -512,7 +537,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static String numericRejection(String type) {
-        return "unsupported numeric type " + type
+        return NUMERIC_REASON_PREFIX + type
                 + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
     }
 
@@ -531,7 +556,7 @@ final class StructuredInputAdmissionPlan {
                         .map(parameter -> parameter.getOriginType().redirect().getName()).toList().equals(parameters))
                 .toList();
         if (candidates.size() != 1) {
-            rejections.add(new Rejection(source(field), "has no unambiguous compiler-generated element population method "
+            rejections.add(new Rejection(source(field), POPULATION_REASON_PREFIX
                     + name + "(" + String.join(", ", parameters) + "); replacement setters and authored overrides are not input paths"));
             return null;
         }
@@ -561,7 +586,7 @@ final class StructuredInputAdmissionPlan {
                 .sorted()
                 .toList();
         if (descriptors.isEmpty()) {
-            rejections.add(new Rejection(source, "field is absent from the final public Builder contract"));
+            rejections.add(new Rejection(source, ABSENT_FIELD_REASON));
             return null;
         }
         return new PublicOperation(builder.getName(), name, descriptors);
@@ -578,10 +603,10 @@ final class StructuredInputAdmissionPlan {
 
     private static Name externalName(AnnotatedNode node) {
         AnnotationNode ignore = annotation(node, JSON_IGNORE);
-        if (ignore != null && (ignore.getMember("value") == null || Boolean.TRUE.equals(literal(ignore.getMember("value")))))
+        if (ignore != null && (ignore.getMember(VALUE) == null || Boolean.TRUE.equals(literal(ignore.getMember(VALUE)))))
             return new Name(null, NameOrigin.IGNORE, true);
         AnnotationNode property = annotation(node, JSON_PROPERTY);
-        Object value = property == null ? null : literal(property.getMember("value"));
+        Object value = property == null ? null : literal(property.getMember(VALUE));
         if (value instanceof String spelling && !spelling.isEmpty())
             return new Name(spelling, NameOrigin.JSON_PROPERTY, false);
         return new Name(node instanceof FieldNode field ? field.getName() : ((MethodNode) node).getName(), NameOrigin.IDENTITY, false);

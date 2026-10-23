@@ -44,7 +44,7 @@ public final class CompiledBuilderSchemaReplacementProbe {
         Map<String, String> documentation = new LinkedHashMap<>();
         schema.entries().values().forEach(entry -> documentation.put(entry.source(), entry.documentation()));
         result.put("documentation", documentation);
-        result.put("defaults", schema.defaultStatus());
+        result.put("defaults", CompiledBuilderSchema.DEFAULT_STATUS);
         return result;
     }
     public static List<Map<String, Object>> scope(Class<?> contract) throws IOException, ClassNotFoundException {

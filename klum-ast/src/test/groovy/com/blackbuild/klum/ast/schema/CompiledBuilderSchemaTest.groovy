@@ -594,10 +594,29 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         damage << ['schema marker', 'selection', 'source', 'role', 'fixed property key', 'exclusion']
     }
 
+    def 'directory contracts with unescaped spaces retain exact resource origins'() {
+        given:
+        def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
+        File directory = unpackContract(jar)
+        URL directoryUrl = new URL('file:' + directory.absolutePath + '/')
+        def urls = (runtimeFiles()*.toURI()*.toURL() + [directoryUrl]) as URL[]
+        def binaries = new URLClassLoader(urls, ClassLoader.platformClassLoader)
+
+        when:
+        replacementParity(binaries, carrier(jar, 'admission.Parent'))
+
+        then:
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
     def 'production replacement rejects a shadow resource or missing dependency without ambient fallback: #damage'() {
         given:
         def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
-        def other = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
+        File other = unpackContract(compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING))
         def urls = (runtimeFiles() + [jar])*.toURI()*.toURL() as URL[]
         String contractResource = 'admission/Parent_DSL$Builder.class'
         String resourceDamage = damage
@@ -606,7 +625,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             @Override URL getResource(String name) {
                 if (name == contractResource && resourceDamage == 'missing resource') return null
                 name == contractResource && resourceDamage == 'shadow resource' ?
-                        new URL('jar:' + other.toURI().toURL() + '!/' + name) : super.getResource(name)
+                        new URL('file:' + other.absolutePath + '/' + name) : super.getResource(name)
             }
             @Override InputStream getResourceAsStream(String name) {
                 name == contractResource && resourceDamage == 'missing resource' ? null : super.getResourceAsStream(name)
@@ -665,6 +684,18 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         cleanup:
         binaries?.close()
         System.clearProperty('wire.schema.executed')
+    }
+
+    private static File unpackContract(File jar) {
+        File directory = new File(jar.parentFile, 'schema fixtures')
+        new JarFile(jar).withCloseable { archive ->
+            archive.entries().findAll { !it.directory }.each { entry ->
+                File target = new File(directory, entry.name)
+                target.parentFile.mkdirs()
+                target.bytes = archive.getInputStream(entry).bytes
+            }
+        }
+        directory
     }
 
     private File rewriteContract(File jar, String contract, String damage) {
