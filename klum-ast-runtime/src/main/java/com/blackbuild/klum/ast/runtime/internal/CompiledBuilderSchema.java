@@ -189,11 +189,11 @@ final class CompiledBuilderSchema {
         if (!metadata.schema) throw invalid("Missing generated input enrichment on " + builder.getName());
         for (Invisible exclusion : metadata.invisible)
             rejections.add(new Rejection(model.getName() + "#" + exclusion.member(), exclusion.reason()));
-        Map<String, Method> getters = new LinkedHashMap<>();
+        Map<String, Method> accessors = new LinkedHashMap<>();
         Map<String, List<Method>> selections = new LinkedHashMap<>();
         BuilderContext context = new BuilderContext(builder, model, metadata);
-        collectDeclarations(context, getters, selections, entries, rejections, declarations);
-        for (Map.Entry<String, Method> field : getters.entrySet()) {
+        collectDeclarations(context, accessors, selections, entries, rejections, declarations);
+        for (Map.Entry<String, Method> field : accessors.entrySet()) {
             List<Method> methods = selections.remove(field.getKey());
             collectField(context, field.getKey(), field.getValue(),
                     methods == null ? List.of() : methods, entries, rejections);
@@ -215,7 +215,7 @@ final class CompiledBuilderSchema {
     }
 
     private static void collectDeclarations(BuilderContext context,
-                                            Map<String, Method> getters, Map<String, List<Method>> selections,
+                                            Map<String, Method> accessors, Map<String, List<Method>> selections,
                                             List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) {
         Class<?> builder = context.builder();
         Metadata metadata = context.metadata();
@@ -223,26 +223,33 @@ final class CompiledBuilderSchema {
             Literals literal = metadata.methods.get(signature(method));
             if (literal == null) throw invalid("Missing exact public declaration " + method);
             declarations.add(declaration(method, literal));
-            if (literal.field != null && (method.getParameterCount() != 0 || getters.putIfAbsent(literal.field, method) != null))
-                throw invalid("Duplicate or non-getter field association " + literal.field);
+            if (literal.field != null && (!fieldAccessor(method, literal.field)
+                    || accessors.putIfAbsent(literal.field, method) != null))
+                throw invalid("Duplicate or invalid field accessor association " + literal.field);
             if (literal.selection != null) selections.computeIfAbsent(literal.selection, ignored -> new ArrayList<>()).add(method);
             if (literal.operation && !literal.query) operation(method, literal, context.model(), entries, rejections);
         }
     }
 
-    private static void collectField(BuilderContext context, String field, Method getter,
+    private static boolean fieldAccessor(Method method, String field) {
+        return method.getParameterCount() == 0 || method.getParameterCount() == 1
+                && method.getName().equals("set" + Character.toUpperCase(field.charAt(0)) + field.substring(1));
+    }
+
+    private static void collectField(BuilderContext context, String field, Method accessor,
                                      List<Method> methods, List<Entry> entries, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
         Metadata metadata = context.metadata();
-        Literals literal = metadata.methods.get(signature(getter));
+        Literals literal = metadata.methods.get(signature(accessor));
         String source = context.model().getName() + "#" + field;
-        String reason = fieldReason(getter.getGenericReturnType(), literal);
+        Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
+        String reason = fieldReason(fieldType, literal);
         if (reason != null) {
             rejections.add(new Rejection(source, reason));
             return;
         }
         Role role = selectedRole(metadata, methods, source);
-        Payload payload = fieldPayload(getter, role, source);
+        Payload payload = fieldPayload(fieldType, role, source);
         String key = childKey(payload, role, literal, source);
         validateSelection(role, payload, methods, source);
         String name = literal.rename.isEmpty() ? field : literal.rename;
@@ -261,8 +268,8 @@ final class CompiledBuilderSchema {
         return role;
     }
 
-    private static Payload fieldPayload(Method getter, Role role, String source) {
-        Payload payload = payload(getter.getGenericReturnType(), true);
+    private static Payload fieldPayload(Type fieldType, Role role, String source) {
+        Payload payload = payload(fieldType, true);
         if (role == Role.KEYED_OWNED_MAP) {
             if (payload == null || payload.kind() != Kind.MAP || payload.item().kind() != Kind.NESTED_OBJECT)
                 throw invalid("Keyed relationship getter mismatch: " + source);

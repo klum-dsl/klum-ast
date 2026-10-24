@@ -144,9 +144,9 @@ final class StructuredInputAdmissionPlan {
 
     private static void enrichField(ClassNode builder, FieldNode field, List<Entry> entries,
                                     List<Rejection> rejections, ListExpression invisible) {
-        MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(field.getName()), Parameter.EMPTY_ARRAY);
+        MethodNode accessor = fieldAccessor(builder, field);
         Rejection rejection = rejections.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
-        if (getter == null) {
+        if (accessor == null) {
             enrichInvisibleField(field, rejection, invisible);
             return;
         }
@@ -158,8 +158,19 @@ final class StructuredInputAdmissionPlan {
         Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
         if (entry != null && entry.fixedChildKey() != null) fact.setMember("fixedKey", ConstantExpression.TRUE);
         if (rejection != null && !name.ignored()) enrichFieldExclusion(field, rejection, fact);
-        getter.addAnnotation(fact);
+        accessor.addAnnotation(fact);
         if (entry != null) enrichSelection(builder, field, entry);
+    }
+
+    /**
+     * A generated property getter can be suppressed from the public Builder interface when it shadows a
+     * package-private runtime method. Its ordinary public setter remains the exact field contract in that case.
+     */
+    private static MethodNode fieldAccessor(ClassNode builder, FieldNode field) {
+        MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(field.getName()), Parameter.EMPTY_ARRAY);
+        if (getter != null) return getter;
+        return builder.getDeclaredMethod(DslAstHelper.getSetterName(field.getName()),
+                new Parameter[] { new Parameter(GeneratedDslSupport.publicType(field.getType()), VALUE) });
     }
 
     private static void enrichInvisibleField(FieldNode field, Rejection rejection, ListExpression invisible) {

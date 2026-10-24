@@ -41,6 +41,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
     File trap
     boolean packagedPlugin
 
+    @Issue(['529', '950'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')
     def 'generate structural input schemas from explicit DSL Model roots with Groovy #generation'() {
@@ -55,6 +56,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
         new File(validation, 'deployment.schema.json').bytes = output('example.Deployment').bytes
         def root = schema.get('$defs').get('example.Deployment_DSL$Builder')
         def child = schema.get('$defs').get('example.Service_DSL$Builder')
+        def secret = schema.get('$defs').get('example.SecretReference_DSL$Builder')
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
@@ -65,10 +67,12 @@ class KlumJsonSchemaGenerationTest extends Specification {
         root.get('additionalProperties') == false
         root.get('properties').get('region').get('description').contains('Inherited region documentation.')
         root.get('properties').get('services').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
+        root.get('properties').get('credentialSecret').get('$ref') == '#/$defs/example.SecretReference_DSL%24Builder'
         root.get('properties').get('configure-input').get('additionalProperties').get('items').get('type') == 'string'
         root.get('properties').get('replicas').get('minimum') == -2147483648
         child.get('properties').get('mode').get('enum') == ['FAST', 'SAFE']
         !child.get('properties').containsKey('name')
+        secret.get('properties').keySet() == ['inherited', 'key', 'name'] as Set
         !root.containsKey('required')
         !root.get('properties').get('computed').containsKey('default')
         schema.get('x-klum-unsupported').values().any { it.contains('outside the admitted grammar') }
@@ -324,6 +328,7 @@ import java.lang.annotation.*
 @DSL class Deployment extends DeploymentApi {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
     Map<String, Service> services
+    SecretReference credentialSecret
     int replicas
     long capacity
     BigInteger counter
@@ -344,6 +349,8 @@ import java.lang.annotation.*
     Mode mode
     Service nested
 }
+@DSL class BaseSecret { String inherited }
+@DSL class SecretReference extends BaseSecret { String name; String key }
 @DSL abstract class AbstractDeployment { String value }
 enum Mode {
     SAFE, FAST;
