@@ -39,6 +39,8 @@ import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.ClassExpression;
+import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ListExpression;
@@ -133,13 +135,29 @@ final class StructuredInputAdmissionPlan {
         ClassNode builder = GeneratedDslSupport.of(model).getBuilderInterface().redirect();
         AnnotationNode schema = new AnnotationNode(ClassHelper.make(GeneratedInput.Schema.class));
         FieldNode key = getKeyField(model);
-        if (key != null) schema.setMember("key", new ConstantExpression(key.getName()));
+        if (key != null) {
+            schema.setMember("key", new ConstantExpression(key.getName()));
+            schema.setMember("keyInput", ConstantExpression.TRUE);
+            if (key.getOwner().redirect().equals(model)) enrichKey(builder, key, schema);
+        }
         ListExpression invisible = new ListExpression();
         transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
                 .forEach(field -> enrichField(builder, field, entries, rejections, invisible));
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
         builder.addAnnotation(schema);
         restoreAuthoredFacts(transformation);
+    }
+
+    private static void enrichKey(ClassNode builder, FieldNode key, AnnotationNode schema) {
+        MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(key.getName()), Parameter.EMPTY_ARRAY);
+        AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Key.class));
+        fact.setMember(VALUE, new ConstantExpression(key.getName()));
+        Name name = externalName(key);
+        if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
+        else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
+        // Runtime-name overlaps such as `key` have no public getter; no writable key operation exists either.
+        if (getter == null) schema.setMember("keyMember", new AnnotationConstantExpression(fact));
+        else getter.addAnnotation(fact);
     }
 
     private static void enrichField(ClassNode builder, FieldNode field, List<Entry> entries,
@@ -157,6 +175,13 @@ final class StructuredInputAdmissionPlan {
         else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
         Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
         if (entry != null && entry.fixedChildKey() != null) fact.setMember("fixedKey", ConstantExpression.TRUE);
+        if (entry != null && entry.role() == Role.OWNED_OBJECT) {
+            AnnotationNode options = annotation(field, Field.class.getName());
+            Expression provider = options == null ? null : options.getMember("key");
+            boolean schemaKey = entry.fixedChildKey() != null || provider != null
+                    && (!(provider instanceof ClassExpression type) || !type.getType().getName().equals(Undefined.class.getName()));
+            fact.setMember("schemaKey", new ConstantExpression(schemaKey));
+        }
         if (rejection != null && !name.ignored()) enrichFieldExclusion(field, rejection, fact);
         accessor.addAnnotation(fact);
         if (entry != null) enrichSelection(builder, field, entry);

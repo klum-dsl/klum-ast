@@ -44,6 +44,19 @@ public final class KlumStructuredInput {
     }
 
     /**
+     * Reads a self-contained root, taking a keyed Schema's construction identity from its admitted key member.
+     * @param concreteType exact concrete Schema class with generated input metadata
+     * @param parsed caller-parsed domain Map with String keys
+     * @param sourceName nonempty opaque diagnostic identity, never opened as a resource
+     * @param <T> completed root Model type
+     * @return the completed root after normal lifecycle, materialization and validation
+     * @throws KlumModelException if metadata or input is unsupported or construction fails
+     */
+    public static <T> T readRoot(Class<T> concreteType, Object parsed, String sourceName) {
+        return StructuredInputSupport.readRoot(concreteType, parsed, sourceName);
+    }
+
+    /**
      * Applies one completely preflighted input in supplied iteration order, then runs ordinary PostApply.
      * Existing state predates this call; after execution starts, side effects are not rolled back on failure.
      * @param builder active, same-thread, unsealed ordinary generated Builder
