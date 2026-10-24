@@ -73,7 +73,7 @@ No generated Factory/Builder signature changes belong to #954. In particular, pr
 `Create.AsBuilder().FromMap(Map)`, `Create.With`, and named parameters. #953 may later select a distinct convenience
 spelling/signature delegating to this interpreter; this design neither reserves that spelling nor approves source loading.
 Schema-specific factories remain responsible for dependencies required by early callbacks. No arbitrary factory callback,
-public prepared-plan handle or dependency injection API is needed for this slice.
+public prepared-plan handle or dependency injection API is needed for this extension.
 
 Java client example (proposed overload):
 
@@ -150,7 +150,7 @@ Use existing naming precedence on the actual key declaration: `@JsonIgnore(true)
 Do not add aliases, access-mode interpretation, mixins, views or naming strategies. Accept empty String keys, as v1 Map
 keys already do; reject null, numeric, boolean, list/map and GString values without coercion.
 
-Inherited keys are in the first slice: use the one compiler-selected hierarchy key, its original declaring source and
+Inherited keys are included in Stage A: use the one compiler-selected hierarchy key, its original declaring source and
 its naming/ignore facts. Separately compiled parents must behave identically. Multiple actual keys remain the ordinary
 Schema compiler error; do not pick a winner. A renamed key colliding with an admitted property/operation is an ambiguity
 in the member-key position: report the name and both declaring sources, admit neither there, and fail construction
