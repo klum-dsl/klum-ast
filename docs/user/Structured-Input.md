@@ -131,8 +131,9 @@ services:
 Thus `services.worker` must omit `service-id`: `worker` already supplies its identity. A nested direct child inside
 that body still requires its own key when its relationship has no provider. Key names are resolved on the actual
 compiler-selected declaration, including binary inherited keys: `@JsonIgnore(true)` excludes it, a nonempty literal
-`@JsonProperty` renames it, and otherwise its native name applies. Empty `@JsonProperty` and `@JsonIgnore(false)` retain
-native admission. Renames add no alias. An ordinary unannotated `key` property remains normal input; an independently
+`@JsonProperty` renames it, and otherwise its native name applies. Empty `@JsonProperty` falls back to the native name;
+`@JsonIgnore(false)` leaves the declaration admitted under its otherwise resolved name. Renames add no alias.
+An ordinary unannotated `key` property remains normal input; an independently
 admitted operation with an old/native spelling keeps its meaning.
 
 Key values must be exact Strings. Empty Strings are accepted; null, numbers, booleans, GStrings and containers reject
