@@ -65,7 +65,8 @@ The generated document uses reusable `$defs`/`$ref` for concrete owned objects, 
 keys for ordinary data maps and keyed owned maps, scalar/enum values, supported field containers, and admitted authored
 `@Builder.Method` operations with one payload. Inherited members and retained prose are preserved. A Map/List operation
 payload remains one value. Explicit ignore, literal nonempty rename, then identity fallback determine external names.
-No alternate naming strategy is currently configurable.
+Concrete owned relationships in compatible binary API/Schema dependencies follow the same admission rules as local
+relationships, including inherited fields and keyed Map values. No alternate naming strategy is currently configurable.
 
 Unclassified helpers and dynamic factory controls are absent. Unsupported declarations, including abstract relationships,
 multi-argument operations, LINK input and unresolved payloads, are omitted with source/reason diagnostics in the

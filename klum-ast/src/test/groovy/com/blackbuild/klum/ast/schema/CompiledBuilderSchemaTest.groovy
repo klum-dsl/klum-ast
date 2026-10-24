@@ -38,6 +38,7 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchemaReplacementProbe
 import spock.lang.Issue
 
+import java.lang.reflect.ParameterizedType
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -130,6 +131,54 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         cleanup:
         binaries?.close()
         System.clearProperty('wire.schema.executed')
+    }
+
+    @Issue('957')
+    def 'raw binary child contracts normalize without admitting raw generic or abstract targets'() {
+        given:
+        def api = compileJar(['''
+            package binaryowned
+            import com.blackbuild.klum.ast.*
+            @DSL class Facts { String host }
+            @DSL class Workload { @Key String name; String image }
+            @DSL class GenericFacts<T> { T value }
+            @DSL abstract class AbstractFacts { String host }
+        '''])
+        def schema = compileJar(['''
+            package binaryowned
+            import com.blackbuild.klum.ast.*
+            @DSL class Base { Facts inherited; Map<String, Workload> inheritedWorkloads }
+            @DSL class Deployment extends Base {
+                Facts facts
+                Map<String, Workload> workloads
+                LocalFacts local
+                GenericFacts<String> genericFacts
+                AbstractFacts abstractFacts
+                @Builder.Method void consumeBuilder(Facts_DSL.Builder value) {}
+            }
+            @DSL class LocalFacts { String host }
+        '''], [api])
+        def binaries = isolated([api, schema])
+        def builder = Class.forName('binaryowned.Deployment_DSL$Builder', false, binaries)
+
+        when:
+        def actual = CompiledBuilderSchemaReplacementProbe.read(builder,
+                Class.forName('binaryowned.Deployment_DSL$Factory', false, binaries))
+
+        then:
+        builder.getMethod('getFacts').genericReturnType instanceof Class
+        builder.getMethod('getLocal').genericReturnType instanceof ParameterizedType
+        actual.entries.collectEntries { [(it.externalName): it.role] } == [
+                facts: 'OWNED_OBJECT', inherited: 'OWNED_OBJECT', local: 'OWNED_OBJECT',
+                workloads: 'KEYED_OWNED_MAP', inheritedWorkloads: 'KEYED_OWNED_MAP']
+        actual.entries.findAll { it.role == 'KEYED_OWNED_MAP' }.every {
+            it.payload.builder == 'binaryowned.Workload_DSL$Builder' && it.excludedChildKeyMember == 'name'
+        }
+        actual.rejections*.source as Set == ['binaryowned.Deployment#genericFacts',
+                'binaryowned.Deployment#abstractFacts', 'binaryowned.Deployment#consumeBuilder(binaryowned.Facts_DSL$Builder):void'] as Set
+
+        cleanup:
+        binaries?.close()
     }
 
     def 'exact public annotation bytes preserve docs and naming without initializing unrelated annotation enums or defaults'() {

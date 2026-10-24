@@ -100,6 +100,9 @@ Builders reject. Root construction cannot start an independent nested root.
 | Concrete owned object | A domain Map interpreted against the child's Builder |
 | Map of concrete keyed owned objects | A Map whose literal String keys select children, each configured by a domain Map |
 
+Concrete owned relationships follow the same rules when their generated Builder contracts come from compatible binary
+API/Schema dependencies. Interpretation needs no Schema sources, IDE source mirrors or Javadocs.
+
 Supported field containers are List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap.
 Normal Builder mechanics manage the declared container, including set deduplication and sorted storage. Operation
 arguments and nested ordinary data containers use List/Map; there is no construction of concrete/custom container
