@@ -432,3 +432,49 @@ Stage A is delivered by [PR #961](https://github.com/klum-dsl/klum-ast/pull/961)
 changing the runtime key design; its [acceptance record](../implementation/evidence/issue-954-stage-b.md) maps the
 position-specific projection and user-facing documentation to executable coverage. Broader #529 ScHelm qualification
 and #932 language work remain independently owned.
+
+
+## Opt-in raw-input assertions — #959 D2
+
+Date: 2026-10-24. Status: **Accepted semantic profile; production implementation not scheduled**.
+Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959),
+[D1 metadata authority](../implementation/issue-959-schema-projection-feasibility.md#accepted-d1-metadata-authority-and-missing-artifacts),
+[D2 contract, diagnostics and evidence](../implementation/evidence/issue-959-d2-raw-input-profile.md).
+
+### Decision
+
+Accept D2 option **B**: a separately selected, off-by-default JSON Schema authoring profile may restrict supplied raw
+structured-input values using direct Jakarta `@Min`/`@Max` on ordinary integral properties. Start with byte/short/int/long,
+boxed counterparts and BigInteger; one direct Min and/or Max, empty groups and payload, and no relevant group
+redefinition/sequence. Intersect inclusive bounds with existing type and machine limits exactly. Preserve original
+source association, effective inherited/renamed property names, exclusions and nested owned-property placement.
+Do not infer a destination-property constraint for an authored operation or converter input.
+
+The profile constrains what the Model Writer supplies. Possible later replacement or repair during construction does
+not relax it. The maintainer regards such repairs as hypothetical boundary cases, not an expected use case or a
+compatibility requirement. There is no callback inspection, effective-value prediction or repair exception mode.
+JSON Schema validity is not materialization success and is not final Model/Bean Validation equivalence.
+
+Keep current omission and null admission unchanged. Never infer raw-input `required` from `@NotNull`, `@Required`,
+bounds or defaults; preserve existing construction-key requirements. Explicit null stays subject to structural
+admission. Zero, false and empty String remain supplied values. #962 retains nullable final-validation ownership.
+
+D1 remains authoritative: required inert source-associated facts come only from generated public Builder contracts.
+Enhanced generation fails closed on missing/malformed/unverifiable required metadata with source and recompile/package
+guidance; there is no Model-byte fallback. Complete unsupported declarations retain labelled runtime descriptions,
+appended to existing prose. Contradictory projected bounds fail generation with source-aware diagnostics. Preserve
+previous successful outputs on generation failure. The linked D2 contract defines the remaining activation and diagnostic
+expectations, including explicit artifact identification and the distinction between schema errors and runtime issues.
+
+### Consequences and alternatives
+
+The existing structural generator remains unchanged until explicitly enhanced. Selecting ordinary schema generation
+alone does not activate bounds; consumers choose the artifact their editors/validators use. No runtime JSON Schema
+validation, lifecycle change, Bean adapter change, serialization change, new public/generated API or SPI is introduced
+by this decision. Exact configuration, metadata encoding and compiler/generator implementation need a separately
+assigned P1 plan and Groovy 3/4/5 qualification. The characterization fixtures passed in all three lanes.
+
+Descriptions-only A was considered but not selected as the overall profile; descriptions remain appropriate for
+unsupported complete declarations. Broader C is deferred, including groups/payload extensions, composed/repeatable rules,
+relationship closures, defaults projection, callbacks, decimals/Size/Pattern and quantity grammar. D2 does not accept
+D3–D6, schedule production work or assign a release/milestone.

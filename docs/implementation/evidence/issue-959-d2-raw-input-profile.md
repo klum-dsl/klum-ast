@@ -1,36 +1,35 @@
 # #959 D2: raw-input assertion profile
 
-Date: 2026-10-24. Status: **characterization complete; recommend B; maintainer acceptance remains open**.
+Date: 2026-10-24. Status: **B accepted; characterization complete; P1 remains separately gated**.
 Baseline: `e18f21b24b4017844720ef0072b95635491a32be` (master, including merged D1/P0 documentation).
 Authority: [#959 and its decision comments](https://github.com/klum-dsl/klum-ast/issues/959),
 [accepted D1](../issue-959-schema-projection-feasibility.md#accepted-d1-metadata-authority-and-missing-artifacts),
 [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md).
 This is a design and characterization result, not P1 authorization or a released feature.
 
-## Recommendation and decision still needed
+## Accepted decision B
 
-**Yes:** KlumAST can truthfully offer an explicitly selected raw-input authoring profile for direct integral
-`@Min`/`@Max`, provided it says that each supplied value must satisfy the bound **before construction**, even if later
-construction would replace it. The restriction is a consumer-selected authoring policy derived from declaration facts.
-It is not a prediction of final Model state and is not equivalent to Bean Validation.
+Maintainer decision, 2026-10-24: **B is accepted.** KlumAST may offer an explicitly selected raw-input authoring profile
+for direct integral `@Min`/`@Max`: each supplied value must satisfy the bound before construction. The restriction is a
+consumer-selected authoring policy derived from declaration facts, not a prediction of final Model state or equivalence
+to Bean Validation. The accepted architectural extension is recorded in
+[ADR 0031](../../adr/0031-structured-schema-input-artifacts.md#opt-in-raw-input-assertions--959-d2).
 
-Recommend **B**, the tiny profile below. **A**, descriptions only, remains the appropriate choice if the maintainer does
-not want intentionally stricter authoring. **C**, broader assertions, is not justified by this evidence. There is no
-attempt to prove callbacks harmless, infer a construction history, or make admission depend on whether a default or
-lifecycle participant happens to exist. Such tests would become stale when external phases or later inputs change.
+The maintainer clarified that construction-time repairs are hypothetical, not an expected use case or a compatibility
+requirement. The repair/replacement fixtures below establish the semantic boundary; they do not justify weakening raw
+bounds, inspecting callbacks, or designing an escape mode. Defaults and construction continue independently.
 
-The explicit maintainer decision is: **may an opt-in artifact reject a supplied out-of-range value even when ordinary
-construction would repair or replace it?** Recommend yes, with the contract below. D2 acceptance does not itself schedule
-P1. A new accepted ADR is premature until that policy is accepted; record the accepted D2 policy as an extension of
-ADR 0031 before implementing it. No new architectural seam is needed for this recommendation.
+**A**, descriptions only, was considered but not selected as the overall profile. Descriptions remain the fallback for
+complete declarations outside the supported subset. **C**, broader assertions, remains deferred. D2 acceptance does not
+schedule P1 or settle its metadata encoding, exact configuration spelling or implementation details.
 
 | Alternative | Assessment |
 | --- | --- |
 | A: descriptions only | Truthful if text identifies final/runtime rules and preserves existing prose. Gives no machine-checkable percentage feedback. Still requires D1 metadata and an approved description policy; not a missing-metadata compatibility mode. |
-| B: opt-in direct integral authoring bounds | Recommended. Useful Schelm percentage feedback; small, independently understandable predicate over supplied input. Intentionally can reject input that could construct successfully and accept input that later fails. |
+| B: opt-in direct integral authoring bounds | **Accepted.** Useful Schelm percentage feedback; small, independently understandable predicate over supplied input. Intentionally can reject input that could construct successfully and accept input that later fails. |
 | C: broader projection/equivalence | Defer. Coercing operations do not identify a Model property predicate; groups/severity affect selection; container population and pattern grammars have additional semantics. No evidence here qualifies these as hard assertions. |
 
-## Smallest proposed contract
+## Accepted semantic contract
 
 1. **Activation is deliberate and off by default.** Selecting JSON Schema generation alone retains structural-only output.
    A consumer must separately select the enhanced raw-input profile for an explicitly configured generation/root set.
@@ -105,7 +104,7 @@ A **hand-authored candidate**, not generated output, is:
 }
 ```
 
-The recommendation uses ordinary inclusive numeric assertions and omission semantics from
+The accepted profile uses ordinary inclusive numeric assertions and omission semantics from
 [Draft 2020-12 validation](https://json-schema.org/draft/2020-12/json-schema-validation#section-6).
 [Jakarta Validation 3.0](https://jakarta.ee/specifications/bean-validation/3.0/jakarta-bean-validation-spec-3.0.html)
 defines the direct constraints' null, integral-type and default-group semantics. Neither standard supplies a claim about
@@ -113,12 +112,12 @@ KlumAST construction; the runtime counterexamples below establish that boundary.
 
 ## Error, diagnostic and activation expectations
 
-| Situation | Proposed observable result |
+| Situation | Required observable result for future implementation |
 | --- | --- |
 | Enhanced profile disabled | Existing structural artifacts and runtime behavior unchanged. |
 | Required Schema facts absent, malformed, or their source association unverifiable | Fail generation under D1. Identify root, declaring public Builder, Schema source declaration, effective external property/use, dependency/artifact when known, and reason; missing required facts give actionable recompile/package guidance. Preserve previous successful outputs. Never fall back to Model bytes or silently downgrade to descriptions. |
 | Complete metadata describes a rule outside the tiny profile | Preserve the admitted property and append deterministic `Runtime constraint (not enforced by this schema)` text, including the unsupported selection reason (for example payload or group). Preserve JavaDoc; do not suggest schema success means this rule passed. Generic metadata decoding/formatting remains later work. |
-| Projected bounds have an empty intersection, including machine range | Fail generation with the conflicting declarations and effective location. Although omission could still validate, publishing an impossible supplied-value policy is a Schema-author error in this proposal. No last-wins normalization. |
+| Projected bounds have an empty intersection, including machine range | Fail generation with the conflicting declarations and effective location. Although omission could still validate, publishing an impossible supplied-value policy is a Schema-author error under this contract. No last-wins normalization. |
 | Input has wrong type/null/unknown name | Existing structural schema errors; unchanged interpreter preflight errors retain source name and input pointer. Do not relabel these as Bean violations. |
 | Supplied integer violates a selected bound | External JSON Schema validation reports the instance location and violated bound/schema location. Projection must preserve source association sufficiently to explain which declaration supplied that bound. Exact message wording is validator-specific; editor severity is editor policy. No `KlumValidationException` or runtime issue is manufactured by schema generation. |
 | Input passes the schema but operation/construction/final validation fails | Existing runtime exception and stored validation result semantics. JSON Schema validity is not materialization success. No fabricated raw-input leaf for a later Model violation. |
@@ -224,7 +223,7 @@ JAVA_HOME=/path/to/jdk17 ./gradlew :klum-ast-gradle-plugin:test \
 `git diff --check` and relative Markdown file-target checks passed. Current user docs, migrations and release notes
 are intentionally unchanged because this delivery adds only design evidence and characterization tests.
 
-The next slice is **maintainer acceptance of D2 B or selection of A**, then a separately assigned P1 plan defining
+The next slice is a **separately assigned P1 plan** defining
 minimal D1 facts, exact activation and diagnostics for this tiny profile. P1 must qualify binary inheritance,
 source association, rename/ignore, absent versus unsupported metadata, contradictory bounds, default-group/payload
 exclusions, exact integral endpoints and generated-artifact validation without user-code execution. It must also prove
