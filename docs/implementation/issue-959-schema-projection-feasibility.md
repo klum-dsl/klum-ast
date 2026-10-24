@@ -28,6 +28,14 @@ ABI, emission hook, profile configuration, supported mappings, raw-input asserti
 D2–D6 remain unapproved, and P1 has not started. Any future implementation must satisfy D1; this documentation update
 contains no compiler, generator, runtime or test changes.
 
+## D2 characterization follow-up
+
+The [D2 raw-input profile evidence](evidence/issue-959-d2-raw-input-profile.md) characterizes the semantic boundary at
+`e18f21b24b4017844720ef0072b95635491a32be`. It recommends option B: explicitly selected authoring bounds on supplied
+ordinary direct integral properties, even when later construction could repair or replace the value. It preserves
+omission/null admission and separates schema validity from final Model validation. D2 maintainer acceptance remains
+open; no P1 mapping, API, metadata extraction, defaults projection or release behavior is implemented.
+
 ## Recommendation and evidence boundary
 
 The remaining design discussion is **unapproved proposal** unless explicitly covered by accepted D1 above. Do not adopt
@@ -379,7 +387,7 @@ Only D1 is accepted. D2–D6 below remain recommendations, not delivery or imple
 | Decision | Status / proposed answer | What remains blocked |
 | --- | --- | --- |
 | D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. Existing structural generation stays as-is; explicit future enhanced projection fails closed on missing required Schema metadata, with recompile/package guidance. No compatibility/reporting mode now. | Production encoding, exact fact set, generated ABI/emission hook and compatibility qualification; D2–D6/P1 are not approved. |
-| D2: raw-input strength/profile | Opt-in authoring restrictions on supplied values; initial direct integral annotations, default groups/empty payload, with deterministic runtime text for other discovered constraints. Preserve null/admission and no inferred required. | Whether lifecycle-overridable values may intentionally be rejected earlier; configuration spelling, activation default and diagnostics contract. No production projection, including description-only behavior, is authorized. |
+| D2: raw-input strength/profile | **B recommended; acceptance open.** [Characterization and proposed contract](evidence/issue-959-d2-raw-input-profile.md): direct integral Min/Max, empty groups/payload, explicit off-by-default activation; deterministic text for unsupported complete declarations. Preserve null/admission and no inferred required. | Maintainer acceptance that an opt-in artifact intentionally rejects supplied values construction could repair. Exact configuration/metadata encoding remain P1 planning; neither hard nor description-only production projection is authorized. |
 | D3: custom extension | Defer callbacks and description SPI; first establish useful generic text. | Any build-time user-code execution or new public provider API. Later callback approval must amend the no-execution promise explicitly. |
 | D4: default meaning | Probe scalar relationship literals; initially describe ambiguous precedence. | Whether unambiguous declared fallback may use standard `default`; array/coercion/type-level support and handling multiple sources. |
 | D5: delivery and release | Keep #959 open and untargeted; P0 evidence is complete, while later delivery needs separate scheduling. | Milestone/4.2 commitment, further architectural decisions and implementation publication beyond this authorized D1 documentation delivery. Quantity grammar remains consumer-owned; #962 remains separate. |
