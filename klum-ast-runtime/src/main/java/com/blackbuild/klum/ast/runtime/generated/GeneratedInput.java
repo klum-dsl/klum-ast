@@ -38,6 +38,8 @@ public final class GeneratedInput {
     public @interface Schema {
         String key() default "";
         boolean keyInput() default false;
+        /** Only when the declaring key getter is absent from the public Builder contract. */
+        Key keyMember() default @Key("");
         Exclusion[] exclusions() default {};
     }
 

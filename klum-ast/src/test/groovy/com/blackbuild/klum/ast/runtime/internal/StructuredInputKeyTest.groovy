@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.Issue
 
 @Issue('954')
@@ -42,7 +43,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
     def 'self-contained root identity is available before PostCreate and input remains unchanged'() {
         given:
-        def deployment = schema(''' 
+        def deployment = schema('''
             package keyinput
             import com.blackbuild.klum.ast.*
             @DSL class Deployment {
@@ -575,6 +576,97 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def missingFailure = thrown(KlumModelException)
         missingFailure.message.contains('/unknown')
         !missingFailure.message.contains('member is absent')
+    }
+
+    def 'actual key named key supports the existing suppressed-getter shape with external naming'() {
+        given:
+        loader.parseClass '''
+            package com.fasterxml.jackson.annotation
+            @interface JsonProperty { String value() default '' }
+        '''
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.JsonProperty
+            @DSL abstract class Base { @Key @JsonProperty('identity') String key }
+            @DSL class Deployment extends Base { String value }
+        ''')
+
+        when:
+        def model = KlumStructuredInput.readRoot(deployment, [identity: 'production'], 'fallback.yaml')
+
+        then:
+        model.key == 'production'
+        CompiledBuilderSchema.read(deployment).key().source() == 'keyinput.Base#key'
+        !Class.forName('keyinput.Base_DSL\$Builder', false, artifactLoader).declaredMethods.any { it.name == 'getKey' }
+    }
+
+    def 'key extraction preserves Template defaults and normal validation cleanup'() {
+        given:
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Deployment { @Key String name; Service service }
+            @DSL class Service {
+                @Key String name
+                String value
+                String observed
+                @PostCreate void created() { observed = name + ':' + value }
+                @Validate void checked() { assert value != 'invalid' }
+            }
+        ''')
+        def service = Class.forName('keyinput.Service', false, artifactLoader)
+        def template = service.Create.Template.With(value: 'templated')
+
+        when:
+        def model = TemplateManager.withTemplate(service, template) {
+            KlumStructuredInput.readRoot(deployment, [name: 'root', service: [name: 'child']], 'template.yaml')
+        }
+
+        then:
+        model.service.name == 'child'
+        model.service.value == 'templated'
+        model.service.observed == 'child:templated'
+
+        when:
+        KlumStructuredInput.readRoot(deployment,
+                [name: 'root', service: [name: 'child', value: 'invalid']], 'validation.yaml')
+
+        then:
+        def failure = thrown(KlumValidationException)
+        !failure.message.contains('validation.yaml')
+        !failure.message.contains('/service/name')
+
+        when:
+        def fresh = KlumStructuredInput.readRoot(deployment, [name: 'fresh'], 'fresh.yaml')
+
+        then:
+        fresh.name == 'fresh'
+    }
+
+    def 'ignored key never suppresses an independent ordinary property in an externally keyed body'() {
+        given:
+        loader.parseClass '''
+            package com.fasterxml.jackson.annotation
+            @interface JsonIgnore { boolean value() default true }
+            @interface JsonProperty { String value() default '' }
+        '''
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.*
+            @DSL class Deployment {
+                @Key @JsonIgnore @JsonProperty('identity') String name
+                @JsonProperty('name') String label
+            }
+        ''')
+
+        when:
+        def model = KlumStructuredInput.readRoot(deployment, 'external', [name: 'ordinary'], 'ignored-body.yaml')
+
+        then:
+        model.name == 'external'
+        model.label == 'ordinary'
     }
 
 }

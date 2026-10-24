@@ -57,7 +57,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
             package binarykey
             import com.blackbuild.klum.ast.*
             import com.fasterxml.jackson.annotation.*
-            @DSL abstract class Base { @Key $annotation String name }
+            @DSL abstract class Base { @Key $annotation String $nativeName }
         """)
         parentUnit.compile()
         loader.addClasspath(parentDirectory.absolutePath)
@@ -86,18 +86,18 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         def plan = CompiledBuilderSchema.read(child)
 
         then:
-        plan.key().source() == 'binarykey.Base#name'
+        plan.key().source() == 'binarykey.Base#' + nativeName
         plan.key().contract().name == 'binarykey.Base_DSL$Builder'
-        external.fixed.name == 'fixed'
-        external.children.outer.name == 'outer'
+        external.fixed[nativeName] == 'fixed'
+        external.children.outer[nativeName] == 'outer'
         if (ignored) {
             assert failure.message.contains('@JsonIgnore(true)')
-            assert failure.message.contains('binarykey.Base#name')
+            assert failure.message.contains('binarykey.Base#' + nativeName)
         } else {
             assert failure == null
-            assert model.name == 'root'
+            assert model[nativeName] == 'root'
             assert model.value == 'payload'
-            assert KlumStructuredInput.readRoot(root, [direct: [(spelling): 'direct']], 'direct.yaml').direct.name == 'direct'
+            assert KlumStructuredInput.readRoot(root, [direct: [(spelling): 'direct']], 'direct.yaml').direct[nativeName] == 'direct'
         }
 
         cleanup:
@@ -105,11 +105,13 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         parentLoader?.close()
 
         where:
-        annotation                                      | spelling  | ignored
-        ''                                              | 'name'    | false
-        "@JsonProperty('identity')"                     | 'identity'| false
-        "@JsonIgnore(false) @JsonProperty('identity')"   | 'identity'| false
-        '@JsonIgnore'                                   | 'name'    | true
+        annotation                                      | spelling  | ignored | nativeName
+        ''                                              | 'name'    | false   | 'name'
+        "@JsonProperty('identity')"                     | 'identity'| false   | 'name'
+        "@JsonIgnore(false) @JsonProperty('identity')"   | 'identity'| false   | 'name'
+        '@JsonIgnore'                                   | 'name'    | true    | 'name'
+        "@JsonProperty('identity')"                     | 'identity'| false   | 'key'
+        '@JsonIgnore'                                   | 'key'     | true    | 'key'
     }
 
     def 'missing new key facts fail the new route but preserve old explicit root use'() {

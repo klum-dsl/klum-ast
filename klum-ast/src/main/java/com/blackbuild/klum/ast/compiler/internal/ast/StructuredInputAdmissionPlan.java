@@ -138,7 +138,7 @@ final class StructuredInputAdmissionPlan {
         if (key != null) {
             schema.setMember("key", new ConstantExpression(key.getName()));
             schema.setMember("keyInput", ConstantExpression.TRUE);
-            if (key.getOwner().redirect().equals(model)) enrichKey(builder, key);
+            if (key.getOwner().redirect().equals(model)) enrichKey(builder, key, schema);
         }
         ListExpression invisible = new ListExpression();
         transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
@@ -148,15 +148,16 @@ final class StructuredInputAdmissionPlan {
         restoreAuthoredFacts(transformation);
     }
 
-    private static void enrichKey(ClassNode builder, FieldNode key) {
+    private static void enrichKey(ClassNode builder, FieldNode key, AnnotationNode schema) {
         MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(key.getName()), Parameter.EMPTY_ARRAY);
-        if (getter == null) throw new IllegalStateException("Missing public key getter for " + source(key));
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Key.class));
         fact.setMember(VALUE, new ConstantExpression(key.getName()));
         Name name = externalName(key);
         if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
         else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
-        getter.addAnnotation(fact);
+        // Runtime-name overlaps such as `key` have no public getter; no writable key operation exists either.
+        if (getter == null) schema.setMember("keyMember", new AnnotationConstantExpression(fact));
+        else getter.addAnnotation(fact);
     }
 
     private static void enrichField(ClassNode builder, FieldNode field, List<Entry> entries,

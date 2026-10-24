@@ -240,18 +240,30 @@ final class CompiledBuilderSchema {
     }
 
     private static Key declaredKey(BuilderContext context) {
-        Key key = null;
+        Literals fallback = context.metadata().keyMember;
+        Key key = fallback == null ? null : constructionKey(context, fallback);
+        if (fallback != null && Arrays.stream(context.builder().getDeclaredMethods()).anyMatch(method ->
+                method.getParameterCount() == 0 && method.getName().equals(keyGetterName(fallback.key))))
+            throw invalid("Type-level construction key fact has a surviving public getter on " + context.builder().getName());
         for (Method method : context.builder().getDeclaredMethods()) {
             Literals literal = context.metadata().methods.get(signature(method));
             if (literal.key == null) continue;
             if (key != null || method.getParameterCount() != 0 || method.getReturnType() != String.class
-                    || !method.getName().equals("get" + Character.toUpperCase(literal.key.charAt(0)) + literal.key.substring(1))
+                    || !method.getName().equals(keyGetterName(literal.key))
                     || literal.field != null || literal.selection != null || literal.operation)
                 throw invalid("Invalid construction key getter " + method);
-            key = new Key(literal.key, literal.rename.isEmpty() ? literal.key : literal.rename,
-                    literal.ignored, context.model().getName() + "#" + literal.key, context.builder());
+            key = constructionKey(context, literal);
         }
         return key;
+    }
+
+    private static String keyGetterName(String name) {
+        return "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    private static Key constructionKey(BuilderContext context, Literals literal) {
+        return new Key(literal.key, literal.rename.isEmpty() ? literal.key : literal.rename,
+                literal.ignored, context.model().getName() + "#" + literal.key, context.builder());
     }
 
     private static void collectDeclarations(BuilderContext context,
@@ -548,6 +560,7 @@ final class CompiledBuilderSchema {
     private static final class Metadata {
         boolean schema;
         boolean keyInput;
+        Literals keyMember;
         String key = "";
         final List<Invisible> invisible = new ArrayList<>();
         final Map<String, Literals> methods = new LinkedHashMap<>();
@@ -631,6 +644,13 @@ final class CompiledBuilderSchema {
             if (member.equals("key") && value instanceof String text) result.key = text;
             else if (member.equals("keyInput") && value instanceof Boolean flag) result.keyInput = flag;
             else throw invalid("Unknown schema member " + member);
+        }
+
+        @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+            if (!member.equals("keyMember") || !descriptor.equals(KEY) || result.keyMember != null)
+                throw invalid("Unknown or duplicate schema key member " + member);
+            result.keyMember = new Literals();
+            return new MethodAnnotationVisitor(KEY, result.keyMember);
         }
 
         @Override public AnnotationVisitor visitArray(String member) {
