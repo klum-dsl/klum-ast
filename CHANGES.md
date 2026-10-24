@@ -1,12 +1,21 @@
 # Unreleased
 
+- Added self-contained structured-input keys for keyed roots and supplied direct caller-key children, using the actual
+  Schema key's external name. Fixed/derived/Cluster keys, keyed Map values, explicit rootKey and active Builder targets
+  retain their existing authority and reject inner keys. Generated JSON Schema now requires self-contained keys and
+  reuses separate closed keyless definitions; ignored/colliding required keys fail generation without replacing prior
+  output. Supplied direct children that previously reached construction with null identity now reject in preflight.
+  Recompile Schemas and align compiler/runtime/plugin versions. See [construction keys](docs/user/Structured-Input.md#construction-keys)
+  and [migration](docs/user/Migration.md#explicit-structured-construction-keys)
+  ([#954](https://github.com/klum-dsl/klum-ast/issues/954)).
+
 - Restored nested structured input and JSON Schema properties for concrete owned DSL relationships supplied by compatible
   binary dependencies, including inherited fields and keyed Map values. Abstract/polymorphic and raw generic targets
   retain their existing limits ([#957](https://github.com/klum-dsl/klum-ast/issues/957)).
 
 - Restored admitted structured input and generated Draft 2020-12 JSON Schema for ordinary scalar Schema properties,
   including an unkeyed property literally named `key`, when the generated Builder exposes its normal setter. Direct and
-  inherited properties follow the same contract; actual `@Key` members remain outside domain input
+  inherited properties follow the same contract; actual `@Key` members follow the position-specific construction-key rules above
   ([#950](https://github.com/klum-dsl/klum-ast/issues/950)).
 
 - Added opt-in Schema-plugin `generateKlumJsonSchema` with explicit DSL Model root names, an isolated binary classpath, Draft 2020-12

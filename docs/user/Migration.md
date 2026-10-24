@@ -16,6 +16,26 @@ For caller-parsed Map/List/scalar data that should invoke admitted domain Builde
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
 callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
 
+### Explicit structured construction keys
+
+[#954](https://github.com/klum-dsl/klum-ast/issues/954) adds the three-argument `KlumStructuredInput.readRoot` route for
+self-contained keyed documents. Use the actual key's external member name, including literal `@JsonProperty` renames.
+The existing four-argument route still requires its explicit root key and forbids an inner root key, even if equal;
+passing null does not request inference. Active Builder targets likewise retain their existing identity.
+
+A supplied direct caller-key child now requires its key before construction; input that previously reached construction
+with null identity rejects during preflight. Omitted optional children remain legal. Fixed/derived/Cluster-key children
+and keyed Map values continue to forbid inner identity. Their providers and outer keys retain authority.
+
+Generated keyed-root JSON Schema now describes the self-contained document and gains a required String key member.
+It no longer describes explicit-rootKey or active-Builder payloads. Admitted direct relationships with an ignored or
+colliding required key fail generation, including optional ones; retain and distinguish the previous successful output
+when generation fails. Use matching compiler/runtime/plugin versions and recompile binary parents as needed for key facts.
+
+See [construction-key examples](Structured-Input.md#construction-keys) and
+[position-specific JSON Schema](Json-Schema.md#construction-key-definitions). `Create.FromMap`, ordinary Groovy DSL
+construction and managed Jackson keep their independent behavior. File/URL loading and broader grammar are separate work.
+
 ## To 4.1
 
 ### Abstract Builder operations
