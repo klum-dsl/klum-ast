@@ -42,6 +42,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
+    private enum KeyPosition { MEMBER, KEYLESS, UNKNOWN_DIRECT }
 
     @Override
     public Map<String, String> apply(List<String> roots) {
@@ -51,7 +52,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             diagnostics.clear();
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
-                String rootDefinition = definition(builder, false, root);
+                String rootDefinition = definition(builder, KeyPosition.MEMBER, root, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(rootDefinition));
@@ -79,10 +80,12 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return root + BUILDER;
     }
 
-    private String definition(Class<?> builder, boolean keyless, String rootModel) throws ClassNotFoundException {
+    private String definition(Class<?> builder, KeyPosition position, String source, String rootModel) throws ClassNotFoundException {
         Class<?> factory = Class.forName(builder.getName().substring(0, builder.getName().length() - "Builder".length())
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
+        validateKeyPosition(schema, position, source);
+        boolean keyless = position == KeyPosition.KEYLESS;
         String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
         if (definitions.containsKey(identity)) return identity;
         if (rootModel != null && !schema.model().getName().equals(rootModel))
@@ -101,9 +104,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             object.put("required", List.of(schema.key().externalName()));
         }
         for (CompiledBuilderSchema.Entry entry : schema.entries().values()) {
-            boolean childKeyless = entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP
-                    || Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null;
-            Map<String, Object> value = payload(entry.payload(), childKeyless);
+            Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
             if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
                 value = map(value);
             if (entry.documentation() != null && !entry.documentation().isBlank())
@@ -115,14 +116,45 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return identity;
     }
 
-    private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, boolean keyless) throws ClassNotFoundException {
+    private static KeyPosition keyPosition(CompiledBuilderSchema.Entry entry) {
+        if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP
+                || Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null)
+            return KeyPosition.KEYLESS;
+        if (entry.role() == CompiledBuilderSchema.Role.OWNED_OBJECT && entry.schemaKey() == null)
+            return KeyPosition.UNKNOWN_DIRECT;
+        return KeyPosition.MEMBER;
+    }
+
+    private static void validateKeyPosition(CompiledBuilderSchema schema, KeyPosition position, String source) {
+        if (schema.keyName().isEmpty()) return;
+        if (position == KeyPosition.UNKNOWN_DIRECT)
+            throw unrepresentable(schema, position, source, "missing direct relationship key-authority metadata; recompile and package the Schema");
+        if (position == KeyPosition.KEYLESS) return;
+        CompiledBuilderSchema.Key key = schema.key();
+        if (key == null)
+            throw unrepresentable(schema, position, source, "missing construction key metadata; recompile and package the Schema");
+        if (key.ignored())
+            throw unrepresentable(schema, position, source, "required construction key " + key.source() + " excluded by @JsonIgnore(true)");
+        List<String> collisions = schema.keyCollisions();
+        if (!collisions.isEmpty())
+            throw unrepresentable(schema, position, source, "required construction key external-name collision for '"
+                    + key.externalName() + "': " + key.source() + ", " + String.join(", ", collisions));
+    }
+
+    private static IllegalArgumentException unrepresentable(CompiledBuilderSchema schema, KeyPosition position,
+                                                           String source, String reason) {
+        return new IllegalArgumentException("Cannot represent admitted input at '" + source + "', public Builder '"
+                + schema.contract().getName() + "', key position " + position + ": " + reason);
+    }
+
+    private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, KeyPosition position, String source) throws ClassNotFoundException {
         return switch (payload.kind()) {
             case SCALAR -> scalar(payload.type());
             case ENUM -> enumeration(payload.type());
-            case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), false)));
-            case MAP -> map(payload(payload.item(), false));
+            case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), KeyPosition.MEMBER, source)));
+            case MAP -> map(payload(payload.item(), KeyPosition.MEMBER, source));
             case NESTED_OBJECT -> {
-                String identity = definition(payload.builder(), keyless, null);
+                String identity = definition(payload.builder(), position, source, null);
                 yield new LinkedHashMap<>(Map.of("$ref", reference(identity)));
             }
         };

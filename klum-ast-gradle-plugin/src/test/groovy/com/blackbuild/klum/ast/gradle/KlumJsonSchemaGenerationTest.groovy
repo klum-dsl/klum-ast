@@ -97,6 +97,39 @@ class KlumJsonSchemaGenerationTest extends Specification {
         generation << ['3', '4', '5']
     }
 
+    @Issue('954')
+    def 'unrepresentable required keys fail closed before replacing successful outputs: #model'() {
+        given:
+        fixture('3')
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Deployment').bytes
+        File manifest = new File(output('example.Deployment').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.$model'])\n")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains("root 'example.$model'")
+        failed.output.contains("example.$declaration#name")
+        failed.output.contains("example.$declaration" + '_DSL$Builder')
+        failed.output.contains('key position MEMBER')
+        failed.output.contains(reason)
+        !relationship || failed.output.contains("example.$model#child")
+        output('example.Deployment').bytes == previous
+        manifest.text == previousManifest
+        !output("example.$model").exists()
+        !trap.exists()
+
+        where:
+        model             | declaration | reason                    | relationship
+        'Ignored'         | 'Ignored'   | '@JsonIgnore(true)'       | false
+        'Collision'       | 'Collision' | 'external-name collision' | false
+        'IgnoredHolder'   | 'Ignored'   | '@JsonIgnore(true)'       | true
+        'CollisionHolder' | 'Collision' | 'external-name collision' | true
+    }
+
     def 'tracks roots output ownership and binary dependency documentation without stale files'() {
         given:
         fixture('3')
@@ -354,6 +387,10 @@ import java.lang.annotation.*
     Mode mode
     Service nested
 }
+@DSL class Ignored { @Key @JsonIgnore String name; String value }
+@DSL class Collision { @Key @JsonProperty('value') String name; String value }
+@DSL class IgnoredHolder { Ignored child }
+@DSL class CollisionHolder { Collision child }
 @DSL class BaseSecret { String inherited }
 @DSL class SecretReference extends BaseSecret { String name; String key }
 @DSL abstract class AbstractDeployment { String value }
@@ -373,6 +410,13 @@ import java.lang.annotation.*
         File deployment = new File(producer, 'schema/src/main/groovy/example/Deployment.groovy')
         deployment.text = deployment.text.replace('import java.lang.annotation.*', 'import java.lang.annotation.*\nimport com.fasterxml.jackson.annotation.JsonProperty')
                 .replace('@Builder.Method @Policy', "@Builder.Method @JsonProperty('configure-input') @Policy")
+        writeSource('schema/src/main/groovy/com/fasterxml/jackson/annotation/JsonIgnore.groovy', '''
+package com.fasterxml.jackson.annotation
+import java.lang.annotation.*
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.METHOD, ElementType.FIELD])
+@interface JsonIgnore { boolean value() default true }
+''')
+        deployment.text = deployment.text.replace('import com.fasterxml.jackson.annotation.JsonProperty', 'import com.fasterxml.jackson.annotation.*')
         writeSource('schema/src/main/groovy/other/Service.groovy', """
 package other
 import com.blackbuild.klum.ast.DSL
