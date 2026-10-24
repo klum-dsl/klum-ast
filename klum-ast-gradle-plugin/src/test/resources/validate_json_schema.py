@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 
-"""Issue #529: validate emitted TestKit documents with external jsonschema==4.23.0 tooling."""
+"""Issues #529/#954: validate emitted TestKit documents with external jsonschema==4.23.0 tooling."""
 import importlib.metadata
 import json
 import sys
@@ -34,27 +34,56 @@ assert importlib.metadata.version('jsonschema') == '4.23.0'
 root = Path(sys.argv[1])
 accepted = [
     {}, {"region": "eu"},
-    {"services": {"api.v1": {"image": "nginx", "mode": "SAFE", "nested": {"mode": "FAST"}}}},
+    {"services": {"api.v1": {"image": "nginx", "mode": "SAFE", "nested": {"service/id~": "nested", "mode": "FAST"}}}},
+    {"service": {"service/id~": "catalog", "image": "catalog:1.0"}},
+    {"fixed": {"image": "fixed:1.0"}, "derived": {}, "cluster": {"catalog": {}}},
+    {"services": {"api": {"children": {"worker": {"nested": {"service/id~": "deep"}}}}}},
     {"configure-input": {"topics/one": ["a", "b"]}},
     {"annotations": {"app.kubernetes.io/name": "api"}, "labels": ["a", "a"]},
     {"replicas": 2147483647, "capacity": 9223372036854775807, "counter": 10**100,
      "budget": 0.001, "weight": 0.25},
 ]
 rejected = [
+    {"service": {}}, {"service": {"service/id~": None}}, {"service": {"service/id~": 1}},
+    {"fixed": {"service/id~": "fixed"}}, {"derived": {"service/id~": "derived"}},
+    {"cluster": {"catalog": {"service/id~": "catalog"}}},
+    {"services": {"api": {"service/id~": "api"}}},
+    {"services": {"api": {"nested": {}}}},
+    {"excludedChild": {}}, {"mappedServices": {"outer": {}}},
     None, [], {"unknown": 1}, {"replicas": 2147483648}, {"replicas": "3"},
     {"capacity": 9223372036854775808}, {"services": []}, {"services": {"api": {"name": "invalid"}}},
     {"services": {"api": {"mode": "WRONG"}}}, {"configure-input": {"a": "wrong"}},
     {"configure": {}}, {"labels": ["a", None]}, {"annotations": {"a": 2}}, {"region": None},
 ]
-paths = sorted(root.glob("*/deployment.schema.json"))
-assert len(paths) == 3, "Run KlumJsonSchemaGenerationTest for all three Groovy generations first"
-for path in paths:
-    schema = json.loads(path.read_text())
-    Draft202012Validator.check_schema(schema)
-    validator = Draft202012Validator(schema)
-    for value in accepted:
-        assert validator.is_valid(value), (path, value, list(validator.iter_errors(value)))
-    for value in rejected:
-        assert not validator.is_valid(value), (path, value)
-    print(f"{path.parent.name}: metaschema, {len(accepted)} accepted / {len(rejected)} rejected")
-assert len({path.read_bytes() for path in paths}) == 1, "Groovy generations must emit identical JSON"
+documents = {
+    "deployment": (accepted, rejected),
+    "service": (
+        [{"service/id~": ""}, {"service/id~": "api", "nested": {"service/id~": "child"}},
+         {"service/id~": "api", "children": {"worker": {"nested": {"service/id~": "deep"}}}}],
+        [{}, {"name": "native"}, {"service/id~": None}, {"service/id~": False}, {"service/id~": []},
+         {"service/id~": "api", "nested": {}},
+         {"service/id~": "api", "children": {"worker": {"service/id~": "worker"}}}]),
+    "keylessuses": (
+        [{}, {"ignored": {"outer": {"value": "ok"}}, "fixedIgnored": {}},
+         {"collisions": {"outer": {"value": "ordinary"}}, "fixedCollision": {"value": "ordinary"}}],
+        [{"ignored": {"outer": {"name": "outer"}}}, {"fixedIgnored": {"name": "fixedIgnored"}},
+         {"collisions": {"outer": {"name": "outer"}}}, {"fixedCollision": {"unknown": "bad"}}]),
+    "fallbackkey": ([{"id/~": ""}, {"id/~": "root", "value": "ok"}],
+                    [{}, {"key": "native"}, {"id/~": 1}, {"id/~": "root", "unknown": True}]),
+    "emptyrename": ([{"name": ""}, {"name": "root"}], [{}, {"name": None}, {"name": 1}]),
+    "ignoredoperationcollision": ([{"value": "root"}], [{}, {"name": "native"}, {"value": 1}]),
+}
+for document, (accepted_values, rejected_values) in documents.items():
+    paths = sorted(root.glob(f"*/{document}.schema.json"))
+    assert len(paths) == 3, f"Run KlumJsonSchemaGenerationTest for all three Groovy generations: {document}"
+    for path in paths:
+        schema = json.loads(path.read_text())
+        Draft202012Validator.check_schema(schema)
+        validator = Draft202012Validator(schema)
+        for value in accepted_values:
+            assert validator.is_valid(value), (path, value, list(validator.iter_errors(value)))
+        for value in rejected_values:
+            assert not validator.is_valid(value), (path, value)
+        print(f"{path.parent.name}/{document}: metaschema, "
+              f"{len(accepted_values)} accepted / {len(rejected_values)} rejected")
+    assert len({path.read_bytes() for path in paths}) == 1, "Groovy generations must emit identical JSON"

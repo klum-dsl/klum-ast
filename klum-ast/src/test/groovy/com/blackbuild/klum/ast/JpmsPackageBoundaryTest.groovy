@@ -382,6 +382,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
+    @Issue(["391", "658", "954"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -825,6 +826,11 @@ class JpmsPackageBoundaryTest extends Specification {
             }
 
             @DSL class StationSlot { @Key String name; String description }
+            @DSL class StructuredRoot {
+                @Key String name
+                StationSlot direct
+                Map<String, StationSlot> slots
+            }
 
             @DSL
             class Deployment {
@@ -999,6 +1005,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.HttpEndpoint;
             import fixture.schema.HttpEndpoint_DSL;
             import fixture.schema.Station;
+            import fixture.schema.StructuredRoot;
             import fixture.schema.Station_DSL;
 
             import java.util.ArrayList;
@@ -1034,6 +1041,12 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
                             || !"slot".equals(structured.getSlot().getName()))
                         throw new AssertionError("Named Java structured-input consumer did not link or populate");
+                    StructuredRoot keyed = KlumStructuredInput.readRoot(StructuredRoot.class,
+                            Map.of("name", "root", "direct", Map.of("name", "direct"),
+                                    "slots", Map.of("outer", Map.of("description", "body"))), "keyed.json");
+                    if (!"root".equals(keyed.getName()) || !"direct".equals(keyed.getDirect().getName())
+                            || !"outer".equals(keyed.getSlots().get("outer").getName()))
+                        throw new AssertionError("Named Java key-member consumer did not link or populate");
                     Deployment deployment = Deployment.Create.One();
                     if (!"https://direct.example.test".equals(deployment.getEndpoint().getUrl()) ||
                             !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
@@ -1116,6 +1129,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.HttpEndpoint
             import fixture.schema.HttpEndpoint_DSL
             import fixture.schema.Station
+            import fixture.schema.StructuredRoot
             import fixture.schema.Station_DSL
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport
@@ -1144,6 +1158,11 @@ class JpmsPackageBoundaryTest extends Specification {
                     assert structured.name == 'Structured static'
                     assert structured.capacity == 6
                     assert structured.slot.name == 'slot'
+                    StructuredRoot keyed = KlumStructuredInput.readRoot(StructuredRoot,
+                            [name: 'root', direct: [name: 'direct'], slots: [outer: [description: 'body']]], 'keyed.json')
+                    assert keyed.name == 'root'
+                    assert keyed.direct.name == 'direct'
+                    assert keyed.slots.get('outer').name == 'outer'
                     Station applied = Station.Create.With {
                         Station_DSL.Builder<Station> builder = (Station_DSL.Builder<Station>) delegate
                         Station_DSL.Builder<Station> same = KlumStructuredInput.applyToBuilder(builder, [name: 'Active static', slot: [description: 'active']], 'station.json')
