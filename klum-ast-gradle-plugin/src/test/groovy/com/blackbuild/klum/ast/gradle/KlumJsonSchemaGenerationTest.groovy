@@ -41,7 +41,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
     File trap
     boolean packagedPlugin
 
-    @Issue(['529', '950'])
+    @Issue(['529', '950', '954'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')
     def 'generate structural input schemas from explicit DSL Model roots with Groovy #generation'() {
@@ -55,7 +55,8 @@ class KlumJsonSchemaGenerationTest extends Specification {
         validation.mkdirs()
         new File(validation, 'deployment.schema.json').bytes = output('example.Deployment').bytes
         def root = schema.get('$defs').get('example.Deployment_DSL$Builder')
-        def child = schema.get('$defs').get('example.Service_DSL$Builder')
+        def child = schema.get('$defs').get('example.Service_DSL$Builder::keyless')
+        def selfContained = document('example.Service').get('$defs').get('example.Service_DSL$Builder')
         def secret = schema.get('$defs').get('example.SecretReference_DSL$Builder')
 
         then:
@@ -66,12 +67,16 @@ class KlumJsonSchemaGenerationTest extends Specification {
         !new File(output('example.Deployment').parentFile, 'example.Deployment_DSL$Builder.schema.json').exists()
         root.get('additionalProperties') == false
         root.get('properties').get('region').get('description').contains('Inherited region documentation.')
-        root.get('properties').get('services').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
+        root.get('properties').get('services').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
         root.get('properties').get('credentialSecret').get('$ref') == '#/$defs/example.SecretReference_DSL%24Builder'
         root.get('properties').get('configure-input').get('additionalProperties').get('items').get('type') == 'string'
         root.get('properties').get('replicas').get('minimum') == -2147483648
         child.get('properties').get('mode').get('enum') == ['FAST', 'SAFE']
         !child.get('properties').containsKey('name')
+        !child.containsKey('required')
+        child.get('properties').get('nested').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
+        selfContained.get('properties').get('name') == [type: 'string']
+        selfContained.get('required') == ['name']
         secret.get('properties').keySet() == ['inherited', 'key', 'name'] as Set
         !root.containsKey('required')
         !root.get('properties').get('computed').containsKey('default')

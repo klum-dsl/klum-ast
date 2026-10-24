@@ -51,10 +51,10 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             diagnostics.clear();
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
-                definition(builder, root);
+                String rootDefinition = definition(builder, false, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
-                document.put("$ref", reference(builder));
+                document.put("$ref", reference(rootDefinition));
                 document.put("$defs", new TreeMap<>(definitions));
                 document.put("$comment", "Structural input only; defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
@@ -79,28 +79,31 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return root + BUILDER;
     }
 
-    private void definition(Class<?> builder) throws ClassNotFoundException {
-        definition(builder, null);
-    }
-
-    private void definition(Class<?> builder, String rootModel) throws ClassNotFoundException {
-        if (definitions.containsKey(builder.getName())) return;
+    private String definition(Class<?> builder, boolean keyless, String rootModel) throws ClassNotFoundException {
         Class<?> factory = Class.forName(builder.getName().substring(0, builder.getName().length() - "Builder".length())
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
+        String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
+        if (definitions.containsKey(identity)) return identity;
         if (rootModel != null && !schema.model().getName().equals(rootModel))
             throw new IllegalArgumentException("Resolved Builder contract '" + builder.getName() + "' belongs to DSL Model '"
                     + schema.model().getName() + "', not requested DSL Model '" + rootModel + "'");
         if (Modifier.isAbstract(schema.model().getModifiers()))
             throw new IllegalArgumentException("Abstract root/owned target requires a separately qualified alias policy: " + builder.getName());
         Map<String, Object> object = new LinkedHashMap<>();
-        definitions.put(builder.getName(), object); // Reserve before following recursive ownership.
+        definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
         object.put("type", "object");
         object.put("properties", properties);
         object.put("additionalProperties", false);
+        if (!keyless && schema.key() != null) {
+            properties.put(schema.key().externalName(), new LinkedHashMap<>(Map.of("type", "string")));
+            object.put("required", List.of(schema.key().externalName()));
+        }
         for (CompiledBuilderSchema.Entry entry : schema.entries().values()) {
-            Map<String, Object> value = payload(entry.payload());
+            boolean childKeyless = entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP
+                    || Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null;
+            Map<String, Object> value = payload(entry.payload(), childKeyless);
             if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
                 value = map(value);
             if (entry.documentation() != null && !entry.documentation().isBlank())
@@ -109,17 +112,18 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         }
         for (CompiledBuilderSchema.Rejection rejection : schema.rejections())
             diagnostics.put(rejection.source(), rejection.reason());
+        return identity;
     }
 
-    private Map<String, Object> payload(CompiledBuilderSchema.Payload payload) throws ClassNotFoundException {
+    private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, boolean keyless) throws ClassNotFoundException {
         return switch (payload.kind()) {
             case SCALAR -> scalar(payload.type());
             case ENUM -> enumeration(payload.type());
-            case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item())));
-            case MAP -> map(payload(payload.item()));
+            case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), false)));
+            case MAP -> map(payload(payload.item(), false));
             case NESTED_OBJECT -> {
-                definition(payload.builder());
-                yield new LinkedHashMap<>(Map.of("$ref", reference(payload.builder())));
+                String identity = definition(payload.builder(), keyless, null);
+                yield new LinkedHashMap<>(Map.of("$ref", reference(identity)));
             }
         };
     }
@@ -163,8 +167,8 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return result;
     }
 
-    private static String reference(Class<?> builder) {
-        return "#/$defs/" + URLEncoder.encode(builder.getName().replace("~", "~0").replace("/", "~1"), StandardCharsets.UTF_8).replace("+", "%20");
+    private static String reference(String identity) {
+        return "#/$defs/" + URLEncoder.encode(identity.replace("~", "~0").replace("/", "~1"), StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     /** Deterministic JSON with exact integer values and no rendering dependency in runtime or the plugin. */
