@@ -361,9 +361,10 @@ records projection, external validation and delivery qualification. #952 retains
 
 The original v1 excludes actual key fields from object payloads. Root identity comes from a separate argument, Map-child identity
 from the outer literal key, and direct-child Schema key providers execute through the ordinary construction seam.
-The complete-preflight/Consumer split already permits identity extraction before allocation. Missing compiled facts,
-not a missing construction engine, are the main implementation gap: current enrichment records the native key name
-but discards key rename/ignore admission and does not explicitly classify direct-child Schema key authority.
+At the original design baseline, the complete-preflight/Consumer split already permitted identity extraction before
+allocation. The missing facts were key rename/ignore admission and an explicit classification of direct-child Schema
+key authority; enrichment then retained only the native key name. Stage A supplied those facts without introducing a
+second construction engine.
 
 Add `KlumStructuredInput.readRoot(Class<T>, Object parsed, String sourceName)` for self-contained root documents.
 A keyed root requires its actual Schema `@Key` member under the established external name. Keep the existing

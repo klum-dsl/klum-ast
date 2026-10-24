@@ -30,7 +30,7 @@ precedes output mutation, preserving every last-successful file and the manifest
 | Missing key and direct relationship authority | `missing key facts cannot silently project a keyed document: #model`; bounded old-contract fixture, no heuristic fallback |
 | Compiler rejection versus admitted unrepresentable input | Ignored direct field and keyMapping Map remain diagnosed/absent; ignored/colliding admitted direct children fail |
 | No Schema/enum/provider execution | Existing static/initializer/operation/lifecycle/enum traps, new throwing key/keyMapping providers, explicit initialization positive control |
-| Output/cache/classpath behavior | Existing TestKit root/stale manifest, changed binary API, isolation, relocation, configuration/build-cache and packaged Groovy 5 plugin cases |
+| Output/cache/classpath behavior | Existing TestKit root/stale manifest, changed binary API, isolation, relocation, configuration/build-cache and packaged Groovy 5 plugin cases; `BinaryOwnedRelationshipsTest` checks closed keyless bodies from binary dependencies |
 | Public Java/static Groovy and module path | Extended `JpmsPackageBoundaryTest` real consumer fixture exercises root/direct/Map identity; Groovy 3 classpath and Groovy 4/5 named modules |
 | Runtime regression and documentary behavior | Existing Stage A key tests plus new `StructuredInputKeyDocumentaryTest`; full qualification includes Jackson |
 
@@ -55,10 +55,29 @@ raw parser duplicate handling. Existing navigation already links these pages; no
 The first tracer was red on all three Groovy generations before position-specific projection. Ignored/colliding root
 and optional direct-child cases were red before fail-closed projection. Focused generator, documentary and baseline
 consumer checks pass. The pinned external `jsonschema==4.23.0` tool checks six document families per generation,
-including accepted and rejected recursive/mixed-position instances; each emitted family is byte-identical across
-Groovy 3/4/5. Python remains evidence tooling, without a production dependency.
+including **20 accepted / 45 rejected** recursive/mixed-position instances per generation and all 18 metaschemas;
+each emitted family is byte-identical across Groovy 3/4/5. The validator passed again after the full check. Python
+remains evidence tooling, without a production dependency.
 
-Commands for the final broad qualification and review results are recorded at handoff after execution:
+Final full qualification at code/test revision `f71303119998a27f5ba7030a81197c2f84ed631d` passes
+`check --continue --no-parallel --max-workers=2 --offline` in **14m 46s** (137 tasks: 50 executed, 87 up-to-date).
+It covers compiler 2,366 / 2,368 / 2,368 cases; runtime 73 per lane; Jackson 121 / 119 / 119; Bean Validation 10 per
+lane; test support 8 / 6 / 6; and the full **385-case Gradle plugin suite**. All reported failures/errors are zero.
+Existing compiler/runtime skips retain their existing reasons; no new test is suppressed. Java/static Groovy classpath
+and Groovy 4/5 named-module consumers, licenses, Gradle task validation, lane isolation, renderer and coverage checks
+all pass. Local Markdown links/anchors, fences and diff checks pass.
+
+The first full run found three old binary projection assertions still naming the former shared definition. Those now
+check `::keyless`, closed properties and absence of an inner key/requirement, with issue traceability. Editing that test
+while the first check ran also changed the inferred Git version: eleven source-mirror fixtures requested the clean
+version while nested publication supplied the uncommitted version. The focused binary/mirror controls pass, followed
+by the untouched clean-tip full check above; no unrelated mirror or dependency behavior was changed.
+
+The issue branch history was reviewed without rewriting. Independent Standards/Specification review and remote delivery
+are separate required handoff steps; this local validation checkpoint makes no review, CI, SonarCloud or merged-state
+claim. Subsequent evidence-only documentation changes require documentation/diff checks rather than another Groovy run.
+
+Reproduction commands:
 
 ```shell
 ./gradlew :klum-ast-gradle-plugin:test --tests '*KlumJsonSchemaGenerationTest'
