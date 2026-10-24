@@ -347,3 +347,68 @@ facts: any demonstrated need for a companion rather than an annotation, or a dem
 implementation cannot meet isolation/compatibility needs. Those are conditional evidence-driven decisions, not permission
 to invent a metadata framework, standalone module or CLI. Task/package naming and routine implementation details are not
 maintainer architecture questions. Deferred language extensions remain separate #932 work.
+
+## Proposed explicit key-member extension — #954
+
+Date: 2026-10-24. Status: **Proposed, evidence-backed local design; not implemented or maintainer-accepted**.
+This section does not change the delivered v1 claims above. It records the bounded recommendation for
+[#954](https://github.com/klum-dsl/klum-ast/issues/954); its
+[evidence, examples, diagnostics and implementation slices](../implementation/issue-954-explicit-key-members.md)
+are the reviewable design artifact. #952 retains broader grammar; #953 retains Factory/source convenience.
+
+### Context and recommended decision
+
+V1 excludes actual key fields from object payloads. Root identity comes from a separate argument, Map-child identity
+from the outer literal key, and direct-child Schema key providers execute through the ordinary construction seam.
+The complete-preflight/Consumer split already permits identity extraction before allocation. Missing compiled facts,
+not a missing construction engine, are the main implementation gap: current enrichment records the native key name
+but discards key rename/ignore admission and does not explicitly classify direct-child Schema key authority.
+
+Add `KlumStructuredInput.readRoot(Class<T>, Object parsed, String sourceName)` for self-contained root documents.
+A keyed root requires its actual Schema `@Key` member under the established external name. Keep the existing
+four-argument overload's explicit-rootKey authority and null validation; inner identity remains rejected there even
+when equal. Keep `applyToBuilder` keyless for its already allocated target. No generated Factory/Builder callable changes
+are proposed: `Create.FromMap(Map)` already has independent copy/type-hint semantics and must not be repurposed.
+
+Concrete direct owned children without a Schema key provider require their key member when supplied, at any depth.
+Fixed, derived and Cluster-key children continue their existing construction and reject inner keys. Keyed Map values
+continue to derive identity exclusively from their outer literal String; inner identity remains rejected. These
+positional rules also apply to children configured through the existing root and active-Builder entry points.
+
+Key naming uses ignore, literal nonempty rename, then identity fallback on the compiler-selected declaration, including
+inherited keys and separately compiled parents. No synthetic generic `key`, aliases or coercion are added. Values must
+be Strings; empty Strings remain valid. Missing, ignored, ambiguous, wrong-shaped or dual-source keys fail with source,
+pointer, external name and declaring-contract diagnostics. A parser's discarded duplicate tokens cannot be recovered
+from the supplied Map. Ordinary unannotated properties named `key` retain their meaning.
+
+Preflight snapshots the key separately from ordered operations, validates the whole input without execution, and then
+passes it into existing root/direct-child Consumer construction. It never mutates the input Map, sets an allocated
+Builder's identity, evaluates a Schema provider or creates an independent child root. Existing context acquisition,
+initializers, Templates, lifecycle, ownership, reuse/key-mismatch checks, error chains and no-rollback behavior remain.
+Only precise non-executing key-name/admission and key-source enrichment is added to the shared private compiled facade;
+missing required facts report recompile/package guidance.
+
+JSON Schema needs position-sensitive definitions: self-contained keyed roots/direct children have the real String
+property in `required`; externally keyed bodies reject it. Cache by Builder plus key position, retain closed objects,
+and reserve recursive definitions before descent. Ignored/colliding required keys make self-contained roots unsupported;
+optional unsupported direct relationships use the established omission diagnostic. This does not infer raw requirements
+from completed `@Required` or promise lifecycle success. Default root artifacts describe self-contained documents;
+no external-rootKey generation option is added in this slice.
+
+### Consequences and alternatives
+
+This proposal intentionally tightens supplied direct caller-key children that previously could reach construction with
+null identity, and changes the generated keyed-root artifact from a keyless payload to a self-contained document schema.
+Both are explicit migration effects requiring acceptance with this design. Existing method signatures, root authority,
+ordinary DSL construction, keyed Maps and managed Jackson stay intact. New generated metadata requires matched
+compiler/runtime/plugin qualification on Groovy 3/4/5 and binary inheritance; additive annotation defaults alone do not
+establish backward compatibility with the strict annotation-byte reader.
+
+Rejected alternatives are a universal `key` field, post-allocation rebinding, precedence/equality rules for two key
+sources, null-based inference in the existing root overload, changing `Create.FromMap`, a single schema shape everywhere,
+and preflight execution or overload inference for derived keys. Parser/file/URL support, keyMapping, Templates,
+polymorphism, repeated/multi-argument operations and scheduling remain outside this extension. Managed Jackson retains
+ADR 0009's independent naming, coercion, context and import-mode contracts.
+
+The linked plan maps all requirements to five bounded slices and executable acceptance checks. This recommendation
+needs no further product choice to be reviewable; acceptance of its migration effects precedes implementation.
