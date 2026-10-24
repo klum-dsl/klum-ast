@@ -598,7 +598,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         then:
         model.key == 'production'
         CompiledBuilderSchema.read(deployment).key().source() == 'keyinput.Base#key'
-        !Class.forName('keyinput.Base_DSL\$Builder', false, artifactLoader).declaredMethods.any { it.name == 'getKey' }
+        !Class.forName('keyinput.Base_DSL$Builder', false, artifactLoader).declaredMethods.any { it.name == 'getKey' }
     }
 
     def 'key extraction preserves Template defaults and normal validation cleanup'() {
@@ -667,6 +667,29 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         then:
         model.name == 'external'
         model.label == 'ordinary'
+    }
+
+    def 'inherited key diagnostics identify the selected concrete contract and original declaration: #input'() {
+        given:
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            @DSL abstract class Base { @Key String name }
+            @DSL class Deployment extends Base { }
+        ''')
+
+        when:
+        KlumStructuredInput.readRoot(deployment, input, 'inherited-error.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('public Builder keyinput.Deployment_DSL$Builder')
+        failure.message.contains('keyinput.Base#name')
+        failure.message.contains('/name')
+        failure.message.contains('required construction key')
+
+        where:
+        input << [[:], [name: null], [name: 42]]
     }
 
 }

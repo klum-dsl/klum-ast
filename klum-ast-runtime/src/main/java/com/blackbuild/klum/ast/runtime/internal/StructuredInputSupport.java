@@ -248,11 +248,11 @@ public final class StructuredInputSupport {
                     Entry entry = plan.entries().get(name);
                     if (key != null && !key.ignored() && name.equals(key.externalName()) && (memberKey || entry == null)) {
                         if (!memberKey)
-                            throw problem(source, location, key.contract(), name,
+                            throw problem(source, location, plan.contract(), name,
                                     "no in-document construction key declared by " + key.source() + "; identity belongs to "
                                             + position.authority() + "; inner identity is forbidden even if equal", supplied.getValue(), null);
                         if (!(supplied.getValue() instanceof String text))
-                            throw problem(source, location, key.contract(), name,
+                            throw problem(source, location, plan.contract(), name,
                                     "String required construction key declared by " + key.source(), supplied.getValue(), null);
                         inputKey = text;
                         continue;
@@ -265,7 +265,7 @@ public final class StructuredInputSupport {
                     result.add(step(entry, supplied.getValue(), location));
                 }
                 if (memberKey && key != null && inputKey == null)
-                    throw problem(source, pointer(path, key.externalName()), key.contract(), key.externalName(),
+                    throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
                             "required construction key declared by " + key.source() + " (member is absent)", null, null);
                 return new Domain(inputKey, List.copyOf(result));
             } finally { visiting.remove(input); }
@@ -273,12 +273,12 @@ public final class StructuredInputSupport {
 
         private void validateMemberKey(CompiledBuilderSchema plan, CompiledBuilderSchema.Key key, String path, Object input) {
             if (key.ignored())
-                throw problem(source, pointer(path, key.externalName()), key.contract(), key.externalName(),
+                throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
                         "available required construction key declared by " + key.source()
                                 + "; excluded by @JsonIgnore(true); use an explicit rootKey for a root, or Schema derivation/keyed Map for a child", input, null);
             List<String> collisions = plan.keyCollisions();
             if (!collisions.isEmpty())
-                throw problem(source, pointer(path, key.externalName()), key.contract(), key.externalName(),
+                throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
                         "unambiguous required construction key; external-name collision: " + key.source() + ", " + String.join(", ", collisions), input, null);
         }
 

@@ -94,7 +94,9 @@ final class CompiledBuilderSchema {
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, Boolean schemaKey) { }
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract) { }
-    record Rejection(String source, String reason) { }
+    record Rejection(String source, String reason, String collisionName) {
+        Rejection(String source, String reason) { this(source, reason, null); }
+    }
     record Declaration(String owner, String name, List<String> parameters, String returns, String documentation) { }
 
     private CompiledBuilderSchema(Class<?> contract, Class<?> model, Map<String, Entry> entries,
@@ -155,7 +157,7 @@ final class CompiledBuilderSchema {
             if (group.size() == 1) entries.put(name, group.get(0));
             else {
                 String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
-                group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all)));
+                group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
             }
         });
         return entries;
@@ -170,7 +172,7 @@ final class CompiledBuilderSchema {
         List<String> collisions = new ArrayList<>();
         Entry entry = entries.get(key.externalName());
         if (entry != null) collisions.add(entry.source());
-        rejections.stream().filter(rejection -> rejection.reason().startsWith("external-name collision for '" + key.externalName() + "': "))
+        rejections.stream().filter(rejection -> key.externalName().equals(rejection.collisionName()))
                 .map(Rejection::source).forEach(collisions::add);
         return collisions.stream().distinct().sorted().toList();
     }
