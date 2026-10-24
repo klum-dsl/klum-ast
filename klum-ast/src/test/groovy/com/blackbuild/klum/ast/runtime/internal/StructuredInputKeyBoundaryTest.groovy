@@ -276,13 +276,13 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                 def target = super.visitAnnotation(descriptor, visible)
-                if (!descriptor.endsWith('GeneratedInput$Schema;')) return target
+                if (!descriptor.endsWith('GeneratedInput$Schema;')) { return target }
                 new AnnotationVisitor(Opcodes.ASM9, target) {
                     @Override void visit(String member, Object value) {
-                        if (mutation != 'old' || member != 'keyInput') super.visit(member, value)
+                        if (mutation != 'old' || member != 'keyInput') { super.visit(member, value) }
                     }
                     @Override void visitEnd() {
-                        if (mutation == 'future') super.visit('futureKeyFact', true)
+                        if (mutation == 'future') { super.visit('futureKeyFact', true) }
                         super.visitEnd()
                     }
                 }
@@ -291,7 +291,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
                 String resultDescriptor = mutation == 'wrongType' && name == 'getName' ? '()Ljava/lang/Object;' : descriptor
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, resultDescriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (annotation.endsWith('GeneratedInput$Key;') && mutation in ['old', 'missingGetter']) return null
+                        if (annotation.endsWith('GeneratedInput$Key;') && mutation in ['old', 'missingGetter']) { return null }
                         def target = super.visitAnnotation(annotation, visible)
                         if (annotation.endsWith('GeneratedInput$Key;') && mutation == 'wrongName') {
                             return new AnnotationVisitor(Opcodes.ASM9, target) {
@@ -303,7 +303,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
                         if (annotation.endsWith('GeneratedInput$Field;') && mutation == 'old') {
                             return new AnnotationVisitor(Opcodes.ASM9, target) {
                                 @Override void visit(String member, Object value) {
-                                    if (member != 'schemaKey') super.visit(member, value)
+                                    if (member != 'schemaKey') { super.visit(member, value) }
                                 }
                             }
                         }

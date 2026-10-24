@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Entry;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Key;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Payload;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Kind;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Role;
@@ -57,6 +58,8 @@ import java.util.Set;
 
 /** Implementation bridge in the existing non-exported internal package. No metadata leaves this class. */
 public final class StructuredInputSupport {
+    private static final String DOMAIN_NAME = "<domain>";
+
     private StructuredInputSupport() { }
 
     public static <T> T readRoot(Class<T> type, Object parsed, String sourceName) {
@@ -221,57 +224,84 @@ public final class StructuredInputSupport {
         private Preparation(String source) { this.source = source; }
 
         private Domain domain(Class<?> model, Object input, String path, Position position) {
-            CompiledBuilderSchema plan;
-            try { plan = plans.computeIfAbsent(model, CompiledBuilderSchema::read); }
-            catch (KlumModelException failure) {
-                throw new KlumModelException(source + " at '" + (path.isEmpty() ? "/" : path) + "': " + failure.getMessage(), failure);
-            }
+            CompiledBuilderSchema plan = plan(model, path);
             if (!(input instanceof Map<?, ?> map))
-                throw problem(source, path, plan.contract(), "<domain>", "domain Map with String keys", input, null);
-            enter(input, path, plan.contract(), "<domain>");
+                throw problem(source, path, plan.contract(), DOMAIN_NAME, "domain Map with String keys", input, null);
+            enter(input, path, plan.contract(), DOMAIN_NAME);
             try {
-                CompiledBuilderSchema.Key key = plan.key();
-                boolean memberKey = position.memberKey();
-                if (position == Position.UNKNOWN_DIRECT && !plan.keyName().isEmpty())
-                    throw problem(source, path, plan.contract(), "<domain>",
-                            "direct relationship key-authority metadata; recompile and package the Schema", input, null);
-                if (memberKey && !plan.keyName().isEmpty() && key == null)
-                    throw problem(source, path, plan.contract(), plan.keyName(),
-                            "construction key metadata; recompile and package the Schema", input, null);
-                if (memberKey && key != null) validateMemberKey(plan, key, path, input);
+                Key key = plan.key();
+                validatePosition(plan, key, position, path, input);
                 String inputKey = null;
                 List<Step> result = new ArrayList<>();
                 for (Map.Entry<?, ?> supplied : map.entrySet()) {
-                    if (!(supplied.getKey() instanceof String name))
-                        throw problem(source, path, plan.contract(), "<key>", "String domain key", supplied.getKey(), null);
+                    String name = suppliedName(plan, supplied.getKey(), path);
                     String location = pointer(path, name);
                     Entry entry = plan.entries().get(name);
-                    if (key != null && !key.ignored() && name.equals(key.externalName()) && (memberKey || entry == null)) {
-                        if (!memberKey)
-                            throw problem(source, location, plan.contract(), name,
-                                    "no in-document construction key declared by " + key.source() + "; identity belongs to "
-                                            + position.authority() + "; inner identity is forbidden even if equal", supplied.getValue(), null);
-                        if (!(supplied.getValue() instanceof String text))
-                            throw problem(source, location, plan.contract(), name,
-                                    "String required construction key declared by " + key.source(), supplied.getValue(), null);
-                        inputKey = text;
-                        continue;
+                    if (isKeyInput(key, position, name, entry)) {
+                        inputKey = constructionKeyValue(plan, key, position, location, supplied.getValue());
+                    } else {
+                        requireEntry(plan, key, entry, name, location, supplied.getValue());
+                        result.add(step(entry, supplied.getValue(), location));
                     }
-                    if (entry == null)
-                        throw problem(source, location, plan.contract(), name,
-                                "an admitted entry; unavailable declarations: " + plan.rejections()
-                                        + (key != null && !key.ignored() && !key.nativeName().equals(key.externalName())
-                                        ? "; accepted construction key spelling is '" + key.externalName() + "' declared by " + key.source() : ""), supplied.getValue(), null);
-                    result.add(step(entry, supplied.getValue(), location));
                 }
-                if (memberKey && key != null && inputKey == null)
-                    throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
-                            "required construction key declared by " + key.source() + " (member is absent)", null, null);
+                requireInputKey(plan, key, position, path, inputKey);
                 return new Domain(inputKey, List.copyOf(result));
             } finally { visiting.remove(input); }
         }
 
-        private void validateMemberKey(CompiledBuilderSchema plan, CompiledBuilderSchema.Key key, String path, Object input) {
+        private CompiledBuilderSchema plan(Class<?> model, String path) {
+            try { return plans.computeIfAbsent(model, CompiledBuilderSchema::read); }
+            catch (KlumModelException failure) {
+                throw new KlumModelException(source + " at '" + (path.isEmpty() ? "/" : path) + "': " + failure.getMessage(), failure);
+            }
+        }
+
+        private void validatePosition(CompiledBuilderSchema plan, Key key, Position position, String path, Object input) {
+            if (position == Position.UNKNOWN_DIRECT && !plan.keyName().isEmpty())
+                throw problem(source, path, plan.contract(), DOMAIN_NAME,
+                        "direct relationship key-authority metadata; recompile and package the Schema", input, null);
+            if (position.memberKey() && !plan.keyName().isEmpty() && key == null)
+                throw problem(source, path, plan.contract(), plan.keyName(),
+                        "construction key metadata; recompile and package the Schema", input, null);
+            if (position.memberKey() && key != null) validateMemberKey(plan, key, path, input);
+        }
+
+        private String suppliedName(CompiledBuilderSchema plan, Object supplied, String path) {
+            if (!(supplied instanceof String name))
+                throw problem(source, path, plan.contract(), "<key>", "String domain key", supplied, null);
+            return name;
+        }
+
+        private static boolean isKeyInput(Key key, Position position, String name, Entry entry) {
+            return key != null && !key.ignored() && name.equals(key.externalName()) && (position.memberKey() || entry == null);
+        }
+
+        private String constructionKeyValue(CompiledBuilderSchema plan, Key key, Position position, String path, Object input) {
+            if (!position.memberKey())
+                throw problem(source, path, plan.contract(), key.externalName(),
+                        "no in-document construction key declared by " + key.source() + "; identity belongs to "
+                                + position.authority() + "; inner identity is forbidden even if equal", input, null);
+            if (!(input instanceof String text))
+                throw problem(source, path, plan.contract(), key.externalName(),
+                        "String required construction key declared by " + key.source(), input, null);
+            return text;
+        }
+
+        private void requireEntry(CompiledBuilderSchema plan, Key key, Entry entry, String name, String path, Object input) {
+            if (entry != null) return;
+            String spelling = key != null && !key.ignored() && !key.nativeName().equals(key.externalName())
+                    ? "; accepted construction key spelling is '" + key.externalName() + "' declared by " + key.source() : "";
+            throw problem(source, path, plan.contract(), name,
+                    "an admitted entry; unavailable declarations: " + plan.rejections() + spelling, input, null);
+        }
+
+        private void requireInputKey(CompiledBuilderSchema plan, Key key, Position position, String path, String inputKey) {
+            if (position.memberKey() && key != null && inputKey == null)
+                throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
+                        "required construction key declared by " + key.source() + " (member is absent)", null, null);
+        }
+
+        private void validateMemberKey(CompiledBuilderSchema plan, Key key, String path, Object input) {
             if (key.ignored())
                 throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
                         "available required construction key declared by " + key.source()
@@ -287,8 +317,7 @@ public final class StructuredInputSupport {
                 case OWNED_OBJECT -> {
                     if (!(input instanceof Map)) throw bad(entry, path, "domain Map for " + entry.payload().type().getName(), input, null);
                     yield new Step(source, path, entry, null, null, domain(entry.payload().type(), input, path,
-                            Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null ? Position.SCHEMA_CHILD
-                                    : entry.schemaKey() == null ? Position.UNKNOWN_DIRECT : Position.DIRECT), null);
+                            directPosition(entry)), null);
                 }
                 case KEYED_OWNED_MAP -> {
                     if (!(input instanceof Map<?, ?> map))
@@ -310,6 +339,11 @@ public final class StructuredInputSupport {
                     yield new Step(source, path, entry, method, prepared, null, null);
                 }
             };
+        }
+
+        private static Position directPosition(Entry entry) {
+            if (Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null) return Position.SCHEMA_CHILD;
+            return entry.schemaKey() == null ? Position.UNKNOWN_DIRECT : Position.DIRECT;
         }
 
         private Method method(Entry entry, String path) {

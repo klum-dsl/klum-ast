@@ -57,13 +57,14 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
 /** Internal compiled-contract seam. Never inspects Model implementations or reads the retired carrier. */
 final class CompiledBuilderSchema {
     static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
+    private static final String VALUE = "value";
     private static final String BUILDER_SUFFIX = "_DSL$Builder";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String NUMERIC = "NUMERIC";
     private static final String CONTAINER = "CONTAINER";
     private static final String PREFIX = "Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$";
     private static final String SCHEMA = PREFIX + "Schema;";
-    private static final String KEY = PREFIX + "Key;";
+    private static final String KEY_ANNOTATION = PREFIX + "Key;";
     private static final String FIELD = PREFIX + "Field;";
     private static final String SELECTION = PREFIX + "Selection;";
     private static final String EXCLUSION = PREFIX + "Exclusion;";
@@ -72,7 +73,7 @@ final class CompiledBuilderSchema {
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
     private static final String IGNORE = "Lcom/fasterxml/jackson/annotation/JsonIgnore;";
     private static final String PROPERTY = "Lcom/fasterxml/jackson/annotation/JsonProperty;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY, FIELD, SELECTION, EXCLUSION, OPERATION, QUERY, DOC, IGNORE, PROPERTY);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, QUERY, DOC, IGNORE, PROPERTY);
     private static final Set<String> NUMBERS = Set.of("byte", "short", "int", "long", "float", "double",
             "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float",
             "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
@@ -224,21 +225,28 @@ final class CompiledBuilderSchema {
             if (parentModel == null || parentModel == Object.class || !parent.getName().endsWith(BUILDER_SUFFIX)) continue;
             if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
             Facts inherited = collect(parent, known);
-            if (inherited.key() != null) {
-                if (key != null && !key.equals(inherited.key())) throw invalid("Conflicting construction key declarations");
-                key = inherited.key();
-            }
+            key = inheritKey(key, inherited.key());
             entries.addAll(inherited.entries());
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
         }
-        if (key != null && (!metadata.keyInput || !metadata.key.equals(key.nativeName())))
-            throw invalid("Construction key enrichment disagrees with selected Schema key on " + builder.getName());
-        if (metadata.keyInput && key == null) throw invalid("Missing construction key getter enrichment on " + builder.getName());
+        validateKeyMetadata(metadata, key, builder);
         Map<String, Entry> resolved = admitted(entries, rejections);
         Facts facts = new Facts(List.copyOf(resolved.values()), List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
         return facts;
+    }
+
+    private static Key inheritKey(Key key, Key inherited) {
+        if (inherited == null) return key;
+        if (key != null && !key.equals(inherited)) throw invalid("Conflicting construction key declarations");
+        return inherited;
+    }
+
+    private static void validateKeyMetadata(Metadata metadata, Key key, Class<?> builder) {
+        if (key != null && (!metadata.keyInput || !metadata.key.equals(key.nativeName())))
+            throw invalid("Construction key enrichment disagrees with selected Schema key on " + builder.getName());
+        if (metadata.keyInput && key == null) throw invalid("Missing construction key getter enrichment on " + builder.getName());
     }
 
     private static Key declaredKey(BuilderContext context) {
@@ -649,10 +657,10 @@ final class CompiledBuilderSchema {
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
-            if (!member.equals("keyMember") || !descriptor.equals(KEY) || result.keyMember != null)
+            if (!member.equals("keyMember") || !descriptor.equals(KEY_ANNOTATION) || result.keyMember != null)
                 throw invalid("Unknown or duplicate schema key member " + member);
             result.keyMember = new Literals();
-            return new MethodAnnotationVisitor(KEY, result.keyMember);
+            return new MethodAnnotationVisitor(KEY_ANNOTATION, result.keyMember);
         }
 
         @Override public AnnotationVisitor visitArray(String member) {
@@ -725,7 +733,7 @@ final class CompiledBuilderSchema {
 
         @Override public void visit(String member, Object value) {
             switch (annotation) {
-                case KEY -> keyFact(member, value);
+                case KEY_ANNOTATION -> keyFact(member, value);
                 case FIELD -> fieldFact(member, value);
                 case SELECTION -> selectionFact(member, value);
                 default -> namingFact(member, value);
@@ -734,7 +742,7 @@ final class CompiledBuilderSchema {
 
         private void keyFact(String member, Object value) {
             switch (member) {
-                case "value" -> literal.key = (String) value;
+                case VALUE -> literal.key = (String) value;
                 case "rename" -> literal.rename = (String) value;
                 case "ignored" -> literal.ignored = (Boolean) value;
                 default -> throw invalid("Unknown construction key fact " + member);
@@ -743,7 +751,7 @@ final class CompiledBuilderSchema {
 
         private void fieldFact(String member, Object value) {
             switch (member) {
-                case "value" -> literal.field = (String) value;
+                case VALUE -> literal.field = (String) value;
                 case "rename" -> literal.rename = (String) value;
                 case "ignored" -> literal.ignored = (Boolean) value;
                 case "fixedKey" -> literal.fixed = (Boolean) value;
@@ -763,7 +771,7 @@ final class CompiledBuilderSchema {
         }
 
         private void namingFact(String member, Object value) {
-            if (!member.equals("value")) return;
+            if (!member.equals(VALUE)) return;
             switch (annotation) {
                 case DOC -> literal.doc = (String) value;
                 case PROPERTY -> literal.rename = (String) value;
@@ -787,7 +795,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visitEnd() {
-            if (annotation.equals(KEY) && (literal.key == null || literal.key.isEmpty())) throw invalid("Missing construction key association");
+            if (annotation.equals(KEY_ANNOTATION) && (literal.key == null || literal.key.isEmpty())) throw invalid("Missing construction key association");
             if (annotation.equals(FIELD) && (literal.field == null || literal.field.isEmpty())) throw invalid("Missing field association");
             if (annotation.equals(SELECTION) && (literal.selection == null || literal.selection.isEmpty() || literal.role == null))
                 throw invalid("Missing population selection");
