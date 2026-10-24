@@ -38,6 +38,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     File repository
     File trap
 
+    @Issue(['957', '954'])
     def 'binary owned relationships support #capability with Groovy #generation'() {
         given:
         fixture(generation)
@@ -52,8 +53,12 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert properties.containsKey('facts')
             assert properties.facts.'$ref' == '#/$defs/example.Facts_DSL%24Builder'
             assert properties.inherited.'$ref' == properties.facts.'$ref'
-            assert properties.workloads.additionalProperties.'$ref' == '#/$defs/example.Workload_DSL%24Builder'
+            assert properties.workloads.additionalProperties.'$ref' == '#/$defs/example.Workload_DSL%24Builder%3A%3Akeyless'
             assert properties.inheritedWorkloads.additionalProperties.'$ref' == properties.workloads.additionalProperties.'$ref'
+            def workload = schema.'$defs'.'example.Workload_DSL$Builder::keyless'
+            assert workload.additionalProperties == false
+            assert !workload.properties.containsKey('name')
+            assert !workload.containsKey('required')
             assert properties.local.'$ref' == '#/$defs/example.LocalFacts_DSL%24Builder'
             assert properties.labels.additionalProperties.type == 'string'
             assert !properties.containsKey('ignored')

@@ -41,21 +41,25 @@ class KlumJsonSchemaGenerationTest extends Specification {
     File trap
     boolean packagedPlugin
 
-    @Issue(['529', '950'])
+    @Issue(['529', '950', '954'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')
     def 'generate structural input schemas from explicit DSL Model roots with Groovy #generation'() {
         given:
         fixture(generation)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.addAll(['example.KeylessUses', 'example.FallbackKey', 'example.EmptyRename', 'example.IgnoredOperationCollision'])\n")
 
         when:
         def result = run('generateKlumJsonSchema')
         def schema = document('example.Deployment')
         File validation = new File(System.getProperty('schemaValidationDirectory'), generation)
         validation.mkdirs()
-        new File(validation, 'deployment.schema.json').bytes = output('example.Deployment').bytes
+        ['Deployment', 'Service', 'KeylessUses', 'FallbackKey', 'EmptyRename', 'IgnoredOperationCollision'].each { model ->
+            new File(validation, model.toLowerCase() + '.schema.json').bytes = output('example.' + model).bytes
+        }
         def root = schema.get('$defs').get('example.Deployment_DSL$Builder')
-        def child = schema.get('$defs').get('example.Service_DSL$Builder')
+        def child = schema.get('$defs').get('example.Service_DSL$Builder::keyless')
+        def selfContained = document('example.Service').get('$defs').get('example.Service_DSL$Builder')
         def secret = schema.get('$defs').get('example.SecretReference_DSL$Builder')
 
         then:
@@ -66,16 +70,33 @@ class KlumJsonSchemaGenerationTest extends Specification {
         !new File(output('example.Deployment').parentFile, 'example.Deployment_DSL$Builder.schema.json').exists()
         root.get('additionalProperties') == false
         root.get('properties').get('region').get('description').contains('Inherited region documentation.')
-        root.get('properties').get('services').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
+        root.get('properties').get('services').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
         root.get('properties').get('credentialSecret').get('$ref') == '#/$defs/example.SecretReference_DSL%24Builder'
         root.get('properties').get('configure-input').get('additionalProperties').get('items').get('type') == 'string'
         root.get('properties').get('replicas').get('minimum') == -2147483648
         child.get('properties').get('mode').get('enum') == ['FAST', 'SAFE']
-        !child.get('properties').containsKey('name')
+        !child.get('properties').containsKey('service/id~')
+        !child.containsKey('required')
+        child.get('properties').get('nested').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
+        selfContained.get('properties').get('service/id~') == [type: 'string']
+        selfContained.get('required') == ['service/id~']
+        root.get('properties').get('service').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
+        root.get('properties').get('fixed').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
+        root.get('properties').get('derived').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
+        child.get('properties').get('children').get('additionalProperties').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
+        schema.get('$defs').get('example.FixedCluster_DSL$Builder').get('properties').get('catalog').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
+        document('example.KeylessUses').get('$defs').get('example.Collision_DSL$Builder::keyless').get('properties').keySet() == ['value'] as Set
+        document('example.FallbackKey').get('$defs').get('example.FallbackKey_DSL$Builder').get('required') == ['id/~']
+        document('example.EmptyRename').get('$defs').get('example.EmptyRename_DSL$Builder').get('required') == ['name']
+        document('example.IgnoredOperationCollision').get('$defs').get('example.IgnoredOperationCollision_DSL$Builder').get('required') == ['value']
         secret.get('properties').keySet() == ['inherited', 'key', 'name'] as Set
         !root.containsKey('required')
         !root.get('properties').get('computed').containsKey('default')
         schema.get('x-klum-unsupported').values().any { it.contains('outside the admitted grammar') }
+        schema.get('x-klum-unsupported').get('example.Deployment#excludedChild').contains('@JsonIgnore')
+        schema.get('x-klum-unsupported').get('example.Deployment#mappedServices').contains('keyMapping')
+        !root.get('properties').containsKey('excludedChild')
+        !root.get('properties').containsKey('mappedServices')
         !trap.exists()
         !new File(consumer, 'src').exists()
         !new File(producer, 'api/src').exists()
@@ -90,6 +111,63 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         where:
         generation << ['3', '4', '5']
+    }
+
+    @Issue('954')
+    def 'unrepresentable required keys fail closed before replacing successful outputs: #model'() {
+        given:
+        fixture('3')
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Deployment').bytes
+        File manifest = new File(output('example.Deployment').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.$model'])\n")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains("root 'example.$model'")
+        failed.output.contains("example.$declaration#name")
+        failed.output.contains("example.$declaration" + '_DSL$Builder')
+        failed.output.contains('key position MEMBER')
+        failed.output.contains(reason)
+        !relationship || failed.output.contains("example.$model#child")
+        output('example.Deployment').bytes == previous
+        manifest.text == previousManifest
+        !output("example.$model").exists()
+        !trap.exists()
+
+        where:
+        model             | declaration | reason                    | relationship
+        'Ignored'         | 'Ignored'   | '@JsonIgnore(true)'       | false
+        'Collision'       | 'Collision' | 'external-name collision' | false
+        'IgnoredHolder'   | 'Ignored'   | '@JsonIgnore(true)'       | true
+        'CollisionHolder' | 'Collision' | 'external-name collision' | true
+    }
+
+    @Issue('954')
+    def 'missing key facts cannot silently project a keyed document: #model'() {
+        given:
+        fixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.$model'])\n")
+
+        when:
+        def result = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        result.output.contains("root 'example.$model'")
+        result.output.contains('example.Legacy_DSL$Builder')
+        result.output.contains('key position ' + position)
+        result.output.contains(reason)
+        result.output.contains('recompile and package the Schema')
+        !output('example.' + model).exists()
+        !trap.exists()
+
+        where:
+        model          | position         | reason
+        'Legacy'       | 'MEMBER'         | 'missing construction key metadata'
+        'LegacyHolder' | 'UNKNOWN_DIRECT' | 'missing direct relationship key-authority metadata'
     }
 
     def 'tracks roots output ownership and binary dependency documentation without stale files'() {
@@ -324,10 +402,17 @@ project(':schema') { dependencies { implementation project(':api') } }
         writeSource('schema/src/main/groovy/example/Deployment.groovy', """
 package example
 import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.layer3.Cluster
 import java.lang.annotation.*
 @DSL class Deployment extends DeploymentApi {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
     Map<String, Service> services
+    Service service
+    @Field(key = Field.FieldName) Service fixed
+    @Field(key = { throw new AssertionError('key provider executed') }) Service derived
+    FixedCluster cluster
+    @JsonIgnore Ignored excludedChild
+    @Field(keyMapping = { throw new AssertionError('keyMapping executed') }) Map<String, Service> mappedServices
     SecretReference credentialSecret
     int replicas
     long capacity
@@ -343,12 +428,26 @@ import java.lang.annotation.*
     @Builder.Method void unsupported(Object input) {}
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
 }
-@DSL class Service {
-    @Key String name
+@DSL class Service extends ServiceApi {
     String image
     Mode mode
     Service nested
+    Map<String, Service> children
 }
+@DSL class FixedCluster { Service catalog; @Cluster(fixedKeys = true) Map<String, Service> getServices() {} }
+@DSL class Ignored { @Key @JsonIgnore String name; String value }
+@DSL class Collision { @Key @JsonProperty('value') String name; String value }
+@DSL class IgnoredHolder { Ignored child }
+@DSL class CollisionHolder { Collision child }
+@DSL class KeylessUses {
+    Map<String, Ignored> ignored
+    Map<String, Collision> collisions
+    @Field(key = Field.FieldName) Ignored fixedIgnored
+    @Field(key = Field.FieldName) Collision fixedCollision
+}
+@DSL class FallbackKey { @Key @JsonProperty('id/~') String key; @JsonIgnore(false) String value }
+@DSL class EmptyRename { @Key @JsonProperty('') @JsonIgnore(false) String name }
+@DSL class IgnoredOperationCollision { @Key @JsonProperty('value') String name; @JsonIgnore String value }
 @DSL class BaseSecret { String inherited }
 @DSL class SecretReference extends BaseSecret { String name; String key }
 @DSL abstract class AbstractDeployment { String value }
@@ -358,16 +457,10 @@ enum Mode {
 }
 @Retention(RetentionPolicy.RUNTIME) @interface Policy { Mode value() }
 """)
-        // Use a literal naming annotation to exercise exact-contract selective metadata without Jackson linkage.
-        writeSource('schema/src/main/groovy/com/fasterxml/jackson/annotation/JsonProperty.groovy', """
-package com.fasterxml.jackson.annotation
-import java.lang.annotation.*
-@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.METHOD, ElementType.FIELD])
-@interface JsonProperty { String value() default '' }
-""")
         File deployment = new File(producer, 'schema/src/main/groovy/example/Deployment.groovy')
         deployment.text = deployment.text.replace('import java.lang.annotation.*', 'import java.lang.annotation.*\nimport com.fasterxml.jackson.annotation.JsonProperty')
                 .replace('@Builder.Method @Policy', "@Builder.Method @JsonProperty('configure-input') @Policy")
+        deployment.text = deployment.text.replace('import com.fasterxml.jackson.annotation.JsonProperty', 'import com.fasterxml.jackson.annotation.*')
         writeSource('schema/src/main/groovy/other/Service.groovy', """
 package other
 import com.blackbuild.klum.ast.DSL
@@ -380,6 +473,25 @@ import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 class Misdirected_DSL {
     @GeneratedInput.Schema interface Builder<SELF extends Service> {}
     interface Factory { Service One() }
+}
+""")
+        // An older binary may retain the native key but have no key-input facts.
+        writeSource('schema/src/main/groovy/example/Legacy_DSL.groovy', """
+package example
+import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
+import java.util.function.Consumer
+class Legacy {}
+class Legacy_DSL {
+    @GeneratedInput.Schema(key = 'name') interface Builder<SELF extends Legacy> {}
+    interface Factory { Legacy One(String key) }
+}
+class LegacyHolder {}
+class LegacyHolder_DSL {
+    @GeneratedInput.Schema interface Builder<SELF extends LegacyHolder> {
+        @GeneratedInput.Field('child') Legacy_DSL.Builder getChild()
+        @GeneratedInput.Selection(field = 'child', role = 'OWNED_OBJECT') void child(Consumer input)
+    }
+    interface Factory { LegacyHolder One() }
 }
 """)
         publishApi('Inherited region documentation.')
@@ -407,9 +519,24 @@ tasks.register('initializeControl', JavaExec) {
     }
 
     private void publishApi(String documentation) {
+        // Use a literal naming annotation to exercise exact-contract selective metadata without Jackson linkage.
+        writeSource('api/src/main/groovy/com/fasterxml/jackson/annotation/JsonProperty.groovy', """
+package com.fasterxml.jackson.annotation
+import java.lang.annotation.*
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.METHOD, ElementType.FIELD])
+@interface JsonProperty { String value() default '' }
+""")
+        writeSource('api/src/main/groovy/com/fasterxml/jackson/annotation/JsonIgnore.groovy', '''
+package com.fasterxml.jackson.annotation
+import java.lang.annotation.*
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.METHOD, ElementType.FIELD])
+@interface JsonIgnore { boolean value() default true }
+''')
         writeSource('api/src/main/groovy/example/DeploymentApi.groovy', """
 package example
-import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.*
+import com.fasterxml.jackson.annotation.JsonProperty
+@DSL abstract class ServiceApi { @Key @JsonProperty('service/id~') String name }
 @DSL abstract class DeploymentApi {
     /** $documentation */
     String region

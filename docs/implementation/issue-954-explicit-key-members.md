@@ -1,17 +1,19 @@
 # Explicit structured-input key members — design and implementation plan
 
-Date: 2026-10-24. Status: **Key semantics accepted in principle; projection and plan refined for maintainer acceptance; not implemented**.
+Date: 2026-10-24. Status: **Accepted; Stage A merged in #961; Stage B implemented with qualification and delivery state in the acceptance record**.
 
 Related: [#954](https://github.com/klum-dsl/klum-ast/issues/954).
 Authority: the bounded KEY-INPUT assignment and issue #954, read with
 [#952](https://github.com/klum-dsl/klum-ast/issues/952),
 [#953](https://github.com/klum-dsl/klum-ast/issues/953), and
-[ADR 0031](../adr/0031-structured-schema-input-artifacts.md#proposed-explicit-key-member-extension--954).
+[ADR 0031](../adr/0031-structured-schema-input-artifacts.md#explicit-key-member-extension--954).
 The maintainer refinement of PR #956 accepts the key semantics in principle and requires fail-closed projection
 and two cohesive implementation stages. This is a category B clarification/extension of ADR 0031, not a new construction architecture.
-The recommendation is concrete enough to implement after design acceptance; none of the examples below claims delivery.
+The contract below was accepted for implementation. Stage A is delivered by
+[PR #961](https://github.com/klum-dsl/klum-ast/pull/961), merged at `28f2d7ed6`.
+[Stage B acceptance evidence](evidence/issue-954-stage-b.md) records the subsequent projection and documentation work.
 
-## Evidence baseline
+## Design evidence baseline (historical)
 
 Inspected fresh `origin/master` at `b2ad49bcec865f25a9a1c8f6436a8c2af6b67f3f` (merged #951).
 Source anchors:
@@ -325,8 +327,7 @@ Acceptance covers:
 - No arbitrary-input fallback, impossible required property, conflicting `allOf`, Schema/enum initialization or provider
   execution; deterministic artifacts and Gradle TestKit output/cache/classpath behavior for supported Groovy versions.
 - Final cross-module Groovy 3/4/5 qualification, named-module Java/static Groovy consumers and Jackson regressions;
-  documentary key examples, migration guidance, documentation links and diff checks. These are future implementation
-  acceptance checks, not requirements to run a Groovy matrix for this documentation-only PR.
+  documentary key examples, migration guidance, documentation links and diff checks. The [Stage B evidence](evidence/issue-954-stage-b.md) records the executed qualification.
 
 New tests use `Test` suffix and `@Issue('954')`; documentary examples use `@Tag('documentary')` and `@See` to the final
 user section. Add a `StructuredInputKeyDocumentaryTest` covering the Groovy/YAML-shaped example and the explicit-root
@@ -339,9 +340,9 @@ Stage B updates `docs/user/Structured-Input.md`, `docs/user/Json-Schema.md`, the
 At authorized delivery synchronize issue acceptance references and inspect CI/Sonar findings; do not close #954 for a
 design-only change. No real ScHelm acceptance is claimed by these fixtures; existing consumer-owned gates remain separate.
 
-## Design validation and handoff
+## Design validation and handoff (historical #956 checkpoint)
 
-This branch changes only Markdown design artifacts. Relative links/anchors and balanced fences passed an automated
+The original design branch changed only Markdown design artifacts. Relative links/anchors and balanced fences passed an automated
 local check. Requirement-to-stage mapping and the focused design diff were manually reviewed; `git diff --check` passed.
 The refinement is a follow-up commit preserving the original PR history. Groovy test lanes are not required for
 non-executable design prose and
@@ -352,7 +353,17 @@ No essential product question prevents a recommendation. The approval unit inclu
 and context-sensitive projection; rejecting either requires revising the contract before implementation, not silently
 weakening required keys. Physical enrichment placement remains a testable implementation choice with a bounded fallback.
 
-Handoff: update existing [PR #956](https://github.com/klum-dsl/klum-ast/pull/956) with a follow-up design commit and
+Historical handoff: update existing [PR #956](https://github.com/klum-dsl/klum-ast/pull/956) with a follow-up design commit and
 consolidated review response. Tracker impact: **Related: #954**, never issue completion. Key semantics are accepted in
 principle; the refined projection policy and plan are ready for maintainer acceptance after documentation and two-axis
 review. No production implementation, merge, issue/milestone mutation or self-archival is authorized.
+
+
+## Implementation acceptance
+
+Stage A is merged in [PR #961](https://github.com/klum-dsl/klum-ast/pull/961). Stage B uses the existing private compiled
+facts to distinguish member-key and keyless definitions, diagnoses admitted unrepresentable keys without partial output,
+and supplies documentary examples plus migration/release guidance. Its
+[acceptance record](evidence/issue-954-stage-b.md) is the current implementation checkpoint; the historical design-only
+handoff above no longer describes implementation status. No #952/#953/#959 feature or managed-Jackson semantic change
+belongs to this implementation. ScHelm acceptance remains external to this bounded extension.

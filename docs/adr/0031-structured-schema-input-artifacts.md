@@ -348,21 +348,23 @@ implementation cannot meet isolation/compatibility needs. Those are conditional 
 to invent a metadata framework, standalone module or CLI. Task/package naming and routine implementation details are not
 maintainer architecture questions. Deferred language extensions remain separate #932 work.
 
-## Proposed explicit key-member extension — #954
+## Explicit key-member extension — #954
 
-Date: 2026-10-24. Status: **Key semantics accepted in principle; refined projection and plan pending maintainer acceptance; not implemented**.
-This section does not change the delivered v1 claims above. It records the bounded recommendation for
+Date: 2026-10-24. Status: **Accepted; Stage A merged in #961; Stage B projection and documentation implemented, delivery qualification recorded below**.
+This section extends the historical v1 checkpoint above with the bounded accepted contract for
 [#954](https://github.com/klum-dsl/klum-ast/issues/954); its
 [evidence, examples, diagnostics and implementation stages](../implementation/issue-954-explicit-key-members.md)
-are the reviewable design artifact. #952 retains broader grammar; #953 retains Factory/source convenience.
+are the accepted implementation contract. [Stage B acceptance evidence](../implementation/evidence/issue-954-stage-b.md)
+records projection, external validation and delivery qualification. #952 retains broader grammar; #953 retains Factory/source convenience.
 
-### Context and recommended decision
+### Context and accepted decision
 
-V1 excludes actual key fields from object payloads. Root identity comes from a separate argument, Map-child identity
+The original v1 excludes actual key fields from object payloads. Root identity comes from a separate argument, Map-child identity
 from the outer literal key, and direct-child Schema key providers execute through the ordinary construction seam.
-The complete-preflight/Consumer split already permits identity extraction before allocation. Missing compiled facts,
-not a missing construction engine, are the main implementation gap: current enrichment records the native key name
-but discards key rename/ignore admission and does not explicitly classify direct-child Schema key authority.
+At the original design baseline, the complete-preflight/Consumer split already permitted identity extraction before
+allocation. The missing facts were key rename/ignore admission and an explicit classification of direct-child Schema
+key authority; enrichment then retained only the native key name. Stage A supplied those facts without introducing a
+second construction engine.
 
 Add `KlumStructuredInput.readRoot(Class<T>, Object parsed, String sourceName)` for self-contained root documents.
 A keyed root requires its actual Schema `@Key` member under the established external name. Keep the existing
@@ -426,5 +428,7 @@ The linked plan has two cohesive implementation stages: A combines compiler enri
 root/direct key interpretation and compatibility tests; B adds position-sensitive projection, fail-closed diagnostics,
 Gradle/cross-module qualification and documentation. Stage B depends on Stage A's executable shared facts; no additional
 stage, permanent intermediate API or architectural probe is justified. These stages do not mandate separate PRs/issues.
-The key semantics are accepted in principle; this refined projection policy and proportional plan await maintainer
-acceptance. No production implementation is included.
+Stage A is delivered by [PR #961](https://github.com/klum-dsl/klum-ast/pull/961). Stage B consumes those facts without
+changing the runtime key design; its [acceptance record](../implementation/evidence/issue-954-stage-b.md) maps the
+position-specific projection and user-facing documentation to executable coverage. Broader #529 ScHelm qualification
+and #932 language work remain independently owned.

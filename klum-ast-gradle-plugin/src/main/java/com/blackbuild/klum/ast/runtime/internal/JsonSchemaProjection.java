@@ -40,8 +40,10 @@ import java.util.stream.Collectors;
 final class JsonSchemaProjection implements Function<List<String>, Map<String, String>> {
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
+    private static final String STRING_TYPE = "string";
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
+    private enum KeyPosition { MEMBER, KEYLESS, UNKNOWN_DIRECT }
 
     @Override
     public Map<String, String> apply(List<String> roots) {
@@ -51,10 +53,10 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             diagnostics.clear();
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
-                definition(builder, root);
+                String rootDefinition = definition(builder, KeyPosition.MEMBER, root, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
-                document.put("$ref", reference(builder));
+                document.put("$ref", reference(rootDefinition));
                 document.put("$defs", new TreeMap<>(definitions));
                 document.put("$comment", "Structural input only; defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
@@ -79,28 +81,31 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return root + BUILDER;
     }
 
-    private void definition(Class<?> builder) throws ClassNotFoundException {
-        definition(builder, null);
-    }
-
-    private void definition(Class<?> builder, String rootModel) throws ClassNotFoundException {
-        if (definitions.containsKey(builder.getName())) return;
+    private String definition(Class<?> builder, KeyPosition position, String source, String rootModel) throws ClassNotFoundException {
         Class<?> factory = Class.forName(builder.getName().substring(0, builder.getName().length() - "Builder".length())
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
+        validateKeyPosition(schema, position, source);
+        boolean keyless = position == KeyPosition.KEYLESS;
+        String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
+        if (definitions.containsKey(identity)) return identity;
         if (rootModel != null && !schema.model().getName().equals(rootModel))
             throw new IllegalArgumentException("Resolved Builder contract '" + builder.getName() + "' belongs to DSL Model '"
                     + schema.model().getName() + "', not requested DSL Model '" + rootModel + "'");
         if (Modifier.isAbstract(schema.model().getModifiers()))
             throw new IllegalArgumentException("Abstract root/owned target requires a separately qualified alias policy: " + builder.getName());
         Map<String, Object> object = new LinkedHashMap<>();
-        definitions.put(builder.getName(), object); // Reserve before following recursive ownership.
+        definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
         object.put("type", "object");
         object.put("properties", properties);
         object.put("additionalProperties", false);
+        if (!keyless && schema.key() != null) {
+            properties.put(schema.key().externalName(), new LinkedHashMap<>(Map.of("type", STRING_TYPE)));
+            object.put("required", List.of(schema.key().externalName()));
+        }
         for (CompiledBuilderSchema.Entry entry : schema.entries().values()) {
-            Map<String, Object> value = payload(entry.payload());
+            Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
             if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
                 value = map(value);
             if (entry.documentation() != null && !entry.documentation().isBlank())
@@ -109,17 +114,49 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         }
         for (CompiledBuilderSchema.Rejection rejection : schema.rejections())
             diagnostics.put(rejection.source(), rejection.reason());
+        return identity;
     }
 
-    private Map<String, Object> payload(CompiledBuilderSchema.Payload payload) throws ClassNotFoundException {
+    private static KeyPosition keyPosition(CompiledBuilderSchema.Entry entry) {
+        if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP
+                || Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null)
+            return KeyPosition.KEYLESS;
+        if (entry.role() == CompiledBuilderSchema.Role.OWNED_OBJECT && entry.schemaKey() == null)
+            return KeyPosition.UNKNOWN_DIRECT;
+        return KeyPosition.MEMBER;
+    }
+
+    private static void validateKeyPosition(CompiledBuilderSchema schema, KeyPosition position, String source) {
+        if (schema.keyName().isEmpty()) return;
+        if (position == KeyPosition.UNKNOWN_DIRECT)
+            throw unrepresentable(schema, position, source, "missing direct relationship key-authority metadata; recompile and package the Schema");
+        if (position == KeyPosition.KEYLESS) return;
+        CompiledBuilderSchema.Key key = schema.key();
+        if (key == null)
+            throw unrepresentable(schema, position, source, "missing construction key metadata; recompile and package the Schema");
+        if (key.ignored())
+            throw unrepresentable(schema, position, source, "required construction key " + key.source() + " excluded by @JsonIgnore(true)");
+        List<String> collisions = schema.keyCollisions();
+        if (!collisions.isEmpty())
+            throw unrepresentable(schema, position, source, "required construction key external-name collision for '"
+                    + key.externalName() + "': " + key.source() + ", " + String.join(", ", collisions));
+    }
+
+    private static IllegalArgumentException unrepresentable(CompiledBuilderSchema schema, KeyPosition position,
+                                                           String source, String reason) {
+        return new IllegalArgumentException("Cannot represent admitted input at '" + source + "', public Builder '"
+                + schema.contract().getName() + "', key position " + position + ": " + reason);
+    }
+
+    private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, KeyPosition position, String source) throws ClassNotFoundException {
         return switch (payload.kind()) {
             case SCALAR -> scalar(payload.type());
             case ENUM -> enumeration(payload.type());
-            case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item())));
-            case MAP -> map(payload(payload.item()));
+            case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), KeyPosition.MEMBER, source)));
+            case MAP -> map(payload(payload.item(), KeyPosition.MEMBER, source));
             case NESTED_OBJECT -> {
-                definition(payload.builder());
-                yield new LinkedHashMap<>(Map.of("$ref", reference(payload.builder())));
+                String identity = definition(payload.builder(), position, source, null);
+                yield new LinkedHashMap<>(Map.of("$ref", reference(identity)));
             }
         };
     }
@@ -135,14 +172,14 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         List<String> names = Arrays.stream(type.getDeclaredFields()).filter(Field::isEnumConstant)
                 .map(Field::getName).sorted().toList();
         if (names.isEmpty()) throw new IllegalArgumentException("Empty enum has no representable input values: " + type.getName());
-        return new LinkedHashMap<>(Map.of("type", "string", "enum", names));
+        return new LinkedHashMap<>(Map.of("type", STRING_TYPE, "enum", names));
     }
 
     private static Map<String, Object> scalar(Class<?> type) {
         Map<String, Object> result = new LinkedHashMap<>();
         String name = type.getName();
         String jsonType = switch (name) {
-            case "java.lang.String" -> "string";
+            case "java.lang.String" -> STRING_TYPE;
             case "boolean", "java.lang.Boolean" -> "boolean";
             case "float", "double", "java.lang.Float", "java.lang.Double", "java.math.BigDecimal" -> "number";
             default -> "integer";
@@ -163,8 +200,8 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return result;
     }
 
-    private static String reference(Class<?> builder) {
-        return "#/$defs/" + URLEncoder.encode(builder.getName().replace("~", "~0").replace("/", "~1"), StandardCharsets.UTF_8).replace("+", "%20");
+    private static String reference(String identity) {
+        return "#/$defs/" + URLEncoder.encode(identity.replace("~", "~0").replace("/", "~1"), StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     /** Deterministic JSON with exact integer values and no rendering dependency in runtime or the plugin. */
