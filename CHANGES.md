@@ -1,5 +1,9 @@
 # Unreleased
 
+- Restored nested structured input and JSON Schema properties for concrete owned DSL relationships supplied by compatible
+  binary dependencies, including inherited fields and keyed Map values. Abstract/polymorphic and raw generic targets
+  retain their existing limits ([#957](https://github.com/klum-dsl/klum-ast/issues/957)).
+
 - Restored admitted structured input and generated Draft 2020-12 JSON Schema for ordinary scalar Schema properties,
   including an unkeyed property literally named `key`, when the generated Builder exposes its normal setter. Direct and
   inherited properties follow the same contract; actual `@Key` members remain outside domain input

@@ -341,13 +341,26 @@ final class CompiledBuilderSchema {
 
     private static Payload payload(Type type, boolean field) {
         if (type instanceof Class<?> leaf) {
+            // Binary relationships may erase only the generated SELF argument. Do not infer user type arguments.
+            if (field && leaf.getTypeParameters().length == 1) {
+                Payload nested = ownedPayload(leaf);
+                if (nested != null) return nested;
+            }
             return leafPayload(leaf);
         }
         if (!(type instanceof ParameterizedType parameterized) || !(parameterized.getRawType() instanceof Class<?> raw)) return null;
-        Class<?> model = modelOf(raw);
-        if (field && raw.isInterface() && raw.getName().endsWith(BUILDER_SUFFIX) && model != null && !Modifier.isAbstract(model.getModifiers()))
-            return new Payload(Kind.NESTED_OBJECT, model, raw, null, null);
+        if (field) {
+            Payload nested = ownedPayload(raw);
+            if (nested != null) return nested;
+        }
         return containerPayload(parameterized, raw, field);
+    }
+
+    private static Payload ownedPayload(Class<?> builder) {
+        Class<?> model = modelOf(builder);
+        return builder.isInterface() && builder.getName().endsWith(BUILDER_SUFFIX)
+                && model != null && !Modifier.isAbstract(model.getModifiers())
+                ? new Payload(Kind.NESTED_OBJECT, model, builder, null, null) : null;
     }
 
     private static Payload leafPayload(Class<?> leaf) {
