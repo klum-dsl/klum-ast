@@ -37,7 +37,17 @@ public final class GeneratedInput {
     @Target(ElementType.TYPE)
     public @interface Schema {
         String key() default "";
+        boolean keyInput() default false;
         Exclusion[] exclusions() default {};
+    }
+
+    /** Construction identity on its declaring public getter, separate from writable input operations. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface Key {
+        String value();
+        String rename() default "";
+        boolean ignored() default false;
     }
 
     /** Original field association on its public getter. Types and owner remain reflected. */
@@ -48,6 +58,7 @@ public final class GeneratedInput {
         String rename() default "";
         boolean ignored() default false;
         boolean fixedKey() default false;
+        boolean schemaKey() default false;
         String exclusion() default "";
         String detail() default "";
     }
