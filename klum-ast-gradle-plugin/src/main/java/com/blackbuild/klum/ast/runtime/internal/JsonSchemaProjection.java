@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 final class JsonSchemaProjection implements Function<List<String>, Map<String, String>> {
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
+    private static final String STRING_TYPE = "string";
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
     private enum KeyPosition { MEMBER, KEYLESS, UNKNOWN_DIRECT }
@@ -100,7 +101,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         object.put("properties", properties);
         object.put("additionalProperties", false);
         if (!keyless && schema.key() != null) {
-            properties.put(schema.key().externalName(), new LinkedHashMap<>(Map.of("type", "string")));
+            properties.put(schema.key().externalName(), new LinkedHashMap<>(Map.of("type", STRING_TYPE)));
             object.put("required", List.of(schema.key().externalName()));
         }
         for (CompiledBuilderSchema.Entry entry : schema.entries().values()) {
@@ -171,14 +172,14 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         List<String> names = Arrays.stream(type.getDeclaredFields()).filter(Field::isEnumConstant)
                 .map(Field::getName).sorted().toList();
         if (names.isEmpty()) throw new IllegalArgumentException("Empty enum has no representable input values: " + type.getName());
-        return new LinkedHashMap<>(Map.of("type", "string", "enum", names));
+        return new LinkedHashMap<>(Map.of("type", STRING_TYPE, "enum", names));
     }
 
     private static Map<String, Object> scalar(Class<?> type) {
         Map<String, Object> result = new LinkedHashMap<>();
         String name = type.getName();
         String jsonType = switch (name) {
-            case "java.lang.String" -> "string";
+            case "java.lang.String" -> STRING_TYPE;
             case "boolean", "java.lang.Boolean" -> "boolean";
             case "float", "double", "java.lang.Float", "java.lang.Double", "java.math.BigDecimal" -> "number";
             default -> "integer";
