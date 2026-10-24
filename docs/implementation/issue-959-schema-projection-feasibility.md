@@ -25,8 +25,8 @@ projection preserves the current structural generator's behavior for existing ar
 
 D1 settles metadata authority and this missing-artifact rule. It does not select the production encoding, exact generated
 ABI, emission hook, profile configuration, supported mappings, raw-input assertion strength, default meaning or public SPI.
-D2–D6 remain unapproved, and P1 has not started. Any future implementation must satisfy D1; this documentation update
-contains no compiler, generator, runtime or test changes.
+D2–D6 remain unapproved, and P1 has not started. Any future implementation must satisfy D1. The historical D1
+documentation delivery contained no compiler, generator, runtime or test changes.
 
 ## D2 characterization follow-up
 
@@ -34,7 +34,8 @@ The [D2 raw-input profile evidence](evidence/issue-959-d2-raw-input-profile.md) 
 `e18f21b24b4017844720ef0072b95635491a32be`. It recommends option B: explicitly selected authoring bounds on supplied
 ordinary direct integral properties, even when later construction could repair or replace the value. It preserves
 omission/null admission and separates schema validity from final Model validation. D2 maintainer acceptance remains
-open; no P1 mapping, API, metadata extraction, defaults projection or release behavior is implemented.
+open. D2 adds characterization-only runtime fixtures and a manually invoked candidate-schema corpus; no P1 mapping,
+API, metadata extraction, defaults projection or release behavior is implemented.
 
 ## Recommendation and evidence boundary
 
@@ -377,8 +378,9 @@ existing Builder signatures, runtime validation, lifecycle, ownership, serializa
 
 Future feature delivery updates [JSON Schema](../user/Json-Schema.md), [Validation](../user/Validation.md),
 [Default Values](../user/Default-Values.md), applicable [migration navigation](../user/Migration.md), `CHANGES.md` and
-issue evidence together. This research changes no current feature guidance, release notes, API, production code or test
-fixture. No production behavior or implementation PR is authorized by a merged feasibility document.
+issue evidence together. The original feasibility/D1 documentation delivery changed no test fixtures. D2 adds only
+characterization fixtures and evidence; current feature guidance, release notes, API and production behavior remain
+unchanged. No production behavior or implementation PR is authorized by a merged feasibility document.
 
 ## Decision status and remaining gates
 
