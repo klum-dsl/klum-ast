@@ -170,7 +170,7 @@ final class StructuredInputAdmissionPlan {
         MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(field.getName()), Parameter.EMPTY_ARRAY);
         if (getter != null) return getter;
         return builder.getDeclaredMethod(DslAstHelper.getSetterName(field.getName()),
-                new Parameter[] { new Parameter(GeneratedDslSupport.publicType(field.getType()), "value") });
+                new Parameter[] { new Parameter(GeneratedDslSupport.publicType(field.getType()), VALUE) });
     }
 
     private static void enrichInvisibleField(FieldNode field, Rejection rejection, ListExpression invisible) {
