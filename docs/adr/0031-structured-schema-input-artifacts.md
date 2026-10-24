@@ -350,10 +350,10 @@ maintainer architecture questions. Deferred language extensions remain separate 
 
 ## Proposed explicit key-member extension — #954
 
-Date: 2026-10-24. Status: **Proposed, evidence-backed local design; not implemented or maintainer-accepted**.
+Date: 2026-10-24. Status: **Key semantics accepted in principle; refined projection and plan pending maintainer acceptance; not implemented**.
 This section does not change the delivered v1 claims above. It records the bounded recommendation for
 [#954](https://github.com/klum-dsl/klum-ast/issues/954); its
-[evidence, examples, diagnostics and implementation slices](../implementation/issue-954-explicit-key-members.md)
+[evidence, examples, diagnostics and implementation stages](../implementation/issue-954-explicit-key-members.md)
 are the reviewable design artifact. #952 retains broader grammar; #953 retains Factory/source convenience.
 
 ### Context and recommended decision
@@ -390,10 +390,22 @@ missing required facts report recompile/package guidance.
 
 JSON Schema needs position-sensitive definitions: self-contained keyed roots/direct children have the real String
 property in `required`; externally keyed bodies reject it. Cache by Builder plus key position, retain closed objects,
-and reserve recursive definitions before descent. Ignored/colliding required keys make self-contained roots unsupported;
-optional unsupported direct relationships use the established omission diagnostic. This does not infer raw requirements
-from completed `@Required` or promise lifecycle success. Default root artifacts describe self-contained documents;
-no external-rootKey generation option is added in this slice.
+and reserve recursive definitions before descent. The definition suffix remains private; retain fully qualified Builder
+identities and Model-named output files without a general context framework or configurable key-position policy.
+Avoid extending closed definitions through conflicting `allOf` composition.
+
+Compiler-rejected operations remain absent with `x-klum-unsupported`. Admitted operations whose structural input cannot
+be represented faithfully fail generation with root, declaring/relationship source, public contract, key position and
+reason. In particular, an admitted direct relationship with an ignored or colliding required key fails generation even
+when optional; runtime rejection of its key is not evidence that the relationship was excluded from admitted grammar.
+A categorically unavailable interpreter position may be omitted only with explicit shared admission evidence, a
+diagnostic and interpreter/projection parity coverage. This extension introduces no such categorical exclusion for those
+direct relationships. Do not use arbitrary input or an impossible required property as a fallback. Ignored/colliding
+required root keys also fail generation; retain previous successful outputs rather than emit partial schemas.
+
+This does not infer raw requirements from completed `@Required` or promise construction/lifecycle success. Default root
+artifacts describe self-contained documents and need not validate explicit-rootKey or active-Builder payloads;
+no external-rootKey generation option is added in this extension.
 
 ### Consequences and alternatives
 
@@ -410,5 +422,9 @@ and preflight execution or overload inference for derived keys. Parser/file/URL 
 polymorphism, repeated/multi-argument operations and scheduling remain outside this extension. Managed Jackson retains
 ADR 0009's independent naming, coercion, context and import-mode contracts.
 
-The linked plan maps all requirements to five bounded slices and executable acceptance checks. This recommendation
-needs no further product choice to be reviewable; acceptance of its migration effects precedes implementation.
+The linked plan has two cohesive implementation stages: A combines compiler enrichment with its first runtime consumer,
+root/direct key interpretation and compatibility tests; B adds position-sensitive projection, fail-closed diagnostics,
+Gradle/cross-module qualification and documentation. Stage B depends on Stage A's executable shared facts; no additional
+stage, permanent intermediate API or architectural probe is justified. These stages do not mandate separate PRs/issues.
+The key semantics are accepted in principle; this refined projection policy and proportional plan await maintainer
+acceptance. No production implementation is included.

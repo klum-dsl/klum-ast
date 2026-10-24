@@ -1,13 +1,14 @@
 # Explicit structured-input key members — design and implementation plan
 
-Date: 2026-10-24. Status: **Local design recommendation; no implementation or publication**.
+Date: 2026-10-24. Status: **Key semantics accepted in principle; projection and plan refined for maintainer acceptance; not implemented**.
 
 Related: [#954](https://github.com/klum-dsl/klum-ast/issues/954).
 Authority: the bounded KEY-INPUT assignment and issue #954, read with
 [#952](https://github.com/klum-dsl/klum-ast/issues/952),
 [#953](https://github.com/klum-dsl/klum-ast/issues/953), and
 [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#proposed-explicit-key-member-extension--954).
-This is a category B clarification/extension of ADR 0031, not a new construction architecture.
+The maintainer refinement of PR #956 accepts the key semantics in principle and requires fail-closed projection
+and two cohesive implementation stages. This is a category B clarification/extension of ADR 0031, not a new construction architecture.
 The recommendation is concrete enough to implement after design acceptance; none of the examples below claims delivery.
 
 ## Evidence baseline
@@ -209,7 +210,7 @@ authority is resolved only at execution. Keep `CompiledBuilderSchema` as the sin
 Prefer key facts on the declaring public key getter, with explicit hierarchy traversal; if that getter is not available
 for a supported shape, a small `GeneratedInput.Schema` member is the already-established type-level target. Do not infer
 key authority from zero-argument creator overloads, method names, a null `fixedChildKey`, or Model-field reflection in
-the generator. Physical annotation placement is a bounded implementation choice to prove in slice K1, not a public API.
+the generator. Physical annotation placement is a bounded implementation choice to qualify with its runtime consumer in Stage A, not a public API.
 Keep key metadata separate from ordinary `Field` + `Selection`, since no writable key operation exists.
 
 Distinguish missing new facts from an unkeyed/ordinary relationship. Old compiled Schemas must get precise recompile/package
@@ -230,12 +231,28 @@ Builder name for the self-contained definition; use a deterministic non-Java suf
 closed body definition. Unkeyed types need only one definition. Reserve each definition before following recursion and
 encode JSON Pointer/URI references correctly. Duplicate the small closed property map rather than using `allOf` to extend
 a base with `additionalProperties: false`, which would reject the added key. Recursive and mixed-position reuse must be
-covered explicitly. Collision/admission resolution is per position as above.
+covered explicitly. Collision/admission resolution is per position as above. The suffix is private; no general
+schema-context framework, public descriptor API or configurable key-position policy is introduced.
 
-An ignored or colliding required key makes a selected self-contained root unrepresentable: fail generation with source
-and reason and preserve prior outputs. An unrepresentable optional direct-child property is omitted with
-`x-klum-unsupported`, matching existing unsupported-declaration policy; the keyless variant can still be used by Maps or
-Schema-derived relationships. Do not generate an impossible required-but-absent key property.
+Projection distinguishes admission from representability:
+
+| Contract classification | Projection policy |
+| --- | --- |
+| Compiler-rejected operation | Remains absent, with the existing source/reason `x-klum-unsupported` diagnostic. |
+| Admitted operation whose structural input cannot be represented faithfully | Fail generation with the selected root, relationship/declaring source, public Builder, key position and reason. Optionality of the relationship does not justify omission. |
+| Position categorically rejected by the interpreter's admitted grammar | May be omitted only when shared admission evidence establishes that exclusion and a diagnostic explains it. The resulting closed object must describe exactly the accepted structural language. |
+
+For this extension, an admitted direct relationship with an ignored, colliding or otherwise unrepresentable required key
+**fails generation**, including when the relationship is optional. The key-specific runtime rejection described above
+is not itself a compiler rejection of the relationship or a shared categorical positional-exclusion fact. Do not derive
+permission to omit from the projector's inability to represent it, or add an exclusion merely to avoid projection failure.
+Omission requires an explicit shared admission result and interpreter/projection parity coverage; without that evidence,
+fail closed. This plan adds no new categorical exclusion for these direct relationships.
+
+An ignored or colliding required key likewise makes a selected self-contained root fail generation. Preserve prior
+successful outputs on failure; do not publish a partially projected replacement. A keyless variant can still serve Maps
+or Schema-derived relationships when those positions are independently representable; the failure of an inline position
+does not globally disqualify that Model. Do not permit arbitrary input or emit an impossible required-but-absent property.
 
 There is no new Gradle mode in #954. The default keyed root artifact changes from a keyless payload schema to a
 self-contained document schema. It does not claim to validate the existing explicit-rootKey or active-Builder payload
@@ -262,18 +279,54 @@ own behavior. Second, generated keyed root JSON Schema gains a required property
 payloads. Existing four-argument roots retain root authority and signatures, but nested direct input follows the new
 required-key rule. Other externally sourced key forms remain unchanged. Release placement remains unassigned.
 
-## Implementation slices and acceptance
+## Two implementation stages and acceptance
 
-All slices belong to #954; #952 and #953 get no implementation here. Each slice is one reasoned production-plus-test
-commit, except the final documentation/qualification commit. Do not commit pending tests for this unimplemented proposal.
+Both stages belong to #954; #952 and #953 get no implementation here. They are implementation stages, not mandatory
+separate PRs or issues. Stage B consumes the shared facts established and exercised by Stage A. No concrete dependency
+requires an additional stage, architectural probe or permanent intermediate API. Keep reasoned production-plus-test
+commits within each stage; metadata and its first runtime consumer belong together rather than in an independently
+published metadata-only step. Do not commit pending tests for this unimplemented design.
 
-| Slice | Deliverable | Executable acceptance |
-| --- | --- | --- |
-| K1 — exact identity facts | Compiler/generated enrichment and `CompiledBuilderSchema` key description + direct key-source fact | Native/renamed/empty-rename/ignored/ignore-false keys; local and binary inherited keys; duplicate Schema key error; key/operation collision per position; ordinary scalar `key`; fixed Cluster, FieldName, closure provider; initialization traps; missing/old/malformed facts; no generated public callable changes. |
-| K2 — root vertical path | Three-argument facade and pure prepared-key extraction, then existing root Consumer construction | Java and static/dynamic Groovy calls; key available at PostCreate; missing/null/non-String/empty/escaped keys; rename/ignore/collision diagnostics; equal/different inner keys rejected by old overload; old null contract retained; failure anywhere prevents root allocation; source/cause and supplied order. |
-| K3 — direct child vertical path | Positional preparation and key argument through existing owned-child Consumer seam; active target remains keyless | Supplied direct child requires key; absent child allowed; nested descendants; same-key reuse/different-key error; key first/middle/last leaves operation order intact; fixed/derived/Cluster inner-key rejection without provider execution in preflight; Map outer-only key authority; ignored inherited key; context/Template/lifecycle parity and error-chain cleanup. |
-| K4 — matching projection | Context-sensitive closed definitions and required construction key | Same type as root, direct child, fixed child and Map value; valid/invalid documents checked by an actual Draft 2020-12 validator; recursive/mixed references; ignored/colliding roots fail and retain outputs; unsupported direct properties explain omission; no Schema/enum initialization; deterministic output/cache/classpath cases. |
-| K5 — delivery qualification | Documentary tests, user pages, migration navigation, CHANGES and compatibility evidence | Groovy 3 focused then affected suites; Groovy 4/5 at final qualification; named-module Java/static Groovy consumer; Jackson regression suite; Gradle TestKit generation for supported Groovy versions; documentation/diff checks. |
+### Stage A — Compiler enrichment and runtime key interpretation
+
+Implement minimal generated key facts and their `CompiledBuilderSchema` consumption together with the three-argument
+root overload, direct-child key extraction, full-tree preflight and construction-time key passing. Include inherited and
+renamed key admission, Schema versus caller authority, collision/exclusion diagnostics and unchanged external-key paths.
+Use existing root and child Consumer construction; metadata must immediately support executable runtime behavior.
+
+Acceptance covers:
+
+- Native, renamed, empty-rename, ignored and ignore-false keys; local and binary inheritance; duplicate Schema key error;
+  key/operation collisions per position; ordinary scalar `key`; FieldName, closure and fixed Cluster providers.
+- Java and static/dynamic Groovy root calls; missing/null/non-String/empty/escaped keys; key available at PostCreate;
+  invalid input anywhere prevents allocation; no initialization/provider execution during preflight; source/cause chains.
+- Required keys on supplied direct children, optional absent children and nested descendants; same-key reuse versus
+  different-key failure; key first/middle/last preserves operation order; context, Templates, lifecycle and cleanup parity.
+- Four-argument root null rules and equal/different inner-key rejection; outer-only keyed Maps; active Builder identity;
+  fixed/derived/Cluster inner-key rejection; Jackson regression coverage without changing Jackson semantics.
+- Missing/old/malformed metadata and old-runtime/new-Schema diagnostics; no generated Factory/Builder callable changes;
+  focused Groovy 3 followed by affected runtime/compiler suites and relevant Groovy 4/5 compatibility tests.
+
+### Stage B — JSON Schema projection and delivery qualification
+
+Consume Stage A's shared key facts to produce the two private definition shapes, required self-contained keys and
+externally keyed bodies. Implement fail-closed projection for admitted unrepresentable relationships and keep compiler
+rejections distinct. Preserve existing Gradle output names, isolation, caches and failure/output handling. Complete
+cross-module qualification, documentary examples, documentation and migration guidance in this stage.
+
+Acceptance covers:
+
+- The same Model as root, direct child, fixed/derived child and Map value; recursive/mixed-position references; closed
+  objects with correct key requirements/exclusions, checked by an actual Draft 2020-12 validator.
+- Ignored/colliding required root keys and admitted optional direct relationships fail with source-aware diagnostics;
+  no partial replacement outputs. Compiler-rejected operations remain absent with `x-klum-unsupported`. Any categorical
+  positional omission has shared admission evidence and interpreter/projection parity tests; no such new omission is
+  presumed for an ignored/colliding direct-child key. Independently representable keyless uses still generate.
+- No arbitrary-input fallback, impossible required property, conflicting `allOf`, Schema/enum initialization or provider
+  execution; deterministic artifacts and Gradle TestKit output/cache/classpath behavior for supported Groovy versions.
+- Final cross-module Groovy 3/4/5 qualification, named-module Java/static Groovy consumers and Jackson regressions;
+  documentary key examples, migration guidance, documentation links and diff checks. These are future implementation
+  acceptance checks, not requirements to run a Groovy matrix for this documentation-only PR.
 
 New tests use `Test` suffix and `@Issue('954')`; documentary examples use `@Tag('documentary')` and `@See` to the final
 user section. Add a `StructuredInputKeyDocumentaryTest` covering the Groovy/YAML-shaped example and the explicit-root
@@ -281,7 +334,7 @@ alternative. Use existing artifact-compilation fixtures for packaged and binary-
 construction/direct-key fixtures rather than introducing another test construction engine. A focused new runtime test
 class can be `StructuredInputKeyTest`; exact class grouping is an implementation detail.
 
-K5 updates `docs/user/Structured-Input.md`, `docs/user/Json-Schema.md`, the structured-input section of
+Stage B updates `docs/user/Structured-Input.md`, `docs/user/Json-Schema.md`, the structured-input section of
 `docs/user/Builder-First-Migration.md`, relevant migration navigation and `CHANGES.md`, with reciprocal documentary links.
 At authorized delivery synchronize issue acceptance references and inspect CI/Sonar findings; do not close #954 for a
 design-only change. No real ScHelm acceptance is claimed by these fixtures; existing consumer-owned gates remain separate.
@@ -289,8 +342,9 @@ design-only change. No real ScHelm acceptance is claimed by these fixtures; exis
 ## Design validation and handoff
 
 This branch changes only Markdown design artifacts. Relative links/anchors and balanced fences passed an automated
-local check. Requirement-to-slice mapping and the focused design diff were manually reviewed; `git diff --check` passed.
-The local commit is one reasoning unit: the proposed ADR extension and its supporting evidence/implementation plan. Groovy test lanes are not required for non-executable design prose and
+local check. Requirement-to-stage mapping and the focused design diff were manually reviewed; `git diff --check` passed.
+The refinement is a follow-up commit preserving the original PR history. Groovy test lanes are not required for
+non-executable design prose and
 were not run. No production sources, executable fixtures, generated output, current user promises or release notes change.
 Source inspection establishes feasible seams; implementation tests above remain outstanding acceptance work.
 
@@ -298,6 +352,7 @@ No essential product question prevents a recommendation. The approval unit inclu
 and context-sensitive projection; rejecting either requires revising the contract before implementation, not silently
 weakening required keys. Physical enrichment placement remains a testable implementation choice with a bounded fallback.
 
-Handoff: `(ready:PR)` for local committed design reasoning only. No push, PR, issue mutation or cross-Hive messages.
-Tracker impact if later published: **Related: #954**, never issue completion. Execution scope is complete; design
-acceptance, implementation, remote delivery and Hive reconciliation are not performed by this assignment.
+Handoff: update existing [PR #956](https://github.com/klum-dsl/klum-ast/pull/956) with a follow-up design commit and
+consolidated review response. Tracker impact: **Related: #954**, never issue completion. Key semantics are accepted in
+principle; the refined projection policy and plan are ready for maintainer acceptance after documentation and two-axis
+review. No production implementation, merge, issue/milestone mutation or self-archival is authorized.
