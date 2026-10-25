@@ -36,7 +36,7 @@ ten contradictory emitted schemas (valid schema, omitted properties accepted, su
 this new head. Independent Standards and Specification reviews confirm zero remaining actionable findings at
 `4f2cea62` against `952d651e0`, including the separately gated D7 proposal.
 
-Final local qualification at clean, stable `4f2cea62`: JDK 17 root `check --no-parallel --max-workers=2` passes in 18m03s.
+Earlier local qualification at clean, stable `4f2cea62`: JDK 17 root `check --no-parallel --max-workers=2` passes in 18m03s.
 Groovy 3/4/5 totals are 3,145 / 2,634 / 2,634, with zero failures/errors and only existing skips 17 / 16 / 16. Strict
 licenses, lane isolation, plugin validation and documentation rendering pass. All five external corpora pass again
 after the root run. The publication follow-up changes evidence only. Current-head full PR CI/Sonar results are recorded
@@ -50,8 +50,12 @@ without suppressions: private `conjoinBounds` isolates the independent-keyword/`
 Boolean comparison preserves inclusive/exclusive semantics after mandatory fact validation. No configuration, metadata,
 runtime, output, numeric-domain or D7 behavior changes. All 58 focused schema cases and all five external corpora pass
 after the cleanup. Thirteen retained pre-cleanup generated schema hashes match the newly emitted bytes exactly.
-Independent review and full final-head qualification are being rerun; the earlier green gate with two maintainability
-findings is not the final readiness result.
+Both independent reviews report zero findings at cleanup commit `7a806c03`. Final JDK 17 root
+`check --no-parallel --max-workers=2` passes on that clean/stable revision in 16m39s: Groovy 3/4/5 totals
+3,145 / 2,634 / 2,634, zero failures/errors, existing skips 17 / 16 / 16. Licenses, lane isolation, plugin validation and
+documentation rendering pass. All five external corpora pass again after the full run. The publication follow-up changes
+evidence only; final-head CI/Sonar results are maintained on draft PR #972. The earlier green gate with two
+maintainability findings is historical and is not the final readiness result.
 
 D7 is independently proposal-only: see the [field opt-out recommendation](issue-959-d7-naming-profiles.md#field-level-hard-constraint-projection-opt-out--proposal-only).
 No suppression annotation, policy object/enum, setter-time validation, callback/SPI, generic filter or compiler metadata
