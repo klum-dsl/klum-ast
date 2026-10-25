@@ -1,5 +1,13 @@
 # Unreleased
 
+- Added separate opt-in `klumSchema.jsonSchema.decimalConstraints` for exact direct Jakarta DecimalMin/DecimalMax
+  on ordinary BigDecimal/integral inputs, with inclusive/exclusive endpoints and contradiction diagnostics.
+  Integral Min/Max and machine restrictions remain conjoined; old/incomplete decimal metadata requires recompilation
+  only when decimal generation is enabled. No raw requiredness, null or runtime-validation changes. See
+  [decimal constraints](docs/user/Json-Schema.md#opt-in-decimal-constraints) and
+  [migration](docs/user/Migration.md#opt-in-decimal-json-schema-bounds)
+  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Generated JSON Schema now emits advisory `deprecated: true` for admitted Schema-deprecated fields, construction keys
   and authored operations by default, including inherited/renamed members. Relationship uses retain local placement;
   framework aliases do not supply source deprecation. Older binaries remain structurally generatable with missing

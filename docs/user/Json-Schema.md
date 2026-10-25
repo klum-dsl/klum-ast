@@ -147,6 +147,55 @@ receive no hard mapping in this slice. Getter/return, parameter/type-use and con
 relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
 Issue [#959](https://github.com/klum-dsl/klum-ast/issues/959) remains open for these broader decisions.
 
+## Opt-in decimal constraints
+
+Set `klumSchema.jsonSchema.decimalConstraints = true` to add exact direct Jakarta `@DecimalMin`/`@DecimalMax`
+authoring bounds on ordinary `BigDecimal` and integral scalar properties. It is false by default and independent of
+`integralConstraints`; the existing integral switch still projects only its original direct integral Min/Max subset.
+The decimal profile also conjoins the original direct integral Min/Max restrictions on integral targets, even when
+`integralConstraints` is false. BigDecimal Min/Max declarations remain runtime descriptions.
+
+(See: `KlumJsonSchemaGenerationTest#'generate exact direct decimal authoring bounds from source-free binaries with Groovy #generation'`.)
+
+```groovy
+@DSL
+class Price {
+    @DecimalMin(value = '0.10', inclusive = false)
+    @DecimalMax('9007199254740993.0000000001')
+    BigDecimal amount
+}
+
+klumSchema.jsonSchema {
+    rootTypes.add('example.Price')
+    decimalConstraints = true
+}
+// amount: type number, exclusiveMinimum 0.10, maximum 9007199254740993.0000000001
+```
+
+Inclusive bounds use numeric `minimum`/`maximum`; exclusive bounds use Draft 2020-12 numeric
+`exclusiveMinimum`/`exclusiveMaximum`. Parsing, comparison and JSON rendering preserve exact mathematical decimal
+values, including exponent, leading-plus and zero spellings, without conversion to double. JSON text need not retain
+its authored scale/spelling. Consumers must use precision-capable JSON parsers and validators to retain this guarantee;
+JavaScript Number and other binary floating representations may round these tokens.
+
+The tighter endpoint wins; an exclusive endpoint wins at equal values. Integral targets keep their integer type and
+machine restrictions, and generation proves that the intersection contains an integer. Invalid decimal values,
+unrepresentable exponent/scale and impossible intersections fail before replacing previous output, with source,
+external-name and public-contract diagnostics. Neither bounds nor contradictions infer raw requiredness.
+
+Only one effective direct declaration of each bound, empty groups/payload and no relevant hierarchy group redefinition
+are supported. String, float/double/Number, composed/repeatable, type-use, getter/parameter and authored-operation
+arguments receive no decimal assertions. All original requiredness, null admission, interpreter, Jackson, defaults,
+Templates and lifecycle behavior remains unchanged. This is a supplied-input authoring policy, with no Bean Validation
+equivalence or final construction-success promise.
+
+The generator reads only inert compiler facts on public Builders, including inherited and owned dependencies; it never
+reads Model implementation bytes, parses human descriptions into constraints or invokes authored code. The separate
+`decimalVersion=1` completeness marker and explicit decimal String/inclusive facts are required when this profile is
+selected. Older/incomplete artifacts still support structural and original integral generation, but selecting decimal
+generation fails with recompile/package guidance. Align compiler, runtime and Gradle plugin versions and recompile all
+reachable Schema dependencies. No general profile naming or D7 decision is introduced.
+
 ## Supported input and limits
 
 Reusable definition identities and references retain fully qualified generated Builder names internally. For example,

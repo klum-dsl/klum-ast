@@ -309,3 +309,13 @@ status belongs to the actual published head and is reported separately; local ch
   inspected provider source; no validator invocation.
 - [ECMA RegExp specification](https://tc39.es/ecma262/multipage/text-processing.html#sec-regexp-regular-expression-objects):
   standards reference, with the exact local engine version pinned above rather than claiming universal engine parity.
+
+
+## Assigned decimal delivery checkpoint
+
+The narrow direct DecimalMin/DecimalMax implementation is now separately assigned and recorded in
+[the decimal delivery evidence](../issue-959-decimal-bounds.md) and ADR 0031's decimal checkpoint. It selects the separate
+`decimalConstraints` property and independent completeness marker, without broadening the P1 integral Boolean or
+accepting D7. The Decimal bounds section above remains the governing precision/intersection/exclusion contract.
+The initial characterization status and hand-authored candidate corpus remain historical evidence; delivered schemas
+are qualified separately. Other P2 candidates and broader #959 work remain deferred.

@@ -549,3 +549,30 @@ no member deprecation. No requiredness/null-admission change, rejection, runtime
 execution, removal/replacement/migration policy or `since`/`forRemoval` interpretation follows.
 
 [Implementation and qualification](../implementation/issue-959-deprecation-projection.md) records this slice.
+
+
+## Exact direct decimal authoring bounds — #959 narrow follow-up
+
+Date: 2026-10-25. Status: **Approved bounded implementation; D7 remains deferred**.
+The separately assigned DecimalMin/DecimalMax slice selects `klumSchema.jsonSchema.decimalConstraints`, false by
+default and independent of P1's unchanged `integralConstraints` Boolean. It maps ordinary direct BigDecimal and the
+existing integral scalar subset, using the same single-direct, empty-groups/payload and hierarchy eligibility rules.
+Decimal mode conjoins P1 integral Min/Max on integral targets and structural machine limits; BigDecimal Min/Max stays
+outside P1. It does not broaden String grammar, float/double/Number, operation arguments or other excluded declarations.
+
+Each declaring public Builder carries independent `decimalVersion=1`; original field facts carry compiler-folded exact
+String `decimalValue` and explicit effective Boolean `inclusive` for direct decimal annotations. Original source and
+selection stay on existing facts. Structural and integral-only generation accept absent decimal facts; decimal mode
+requires complete supported versions and facts on reachable declaring/inherited/owned contracts, with fail-closed
+recompile/package diagnostics. No Model-byte fallback, source requirement, annotation-proxy execution or text parsing
+supplies missing facts. This is matched internal compiler/runtime/plugin linkage, with no mixed-version guarantee for
+an older strict reader consuming newer metadata.
+
+Parse with BigDecimal(String), compare numerically, emit exact valid JSON numeric tokens, and use numeric Draft 2020-12
+exclusiveMinimum/exclusiveMaximum. At equal endpoints exclusion wins. Reject impossible decimal intersections and
+integral intersections with no surviving integer before replacing prior artifacts. Preserve raw null/omission/key
+requiredness and runtime/interpreter/Jackson/default/Template/lifecycle behavior. This remains an input authoring
+policy, with no general Bean Validation equivalence. Precision-capable downstream numeric parsing/validation is required.
+
+See [implementation and qualification](../implementation/issue-959-decimal-bounds.md). Size/Pattern/defaults,
+quantity grammar, broader D3-D6 and D7 naming/profile/example vocabulary remain deferred; #962 remains separate.
