@@ -5,6 +5,13 @@ Tracker relationship: **Related: #959**. Issue remains open; no milestone, label
 Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md),
 [P2 Decimal bounds](evidence/issue-959-p2-candidates.md#decimal-bounds), and the separately approved narrow assignment.
 
+## Current qualification status
+
+The approved feature/configuration revision `640b36d0415e6815a65f65908af3c314bf890247` passes the complete JDK 17 root
+check, including Groovy 3/4/5, licenses, lane isolation, plugin validation and documentation rendering. All earlier
+blocked checkpoints below are historical. The maintainer chose normal full PR CI/Sonar, with no local upload.
+Live draft-PR/CI delivery state belongs to [GitHub issue #959](https://github.com/klum-dsl/klum-ast/issues/959).
+
 ## Delivered boundary
 
 `klumSchema.jsonSchema.decimalConstraints = true` is a separate, off-by-default tracked Gradle input. It maps one direct
@@ -86,7 +93,7 @@ Final validation and delivery state is recorded below. PR CI/Sonar remains the s
 authorized; public repository visibility was verified without exposing credentials. History is ordered as a cohesive
 implementation/test commit, matching documentation, and the focused review follow-up. No unrelated artifacts are staged.
 
-## Final local qualification and delivery boundary
+## Pre-fix local qualification and delivery boundary
 
 Qualified source/test revision: `8b0d0fae1`. The subsequent handoff commit changes evidence only.
 
@@ -101,7 +108,7 @@ Qualified source/test revision: `8b0d0fae1`. The subsequent handoff commit chang
 - Independent Standards and Specification follow-up reviews at `8b0d0fae1` report **zero remaining actionable findings**.
   The initial grouped braces finding is addressed. The evidence-only trailing blank line is removed.
 
-**The full root check is failed, not green.** Its sole remaining failure is `:klum-ast-runtime:licenseMain`, which
+**That pre-fix full root check failed.** Its sole remaining failure was `:klum-ast-runtime:licenseMain`, which
 includes a pre-existing untracked generated artifact at
 `klum-ast-runtime/src/gdsl/.sonar/spring-context-model.json`. The artifact and other pre-existing scan directories are
 preserved and excluded from this branch. No artifact was renamed, retyped, removed or relocated, and no license check
@@ -115,7 +122,7 @@ or quality-gate failure. No workaround, indirect analysis or coverage-free uploa
 explicitly selected **skip local upload; use the full PR CI gate**. That authorization choice is settled; no further
 local analysis is planned. No current-branch Sonar result or absence of findings is claimed.
 
-Delivery is **blocked on the generated-cache input/configuration decision**. The dedicated branch is committed locally; no push, draft PR, tracker
+Delivery was **blocked on the generated-cache input/configuration decision at that checkpoint**. The dedicated branch is committed locally; no push, draft PR, tracker
 comment, merge or archive was performed. Once the license conflict is addressed, rerun the applicable checks, push and open the assigned draft PR with **Related: #959**. Broader #959 stays open;
 no milestone, label, curation, release placement or D7 decision changes. Hive delivery/archive reconciliation remains
 pending. This record supplies the concrete implementation, review and validation handoff without claiming completion
@@ -147,5 +154,25 @@ tracked SonarLint connection configuration remains versioned.
 
 Focused JDK 17 validation passes `:klum-ast-runtime:licenseMain`, `jar` and `sourcesJar`. Inspection of both rebuilt JARs
 confirms no `.sonar` entries and retention of both authored GDSL resources. Full repository qualification and final
-independent follow-up review are pending on the approved configuration revision. The earlier failed-check checkpoint
-above records the pre-fix state; it is not the final result. The maintainer's full-PR-CI Sonar choice remains in force.
+independent follow-up review on the approved configuration revision are recorded below. The earlier failed-check
+checkpoint above records the pre-fix state; it is not the final result. The maintainer's full-PR-CI Sonar choice remains in force.
+
+
+## Qualified delivery checkpoint after approved cache fix
+
+- JDK 17 `check --no-parallel --max-workers=2` **passed** at `640b36d0415e6815a65f65908af3c314bf890247`.
+  All **3,174 / 2,634 / 2,634** Groovy 3/4/5 cases completed with zero failures/errors and **17 / 16 / 16** existing skips.
+  Licenses, test-lane isolation, plugin validation and documentation renderer all pass; no checks were skipped.
+- All **66** packaged JSON Schema regressions and **21** interval tests pass without skips. External corpora pass
+  decimal **426 / 3**, integral **426 / 3**, deprecation **96 / 6** and structural **195 / 18** input/metaschema checks.
+- Final runtime and source JARs on that revision contain no `.sonar` entries and retain both authored GDSL resources.
+  The generated cache remains on disk and Git-ignored; tracked SonarLint configuration is preserved.
+- Independent Standards and Specification follow-up reviews at `640b36d0` both report **zero actionable findings**.
+  Commit history is reviewed and scoped; this final qualification update changes evidence only.
+- Git SSH branch publication and GitHub CLI PR publication were separately verified authorized. Draft delivery uses
+  **Related: #959**, with no issue closure, labels/milestone/curation update, merge or self-archive. Live PR/CI results
+  are recorded on the canonical issue and PR. Full PR CI/Sonar is authoritative; no local scan is claimed or planned.
+
+The implementation and local qualification are complete. Draft PR publication follows this record; its live state and
+any subsequent review/CI result are GitHub facts, not inferred from this local checkpoint. Review/merge and Hive
+archive reconciliation remain separate external conditions.
