@@ -32,9 +32,17 @@ structural (195 / eighteen), deprecation (96 / six) and P2 hand-authored (97 inp
 
 Independent Specification review has no findings. Standards review's multiline test branch and stale normative wording
 are corrected. No numeric arithmetic counterexample was demonstrated; the corrected defect is the extra semantic
-rejection of representable declarations in #966 and earlier #972. Full root checks and current-head PR CI/Sonar remain
-pending. The records below describe earlier revisions and their historical qualification. Full PR CI/Sonar is the
-authoritative remote gate; the maintainer explicitly chose to skip local uploads.
+rejection of representable declarations in #966 and earlier #972.
+
+Final local qualification at `7ce365ee`: JDK 17 root `check --no-parallel --max-workers=2` passed in 16m42s, including
+Groovy 3/4/5 (3,148 / 2,634 / 2,634 cases, zero failures/errors, existing skips 17 / 16 / 16), strict licenses, lane
+isolation, plugin validation and documentation rendering. The working tree and HEAD stayed stable throughout. Rechecking
+the precision-capable emitted-decimal corpus after the full run passes again. Both independent reviews confirm zero
+remaining findings on the committed correction. The publication follow-up changes evidence only.
+
+Current-head remote CI/Sonar results are recorded on draft PR #972; earlier green runs do not qualify this correction.
+The records below describe earlier revisions and their historical qualification. Full PR CI/Sonar is the authoritative
+remote gate; the maintainer explicitly chose to skip local uploads.
 
 ## Delivered boundary
 
