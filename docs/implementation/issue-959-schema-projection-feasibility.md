@@ -1,6 +1,6 @@
 # Constraint and default projection: feasibility and decision gates
 
-Date: 2026-10-24. Status: **D1 and D2 accepted; bounded P1 assigned and implemented; D3–D6 and broader mappings remain unapproved.**
+Date: 2026-10-24. Status: **D1 and D2 accepted; bounded P1 assigned and implemented; P2 characterized; D3–D6 and additional production mappings remain unapproved.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959), including its
 [design input](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6385826650).
 Release: 4.2 candidate only; no milestone assigned. Issue #959 remains open.
@@ -40,6 +40,21 @@ not an expected use case or a reason to weaken raw bounds. The accepted semantic
 report and [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#opt-in-raw-input-assertions--959-d2).
 The historical D2 delivery added characterization-only runtime fixtures and a manually invoked candidate-schema corpus.
 The later bounded P1 assignment implements direct integral projection; defaults and broader mappings remain deferred.
+
+## P2 design/characterization checkpoint — 2026-10-25
+
+From master `1788ea0f5` (merged P1 PR #966), the separately assigned
+[P2 evidence and bounded recommendations](evidence/issue-959-p2-candidates.md) characterize exact decimal bounds,
+container/String size, Java/ECMA patterns and source-authored deprecation. Decimal bounds on BigDecimal/integral fields,
+Size on ordinary exact List/Map inputs, and deprecation at effective admitted member uses are independent narrow
+implementation candidates. String Size, Set cardinality and arbitrary Java Pattern remain descriptive; a tiny flag-free
+ASCII regex grammar is feasible but deferred. Keyed-map Size needs its own extension qualification.
+
+Current binary descriptions and public deprecation annotations survive separate API/base/derived compilation and
+source-free Groovy 3/4/5 consumers. P1 metadata lacks the typed P2 facts/completeness needed for new hard mappings; text
+must never be parsed into assertions. The evidence records counterexamples, exact intersections, metadata/selection,
+placement and follow-up acceptance checks. This checkpoint adds characterization tests and design only: it changes no
+production mapping, profile/API, runtime/default/lifecycle/validator behavior, #962 policy or release placement.
 
 ## Recommendation and evidence boundary
 
@@ -347,14 +362,14 @@ Lexical recognition cannot alone prove positivity, overflow or a relationship su
 
 P0's bounded metadata experiment is complete and recorded in its [evidence report](evidence/issue-959-p0-binary-metadata.md).
 The table retains its probe contract for traceability. P1 was subsequently assigned and implemented in the
-[bounded integral slice](issue-959-p1-integral-profile.md); P2–P4 remain conditional proposals. D1/D2 alone did not
+[bounded integral slice](issue-959-p1-integral-profile.md); P2 has design/characterization evidence only; P2 implementation and P3–P4 remain conditional proposals. D1/D2 alone did not
 authorize production work.
 
 | Slice | Scope and reasoned commits | Executable acceptance / exit gate |
 | --- | --- | --- |
 | P0: completed bounded probe | Test-only binary metadata experiment and separate evidence report; D1 now reconciles metadata authority. No production generator behavior. | Separate Java annotation/API JAR, transformed Schema JAR and source-free consumer; inspect exact field/getter/parameter/type-use/type sites and annotation defaults. Compare small enrichment candidate versus targeted byte-reading necessity; stop if neither respects approved architecture. |
 | P1: assigned bounded integral implementation | Compiler/public-Builder facts, private integral mapping/text, binary qualification, user docs and release notes; see the [implementation record](issue-959-p1-integral-profile.md). No SPI. | D1/D2 plus the separate bounded P1 assignment govern the delivered profile. `@Issue('959')` percentage fixture with boundary/type/null/omission cases, exact old machine bounds, repeatable/composed/group/payload fallback, rename/ignore/inheritance and unchanged source attribution. Preserve previous output on generation failure. |
-| P2: decimal/container/pattern subsets | Independently reasoned vertical commits only for each newly approved mapping; no obligation to bundle them. | Exact decimals and inclusive/exclusive intersections; collection population/cardinality; UTF-16/supplementary length cases; Java/ECMA full-match corpus including flags and trailing newline. Unsupported variants remain visible text. |
+| P2: characterized decimal/container/pattern/deprecation candidates | [Evidence](evidence/issue-959-p2-candidates.md) records independent decimal, ordinary-container and deprecation assignment candidates; no implementation authorization. String/Set/arbitrary Pattern stay descriptive. | Retained binary, runtime input, exact decimal, cardinality and Java/ECMA corpora; each future assignment must add typed metadata, emitted-artifact tests, failure/placement checks and separately settle activation. |
 | P3: contextual defaults | One narrow relationship-literal overlay commit + matching docs, after D4 and P0 evidence. | Shared child with 8/4/2 relationship defaults, no `$defs` leakage, aliases, sentinel equality, Java defaults, enum traps, `valueTarget`, 0/false/empty and unsupported coercion/conflict; prove JSON validation does not populate defaults. |
 | P4: optional extensions | Only if D3 later selects callback or declarative provider; draft its own ADR/API before code. | Exact multi-target selection, repeatable/composed semantics, no Model/context inputs, failure diagnostics, explicit code execution and classloader/cache/resource contract. No automatic follow-on from P1. |
 

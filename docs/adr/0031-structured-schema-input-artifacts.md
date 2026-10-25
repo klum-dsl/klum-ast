@@ -505,3 +505,25 @@ implementation; the later assignment authorizes this slice only. See the
 
 This is internal generated linkage, not a general descriptor protocol. No default projection, requiredness inference,
 null-admission change, runtime validator behavior, operation/converter-argument mapping or broader D3–D6 decision follows.
+
+
+## P2 characterization checkpoint — #959
+
+Date: 2026-10-25. Status: **Design evidence only; production profile remains bounded P1**.
+The separately assigned [P2 characterization](../implementation/evidence/issue-959-p2-candidates.md) at merged #966
+identifies three independently assignable candidates: exact DecimalMin/DecimalMax on BigDecimal/integral ordinary
+properties, Size on ordinary exact List/Map inputs, and annotation-only deprecation at effective admitted member uses.
+Each requires compiler-owned source-associated typed/completeness facts through the existing public Builder route;
+current description text is not an assertion protocol. Decimal bounds must preserve precision, inclusivity and integer/
+machine intersections. Container size must preserve raw cardinality and attach to the container use. Deprecated must
+reflect the Schema source rather than generated compatibility aliases, without shared child-definition leakage.
+
+String UTF-16 size, Set deduplication, arbitrary Java regex, flags and full-match/search differences block general hard
+projection. A tiny flag-free ASCII pattern grammar is technically feasible but remains descriptive/deferred. Keyed owned
+Map cardinality is a separate extension candidate, not part of the first ordinary-container assignment.
+
+D1/D2, null/omission/requiredness, #962 separation and the no-user-code-execution boundary remain unchanged. This is no
+new mapping or activation/public API decision; future work needs a separate narrow assignment and explicit activation/
+metadata compatibility qualification. No runtime, lifecycle, ownership, serialization or generated ABI changes are made.
+The retained probes qualify Groovy 3/4/5 inputs and binary producers, not a new JPMS or consumer acceptance promise.
+No release/milestone or broader D3–D6 decision follows; #959 remains open.
