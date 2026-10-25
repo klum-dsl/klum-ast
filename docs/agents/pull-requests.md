@@ -52,8 +52,9 @@ boundary and ask for direction.
 
 ## Quality checks
 
-- Review changed source against `docs/agents/coding-style.md`; unnecessary fully qualified names should be fixed unless a
-  documented exception applies.
+- Review changed source against [the coding-style guide](coding-style.md); unnecessary fully qualified names should be
+  fixed unless a documented exception applies. Before opening a PR, inspect changed production code for avoidable nesting,
+  duplicate semantic literals, and unclear branches using [Sonar hygiene](coding-style.md#sonar-hygiene).
 - Inspect all required CI checks, including SonarCloud, against the current pull request revision.
 - Fix reliability and security findings before handoff. Address maintainability findings or retain them only with a localized suppression and a concrete reason.
 - Do not use broad suppressions to hide unrelated findings. A suppression is documentation of an intentional exception and must explain the invariant or compatibility constraint.
