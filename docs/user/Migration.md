@@ -9,6 +9,15 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Opt-in integral JSON Schema bounds
+
+Ordinary generation keeps its structural behavior. To select
+[integral authoring bounds](Json-Schema.md#opt-in-integral-constraints), set
+`klumSchema.jsonSchema.integralConstraints = true` and recompile/package the root, inherited and owned dependency
+Schemas with matching KlumAST compiler/runtime/plugin versions. Older constraint metadata is not reconstructed from
+Model bytes. Missing required metadata fails enhanced generation while retaining previous successful output. Runtime
+construction, completed validation, omission and null admission remain unchanged.
+
 ### Opt-in structured Builder input
 
 For caller-parsed Map/List/scalar data that should invoke admitted domain Builder operations, see

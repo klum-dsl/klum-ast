@@ -52,6 +52,64 @@ unrelated files. It also removes earlier Builder-named files recorded in that ma
 untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
 previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
 
+## Opt-in integral constraints
+
+The default output remains structural. Select `integralConstraints` separately to add raw-input authoring bounds for
+ordinary direct fields carrying Jakarta `@Min` and/or `@Max`. The supported targets are byte, short, int, long, their
+boxed counterparts and BigInteger, with empty annotation groups/payload and no relevant group redefinition/sequence.
+Bounds apply to supplied values and intersect the existing machine range exactly. Inherited, renamed and nested owned
+properties retain their effective input names; ignored properties remain absent.
+
+(See: `KlumJsonSchemaGenerationTest#'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'`.)
+
+```groovy
+// Schema source, compiled with the current KlumAST compiler:
+import com.blackbuild.klum.ast.DSL
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.Max
+
+@DSL class Capacity {
+    /** Percentage of available capacity. */
+    @Min(0L) @Max(100L) Integer percentage
+}
+
+// Schema project's build.gradle:
+klumSchema.jsonSchema {
+    rootTypes.add('example.Capacity')
+    integralConstraints = true
+}
+```
+
+The `percentage` input now has `type: integer`, `minimum: 0` and `maximum: 100`, retaining its source description.
+Both endpoints, mathematical integer `100.0`, zero and omission pass. Supplied -1/101 fail the bounds; explicit null,
+false, fractions, empty strings and numeric strings retain their structural rejection for this property. Independent
+String/Boolean properties still admit empty strings/false. No `required` comes from `@NotNull`, `@Required` or bounds;
+existing construction-key requirements and null admission are unchanged. See [validation](Validation.md) for completed
+Model validation, including the separately tracked nullable investigation [#962](https://github.com/klum-dsl/klum-ast/issues/962).
+
+This is a consumer-selected restriction on raw authoring. An external editor or validator checks the generated artifact;
+KlumAST import does not automatically run JSON Schema validation. A later default, lifecycle callback or converter may
+replace a supplied value, so this artifact can reject input that construction could repair and accept input that later
+fails. Defaults, initializers, Templates, lifecycle code, converters and custom validators are never evaluated by generation.
+Destination-field bounds do not constrain authored operation arguments. No `default` or `const` is inferred.
+
+Only compiler-enriched public Builder contracts supply constraint facts. Recompile and package every reachable Schema,
+including inherited and owned dependency Schemas, with matching compiler/runtime/plugin versions before enabling this
+profile. Missing, unsupported-version, malformed or unverifiable required metadata fails generation with root/use,
+public Builder, available source/external-name and artifact context plus recompile/package guidance. The generator
+never reads Model bytes to fill gaps and does not downgrade incomplete enhanced output. Failure preserves the last
+successful files and manifest. A contradictory intersection, including a bound outside the machine range, also fails.
+Profile selection is a tracked Gradle input and uses the same filenames/output ownership as structural generation;
+use separate task/output configurations if both artifacts are needed simultaneously.
+
+Complete unsupported direct field declarations retain labelled `Runtime constraint (not enforced by this schema)`
+descriptions appended to existing prose. Descriptions identify the annotation and its explicitly authored attributes;
+they do not evaluate annotation defaults or interpret constraint code. Explicit groups/payload (including explicit
+Default groups), composed/repeatable declarations, decimals, Size/Pattern, quantity grammars and relationship closures
+receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
+relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
+Issue [#959](https://github.com/klum-dsl/klum-ast/issues/959) remains open for these broader decisions.
+
 ## Supported input and limits
 
 Reusable definition identities and references retain fully qualified generated Builder names internally. For example,
@@ -109,7 +167,7 @@ This default artifact does **not** describe the payload of the four-argument exp
 `applyToBuilder` target: those payloads must omit their already supplied root/target key. There is no additional Gradle
 mode for those entry points. See the [migration guidance](Migration.md#explicit-structured-construction-keys).
 
-JSON Schema validates structure only. It does not guarantee Java numeric conversion, input interpretation, binding,
+The default JSON Schema validates structure only; the opt-in profile adds the authoring bounds described above. It does not guarantee Java numeric conversion, input interpretation, binding,
 lifecycle, materialization or completed validation. Integral primitives/wrappers retain exact bounds; float/double use
 `number` as a structural approximation, while BigInteger/BigDecimal retain mathematical numeric semantics. Completed
 `@Required` is not translated into raw-input `required`; defaults and arbitrary Groovy validation are not evaluated.

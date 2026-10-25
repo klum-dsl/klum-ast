@@ -1,5 +1,12 @@
 # Unreleased
 
+- Added opt-in `klumSchema.jsonSchema.integralConstraints` for supplied direct integral Jakarta `@Min`/`@Max` properties.
+  Bounds use compiler-enriched public Builder metadata, retain descriptions and intersect machine limits; incomplete
+  enhanced metadata fails with recompile/package guidance. Default structural output, omission/null admission and
+  runtime validation remain unchanged. See [integral constraints](docs/user/Json-Schema.md#opt-in-integral-constraints)
+  and [migration](docs/user/Migration.md#opt-in-integral-json-schema-bounds)
+  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Added self-contained structured-input keys for keyed roots and supplied direct caller-key children, using the actual
   Schema key's external name. Fixed/derived/Cluster keys, keyed Map values, explicit rootKey and active Builder targets
   retain their existing authority and reject inner keys. Generated JSON Schema now requires self-contained keys and

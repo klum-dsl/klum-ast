@@ -1,6 +1,6 @@
 # Constraint and default projection: feasibility and decision gates
 
-Date: 2026-10-24. Status: **D1 and D2 accepted; P0/D2 evidence recorded; D3–D6 and production implementation remain unapproved.**
+Date: 2026-10-24. Status: **D1 and D2 accepted; bounded P1 assigned and implemented; D3–D6 and broader mappings remain unapproved.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959), including its
 [design input](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6385826650).
 Release: 4.2 candidate only; no milestone assigned. Issue #959 remains open.
@@ -25,7 +25,8 @@ projection preserves the current structural generator's behavior for existing ar
 
 D1 settles metadata authority and this missing-artifact rule. It does not select the production encoding, exact generated
 ABI, emission hook, profile configuration, supported mappings, raw-input assertion strength, default meaning or public SPI.
-D2 now settles the raw-input semantic profile below; D3–D6 remain unapproved, and P1 has not started. Any future
+D2 settles the raw-input semantic profile below; D3–D6 remain unapproved. The separately assigned bounded
+[P1 implementation](issue-959-p1-integral-profile.md) now supplies direct integral projection. Any future
 implementation must satisfy D1. The historical D1 documentation delivery contained no compiler, generator, runtime
 or test changes.
 
@@ -37,13 +38,13 @@ off-by-default authoring bounds on supplied ordinary direct integral properties.
 and separates schema validity from final Model validation. Construction-time repairs are hypothetical boundary cases,
 not an expected use case or a reason to weaken raw bounds. The accepted semantic contract is recorded in the evidence
 report and [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#opt-in-raw-input-assertions--959-d2).
-D2 adds characterization-only runtime fixtures and a manually invoked candidate-schema corpus; no P1 mapping, API,
-metadata extraction, defaults projection or release behavior is implemented.
+The historical D2 delivery added characterization-only runtime fixtures and a manually invoked candidate-schema corpus.
+The later bounded P1 assignment implements direct integral projection; defaults and broader mappings remain deferred.
 
 ## Recommendation and evidence boundary
 
-The remaining design discussion is **unapproved proposal** unless explicitly covered by accepted D1 or D2 above. Do not adopt
-a projection SPI or start production mapping from this document. P0 and D2 characterization are complete; production implementation remains separately gated.
+The remaining design discussion is **unapproved proposal** unless explicitly covered by accepted D1/D2 above or the linked bounded P1 implementation. Do not adopt
+a projection SPI or start production mapping from this document. P0 and D2 characterization are complete; broader production mappings remain separately gated.
 
 The smallest plausible production slice is opt-in projection of direct Jakarta `@Min`/`@Max` on integral properties,
 plus deterministic descriptions for discovered unsupported constraints. It needs neither a provider SPI nor runtime
