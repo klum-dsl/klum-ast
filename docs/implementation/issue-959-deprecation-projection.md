@@ -80,3 +80,27 @@ analysis with quality-gate waiting. The safe final root/Sonar result and analyze
 [issue #959](https://github.com/klum-dsl/klum-ast/issues/959) and the draft PR after these gates. Token values are never
 printed or inspected. Subsequent PR CI/Sonar remains the authoritative PR-specific result. No worker merge, issue
 closure or archive reconciliation is authorized by this slice.
+
+
+### Final worker handoff — ready for PR, Sonar access required
+
+Stable-state JDK 17 root `check --no-parallel --max-workers=2` **passed** at `71a85c1ac`, including the previously
+mismatched source-mirror integrations, plugin validation, documentation renderer, licenses and test-lane isolation.
+JUnit totals: **3,136 / 2,634 / 2,634** cases for Groovy 3/4/5; zero failures/errors, with 17/16/16 existing skips.
+The final external deprecation corpus passes six metaschemas and 96 input cases with annotation-removal parity;
+retained structural/integral corpora pass 195/426 inputs. Production/test commit remains `83eb03616`.
+Both independent reviewers rechecked the documentation/evidence at `71a85c1ac` with zero actionable findings.
+
+The reviewed feature branch is published. The local Sonar command selects the actual feature branch, target/reference
+`master`, and `sonar.qualitygate.wait=true`. Execution approval was established from the explicit human Hive request,
+public repository visibility and existing configured SonarCloud destination. SonarCloud scanner bootstrap nevertheless
+returns **HTTP 403** at `api.sonarcloud.io`. A value-free configuration check confirms the standard token system
+property is present; forwarding a plain Gradle property offers no alternative because none is configured. No credential
+values were printed or inspected. No analysis or quality-gate result was produced and no actionable findings can be
+claimed absent.
+
+**Delivery boundary:** `(ready:PR)`. No draft PR has been created because the required local Sonar gate is unmet.
+Restore SonarCloud analysis access, rerun the branch analysis and inspect its gate/findings, then create the draft PR
+with **Related: #959**. PR CI/Sonar remains independently authoritative. Issue #959 stays open; no merge, issue closure
+or Hive archive reconciliation was performed. This final follow-up changes evidence only; the qualified implementation
+and tests are unchanged.
