@@ -42,6 +42,17 @@ licenses, lane isolation, plugin validation and documentation rendering pass. Al
 after the root run. The publication follow-up changes evidence only. Current-head full PR CI/Sonar results are recorded
 on draft PR #972; earlier flag-based runs do not qualify this correction. Local shared-project upload remains skipped.
 
+### Sonar maintainability follow-up
+
+CI analysis of `4fdb8afaa` passes the quality gate (90.4% new coverage, no duplication or unreviewed hotspots), but
+reports S3776 on the combined selection/emission method and S5411 on nullable-Boolean unboxing. Both are addressed
+without suppressions: private `conjoinBounds` isolates the independent-keyword/`allOf` emission loop, and explicit
+Boolean comparison preserves inclusive/exclusive semantics after mandatory fact validation. No configuration, metadata,
+runtime, output, numeric-domain or D7 behavior changes. All 58 focused schema cases and all five external corpora pass
+after the cleanup. Thirteen retained pre-cleanup generated schema hashes match the newly emitted bytes exactly.
+Independent review and full final-head qualification are being rerun; the earlier green gate with two maintainability
+findings is not the final readiness result.
+
 D7 is independently proposal-only: see the [field opt-out recommendation](issue-959-d7-naming-profiles.md#field-level-hard-constraint-projection-opt-out--proposal-only).
 No suppression annotation, policy object/enum, setter-time validation, callback/SPI, generic filter or compiler metadata
 redesign is implemented. A D7 implementation requires approval and its own later PR; it does not block this baseline.

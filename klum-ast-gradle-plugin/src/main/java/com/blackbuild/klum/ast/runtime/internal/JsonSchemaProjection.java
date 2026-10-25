@@ -175,6 +175,11 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             String reason = groupRedefined ? "group redefinition/sequence" : "outside the supported direct numeric, empty groups/payload subset";
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
+        conjoinBounds(value, bounds);
+        if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
+    }
+
+    private static void conjoinBounds(Map<String, Object> value, List<Map<String, Object>> bounds) {
         // Preserve independent assertions when a keyword is already occupied, including machine bounds.
         List<Map<String, Object>> conjunction = new ArrayList<>();
         for (Map<String, Object> bound : bounds) {
@@ -183,7 +188,6 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             });
         }
         if (!conjunction.isEmpty()) value.put("allOf", conjunction);
-        if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
     }
 
     private boolean projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
@@ -198,7 +202,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                 || rule.annotation().equals("jakarta.validation.constraints.DecimalMax"))) return false;
         try {
             String keyword = rule.annotation().endsWith(".DecimalMin") ? MINIMUM : MAXIMUM;
-            if (!rule.inclusive()) keyword = rule.annotation().endsWith(".DecimalMin") ? "exclusiveMinimum" : "exclusiveMaximum";
+            if (!Boolean.TRUE.equals(rule.inclusive())) keyword = rule.annotation().endsWith(".DecimalMin") ? "exclusiveMinimum" : "exclusiveMaximum";
             bounds.add(Map.of(keyword, new BigDecimal(rule.decimalValue())));
             return true;
         } catch (NumberFormatException failure) {
