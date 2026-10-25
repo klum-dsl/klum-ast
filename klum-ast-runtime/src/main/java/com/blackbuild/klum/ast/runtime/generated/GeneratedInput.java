@@ -76,7 +76,7 @@ public final class GeneratedInput {
     public @interface Constraint {
         String annotation();
         long value() default 0L;
-        boolean plain() default false;
+        boolean plain();
         String declaration();
     }
 

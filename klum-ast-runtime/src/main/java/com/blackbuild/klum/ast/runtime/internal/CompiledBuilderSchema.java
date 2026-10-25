@@ -752,18 +752,23 @@ final class CompiledBuilderSchema {
         }
     }
 
-    /** Decodes strings and booleans only; no Bean annotation classes/proxies or validator code. */
+    private static IllegalArgumentException invalidConstraint(Literals field, String reason) {
+        return invalid(reason + " for source field #" + field.field + ", external input '"
+                + (field.rename.isEmpty() ? field.field : field.rename) + "'");
+    }
+
+    /** Decodes inert strings/longs/booleans only; no Bean annotation classes/proxies or validator code. */
     private static final class ConstraintAnnotationVisitor extends AnnotationVisitor {
-        private final List<ConstraintRule> rules;
+        private final Literals field;
         private final Set<String> seen = new LinkedHashSet<>();
         private String annotation;
         private String value = "";
         private boolean plain;
         private String declaration;
 
-        ConstraintAnnotationVisitor(List<ConstraintRule> rules) {
+        ConstraintAnnotationVisitor(Literals field) {
             super(Opcodes.ASM9);
-            this.rules = rules;
+            this.field = field;
         }
 
         @Override public void visit(String member, Object literal) {
@@ -786,10 +791,13 @@ final class CompiledBuilderSchema {
 
         @Override public void visitEnd() {
             if (annotation == null || annotation.isBlank() || declaration == null || declaration.isBlank())
-                throw invalid("Missing constraint declaration identity");
-            if (plain && (!Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation)
+                throw invalidConstraint(field, "Missing constraint declaration identity");
+            if (!seen.contains("plain")) throw invalidConstraint(field, "Missing constraint eligibility");
+            boolean integral = Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation);
+            if (integral && !seen.contains("value")) throw invalidConstraint(field, "Missing direct integral bound");
+            if (plain && (!integral
                     || !value.matches("-?[0-9]+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
-            rules.add(new ConstraintRule(annotation, value, plain, declaration));
+            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration));
         }
     }
 
@@ -826,6 +834,7 @@ final class CompiledBuilderSchema {
                 case VALUE -> literal.field = (String) value;
                 case "rename" -> literal.rename = (String) value;
                 case "ignored" -> literal.ignored = (Boolean) value;
+                case "constraints" -> throw invalidConstraint(literal, "Unexpected constraint array item");
                 case "fixedKey" -> literal.fixed = (Boolean) value;
                 case "schemaKey" -> literal.schemaKey = (Boolean) value;
                 case "exclusion" -> literal.exclusion = (String) value;
@@ -863,7 +872,16 @@ final class CompiledBuilderSchema {
                 return new AnnotationVisitor(Opcodes.ASM9) {
                     @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
                         if (!descriptor.equals(CONSTRAINT)) throw invalid("Unexpected constraint fact " + descriptor);
-                        return new ConstraintAnnotationVisitor(literal.constraints);
+                        return new ConstraintAnnotationVisitor(literal);
+                    }
+                    @Override public void visit(String ignored, Object value) {
+                        throw invalidConstraint(literal, "Unexpected constraint array item");
+                    }
+                    @Override public void visitEnum(String ignored, String descriptor, String value) {
+                        throw invalidConstraint(literal, "Unexpected constraint array item");
+                    }
+                    @Override public AnnotationVisitor visitArray(String ignored) {
+                        throw invalidConstraint(literal, "Unexpected constraint array item");
                     }
                 };
             }

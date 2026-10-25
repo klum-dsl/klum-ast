@@ -64,7 +64,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
                 document.put("$defs", new TreeMap<>(definitions));
                 if (integralConstraints) document.put("description", "Opt-in raw-input authoring bounds for supplied direct integral properties; "
                         + "schema validity does not guarantee construction or completed Model validation.");
-                document.put("$comment", "Structural input only; defaults, lifecycle, conversion and completed validation are not evaluated.");
+                document.put("$comment", (integralConstraints ? "Raw-input authoring bounds only; " : "Structural input only; ")
+                        + "defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
                 result.put(root + ".schema.json", json(document) + "\n");
             } catch (ClassNotFoundException | LinkageError | RuntimeException failure) {

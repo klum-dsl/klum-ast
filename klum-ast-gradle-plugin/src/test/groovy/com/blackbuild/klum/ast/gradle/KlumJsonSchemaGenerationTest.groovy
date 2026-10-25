@@ -302,6 +302,40 @@ klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints =
         'ImpossibleByte' | '127'
     }
 
+    @Issue('959')
+    def 'malformed nested constraint metadata fails closed without replacing outputs: #kind'() {
+        given:
+        fixture('3', false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Capacity').bytes
+        File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        stripConstraintFacts('Capacity', kind)
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+
+        then:
+        failed.output.contains("root 'example.Capacity'")
+        failed.output.contains('example.Capacity_DSL$Builder')
+        failed.output.contains('recompile and package')
+        failed.output.contains(reason)
+        output('example.Capacity').bytes == previous
+        manifest.text == previousManifest
+        !trap.exists()
+
+        where:
+        kind        | reason
+        'plain'     | 'Missing constraint eligibility'
+        'value'     | 'Missing constraint eligibility'
+        'group-value' | 'Missing direct integral bound'
+        'primitive' | 'Unexpected constraint array item'
+        'enum'      | 'Unexpected constraint array item'
+        'array'     | 'Unexpected constraint array item'
+    }
+
     @Issue('954')
     def 'unrepresentable required keys fail closed before replacing successful outputs: #model'() {
         given:
@@ -835,7 +869,7 @@ class InitializationControl {
         publish('api', 'api/build/libs/api.jar', '')
     }
 
-    // Remove only the public completeness marker, retaining the Model's real Bean annotations as a no-fallback control.
+    // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
     private void stripConstraintFacts(String target, String kind) {
         File jar = new File(repository, 'fixture/' + (target == 'CapacityBase' ? 'api' : 'schema') + '/1.0/'
                 + (target == 'CapacityBase' ? 'api' : 'schema') + '-1.0.jar')
@@ -853,21 +887,41 @@ class InitializationControl {
                                 if (!descriptor.endsWith('GeneratedInput$Schema;')) return delegate
                                 new AnnotationVisitor(Opcodes.ASM9, delegate) {
                                     @Override void visit(String name, Object value) {
-                                        if (name != 'constraintVersion' || kind == 'field') super.visit(name, value)
+                                        if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) super.visit(name, value)
                                         else if (kind == 'future-version') super.visit(name, 2)
                                     }
                                 }
                             }
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions)
-                                if (kind != 'field') return delegate
+                                if (kind in ['version', 'future-version'] || kind == 'group-value' && name != 'getGrouped') return delegate
                                 new MethodVisitor(Opcodes.ASM9, delegate) {
                                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                                         AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                                             @Override AnnotationVisitor visitArray(String member) {
-                                                member == 'constraints' ? null : super.visitArray(member)
+                                                if (kind == 'field' && member == 'constraints') return null
+                                                AnnotationVisitor array = super.visitArray(member)
+                                                if (member != 'constraints') return array
+                                                if (kind in ['primitive', 'enum', 'array']) {
+                                                    if (kind == 'primitive') array.visit(null, 17)
+                                                    if (kind == 'enum') array.visitEnum(null, 'Lexample/Mode;', 'SAFE')
+                                                    if (kind == 'array') array.visitArray(null).visitEnd()
+                                                    array.visitEnd()
+                                                    return null
+                                                }
+                                                new AnnotationVisitor(Opcodes.ASM9, array) {
+                                                    @Override AnnotationVisitor visitAnnotation(String elementName, String elementDescriptor) {
+                                                        AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
+                                                        new AnnotationVisitor(Opcodes.ASM9, rule) {
+                                                            @Override void visit(String attribute, Object value) {
+                                                                if (kind in ['plain', 'value'] && attribute == 'plain' || kind in ['value', 'group-value'] && attribute == 'value') return
+                                                                super.visit(attribute, value)
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }

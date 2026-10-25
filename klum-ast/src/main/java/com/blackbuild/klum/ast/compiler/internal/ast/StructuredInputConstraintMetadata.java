@@ -64,6 +64,7 @@ final class StructuredInputConstraintMetadata {
             AnnotationNode rule = new AnnotationNode(ClassHelper.make(GeneratedInput.Constraint.class));
             rule.setMember("annotation", new ConstantExpression(name));
             rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
+            rule.setMember("plain", ConstantExpression.FALSE);
             if (name.equals(MIN) || name.equals(MAX)) {
                 Expression value = annotation.getMember("value");
                 // Let the ordinary compiler fold the same annotation constant onto our inert long member.
