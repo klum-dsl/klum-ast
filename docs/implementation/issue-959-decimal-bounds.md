@@ -33,8 +33,14 @@ The final focused `KlumJsonSchemaGenerationTest` run passes all 58 cases without
 ten contradictory emitted schemas (valid schema, omitted properties accepted, supplied-value corpus rejected), integral
 429 / three (now including automatic decimal projection), structural 195 / eighteen, deprecation 96 / six and the retained
 97-input P2 hand-authored corpus. Earlier three-mode and solver qualification below is historical and does not qualify
-this new head. Independent reviews and full final-head checks are pending; current-head CI/Sonar remains authoritative
-and local shared-project upload remains skipped.
+this new head. Independent Standards and Specification reviews confirm zero remaining actionable findings at
+`4f2cea62` against `952d651e0`, including the separately gated D7 proposal.
+
+Final local qualification at clean, stable `4f2cea62`: JDK 17 root `check --no-parallel --max-workers=2` passes in 18m03s.
+Groovy 3/4/5 totals are 3,145 / 2,634 / 2,634, with zero failures/errors and only existing skips 17 / 16 / 16. Strict
+licenses, lane isolation, plugin validation and documentation rendering pass. All five external corpora pass again
+after the root run. The publication follow-up changes evidence only. Current-head full PR CI/Sonar results are recorded
+on draft PR #972; earlier flag-based runs do not qualify this correction. Local shared-project upload remains skipped.
 
 D7 is independently proposal-only: see the [field opt-out recommendation](issue-959-d7-naming-profiles.md#field-level-hard-constraint-projection-opt-out--proposal-only).
 No suppression annotation, policy object/enum, setter-time validation, callback/SPI, generic filter or compiler metadata
