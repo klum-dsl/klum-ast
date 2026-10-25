@@ -184,3 +184,51 @@ the D7 evidence brief and ADR checkpoint deliberately defer all D7 implementatio
 decimal slice to proceed. A merge preserves the published feature commits and both independent ADR checkpoints;
 no production, test or resource-input behavior changes from qualified source/configuration revision `640b36d0`.
 Documentation/link/diff checks qualify this merge; the normal PR CI/Sonar gate runs on its resulting head.
+
+## PR #972 integer-feasibility review refinement
+
+This follow-up changes only the private numeric feasibility calculation and its tests. Configuration, compiler facts,
+metadata versions/readers, numeric keywords and serialization, admission/null/omission/key behavior, construction,
+validation, output ownership and all deferred features retain the accepted contract.
+
+### Exact comparison and correctness argument
+
+Let `A = ceil(L)` and `B = floor(U)`. Define `eL` as one exactly when the lower endpoint is exclusive and `A = L`,
+and `eU` as one exactly when the upper endpoint is exclusive and `B = U`; otherwise each is zero. Thus the smallest
+permitted integer is `A + eL` and the largest is `B - eU`. These are exactly the requested floor/ceiling formulas:
+excluding a noninteger endpoint does not alter its nearest permitted integer, while excluding an integer shifts it
+by one. The interval is feasible precisely when `A + (eL + eU) <= B`. The total adjustment is only zero, one or two.
+
+The replacement compares that inequality without materializing enormous integers:
+
+- If `A` has scale zero, add the adjustment to its already stored integer coefficient and compare with `B`.
+- Otherwise, if `B` has scale zero, subtract the adjustment from that coefficient and compare with `A`.
+- Otherwise both rounded values have negative scale and are multiples of ten. Any strictly increasing pair has gap
+  at least ten, sufficient for either unit exclusion. Equal values allow only zero adjustment; reversed values fail.
+
+This removes `adjacent()`, digit-count comparisons and subtraction between potentially distant sparse endpoints.
+It uses no precision cap, floating arithmetic, MathContext or exception-driven acceptance/fallback.
+
+### Resource safety
+
+The retained integer-rounding helper leaves nonpositive scales sparse. For positive-scale values with magnitude less
+than one it returns only zero or signed one, avoiding enormous-scale division. Other positive-scale values already
+store the coefficient digits needed by their integer part. The final comparison adjusts only a scale-zero coefficient
+by at most two, growing that coefficient by at most one digit; it never fills a huge negative scale with zeros.
+When both endpoints are sparse multiples of ten, only numeric comparison is required.
+
+### Verification checkpoint
+
+Expanded boundary tests and 2,500 bounded BigInteger-oracle comparisons passed against the original algorithm before
+replacement. No correctness defect was demonstrated; this is a maintainability and auditability refinement. The
+replacement also passed those focused tests. The final bounded corpus additionally includes nonzero negative-scale
+values, giving 3,364 deterministic comparisons across all four inclusivity combinations, with no new testing framework.
+Dedicated cases cover machine-limit intersections for 8/16/32/64-bit values, Min/Max plus decimal bounds, equal/scaled,
+exclusive/adjacent, negative/zero/fractional/reversed and unbounded intervals, exponents up to `2147483647` in both
+signs, and tiny values at scale `2147483647`. Full generation and final-head qualification results follow below.
+
+Focused Groovy 3 qualification passes all **67 NumericBoundsTest** cases and all **66 JSON Schema generation**
+regressions, with no failures/errors/skips. This includes the **3,364** bounded-reference comparisons within one test.
+The emitted precision-capable decimal corpus still passes **426 inputs / 3 metaschemas**; retained integral,
+deprecation and structural corpora pass **426 / 3**, **96 / 6** and **195 / 18** respectively. Final repository and
+independent review qualification will be recorded on this follow-up revision before handoff.

@@ -59,15 +59,26 @@ final class NumericBounds {
         if (lower == null || upper == null) return true;
         int comparison = lower.value().compareTo(upper.value());
         if (comparison > 0 || comparison == 0 && (!lower.inclusive() || !upper.inclusive())) return false;
-        if (!integral) return true;
+        return !integral || containsInteger();
+    }
+
+    private boolean containsInteger() {
         BigDecimal first = round(lower.value(), RoundingMode.CEILING);
         BigDecimal last = round(upper.value(), RoundingMode.FLOOR);
         boolean excludesFirst = !lower.inclusive() && first.compareTo(lower.value()) == 0;
         boolean excludesLast = !upper.inclusive() && last.compareTo(upper.value()) == 0;
-        int integers = first.compareTo(last);
-        if (integers > 0) return false;
-        if (integers == 0) return !excludesFirst && !excludesLast;
-        return !(excludesFirst && excludesLast && adjacent(first, last));
+        int excludedEndpoints = (excludesFirst ? 1 : 0) + (excludesLast ? 1 : 0);
+        BigDecimal adjustment = BigDecimal.valueOf(excludedEndpoints);
+
+        // Smallest <= largest is equivalent to ceil(L) + adjustment <= floor(U).
+        // Adjust only a scale-zero coefficient, never expand a negative-scale power of ten.
+        if (first.scale() == 0) return first.add(adjustment).compareTo(last) <= 0;
+        if (last.scale() == 0) return first.compareTo(last.subtract(adjustment)) <= 0;
+
+        // Rounding leaves only scales <= 0. Here both integers are multiples of ten:
+        // a positive gap is at least ten, enough for either or both unit exclusions.
+        int comparison = first.compareTo(last);
+        return comparison < 0 || comparison == 0 && excludedEndpoints == 0;
     }
 
     private static BigDecimal round(BigDecimal value, RoundingMode mode) {
@@ -83,18 +94,6 @@ final class NumericBounds {
             return BigDecimal.ZERO;
         }
         return value.setScale(0, mode);
-    }
-
-    private static boolean adjacent(BigDecimal first, BigDecimal last) {
-        if (first.scale() < 0 && last.scale() < 0) return false;
-        if (first.signum() <= 0 && last.signum() >= 0) {
-            return first.compareTo(BigDecimal.ZERO) == 0 && last.compareTo(BigDecimal.ONE) == 0
-                    || first.compareTo(BigDecimal.ONE.negate()) == 0 && last.signum() == 0;
-        }
-        long firstDigits = (long) first.precision() - first.scale();
-        long lastDigits = (long) last.precision() - last.scale();
-        if (Math.abs(firstDigits - lastDigits) > 1) return false;
-        return last.subtract(first).compareTo(BigDecimal.ONE) == 0;
     }
 
     void write(Map<String, Object> schema) {
