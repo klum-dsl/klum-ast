@@ -1,9 +1,24 @@
 # #959 D7: explicit structured-input naming profiles
 
-Date: 2026-10-25. Status: **decision proposal and characterization only; not accepted**.
-Base: `9504604fb` (merged P2 characterization). Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
+Date: 2026-10-25. Status: **deliberately deferred; no D7 implementation contract accepted**.
+Characterization base: `9504604fb` (merged P2 characterization). Documentation reconciliation base: `ac9e73bdc`. Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
 Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md), with
 [ADR 0009](../adr/0009-jackson-interoperability.md) unchanged.
+
+## Maintainer reconciliation — D7 deferred
+
+The [ADR 0031 checkpoint](../adr/0031-structured-schema-input-artifacts.md#d7-checkpoint--canonical-shaping-vocabulary-deferred)
+records a Klum-owned vocabulary as promising, with Jackson/Bean Validation as optional bridges rather than contract
+owners. **No public annotations, naming profiles, package mechanism or examples semantics are accepted.** D7 is
+intentionally deferred and **does not block the active #959 DecimalMin/DecimalMax slice** or change its assignment.
+The alternatives and proposed rules below remain evidence for a later decision, not accepted requirements.
+
+The original executable characterization is retained at
+[`e41a70fff`](https://github.com/klum-dsl/klum-ast/tree/e41a70fff), including the two finite probes and the Jackson-module
+characterization class. This documentation delivery adds none of those files to the current source/test trees; their
+historical results below are not current production-feature qualification. The existing evidence commits remain in
+branch history. No extra implementation-plan record is needed: this checkpoint and the ADR establish the deferral,
+while the decision bundle below retains the unresolved choices without duplicating a new plan.
 
 ## Decision brief
 
@@ -54,11 +69,11 @@ change, not a projector-only string replacement.
   fallback. [P1](issue-959-p1-integral-profile.md) adds narrowly activated integral assertions.
   [P2](evidence/issue-959-p2-candidates.md) distinguishes source identity from effective placement. Neither supplies a
   naming extension or a license to interpret annotation prose as facts.
-- [`NamingProfileD7CharacterizationTest`](../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/NamingProfileD7CharacterizationTest.groovy)
+- [`NamingProfileD7CharacterizationTest`](https://github.com/klum-dsl/klum-ast/blob/e41a70fff/klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/NamingProfileD7CharacterizationTest.groovy)
   checks actual class `JsonNaming` through the existing Jackson importer, native names through the existing interpreter,
   literal rename, ignored inputs, inherited members, authored operations and literal Map keys. Its compiled output is
   read through a resource-backed loader; it is **not** the separate-JAR/source-deleted consumer qualification.
-- The [finite design oracle](fixtures/issue-959-d7/characterize_naming.py) checks proposed transforms/name indices and
+- The [finite design oracle](https://github.com/klum-dsl/klum-ast/blob/e41a70fff/docs/implementation/fixtures/issue-959-d7/characterize_naming.py) checks proposed transforms/name indices and
   hand-authored Draft 2020-12 candidates. It imports neither Klum nor Jackson and never executes operations. It is not
   generated output, an interpreter implementation, or evidence that nondefault runtime profiles exist.
 
@@ -105,7 +120,7 @@ at the consumer. Compiler-only adapters can capture descriptor/string literals w
 
 ## Package/type/member/root scope: feasible retention, unresolved precedence
 
-The [retained package probe](fixtures/issue-959-d7/probe_package_metadata.py) uses only the existing JDK Deprecated
+The [retained package probe](https://github.com/klum-dsl/klum-ast/blob/e41a70fff/docs/implementation/fixtures/issue-959-d7/probe_package_metadata.py) uses only the existing JDK Deprecated
 annotation; it creates **no new annotation**. Java 17 and Groovy 3.0.25/4.0.32/5.0.6 package-info producers each emit
 `family/package-info.class`. Separate Java consumers read the annotation from a JAR after producer sources/classes are
 deleted, without a Groovy/compiler dependency. `family.child` does not inherit it, and a throwing Member initializer is
@@ -400,16 +415,16 @@ For relationship-local defaults/constraints/deprecation, resolve both parent-use
 profile, retain literal child renames, and report excluded/missing targets. Parent metadata belongs beside that use's
 `$ref`, under its own nested property, or under keyed-map value `additionalProperties` as appropriate; never mutate the
 shared child `$defs` with a parent's metadata. A deprecated source remains advisory under any spelling. P2's deprecation
-proposal is historical at this base; the later issue report of draft #968 does not make its source changes present here.
-D7 does not extend that work or settle D3–D6/default policy.
+proposal is historical at the characterization base. The reconciliation baseline includes merged #968 and its separately
+approved advisory deprecation implementation. D7 neither extends that work nor settles D3–D6/default policy.
 
 ## Executable fixture matrix and evidence boundaries
 
 Every future executable class uses `Test` and `@Issue('959')`; a delivered DSL feature additionally needs documentary
-`@Tag('documentary')` and `@See`, matched user pages, migration navigation and changelog. This design adds no public
+`@Tag('documentary')` and `@See`, matched user pages, migration navigation and changelog. This design accepts no public
 feature and does not revise those release-facing files.
 
-| Fixture / executable owner | What runs now | Required future nondefault acceptance |
+| Fixture / executable owner | Retained characterization / existing fixture | Required future nondefault acceptance |
 | --- | --- | --- |
 | `NamingProfileD7CharacterizationTest` in Jackson module, G3/G4/G5 | Current class JsonNaming diverges from structured names; inherited/explicit/ignored names, operations, data keys; actual Jackson acronym comparison | Qualify optional adapter in its own module; retain independent importer behavior and no core databind dependency |
 | `characterize_naming.py` with pinned jsonschema | 21 exact vectors across all three profiles, precedence, finite collisions, unknown profile, hand-authored closed-schema acceptance, source index, key names and parent-local deprecation | Same vectors against production resolver and emitted artifacts; include Turkish/default locale variants, supplementary and malformed UTF-16 JVM strings |
@@ -481,7 +496,7 @@ pending until the maintainer answers; no consumer-specific naming default is cho
 
 These are bounded decision probes, not implementation issues or authorized follow-on work.
 
-Reproduce the retained characterization (JDK 17, repository root):
+Historical reproduction (JDK 17, repository root at `e41a70fff`, which contains the retained fixtures):
 
 ```shell
 ./gradlew :klum-ast-jackson:test --tests '*NamingProfileD7CharacterizationTest' \
@@ -498,57 +513,20 @@ python3 docs/implementation/fixtures/issue-959-d7/probe_package_metadata.py \
 The package probe uses a temporary directory and deletes it on completion; it uses only existing JDK annotations.
 The candidate oracle requires the pinned validator and produces no checked-in schema output.
 
-## Validation and handoff
+## Historical validation and documentation delivery
 
-Focused JDK 17 characterization passes ten cases per G3/G4/G5 lane. The full affected Jackson module then passes 131/129/129 cases respectively, with no failures/errors/skips; its license check passes. The finite naming/schema oracle passes 137 checks with jsonschema 4.23.0. Java/G3/G4/G5 package-info
-binary probes pass with deleted producer sources/classes and silent inspection and separately activated initialization controls. These do not qualify future
-profile APIs, canonical annotations or a generator change. Qualification covers the retained fixture sources; compiler/runtime/plugin production sources stay at the base revision. No production files, JSON Schema generator output contract,
-interpreter implementation, current user documentation, release notes, milestone or issue state change in this task.
-Issue #959 stays open. Per the later maintainer direction, ADR/tracker text below is an **update proposal only**:
-no issue/ADR authority is mutated and no PR is opened. The read-only GitHub CLI consultation succeeded; no remote delivery channel is exercised. Any later documentation/design PR uses **Related: #959**;
-this proposal cannot complete that issue.
+At the retained characterization revision, focused JDK 17 tests passed ten cases per G3/G4/G5 lane. The full affected
+Jackson module passed 131/129/129 cases respectively, with no failures/errors/skips; its license check passed. The
+finite naming/schema/example oracle passed 137 checks with jsonschema 4.23.0. Java/G3/G4/G5 package-info binary probes
+passed with deleted producer sources/classes, silent inspection and separately activated initialization controls.
+These results do not qualify future profile APIs, canonical annotations or a generator change.
 
-Delivery scope is local design/characterization only. Tracker impact: related issue #959; curation impact: none, because
-no release gate, dependency, owner, acceptance state or published release fact is changed. No worker Standards/Specification
-children were started: this task does not prepare or open a PR, per the assignment's review boundary. Local self-review,
-relative documentation targets and diff checks pass. The Hive is asked to reconcile this completed design assignment;
-maintainer design decisions and any publication/implementation assignment remain separate human-owned work.
+The resumed delivery changes only this evidence record and ADR 0031 relative to `ac9e73bdc`. Current production code,
+tests, JSON Schema output, interpreter behavior, user documentation, release notes and release/milestone policy are
+unchanged. Markdown/link/diff checks apply; Groovy lanes are not required for this documentation-only reconciliation.
+Independent worker-owned Standards and Specification review results and publication links belong to the PR handoff.
 
-
-## Proposed ADR 0031 addition (not applied)
-
-**D7 — canonical shaping facts and external naming; proposal pending maintainer decisions.**
-Klum-owned inert shaping facts are the shared authority for structured-input interpretation and JSON Schema projection.
-NamingProfile is a candidate fact alongside explicit name/exclusion and advisory examples. Jackson and Bean Validation
-annotations remain optional compatibility inputs/enrichers; neither dependency defines the language or becomes mandatory
-for interpretation/generation. Preserve ADR 0009's independent property-oriented importer and its existing behavior.
-
-The decision brief compares class Jackson authority, exporter-only selection and shared profiles. It recommends the
-shared contract while retaining identity by default, literal rename/exclusion, unchanged data/instance keys and exact
-source/position placement. It characterizes package-info retention and AnnoDocimal example text in G3/G4/G5. It does not
-yet select type/package/root precedence, canonical annotation/API/storage, adapter conflicts, example grammar/placement,
-nondefault collision policy or release placement. The candidate member > type > package > caller chain makes root a
-fallback and is not equivalent to a uniform root override. Examples are advisory JSON Schema annotations only.
-
-[The D7 brief](../implementation/issue-959-d7-naming-profiles.md) records evidence, exact proposed transforms, open choices
-and two bounded future probes. No production behavior, current output, interpreter, parser or release promise changes.
-
-## Proposed #959 comment (not posted)
-
-D7 naming/shaping design and characterization are prepared for maintainer review. The expanded direction uses a small
-Klum-owned canonical shaping vocabulary as shared interpreter/generator authority, with Jackson/Bean Validation as
-optional adapters. The brief compares the original three alternatives, recommends a shared versioned naming contract,
-and assesses public-Builder facts versus a companion justified only by ABI/size evidence.
-
-Current Schelm YAML uses native camelCase through YamlSlurper + KlumStructuredInput; identity remains the compatibility
-default and there is no verified alternate-profile requirement. Literal map/instance keys and values remain unchanged.
-Actual Jackson-vs-structured behavior and retained example tags pass ten characterization cases per G3/G4/G5 lane; full Jackson-module regression passes 131/129/129 cases without failures or skips.
-A finite, explicitly hand-authored candidate-schema/name/example oracle passes 137 checks. Java/G3/G4/G5 package-info
-retention probes pass with separate source-free Java consumers and initialization controls.
-
-Still needed before code: profile algorithm/Unicode/collision policy; member/type/package/root precedence and inheritance;
-canonical-vs-adapter conflicts; minimal fact transport/ABI; runtime/Gradle selection; examples authoring/strict literals,
-merge/error/profile/position policy. Two minimal future probes cover canonical scope/binary facts and literal examples;
-these are proposals, not opened slices. No canonical annotation, production API, current JSON Schema output/interpreter,
-release commitment, issue or follow-on task is created. Issue #959 remains open with no labels/milestone changes.
-Any later design documentation PR uses **Related: #959**.
+Tracker relationship: **Related: #959**; issue #959 remains open. The tracker comment records D7 deferral and explicitly
+leaves the active decimal-bounds assignment unblocked. Curation impact: none; no release gate, owner, dependency or
+acceptance state is changed. The only accepted D7 result is deliberate deferral, not adoption of any proposal above.
+Hive reconciliation is requested after delivery; no merge or archive action is authorized here.
