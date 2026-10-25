@@ -12,18 +12,23 @@ See [JSON Schema generation](Json-Schema.md).
 ### Advisory JSON Schema deprecation
 
 Generated schemas now include `deprecated: true` for admitted Schema-deprecated members by default, independently of
-integral constraints. Input admission and runtime behavior are unchanged. Older compiled artifacts remain structurally
-generatable but omit this advisory keyword where source provenance is absent; recompile Schema dependencies for complete
-metadata. See [deprecation](Json-Schema.md#deprecation).
+numeric constraints. Input admission and runtime behavior are unchanged. Missing advisory provenance omits this keyword
+when required numeric facts are complete; older incomplete numeric metadata requires recompilation. See [deprecation](Json-Schema.md#deprecation).
 
-### Opt-in integral JSON Schema bounds
+### Integral JSON Schema bounds
 
-Ordinary generation keeps its structural behavior. To select
-[integral authoring bounds](Json-Schema.md#opt-in-integral-constraints), set
-`klumSchema.jsonSchema.integralConstraints = true` and recompile/package the root, inherited and owned dependency
-Schemas with matching KlumAST compiler/runtime/plugin versions. Older constraint metadata is not reconstructed from
-Model bytes. Missing required metadata fails enhanced generation while retaining previous successful output. Runtime
-construction, completed validation, omission and null admission remain unchanged.
+JSON Schema generation always projects supported direct integral and decimal bounds. Configure only roots:
+
+```groovy
+klumSchema.jsonSchema { rootTypes.add('example.Capacity') }
+```
+
+The unreleased `integralConstraints` and `decimalConstraints` properties are removed without aliases or a replacement
+selector. Recompile/package root, inherited and owned dependency Schemas with matching compiler/runtime/plugin versions:
+complete supported numeric metadata is required for all generation. Missing facts fail before replacing previous output;
+Model bytes never fill gaps. Contradictory numeric declarations remain valid schema assertions, without satisfiability
+analysis. Construction, completed validation, omission, null admission and construction keys remain unchanged. See
+[integral bounds](Json-Schema.md#integral-constraints) and [decimal bounds](Json-Schema.md#decimal-constraints).
 
 ### Opt-in structured Builder input
 
@@ -632,12 +637,10 @@ the following features were dropped:
   
   Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism](Templates))
 
-## Opt-in decimal JSON Schema bounds
+## Decimal JSON Schema bounds
 
-`klumSchema.jsonSchema.decimalConstraints = true` separately enables the bounded
-[decimal authoring profile](Json-Schema.md#opt-in-decimal-constraints). Existing `integralConstraints` configurations
-retain their mapping scope. Both modes now preserve contradictory numeric declarations as valid JSON Schema,
-superseding the earlier integral-generation rejection policy; consumers validate supplied values. Decimal generation requires matching compiler/runtime/plugin versions and regenerated
-public Builder metadata on the root and inherited/owned dependencies; missing decimal completeness or typed facts
-fails with recompile/package guidance. Structural and integral-only consumers can continue using older facts.
-Omission/null admission and runtime validation remain unchanged. Use precision-capable numeric parsers/validators.
+Supported direct decimal bounds now project automatically with integral bounds; no numeric configuration flag remains.
+Generation requires matching compiler/runtime/plugin versions and complete public Builder metadata for root and
+inherited/owned dependencies. Malformed, incomplete or incompatible numeric facts fail with source/artifact and
+recompile/package guidance. Use precision-capable numeric parsers/validators. See [numeric migration](#integral-json-schema-bounds)
+and the [decimal contract](Json-Schema.md#decimal-constraints).

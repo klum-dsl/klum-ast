@@ -101,26 +101,26 @@ final class CompiledBuilderSchema {
     record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive) { }
     record ConstraintProfile(boolean groupRedefined, Map<String, List<ConstraintRule>> fields) { }
 
-    /** Enhanced-only completeness check. Old metadata continues through the structural reader unchanged. */
-    static ConstraintProfile constraintProfile(Class<?> builder, boolean decimals) {
+    /** Numeric projection completeness check; the separate structural admission reader remains unchanged. */
+    static ConstraintProfile constraintProfile(Class<?> builder) {
         try {
             Metadata metadata = metadata(builder);
             if (metadata.constraintVersion != 1 || metadata.groupRedefined == null)
                 throw invalid("missing or unsupported constraint metadata version " + metadata.constraintVersion);
-            if (decimals && metadata.decimalVersion != 1)
+            if (metadata.decimalVersion != 1)
                 throw invalid("missing or unsupported decimal metadata version " + metadata.decimalVersion);
             Map<String, List<ConstraintRule>> fields = new LinkedHashMap<>();
             for (Literals literal : metadata.methods.values()) {
                 if (literal.field == null) continue;
                 if (literal.constraints == null)
                     throw invalid("missing constraint facts for source field #" + literal.field);
-                if (decimals) validateDecimalFacts(literal);
+                validateDecimalFacts(literal);
                 if (fields.putIfAbsent(literal.field, List.copyOf(literal.constraints)) != null)
                     throw invalid("duplicate constraint source field #" + literal.field);
             }
             return new ConstraintProfile(metadata.groupRedefined, Collections.unmodifiableMap(fields));
         } catch (IOException | ClassNotFoundException | RuntimeException failure) {
-            throw invalid("Enhanced constraints require complete public Builder metadata on '" + builder.getName()
+            throw invalid("JSON Schema constraints require complete public Builder metadata on '" + builder.getName()
                     + "' (artifact " + builder.getProtectionDomain().getCodeSource() + "): " + failure.getMessage()
                     + "; recompile and package this Schema and its inherited/owned Schema dependencies with matching KlumAST compiler/runtime versions");
         }

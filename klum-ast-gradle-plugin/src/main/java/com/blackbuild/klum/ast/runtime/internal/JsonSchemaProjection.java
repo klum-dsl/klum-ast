@@ -35,11 +35,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /** Private plugin implementation, loaded beside the facade in one isolated unnamed module. */
-final class JsonSchemaProjection implements BiFunction<List<String>, Map<String, Boolean>, Map<String, String>> {
+final class JsonSchemaProjection implements Function<List<String>, Map<String, String>> {
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private static final String STRING_TYPE = "string";
@@ -48,15 +48,11 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
     private static final String MAXIMUM = "maximum";
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
-    private boolean integralConstraints;
-    private boolean decimalConstraints;
     private final Map<Class<?>, CompiledBuilderSchema.ConstraintProfile> constraintProfiles = new LinkedHashMap<>();
     private enum KeyPosition { MEMBER, KEYLESS, UNKNOWN_DIRECT }
 
     @Override
-    public Map<String, String> apply(List<String> roots, Map<String, Boolean> options) {
-        integralConstraints = Boolean.TRUE.equals(options.get("integralConstraints"));
-        decimalConstraints = Boolean.TRUE.equals(options.get("decimalConstraints"));
+    public Map<String, String> apply(List<String> roots) {
         Map<String, String> result = new LinkedHashMap<>();
         for (String root : roots.stream().sorted().toList()) {
             definitions.clear();
@@ -69,9 +65,9 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(rootDefinition));
                 document.put("$defs", new TreeMap<>(definitions));
-                if (enhanced()) document.put(DESCRIPTION, "Opt-in raw-input authoring bounds for supplied direct numeric properties; "
+                document.put(DESCRIPTION, "Faithful raw-input authoring bounds for supplied direct numeric properties; "
                         + "schema validity does not guarantee construction or completed Model validation.");
-                document.put("$comment", (enhanced() ? "Raw-input authoring bounds only; " : "Structural input only; ")
+                document.put("$comment", "Raw-input authoring bounds only; "
                         + "defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
                 result.put(root + ".schema.json", json(document) + "\n");
@@ -100,7 +96,6 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
         validateKeyPosition(schema, position, source);
-        boolean groupRedefined = enhanced() && collectConstraintProfiles(builder, schema, source);
         boolean keyless = position == KeyPosition.KEYLESS;
         String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
         if (definitions.containsKey(identity)) return identity;
@@ -109,6 +104,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
                     + schema.model().getName() + "', not requested DSL Model '" + rootModel + "'");
         if (Modifier.isAbstract(schema.model().getModifiers()))
             throw new IllegalArgumentException("Abstract root/owned target requires a separately qualified alias policy: " + builder.getName());
+        boolean groupRedefined = collectConstraintProfiles(builder, schema, source);
         Map<String, Object> object = new LinkedHashMap<>();
         definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
@@ -135,7 +131,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
-        if (enhanced()) constrain(entry, value, groupRedefined);
+        constrain(entry, value, groupRedefined);
         return value;
     }
 
@@ -146,12 +142,12 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
     private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
         CompiledBuilderSchema.ConstraintProfile profile;
         try {
-            profile = constraintProfiles.computeIfAbsent(builder, type -> CompiledBuilderSchema.constraintProfile(type, decimalConstraints));
+            profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
         } catch (RuntimeException failure) {
             String affected = schema.entries().values().stream().filter(entry -> entry.contract() == builder)
                     .map(entry -> entry.source() + " (external input '" + entry.externalName() + "')")
                     .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException("Enhanced constraint metadata at input use '" + source + "', admitted sources ["
+            throw new IllegalArgumentException("Constraint metadata at input use '" + source + "', admitted sources ["
                     + affected + "]: " + failure.getMessage(), failure);
         }
         boolean groupRedefined = profile.groupRedefined();
@@ -176,7 +172,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
         List<Map<String, Object>> bounds = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : rules) {
             if (!groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty)) continue;
-            String reason = groupRedefined ? "group redefinition/sequence" : "outside the selected direct numeric, empty groups/payload profile";
+            String reason = groupRedefined ? "group redefinition/sequence" : "outside the supported direct numeric, empty groups/payload subset";
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
         // Preserve independent assertions when a keyword is already occupied, including machine bounds.
@@ -198,7 +194,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
             bounds.add(Map.of(rule.annotation().endsWith(".Min") ? MINIMUM : MAXIMUM, new BigDecimal(rule.value())));
             return true;
         }
-        if (!decimalConstraints || !(integral || decimal) || !(rule.annotation().equals("jakarta.validation.constraints.DecimalMin")
+        if (!(integral || decimal) || !(rule.annotation().equals("jakarta.validation.constraints.DecimalMin")
                 || rule.annotation().equals("jakarta.validation.constraints.DecimalMax"))) return false;
         try {
             String keyword = rule.annotation().endsWith(".DecimalMin") ? MINIMUM : MAXIMUM;
@@ -209,10 +205,6 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
             throw new IllegalArgumentException("Invalid decimal bound for '" + entry.source() + "', external input '"
                     + entry.externalName() + "', public Builder '" + entry.contract().getName() + "': " + rule.decimalValue(), failure);
         }
-    }
-
-    private boolean enhanced() {
-        return integralConstraints || decimalConstraints;
     }
 
     private static void appendDescription(Map<String, Object> value, String description) {

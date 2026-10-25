@@ -123,10 +123,10 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
-    def 'retain P2 descriptions and project source deprecation from binaries with Groovy #generation'() {
+    def 'project supported numeric bounds and retain unsupported P2 descriptions and source deprecation from binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.P2']); integralConstraints = true }\n")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.P2']) }\n")
 
         when:
         def result = run('generateKlumJsonSchema')
@@ -136,10 +136,9 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        properties.amount.description.contains('DecimalMin(inclusive=false, value="-1.2300E+2")')
-        properties.amount.description.contains('DecimalMax(value="1E+3")')
+        properties.amount.exclusiveMinimum == -123G
+        properties.amount.maximum == 1000G
         properties.amount.type == 'number'
-        !properties.amount.containsKey('exclusiveMinimum')
         properties.words.description.contains('Size(max=3, min=2)')
         properties.distinct.type == 'array'
         properties.labels.type == 'object'
@@ -307,16 +306,13 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Issue('959')
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-decimal-constraints')
-    def 'generate exact direct decimal authoring bounds from source-free binaries with Groovy #generation'() {
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#decimal-constraints')
+    def 'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, false, true)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price']); integralConstraints = true }\n")
-        run('generateKlumJsonSchema')
-        def original = document('example.Price').get('$defs').get('example.Price_DSL$Builder')
 
         when:
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price', 'example.SequencedPrice']); integralConstraints = false; decimalConstraints = true }\n")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Price', 'example.SequencedPrice'])\n")
         def result = run('generateKlumJsonSchema')
         def schema = document('example.Price')
         def root = schema.get('$defs').get('example.Price_DSL$Builder')
@@ -327,7 +323,6 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        !original.properties.amount.containsKey('exclusiveMinimum')
         properties.amount.exclusiveMinimum == 0.10G
         properties.amount.maximum == 9007199254740993.0000000001G
         properties.amount.description.contains('Authored price.')
@@ -364,19 +359,18 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
-    def 'only decimal mode requires complete decimal facts on #target: #kind'() {
+    def 'generation requires complete decimal facts on #target: #kind'() {
         given:
         fixture('3', false, true, false, true)
-        stripConstraintFacts(target, kind)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price']); integralConstraints = true }\n")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price']) }\n")
         run('generateKlumJsonSchema')
         byte[] previous = output('example.Price').bytes
         File manifest = new File(output('example.Price').parentFile, '.klum-json-schema-outputs')
         String previousManifest = manifest.text
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.decimalConstraints = true\n')
+        stripConstraintFacts(target, kind)
 
         when:
-        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
 
         then:
         failed.output.contains(target + '_DSL$Builder')
@@ -403,7 +397,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Price'])\n")
         run('generateKlumJsonSchema')
         byte[] previous = output('example.Price').bytes
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.$model']); decimalConstraints = true }\n")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.$model']) }\n")
 
         when:
         def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
@@ -424,16 +418,13 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Issue('959')
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-integral-constraints')
-    def 'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'() {
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#integral-constraints')
+    def 'generate integral authoring bounds by default from binary Builder contracts with Groovy #generation'() {
         given:
         fixture(generation, false, true)
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
-        run('generateKlumJsonSchema')
-        def structural = document('example.Capacity').get('$defs').get('example.Capacity_DSL$Builder')
 
         when:
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
         def result = run('generateKlumJsonSchema')
         def schema = document('example.Capacity')
         def root = schema.get('$defs').get('example.Capacity_DSL$Builder')
@@ -443,8 +434,6 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        structural.properties.percentage.minimum == -2147483648
-        structural.properties.percentage.maximum == 2147483647
         numericBounds(root.properties.percentage, 'minimum') == [-2147483648G, 0G]
         numericBounds(root.properties.percentage, 'maximum') == [2147483647G, 100G]
         root.properties.percentage.description.contains('Percentage of available capacity.')
@@ -459,19 +448,18 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
-    def 'enhanced mode fails closed for #kind #target metadata and preserves structural outputs'() {
+    def 'generation fails closed for #kind #target metadata and preserves previous outputs'() {
         given:
         fixture('3', false, true)
-        stripConstraintFacts(target, kind)
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
         run('generateKlumJsonSchema')
         byte[] previous = output('example.Capacity').bytes
         File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
         String previousManifest = manifest.text
+        stripConstraintFacts(target, kind)
 
         when:
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
-        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
 
         then:
         failed.output.contains("root 'example.Capacity'")
@@ -500,7 +488,6 @@ class KlumJsonSchemaGenerationTest extends Specification {
         new File(consumer, 'build.gradle').append("""
 klumSchema.jsonSchema {
     rootTypes.set(['example.Capacity', 'example.SequencedCapacity'])
-    integralConstraints = true
 }
 """)
 
@@ -517,7 +504,7 @@ klumSchema.jsonSchema {
         root.properties.repeated.minimum == -2147483648
         root.properties.customRepeated.minimum == -2147483648
         root.properties.decimal.type == 'number'
-        !root.properties.decimal.containsKey('minimum')
+        root.properties.decimal.minimum == 0.1G
         !root.properties.numericText.containsKey('minimum')
         root.properties.grouped.description.contains('groups=')
         root.properties.warning.description.contains('payload=')
@@ -539,7 +526,7 @@ klumSchema.jsonSchema {
         given:
         fixture('3', false, true)
         new File(consumer, 'build.gradle').append("""
-klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints = true }
+klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
 """)
 
         when:
@@ -574,22 +561,17 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints
     }
 
     @Issue('959')
-    def 'contradictory numeric declarations project in #mode mode'() {
+    def 'contradictory numeric declarations project without additional configuration'() {
         given:
         fixture('3', false, true, false, true)
-        def models = ['Impossible', 'ImpossibleByte']
-        if (decimalMode) {
-            models += ['EqualExclusive', 'UpperExclusive', 'BothExclusive', 'ReversedDecimal',
-                       'NoInteger', 'ByteOverflow', 'MixedBounds', 'ExtremeBounds']
-        }
+        def models = ['Impossible', 'ImpossibleByte', 'EqualExclusive', 'UpperExclusive', 'BothExclusive',
+                      'ReversedDecimal', 'NoInteger', 'ByteOverflow', 'MixedBounds', 'ExtremeBounds']
         def roots = models.collect { "'example.$it'" }.join(', ')
-        new File(consumer, 'build.gradle').append("""
-klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integralMode; decimalConstraints = $decimalMode }
-""")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set([$roots])\n")
 
         when:
         def result = run('generateKlumJsonSchema')
-        File validation = new File(System.getProperty('schemaValidationDirectory'), 'contradictions-' + mode)
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'numeric-contradictions')
         validation.mkdirs()
         models.each { new File(validation, it + '.schema.json').bytes = output('example.' + it).bytes }
         def impossible = document('example.Impossible').get('$defs').get('example.Impossible_DSL$Builder').properties.percent
@@ -599,12 +581,6 @@ klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integral
         numericBounds(impossible, 'minimum') == [-2147483648G, 100G]
         numericBounds(impossible, 'maximum') == [2147483647G, 50G]
         !trap.exists()
-
-        where:
-        mode       | integralMode | decimalMode
-        'integral' | true         | false
-        'decimal'  | false        | true
-        'both'     | true         | true
     }
 
     private static List numericBounds(Map schema, String keyword) {
@@ -622,7 +598,6 @@ klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integral
         File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
         String previousManifest = manifest.text
         stripConstraintFacts('Capacity', kind)
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
 
         when:
         def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
@@ -679,7 +654,7 @@ klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integral
         'CollisionHolder' | 'Collision' | 'external-name collision' | true
     }
 
-    @Issue('954')
+    @Issue(['954', '959'])
     def 'missing key facts cannot silently project a keyed document: #model'() {
         given:
         fixture('3')
@@ -765,10 +740,9 @@ klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integral
     }
 
     @Issue(['529', '959'])
-    def 'reuses configuration and build caches after output deletion and project relocation with enhanced profile #enhanced'() {
+    def 'reuses configuration and build caches after output deletion and project relocation'() {
         given:
         fixture('3')
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = ' + enhanced + '\n')
         String cache = new File(directory, 'build-cache').absolutePath.replace('\\', '/')
         new File(consumer, 'settings.gradle').append("\nbuildCache { local { directory = '$cache' } }\n")
         run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
@@ -801,8 +775,6 @@ klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integral
         output('example.Deployment').text == original
         !trap.exists()
 
-        where:
-        enhanced << [false, true]
     }
 
     def 'diagnoses empty invalid and unqualified roots without executing Schema code: #roots'() {
@@ -841,6 +813,7 @@ klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integral
         !output('example.Deployment').exists()
     }
 
+    @Issue(['529', '959'])
     def 'rejects a Builder contract belonging to a different DSL Model'() {
         given:
         fixture('3')
@@ -1025,8 +998,8 @@ class Legacy_DSL {
 }
 class LegacyHolder {}
 class LegacyHolder_DSL {
-    @GeneratedInput.Schema interface Builder<SELF extends LegacyHolder> {
-        @GeneratedInput.Field('child') Legacy_DSL.Builder getChild()
+    @GeneratedInput.Schema(constraintVersion=1, decimalVersion=1, groupRedefined=false) interface Builder<SELF extends LegacyHolder> {
+        @GeneratedInput.Field(value='child', constraints=[]) Legacy_DSL.Builder getChild()
         @GeneratedInput.Selection(field = 'child', role = 'OWNED_OBJECT') void child(Consumer input)
     }
     interface Factory { LegacyHolder One() }

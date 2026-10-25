@@ -434,7 +434,7 @@ position-specific projection and user-facing documentation to executable coverag
 and #932 language work remain independently owned.
 
 
-## Opt-in raw-input assertions — #959 D2
+## Raw-input assertions — #959 D2
 
 Date: 2026-10-24. Status: **Accepted semantic profile; production implementation not scheduled**.
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959),
@@ -443,7 +443,8 @@ Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959),
 
 ### Decision
 
-Accept D2 option **B**: a separately selected, off-by-default JSON Schema authoring profile may restrict supplied raw
+D2 originally accepted option **B**, a separately selected off-by-default authoring profile. The later accepted
+always-on clarification below supersedes that selection: generated JSON Schema projects supported declarations on supplied raw
 structured-input values using direct Jakarta `@Min`/`@Max` on ordinary integral properties. Start with byte/short/int/long,
 boxed counterparts and BigInteger; one direct Min and/or Max, empty groups and payload, and no relevant group
 redefinition/sequence. Intersect inclusive bounds with existing type and machine limits exactly. Preserve original
@@ -460,7 +461,7 @@ bounds or defaults; preserve existing construction-key requirements. Explicit nu
 admission. Zero, false and empty String remain supplied values. #962 retains nullable final-validation ownership.
 
 D1 remains authoritative: required inert source-associated facts come only from generated public Builder contracts.
-Enhanced generation fails closed on missing/malformed/unverifiable required metadata with source and recompile/package
+Generation fails closed on missing/malformed/unverifiable required metadata with source and recompile/package
 guidance; there is no Model-byte fallback. Complete unsupported declarations retain labelled runtime descriptions,
 appended to existing prose. Contradictory projected bounds remain valid schema assertions. Preserve
 previous successful outputs on generation failure. The linked D2 contract defines the remaining activation and diagnostic
@@ -468,8 +469,8 @@ expectations, including explicit artifact identification and the distinction bet
 
 ### Consequences and alternatives
 
-The existing structural generator remains unchanged until explicitly enhanced. Selecting ordinary schema generation
-alone does not activate bounds; consumers choose the artifact their editors/validators use. No runtime JSON Schema
+The original structural-only activation policy is historical and superseded: ordinary schema generation now projects
+the supported numeric subset automatically; consumers choose whether to use that artifact in editors/validators. No runtime JSON Schema
 validation, lifecycle change, Bean adapter change, serialization change, new public/generated API or SPI is introduced
 by this decision. Exact configuration, metadata encoding and compiler/generator implementation need a separately
 assigned P1 plan and Groovy 3/4/5 qualification. The characterization fixtures passed in all three lanes.
@@ -487,7 +488,7 @@ The separately assigned P1 implements the accepted D1/D2 contracts above. The hi
 implementation; the later assignment authorizes this slice only. See the
 [P1 implementation and evidence](../implementation/issue-959-p1-integral-profile.md).
 
-- `klumSchema.jsonSchema.integralConstraints` is a Boolean Gradle property, false by default and a tracked task input.
+- **Historical activation, superseded:** `integralConstraints` was a false-by-default Boolean. PR #972 removes it; supported numeric projection is unconditional.
   Existing root names, filenames, output ownership and isolated loader semantics remain unchanged.
 - Each declaring public Builder's `GeneratedInput.Schema` carries internal `constraintVersion=1` and an explicit
   `groupRedefined` fact. Each existing source-associated `GeneratedInput.Field` carries an explicit constraints array,
@@ -495,9 +496,9 @@ implementation; the later assignment authorizes this slice only. See the
   direct Min/Max, its compiler-folded Java-long value and empty-groups/payload eligibility. Actual Bean annotations
   remain at their original sites; they are never retargeted onto Builder methods as executable constraints.
 - The exact public-contract byte reader supplies these facts without annotation proxies, Model resource reads or a
-  Bean provider. Required declaring/effective/inherited/owned contracts must carry complete supported metadata when
-  enhanced output is requested. Old/missing completeness facts are accepted by default structural generation, and
-  fail closed in enhanced mode with source/use and recompile/package guidance.
+  Bean provider. All required declaring/effective/inherited/owned contracts must carry complete supported numeric facts.
+  Missing/incompatible completeness facts fail generation with source/use and recompile/package guidance; the old
+  structural-only compatibility path is superseded for generation, while runtime admission is unchanged.
 - Only admitted ordinary integral field properties gain inclusive bounds, intersected with structural machine limits.
   Selection considers the effective hierarchy's group-redefinition facts. Unsupported complete field declarations
   become deterministic runtime descriptions of explicitly authored attributes; there is no generic metadata/default
@@ -533,7 +534,7 @@ No release/milestone or broader D3–D6 decision follows; #959 remains open.
 
 Date: 2026-10-25. Status: **Approved bounded implementation; broader #959 remains open**.
 The separately assigned follow-up selects default Draft 2020-12 `deprecated: true` for effective admitted members whose
-Schema source declaration carries `java.lang.Deprecated`. It is independent of the opt-in integral authoring profile;
+Schema source declaration carries `java.lang.Deprecated`. It is independent of numeric assertions;
 there is no Gradle switch. This supersedes the earlier candidate's future-profile wording for deprecation only.
 
 The compiler emits explicit source-deprecation Booleans on existing public `GeneratedInput.Field`/`Key` facts and a
@@ -566,16 +567,14 @@ No runtime behavior, generated output, release or milestone commitment follows f
 ## Exact direct decimal authoring bounds — #959 narrow follow-up
 
 Date: 2026-10-25. Status: **Approved bounded implementation; D7 remains deferred**.
-The separately assigned DecimalMin/DecimalMax slice selects `klumSchema.jsonSchema.decimalConstraints`, false by
-default and independent of P1's unchanged `integralConstraints` Boolean. It maps ordinary direct BigDecimal and the
-existing integral scalar subset, using the same single-direct, empty-groups/payload and hierarchy eligibility rules.
-Decimal mode conjoins P1 integral Min/Max on integral targets and structural machine limits; BigDecimal Min/Max stays
-outside P1. It does not broaden String grammar, float/double/Number, operation arguments or other excluded declarations.
+The DecimalMin/DecimalMax slice now projects supported declarations automatically. The unreleased global numeric
+flags are removed without aliases or another selector. Ordinary direct BigDecimal and the existing integral subset
+retain the same single-direct, empty-groups/payload and hierarchy eligibility rules; all original numeric-type and
+unsupported-context exclusions remain.
 
 Each declaring public Builder carries independent `decimalVersion=1`; original field facts carry compiler-folded exact
 String `decimalValue` and explicit effective Boolean `inclusive` for direct decimal annotations. Original source and
-selection stay on existing facts. Structural and integral-only generation accept absent decimal facts; decimal mode
-requires complete supported versions and facts on reachable declaring/inherited/owned contracts, with fail-closed
+selection stay on existing facts. Generation always requires complete supported versions and facts on reachable declaring/inherited/owned contracts, with fail-closed
 recompile/package diagnostics. No Model-byte fallback, source requirement, annotation-proxy execution or text parsing
 supplies missing facts. This is matched internal compiler/runtime/plugin linkage, with no mixed-version guarantee for
 an older strict reader consuming newer metadata.
@@ -598,8 +597,8 @@ Supported numeric constraints are projected faithfully, including mutually contr
 
 This explicitly supersedes D2/P1's contradiction-rejection policy delivered in merged PR #966, P2's proposed integer
 feasibility requirement, and the earlier PR #972 endpoint/adjacency/ceil-floor refinements. Historical experiments and
-qualification records remain evidence of their revisions, not current acceptance criteria. The correction applies to
-`integralConstraints`, `decimalConstraints`, and both enabled together, without extending their mapping scope.
+qualification records remain evidence of their revisions, not current acceptance criteria. The correction reconciles both annotation families through the shared path without extending their mapping scope.
+The subsequent always-on decision below supersedes the global activation flags as well.
 
 Preserve structural numeric types/machine limits and every independently declared restriction. Unique keywords can
 coexist directly; colliding numeric keywords use conjunctive `allOf` fragments. Do not select or normalize endpoints.
@@ -610,3 +609,30 @@ still fail before output replacement. Optional properties stay omittable; suppli
 The compiler owns declaration legality, runtime/Bean Validation owns completed-Model validation, and JSON Schema
 consumers validate supplied documents. Enabling generation adds no numeric declaration-validity requirement.
 See [current implementation evidence](../implementation/issue-959-decimal-bounds.md#faithful-numeric-projection-correction).
+
+
+## Always-on supported numeric projection — #959 / PR #972
+
+Date: 2026-10-25. Status: **Accepted maintainer decision; D7 opt-out remains proposal-only**.
+
+Whenever `generateKlumJsonSchema` runs, project supported direct Min/Max and DecimalMin/DecimalMax automatically.
+The unreleased Gradle `integralConstraints` and `decimalConstraints` properties are removed completely, without
+compatibility aliases, a replacement global flag or a profile selector. Users configure `rootTypes` and existing binary
+inputs/output placement only. Existing numeric types, eligibility, exact values, source association, machine bounds
+and independent conjunction remain authoritative. Representable contradictions generate valid Draft 2020-12 schemas;
+no numeric satisfiability analysis occurs. Omission/null/keys and runtime construction/validation remain unchanged.
+
+Require supported complete numeric facts on root, declaring/inherited and reachable owned public Builder contracts.
+Retain `constraintVersion=1` and `decimalVersion=1`: they already encode the required facts, and retaining them avoids
+unnecessary compiler/generated-metadata changes. The generator always requests both completeness checks. Missing,
+malformed or incompatible facts fail atomically with source/artifact and recompile/package guidance; no Model-byte
+fallback or authored-code execution is allowed. Runtime admission's separate structural reader remains unchanged.
+
+This explicitly supersedes global opt-in requirements in D1/D2/P1/P2 and the earlier PR #972 assignment, including
+merged #966's activation/rejection assumptions. Historical evidence remains attached to its original revisions.
+
+D7's field-level projection-control direction is maintainer input, not an accepted annotation API. The
+[field opt-out proposal](../implementation/issue-959-d7-naming-profiles.md#field-level-hard-constraint-projection-opt-out--proposal-only)
+requires a separate vocabulary/semantics decision and, after approval, a separate implementation PR. It does not block
+this independently mergeable numeric baseline. No annotation, suppression, policy object, setter validation, callback,
+SPI or general filtering infrastructure is implemented here. Other D3–D7 questions and release placement stay deferred.

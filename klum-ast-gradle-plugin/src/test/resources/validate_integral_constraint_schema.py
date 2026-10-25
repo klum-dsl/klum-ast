@@ -22,10 +22,11 @@
 # SOFTWARE.
 #
 
-"""Issue #959: external Draft 2020-12 validation of emitted, binary-only enhanced artifacts."""
+"""Issue #959: external Draft 2020-12 validation of emitted, binary-only numeric artifacts."""
 import importlib.metadata
 import json
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -33,16 +34,16 @@ from jsonschema import Draft202012Validator
 assert importlib.metadata.version("jsonschema") == "4.23.0"
 root = Path(sys.argv[1])
 paths = sorted(root.glob("integral-*/capacity.schema.json"))
-assert len(paths) == 3, "Run the opt-in integral documentary test with all three producer Groovy generations"
+assert len(paths) == 3, "Run the integral documentary test with all three producer Groovy generations"
 integral = ["byteValue", "boxedByte", "shortValue", "boxedShort", "intValue", "percentage",
             "longValue", "boxedLong", "large"]
 accepted = [{}, {"enabled": False, "label": ""}, {"percentage": 0, "label": "", "enabled": False},
-            {"fromText": "101"}, {"numericText": ""}, {"decimal": -0.5}, {"computed": "literal"},
+            {"fromText": "101"}, {"numericText": ""}, {"decimal": 0.5}, {"computed": "literal"},
             {"child": {}}, {"child": {"percentage": 0}}, {"child": {"percentage": 100}},
             {"inherited-percent": 0}, {"inherited-percent": 100},
             {"machine": -128}, {"machine": 127},
             {"exact": -9223372036854775808}, {"exact": 9223372036854775807}]
-rejected = [{"child": None}, {"child": {"percentage": 101}}, {"child": {"percentage": -1}},
+rejected = [{"decimal": -0.5}, {"child": None}, {"child": {"percentage": 101}}, {"child": {"percentage": -1}},
             {"inherited-percent": -1}, {"inherited-percent": 101}, {"inherited": 50}, {"hidden": 50},
             {"label": None}, {"enabled": None}, {"enabled": 0}, {"fromText": 50},
             {"machine": -129}, {"machine": 128},
@@ -54,7 +55,7 @@ for field in integral:
 for field in ["grouped", "explicitDefault", "warning", "composed", "repeated", "customRepeated"]:
     accepted.extend({field: value} for value in [-1, 101])
 for path in paths:
-    schema = json.loads(path.read_text())
+    schema = json.loads(path.read_text(), parse_float=Decimal)
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
     for value in accepted:
@@ -62,4 +63,4 @@ for path in paths:
     for value in rejected:
         assert not validator.is_valid(value), (path, value)
     print(f"{path.parent.name}: metaschema, {len(accepted)} accepted / {len(rejected)} rejected")
-assert len({path.read_bytes() for path in paths}) == 1, "Enhanced output must be byte-identical across Groovy generations"
+assert len({path.read_bytes() for path in paths}) == 1, "Numeric output must be byte-identical across Groovy generations"

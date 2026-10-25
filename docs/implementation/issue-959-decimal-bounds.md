@@ -5,7 +5,42 @@ Tracker relationship: **Related: #959**. Issue remains open; no milestone, label
 Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md),
 [P2 Decimal bounds](evidence/issue-959-p2-candidates.md#decimal-bounds), and the separately approved narrow assignment.
 
-## Faithful numeric projection correction
+## Always-on faithful numeric projection
+
+Latest maintainer decision, 2026-10-25: supported direct numeric declarations project automatically whenever JSON Schema
+is generated. The unreleased Gradle `integralConstraints` and `decimalConstraints` properties, conventions, task inputs,
+wiring and private Boolean options map are removed. There is no alias, replacement global flag or profile selector.
+User configuration only needs the existing explicit root selection, for example:
+
+```groovy
+klumSchema.jsonSchema { rootTypes.add('example.Capacity') }
+```
+
+Direct integral Min/Max and exact DecimalMin/DecimalMax keep the existing eligibility, source, numeric-type, hierarchy
+and independent-conjunction behavior. Contradictory representable assertions generate successfully; no solver or
+numeric-domain rejection remains. `NumericBounds` stays deleted. BigDecimal parsing/rendering stays exact and sparse.
+
+Both `constraintVersion=1` and `decimalVersion=1` are required for root, declaring/inherited and reachable owned public
+Builder contracts. Retaining both avoids unnecessary generated ABI/compiler changes; they already carry the needed
+complete facts. The private numeric fact reader now unconditionally checks decimal and integral completeness; its unused selector is removed. Missing,
+malformed or incompatible facts fail atomically with source/artifact and recompile/package guidance. The separate
+runtime admission reader is unchanged; no Model bytes or authored code supply missing facts.
+
+The tests now exercise one always-on path, retaining numeric/exponent/conjunction/contradiction, binary API/Schema,
+inherited/renamed/owned, unsupported-description, no-execution, metadata failure, output ownership and caching checks.
+The final focused `KlumJsonSchemaGenerationTest` run passes all 58 cases without skips, including source-free Groovy
+3/4/5 producers/consumers. External jsonschema 4.23.0 validation passes ordinary decimal 426 inputs / three metaschemas,
+ten contradictory emitted schemas (valid schema, omitted properties accepted, supplied-value corpus rejected), integral
+429 / three (now including automatic decimal projection), structural 195 / eighteen, deprecation 96 / six and the retained
+97-input P2 hand-authored corpus. Earlier three-mode and solver qualification below is historical and does not qualify
+this new head. Independent reviews and full final-head checks are pending; current-head CI/Sonar remains authoritative
+and local shared-project upload remains skipped.
+
+D7 is independently proposal-only: see the [field opt-out recommendation](issue-959-d7-naming-profiles.md#field-level-hard-constraint-projection-opt-out--proposal-only).
+No suppression annotation, policy object/enum, setter-time validation, callback/SPI, generic filter or compiler metadata
+redesign is implemented. A D7 implementation requires approval and its own later PR; it does not block this baseline.
+
+## Historical faithful numeric correction (global flags superseded)
 
 Maintainer directive, 2026-10-25, supersedes the earlier integer-feasibility refinement and all numeric contradiction
 rejection in this PR and merged #966.
@@ -46,11 +81,10 @@ remote gate; the maintainer explicitly chose to skip local uploads.
 
 ## Delivered boundary
 
-`klumSchema.jsonSchema.decimalConstraints = true` is a separate, off-by-default tracked Gradle input. It maps one direct
-Jakarta DecimalMin and/or DecimalMax on ordinary BigDecimal or existing byte/short/int/long, boxed and BigInteger scalar
-properties, with empty groups/payload and no relevant hierarchy group redefinition. P1's `integralConstraints` Boolean
-retains its direct integral Min/Max scope. Decimal mode conjoins that P1 subset on integral targets even with the original
-Boolean false; BigDecimal Min/Max stays descriptive, as outside P1. D7 naming/profile/example vocabulary remains deferred.
+Generation automatically maps one direct Jakarta DecimalMin and/or DecimalMax on ordinary BigDecimal or existing byte/short/int/long, boxed and BigInteger scalar
+properties, with empty groups/payload and no relevant hierarchy group redefinition. Direct integral Min/Max retains its
+original P1 numeric-type scope and conjoins with decimal declarations on integral targets. BigDecimal Min/Max stays
+descriptive, as outside that scope. D7 naming/profile/example vocabulary remains deferred.
 
 Compiler enrichment adds independent `decimalVersion=1` on each declaring public Builder, and exact compiler-folded
 String `decimalValue` plus explicit effective Boolean `inclusive` on direct decimal constraint facts. Original field
@@ -60,8 +94,8 @@ our capture evaluates no expression, reads no user field reflectively and execut
 Bean annotations remain at their original sites. There is no new metadata framework, provider or extension SPI.
 
 The byte reader consumes only public Builder facts, without Model implementation resources, source files, annotation
-proxies or user code. Missing/future decimal completeness and missing decimal String/inclusive members remain usable
-for structural and original integral generation. Decimal mode fails closed with artifact, public-contract, source/use
+proxies or user code. Missing/future integral or decimal completeness and missing decimal String/inclusive members
+always fail generation with artifact, public-contract, source/use
 and recompile/package guidance, including inherited and owned dependencies. This is matched internal linkage; an older
 strict runtime reader is not promised to consume newly enriched contracts. No Model-byte inference or descriptive-text
 parsing substitutes for missing facts.
@@ -92,7 +126,7 @@ execution exception or source/Model-byte fallback was added.
 
 - Documentary test: `KlumJsonSchemaGenerationTest#'generate exact direct decimal authoring bounds from source-free binaries with Groovy #generation'`
   (`@Issue('959')`, `@Tag('documentary')`, `@See`), linked to
-  [user documentation](../user/Json-Schema.md#opt-in-decimal-constraints).
+  [user documentation](../user/Json-Schema.md#decimal-constraints).
 - Producer API/base and derived Schema JARs compile independently using Groovy 3/4/5. Both source trees are removed;
   the consumer has no Jakarta/provider dependency and no source input. Coverage includes high precision, exponent,
   plus/zero, default/explicit inclusivity, equality ties, inherited renamed provenance, owned use, integral Min/Max,

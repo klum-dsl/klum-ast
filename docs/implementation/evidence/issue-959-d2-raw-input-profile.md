@@ -1,10 +1,14 @@
 # #959 D2: raw-input assertion profile
 
-## Current numeric projection rule — PR #972
+## Current always-on numeric projection rule — PR #972
 
 Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
 
-This supersedes the earlier contradiction-rejection and integer-feasibility requirements, including merged #966.
+Supported direct Min/Max and DecimalMin/DecimalMax project automatically whenever JSON Schema is generated. The
+unreleased `integralConstraints` and `decimalConstraints` flags are removed without aliases or a replacement selector.
+Both existing constraint metadata versions are required on reachable root/inherited/owned public Builder contracts.
+
+This supersedes earlier global opt-in, contradiction-rejection and integer-feasibility requirements, including #966.
 Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
 and structural projection errors retain fail-closed handling and output atomicity.
 
@@ -21,7 +25,7 @@ Maintainer decision, 2026-10-24: **B is accepted.** KlumAST may offer an explici
 for direct integral `@Min`/`@Max`: each supplied value must satisfy the bound before construction. The restriction is a
 consumer-selected authoring policy derived from declaration facts, not a prediction of final Model state or equivalence
 to Bean Validation. The accepted architectural extension is recorded in
-[ADR 0031](../../adr/0031-structured-schema-input-artifacts.md#opt-in-raw-input-assertions--959-d2).
+[ADR 0031](../../adr/0031-structured-schema-input-artifacts.md#raw-input-assertions--959-d2).
 
 The maintainer clarified that construction-time repairs are hypothetical, not an expected use case or a compatibility
 requirement. The repair/replacement fixtures below establish the semantic boundary; they do not justify weakening raw
@@ -34,18 +38,17 @@ schedule P1 or settle its metadata encoding, exact configuration spelling or imp
 | Alternative | Assessment |
 | --- | --- |
 | A: descriptions only | Truthful if text identifies final/runtime rules and preserves existing prose. Gives no machine-checkable percentage feedback. Still requires D1 metadata and an approved description policy; not a missing-metadata compatibility mode. |
-| B: opt-in direct integral authoring bounds | **Accepted.** Useful Schelm percentage feedback; small, independently understandable predicate over supplied input. Intentionally can reject input that could construct successfully and accept input that later fails. |
+| B: direct integral authoring bounds (original opt-in superseded) | **Accepted numeric subset; activation now always-on.** Useful Schelm percentage feedback; small, independently understandable predicate over supplied input. Intentionally can reject input that could construct successfully and accept input that later fails. |
 | C: broader projection/equivalence | Defer. Coercing operations do not identify a Model property predicate; groups/severity affect selection; container population and pattern grammars have additional semantics. No evidence here qualifies these as hard assertions. |
 
 ## Accepted semantic contract
 
-1. **Activation is deliberate and off by default.** Selecting JSON Schema generation alone retains structural-only output.
-   A consumer must separately select the enhanced raw-input profile for an explicitly configured generation/root set.
-   This selects an artifact, not a new setter/runtime validation mode. The artifact's root description must identify the
-   selected raw-input policy and its final-validation limitation; append rather than overwrite existing descriptions.
-   Reuse the existing output-ownership/cache model, with profile selection as a tracked input. Exact Gradle/API spelling,
-   marker encoding and output naming are later P1 design details, not APIs introduced by D2. Consumers choose which
-   artifact editors or separate validators use; KlumAST does not automatically run a JSON Schema validator during import.
+1. **Always-on projection supersedes the original off-by-default activation.** Generating JSON Schema now projects the
+   supported numeric subset automatically, with no global flag or profile selector. The historical D2/P1 choice of a
+   separately selected artifact is retained as history only. Root descriptions identify raw-input bounds and their
+   final-validation limitation. Existing output ownership/cache behavior remains; root/classpath/tool inputs determine
+   the task fingerprint. Consumers choose whether editors/validators use the artifact; import does not automatically
+   run JSON Schema validation.
 2. **Only direct field declarations with a proven ordinary integral input property qualify.** Initially allow one direct
    Jakarta `@Min` and/or one direct `@Max` on `byte`, `short`, `int`, `long`, their boxed counterparts, or `BigInteger`.
    Declaration facts must identify the actual admitted property and its effective external name. No getter/return,
@@ -122,7 +125,7 @@ KlumAST construction; the runtime counterexamples below establish that boundary.
 
 | Situation | Required observable result for future implementation |
 | --- | --- |
-| Enhanced profile disabled | Existing structural artifacts and runtime behavior unchanged. |
+| Historical enhanced-profile switch | **Superseded:** supported numeric projection is always on; there is no global selector. Runtime behavior remains unchanged. |
 | Required Schema facts absent, malformed, or their source association unverifiable | Fail generation under D1. Identify root, declaring public Builder, Schema source declaration, effective external property/use, dependency/artifact when known, and reason; missing required facts give actionable recompile/package guidance. Preserve previous successful outputs. Never fall back to Model bytes or silently downgrade to descriptions. |
 | Complete metadata describes a rule outside the tiny profile | Preserve the admitted property and append deterministic `Runtime constraint (not enforced by this schema)` text, including the unsupported selection reason (for example payload or group). Preserve JavaDoc; do not suggest schema success means this rule passed. Generic metadata decoding/formatting remains later work. |
 | Projected bounds have an empty intersection, including machine range | **Superseded by the PR #972 maintainer correction:** preserve all assertions and generate successfully. The historical D2 contract required generation failure; an impossible supplied-value policy is now explicitly valid JSON Schema. Omission remains legal. |

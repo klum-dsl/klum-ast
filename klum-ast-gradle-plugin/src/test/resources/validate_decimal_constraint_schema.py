@@ -75,9 +75,9 @@ for path in paths:
     print(f"{path.parent.name}: metaschema, {len(accepted)} accepted / {len(rejected)} rejected")
 assert len({path.read_bytes() for path in paths}) == 1, "Decimal output must match across Groovy generations"
 
-# Contradictions are valid projections in integral-only, decimal-only and combined modes.
-contradictions = sorted(Path(sys.argv[1]).glob('contradictions-*/*.schema.json'))
-assert len(contradictions) == 22, 'Run all three contradictory-declaration mode cases'
+# Contradictions are valid projections without any numeric configuration flags.
+contradictions = sorted(Path(sys.argv[1]).glob('numeric-contradictions/*.schema.json'))
+assert len(contradictions) == 10, 'Run the unconditional contradictory-declaration case'
 for path in contradictions:
     schema = json.loads(path.read_text(), parse_float=Decimal)
     Draft202012Validator.check_schema(schema)

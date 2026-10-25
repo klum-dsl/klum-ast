@@ -74,16 +74,12 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumSchemaExtension>
         SourceSet main = java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
         KlumJsonSchemaExtension jsonSchema = extension.getJsonSchema();
         jsonSchema.getRootTypes().convention(Set.of());
-        jsonSchema.getIntegralConstraints().convention(false);
-        jsonSchema.getDecimalConstraints().convention(false);
         jsonSchema.getClasspath().from(main.getRuntimeClasspath(), project.getConfigurations().getByName("groovy"));
         jsonSchema.getOutputDirectory().convention(project.getLayout().getBuildDirectory().dir("generated/klum-json-schema"));
         project.getTasks().register("generateKlumJsonSchema", GenerateKlumJsonSchema.class, task -> {
             task.setGroup("klum");
             task.setDescription("Generates Draft 2020-12 JSON Schema for explicitly selected public Builder contracts.");
             task.getRootTypes().set(jsonSchema.getRootTypes());
-            task.getIntegralConstraints().set(jsonSchema.getIntegralConstraints());
-            task.getDecimalConstraints().set(jsonSchema.getDecimalConstraints());
             task.getClasspath().from(jsonSchema.getClasspath());
             task.getOutputDirectory().set(jsonSchema.getOutputDirectory());
         });

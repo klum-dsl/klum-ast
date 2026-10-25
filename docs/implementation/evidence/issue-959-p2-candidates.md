@@ -1,10 +1,14 @@
 # #959 P2: decimal, cardinality, pattern and deprecation characterization
 
-## Current numeric projection rule — PR #972
+## Current always-on numeric projection rule — PR #972
 
 Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
 
-This supersedes the earlier contradiction-rejection and integer-feasibility requirements, including merged #966.
+Supported direct Min/Max and DecimalMin/DecimalMax project automatically whenever JSON Schema is generated. The
+unreleased `integralConstraints` and `decimalConstraints` flags are removed without aliases or a replacement selector.
+Both existing constraint metadata versions are required on reachable root/inherited/owned public Builder contracts.
+
+This supersedes earlier global opt-in, contradiction-rejection and integer-feasibility requirements, including #966.
 Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
 and structural projection errors retain fail-closed handling and output atomicity.
 

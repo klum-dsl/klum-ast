@@ -1,10 +1,14 @@
 # #959 P1: direct integral authoring profile
 
-## Current numeric projection rule — PR #972
+## Current always-on numeric projection rule — PR #972
 
 Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
 
-This supersedes the earlier contradiction-rejection and integer-feasibility requirements, including merged #966.
+Supported direct Min/Max and DecimalMin/DecimalMax project automatically whenever JSON Schema is generated. The
+unreleased `integralConstraints` and `decimalConstraints` flags are removed without aliases or a replacement selector.
+Both existing constraint metadata versions are required on reachable root/inherited/owned public Builder contracts.
+
+This supersedes earlier global opt-in, contradiction-rejection and integer-feasibility requirements, including #966.
 Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
 and structural projection errors retain fail-closed handling and output atomicity.
 
@@ -15,7 +19,7 @@ Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#minimal-i
 [D1](issue-959-schema-projection-feasibility.md#accepted-d1-metadata-authority-and-missing-artifacts),
 [D2 semantics and runtime evidence](evidence/issue-959-d2-raw-input-profile.md).
 
-## Delivered behavior and seams
+## Historical P1 delivery behavior and seams (global flags superseded)
 
 The consumer deliberately selects `klumSchema.jsonSchema.integralConstraints = true`; selecting generation alone remains
 structural. The Boolean is a tracked Gradle task input. It crosses the existing isolated tool boundary as a JDK value,
@@ -65,7 +69,7 @@ and Bean adapter to establish later repair/invalidation/default/conversion behav
 
 `KlumJsonSchemaGenerationTest` adds the documentary feature
 `generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation`, linked to
-[the user contract](../user/Json-Schema.md#opt-in-integral-constraints). It covers the off-by-default switch, compiler
+[the user contract](../user/Json-Schema.md#integral-constraints). It covers the off-by-default switch, compiler
 versions, direct and inherited/renamed/nested/ignored inputs, all nine integral target forms, exact Java-long endpoints,
 machine intersections, unsupported contexts/descriptions, unchanged requiredness, and construction non-projection.
 Stripped root/base/child completeness markers, a future version and missing field facts characterize fail-closed enhanced
