@@ -112,7 +112,9 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         object.put("properties", properties);
         object.put("additionalProperties", false);
         if (!keyless && schema.key() != null) {
-            properties.put(schema.key().externalName(), new LinkedHashMap<>(Map.of("type", STRING_TYPE)));
+            Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
+            deprecate(key, schema.key().sourceDeprecated());
+            properties.put(schema.key().externalName(), key);
             object.put("required", List.of(schema.key().externalName()));
         }
         for (CompiledBuilderSchema.Entry entry : schema.entries().values())
@@ -128,8 +130,13 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
             value = map(value);
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
+        deprecate(value, entry.sourceDeprecated());
         if (integralConstraints) constrain(entry, value, groupRedefined);
         return value;
+    }
+
+    private static void deprecate(Map<String, Object> value, Boolean sourceDeprecated) {
+        if (Boolean.TRUE.equals(sourceDeprecated)) value.put("deprecated", true);
     }
 
     private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {

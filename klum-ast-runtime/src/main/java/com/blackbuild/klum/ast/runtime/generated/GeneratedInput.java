@@ -53,6 +53,8 @@ public final class GeneratedInput {
         String value();
         String rename() default "";
         boolean ignored() default false;
+        /** Explicit source declaration fact; absence in older bytecode means unknown, never inferred. */
+        boolean sourceDeprecated() default false;
     }
 
     /** Original field association on its public getter. Types and owner remain reflected. */
@@ -62,12 +64,21 @@ public final class GeneratedInput {
         String value();
         String rename() default "";
         boolean ignored() default false;
+        /** Explicit source declaration fact; absence in older bytecode means unknown, never inferred. */
+        boolean sourceDeprecated() default false;
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};
         boolean fixedKey() default false;
         boolean schemaKey() default false;
         String exclusion() default "";
         String detail() default "";
+    }
+
+    /** Source provenance on the exact projection of a Schema-authored Builder operation. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface Operation {
+        boolean sourceDeprecated();
     }
 
     /** Internal compiler facts; not an annotation for Schema authors or a projection SPI. */
