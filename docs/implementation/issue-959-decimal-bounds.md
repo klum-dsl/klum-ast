@@ -111,13 +111,28 @@ narrow generated-`.sonar` exclusion has been requested and is pending. No licens
 **Local SonarCloud analysis was not executed.** Automatic approval review rejected the proposed normal coverage-bearing
 branch analysis before execution because explicit human authorization for repository source/analysis upload to the
 configured external SonarCloud destination could not be established. This is an authorization rejection, not a scanner
-or quality-gate failure. No workaround, indirect analysis or coverage-free upload was attempted. The explicit choice
-between approving the normal upload and using the normal full PR CI gate has been requested and remains pending.
-No current-branch Sonar result or absence of findings is claimed.
+or quality-gate failure. No workaround, indirect analysis or coverage-free upload was attempted. The maintainer has now
+explicitly selected **skip local upload; use the full PR CI gate**. That authorization choice is settled; no further
+local analysis is planned. No current-branch Sonar result or absence of findings is claimed.
 
-Delivery is **blocked on these decisions**. The dedicated branch is committed locally; no push, draft PR, tracker
-comment, merge or archive was performed. Once the license conflict is addressed and the Sonar path is explicitly
-settled, rerun the applicable checks, push and open the assigned draft PR with **Related: #959**. Broader #959 stays open;
+Delivery is **blocked on the generated-cache input/configuration decision**. The dedicated branch is committed locally; no push, draft PR, tracker
+comment, merge or archive was performed. Once the license conflict is addressed, rerun the applicable checks, push and open the assigned draft PR with **Related: #959**. Broader #959 stays open;
 no milestone, label, curation, release placement or D7 decision changes. Hive delivery/archive reconciliation remains
 pending. This record supplies the concrete implementation, review and validation handoff without claiming completion
 of the assigned draft publication.
+
+
+### Generated-cache classification follow-up
+
+Read-only inspection of the installed Sonar Java analyzer identifies
+`org.sonar.plugins.java.SpringContextModelPersistence`: it defaults to `.sonar/spring-context-model.json`, loads that
+model opportunistically and saves it during analysis. The local file is an empty generated model (`filesData` is empty),
+not Schema or product source. It should be ignored in Git; the tracked `.sonarlint/connectedMode.json` configuration is
+separate and should remain versioned.
+
+The runtime's `src/gdsl` directory is a resource source root. Both the local runtime JAR and source JAR contain the
+untracked `.sonar` cache. The installed license plugin also derives inputs from `SourceSet.allSource`, independently
+of Git ignore rules. Therefore Git ignore alone would not fix artifact pollution or the license failure. The proposed
+bounded fix is a `.sonar/` Git ignore plus exclusion of `**/.sonar/**` from Java projects' resource source inputs, so the
+cache is neither packaged nor treated as licensed source. No license-header formatting, source renaming or deletion is
+needed. This configuration change is prepared for confirmation and has not been applied.
