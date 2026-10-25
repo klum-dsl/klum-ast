@@ -7,7 +7,7 @@ Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md),
 
 ## Current qualification status
 
-The approved feature/configuration revision `640b36d0415e6815a65f65908af3c314bf890247` passes the complete JDK 17 root
+The reviewed integer-feasibility revision `bd995a9e7` passes the complete JDK 17 root
 check, including Groovy 3/4/5, licenses, lane isolation, plugin validation and documentation rendering. All earlier
 blocked checkpoints below are historical. The maintainer chose normal full PR CI/Sonar, with no local upload.
 Live draft-PR/CI delivery state belongs to [GitHub issue #959](https://github.com/klum-dsl/klum-ast/issues/959).
@@ -225,10 +225,28 @@ replacement also passed those focused tests. The final bounded corpus additional
 values, giving 3,364 deterministic comparisons across all four inclusivity combinations, with no new testing framework.
 Dedicated cases cover machine-limit intersections for 8/16/32/64-bit values, Min/Max plus decimal bounds, equal/scaled,
 exclusive/adjacent, negative/zero/fractional/reversed and unbounded intervals, exponents up to `2147483647` in both
-signs, and tiny values at scale `2147483647`. Full generation and final-head qualification results follow below.
+signs, and tiny values at scale `2147483647`. Full generation and final-head qualification results are recorded below.
 
 Focused Groovy 3 qualification passes all **67 NumericBoundsTest** cases and all **66 JSON Schema generation**
 regressions, with no failures/errors/skips. This includes the **3,364** bounded-reference comparisons within one test.
 The emitted precision-capable decimal corpus still passes **426 inputs / 3 metaschemas**; retained integral,
 deprecation and structural corpora pass **426 / 3**, **96 / 6** and **195 / 18** respectively. Final repository and
-independent review qualification will be recorded on this follow-up revision before handoff.
+independent review qualification is recorded below.
+
+
+### Integer-feasibility final qualification
+
+The final code/test revision `bd995a9e7` passes JDK 17 root `check --no-parallel --max-workers=2`: **3,220 / 2,634 / 2,634**
+Groovy 3/4/5 cases, zero failures/errors and **17 / 16 / 16** existing skips. Licenses, lane isolation, plugin validation
+and documentation checks pass. All **67** numeric and **66** schema-generation cases pass without skips, including
+**3,364** bounded-reference comparisons. The external decimal **426 / 3** input/metaschema corpus and retained integral
+**426 / 3**, deprecation **96 / 6**, structural **195 / 18** corpora pass against final generated artifacts.
+
+Independent Standards and Specification reviews of `29301c427...bd995a9e7` both report **zero actionable findings**.
+Only private numeric logic, its tests and this evidence change; the reviewed PR history is preserved. No correctness
+defect was found in the original algorithm by the characterization/reference tests. The replacement is justified by
+its smaller correctness argument and bounded coefficient arithmetic, not by a claim of changed public behavior.
+
+This final qualification update changes evidence only. Normal full PR CI/Sonar on the published follow-up head is the
+authoritative remote gate; its live result and consolidated review disposition are recorded on PR #972. No local
+analysis upload, dependency/public API addition, issue/milestone-state change or merge is part of this refinement.
