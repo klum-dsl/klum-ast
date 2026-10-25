@@ -66,6 +66,7 @@ final class CompiledBuilderSchema {
     private static final String SCHEMA = PREFIX + "Schema;";
     private static final String KEY_ANNOTATION = PREFIX + "Key;";
     private static final String FIELD = PREFIX + "Field;";
+    private static final String CONSTRAINT = PREFIX + "Constraint;";
     private static final String SELECTION = PREFIX + "Selection;";
     private static final String EXCLUSION = PREFIX + "Exclusion;";
     private static final String OPERATION = "Lcom/blackbuild/klum/ast/Builder$Method;";
@@ -94,6 +95,31 @@ final class CompiledBuilderSchema {
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, Boolean schemaKey) { }
+    record ConstraintRule(String annotation, String value, boolean plain, String declaration) { }
+    record ConstraintProfile(boolean groupRedefined, Map<String, List<ConstraintRule>> fields) { }
+
+    /** Enhanced-only completeness check. Old metadata continues through the structural reader unchanged. */
+    static ConstraintProfile constraintProfile(Class<?> builder) {
+        try {
+            Metadata metadata = metadata(builder);
+            if (metadata.constraintVersion != 1 || metadata.groupRedefined == null)
+                throw invalid("missing or unsupported constraint metadata version " + metadata.constraintVersion);
+            Map<String, List<ConstraintRule>> fields = new LinkedHashMap<>();
+            for (Literals literal : metadata.methods.values()) {
+                if (literal.field == null) continue;
+                if (literal.constraints == null)
+                    throw invalid("missing constraint facts for source field #" + literal.field);
+                if (fields.putIfAbsent(literal.field, List.copyOf(literal.constraints)) != null)
+                    throw invalid("duplicate constraint source field #" + literal.field);
+            }
+            return new ConstraintProfile(metadata.groupRedefined, Collections.unmodifiableMap(fields));
+        } catch (IOException | ClassNotFoundException | RuntimeException failure) {
+            throw invalid("Enhanced integral constraints require complete public Builder metadata on '" + builder.getName()
+                    + "' (artifact " + builder.getProtectionDomain().getCodeSource() + "): " + failure.getMessage()
+                    + "; recompile and package this Schema and its inherited/owned Schema dependencies with matching KlumAST compiler/runtime versions");
+        }
+    }
+
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract) { }
     record Rejection(String source, String reason, String collisionName) {
         Rejection(String source, String reason) { this(source, reason, null); }
@@ -565,10 +591,13 @@ final class CompiledBuilderSchema {
         boolean operation;
         boolean query;
         boolean ignored;
+        List<ConstraintRule> constraints;
     }
     private record Invisible(String member, String reason) { }
     private static final class Metadata {
         boolean schema;
+        int constraintVersion;
+        Boolean groupRedefined;
         boolean keyInput;
         Literals keyMember;
         String key = "";
@@ -651,7 +680,9 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
-            if (member.equals("key") && value instanceof String text) result.key = text;
+            if (member.equals("constraintVersion") && value instanceof Integer version) result.constraintVersion = version;
+            else if (member.equals("groupRedefined") && value instanceof Boolean flag) result.groupRedefined = flag;
+            else if (member.equals("key") && value instanceof String text) result.key = text;
             else if (member.equals("keyInput") && value instanceof Boolean flag) result.keyInput = flag;
             else throw invalid("Unknown schema member " + member);
         }
@@ -721,6 +752,44 @@ final class CompiledBuilderSchema {
         }
     }
 
+    /** Decodes strings and booleans only; no Bean annotation classes/proxies or validator code. */
+    private static final class ConstraintAnnotationVisitor extends AnnotationVisitor {
+        private final List<ConstraintRule> rules;
+        private final Set<String> seen = new LinkedHashSet<>();
+        private String annotation;
+        private String value = "";
+        private boolean plain;
+        private String declaration;
+
+        ConstraintAnnotationVisitor(List<ConstraintRule> rules) {
+            super(Opcodes.ASM9);
+            this.rules = rules;
+        }
+
+        @Override public void visit(String member, Object literal) {
+            if (!seen.add(member)) throw invalid("Duplicate constraint member " + member);
+            switch (member) {
+                case "annotation" -> annotation = (String) literal;
+                case "value" -> value = (String) literal;
+                case "plain" -> plain = (Boolean) literal;
+                case "declaration" -> declaration = (String) literal;
+                default -> throw invalid("Unknown constraint member " + member);
+            }
+        }
+
+        @Override public AnnotationVisitor visitArray(String member) { throw invalid("Unexpected constraint array " + member); }
+        @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) { throw invalid("Unexpected nested constraint " + member); }
+        @Override public void visitEnum(String member, String descriptor, String literal) { throw invalid("Unexpected constraint enum " + member); }
+
+        @Override public void visitEnd() {
+            if (annotation == null || annotation.isBlank() || declaration == null || declaration.isBlank())
+                throw invalid("Missing constraint declaration identity");
+            if (plain && (!Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation)
+                    || !value.matches("-?[0-9]+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
+            rules.add(new ConstraintRule(annotation, value, plain, declaration));
+        }
+    }
+
     private static final class MethodAnnotationVisitor extends AnnotationVisitor {
         private final String annotation;
         private final Literals literal;
@@ -785,6 +854,16 @@ final class CompiledBuilderSchema {
         }
 
         @Override public AnnotationVisitor visitArray(String member) {
+            if (annotation.equals(FIELD) && member.equals("constraints")) {
+                if (literal.constraints != null) throw invalid("Duplicate constraint facts");
+                literal.constraints = new ArrayList<>();
+                return new AnnotationVisitor(Opcodes.ASM9) {
+                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
+                        if (!descriptor.equals(CONSTRAINT)) throw invalid("Unexpected constraint fact " + descriptor);
+                        return new ConstraintAnnotationVisitor(literal.constraints);
+                    }
+                };
+            }
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected array input fact " + member);
             return null;
         }

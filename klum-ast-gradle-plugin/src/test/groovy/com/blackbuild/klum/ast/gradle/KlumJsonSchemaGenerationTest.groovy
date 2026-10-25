@@ -113,6 +113,42 @@ class KlumJsonSchemaGenerationTest extends Specification {
         generation << ['3', '4', '5']
     }
 
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-integral-constraints')
+    def 'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'() {
+        given:
+        fixture(generation, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
+        run('generateKlumJsonSchema')
+        def structural = document('example.Capacity').get('$defs').get('example.Capacity_DSL$Builder')
+
+        when:
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.Capacity')
+        def root = schema.get('$defs').get('example.Capacity_DSL$Builder')
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'integral-' + generation)
+        validation.mkdirs()
+        new File(validation, 'capacity.schema.json').bytes = output('example.Capacity').bytes
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        structural.properties.percentage.minimum == -2147483648
+        structural.properties.percentage.maximum == 2147483647
+        root.properties.percentage.minimum == 0
+        root.properties.percentage.maximum == 100
+        root.properties.percentage.description.contains('Percentage of available capacity.')
+        !root.containsKey('required')
+        schema.description.contains('raw-input authoring')
+        !trap.exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(producer, 'api/src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
     @Issue('954')
     def 'unrepresentable required keys fail closed before replacing successful outputs: #model'() {
         given:
@@ -376,7 +412,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -494,6 +530,19 @@ class LegacyHolder_DSL {
     interface Factory { LegacyHolder One() }
 }
 """)
+        if (constraints) {
+            new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
+            writeSource('schema/src/main/groovy/example/Capacity.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.*
+@DSL class Capacity {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
+    /** Percentage of available capacity. */
+    @Min(0L) @Max(100L) Integer percentage
+}
+""")
+        }
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')

@@ -48,6 +48,7 @@ dependencies {
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     testImplementation libs.spock.g3
     testImplementation 'org.yaml:snakeyaml:2.6'
+    testImplementation 'jakarta.validation:jakarta.validation-api:3.0.2'
     testRuntimeOnly project(':klum-ast-runtime')
 }
 
@@ -104,6 +105,7 @@ gradle.projectsEvaluated {
             .filter { !it.name.startsWith('groovy-') }
     tasks.named('test', Test) {
         inputs.files(compilerFiles, runtimeFiles)
+        systemProperty 'schemaValidationApi', configurations.testRuntimeClasspath.files.find { it.name == 'jakarta.validation-api-3.0.2.jar' }.absolutePath
         systemProperty 'gdslCompilerClasspath', compilerFiles.asPath
         systemProperty 'gdslRuntimeClasspath', runtimeFiles.asPath
         ['3': 'compileClasspath', '4': 'groovy4TestsCompileClasspath', '5': 'groovy5TestsCompileClasspath'].each { generation, configuration ->
