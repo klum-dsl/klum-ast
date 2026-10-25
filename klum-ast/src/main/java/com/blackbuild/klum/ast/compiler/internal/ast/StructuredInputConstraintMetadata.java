@@ -29,6 +29,9 @@ import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
+import org.codehaus.groovy.ast.expr.ArrayExpression;
+import org.codehaus.groovy.ast.expr.ClassExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
@@ -63,9 +66,10 @@ final class StructuredInputConstraintMetadata {
             rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
             if (name.equals(MIN) || name.equals(MAX)) {
                 Expression value = annotation.getMember("value");
-                // A nonliteral bound remains a runtime description; never evaluate an expression to recover it.
-                if (value instanceof ConstantExpression constant && constant.getValue() instanceof Number) {
-                    rule.setMember("value", new ConstantExpression(constant.getValue().toString()));
+                // Let the ordinary compiler fold the same annotation constant onto our inert long member.
+                // No expression evaluation or user-field reflection is needed by the projector or this capture.
+                if (value != null) {
+                    rule.setMember("value", value);
                     boolean plain = empty(annotation.getMember("groups")) && empty(annotation.getMember("payload"))
                             && declarations.stream().filter(other -> other.getClassNode().getName().equals(name)).count() == 1;
                     rule.setMember("plain", new ConstantExpression(plain));
@@ -85,14 +89,38 @@ final class StructuredInputConstraintMetadata {
         String name = annotation.getClassNode().getName();
         return name.startsWith("jakarta.validation.constraints.") || name.startsWith("javax.validation.constraints.")
                 || name.equals("com.blackbuild.klum.ast.Required") || name.equals("com.blackbuild.klum.ast.Validate")
-                || annotation.getClassNode().getAnnotations().stream().anyMatch(meta -> MARKERS.contains(meta.getClassNode().getName()));
+                || constraintType(annotation.getClassNode())
+                || annotation.getClassNode().getMethods("value").stream().anyMatch(method -> method.getReturnType().isArray()
+                && constraintType(method.getReturnType().getComponentType()));
+    }
+
+    private static boolean constraintType(ClassNode type) {
+        return type.getAnnotations().stream().anyMatch(meta -> MARKERS.contains(meta.getClassNode().getName()));
     }
 
     private static String declaration(AnnotationNode annotation) {
         return "@" + annotation.getClassNode().getName() + annotation.getMembers().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .map(entry -> entry.getKey() + "=" + entry.getValue().getText())
+                .map(entry -> entry.getKey() + "=" + render(entry.getValue()))
                 .collect(Collectors.joining(", ", "(", ")"));
+    }
+
+    /** AnnotationConstantExpression.getText embeds object identities; render only inert source syntax instead. */
+    private static String render(Expression expression) {
+        if (expression instanceof AnnotationConstantExpression nested && nested.getValue() instanceof AnnotationNode annotation)
+            return declaration(annotation);
+        if (expression instanceof ListExpression list)
+            return list.getExpressions().stream().map(StructuredInputConstraintMetadata::render).collect(Collectors.joining(", ", "[", "]"));
+        if (expression instanceof ArrayExpression array)
+            return array.getExpressions().stream().map(StructuredInputConstraintMetadata::render).collect(Collectors.joining(", ", "[", "]"));
+        if (expression instanceof ClassExpression type) return type.getType().getName();
+        if (expression instanceof ConstantExpression constant) {
+            Object value = constant.getValue();
+            return value instanceof String text ? "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"") + "\"" : String.valueOf(value);
+        }
+        if (expression instanceof PropertyExpression property)
+            return render(property.getObjectExpression()) + "." + property.getPropertyAsString();
+        return "<runtime expression: " + expression.getClass().getSimpleName() + ">";
     }
 
     private static boolean groupRedefined(ClassNode type, Set<String> visited) {

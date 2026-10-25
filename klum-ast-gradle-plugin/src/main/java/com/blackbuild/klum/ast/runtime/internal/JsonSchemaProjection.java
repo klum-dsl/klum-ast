@@ -92,7 +92,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
         validateKeyPosition(schema, position, source);
-        boolean groupRedefined = integralConstraints && collectConstraintProfiles(builder);
+        boolean groupRedefined = integralConstraints && collectConstraintProfiles(builder, schema, source);
         boolean keyless = position == KeyPosition.KEYLESS;
         String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
         if (definitions.containsKey(identity)) return identity;
@@ -125,11 +125,20 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         return identity;
     }
 
-    private boolean collectConstraintProfiles(Class<?> builder) {
-        CompiledBuilderSchema.ConstraintProfile profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
+    private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
+        CompiledBuilderSchema.ConstraintProfile profile;
+        try {
+            profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
+        } catch (RuntimeException failure) {
+            String affected = schema.entries().values().stream().filter(entry -> entry.contract() == builder)
+                    .map(entry -> entry.source() + " (external input '" + entry.externalName() + "')")
+                    .collect(Collectors.joining(", "));
+            throw new IllegalArgumentException("Enhanced constraint metadata at input use '" + source + "', admitted sources ["
+                    + affected + "]: " + failure.getMessage(), failure);
+        }
         boolean groupRedefined = profile.groupRedefined();
         for (Class<?> parent : builder.getInterfaces()) {
-            if (parent.getName().endsWith(BUILDER)) groupRedefined |= collectConstraintProfiles(parent);
+            if (parent.getName().endsWith(BUILDER)) groupRedefined |= collectConstraintProfiles(parent, schema, source);
         }
         return groupRedefined;
     }

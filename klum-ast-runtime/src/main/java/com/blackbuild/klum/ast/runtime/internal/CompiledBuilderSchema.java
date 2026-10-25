@@ -770,7 +770,10 @@ final class CompiledBuilderSchema {
             if (!seen.add(member)) throw invalid("Duplicate constraint member " + member);
             switch (member) {
                 case "annotation" -> annotation = (String) literal;
-                case "value" -> value = (String) literal;
+                case "value" -> {
+                    if (!(literal instanceof Long)) throw invalid("Integral constraint value must be a Java long");
+                    value = literal.toString();
+                }
                 case "plain" -> plain = (Boolean) literal;
                 case "declaration" -> declaration = (String) literal;
                 default -> throw invalid("Unknown constraint member " + member);
