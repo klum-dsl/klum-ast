@@ -636,7 +636,8 @@ the following features were dropped:
 
 `klumSchema.jsonSchema.decimalConstraints = true` separately enables the bounded
 [decimal authoring profile](Json-Schema.md#opt-in-decimal-constraints). Existing `integralConstraints` configurations
-retain their original meaning. Decimal generation requires matching compiler/runtime/plugin versions and regenerated
+retain their mapping scope. Both modes now preserve contradictory numeric declarations as valid JSON Schema,
+superseding the earlier integral-generation rejection policy; consumers validate supplied values. Decimal generation requires matching compiler/runtime/plugin versions and regenerated
 public Builder metadata on the root and inherited/owned dependencies; missing decimal completeness or typed facts
 fails with recompile/package guidance. Structural and integral-only consumers can continue using older facts.
 Omission/null admission and runtime validation remain unchanged. Use precision-capable numeric parsers/validators.

@@ -1,5 +1,13 @@
 # #959 D2: raw-input assertion profile
 
+## Current numeric projection rule — PR #972
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+
+This supersedes the earlier contradiction-rejection and integer-feasibility requirements, including merged #966.
+Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
+and structural projection errors retain fail-closed handling and output atomicity.
+
 Date: 2026-10-24. Status: **B accepted; characterization complete; P1 remains separately gated**.
 Baseline: `e18f21b24b4017844720ef0072b95635491a32be` (master, including merged D1/P0 documentation).
 Authority: [#959 and its decision comments](https://github.com/klum-dsl/klum-ast/issues/959),
@@ -117,7 +125,7 @@ KlumAST construction; the runtime counterexamples below establish that boundary.
 | Enhanced profile disabled | Existing structural artifacts and runtime behavior unchanged. |
 | Required Schema facts absent, malformed, or their source association unverifiable | Fail generation under D1. Identify root, declaring public Builder, Schema source declaration, effective external property/use, dependency/artifact when known, and reason; missing required facts give actionable recompile/package guidance. Preserve previous successful outputs. Never fall back to Model bytes or silently downgrade to descriptions. |
 | Complete metadata describes a rule outside the tiny profile | Preserve the admitted property and append deterministic `Runtime constraint (not enforced by this schema)` text, including the unsupported selection reason (for example payload or group). Preserve JavaDoc; do not suggest schema success means this rule passed. Generic metadata decoding/formatting remains later work. |
-| Projected bounds have an empty intersection, including machine range | Fail generation with the conflicting declarations and effective location. Although omission could still validate, publishing an impossible supplied-value policy is a Schema-author error under this contract. No last-wins normalization. |
+| Projected bounds have an empty intersection, including machine range | **Superseded by the PR #972 maintainer correction:** preserve all assertions and generate successfully. The historical D2 contract required generation failure; an impossible supplied-value policy is now explicitly valid JSON Schema. Omission remains legal. |
 | Input has wrong type/null/unknown name | Existing structural schema errors; unchanged interpreter preflight errors retain source name and input pointer. Do not relabel these as Bean violations. |
 | Supplied integer violates a selected bound | External JSON Schema validation reports the instance location and violated bound/schema location. Projection must preserve source association sufficiently to explain which declaration supplied that bound. Exact message wording is validator-specific; editor severity is editor policy. No `KlumValidationException` or runtime issue is manufactured by schema generation. |
 | Input passes the schema but operation/construction/final validation fails | Existing runtime exception and stored validation result semantics. JSON Schema validity is not materialization success. No fabricated raw-input leaf for a later Model violation. |

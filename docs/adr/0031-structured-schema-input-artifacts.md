@@ -462,7 +462,7 @@ admission. Zero, false and empty String remain supplied values. #962 retains nul
 D1 remains authoritative: required inert source-associated facts come only from generated public Builder contracts.
 Enhanced generation fails closed on missing/malformed/unverifiable required metadata with source and recompile/package
 guidance; there is no Model-byte fallback. Complete unsupported declarations retain labelled runtime descriptions,
-appended to existing prose. Contradictory projected bounds fail generation with source-aware diagnostics. Preserve
+appended to existing prose. Contradictory projected bounds remain valid schema assertions. Preserve
 previous successful outputs on generation failure. The linked D2 contract defines the remaining activation and diagnostic
 expectations, including explicit artifact identification and the distinction between schema errors and runtime issues.
 
@@ -580,11 +580,33 @@ recompile/package diagnostics. No Model-byte fallback, source requirement, annot
 supplies missing facts. This is matched internal compiler/runtime/plugin linkage, with no mixed-version guarantee for
 an older strict reader consuming newer metadata.
 
-Parse with BigDecimal(String), compare numerically, emit exact valid JSON numeric tokens, and use numeric Draft 2020-12
-exclusiveMinimum/exclusiveMaximum. At equal endpoints exclusion wins. Reject impossible decimal intersections and
-integral intersections with no surviving integer before replacing prior artifacts. Preserve raw null/omission/key
+Parse with BigDecimal(String), emit exact valid JSON numeric tokens, and use numeric Draft 2020-12
+exclusiveMinimum/exclusiveMaximum. Preserve each independent assertion, including contradictory bounds, using `allOf`
+where keywords would collide. Do not prove an admissible integer or reject an empty numeric domain. Preserve raw null/omission/key
 requiredness and runtime/interpreter/Jackson/default/Template/lifecycle behavior. This remains an input authoring
 policy, with no general Bean Validation equivalence. Precision-capable downstream numeric parsing/validation is required.
 
 See [implementation and qualification](../implementation/issue-959-decimal-bounds.md). Size/Pattern/defaults,
 quantity grammar, broader D3-D6 and D7 naming/profile/example vocabulary remain deferred; #962 remains separate.
+
+
+## Numeric projection responsibility clarification — #959 / PR #972
+
+Date: 2026-10-25. Status: **Accepted maintainer correction, superseding numeric rejection in D2/P1/P2**.
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis. A valid generated schema may describe a property for which no supplied value satisfies all constraints.
+
+This explicitly supersedes D2/P1's contradiction-rejection policy delivered in merged PR #966, P2's proposed integer
+feasibility requirement, and the earlier PR #972 endpoint/adjacency/ceil-floor refinements. Historical experiments and
+qualification records remain evidence of their revisions, not current acceptance criteria. The correction applies to
+`integralConstraints`, `decimalConstraints`, and both enabled together, without extending their mapping scope.
+
+Preserve structural numeric types/machine limits and every independently declared restriction. Unique keywords can
+coexist directly; colliding numeric keywords use conjunctive `allOf` fragments. Do not select or normalize endpoints.
+Exact BigDecimal parsing and serialization keep sparse exponents without integer conversion or exponent arithmetic.
+Malformed or out-of-range decimal encodings, missing/incompatible compiler facts and unsupported structural grammar
+still fail before output replacement. Optional properties stay omittable; supplied values face all projected assertions.
+
+The compiler owns declaration legality, runtime/Bean Validation owns completed-Model validation, and JSON Schema
+consumers validate supplied documents. Enabling generation adds no numeric declaration-validity requirement.
+See [current implementation evidence](../implementation/issue-959-decimal-bounds.md#faithful-numeric-projection-correction).

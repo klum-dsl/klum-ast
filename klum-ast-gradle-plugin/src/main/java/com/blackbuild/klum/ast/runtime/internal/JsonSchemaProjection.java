@@ -29,6 +29,7 @@ import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -172,33 +173,37 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
                 && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR;
         boolean integralProperty = ordinaryScalar && "integer".equals(value.get("type"));
         boolean decimalProperty = ordinaryScalar && entry.payload().type() == BigDecimal.class;
-        NumericBounds bounds = new NumericBounds(value);
+        List<Map<String, Object>> bounds = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : rules) {
             if (!groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty)) continue;
             String reason = groupRedefined ? "group redefinition/sequence" : "outside the selected direct numeric, empty groups/payload profile";
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
-        if (!bounds.possible(integralProperty)) {
-            throw new IllegalArgumentException("Empty " + (decimalConstraints ? "decimal" : "integral")
-                    + " constraint intersection for '" + entry.source() + "', external input '" + entry.externalName()
-                    + "', public Builder '" + entry.contract().getName() + "': " + rules + "; " + bounds);
+        // Preserve independent assertions when a keyword is already occupied, including machine bounds.
+        List<Map<String, Object>> conjunction = new ArrayList<>();
+        for (Map<String, Object> bound : bounds) {
+            bound.forEach((keyword, endpoint) -> {
+                if (value.putIfAbsent(keyword, endpoint) != null) conjunction.add(bound);
+            });
         }
-        bounds.write(value);
+        if (!conjunction.isEmpty()) value.put("allOf", conjunction);
         if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
     }
 
     private boolean projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
-                                 NumericBounds bounds, boolean integral, boolean decimal) {
+                                 List<Map<String, Object>> bounds, boolean integral, boolean decimal) {
         if (!rule.plain()) return false;
         if (integral && (rule.annotation().equals("jakarta.validation.constraints.Min")
                 || rule.annotation().equals("jakarta.validation.constraints.Max"))) {
-            bounds.add(new BigDecimal(rule.value()), true, rule.annotation().endsWith(".Min"));
+            bounds.add(Map.of(rule.annotation().endsWith(".Min") ? MINIMUM : MAXIMUM, new BigDecimal(rule.value())));
             return true;
         }
         if (!decimalConstraints || !(integral || decimal) || !(rule.annotation().equals("jakarta.validation.constraints.DecimalMin")
                 || rule.annotation().equals("jakarta.validation.constraints.DecimalMax"))) return false;
         try {
-            bounds.add(new BigDecimal(rule.decimalValue()), rule.inclusive(), rule.annotation().endsWith(".DecimalMin"));
+            String keyword = rule.annotation().endsWith(".DecimalMin") ? MINIMUM : MAXIMUM;
+            if (!rule.inclusive()) keyword = rule.annotation().endsWith(".DecimalMin") ? "exclusiveMinimum" : "exclusiveMaximum";
+            bounds.add(Map.of(keyword, new BigDecimal(rule.decimalValue())));
             return true;
         } catch (NumberFormatException failure) {
             throw new IllegalArgumentException("Invalid decimal bound for '" + entry.source() + "', external input '"

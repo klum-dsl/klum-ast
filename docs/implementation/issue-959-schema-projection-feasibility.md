@@ -1,5 +1,13 @@
 # Constraint and default projection: feasibility and decision gates
 
+## Current numeric projection rule — PR #972
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+
+This supersedes the earlier contradiction-rejection and integer-feasibility requirements, including merged #966.
+Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
+and structural projection errors retain fail-closed handling and output atomicity.
+
 Date: 2026-10-24. Status: **D1 and D2 accepted; bounded P1 assigned and implemented; P2 characterized; D3–D6 and additional production mappings remain unapproved.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959), including its
 [design input](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6385826650).
@@ -132,10 +140,10 @@ Absent required metadata is different from a discovered unsupported constraint: 
 future enhanced profile is explicitly enabled and its required Schema metadata is missing. Descriptions are not a
 compatibility/reporting escape hatch for that failure; their D2 semantics are accepted, while exact formatting and implementation remain later work.
 
-Combine independent hard fragments conjunctively (`allOf` or a proven intersection), retaining the original type and
+Combine independent hard numeric fragments conjunctively (direct keywords or `allOf`), retaining the original type and
 machine bounds. A provider cannot replace another annotation's restriction, admission, names or `$defs`. Contradictory
-bounds must produce a deterministic location-rich failure, not last-wins behavior or silently lost constraints. The
-normalizer must distinguish one declaration copied to multiple generated methods from truly repeated constraints.
+numeric bounds remain valid assertions, without a satisfiability check or silently lost constraints. The
+metadata extraction must distinguish one declaration copied to multiple generated methods from truly repeated constraints.
 
 ## Candidate mappings and semantic gates
 
@@ -269,7 +277,7 @@ meet the separate execution contract above; it cannot silently join the reflecti
 
 | Combination | Proposed deterministic rule |
 | --- | --- |
-| Several assertions | Conjoin at the same resolved target, preserving base schema restrictions. Diagnose contradictions detected by supported mappings. Do not claim a general satisfiability solver for arbitrary fragments; unsupported composition remains a diagnostic. |
+| Several assertions | Conjoin at the same resolved target, preserving base schema restrictions. Preserve contradictory numeric assertions without satisfiability analysis; unsupported composition remains a diagnostic. |
 | Several descriptions | Append after existing prose in stable provenance order. Suppress only duplicated extraction of the same occurrence; retain distinct repeatable declarations and disambiguate their origins. |
 | Several literal defaults | Equal normalized literals at one target may share one emitted annotation while retaining origins. Conflicting values produce a diagnostic and description-only fallbacks unless an approved static precedence rule selects one. `allOf` does not resolve competing default annotations. |
 | Assertion plus default | Do not weaken an assertion to accommodate a default. Check the literal against supported structural fragments; if inconsistent or compatibility is unprovable, withhold the default annotation and explain the reason. Execute neither runtime validation nor a provider to settle it. |

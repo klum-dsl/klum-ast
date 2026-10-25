@@ -57,7 +57,7 @@ check({"type": "integer", "minimum": -128, "maximum": 127,
        "allOf": [{"exclusiveMinimum": Decimal("-1.2")}, {"exclusiveMaximum": Decimal("2.00")}]},
       [-1, 0, 1, 1.0], [-2, 2, 0.5, -129, 128, "1", None])
 # These schemas are legal but no supplied value can satisfy their numeric intersections.
-# A future generator must diagnose them rather than silently publish an unusable member.
+# PR #972 supersedes the earlier rejection proposal: preserve these valid contradictory assertions.
 for schema in [
         {"type": "number", "minimum": Decimal("1.00"), "exclusiveMaximum": Decimal("1E+0")},
         {"type": "integer", "minimum": Decimal("0.1"), "maximum": Decimal("0.9")},

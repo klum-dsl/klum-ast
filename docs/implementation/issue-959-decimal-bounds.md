@@ -5,12 +5,36 @@ Tracker relationship: **Related: #959**. Issue remains open; no milestone, label
 Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md),
 [P2 Decimal bounds](evidence/issue-959-p2-candidates.md#decimal-bounds), and the separately approved narrow assignment.
 
-## Current qualification status
+## Faithful numeric projection correction
 
-The reviewed integer-feasibility revision `bd995a9e7` passes the complete JDK 17 root
-check, including Groovy 3/4/5, licenses, lane isolation, plugin validation and documentation rendering. All earlier
-blocked checkpoints below are historical. The maintainer chose normal full PR CI/Sonar, with no local upload.
-Live draft-PR/CI delivery state belongs to [GitHub issue #959](https://github.com/klum-dsl/klum-ast/issues/959).
+Maintainer directive, 2026-10-25, supersedes the earlier integer-feasibility refinement and all numeric contradiction
+rejection in this PR and merged #966.
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+A valid generated schema may describe a property for which no supplied value satisfies all constraints.
+
+`NumericBounds` and its solver-only tests are removed: no ordering/equality contradiction check, rounding, integer
+adjacency, endpoint offsets, machine-domain feasibility, or extreme-exponent solver remains. Each numeric annotation
+becomes its exact keyword/value. Existing machine bounds stay in place. A new bound uses the direct keyword when free;
+a collision appends the assertion to `allOf`, preserving every independent declaration without selecting tighter bounds.
+This reconciles integral-only, decimal-only and combined configurations with the same faithful projection contract.
+
+BigDecimal(String) and existing exact JSON numeric rendering remain. No arithmetic, scale conversion, powers of ten,
+integer conversion, precision cap or fallback participates. Pathological positive/negative exponents remain sparse.
+Malformed/out-of-range decimal encodings and missing/incompatible compiler facts still fail atomically. Compiler
+metadata/version markers, public contracts, admission, null/omission/key behavior and runtime construction are unchanged.
+
+Focused qualification: all 61 `KlumJsonSchemaGenerationTest` cases pass without skips, including source-free Groovy
+3/4/5 fixtures, three projection modes and retained genuine-failure atomicity. The precision-capable jsonschema 4.23.0
+corpus passes 426 ordinary decimal inputs / three metaschemas and 22 contradictory emitted schemas: omission accepts,
+all tested supplied values reject, and sparse exponent boundaries remain exact. Retained integral (426 / three),
+structural (195 / eighteen), deprecation (96 / six) and P2 hand-authored (97 inputs) corpora also pass.
+
+Independent Specification review has no findings. Standards review's multiline test branch and stale normative wording
+are corrected. No numeric arithmetic counterexample was demonstrated; the corrected defect is the extra semantic
+rejection of representable declarations in #966 and earlier #972. Full root checks and current-head PR CI/Sonar remain
+pending. The records below describe earlier revisions and their historical qualification. Full PR CI/Sonar is the
+authoritative remote gate; the maintainer explicitly chose to skip local uploads.
 
 ## Delivered boundary
 
@@ -34,12 +58,9 @@ and recompile/package guidance, including inherited and owned dependencies. This
 strict runtime reader is not promised to consume newly enriched contracts. No Model-byte inference or descriptive-text
 parsing substitutes for missing facts.
 
-The private numeric helper conjoins lower/upper endpoints, with exclusion winning at equal numeric values. BigDecimal
-parsing has no MathContext, double conversion or annotation truncation. Its JSON numeric rendering normalizes lexical
-spelling as necessary while retaining mathematical value. Integral intersection checking rounds only to prove integer
-existence; emitted decimal endpoints remain exact. Existing machine limits and integer types survive semantically.
-Malformed/unrepresentable decimal values and empty decimal/integer intersections fail generation before output or the
-ownership manifest is replaced, with source, external name and public-contract diagnostics.
+Independent numeric assertions now use direct keywords and minimal `allOf` on collisions. No endpoint normalization
+or satisfiability rejection occurs. BigDecimal parsing/rendering preserves exact mathematical value. Genuine malformed
+or unrepresentable facts fail before output or the ownership manifest is replaced, with source/use diagnostics.
 
 ## Preservation and deferral
 
@@ -54,7 +75,7 @@ Size/Pattern, quantity grammar, defaults and relationship-context defaults, grou
 rules, broader D3-D6 mappings and D7 remain deferred. #962 retains nullable final-validation ownership. No new release
 placement or overall #959 completion is claimed.
 
-## Qualification
+## Historical initial qualification
 
 The new integration tests were written before production support. Initial red fixtures exposed ordinary Groovy
 annotation compilation behavior for a throwing symbolic-constant owner; the final fixture uses legal binary public
@@ -185,9 +206,9 @@ decimal slice to proceed. A merge preserves the published feature commits and bo
 no production, test or resource-input behavior changes from qualified source/configuration revision `640b36d0`.
 Documentation/link/diff checks qualify this merge; the normal PR CI/Sonar gate runs on its resulting head.
 
-## PR #972 integer-feasibility review refinement
+## Historical PR #972 integer-feasibility review refinement (superseded)
 
-This follow-up changes only the private numeric feasibility calculation and its tests. Configuration, compiler facts,
+This historical follow-up, removed by the faithful-projection correction above, changed only the private numeric feasibility calculation and its tests. Configuration, compiler facts,
 metadata versions/readers, numeric keywords and serialization, admission/null/omission/key behavior, construction,
 validation, output ownership and all deferred features retain the accepted contract.
 

@@ -74,3 +74,24 @@ for path in paths:
         assert not validator.is_valid(value), (path, value)
     print(f"{path.parent.name}: metaschema, {len(accepted)} accepted / {len(rejected)} rejected")
 assert len({path.read_bytes() for path in paths}) == 1, "Decimal output must match across Groovy generations"
+
+# Contradictions are valid projections in integral-only, decimal-only and combined modes.
+contradictions = sorted(Path(sys.argv[1]).glob('contradictions-*/*.schema.json'))
+assert len(contradictions) == 22, 'Run all three contradictory-declaration mode cases'
+for path in contradictions:
+    schema = json.loads(path.read_text(), parse_float=Decimal)
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    assert validator.is_valid({}), path  # Bounds never infer requiredness.
+    field = 'percent' if path.stem.startswith('Impossible') else 'amount'
+    if path.name == 'ExtremeBounds.schema.json':
+        for field, values in [('huge', [0, Decimal('1E+1000000'), Decimal('-1E+1000000')]),
+                              ('tiny', [0, Decimal('1E-2147483647'), Decimal('-1E-2147483647')])]:
+            for value in values:
+                assert not validator.is_valid({field: value}), (path, field, value)
+        assert validator.is_valid({'ordinary': 0}), path
+    else:
+        for value in [-1000, -1, 0, Decimal('0.1'), Decimal('0.5'), Decimal('0.9'),
+                      1, Decimal('1.00'), 2, 50, 100, 127, 128, 200, 1000, None, '1', True]:
+            assert not validator.is_valid({field: value}), (path, value)
+print(f'contradictions: {len(contradictions)} valid schemas, omission accepted, supplied-value corpus rejected')

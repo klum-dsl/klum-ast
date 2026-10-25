@@ -338,14 +338,14 @@ class KlumJsonSchemaGenerationTest extends Specification {
         properties.'inherited-price'.exclusiveMinimum == -1.2300E+2G
         properties.'inherited-price'.'x-klum-constraint-source' == 'example.DecimalBase#inherited'
         ['boundedByte', 'boundedShort', 'boundedPrimitiveShort', 'boundedInt', 'boundedPrimitiveInt', 'boundedLong', 'boundedPrimitiveLong', 'boundedBigInteger'].every {
-            properties[it].type == 'integer' && properties[it].exclusiveMinimum == -0.1G && properties[it].maximum == 1.1G
+            properties[it].type == 'integer' && properties[it].exclusiveMinimum == -0.1G && numericBounds(properties[it], 'maximum').any { bound -> bound == 1.1G }
         }
         properties.units.type == 'integer'
-        properties.units.minimum == 2G && properties.units.exclusiveMaximum == 3.1G
-        !properties.machine.containsKey('minimum') && properties.machine.maximum == 127
+        numericBounds(properties.units, 'minimum').any { bound -> bound == 2G } && properties.units.exclusiveMaximum == 3.1G
+        properties.machine.minimum == -128 && properties.machine.maximum == 127
         properties.machine.exclusiveMinimum == -0.1G
-        properties.tight.minimum == 2G && !properties.tight.containsKey('exclusiveMinimum')
-        properties.tie.exclusiveMinimum == 2G && !properties.tie.containsKey('minimum')
+        properties.tight.minimum == 2G && properties.tight.exclusiveMinimum == 1.0G
+        properties.tie.exclusiveMinimum == 2G && properties.tie.minimum == 2G
         properties.child.'$ref'
         schema.get('$defs').get('example.DecimalChild_DSL$Builder').properties.amount.minimum == 0G
         ['text', 'floating', 'doubleValue', 'grouped', 'payloadBound', 'repeated', 'composed'].every {
@@ -418,12 +418,6 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         where:
         model                | reason
-        'EqualExclusive'     | 'Empty decimal constraint intersection'
-        'UpperExclusive'     | 'Empty decimal constraint intersection'
-        'ReversedDecimal'    | 'Empty decimal constraint intersection'
-        'NoInteger'          | 'Empty decimal constraint intersection'
-        'ByteOverflow'       | 'Empty decimal constraint intersection'
-        'MixedBounds'        | 'Empty decimal constraint intersection'
         'MalformedDecimal'   | 'Invalid decimal bound'
         'Unrepresentable'    | 'Invalid decimal bound'
     }
@@ -451,8 +445,8 @@ class KlumJsonSchemaGenerationTest extends Specification {
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
         structural.properties.percentage.minimum == -2147483648
         structural.properties.percentage.maximum == 2147483647
-        root.properties.percentage.minimum == 0
-        root.properties.percentage.maximum == 100
+        numericBounds(root.properties.percentage, 'minimum') == [-2147483648G, 0G]
+        numericBounds(root.properties.percentage, 'maximum') == [2147483647G, 100G]
         root.properties.percentage.description.contains('Percentage of available capacity.')
         !root.containsKey('required')
         schema.description.contains('raw-input authoring')
@@ -541,7 +535,7 @@ klumSchema.jsonSchema {
     }
 
     @Issue('959')
-    def 'direct integral bounds intersect machine ranges without projecting later construction behavior'() {
+    def 'direct integral bounds conjoin with machine ranges without projecting later construction behavior'() {
         given:
         fixture('3', false, true)
         new File(consumer, 'build.gradle').append("""
@@ -555,13 +549,15 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints
 
         then:
         ['byteValue', 'boxedByte', 'shortValue', 'boxedShort', 'intValue', 'percentage', 'longValue', 'boxedLong', 'large'].every {
-            properties[it].minimum == 0 && properties[it].maximum == 100
+            numericBounds(properties[it], 'minimum').any { bound -> bound == 0G } && numericBounds(properties[it], 'maximum').any { bound -> bound == 100G }
         }
         properties.machine.minimum == -128
         properties.machine.maximum == 127
+        numericBounds(properties.machine, 'minimum') == [-128G, -1000G]
+        numericBounds(properties.machine, 'maximum') == [127G, 1000G]
         properties.exact.minimum == -9223372036854775808G
         properties.exact.maximum == 9223372036854775807G
-        properties.'inherited-percent'.minimum == 0
+        numericBounds(properties.'inherited-percent', 'minimum').any { bound -> bound == 0G }
         properties.'inherited-percent'.'x-klum-constraint-source' == 'example.CapacityBase#inherited'
         !properties.containsKey('inherited')
         !properties.containsKey('hidden')
@@ -578,34 +574,42 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints
     }
 
     @Issue('959')
-    def 'empty selected integral intersections fail before replacing successful output: #model'() {
+    def 'contradictory numeric declarations project in #mode mode'() {
         given:
-        fixture('3', false, true)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
-        run('generateKlumJsonSchema')
-        byte[] previous = output('example.Capacity').bytes
+        fixture('3', false, true, false, true)
+        def models = ['Impossible', 'ImpossibleByte']
+        if (decimalMode) {
+            models += ['EqualExclusive', 'UpperExclusive', 'BothExclusive', 'ReversedDecimal',
+                       'NoInteger', 'ByteOverflow', 'MixedBounds', 'ExtremeBounds']
+        }
+        def roots = models.collect { "'example.$it'" }.join(', ')
         new File(consumer, 'build.gradle').append("""
-klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints = true }
+klumSchema.jsonSchema { rootTypes.set([$roots]); integralConstraints = $integralMode; decimalConstraints = $decimalMode }
 """)
 
         when:
-        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def result = run('generateKlumJsonSchema')
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'contradictions-' + mode)
+        validation.mkdirs()
+        models.each { new File(validation, it + '.schema.json').bytes = output('example.' + it).bytes }
+        def impossible = document('example.Impossible').get('$defs').get('example.Impossible_DSL$Builder').properties.percent
 
         then:
-        failed.output.contains('Empty integral constraint intersection')
-        failed.output.contains("example.$model#percentage")
-        failed.output.contains("example.$model" + '_DSL$Builder')
-        failed.output.contains("external input 'percent'")
-        failed.output.contains('minimum 200')
-        failed.output.contains('maximum ' + maximum)
-        output('example.Capacity').bytes == previous
-        !output('example.' + model).exists()
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        numericBounds(impossible, 'minimum') == [-2147483648G, 100G]
+        numericBounds(impossible, 'maximum') == [2147483647G, 50G]
         !trap.exists()
 
         where:
-        model            | maximum
-        'Impossible'     | '100'
-        'ImpossibleByte' | '127'
+        mode       | integralMode | decimalMode
+        'integral' | true         | false
+        'decimal'  | false        | true
+        'both'     | true         | true
+    }
+
+    private static List numericBounds(Map schema, String keyword) {
+        def fragments = [schema] + (schema.allOf ?: [])
+        fragments.findAll { it.containsKey(keyword) }.collect { it[keyword] }
     }
 
     @Issue('959')
@@ -1096,7 +1100,7 @@ class RuleValidator implements ConstraintValidator<Rule, Integer> {
     void initialize(Rule rule) { throw new AssertionError('validator initialize executed') }
     boolean isValid(Integer value, ConstraintValidatorContext context) { throw new AssertionError('validator executed') }
 }
-@DSL class Impossible { @JsonProperty('percent') @Min(200L) @Max(100L) Integer percentage }
+@DSL class Impossible { @JsonProperty('percent') @Min(100L) @Max(50L) Integer percentage }
 @DSL class ImpossibleByte { @JsonProperty('percent') @Min(200L) byte percentage }
 @DSL @GroupSequence([SequencedCapacity]) class SequencedCapacity extends CapacityBase {}
 @DSL class CapacityChild { @Min(0L) @Max(100L) Integer percentage }
@@ -1252,11 +1256,17 @@ import java.lang.annotation.*
     Class[] payload() default []
 }
 @DSL class EqualExclusive { @DecimalMin(value='1.00', inclusive=false) @DecimalMax('1E+0') BigDecimal amount }
+@DSL class BothExclusive { @DecimalMin(value='1.00', inclusive=false) @DecimalMax(value='1E+0', inclusive=false) BigDecimal amount }
 @DSL class UpperExclusive { @DecimalMin('1.00') @DecimalMax(value='1E+0', inclusive=false) BigDecimal amount }
 @DSL class ReversedDecimal { @DecimalMin('2') @DecimalMax('1') BigDecimal amount }
 @DSL class NoInteger { @DecimalMin('0.1') @DecimalMax('0.9') BigInteger amount }
 @DSL class ByteOverflow { @DecimalMin(value='127.0', inclusive=false) byte amount }
 @DSL class MixedBounds { @Min(2L) @DecimalMax(value='2.00', inclusive=false) Integer amount }
+@DSL class ExtremeBounds {
+    @DecimalMin('1E+1000000') @DecimalMax('-1E+1000000') BigDecimal huge
+    @DecimalMin('1E-2147483647') @DecimalMax('-1E-2147483647') BigDecimal tiny
+    @DecimalMin('-1E+1000000') @DecimalMax('1E+1000000') BigDecimal ordinary
+}
 @DSL class MalformedDecimal { @DecimalMin('no-number') BigDecimal amount }
 @DSL class Unrepresentable { @DecimalMin('1E+2147483648') BigDecimal amount }
 """)

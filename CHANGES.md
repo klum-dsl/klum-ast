@@ -1,7 +1,8 @@
 # Unreleased
 
 - Added separate opt-in `klumSchema.jsonSchema.decimalConstraints` for exact direct Jakarta DecimalMin/DecimalMax
-  on ordinary BigDecimal/integral inputs, with inclusive/exclusive endpoints and contradiction diagnostics.
+  on ordinary BigDecimal/integral inputs, with inclusive/exclusive endpoints. Integral and decimal bounds preserve contradictory declarations as valid schema
+  assertions; generation performs no numeric satisfiability analysis.
   Integral Min/Max and machine restrictions remain conjoined; old/incomplete decimal metadata requires recompilation
   only when decimal generation is enabled. No raw requiredness, null or runtime-validation changes. See
   [decimal constraints](docs/user/Json-Schema.md#opt-in-decimal-constraints) and

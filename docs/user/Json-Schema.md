@@ -117,7 +117,8 @@ klumSchema.jsonSchema {
 }
 ```
 
-The `percentage` input now has `type: integer`, `minimum: 0` and `maximum: 100`, retaining its source description.
+The `percentage` input retains `type: integer` and its machine bounds, with conjunctive `minimum: 0` and `maximum: 100`
+assertions in `allOf`, retaining its source description.
 Both endpoints, mathematical integer `100.0`, zero and omission pass. Supplied -1/101 fail the bounds; explicit null,
 false, fractions, empty strings and numeric strings retain their structural rejection for this property. Independent
 String/Boolean properties still admit empty strings/false. No `required` comes from `@NotNull`, `@Required` or bounds;
@@ -135,7 +136,8 @@ including inherited and owned dependency Schemas, with matching compiler/runtime
 profile. Missing, unsupported-version, malformed or unverifiable required metadata fails generation with root/use,
 public Builder, available source/external-name and artifact context plus recompile/package guidance. The generator
 never reads Model bytes to fill gaps and does not downgrade incomplete enhanced output. Failure preserves the last
-successful files and manifest. A contradictory intersection, including a bound outside the machine range, also fails.
+successful files and manifest. Supported numeric constraints are projected faithfully, including mutually contradictory
+bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
 Profile selection is a tracked Gradle input and uses the same filenames/output ownership as structural generation;
 use separate task/output configurations if both artifacts are needed simultaneously.
 
@@ -173,15 +175,17 @@ klumSchema.jsonSchema {
 ```
 
 Inclusive bounds use numeric `minimum`/`maximum`; exclusive bounds use Draft 2020-12 numeric
-`exclusiveMinimum`/`exclusiveMaximum`. Parsing, comparison and JSON rendering preserve exact mathematical decimal
+`exclusiveMinimum`/`exclusiveMaximum`. Parsing and JSON rendering preserve exact mathematical decimal
 values, including exponent, leading-plus and zero spellings, without conversion to double. JSON text need not retain
 its authored scale/spelling. Consumers must use precision-capable JSON parsers and validators to retain this guarantee;
 JavaScript Number and other binary floating representations may round these tokens.
 
-The tighter endpoint wins; an exclusive endpoint wins at equal values. Integral targets keep their integer type and
-machine restrictions, and generation proves that the intersection contains an integer. Invalid decimal values,
-unrepresentable exponent/scale and impossible intersections fail before replacing previous output, with source,
-external-name and public-contract diagnostics. Neither bounds nor contradictions infer raw requiredness.
+Each declared bound and the structural integer type/machine restrictions remain conjunctive. Independent keywords
+coexist directly; repeated numeric keywords use `allOf`. Contradictory bounds, equal exclusive endpoints and fractional
+intervals containing no integer generate valid schemas that reject supplied values for that property. Optional properties
+remain omittable. Generation performs no numeric satisfiability analysis. Invalid decimal values and unrepresentable
+exponent/scale still fail before replacing previous output, with source, external-name and public-contract diagnostics.
+Neither bounds nor contradictions infer raw requiredness.
 
 Only one effective direct declaration of each bound, empty groups/payload and no relevant hierarchy group redefinition
 are supported. String, float/double/Number, composed/repeatable, type-use, getter/parameter and authored-operation
