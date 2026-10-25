@@ -41,6 +41,9 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private static final String STRING_TYPE = "string";
+    private static final String DESCRIPTION = "description";
+    private static final String MINIMUM = "minimum";
+    private static final String MAXIMUM = "maximum";
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
     private boolean integralConstraints;
@@ -62,7 +65,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(rootDefinition));
                 document.put("$defs", new TreeMap<>(definitions));
-                if (integralConstraints) document.put("description", "Opt-in raw-input authoring bounds for supplied direct integral properties; "
+                if (integralConstraints) document.put(DESCRIPTION, "Opt-in raw-input authoring bounds for supplied direct integral properties; "
                         + "schema validity does not guarantee construction or completed Model validation.");
                 document.put("$comment", (integralConstraints ? "Raw-input authoring bounds only; " : "Structural input only; ")
                         + "defaults, lifecycle, conversion and completed validation are not evaluated.");
@@ -112,18 +115,21 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
             properties.put(schema.key().externalName(), new LinkedHashMap<>(Map.of("type", STRING_TYPE)));
             object.put("required", List.of(schema.key().externalName()));
         }
-        for (CompiledBuilderSchema.Entry entry : schema.entries().values()) {
-            Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
-            if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
-                value = map(value);
-            if (entry.documentation() != null && !entry.documentation().isBlank())
-                value.put("description", entry.documentation());
-            if (integralConstraints) constrain(entry, value, groupRedefined);
-            properties.put(entry.externalName(), value);
-        }
+        for (CompiledBuilderSchema.Entry entry : schema.entries().values())
+            properties.put(entry.externalName(), property(entry, groupRedefined));
         for (CompiledBuilderSchema.Rejection rejection : schema.rejections())
             diagnostics.put(rejection.source(), rejection.reason());
         return identity;
+    }
+
+    private Map<String, Object> property(CompiledBuilderSchema.Entry entry, boolean groupRedefined) throws ClassNotFoundException {
+        Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
+        if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
+            value = map(value);
+        if (entry.documentation() != null && !entry.documentation().isBlank())
+            value.put(DESCRIPTION, entry.documentation());
+        if (integralConstraints) constrain(entry, value, groupRedefined);
+        return value;
     }
 
     private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
@@ -152,21 +158,17 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         if (rules == null) throw new IllegalArgumentException("Missing constraint source facts for '" + entry.source()
                 + "', external input '" + entry.externalName() + "', public Builder '" + entry.contract().getName()
                 + "'; recompile and package the Schema with matching KlumAST versions");
+        boolean integralProperty = entry.role() == CompiledBuilderSchema.Role.PROPERTY
+                && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR && "integer".equals(value.get("type"));
         for (CompiledBuilderSchema.ConstraintRule rule : rules) {
-            if (rule.plain() && !groupRedefined && entry.role() == CompiledBuilderSchema.Role.PROPERTY
-                    && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR && "integer".equals(value.get("type"))) {
-                String keyword = rule.annotation().endsWith(".Min") ? "minimum" : "maximum";
-                BigInteger bound = new BigInteger(rule.value());
-                // The inert encoding is a Java-long Bean annotation bound, even for BigInteger properties.
-                bound.longValueExact();
-                BigInteger previous = (BigInteger) value.get(keyword);
-                value.put(keyword, previous == null ? bound : keyword.equals("minimum") ? previous.max(bound) : previous.min(bound));
+            if (rule.plain() && !groupRedefined && integralProperty) {
+                intersectBound(value, rule);
             } else {
                 String reason = groupRedefined ? "group redefinition/sequence" : "outside the direct integral, empty groups/payload profile";
                 appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
             }
         }
-        if (value.get("minimum") instanceof BigInteger minimum && value.get("maximum") instanceof BigInteger maximum
+        if (value.get(MINIMUM) instanceof BigInteger minimum && value.get(MAXIMUM) instanceof BigInteger maximum
                 && minimum.compareTo(maximum) > 0)
             throw new IllegalArgumentException("Empty integral constraint intersection for '" + entry.source() + "', external input '"
                     + entry.externalName() + "', public Builder '" + entry.contract().getName() + "': " + rules
@@ -174,9 +176,20 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
     }
 
+    private static void intersectBound(Map<String, Object> value, CompiledBuilderSchema.ConstraintRule rule) {
+        boolean minimum = rule.annotation().endsWith(".Min");
+        String keyword = minimum ? MINIMUM : MAXIMUM;
+        // The inert encoding is a Java-long Bean annotation bound, even for BigInteger properties.
+        BigInteger bound = BigInteger.valueOf(Long.parseLong(rule.value()));
+        BigInteger previous = (BigInteger) value.get(keyword);
+        if (previous != null)
+            bound = minimum ? previous.max(bound) : previous.min(bound);
+        value.put(keyword, bound);
+    }
+
     private static void appendDescription(Map<String, Object> value, String description) {
-        Object existing = value.get("description");
-        value.put("description", existing == null || existing.toString().isBlank() ? description : existing + "\n" + description);
+        Object existing = value.get(DESCRIPTION);
+        value.put(DESCRIPTION, existing == null || existing.toString().isBlank() ? description : existing + "\n" + description);
     }
 
     private static KeyPosition keyPosition(CompiledBuilderSchema.Entry entry) {
@@ -256,8 +269,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         };
         if (bits != 0) {
             BigInteger limit = BigInteger.ONE.shiftLeft(bits - 1);
-            result.put("minimum", limit.negate());
-            result.put("maximum", limit.subtract(BigInteger.ONE));
+            result.put(MINIMUM, limit.negate());
+            result.put(MAXIMUM, limit.subtract(BigInteger.ONE));
         }
         return result;
     }

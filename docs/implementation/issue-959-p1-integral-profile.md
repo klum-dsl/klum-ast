@@ -107,3 +107,18 @@ is included. The final follow-up changes only documentation/evidence and therefo
 Delivery authorization audit: Git SSH branch publication **authorized** (non-mutating push dry run); GitHub CLI repository
 mutation **authorized**. Tracker relationship remains **Related: #959**; no issue/milestone/curation/release-gate change.
 The assigned delivery is a draft PR, with remote CI/SonarCloud results reported separately for its actual head.
+
+## SonarCloud review follow-up
+
+The initial PR-head analysis reported eleven findings: one ignored numeric-conversion result, two cognitive-complexity
+findings, one nested ternary, six repeated-literal findings, and one digit-regex simplification. The follow-up preserves
+published history and addresses all eleven without suppressions. Property emission and bound intersection now have
+focused private helpers; exact Java-long conversion supplies the projected BigInteger value. Shared constants and the
+equivalent default Java digit class remove the remaining duplication/regex findings. No generated ABI or intended
+projection behavior changes.
+
+Local follow-up qualification: all 39 packaged JSON Schema regressions pass, including producer Groovy 3/4/5. All
+21 emitted artifacts are byte-identical to the reviewed revision. The external validator corpora still pass 195 structural
+and 426 enhanced inputs. `CompiledBuilderSchemaTest` passes all 49 cases in each of G3/G4/G5; the three affected source
+license checks, Gradle plugin validation and diff check pass. Both independent reviewers report no actionable findings.
+Remote CI/SonarCloud must confirm the new published head; local validation does not claim a server-side quality-gate result.

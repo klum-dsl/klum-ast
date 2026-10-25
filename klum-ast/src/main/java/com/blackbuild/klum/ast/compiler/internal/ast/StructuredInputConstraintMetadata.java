@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 
 /** Freezes direct field facts at their original source; never copies Bean constraints onto executable sites. */
 final class StructuredInputConstraintMetadata {
+    private static final String VALUE = "value";
     private static final String MIN = "jakarta.validation.constraints.Min";
     private static final String MAX = "jakarta.validation.constraints.Max";
     private static final Set<String> MARKERS = Set.of("jakarta.validation.Constraint", "javax.validation.Constraint",
@@ -66,11 +67,11 @@ final class StructuredInputConstraintMetadata {
             rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
             rule.setMember("plain", ConstantExpression.FALSE);
             if (name.equals(MIN) || name.equals(MAX)) {
-                Expression value = annotation.getMember("value");
+                Expression value = annotation.getMember(VALUE);
                 // Let the ordinary compiler fold the same annotation constant onto our inert long member.
                 // No expression evaluation or user-field reflection is needed by the projector or this capture.
                 if (value != null) {
-                    rule.setMember("value", value);
+                    rule.setMember(VALUE, value);
                     boolean plain = empty(annotation.getMember("groups")) && empty(annotation.getMember("payload"))
                             && declarations.stream().filter(other -> other.getClassNode().getName().equals(name)).count() == 1;
                     rule.setMember("plain", new ConstantExpression(plain));
@@ -91,7 +92,7 @@ final class StructuredInputConstraintMetadata {
         return name.startsWith("jakarta.validation.constraints.") || name.startsWith("javax.validation.constraints.")
                 || name.equals("com.blackbuild.klum.ast.Required") || name.equals("com.blackbuild.klum.ast.Validate")
                 || constraintType(annotation.getClassNode())
-                || annotation.getClassNode().getMethods("value").stream().anyMatch(method -> method.getReturnType().isArray()
+                || annotation.getClassNode().getMethods(VALUE).stream().anyMatch(method -> method.getReturnType().isArray()
                 && constraintType(method.getReturnType().getComponentType()));
     }
 

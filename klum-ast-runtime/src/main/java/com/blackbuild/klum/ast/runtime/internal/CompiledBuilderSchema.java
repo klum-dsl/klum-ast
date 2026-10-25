@@ -58,6 +58,7 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
 final class CompiledBuilderSchema {
     static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
     private static final String VALUE = "value";
+    private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
     private static final String BUILDER_SUFFIX = "_DSL$Builder";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String NUMERIC = "NUMERIC";
@@ -775,7 +776,7 @@ final class CompiledBuilderSchema {
             if (!seen.add(member)) throw invalid("Duplicate constraint member " + member);
             switch (member) {
                 case "annotation" -> annotation = (String) literal;
-                case "value" -> {
+                case VALUE -> {
                     if (!(literal instanceof Long)) throw invalid("Integral constraint value must be a Java long");
                     value = literal.toString();
                 }
@@ -794,9 +795,9 @@ final class CompiledBuilderSchema {
                 throw invalidConstraint(field, "Missing constraint declaration identity");
             if (!seen.contains("plain")) throw invalidConstraint(field, "Missing constraint eligibility");
             boolean integral = Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation);
-            if (integral && !seen.contains("value")) throw invalidConstraint(field, "Missing direct integral bound");
+            if (integral && !seen.contains(VALUE)) throw invalidConstraint(field, "Missing direct integral bound");
             if (plain && (!integral
-                    || !value.matches("-?[0-9]+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
+                    || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
             field.constraints.add(new ConstraintRule(annotation, value, plain, declaration));
         }
     }
@@ -834,7 +835,7 @@ final class CompiledBuilderSchema {
                 case VALUE -> literal.field = (String) value;
                 case "rename" -> literal.rename = (String) value;
                 case "ignored" -> literal.ignored = (Boolean) value;
-                case "constraints" -> throw invalidConstraint(literal, "Unexpected constraint array item");
+                case "constraints" -> throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                 case "fixedKey" -> literal.fixed = (Boolean) value;
                 case "schemaKey" -> literal.schemaKey = (Boolean) value;
                 case "exclusion" -> literal.exclusion = (String) value;
@@ -875,13 +876,13 @@ final class CompiledBuilderSchema {
                         return new ConstraintAnnotationVisitor(literal);
                     }
                     @Override public void visit(String ignored, Object value) {
-                        throw invalidConstraint(literal, "Unexpected constraint array item");
+                        throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                     }
                     @Override public void visitEnum(String ignored, String descriptor, String value) {
-                        throw invalidConstraint(literal, "Unexpected constraint array item");
+                        throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                     }
                     @Override public AnnotationVisitor visitArray(String ignored) {
-                        throw invalidConstraint(literal, "Unexpected constraint array item");
+                        throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                     }
                 };
             }
