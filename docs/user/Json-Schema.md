@@ -64,6 +64,8 @@ properties retain their effective input names; ignored properties remain absent.
 
 ```groovy
 // Schema source, compiled with the current KlumAST compiler:
+package example
+
 import com.blackbuild.klum.ast.DSL
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.Max

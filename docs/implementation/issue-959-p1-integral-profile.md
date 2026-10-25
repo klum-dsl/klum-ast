@@ -72,4 +72,38 @@ output is byte-identical across Groovy 3/4/5. This corpus is manually invoked ex
 
 ## Final validation and delivery
 
-Final affected-suite, root-check, review and delivery results are recorded below when complete.
+The affected G3 run passed 49 `CompiledBuilderSchemaTest`, 32 packaged-generator cases and 40 retained D2 runtime cases,
+with no failures/errors/skips. A separate cache/relocation run then passed both structural and enhanced profiles.
+
+The first independent Standards review found no actionable issues. Specification review found two fail-closed gaps:
+missing eligibility/bound members could weaken a bound to runtime text, and malformed array shapes could be discarded.
+Both were reproduced with binary mutations and corrected in `22555b252`: every rule now carries explicit eligibility,
+each direct Min/Max requires its bound even with unsupported group/payload context, and invalid array items reject.
+Six mutation regressions cover missing eligibility, missing eligibility plus value, missing value on grouped Min, and
+primitive/enum/nested-array items. The corrected focused suite passed all 14 cases (mutations, missing-artifact facts,
+and the three producer generations). Both independent reviewers rechecked the correction against the original base
+and reported zero remaining actionable findings.
+
+An initial root-check run was intentionally stopped after these review findings; it is not a qualification pass.
+The corrected source tip then completed the full JDK 17 root `check --no-parallel --max-workers=2` successfully
+(140 actionable tasks; 16m27s). A temporary diagnostic init script changed only exception logging. This includes G3/G4/G5,
+license checks, lane isolation, Gradle-plugin validation, coverage aggregation and documentation-renderer verification.
+JUnit reports contain 3,042 G3 cases (17 existing skips), 2,616 G4 cases (16 existing skips) and 2,616 G5 cases
+(16 existing skips), with no failures/errors. All 39 JSON Schema regression cases pass without skips; this slice adds no
+ignored/pending tests.
+
+A preceding broad run reported source-mirror integration failures and was stopped for diagnosis. The original first
+case passed alone, the full source-mirror class passed, and the complete root retry passed without any production
+change. The failure was not reproduced; no speculative fix or suppression was added. The successful retry, rather
+than that interrupted attempt, supplies final root evidence.
+
+The external structural/enhanced corpora pass again on the corrected emitted artifacts: 18/3 metaschemas, 195/426 input
+checks, with cross-generation byte equality. Relative documentation targets and `git diff --check` pass.
+
+The commit history was reviewed before publication: feature capture/projection, qualification, documentation, and the
+focused review corrections are separate coherent steps. Reviewed local corrections remain additive; no unrelated work
+is included. The final follow-up changes only documentation/evidence and therefore needs no repeated Groovy lanes.
+
+Delivery authorization audit: Git SSH branch publication **authorized** (non-mutating push dry run); GitHub CLI repository
+mutation **authorized**. Tracker relationship remains **Related: #959**; no issue/milestone/curation/release-gate change.
+The assigned delivery is a draft PR, with remote CI/SonarCloud results reported separately for its actual head.

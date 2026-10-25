@@ -346,13 +346,14 @@ Lexical recognition cannot alone prove positivity, overflow or a relationship su
 ## Conditional slices, fixtures and commit boundaries
 
 P0's bounded metadata experiment is complete and recorded in its [evidence report](evidence/issue-959-p0-binary-metadata.md).
-The table retains its probe contract for traceability. P1–P4 remain conditional proposals requiring separate decisions
-and explicit scheduling; accepting D1 and D2 does not start them.
+The table retains its probe contract for traceability. P1 was subsequently assigned and implemented in the
+[bounded integral slice](issue-959-p1-integral-profile.md); P2–P4 remain conditional proposals. D1/D2 alone did not
+authorize production work.
 
 | Slice | Scope and reasoned commits | Executable acceptance / exit gate |
 | --- | --- | --- |
 | P0: completed bounded probe | Test-only binary metadata experiment and separate evidence report; D1 now reconciles metadata authority. No production generator behavior. | Separate Java annotation/API JAR, transformed Schema JAR and source-free consumer; inspect exact field/getter/parameter/type-use/type sites and annotation defaults. Compare small enrichment candidate versus targeted byte-reading necessity; stop if neither respects approved architecture. |
-| P1: unapproved production candidate | One vertical commit for qualified inert metadata + private integral mapping/text + tests; a separate user-doc/release-note commit. No SPI. | D1/D2 accepted; an explicit P1 plan and scheduling are still required. `@Issue('959')` percentage fixture with boundary/type/null/omission cases, exact old machine bounds, repeatable/composed/group/payload fallback, rename/ignore/inheritance and unchanged source attribution. Preserve previous output on generation failure. |
+| P1: assigned bounded integral implementation | Compiler/public-Builder facts, private integral mapping/text, binary qualification, user docs and release notes; see the [implementation record](issue-959-p1-integral-profile.md). No SPI. | D1/D2 plus the separate bounded P1 assignment govern the delivered profile. `@Issue('959')` percentage fixture with boundary/type/null/omission cases, exact old machine bounds, repeatable/composed/group/payload fallback, rename/ignore/inheritance and unchanged source attribution. Preserve previous output on generation failure. |
 | P2: decimal/container/pattern subsets | Independently reasoned vertical commits only for each newly approved mapping; no obligation to bundle them. | Exact decimals and inclusive/exclusive intersections; collection population/cardinality; UTF-16/supplementary length cases; Java/ECMA full-match corpus including flags and trailing newline. Unsupported variants remain visible text. |
 | P3: contextual defaults | One narrow relationship-literal overlay commit + matching docs, after D4 and P0 evidence. | Shared child with 8/4/2 relationship defaults, no `$defs` leakage, aliases, sentinel equality, Java defaults, enum traps, `valueTarget`, 0/false/empty and unsupported coercion/conflict; prove JSON validation does not populate defaults. |
 | P4: optional extensions | Only if D3 later selects callback or declarative provider; draft its own ADR/API before code. | Exact multi-target selection, repeatable/composed semantics, no Model/context inputs, failure diagnostics, explicit code execution and classloader/cache/resource contract. No automatic follow-on from P1. |
@@ -383,20 +384,22 @@ existing Builder signatures, runtime validation, lifecycle, ownership, serializa
 Future feature delivery updates [JSON Schema](../user/Json-Schema.md), [Validation](../user/Validation.md),
 [Default Values](../user/Default-Values.md), applicable [migration navigation](../user/Migration.md), `CHANGES.md` and
 issue evidence together. The original feasibility/D1 documentation delivery changed no test fixtures. D2 adds only
-characterization fixtures and evidence; current feature guidance, release notes, API and production behavior remain
-unchanged. No production behavior or implementation PR is authorized by a merged feasibility document.
+characterization fixtures and evidence. The separately assigned P1 now updates the relevant JSON Schema/migration
+guidance and release notes for its delivered behavior. A merged feasibility document alone authorizes no additional
+production behavior or implementation PR.
 
 ## Decision status and remaining gates
 
-D1 and D2 are accepted. D3–D6 remain recommendations; neither accepted decision schedules production implementation.
+D1 and D2 are accepted. The separate bounded P1 assignment now supplies their direct-integral implementation.
+D3–D6 and broader P2–P4 work remain recommendations; no release commitment follows.
 
 | Decision | Status / proposed answer | What remains blocked |
 | --- | --- | --- |
-| D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. Existing structural generation stays as-is; explicit future enhanced projection fails closed on missing required Schema metadata, with recompile/package guidance. No compatibility/reporting mode now. | Production encoding, exact fact set, generated ABI/emission hook and compatibility qualification; D3–D6/P1 are not approved. |
-| D2: raw-input strength/profile | **B accepted.** [Characterization and accepted contract](evidence/issue-959-d2-raw-input-profile.md): direct integral Min/Max, empty groups/payload, explicit off-by-default activation; deterministic text for unsupported complete declarations. Preserve null/admission and no inferred required. | Exact configuration/metadata encoding and production qualification remain P1 planning. Hypothetical construction-time repairs do not weaken the accepted raw-input policy. Production implementation still requires a separate assignment. |
+| D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. Existing structural generation stays as-is; explicit future enhanced projection fails closed on missing required Schema metadata, with recompile/package guidance. No compatibility/reporting mode now. | Bounded P1 now records its internal encoding, fact set, emission hook and qualification. Broader D3–D6 mappings remain unapproved. |
+| D2: raw-input strength/profile | **B accepted.** [Characterization and accepted contract](evidence/issue-959-d2-raw-input-profile.md): direct integral Min/Max, empty groups/payload, explicit off-by-default activation; deterministic text for unsupported complete declarations. Preserve null/admission and no inferred required. | P1 now records exact activation, metadata and qualification. Hypothetical construction-time repairs do not weaken the accepted raw-input policy; broader mappings need another assignment. |
 | D3: custom extension | Defer callbacks and description SPI; first establish useful generic text. | Any build-time user-code execution or new public provider API. Later callback approval must amend the no-execution promise explicitly. |
 | D4: default meaning | Probe scalar relationship literals; initially describe ambiguous precedence. | Whether unambiguous declared fallback may use standard `default`; array/coercion/type-level support and handling multiple sources. |
-| D5: delivery and release | Keep #959 open and untargeted; P0 evidence is complete, while later delivery needs separate scheduling. | Milestone/4.2 commitment, further architectural decisions and implementation publication beyond this authorized D1 documentation delivery. Quantity grammar remains consumer-owned; #962 remains separate. |
+| D5: delivery and release | Keep #959 open and untargeted; P0 evidence is complete, while later delivery needs separate scheduling. | Milestone/4.2 commitment, further architectural decisions and publication beyond the bounded P1 assignment. Quantity grammar remains consumer-owned; #962 remains separate. |
 | D6: shared relationship projection | Probe separate private semantic projectors over a small shared placement context and renderer; defer a unified public contributor SPI. | Exact context/contribution shape, collision policy and any hard mapping for relationship annotations. Evidence from these candidates does not authorize extending P1. |
 
 Primary risks are false restrictions on raw input, incomplete binary metadata mistaken for no constraints, accidental
