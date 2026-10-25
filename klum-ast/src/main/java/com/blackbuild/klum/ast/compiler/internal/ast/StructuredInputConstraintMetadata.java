@@ -54,33 +54,43 @@ final class StructuredInputConstraintMetadata {
 
     static void enrichSchema(ClassNode model, AnnotationNode schema) {
         schema.setMember("constraintVersion", new ConstantExpression(1));
+        schema.setMember("decimalVersion", new ConstantExpression(1));
         schema.setMember("groupRedefined", new ConstantExpression(groupRedefined(model, new HashSet<>())));
     }
 
     static void enrichField(FieldNode field, AnnotationNode fact) {
         ListExpression constraints = new ListExpression();
         List<AnnotationNode> declarations = field.getAnnotations().stream().filter(StructuredInputConstraintMetadata::constraint).toList();
-        declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right))).forEach(annotation -> {
-            String name = annotation.getClassNode().getName();
-            AnnotationNode rule = new AnnotationNode(ClassHelper.make(GeneratedInput.Constraint.class));
-            rule.setMember("annotation", new ConstantExpression(name));
-            rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
-            rule.setMember("plain", ConstantExpression.FALSE);
-            if (name.equals(MIN) || name.equals(MAX)) {
-                Expression value = annotation.getMember(VALUE);
-                // Let the ordinary compiler fold the same annotation constant onto our inert long member.
-                // No expression evaluation or user-field reflection is needed by the projector or this capture.
-                if (value != null) {
-                    rule.setMember(VALUE, value);
-                    boolean plain = empty(annotation.getMember("groups")) && empty(annotation.getMember("payload"))
-                            && declarations.stream().filter(other -> other.getClassNode().getName().equals(name)).count() == 1;
-                    rule.setMember("plain", new ConstantExpression(plain));
-                }
-            }
-            constraints.addExpression(new AnnotationConstantExpression(rule));
-        });
+        declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
+                .map(annotation -> rule(annotation, declarations))
+                .map(AnnotationConstantExpression::new).forEach(constraints::addExpression);
         // Explicit empty arrays distinguish complete absence of rules from stripped/old field metadata.
         fact.setMember("constraints", constraints);
+    }
+
+    private static AnnotationNode rule(AnnotationNode annotation, List<AnnotationNode> declarations) {
+        String name = annotation.getClassNode().getName();
+        AnnotationNode rule = new AnnotationNode(ClassHelper.make(GeneratedInput.Constraint.class));
+        rule.setMember("annotation", new ConstantExpression(name));
+        rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
+        rule.setMember("plain", ConstantExpression.FALSE);
+        boolean decimal = name.equals("jakarta.validation.constraints.DecimalMin") || name.equals("jakarta.validation.constraints.DecimalMax");
+        if (name.equals(MIN) || name.equals(MAX) || decimal) captureBound(annotation, declarations, rule, decimal);
+        return rule;
+    }
+
+    private static void captureBound(AnnotationNode annotation, List<AnnotationNode> declarations, AnnotationNode rule, boolean decimal) {
+        Expression value = annotation.getMember(VALUE);
+        if (value == null) return;
+        // The ordinary annotation compiler folds constants into inert typed members. Capture never evaluates them.
+        rule.setMember(decimal ? "decimalValue" : VALUE, value);
+        if (decimal) {
+            Expression inclusive = annotation.getMember("inclusive");
+            rule.setMember("inclusive", inclusive == null ? ConstantExpression.TRUE : inclusive);
+        }
+        boolean plain = empty(annotation.getMember("groups")) && empty(annotation.getMember("payload"))
+                && declarations.stream().filter(other -> other.getClassNode().getName().equals(annotation.getClassNode().getName())).count() == 1;
+        rule.setMember("plain", new ConstantExpression(plain));
     }
 
     private static boolean empty(Expression expression) {

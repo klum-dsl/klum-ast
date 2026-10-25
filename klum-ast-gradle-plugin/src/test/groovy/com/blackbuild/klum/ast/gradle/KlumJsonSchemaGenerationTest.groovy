@@ -307,6 +307,129 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Issue('959')
     @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-decimal-constraints')
+    def 'generate exact direct decimal authoring bounds from source-free binaries with Groovy #generation'() {
+        given:
+        fixture(generation, false, true, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price']); integralConstraints = true }\n")
+        run('generateKlumJsonSchema')
+        def original = document('example.Price').get('$defs').get('example.Price_DSL$Builder')
+
+        when:
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price', 'example.SequencedPrice']); integralConstraints = false; decimalConstraints = true }\n")
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.Price')
+        def root = schema.get('$defs').get('example.Price_DSL$Builder')
+        def properties = root.properties
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'decimal-' + generation)
+        validation.mkdirs()
+        new File(validation, 'price.schema.json').bytes = output('example.Price').bytes
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        !original.properties.amount.containsKey('exclusiveMinimum')
+        properties.amount.exclusiveMinimum == 0.10G
+        properties.amount.maximum == 9007199254740993.0000000001G
+        properties.amount.description.contains('Authored price.')
+        properties.equal.minimum == 1G && properties.equal.maximum == 1G
+        properties.zero.minimum == 0G && properties.zero.maximum == 0G
+        properties.exponent.minimum == 2500G && properties.exponent.maximum == 3E+3G
+        properties.tiny.minimum == 1E-1000G
+        properties.'inherited-price'.exclusiveMinimum == -1.2300E+2G
+        properties.'inherited-price'.'x-klum-constraint-source' == 'example.DecimalBase#inherited'
+        ['boundedByte', 'boundedShort', 'boundedPrimitiveShort', 'boundedInt', 'boundedPrimitiveInt', 'boundedLong', 'boundedPrimitiveLong', 'boundedBigInteger'].every {
+            properties[it].type == 'integer' && properties[it].exclusiveMinimum == -0.1G && properties[it].maximum == 1.1G
+        }
+        properties.units.type == 'integer'
+        properties.units.minimum == 2G && properties.units.exclusiveMaximum == 3.1G
+        !properties.machine.containsKey('minimum') && properties.machine.maximum == 127
+        properties.machine.exclusiveMinimum == -0.1G
+        properties.tight.minimum == 2G && !properties.tight.containsKey('exclusiveMinimum')
+        properties.tie.exclusiveMinimum == 2G && !properties.tie.containsKey('minimum')
+        properties.child.'$ref'
+        schema.get('$defs').get('example.DecimalChild_DSL$Builder').properties.amount.minimum == 0G
+        ['text', 'floating', 'doubleValue', 'grouped', 'payloadBound', 'repeated', 'composed'].every {
+            !properties[it].containsKey('exclusiveMinimum') && !properties[it].containsKey('minimum')
+                    && properties[it].description.contains('Runtime constraint (not enforced by this schema')
+        }
+        properties.operation.type == 'number' && !properties.operation.containsKey('minimum')
+        !root.containsKey('required')
+        document('example.SequencedPrice').get('$defs').get('example.SequencedPrice_DSL$Builder').properties.amount.description.contains('group redefinition/sequence')
+        !document('example.SequencedPrice').get('$defs').get('example.SequencedPrice_DSL$Builder').properties.amount.containsKey('maximum')
+        !trap.exists()
+        !new File(producer, 'schema/src').exists() && !new File(producer, 'api/src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'only decimal mode requires complete decimal facts on #target: #kind'() {
+        given:
+        fixture('3', false, true, false, true)
+        stripConstraintFacts(target, kind)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price']); integralConstraints = true }\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Price').bytes
+        File manifest = new File(output('example.Price').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.decimalConstraints = true\n')
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains(target + '_DSL$Builder')
+        failed.output.contains('recompile and package')
+        failed.output.contains(reason)
+        output('example.Price').bytes == previous
+        manifest.text == previousManifest
+        !trap.exists()
+
+        where:
+        target         | kind                    | reason
+        'Price'        | 'decimal-version'       | 'decimal metadata version 0'
+        'DecimalBase'  | 'decimal-version'       | 'decimal metadata version 0'
+        'DecimalChild' | 'decimal-version'       | 'decimal metadata version 0'
+        'Price'        | 'future-decimal'        | 'decimal metadata version 2'
+        'Price'        | 'decimalValue'          | 'missing direct decimal facts'
+        'Price'        | 'inclusive'             | 'missing direct decimal facts'
+    }
+
+    @Issue('959')
+    def 'decimal policy errors preserve previous output: #model'() {
+        given:
+        fixture('3', false, true, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Price'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Price').bytes
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.$model']); decimalConstraints = true }\n")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains(reason)
+        failed.output.contains('example.' + model + '#amount')
+        failed.output.contains("external input 'amount'")
+        output('example.Price').bytes == previous
+        !output('example.' + model).exists()
+        !trap.exists()
+
+        where:
+        model                | reason
+        'EqualExclusive'     | 'Empty decimal constraint intersection'
+        'UpperExclusive'     | 'Empty decimal constraint intersection'
+        'ReversedDecimal'    | 'Empty decimal constraint intersection'
+        'NoInteger'          | 'Empty decimal constraint intersection'
+        'ByteOverflow'       | 'Empty decimal constraint intersection'
+        'MixedBounds'        | 'Empty decimal constraint intersection'
+        'MalformedDecimal'   | 'Invalid decimal bound'
+        'Unrepresentable'    | 'Invalid decimal bound'
+    }
+
+    @Issue('959')
+    @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-integral-constraints')
     def 'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'() {
         given:
@@ -787,7 +910,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -1077,6 +1200,67 @@ import jakarta.validation.constraints.*
     @JsonProperty('inherited-size') @Size(min=1) List<String> inheritedWords
 """)
         }
+        if (decimals) {
+            writeSource('api/src/main/groovy/example/DecimalBase.groovy', """
+package example
+import com.blackbuild.klum.ast.DSL
+import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.validation.constraints.*
+@DSL abstract class DecimalBase {
+    @JsonProperty('inherited-price') @DecimalMin(value='-1.2300E+2', inclusive=false) BigDecimal inherited
+}
+class DecimalConstants {
+    public static final String HIGH = '9007199254740993.0000000001'
+}
+""")
+            writeSource('schema/src/main/groovy/example/Price.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.*
+import jakarta.validation.Constraint
+import jakarta.validation.GroupSequence
+import java.lang.annotation.*
+@DSL class Price extends DecimalBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Model initialized') }
+    /** Authored price. */
+    @DecimalMin(value='0.10', inclusive=false) @DecimalMax(value=DecimalConstants.HIGH, inclusive=true) BigDecimal amount
+    @DecimalMin('1.00') @DecimalMax('1E+0') BigDecimal equal
+    @DecimalMin('-0.00') @DecimalMax('+0E+2') BigDecimal zero
+    @DecimalMin('+2.50E+3') @DecimalMax('3E+3') BigDecimal exponent
+    @DecimalMin('1E-1000') BigDecimal tiny
+    ${[Byte: 'boundedByte', Short: 'boundedShort', short: 'boundedPrimitiveShort', Integer: 'boundedInt', int: 'boundedPrimitiveInt', Long: 'boundedLong', long: 'boundedPrimitiveLong', BigInteger: 'boundedBigInteger'].collect { type, name -> "@DecimalMin(value='-0.1', inclusive=false) @DecimalMax('1.1') $type $name" }.join('\n    ')}
+    @Min(2L) @Max(4L) @DecimalMin('1.1') @DecimalMax(value='3.1', inclusive=false) Integer units
+    @DecimalMin(value='-0.1', inclusive=false) byte machine
+    @Min(2L) @DecimalMin(value='1.0', inclusive=false) BigInteger tight
+    @Min(2L) @DecimalMin(value='2.00', inclusive=false) BigInteger tie
+    @DecimalMin('1') String text
+    @DecimalMin('1') float floating
+    @DecimalMin('1') double doubleValue
+    @DecimalMin(value='1', groups=Later) BigDecimal grouped
+    @DecimalMin(value='1', payload=Warning) BigDecimal payloadBound
+    @DecimalMin.List([@DecimalMin('1'), @DecimalMin('2')]) BigDecimal repeated
+    @DecimalPolicy BigDecimal composed
+    DecimalChild child
+    @Builder.Method void operation(@DecimalMin('1') BigDecimal value) { throw new AssertionError('operation executed') }
+}
+@DSL @GroupSequence([SequencedPrice]) class SequencedPrice extends Price {}
+@DSL class DecimalChild { @DecimalMin('0') BigDecimal amount }
+@DecimalMin('1') @Constraint(validatedBy=[]) @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD])
+@interface DecimalPolicy {
+    String message() default 'decimal'
+    Class[] groups() default []
+    Class[] payload() default []
+}
+@DSL class EqualExclusive { @DecimalMin(value='1.00', inclusive=false) @DecimalMax('1E+0') BigDecimal amount }
+@DSL class UpperExclusive { @DecimalMin('1.00') @DecimalMax(value='1E+0', inclusive=false) BigDecimal amount }
+@DSL class ReversedDecimal { @DecimalMin('2') @DecimalMax('1') BigDecimal amount }
+@DSL class NoInteger { @DecimalMin('0.1') @DecimalMax('0.9') BigInteger amount }
+@DSL class ByteOverflow { @DecimalMin(value='127.0', inclusive=false) byte amount }
+@DSL class MixedBounds { @Min(2L) @DecimalMax(value='2.00', inclusive=false) Integer amount }
+@DSL class MalformedDecimal { @DecimalMin('no-number') BigDecimal amount }
+@DSL class Unrepresentable { @DecimalMin('1E+2147483648') BigDecimal amount }
+""")
+        }
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -1183,8 +1367,8 @@ class InitializationControl {
 
     // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
     private void stripConstraintFacts(String target, String kind) {
-        File jar = new File(repository, 'fixture/' + (target == 'CapacityBase' ? 'api' : 'schema') + '/1.0/'
-                + (target == 'CapacityBase' ? 'api' : 'schema') + '-1.0.jar')
+        File jar = new File(repository, 'fixture/' + (target in ['CapacityBase', 'DecimalBase'] ? 'api' : 'schema') + '/1.0/'
+                + (target in ['CapacityBase', 'DecimalBase'] ? 'api' : 'schema') + '-1.0.jar')
         File replacement = new File(directory, 'stripped.jar')
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
@@ -1199,7 +1383,9 @@ class InitializationControl {
                                 if (!descriptor.endsWith('GeneratedInput$Schema;')) return delegate
                                 new AnnotationVisitor(Opcodes.ASM9, delegate) {
                                     @Override void visit(String name, Object value) {
-                                        if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) super.visit(name, value)
+                                        if (name == 'decimalVersion' && kind in ['decimal-version', 'future-decimal']) {
+                                            if (kind == 'future-decimal') super.visit(name, 2)
+                                        } else if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) super.visit(name, value)
                                         else if (kind == 'future-version') super.visit(name, 2)
                                     }
                                 }
@@ -1228,6 +1414,7 @@ class InitializationControl {
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
+                                                                if (kind in ['decimalValue', 'inclusive'] && attribute == kind) return
                                                                 if (kind in ['plain', 'value'] && attribute == 'plain' || kind in ['value', 'group-value'] && attribute == 'value') return
                                                                 super.visit(attribute, value)
                                                             }

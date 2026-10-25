@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -37,7 +38,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /** Private plugin implementation, loaded beside the facade in one isolated unnamed module. */
-final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Map<String, String>> {
+final class JsonSchemaProjection implements BiFunction<List<String>, Map<String, Boolean>, Map<String, String>> {
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private static final String STRING_TYPE = "string";
@@ -47,12 +48,14 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
     private boolean integralConstraints;
+    private boolean decimalConstraints;
     private final Map<Class<?>, CompiledBuilderSchema.ConstraintProfile> constraintProfiles = new LinkedHashMap<>();
     private enum KeyPosition { MEMBER, KEYLESS, UNKNOWN_DIRECT }
 
     @Override
-    public Map<String, String> apply(List<String> roots, Boolean enhanced) {
-        integralConstraints = Boolean.TRUE.equals(enhanced);
+    public Map<String, String> apply(List<String> roots, Map<String, Boolean> options) {
+        integralConstraints = Boolean.TRUE.equals(options.get("integralConstraints"));
+        decimalConstraints = Boolean.TRUE.equals(options.get("decimalConstraints"));
         Map<String, String> result = new LinkedHashMap<>();
         for (String root : roots.stream().sorted().toList()) {
             definitions.clear();
@@ -65,9 +68,9 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(rootDefinition));
                 document.put("$defs", new TreeMap<>(definitions));
-                if (integralConstraints) document.put(DESCRIPTION, "Opt-in raw-input authoring bounds for supplied direct integral properties; "
+                if (enhanced()) document.put(DESCRIPTION, "Opt-in raw-input authoring bounds for supplied direct numeric properties; "
                         + "schema validity does not guarantee construction or completed Model validation.");
-                document.put("$comment", (integralConstraints ? "Raw-input authoring bounds only; " : "Structural input only; ")
+                document.put("$comment", (enhanced() ? "Raw-input authoring bounds only; " : "Structural input only; ")
                         + "defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
                 result.put(root + ".schema.json", json(document) + "\n");
@@ -96,7 +99,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
                 + "Factory", false, builder.getClassLoader());
         CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
         validateKeyPosition(schema, position, source);
-        boolean groupRedefined = integralConstraints && collectConstraintProfiles(builder, schema, source);
+        boolean groupRedefined = enhanced() && collectConstraintProfiles(builder, schema, source);
         boolean keyless = position == KeyPosition.KEYLESS;
         String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
         if (definitions.containsKey(identity)) return identity;
@@ -131,7 +134,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
-        if (integralConstraints) constrain(entry, value, groupRedefined);
+        if (enhanced()) constrain(entry, value, groupRedefined);
         return value;
     }
 
@@ -142,7 +145,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
     private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
         CompiledBuilderSchema.ConstraintProfile profile;
         try {
-            profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
+            profile = constraintProfiles.computeIfAbsent(builder, type -> CompiledBuilderSchema.constraintProfile(type, decimalConstraints));
         } catch (RuntimeException failure) {
             String affected = schema.entries().values().stream().filter(entry -> entry.contract() == builder)
                     .map(entry -> entry.source() + " (external input '" + entry.externalName() + "')")
@@ -165,33 +168,45 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         if (rules == null) throw new IllegalArgumentException("Missing constraint source facts for '" + entry.source()
                 + "', external input '" + entry.externalName() + "', public Builder '" + entry.contract().getName()
                 + "'; recompile and package the Schema with matching KlumAST versions");
-        boolean integralProperty = entry.role() == CompiledBuilderSchema.Role.PROPERTY
-                && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR && "integer".equals(value.get("type"));
+        boolean ordinaryScalar = entry.role() == CompiledBuilderSchema.Role.PROPERTY
+                && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR;
+        boolean integralProperty = ordinaryScalar && "integer".equals(value.get("type"));
+        boolean decimalProperty = ordinaryScalar && entry.payload().type() == BigDecimal.class;
+        NumericBounds bounds = new NumericBounds(value);
         for (CompiledBuilderSchema.ConstraintRule rule : rules) {
-            if (rule.plain() && !groupRedefined && integralProperty) {
-                intersectBound(value, rule);
-            } else {
-                String reason = groupRedefined ? "group redefinition/sequence" : "outside the direct integral, empty groups/payload profile";
-                appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
-            }
+            if (!groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty)) continue;
+            String reason = groupRedefined ? "group redefinition/sequence" : "outside the selected direct numeric, empty groups/payload profile";
+            appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
-        if (value.get(MINIMUM) instanceof BigInteger minimum && value.get(MAXIMUM) instanceof BigInteger maximum
-                && minimum.compareTo(maximum) > 0)
-            throw new IllegalArgumentException("Empty integral constraint intersection for '" + entry.source() + "', external input '"
-                    + entry.externalName() + "', public Builder '" + entry.contract().getName() + "': " + rules
-                    + "; minimum " + minimum + " exceeds maximum " + maximum);
+        if (!bounds.possible(integralProperty))
+            throw new IllegalArgumentException("Empty " + (decimalConstraints ? "decimal" : "integral")
+                    + " constraint intersection for '" + entry.source() + "', external input '" + entry.externalName()
+                    + "', public Builder '" + entry.contract().getName() + "': " + rules + "; " + bounds);
+        bounds.write(value);
         if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
     }
 
-    private static void intersectBound(Map<String, Object> value, CompiledBuilderSchema.ConstraintRule rule) {
-        boolean minimum = rule.annotation().endsWith(".Min");
-        String keyword = minimum ? MINIMUM : MAXIMUM;
-        // The inert encoding is a Java-long Bean annotation bound, even for BigInteger properties.
-        BigInteger bound = BigInteger.valueOf(Long.parseLong(rule.value()));
-        BigInteger previous = (BigInteger) value.get(keyword);
-        if (previous != null)
-            bound = minimum ? previous.max(bound) : previous.min(bound);
-        value.put(keyword, bound);
+    private boolean projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
+                                 NumericBounds bounds, boolean integral, boolean decimal) {
+        if (!rule.plain()) return false;
+        if (integral && (rule.annotation().equals("jakarta.validation.constraints.Min")
+                || rule.annotation().equals("jakarta.validation.constraints.Max"))) {
+            bounds.add(new BigDecimal(rule.value()), true, rule.annotation().endsWith(".Min"));
+            return true;
+        }
+        if (!decimalConstraints || !(integral || decimal) || !(rule.annotation().equals("jakarta.validation.constraints.DecimalMin")
+                || rule.annotation().equals("jakarta.validation.constraints.DecimalMax"))) return false;
+        try {
+            bounds.add(new BigDecimal(rule.decimalValue()), rule.inclusive(), rule.annotation().endsWith(".DecimalMin"));
+            return true;
+        } catch (NumberFormatException failure) {
+            throw new IllegalArgumentException("Invalid decimal bound for '" + entry.source() + "', external input '"
+                    + entry.externalName() + "', public Builder '" + entry.contract().getName() + "': " + rule.decimalValue(), failure);
+        }
+    }
+
+    private boolean enhanced() {
+        return integralConstraints || decimalConstraints;
     }
 
     private static void appendDescription(Map<String, Object> value, String description) {
@@ -286,7 +301,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
         return "#/$defs/" + URLEncoder.encode(identity.replace("~", "~0").replace("/", "~1"), StandardCharsets.UTF_8).replace("+", "%20");
     }
 
-    /** Deterministic JSON with exact integer values and no rendering dependency in runtime or the plugin. */
+    /** Deterministic JSON with exact numeric values and no rendering dependency in runtime or the plugin. */
     private static String json(Object value) {
         if (value instanceof String string) return quote(string);
         if (value instanceof Map<?, ?> map)
@@ -294,7 +309,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Boolean, Ma
                     .map(entry -> quote(entry.getKey().toString()) + ":" + json(entry.getValue()))
                     .collect(Collectors.joining(",", "{", "}"));
         if (value instanceof List<?> list) return list.stream().map(JsonSchemaProjection::json).collect(Collectors.joining(",", "[", "]"));
-        if (value instanceof Boolean || value instanceof BigInteger) return value.toString();
+        if (value instanceof Boolean || value instanceof BigInteger || value instanceof BigDecimal) return value.toString();
         throw new IllegalArgumentException("Unexpected private JSON value: " + value);
     }
 
