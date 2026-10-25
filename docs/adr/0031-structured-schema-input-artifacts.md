@@ -527,3 +527,25 @@ new mapping or activation/public API decision; future work needs a separate narr
 metadata compatibility qualification. No runtime, lifecycle, ownership, serialization or generated ABI changes are made.
 The retained probes qualify Groovy 3/4/5 inputs and binary producers, not a new JPMS or consumer acceptance promise.
 No release/milestone or broader D3–D6 decision follows; #959 remains open.
+
+
+## Default advisory deprecation — #959 narrow follow-up
+
+Date: 2026-10-25. Status: **Approved bounded implementation; broader #959 remains open**.
+The separately assigned follow-up selects default Draft 2020-12 `deprecated: true` for effective admitted members whose
+Schema source declaration carries `java.lang.Deprecated`. It is independent of the opt-in integral authoring profile;
+there is no Gradle switch. This supersedes the earlier candidate's future-profile wording for deprecation only.
+
+The compiler emits explicit source-deprecation Booleans on existing public `GeneratedInput.Field`/`Key` facts and a
+minimal `GeneratedInput.Operation` fact on the exact public projection of a Schema-authored Builder operation. The
+private reader retains missing as unknown and never derives source deprecation from generated methods or Model bytes.
+An absent optional source-deprecation fact in older artifacts does not fail structural generation; omit the advisory
+keyword for that member. Integral constraints retain their independent completeness/failure contract.
+
+Apply metadata to the effective property/operation-payload or relationship-use position, and to construction keys
+only where the key member is present. Preserve inheritance, naming/exclusion/collision handling, documentation, shared
+child definitions and nondeprecated sibling uses. Framework compatibility aliases and class-level deprecation supply
+no member deprecation. No requiredness/null-admission change, rejection, runtime validation, lifecycle/default/converter
+execution, removal/replacement/migration policy or `since`/`forRemoval` interpretation follows.
+
+[Implementation and qualification](../implementation/issue-959-deprecation-projection.md) records this slice.

@@ -149,10 +149,15 @@ final class StructuredInputAdmissionPlan {
         restoreAuthoredFacts(transformation);
     }
 
+    private static void enrichDeprecation(AnnotatedNode source, AnnotationNode fact) {
+        fact.setMember("sourceDeprecated", new ConstantExpression(annotation(source, Deprecated.class.getName()) != null));
+    }
+
     private static void enrichKey(ClassNode builder, FieldNode key, AnnotationNode schema) {
         MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(key.getName()), Parameter.EMPTY_ARRAY);
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Key.class));
         fact.setMember(VALUE, new ConstantExpression(key.getName()));
+        enrichDeprecation(key, fact);
         Name name = externalName(key);
         if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
         else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
@@ -171,6 +176,7 @@ final class StructuredInputAdmissionPlan {
         }
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
         fact.setMember(VALUE, new ConstantExpression(field.getName()));
+        enrichDeprecation(field, fact);
         Name name = externalName(field);
         if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
         else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
@@ -248,6 +254,10 @@ final class StructuredInputAdmissionPlan {
                 .forEach(method -> {
                     MethodNode api = GeneratedDslSupport.publicProjectionOf(method);
                     if (api == null) return;
+                    // Read the authored implementation, never a generated/compatibility projection's annotations.
+                    AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
+                    enrichDeprecation(method, operation);
+                    api.addAnnotation(operation);
                     method.getAnnotations().stream().filter(annotation -> authoredFacts.contains(annotation.getClassNode().getName()))
                             .forEach(annotation -> {
                                 api.getAnnotations().removeIf(existing -> existing.getClassNode().getName().equals(annotation.getClassNode().getName()));
