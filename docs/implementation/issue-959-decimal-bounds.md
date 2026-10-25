@@ -176,3 +176,11 @@ checkpoint above records the pre-fix state; it is not the final result. The main
 The implementation and local qualification are complete. Draft PR publication follows this record; its live state and
 any subsequent review/CI result are GitHub facts, not inferred from this local checkpoint. Review/merge and Hive
 archive reconciliation remain separate external conditions.
+
+### Current-master documentation reconciliation
+
+Master advanced through merged PR #970 while this slice was being qualified. Its changes are documentation only:
+the D7 evidence brief and ADR checkpoint deliberately defer all D7 implementation and explicitly allow the bounded
+decimal slice to proceed. A merge preserves the published feature commits and both independent ADR checkpoints;
+no production, test or resource-input behavior changes from qualified source/configuration revision `640b36d0`.
+Documentation/link/diff checks qualify this merge; the normal PR CI/Sonar gate runs on its resulting head.

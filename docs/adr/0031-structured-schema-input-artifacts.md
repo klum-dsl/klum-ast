@@ -550,6 +550,18 @@ execution, removal/replacement/migration policy or `since`/`forRemoval` interpre
 
 [Implementation and qualification](../implementation/issue-959-deprecation-projection.md) records this slice.
 
+## D7 checkpoint — canonical shaping vocabulary deferred
+
+Date: 2026-10-25. Status: **Deliberately deferred; no D7 implementation contract accepted**.
+A small Klum-owned, dependency-free structured-input/schema-shaping vocabulary is a promising direction for shared
+interpreter and JSON Schema facts. Jackson and Bean Validation may enrich or bridge those facts; they do not define
+the contract and are not required dependencies of that vocabulary. ADR 0009's independent Jackson behavior is unchanged.
+
+No public annotations, naming profiles, package mechanism or examples semantics are accepted by this checkpoint.
+The [detailed D7 evidence brief](../implementation/issue-959-d7-naming-profiles.md) retains alternatives, characterization
+and the maintainer decisions needed before later implementation. **D7 does not block #959 DecimalMin/DecimalMax**:
+the active bounded decimal-bounds slice can proceed under its own assignment and existing D1/D2 boundaries.
+No runtime behavior, generated output, release or milestone commitment follows from this checkpoint.
 
 ## Exact direct decimal authoring bounds — #959 narrow follow-up
 
