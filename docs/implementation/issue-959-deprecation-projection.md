@@ -1,0 +1,82 @@
+# Issue #959 — default advisory deprecation projection
+
+Base: current master `9504604fb8be18a8dcb33a1b453139bb89a7c13b` (merged P1 #966 and P2 #967).
+Branch: `codex/959-deprecation-projection`. Tracker impact: **Related: #959**; keep the broader issue open.
+No milestone, labels, release gate, curation or consumer acceptance commitment changes.
+
+## Approved boundary
+
+The maintainer assigned default Draft 2020-12 `deprecated: true` for an effective admitted member whose original
+Schema field, construction key or authored operation carries `java.lang.Deprecated`. It is advisory and independent
+of the opt-in integral profile; no Gradle switch, source-name matching or shared-child mutation is added. Existing
+requiredness/null admission, validation, lifecycle, defaults and converters are unchanged. `since`, `forRemoval`,
+replacement/migration behavior and the remaining #959 constraint/default mappings are deferred.
+
+## Implementation
+
+`StructuredInputAdmissionPlan` records explicit true/false `sourceDeprecated` on existing generated `Field` and `Key`
+facts. A minimal internal `Operation` fact is attached to the exact public projection using its authored implementation,
+never the projection's possibly deprecated framework alias. The construction-key fallback retains its fact inside the
+existing declaring-Builder `Schema.keyMember` when no public getter survives. No public descriptor or SPI is introduced.
+
+The exact public-contract byte reader retains a nullable Boolean independently of integral completeness. Existing
+hierarchy/admission/rename/exclusion/collision resolution produces the effective entries before projection. Deprecation
+is attached to each property/operation payload, beside a relationship `$ref`, or on the outer keyed Map. A construction
+key is marked only in the member-key definition; keyless definitions and ordinary sibling references stay independent.
+Documentation is preserved.
+
+**Bounded binary compatibility:** pre-fact artifacts continue ordinary structural generation. Missing source provenance
+omits this advisory keyword, even where Java Deprecated survives on public methods; neither framework-alias guessing
+nor Model-byte fallback is permitted. Recompile root/inherited/owned Schema dependencies for complete annotation metadata.
+The integral profile retains its own opt-in completeness contract and failure behavior.
+
+## Executable coverage and documentation
+
+The existing P2 API/base/derived source-free producer fixture supplies separate API/Schema JARs for Groovy 3/4/5,
+with source trees deleted before generation and no consumer source or Bean provider. Throwing Model initializers,
+operations and key-provider/default controls remain in the fixtures; generation does not run them. The original
+structural initialization control is retained in the full generator regression.
+
+`KlumJsonSchemaGenerationTest` now covers direct, inherited and renamed deprecated fields/operations; scalar, enum,
+List/Map and operation payload placement; ignored, transient, unsupported and colliding sources; deprecated owned
+relationships and outer keyed Maps; clean ordinary/shared-child uses; direct/inherited keys, renamed getter-less key
+facts and keyless bodies; type-level deprecation and TemplateScope compatibility aliases. Public-byte mutations retain
+actual Deprecated annotations while removing optional provenance, and inject Deprecated on an ordinary selected
+population overload to guard against OR-ing generated overload annotations. Shared public setter/accessor signatures
+retain separate field and operation deprecation, qualified in both directions.
+
+Documentary feature:
+`deprecated Schema members remain admitted with advisory metadata by default with Groovy #generation`,
+linked to [Json-Schema.md — deprecation](../user/Json-Schema.md#deprecation). The page, migration guide and CHANGES.md
+record the default behavior and bounded old-artifact omission. ADR 0031 records the maintainer's independent default
+activation and compatibility policy; earlier P2 and profile decisions remain dated evidence.
+
+The separate `validate_deprecation_schema.py` checks production-emitted artifacts using `jsonschema==4.23.0`:
+metaschema validity, accepted old/new/both/absent inputs, structural null/unknown/exclusion/key rejection, equality with
+an annotation-stripped copy, and generation-identical output. It is an external qualification, not a Gradle test claim.
+
+## Validation and delivery
+
+Focused verification passes: the full packaged generator regression has 49 cases; compiled-contract/admission tests have
+73 cases in each Groovy 3/4/5 lane. The final 10-case deprecation cohort includes the shared-signature, inherited-key,
+legacy and alias controls. Affected source/test licenses pass. External `jsonschema==4.23.0` passes six emitted
+metaschemas and 96 input checks with advisory-removal parity; emitted bytes are identical across producer generations.
+The retained structural/integral corpora also pass 195/426 inputs and 18/3 metaschemas. Changed Markdown fences,
+relative file targets and diff whitespace checks pass.
+
+Independent read-only Standards and Specification reviewers checked `9504604fb...2f4ee62a`, reserving two slots with
+the worker as sole build owner. Both report zero actionable findings. The local history is reviewed as two focused
+steps: implementation with tests, then documentation; only assigned files are present. Delivery-channel audit:
+Git SSH feature-branch publication **authorized** (non-mutating dry run); GitHub CLI repository mutation **authorized**
+(read-only repository capability check). No credentials, scopes or raw authentication errors are recorded.
+
+The first full-root attempt passed all core Groovy lanes but failed source-mirror integration resolution: the worker
+committed while the build was starting, leaving the plugin's embedded pre-commit version different from the version
+published by nested fixture builds. Exact marker/repository inspection identified that mismatch. No source workaround,
+regression suppression or unrelated mirror fix was introduced. The final root check is run with Git state held fixed.
+
+Publication requires that stable-state root check, feature-branch push and a local branch-against-master SonarCloud
+analysis with quality-gate waiting. The safe final root/Sonar result and analyzed revision are recorded on
+[issue #959](https://github.com/klum-dsl/klum-ast/issues/959) and the draft PR after these gates. Token values are never
+printed or inspected. Subsequent PR CI/Sonar remains the authoritative PR-specific result. No worker merge, issue
+closure or archive reconciliation is authorized by this slice.

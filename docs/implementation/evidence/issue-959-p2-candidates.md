@@ -209,7 +209,7 @@ payloads, composed/repeatable rules or class-level annotation inheritance. No in
 annotation type, a deprecated Model class, prose, method-name coincidence or framework alias.
 
 The source-free fixture proves renamed `old-child`, inherited renamed `old-inherited` and renamed authored
-`old-operation` are admitted, while deprecated ignored `hidden` is absent. Existing output emits no deprecated keyword.
+`old-operation` are admitted, while deprecated ignored `hidden` is absent. At the P2 checkpoint, output emitted no deprecated keyword.
 The candidate schema places deprecation as a sibling of the old relationship's `$ref`; the child's shared definition
 and ordinary sibling reference stay clean. Draft 2020-12 allows this annotation beside `$ref`. A keyed-map deprecation
 would similarly describe its outer member, not every child or all definitions. Member inheritance follows original
@@ -236,7 +236,8 @@ Retained characterization only:
 - [`SchemaProjectionP2InputTest`](../../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/SchemaProjectionP2InputTest.groovy):
   actual structured-input conversions and container/key population, no authored callbacks or Bean annotations.
 - [`KlumJsonSchemaGenerationTest`](../../../klum-ast-gradle-plugin/src/test/groovy/com/blackbuild/klum/ast/gradle/KlumJsonSchemaGenerationTest.groovy),
-  `characterize P2 descriptions and deprecation placement from source-free binaries with Groovy #generation`:
+  `retain P2 descriptions and project source deprecation from binaries with Groovy #generation` (renamed and extended by the
+  [deprecation follow-up](../issue-959-deprecation-projection.md)):
   three independently packaged producer generations, cross-module inheritance, no consumer sources/provider, public-byte deprecation sites.
 - [`SchemaProjectionP2SemanticsTest`](../../../klum-ast-gradle-plugin/src/test/groovy/com/blackbuild/klum/ast/gradle/SchemaProjectionP2SemanticsTest.groovy):
   Java side of the shared corpus, exact decimal and UTF-16 observations.

@@ -1,5 +1,12 @@
 # Unreleased
 
+- Generated JSON Schema now emits advisory `deprecated: true` for admitted Schema-deprecated fields, construction keys
+  and authored operations by default, including inherited/renamed members. Relationship uses retain local placement;
+  framework aliases do not supply source deprecation. Older binaries remain structurally generatable with missing
+  advisory metadata omitted. Input admission and runtime validation are unchanged. See
+  [deprecation](docs/user/Json-Schema.md#deprecation) and [migration](docs/user/Migration.md#advisory-json-schema-deprecation)
+  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Added opt-in `klumSchema.jsonSchema.integralConstraints` for supplied direct integral Jakarta `@Min`/`@Max` properties.
   Bounds use compiler-enriched public Builder metadata, retain descriptions and intersect machine limits; incomplete
   enhanced metadata fails with recompile/package guidance. Default structural output, omission/null admission and

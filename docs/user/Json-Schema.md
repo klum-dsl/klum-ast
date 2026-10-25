@@ -52,6 +52,41 @@ unrelated files. It also removes earlier Builder-named files recorded in that ma
 untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
 previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
 
+## Deprecation
+
+Generation emits Draft 2020-12 `deprecated: true` by default for an admitted input member whose Schema source
+field, construction key or authored `@Builder.Method` declaration carries `java.lang.Deprecated`. This advisory
+annotation is independent of `integralConstraints`; there is no deprecation switch.
+
+(See: `KlumJsonSchemaGenerationTest#'deprecated Schema members remain admitted with advisory metadata by default with Groovy #generation'`.)
+
+```groovy
+@DSL
+class Service {
+    @Deprecated String oldEndpoint
+    String endpoint
+}
+// The oldEndpoint property has type: string and deprecated: true.
+// The endpoint property has type: string.
+```
+
+Inherited and explicitly renamed members retain their original source association. Ignored, excluded and colliding
+members follow the existing admission rules. A deprecated relationship marks its property use beside `$ref`, or the
+outer keyed Map property; ordinary sibling uses and shared child definitions receive no inherited deprecation.
+A deprecated construction key is marked only where its actual key property is present; keyless bodies gain no key.
+Existing JavaDoc descriptions are preserved.
+
+The keyword does not reject old input, require a replacement, change requiredness/null admission or invoke runtime
+validation. It changes no defaults, converters, lifecycle or migration behavior. Type-level deprecation and deprecated
+framework aliases such as TemplateScope `Create`/`CreateFrom` do not mark admitted members. `since` and `forRemoval`
+are not interpreted.
+
+Current compilers retain explicit true/false source facts on public Builder contracts. Older artifacts that lack these
+optional facts continue generating their structural schema; the advisory keyword is omitted for those members,
+even if public methods carry `@Deprecated`. Generation never guesses provenance from an alias or reads Model bytes.
+Recompile and package the Schema and its inherited/owned dependencies with matching versions to obtain complete
+source deprecation metadata. The separate opt-in integral profile still requires its own complete constraint facts.
+
 ## Opt-in integral constraints
 
 The default output remains structural. Select `integralConstraints` separately to add raw-input authoring bounds for
