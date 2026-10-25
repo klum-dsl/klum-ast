@@ -24,6 +24,15 @@
 package com.blackbuild.klum.ast.gradle
 
 import groovy.json.JsonSlurper
+import groovyjarjarasm.asm.AnnotationVisitor
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.Opcodes
+import groovyjarjarasm.asm.MethodVisitor
+import java.util.jar.JarEntry
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
@@ -111,6 +120,220 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         where:
         generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-integral-constraints')
+    def 'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'() {
+        given:
+        fixture(generation, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
+        run('generateKlumJsonSchema')
+        def structural = document('example.Capacity').get('$defs').get('example.Capacity_DSL$Builder')
+
+        when:
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.Capacity')
+        def root = schema.get('$defs').get('example.Capacity_DSL$Builder')
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'integral-' + generation)
+        validation.mkdirs()
+        new File(validation, 'capacity.schema.json').bytes = output('example.Capacity').bytes
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        structural.properties.percentage.minimum == -2147483648
+        structural.properties.percentage.maximum == 2147483647
+        root.properties.percentage.minimum == 0
+        root.properties.percentage.maximum == 100
+        root.properties.percentage.description.contains('Percentage of available capacity.')
+        !root.containsKey('required')
+        schema.description.contains('raw-input authoring')
+        !trap.exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(producer, 'api/src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'enhanced mode fails closed for #kind #target metadata and preserves structural outputs'() {
+        given:
+        fixture('3', false, true)
+        stripConstraintFacts(target, kind)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Capacity').bytes
+        File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+
+        when:
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains("root 'example.Capacity'")
+        failed.output.contains('example.' + target + '_DSL$Builder')
+        failed.output.contains(target == 'CapacityBase' ? 'example.CapacityBase#inherited' : 'example.' + target + '#percentage')
+        failed.output.contains(target == 'CapacityBase' ? "external input 'inherited-percent'" : "external input 'percentage'")
+        failed.output.contains('recompile and package')
+        failed.output.contains(kind == 'field' ? 'missing constraint facts' : 'constraint metadata version')
+        output('example.Capacity').bytes == previous
+        manifest.text == previousManifest
+        !trap.exists()
+
+        where:
+        target          | kind
+        'Capacity'      | 'version'
+        'CapacityBase'  | 'version'
+        'CapacityChild' | 'version'
+        'Capacity'      | 'future-version'
+        'Capacity'      | 'field'
+    }
+
+    @Issue('959')
+    def 'unsupported complete field constraints retain runtime descriptions and effective group context'() {
+        given:
+        fixture('3', false, true)
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema {
+    rootTypes.set(['example.Capacity', 'example.SequencedCapacity'])
+    integralConstraints = true
+}
+""")
+
+        when:
+        run('generateKlumJsonSchema')
+        def root = document('example.Capacity').get('$defs').get('example.Capacity_DSL$Builder')
+        def sequenced = document('example.SequencedCapacity').get('$defs').get('example.SequencedCapacity_DSL$Builder')
+
+        then:
+        root.properties.grouped.minimum == -2147483648
+        root.properties.explicitDefault.minimum == -2147483648
+        root.properties.warning.minimum == -2147483648
+        root.properties.composed.minimum == -2147483648
+        root.properties.repeated.minimum == -2147483648
+        root.properties.customRepeated.minimum == -2147483648
+        root.properties.decimal.type == 'number'
+        !root.properties.decimal.containsKey('minimum')
+        !root.properties.numericText.containsKey('minimum')
+        root.properties.grouped.description.contains('groups=')
+        root.properties.warning.description.contains('payload=')
+        root.properties.composed.description.contains('example.Percentage')
+        root.properties.repeated.description.contains('Min$List')
+        root.properties.customRepeated.description.contains('example.Rules')
+        root.properties.numericText.description.contains('Numeric text documentation.')
+        ['grouped', 'explicitDefault', 'warning', 'composed', 'repeated', 'customRepeated', 'decimal', 'numericText', 'needed', 'requiredText'].every {
+            root.properties[it].description.contains('Runtime constraint (not enforced by this schema')
+        }
+        !root.containsKey('required')
+        sequenced.properties.'inherited-percent'.minimum == -2147483648
+        sequenced.properties.'inherited-percent'.description.contains('group redefinition/sequence')
+        !trap.exists()
+    }
+
+    @Issue('959')
+    def 'direct integral bounds intersect machine ranges without projecting later construction behavior'() {
+        given:
+        fixture('3', false, true)
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints = true }
+""")
+
+        when:
+        run('generateKlumJsonSchema')
+        def root = document('example.Capacity').get('$defs').get('example.Capacity_DSL$Builder')
+        def properties = root.properties
+
+        then:
+        ['byteValue', 'boxedByte', 'shortValue', 'boxedShort', 'intValue', 'percentage', 'longValue', 'boxedLong', 'large'].every {
+            properties[it].minimum == 0 && properties[it].maximum == 100
+        }
+        properties.machine.minimum == -128
+        properties.machine.maximum == 127
+        properties.exact.minimum == -9223372036854775808G
+        properties.exact.maximum == 9223372036854775807G
+        properties.'inherited-percent'.minimum == 0
+        properties.'inherited-percent'.'x-klum-constraint-source' == 'example.CapacityBase#inherited'
+        !properties.containsKey('inherited')
+        !properties.containsKey('hidden')
+        !properties.percentage.containsKey('default')
+        !properties.percentage.containsKey('const')
+        properties.fromText.type == 'string'
+        !properties.fromText.containsKey('minimum')
+        !properties.fromText.containsKey('maximum')
+        properties.label.type == 'string'
+        properties.enabled.type == 'boolean'
+        !properties.computed.containsKey('default')
+        !root.containsKey('required')
+        !trap.exists()
+    }
+
+    @Issue('959')
+    def 'empty selected integral intersections fail before replacing successful output: #model'() {
+        given:
+        fixture('3', false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Capacity').bytes
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints = true }
+""")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains('Empty integral constraint intersection')
+        failed.output.contains("example.$model#percentage")
+        failed.output.contains("example.$model" + '_DSL$Builder')
+        failed.output.contains("external input 'percent'")
+        failed.output.contains('minimum 200')
+        failed.output.contains('maximum ' + maximum)
+        output('example.Capacity').bytes == previous
+        !output('example.' + model).exists()
+        !trap.exists()
+
+        where:
+        model            | maximum
+        'Impossible'     | '100'
+        'ImpossibleByte' | '127'
+    }
+
+    @Issue('959')
+    def 'malformed nested constraint metadata fails closed without replacing outputs: #kind'() {
+        given:
+        fixture('3', false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Capacity').bytes
+        File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        stripConstraintFacts('Capacity', kind)
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+
+        then:
+        failed.output.contains("root 'example.Capacity'")
+        failed.output.contains('example.Capacity_DSL$Builder')
+        failed.output.contains('recompile and package')
+        failed.output.contains(reason)
+        output('example.Capacity').bytes == previous
+        manifest.text == previousManifest
+        !trap.exists()
+
+        where:
+        kind        | reason
+        'plain'     | 'Missing constraint eligibility'
+        'value'     | 'Missing constraint eligibility'
+        'group-value' | 'Missing direct integral bound'
+        'primitive' | 'Unexpected constraint array item'
+        'enum'      | 'Unexpected constraint array item'
+        'array'     | 'Unexpected constraint array item'
     }
 
     @Issue('954')
@@ -231,9 +454,11 @@ class KlumJsonSchemaGenerationTest extends Specification {
         output('example.Service').bytes == previous
     }
 
-    def 'reuses configuration and build caches after output deletion and project relocation'() {
+    @Issue(['529', '959'])
+    def 'reuses configuration and build caches after output deletion and project relocation with enhanced profile #enhanced'() {
         given:
         fixture('3')
+        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = ' + enhanced + '\n')
         String cache = new File(directory, 'build-cache').absolutePath.replace('\\', '/')
         new File(consumer, 'settings.gradle').append("\nbuildCache { local { directory = '$cache' } }\n")
         run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
@@ -265,6 +490,9 @@ class KlumJsonSchemaGenerationTest extends Specification {
         moved.task(':generateKlumJsonSchema').outcome == TaskOutcome.FROM_CACHE
         output('example.Deployment').text == original
         !trap.exists()
+
+        where:
+        enhanced << [false, true]
     }
 
     def 'diagnoses empty invalid and unqualified roots without executing Schema code: #roots'() {
@@ -376,7 +604,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -494,6 +722,98 @@ class LegacyHolder_DSL {
     interface Factory { LegacyHolder One() }
 }
 """)
+        if (constraints) {
+            new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
+            writeSource('schema/src/main/groovy/example/Capacity.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.*
+import jakarta.validation.*
+import com.fasterxml.jackson.annotation.*
+import com.blackbuild.klum.ast.layer3.DefaultValues
+import jakarta.validation.groups.Default as DefaultGroup
+import java.lang.annotation.*
+@DSL @Literals(percentage=75, label='filled', enabled=true) class Capacity extends CapacityBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
+    /** Percentage of available capacity. */
+    @Min(0L) @Max(100L) Integer percentage = 75
+    @Min(0L) @Max(100L) byte byteValue
+    @Min(0L) @Max(100L) Byte boxedByte
+    @Min(0L) @Max(100L) short shortValue
+    @Min(0L) @Max(100L) Short boxedShort
+    @Min(0L) @Max(100L) int intValue
+    @Min(0L) @Max(100L) long longValue
+    @Min(0L) @Max(100L) Long boxedLong
+    @Min(0L) @Max(100L) BigInteger large
+    @Min(-1000L) @Max(1000L) byte machine
+    @Min(Long.MIN_VALUE) @Max(Long.MAX_VALUE) BigInteger exact
+    @JsonIgnore @Min(0L) Integer hidden
+    @Size(min=1) String label
+    Boolean enabled
+    @Default(code={ throw new AssertionError('default executed') }) String computed
+    @PostTree void repair() { percentage = 50 }
+    @Builder.Method void fromText(String value) { percentage = Integer.valueOf(value) }
+    CapacityChild child
+    @Min(value=0L, groups=Later) Integer grouped
+    @Min(value=0L, groups=DefaultGroup) Integer explicitDefault
+    @Min(value=0L, payload=Warning) Integer warning
+    @Percentage Integer composed
+    @Min.List([@Min(0L), @Min(10L)]) Integer repeated
+    @Rules([@Rule(0L), @Rule(10L)]) Integer customRepeated
+    @Min(0L) @DecimalMin("0.1") BigDecimal decimal
+    /** Numeric text documentation. */
+    @Min(0L) @Pattern(regexp="[0-9]+") String numericText
+    @NotNull String needed
+    @Required String requiredText
+}
+interface Later {}
+class Warning implements Payload { static { throw new AssertionError('payload initialized') } }
+@Min(0L) @Max(100L) @Constraint(validatedBy=[])
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+@interface Percentage {
+    String message() default 'percentage'
+    Class[] groups() default []
+    Class[] payload() default []
+}
+@Constraint(validatedBy=[RuleValidator])
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD])
+@interface Rule {
+    long value()
+    String message() default 'rule'
+    Class[] groups() default []
+    Class[] payload() default []
+}
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD])
+@interface Rules { Rule[] value() }
+class RuleValidator implements ConstraintValidator<Rule, Integer> {
+    static { throw new AssertionError('validator initialized') }
+    void initialize(Rule rule) { throw new AssertionError('validator initialize executed') }
+    boolean isValid(Integer value, ConstraintValidatorContext context) { throw new AssertionError('validator executed') }
+}
+@DSL class Impossible { @JsonProperty('percent') @Min(200L) @Max(100L) Integer percentage }
+@DSL class ImpossibleByte { @JsonProperty('percent') @Min(200L) byte percentage }
+@DSL @GroupSequence([SequencedCapacity]) class SequencedCapacity extends CapacityBase {}
+@DSL class CapacityChild { @Min(0L) @Max(100L) Integer percentage }
+""")
+        }
+        if (constraints) {
+            writeSource('api/src/main/groovy/example/Literals.groovy', '''
+package example
+import java.lang.annotation.*
+import com.blackbuild.klum.ast.layer3.DefaultValues
+@Retention(RetentionPolicy.RUNTIME) @DefaultValues
+@interface Literals { int percentage(); String label(); boolean enabled(); }
+''')
+            writeSource('api/src/main/groovy/example/CapacityBase.groovy', """
+package example
+import com.blackbuild.klum.ast.DSL
+import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.validation.constraints.*
+@DSL abstract class CapacityBase {
+    @JsonProperty('inherited-percent') @Min(0L) @Max(100L) Integer inherited
+}
+""")
+        }
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -547,6 +867,76 @@ class InitializationControl {
 """)
         runner(producer, ':api:jar').build()
         publish('api', 'api/build/libs/api.jar', '')
+    }
+
+    // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
+    private void stripConstraintFacts(String target, String kind) {
+        File jar = new File(repository, 'fixture/' + (target == 'CapacityBase' ? 'api' : 'schema') + '/1.0/'
+                + (target == 'CapacityBase' ? 'api' : 'schema') + '-1.0.jar')
+        File replacement = new File(directory, 'stripped.jar')
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
+                input.entries().each { entry ->
+                    byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+                    if (entry.name == 'example/' + target + '_DSL$Builder.class') {
+                        ClassReader reader = new ClassReader(bytes)
+                        ClassWriter writer = new ClassWriter(0)
+                        reader.accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                                AnnotationVisitor delegate = super.visitAnnotation(descriptor, visible)
+                                if (!descriptor.endsWith('GeneratedInput$Schema;')) return delegate
+                                new AnnotationVisitor(Opcodes.ASM9, delegate) {
+                                    @Override void visit(String name, Object value) {
+                                        if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) super.visit(name, value)
+                                        else if (kind == 'future-version') super.visit(name, 2)
+                                    }
+                                }
+                            }
+                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions)
+                                if (kind in ['version', 'future-version'] || kind == 'group-value' && name != 'getGrouped') return delegate
+                                new MethodVisitor(Opcodes.ASM9, delegate) {
+                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                                        AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)
+                                        if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
+                                        new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                                            @Override AnnotationVisitor visitArray(String member) {
+                                                if (kind == 'field' && member == 'constraints') return null
+                                                AnnotationVisitor array = super.visitArray(member)
+                                                if (member != 'constraints') return array
+                                                if (kind in ['primitive', 'enum', 'array']) {
+                                                    if (kind == 'primitive') array.visit(null, 17)
+                                                    if (kind == 'enum') array.visitEnum(null, 'Lexample/Mode;', 'SAFE')
+                                                    if (kind == 'array') array.visitArray(null).visitEnd()
+                                                    array.visitEnd()
+                                                    return null
+                                                }
+                                                new AnnotationVisitor(Opcodes.ASM9, array) {
+                                                    @Override AnnotationVisitor visitAnnotation(String elementName, String elementDescriptor) {
+                                                        AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
+                                                        new AnnotationVisitor(Opcodes.ASM9, rule) {
+                                                            @Override void visit(String attribute, Object value) {
+                                                                if (kind in ['plain', 'value'] && attribute == 'plain' || kind in ['value', 'group-value'] && attribute == 'value') return
+                                                                super.visit(attribute, value)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }, 0)
+                        bytes = writer.toByteArray()
+                    }
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        jar.bytes = replacement.bytes
     }
 
     private void publish(String artifact, String path, String dependencies) {

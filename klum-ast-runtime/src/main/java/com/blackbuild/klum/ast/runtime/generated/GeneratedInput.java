@@ -36,6 +36,9 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
     public @interface Schema {
+        /** Versioned completeness marker for opt-in constraint projection; zero denotes older artifacts. */
+        int constraintVersion() default 0;
+        boolean groupRedefined() default false;
         String key() default "";
         boolean keyInput() default false;
         /** Only when the declaring key getter is absent from the public Builder contract. */
@@ -59,10 +62,22 @@ public final class GeneratedInput {
         String value();
         String rename() default "";
         boolean ignored() default false;
+        /** Inert original field declarations, never executable-validation annotations on this getter. */
+        Constraint[] constraints() default {};
         boolean fixedKey() default false;
         boolean schemaKey() default false;
         String exclusion() default "";
         String detail() default "";
+    }
+
+    /** Internal compiler facts; not an annotation for Schema authors or a projection SPI. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({})
+    public @interface Constraint {
+        String annotation();
+        long value() default 0L;
+        boolean plain();
+        String declaration();
     }
 
     /** Placement identifies exactly the selected public input/population group, without copied descriptors. */

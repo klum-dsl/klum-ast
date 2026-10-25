@@ -144,6 +144,7 @@ final class StructuredInputAdmissionPlan {
         transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
                 .forEach(field -> enrichField(builder, field, entries, rejections, invisible));
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
+        StructuredInputConstraintMetadata.enrichSchema(model, schema);
         builder.addAnnotation(schema);
         restoreAuthoredFacts(transformation);
     }
@@ -183,6 +184,7 @@ final class StructuredInputAdmissionPlan {
             fact.setMember("schemaKey", new ConstantExpression(schemaKey));
         }
         if (rejection != null && !name.ignored()) enrichFieldExclusion(field, rejection, fact);
+        StructuredInputConstraintMetadata.enrichField(field, fact);
         accessor.addAnnotation(fact);
         if (entry != null) enrichSelection(builder, field, entry);
     }

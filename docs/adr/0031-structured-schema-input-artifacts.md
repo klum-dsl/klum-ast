@@ -478,3 +478,30 @@ Descriptions-only A was considered but not selected as the overall profile; desc
 unsupported complete declarations. Broader C is deferred, including groups/payload extensions, composed/repeatable rules,
 relationship closures, defaults projection, callbacks, decimals/Size/Pattern and quantity grammar. D2 does not accept
 D3–D6, schedule production work or assign a release/milestone.
+
+
+## Minimal integral production profile — #959 P1
+
+Date: 2026-10-25. Status: **Approved bounded implementation; broader #959 mappings remain deferred**.
+The separately assigned P1 implements the accepted D1/D2 contracts above. The historical D2 decision did not schedule
+implementation; the later assignment authorizes this slice only. See the
+[P1 implementation and evidence](../implementation/issue-959-p1-integral-profile.md).
+
+- `klumSchema.jsonSchema.integralConstraints` is a Boolean Gradle property, false by default and a tracked task input.
+  Existing root names, filenames, output ownership and isolated loader semantics remain unchanged.
+- Each declaring public Builder's `GeneratedInput.Schema` carries internal `constraintVersion=1` and an explicit
+  `groupRedefined` fact. Each existing source-associated `GeneratedInput.Field` carries an explicit constraints array,
+  including an empty array. Its inert nested facts identify the original annotation, authored description and, for
+  direct Min/Max, its compiler-folded Java-long value and empty-groups/payload eligibility. Actual Bean annotations
+  remain at their original sites; they are never retargeted onto Builder methods as executable constraints.
+- The exact public-contract byte reader supplies these facts without annotation proxies, Model resource reads or a
+  Bean provider. Required declaring/effective/inherited/owned contracts must carry complete supported metadata when
+  enhanced output is requested. Old/missing completeness facts are accepted by default structural generation, and
+  fail closed in enhanced mode with source/use and recompile/package guidance.
+- Only admitted ordinary integral field properties gain inclusive bounds, intersected with structural machine limits.
+  Selection considers the effective hierarchy's group-redefinition facts. Unsupported complete field declarations
+  become deterministic runtime descriptions of explicitly authored attributes; there is no generic metadata/default
+  evaluator, composed/repeatable interpretation or public contributor SPI. Source identity remains on the property.
+
+This is internal generated linkage, not a general descriptor protocol. No default projection, requiredness inference,
+null-admission change, runtime validator behavior, operation/converter-argument mapping or broader D3–D6 decision follows.
