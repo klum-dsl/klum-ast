@@ -1,6 +1,6 @@
 # Constraint and default projection: feasibility and decision gates
 
-Date: 2026-10-24. Status: **D1 accepted; P0 evidence recorded; D2–D6 and production implementation remain unapproved.**
+Date: 2026-10-24. Status: **D1 and D2 accepted; P0/D2 evidence recorded; D3–D6 and production implementation remain unapproved.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959), including its
 [design input](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6385826650).
 Release: 4.2 candidate only; no milestone assigned. Issue #959 remains open.
@@ -25,19 +25,30 @@ projection preserves the current structural generator's behavior for existing ar
 
 D1 settles metadata authority and this missing-artifact rule. It does not select the production encoding, exact generated
 ABI, emission hook, profile configuration, supported mappings, raw-input assertion strength, default meaning or public SPI.
-D2–D6 remain unapproved, and P1 has not started. Any future implementation must satisfy D1; this documentation update
-contains no compiler, generator, runtime or test changes.
+D2 now settles the raw-input semantic profile below; D3–D6 remain unapproved, and P1 has not started. Any future
+implementation must satisfy D1. The historical D1 documentation delivery contained no compiler, generator, runtime
+or test changes.
+
+## Accepted D2: opt-in raw-input authoring bounds
+
+The [D2 raw-input profile evidence](evidence/issue-959-d2-raw-input-profile.md) characterizes the semantic boundary at
+`e18f21b24b4017844720ef0072b95635491a32be`. The maintainer accepted **B** on 2026-10-24: explicitly selected,
+off-by-default authoring bounds on supplied ordinary direct integral properties. It preserves omission/null admission
+and separates schema validity from final Model validation. Construction-time repairs are hypothetical boundary cases,
+not an expected use case or a reason to weaken raw bounds. The accepted semantic contract is recorded in the evidence
+report and [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#opt-in-raw-input-assertions--959-d2).
+D2 adds characterization-only runtime fixtures and a manually invoked candidate-schema corpus; no P1 mapping, API,
+metadata extraction, defaults projection or release behavior is implemented.
 
 ## Recommendation and evidence boundary
 
-The remaining design discussion is **unapproved proposal** unless explicitly covered by accepted D1 above. Do not adopt
-a projection SPI or start production mapping from this document. P0's bounded experiment is complete; how completed-model
-constraints become optional raw-input assertions remains a separate maintainer decision under D2.
+The remaining design discussion is **unapproved proposal** unless explicitly covered by accepted D1 or D2 above. Do not adopt
+a projection SPI or start production mapping from this document. P0 and D2 characterization are complete; production implementation remains separately gated.
 
 The smallest plausible production slice is opt-in projection of direct Jakarta `@Min`/`@Max` on integral properties,
 plus deterministic descriptions for discovered unsupported constraints. It needs neither a provider SPI nor runtime
 validator construction. Decimal bounds, cardinality, patterns and literal defaults are subsequent, separately gated
-slices. This is a recommendation, not an approved feature list.
+slices. D2 accepts the tiny integral semantic profile, not the broader proposed feature list or implementation scheduling.
 
 The maintainer's relationship refinement is assessed below as an additional design question: constraint and default
 contributions may share placement context, but do not automatically share extraction or execution semantics. It does
@@ -103,7 +114,7 @@ through an approved finite metadata traversal (`@Constraint`, Klum validation an
 annotation; recursion/cycles, missing annotation definitions and malformed repeatable containers need bounded diagnostics.
 Absent required metadata is different from a discovered unsupported constraint: accepted D1 requires failure when the
 future enhanced profile is explicitly enabled and its required Schema metadata is missing. Descriptions are not a
-compatibility/reporting escape hatch for that failure; their semantics still require approval.
+compatibility/reporting escape hatch for that failure; their D2 semantics are accepted, while exact formatting and implementation remain later work.
 
 Combine independent hard fragments conjunctively (`allOf` or a proven intersection), retaining the original type and
 machine bounds. A provider cannot replace another annotation's restriction, admission, names or `$defs`. Contradictory
@@ -141,8 +152,9 @@ ignoring the containing warning/group semantics. Multiple target-specific valida
 must never be selected by reflection order. No `ConstraintValidator.initialize` or `isValid` call is a metadata query.
 
 Even ordinary bounds are not generally equivalent before and after lifecycle: a later layer or `@PostTree` can replace
-an out-of-range supplied value. Maintainer decision D2 below must define an opt-in **authoring restriction on supplied
-values**, not claim equivalence to completed validation. D2 remains unapproved; description-only production projection is not authorized either. Omitted
+an out-of-range supplied value. Accepted D2 defines an opt-in **authoring restriction on supplied values** without
+claiming equivalence to completed validation. Repair cases are hypothetical semantic boundary evidence, not a supported
+expectation that raw authoring bounds must accommodate. Production projection still needs a separate assignment. Omitted
 properties, explicitly supplied null, empty String, zero and false require separate fixtures; zero is a valid endpoint
 for the percentage example. Existing input types/null admission remain authoritative. This task neither consumes nor
 implements [#962 nullable final-validation semantics](https://github.com/klum-dsl/klum-ast/issues/962).
@@ -334,12 +346,12 @@ Lexical recognition cannot alone prove positivity, overflow or a relationship su
 
 P0's bounded metadata experiment is complete and recorded in its [evidence report](evidence/issue-959-p0-binary-metadata.md).
 The table retains its probe contract for traceability. P1–P4 remain conditional proposals requiring separate decisions
-and explicit scheduling; accepting D1 does not start them.
+and explicit scheduling; accepting D1 and D2 does not start them.
 
 | Slice | Scope and reasoned commits | Executable acceptance / exit gate |
 | --- | --- | --- |
 | P0: completed bounded probe | Test-only binary metadata experiment and separate evidence report; D1 now reconciles metadata authority. No production generator behavior. | Separate Java annotation/API JAR, transformed Schema JAR and source-free consumer; inspect exact field/getter/parameter/type-use/type sites and annotation defaults. Compare small enrichment candidate versus targeted byte-reading necessity; stop if neither respects approved architecture. |
-| P1: unapproved production candidate | One vertical commit for qualified inert metadata + private integral mapping/text + tests; a separate user-doc/release-note commit. No SPI. | D1 accepted; D2 approval and explicit P1 scheduling still required. `@Issue('959')` percentage fixture with boundary/type/null/omission cases, exact old machine bounds, repeatable/composed/group/payload fallback, rename/ignore/inheritance and unchanged source attribution. Preserve previous output on generation failure. |
+| P1: unapproved production candidate | One vertical commit for qualified inert metadata + private integral mapping/text + tests; a separate user-doc/release-note commit. No SPI. | D1/D2 accepted; an explicit P1 plan and scheduling are still required. `@Issue('959')` percentage fixture with boundary/type/null/omission cases, exact old machine bounds, repeatable/composed/group/payload fallback, rename/ignore/inheritance and unchanged source attribution. Preserve previous output on generation failure. |
 | P2: decimal/container/pattern subsets | Independently reasoned vertical commits only for each newly approved mapping; no obligation to bundle them. | Exact decimals and inclusive/exclusive intersections; collection population/cardinality; UTF-16/supplementary length cases; Java/ECMA full-match corpus including flags and trailing newline. Unsupported variants remain visible text. |
 | P3: contextual defaults | One narrow relationship-literal overlay commit + matching docs, after D4 and P0 evidence. | Shared child with 8/4/2 relationship defaults, no `$defs` leakage, aliases, sentinel equality, Java defaults, enum traps, `valueTarget`, 0/false/empty and unsupported coercion/conflict; prove JSON validation does not populate defaults. |
 | P4: optional extensions | Only if D3 later selects callback or declarative provider; draft its own ADR/API before code. | Exact multi-target selection, repeatable/composed semantics, no Model/context inputs, failure diagnostics, explicit code execution and classloader/cache/resource contract. No automatic follow-on from P1. |
@@ -369,17 +381,18 @@ existing Builder signatures, runtime validation, lifecycle, ownership, serializa
 
 Future feature delivery updates [JSON Schema](../user/Json-Schema.md), [Validation](../user/Validation.md),
 [Default Values](../user/Default-Values.md), applicable [migration navigation](../user/Migration.md), `CHANGES.md` and
-issue evidence together. This research changes no current feature guidance, release notes, API, production code or test
-fixture. No production behavior or implementation PR is authorized by a merged feasibility document.
+issue evidence together. The original feasibility/D1 documentation delivery changed no test fixtures. D2 adds only
+characterization fixtures and evidence; current feature guidance, release notes, API and production behavior remain
+unchanged. No production behavior or implementation PR is authorized by a merged feasibility document.
 
 ## Decision status and remaining gates
 
-Only D1 is accepted. D2–D6 below remain recommendations, not delivery or implementation authorization.
+D1 and D2 are accepted. D3–D6 remain recommendations; neither accepted decision schedules production implementation.
 
 | Decision | Status / proposed answer | What remains blocked |
 | --- | --- | --- |
-| D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. Existing structural generation stays as-is; explicit future enhanced projection fails closed on missing required Schema metadata, with recompile/package guidance. No compatibility/reporting mode now. | Production encoding, exact fact set, generated ABI/emission hook and compatibility qualification; D2–D6/P1 are not approved. |
-| D2: raw-input strength/profile | Opt-in authoring restrictions on supplied values; initial direct integral annotations, default groups/empty payload, with deterministic runtime text for other discovered constraints. Preserve null/admission and no inferred required. | Whether lifecycle-overridable values may intentionally be rejected earlier; configuration spelling, activation default and diagnostics contract. No production projection, including description-only behavior, is authorized. |
+| D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. Existing structural generation stays as-is; explicit future enhanced projection fails closed on missing required Schema metadata, with recompile/package guidance. No compatibility/reporting mode now. | Production encoding, exact fact set, generated ABI/emission hook and compatibility qualification; D3–D6/P1 are not approved. |
+| D2: raw-input strength/profile | **B accepted.** [Characterization and accepted contract](evidence/issue-959-d2-raw-input-profile.md): direct integral Min/Max, empty groups/payload, explicit off-by-default activation; deterministic text for unsupported complete declarations. Preserve null/admission and no inferred required. | Exact configuration/metadata encoding and production qualification remain P1 planning. Hypothetical construction-time repairs do not weaken the accepted raw-input policy. Production implementation still requires a separate assignment. |
 | D3: custom extension | Defer callbacks and description SPI; first establish useful generic text. | Any build-time user-code execution or new public provider API. Later callback approval must amend the no-execution promise explicitly. |
 | D4: default meaning | Probe scalar relationship literals; initially describe ambiguous precedence. | Whether unambiguous declared fallback may use standard `default`; array/coercion/type-level support and handling multiple sources. |
 | D5: delivery and release | Keep #959 open and untargeted; P0 evidence is complete, while later delivery needs separate scheduling. | Milestone/4.2 commitment, further architectural decisions and implementation publication beyond this authorized D1 documentation delivery. Quantity grammar remains consumer-owned; #962 remains separate. |
