@@ -59,6 +59,10 @@ rejected = [{"amount": Decimal("0.10")}, {"amount": Decimal("0.09999999999999999
             {"child": {"amount": Decimal("-1E-1000")}}]
 for field in ["amount", "equal", "zero", "exponent", "tiny", "units", "machine", "tight", "tie", "inherited-price"]:
     rejected.extend({field: value} for value in [None, True, "1", ""])
+for field in ["boundedByte", "boundedShort", "boundedPrimitiveShort", "boundedInt", "boundedPrimitiveInt",
+              "boundedLong", "boundedPrimitiveLong", "boundedBigInteger"]:
+    accepted.extend({field: value} for value in [0, 1])
+    rejected.extend({field: value} for value in [-1, 2, Decimal("0.1"), None, "1"])
 for path in paths:
     # Decimal parsing retains the emitted tokens' exact value; no float parser participates.
     schema = json.loads(path.read_text(), parse_float=Decimal)

@@ -48,8 +48,11 @@ final class NumericBounds {
         int comparison = previous == null ? 0 : value.compareTo(previous.value());
         if (previous != null && (minimum ? comparison < 0 : comparison > 0)) return;
         Endpoint next = new Endpoint(value, inclusive && (comparison != 0 || previous == null || previous.inclusive()));
-        if (minimum) lower = next;
-        else upper = next;
+        if (minimum) {
+            lower = next;
+        } else {
+            upper = next;
+        }
     }
 
     boolean possible(boolean integral) {
@@ -71,8 +74,12 @@ final class NumericBounds {
         if (value.scale() <= 0) return value;
         // Avoid expanding enormous scales for tiny, valid BigDecimal exponents.
         if (value.abs().compareTo(BigDecimal.ONE) < 0) {
-            if (mode == RoundingMode.CEILING && value.signum() > 0) return BigDecimal.ONE;
-            if (mode == RoundingMode.FLOOR && value.signum() < 0) return BigDecimal.ONE.negate();
+            if (mode == RoundingMode.CEILING && value.signum() > 0) {
+                return BigDecimal.ONE;
+            }
+            if (mode == RoundingMode.FLOOR && value.signum() < 0) {
+                return BigDecimal.ONE.negate();
+            }
             return BigDecimal.ZERO;
         }
         return value.setScale(0, mode);
@@ -80,9 +87,10 @@ final class NumericBounds {
 
     private static boolean adjacent(BigDecimal first, BigDecimal last) {
         if (first.scale() < 0 && last.scale() < 0) return false;
-        if (first.signum() <= 0 && last.signum() >= 0)
+        if (first.signum() <= 0 && last.signum() >= 0) {
             return first.compareTo(BigDecimal.ZERO) == 0 && last.compareTo(BigDecimal.ONE) == 0
                     || first.compareTo(BigDecimal.ONE.negate()) == 0 && last.signum() == 0;
+        }
         long firstDigits = (long) first.precision() - first.scale();
         long lastDigits = (long) last.precision() - last.scale();
         if (Math.abs(firstDigits - lastDigits) > 1) return false;

@@ -1384,9 +1384,14 @@ class InitializationControl {
                                 new AnnotationVisitor(Opcodes.ASM9, delegate) {
                                     @Override void visit(String name, Object value) {
                                         if (name == 'decimalVersion' && kind in ['decimal-version', 'future-decimal']) {
-                                            if (kind == 'future-decimal') super.visit(name, 2)
-                                        } else if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) super.visit(name, value)
-                                        else if (kind == 'future-version') super.visit(name, 2)
+                                            if (kind == 'future-decimal') {
+                                                super.visit(name, 2)
+                                            }
+                                        } else if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) {
+                                            super.visit(name, value)
+                                        } else if (kind == 'future-version') {
+                                            super.visit(name, 2)
+                                        }
                                     }
                                 }
                             }

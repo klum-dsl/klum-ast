@@ -178,10 +178,11 @@ final class JsonSchemaProjection implements BiFunction<List<String>, Map<String,
             String reason = groupRedefined ? "group redefinition/sequence" : "outside the selected direct numeric, empty groups/payload profile";
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
-        if (!bounds.possible(integralProperty))
+        if (!bounds.possible(integralProperty)) {
             throw new IllegalArgumentException("Empty " + (decimalConstraints ? "decimal" : "integral")
                     + " constraint intersection for '" + entry.source() + "', external input '" + entry.externalName()
                     + "', public Builder '" + entry.contract().getName() + "': " + rules + "; " + bounds);
+        }
         bounds.write(value);
         if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
     }

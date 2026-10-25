@@ -128,8 +128,9 @@ final class CompiledBuilderSchema {
 
     private static void validateDecimalFacts(Literals literal) {
         for (ConstraintRule rule : literal.constraints) {
-            if (decimalRule(rule.annotation()) && (rule.decimalValue() == null || rule.inclusive() == null))
+            if (decimalRule(rule.annotation()) && (rule.decimalValue() == null || rule.inclusive() == null)) {
                 throw invalid("missing direct decimal facts for source field #" + literal.field);
+            }
         }
     }
 
@@ -697,12 +698,19 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
-            if (member.equals("constraintVersion") && value instanceof Integer version) result.constraintVersion = version;
-            else if (member.equals("decimalVersion") && value instanceof Integer version) result.decimalVersion = version;
-            else if (member.equals("groupRedefined") && value instanceof Boolean flag) result.groupRedefined = flag;
-            else if (member.equals("key") && value instanceof String text) result.key = text;
-            else if (member.equals("keyInput") && value instanceof Boolean flag) result.keyInput = flag;
-            else throw invalid("Unknown schema member " + member);
+            if (member.equals("constraintVersion") && value instanceof Integer version) {
+                result.constraintVersion = version;
+            } else if (member.equals("decimalVersion") && value instanceof Integer version) {
+                result.decimalVersion = version;
+            } else if (member.equals("groupRedefined") && value instanceof Boolean flag) {
+                result.groupRedefined = flag;
+            } else if (member.equals("key") && value instanceof String text) {
+                result.key = text;
+            } else if (member.equals("keyInput") && value instanceof Boolean flag) {
+                result.keyInput = flag;
+            } else {
+                throw invalid("Unknown schema member " + member);
+            }
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {

@@ -67,6 +67,23 @@ execution exception or source/Model-byte fallback was added.
   byte overflow and Min/DecimalMax conflict. Malformed and exponent-overflow inputs reject explicitly.
 - `NumericBoundsTest` covers integer-survival endpoints and large/tiny exponents without expanding unbounded powers.
 - Retained `validate_decimal_constraint_schema.py` uses `jsonschema==4.23.0` with Decimal-parsed schema/input numbers;
-  initial corpus: three metaschemas and 258 input checks, identical output across producer generations.
+  expanded corpus: three metaschemas and 426 input checks, identical output across producer generations.
 
-Final repository lanes, SonarCloud and independent review results are recorded below after qualification.
+## Review and validation checkpoint
+
+Independent read-only Standards and Specification reviews compared `ac9e73bdc...db567086`. Specification reported zero
+actionable findings. Standards reported one grouped braces-policy finding; the follow-up adds braces to the new endpoint,
+integer-rounding, diagnostic and metadata branches and the touched schema-member dispatch chain. The external corpus
+also now covers every primitive/boxed integral target. No public behavior was expanded by the review fixes.
+
+Focused decimal/compatibility/interval tests passed before the implementation commit. An overlapping pair of earlier
+schema-suite runs produced one packaged-plugin version-marker failure; the duplicate run was stopped. The serial
+focused retry passed with no packaging workaround. The first root check passed Groovy 4 and 5, then was intentionally
+stopped before the baseline lane to apply review fixes and qualify the final revision with the combined full check and
+normal coverage-bearing SonarCloud task. It is not counted as a passing full root check.
+
+Final full-check, local branch SonarCloud and publication evidence follows after execution. PR CI/Sonar remains the
+separate authoritative PR-specific gate. Git SSH branch delivery and GitHub CLI PR delivery were independently verified
+authorized; public repository visibility was verified without exposing credentials. History is ordered as a cohesive
+implementation/test commit, matching documentation, and the focused review follow-up. No unrelated artifacts are staged.
+
