@@ -82,7 +82,7 @@ printed or inspected. Subsequent PR CI/Sonar remains the authoritative PR-specif
 closure or archive reconciliation is authorized by this slice.
 
 
-### Final worker handoff — ready for PR, Sonar access required
+### Initial worker handoff — ready for PR, Sonar access required
 
 Stable-state JDK 17 root `check --no-parallel --max-workers=2` **passed** at `71a85c1ac`, including the previously
 mismatched source-mirror integrations, plugin validation, documentation renderer, licenses and test-lane isolation.
@@ -104,3 +104,18 @@ Restore SonarCloud analysis access, rerun the branch analysis and inspect its ga
 with **Related: #959**. PR CI/Sonar remains independently authoritative. Issue #959 stays open; no merge, issue closure
 or Hive archive reconciliation was performed. This final follow-up changes evidence only; the qualified implementation
 and tests are unchanged.
+
+
+### Resumed delivery — local SonarCloud preflight passed
+
+After the maintainer restored access, the normal local branch analysis completed successfully at `cc37a8dfe` using the
+configured secure credential. Its coverage dependencies refreshed the Groovy 3/4/5 test evidence without implementation
+changes. SonarCloud's branch quality gate is **OK**, with zero new unresolved issues and zero new security hotspots to
+review. New-code coverage is **97.0%**, and new-code duplicated-line density is **0.0%**. No credential values were
+printed or inspected. The earlier HTTP 403 boundary above is historical and no longer blocks publication.
+
+The final evidence-only follow-up preserves production/test commit `83eb03616`. Its scan reuses the just-qualified test
+reports; no implementation or test source changed. The final analyzed revision and draft-PR link are recorded on
+[issue #959](https://github.com/klum-dsl/klum-ast/issues/959) and in the PR. The draft relationship remains **Related: #959**;
+the issue stays open, and PR CI/Sonar is the separate authoritative PR-specific gate. Review/merge and Hive archive
+reconciliation remain outside this worker's publication scope.
