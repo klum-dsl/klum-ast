@@ -264,9 +264,9 @@ passed. Final input/contract qualification passes 67 tests in each Groovy lane: 
 CompiledBuilderSchema cases, zero failures/errors/skips. The packaged-generator regression passes all 42 cases
 (39 existing plus three P2 binary cases), and Java semantic characterization passes 66 cases, also with no skips.
 The original structural/enhanced external corpora pass again: 195/426 inputs, 18/3 metaschemas, generation-identical
-artifacts. The P2 external corpora pass 97/108 checks. Core test licenses pass; plugin resource licenses are being
-reconciled before delivery. Root check and unrelated test suites were not rerun: no production/build behavior has
-changed, and the selected suites exercise the new probes, existing binary authority and generator behavior.
+artifacts. The P2 external corpora pass 97/108 checks. Core and plugin test licenses pass. Root check and unrelated test
+suites were not rerun: production and compilation behavior are unchanged; the sole build-configuration change is the approved single-file license exclusion described
+below. The selected suites exercise the new probes, existing binary authority and generator behavior.
 
 The independent Standards reviewer identified two multi-assertion `expect` blocks; explicit observations now use
 `when`/`then`, and the 66-case Java cohort passes again. The Specification reviewer requested a concrete framework alias
@@ -281,10 +281,18 @@ guides, migration navigation and CHANGES.md remain unchanged because this is cha
 feature. Delivery-channel audit: Git SSH branch publication **authorized** (non-mutating dry run); GitHub CLI repository
 mutation **authorized** (read-only repository capability check). No credentials/scopes/errors are recorded.
 
-Publication currently awaits maintainer approval of one license-plugin exemption for the valid shared JSON corpus.
-AGENTS.md requires asking rather than renaming/retyping a file to bypass header handling. The JavaScript header was
-corrected normally and now passes; the only remaining license failure is the JSON resource. No exemption is applied
-without approval, and no draft PR or issue mutation is claimed while that condition remains pending.
+The maintainer approved the single-file license exemption in this chat. The plugin's source-root-relative pattern
+`schema-projection-p2-patterns.json` excludes the valid shared JSON corpus from header handling; it does not exempt other
+JSON files or disable strict checks. The initial project-relative pattern did not match, so it was corrected to the
+plugin's source-set path semantics. The JavaScript header was corrected normally. AGENTS.md's approval rule
+is satisfied; no file was renamed/retyped to bypass header handling.
+
+After approval, plugin validation and the complete 69-case P2 binary/Java cohort pass again, and the external 97/108
+candidate/ECMA checks pass again. The plugin test-license check is re-executed explicitly rather than relying on a cached
+result. A temporary read-only post-action audit confirms that the corpus is excluded and all 32 other test inputs
+remain in the scan. Both independent reviewers rechecked this approved follow-up and report zero actionable findings.
+Publication remains a draft with **Related: #959**, leaving issue state and milestone unchanged. CI/SonarCloud
+status belongs to the actual published head and is reported separately; local checks do not establish a server result.
 
 ## Sources
 

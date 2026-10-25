@@ -8,6 +8,11 @@ plugins {
 
 description = "KlumAST Gradle Plugins"
 
+license {
+    // Shared executable probe data must remain valid JSON, which cannot carry a comment header.
+    exclude("schema-projection-p2-patterns.json")
+}
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 gradlePlugin {
