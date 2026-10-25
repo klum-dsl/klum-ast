@@ -82,8 +82,42 @@ focused retry passed with no packaging workaround. The first root check passed G
 stopped before the baseline lane to apply review fixes and qualify the final revision with the combined full check and
 normal coverage-bearing SonarCloud task. It is not counted as a passing full root check.
 
-Final full-check, local branch SonarCloud and publication evidence follows after execution. PR CI/Sonar remains the
-separate authoritative PR-specific gate. Git SSH branch delivery and GitHub CLI PR delivery were independently verified
+Final validation and delivery state is recorded below. PR CI/Sonar remains the separate authoritative PR-specific gate. Git SSH branch delivery and GitHub CLI PR delivery were independently verified
 authorized; public repository visibility was verified without exposing credentials. History is ordered as a cohesive
 implementation/test commit, matching documentation, and the focused review follow-up. No unrelated artifacts are staged.
 
+## Final local qualification and delivery boundary
+
+Qualified source/test revision: `8b0d0fae1`. The subsequent handoff commit changes evidence only.
+
+- JDK 17 `check --no-parallel --max-workers=2` ran all Groovy 3/4/5 tests with zero failures/errors. The follow-up
+  `check --continue --no-parallel --max-workers=2` completed the remaining tasks without excluding any check.
+  Final JUnit totals: **3,174 / 2,634 / 2,634**, with **17 / 16 / 16** existing skips; no new skipped tests.
+- All **66** packaged JSON Schema regressions and **21** exact interval cases pass without skips, including independent
+  G3/G4/G5 source-free binary producers/consumers. Plugin validation, lane isolation and documentation renderer pass.
+- External emitted-schema qualification passes: decimal **426** inputs / **3** metaschemas; retained integral
+  **426 / 3**, deprecation **96 / 6** with advisory-removal parity, structural **195 / 18**. Producer generations
+  emit byte-identical decimal schemas. All **103** relative documentation targets resolve, including legacy routes.
+- Independent Standards and Specification follow-up reviews at `8b0d0fae1` report **zero remaining actionable findings**.
+  The initial grouped braces finding is addressed. The evidence-only trailing blank line is removed.
+
+**The full root check is failed, not green.** Its sole remaining failure is `:klum-ast-runtime:licenseMain`, which
+includes a pre-existing untracked generated artifact at
+`klum-ast-runtime/src/gdsl/.sonar/spring-context-model.json`. The artifact and other pre-existing scan directories are
+preserved and excluded from this branch. No artifact was renamed, retyped, removed or relocated, and no license check
+was skipped. AGENTS.md requires a plugin/configuration decision before addressing such a conflict; permission for a
+narrow generated-`.sonar` exclusion has been requested and is pending. No license configuration change is included.
+
+**Local SonarCloud analysis was not executed.** Automatic approval review rejected the proposed normal coverage-bearing
+branch analysis before execution because explicit human authorization for repository source/analysis upload to the
+configured external SonarCloud destination could not be established. This is an authorization rejection, not a scanner
+or quality-gate failure. No workaround, indirect analysis or coverage-free upload was attempted. The explicit choice
+between approving the normal upload and using the normal full PR CI gate has been requested and remains pending.
+No current-branch Sonar result or absence of findings is claimed.
+
+Delivery is **blocked on these decisions**. The dedicated branch is committed locally; no push, draft PR, tracker
+comment, merge or archive was performed. Once the license conflict is addressed and the Sonar path is explicitly
+settled, rerun the applicable checks, push and open the assigned draft PR with **Related: #959**. Broader #959 stays open;
+no milestone, label, curation, release placement or D7 decision changes. Hive delivery/archive reconciliation remains
+pending. This record supplies the concrete implementation, review and validation handoff without claiming completion
+of the assigned draft publication.
