@@ -608,7 +608,7 @@ still fail before output replacement. Optional properties stay omittable; suppli
 
 The compiler owns declaration legality, runtime/Bean Validation owns completed-Model validation, and JSON Schema
 consumers validate supplied documents. Enabling generation adds no numeric declaration-validity requirement.
-See [current implementation evidence](../implementation/issue-959-decimal-bounds.md#faithful-numeric-projection-correction).
+See [current implementation evidence](../implementation/issue-959-decimal-bounds.md#always-on-faithful-numeric-projection).
 
 
 ## Always-on supported numeric projection — #959 / PR #972
