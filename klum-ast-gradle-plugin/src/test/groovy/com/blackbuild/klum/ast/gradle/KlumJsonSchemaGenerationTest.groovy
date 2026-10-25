@@ -123,6 +123,79 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
+    def 'characterize P2 descriptions and deprecation placement from source-free binaries with Groovy #generation'() {
+        given:
+        fixture(generation, false, true, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.P2']); integralConstraints = true }\n")
+
+        when:
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.P2')
+        def properties = schema.get('$defs').get('example.P2_DSL$Builder').properties
+        def child = schema.get('$defs').get('example.P2Child_DSL$Builder')
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        properties.amount.description.contains('DecimalMin(inclusive=false, value="-1.2300E+2")')
+        properties.amount.description.contains('DecimalMax(value="1E+3")')
+        properties.amount.type == 'number'
+        !properties.amount.containsKey('exclusiveMinimum')
+        properties.words.description.contains('Size(max=3, min=2)')
+        properties.distinct.type == 'array'
+        properties.labels.type == 'object'
+        properties.children.description.contains('Size(max=3, min=2)')
+        properties.code.description.contains('CASE_INSENSITIVE')
+        !properties.code.containsKey('pattern')
+        properties.groupedDecimal.description.contains('groups=example.Later')
+        properties.repeatedDecimal.description.contains('DecimalMin$List(value=[')
+        properties.warningSize.description.contains('payload=example.Warning')
+        properties.repeatedPattern.description.contains('Pattern$List(value=[')
+        properties.composedPattern.description.contains('@example.P2Pattern()')
+        !properties.composedPattern.containsKey('pattern')
+        properties['inherited-size'].description.contains('Size(min=1)')
+        properties['inherited-size']['x-klum-constraint-source'] == 'example.CapacityBase#inheritedWords'
+        properties.keySet().containsAll(['old-child', 'old-operation', 'old-inherited'])
+        !properties.containsKey('hidden')
+        !properties['old-child'].containsKey('deprecated')
+        !properties['old-operation'].containsKey('deprecated')
+        !properties['old-inherited'].containsKey('deprecated')
+        !child.containsKey('deprecated')
+        !trap.exists()
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(consumer, 'src').exists()
+        publicDeprecationSites('schema', 'example/P2_DSL$Builder.class').contains('oldOperation')
+        publicDeprecationSites('schema', 'example/P2_DSL$Builder.class').contains('getOldChild')
+        publicDeprecationSites('api', 'example/CapacityBase_DSL$Builder.class').contains('getOldInherited')
+        publicDeprecationSites('schema', 'example/P2_DSL$Builder.class').contains('getHidden')
+        publicDeprecationSites('schema', 'example/P2_DSL$TemplateScope.class').containsAll(['Create', 'CreateFrom'])
+        !properties.containsKey('Create')
+        !properties.containsKey('CreateFrom')
+        !properties.child.containsKey('deprecated')
+        !schema.get('$defs').get('example.P2_DSL$Builder').containsKey('deprecated')
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    private Set<String> publicDeprecationSites(String artifact, String entry) {
+        Set<String> sites = []
+        new JarFile(new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")).withCloseable { jar ->
+            new ClassReader(jar.getInputStream(jar.getJarEntry(entry))).accept(new ClassVisitor(Opcodes.ASM9) {
+                @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    new MethodVisitor(Opcodes.ASM9) {
+                        @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                            if (annotation == 'Ljava/lang/Deprecated;') sites.add(name)
+                            return null
+                        }
+                    }
+                }
+            }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+        }
+        sites
+    }
+
+    @Issue('959')
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-integral-constraints')
     def 'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'() {
@@ -604,7 +677,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -796,6 +869,47 @@ class RuleValidator implements ConstraintValidator<Rule, Integer> {
 @DSL class CapacityChild { @Min(0L) @Max(100L) Integer percentage }
 """)
         }
+        if (p2) {
+            writeSource('schema/src/main/groovy/example/P2.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import com.fasterxml.jackson.annotation.*
+import jakarta.validation.constraints.*
+import jakarta.validation.Constraint
+import java.lang.annotation.*
+@DSL class P2 extends CapacityBase {
+    static { throw new AssertionError('P2 Model initialized') }
+    @DecimalMin(value='-1.2300E+2', inclusive=false) @DecimalMax('1E+3') BigDecimal amount
+    @DecimalMin('0.1') Integer integralDecimal
+    @Size(min=2, max=3) List<String> words
+    @Size(min=2, max=3) Set<String> distinct
+    @Size(min=2, max=3) Map<String, String> labels
+    @Size(min=2, max=3) Map<String, P2Child> children
+    @Size(min=1, max=1) String text
+    @Pattern(regexp='[A-Z]+', flags=Pattern.Flag.CASE_INSENSITIVE) String code
+    @DecimalMin(value='0.1', groups=Later) BigDecimal groupedDecimal
+    @DecimalMin.List([@DecimalMin('0.1'), @DecimalMin('0.2')]) BigDecimal repeatedDecimal
+    @Size(min=1, payload=Warning) List<String> warningSize
+    @Pattern.List([@Pattern(regexp='a'), @Pattern(regexp='b')]) String repeatedPattern
+    @P2Pattern String composedPattern
+    @Deprecated @JsonProperty('old-child') P2Child oldChild
+    P2Child child
+    @Deprecated @JsonIgnore String hidden
+    @Deprecated @Builder.Method @JsonProperty('old-operation') void oldOperation(String text) {
+        throw new AssertionError('P2 operation executed')
+    }
+}
+@DSL class P2Child { @Key String name; String value }
+@Constraint(validatedBy=[]) @Pattern(regexp='a')
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.FIELD])
+@interface P2Pattern {
+    String message() default 'p2'
+    Class[] groups() default []
+    Class[] payload() default []
+}
+""")
+        }
         if (constraints) {
             writeSource('api/src/main/groovy/example/Literals.groovy', '''
 package example
@@ -812,6 +926,13 @@ import jakarta.validation.constraints.*
 @DSL abstract class CapacityBase {
     @JsonProperty('inherited-percent') @Min(0L) @Max(100L) Integer inherited
 }
+""")
+        }
+        if (p2) {
+            File base = new File(producer, 'api/src/main/groovy/example/CapacityBase.groovy')
+            base.text = base.text.replace('@DSL abstract class CapacityBase {', """@DSL abstract class CapacityBase {
+    @Deprecated @JsonProperty('old-inherited') String oldInherited
+    @JsonProperty('inherited-size') @Size(min=1) List<String> inheritedWords
 """)
         }
         publishApi('Inherited region documentation.')
