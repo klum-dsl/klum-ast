@@ -135,4 +135,17 @@ untracked `.sonar` cache. The installed license plugin also derives inputs from 
 of Git ignore rules. Therefore Git ignore alone would not fix artifact pollution or the license failure. The proposed
 bounded fix is a `.sonar/` Git ignore plus exclusion of `**/.sonar/**` from Java projects' resource source inputs, so the
 cache is neither packaged nor treated as licensed source. No license-header formatting, source renaming or deletion is
-needed. This configuration change is prepared for confirmation and has not been applied.
+needed. The maintainer explicitly approved the prepared Git/resource-input patch, which is now applied.
+
+### Approved generated-cache exclusion
+
+The root Git ignore now covers `.sonar/` at any depth. The shared Java-project convention excludes `**/.sonar/**` from
+resource source inputs. This prevents caches from entering product/source JARs and, because the license plugin consumes
+SourceSet inputs, removes generated tool data from its source inventory. Strict license checking and header policy are
+unchanged; no source/artifact was renamed, retyped or removed. The local generated cache remains on disk, while the
+tracked SonarLint connection configuration remains versioned.
+
+Focused JDK 17 validation passes `:klum-ast-runtime:licenseMain`, `jar` and `sourcesJar`. Inspection of both rebuilt JARs
+confirms no `.sonar` entries and retention of both authored GDSL resources. Full repository qualification and final
+independent follow-up review are pending on the approved configuration revision. The earlier failed-check checkpoint
+above records the pre-fix state; it is not the final result. The maintainer's full-PR-CI Sonar choice remains in force.

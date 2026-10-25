@@ -64,3 +64,10 @@ license {
     exclude("mockup/**")
     strictCheck = true
 }
+
+// Analyzer caches are tool output, never product resources or source artifacts.
+plugins.withId('java') {
+    sourceSets.configureEach {
+        resources.exclude("**/.sonar/**")
+    }
+}
