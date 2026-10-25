@@ -67,6 +67,8 @@ final class CompiledBuilderSchema {
     private static final String SCHEMA = PREFIX + "Schema;";
     private static final String KEY_ANNOTATION = PREFIX + "Key;";
     private static final String FIELD = PREFIX + "Field;";
+    private static final String OPERATION_FACT = PREFIX + "Operation;";
+    private static final String SOURCE_DEPRECATED = "sourceDeprecated";
     private static final String CONSTRAINT = PREFIX + "Constraint;";
     private static final String SELECTION = PREFIX + "Selection;";
     private static final String EXCLUSION = PREFIX + "Exclusion;";
@@ -75,7 +77,7 @@ final class CompiledBuilderSchema {
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
     private static final String IGNORE = "Lcom/fasterxml/jackson/annotation/JsonIgnore;";
     private static final String PROPERTY = "Lcom/fasterxml/jackson/annotation/JsonProperty;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, QUERY, DOC, IGNORE, PROPERTY);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC, IGNORE, PROPERTY);
     private static final Set<String> NUMBERS = Set.of("byte", "short", "int", "long", "float", "double",
             "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float",
             "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
@@ -95,7 +97,7 @@ final class CompiledBuilderSchema {
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, Boolean schemaKey) { }
+                 String nameOrigin, String documentation, Boolean schemaKey, Boolean sourceDeprecated) { }
     record ConstraintRule(String annotation, String value, boolean plain, String declaration) { }
     record ConstraintProfile(boolean groupRedefined, Map<String, List<ConstraintRule>> fields) { }
 
@@ -121,7 +123,7 @@ final class CompiledBuilderSchema {
         }
     }
 
-    record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract) { }
+    record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract, Boolean sourceDeprecated) { }
     record Rejection(String source, String reason, String collisionName) {
         Rejection(String source, String reason) { this(source, reason, null); }
     }
@@ -300,7 +302,7 @@ final class CompiledBuilderSchema {
 
     private static Key constructionKey(BuilderContext context, Literals literal) {
         return new Key(literal.key, literal.rename.isEmpty() ? literal.key : literal.rename,
-                literal.ignored, context.model().getName() + "#" + literal.key, context.builder());
+                literal.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated);
     }
 
     private static void collectDeclarations(BuilderContext context,
@@ -346,7 +348,7 @@ final class CompiledBuilderSchema {
         String name = literal.rename.isEmpty() ? field : literal.rename;
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed ? field : null,
-                literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc, literal.schemaKey));
+                literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.sourceDeprecated));
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -408,7 +410,7 @@ final class CompiledBuilderSchema {
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = literal.rename.isEmpty() ? method.getName() : literal.rename;
         entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
-                null, null, null, literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc, literal.schemaKey));
+                null, null, null, literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.operationDeprecated));
     }
 
     private static String fieldReason(Type type, Literals literal) {
@@ -587,6 +589,9 @@ final class CompiledBuilderSchema {
         String rename = "";
         boolean fixed;
         Boolean schemaKey;
+        // Null is older/absent advisory provenance; never infer it from a generated method annotation.
+        Boolean sourceDeprecated;
+        Boolean operationDeprecated;
         String exclusion = "";
         String detail = "";
         boolean operation;
@@ -814,6 +819,10 @@ final class CompiledBuilderSchema {
 
         @Override public void visit(String member, Object value) {
             switch (annotation) {
+                case OPERATION_FACT -> {
+                    if (!member.equals(SOURCE_DEPRECATED)) throw invalid("Unknown operation fact " + member);
+                    literal.operationDeprecated = (Boolean) value;
+                }
                 case KEY_ANNOTATION -> keyFact(member, value);
                 case FIELD -> fieldFact(member, value);
                 case SELECTION -> selectionFact(member, value);
@@ -826,6 +835,7 @@ final class CompiledBuilderSchema {
                 case VALUE -> literal.key = (String) value;
                 case "rename" -> literal.rename = (String) value;
                 case "ignored" -> literal.ignored = (Boolean) value;
+                case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
                 default -> throw invalid("Unknown construction key fact " + member);
             }
         }
@@ -835,6 +845,7 @@ final class CompiledBuilderSchema {
                 case VALUE -> literal.field = (String) value;
                 case "rename" -> literal.rename = (String) value;
                 case "ignored" -> literal.ignored = (Boolean) value;
+                case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
                 case "constraints" -> throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                 case "fixedKey" -> literal.fixed = (Boolean) value;
                 case "schemaKey" -> literal.schemaKey = (Boolean) value;

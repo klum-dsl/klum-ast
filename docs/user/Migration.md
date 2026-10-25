@@ -9,6 +9,13 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Advisory JSON Schema deprecation
+
+Generated schemas now include `deprecated: true` for admitted Schema-deprecated members by default, independently of
+integral constraints. Input admission and runtime behavior are unchanged. Older compiled artifacts remain structurally
+generatable but omit this advisory keyword where source provenance is absent; recompile Schema dependencies for complete
+metadata. See [deprecation](Json-Schema.md#deprecation).
+
 ### Opt-in integral JSON Schema bounds
 
 Ordinary generation keeps its structural behavior. To select

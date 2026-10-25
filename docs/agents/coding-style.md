@@ -19,6 +19,21 @@ that are not currently enforced by formatting tools.
 Code review treats an unnecessary fully qualified name as a documented style violation, not merely an optional readability
 suggestion. Replace it with an import unless one of the exceptions above applies.
 
+## Sonar hygiene
+
+- Keep method cognitive complexity and nesting low. Prefer clear guard clauses; when a method mixes multiple decisions,
+  extract a cohesive private method that names one responsibility.
+- Extract repeated strings into constants only when they represent one stable domain term, external contract,
+  annotation or member name, property key, or repeatedly asserted diagnostic. Incidental one-off test data does not
+  require constants.
+- Use braces for multi-line branches, nested conditionals, and `else` chains. Concise single-line guards remain acceptable
+  where clearer. If a Sonar rule makes universal braces a blocking issue, seek a deliberate Sonar-rule decision rather
+  than silently escalating this style policy.
+
+This is principle-based preventative review, not a local reproduction of Sonar's metrics or a substitute for SonarCloud.
+The full CI/SonarCloud run remains the sole authoritative, coverage-bearing PR quality gate. Do not use a fast upload to
+that shared SonarCloud project as a pre-PR gate.
+
 ## Generated IDE properties
 
 Contribute a literal IDE property only when an AST-generated field is absent from source PSI, such as `Foo.Create` or

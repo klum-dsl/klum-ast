@@ -123,7 +123,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
-    def 'characterize P2 descriptions and deprecation placement from source-free binaries with Groovy #generation'() {
+    def 'retain P2 descriptions and project source deprecation from binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.P2']); integralConstraints = true }\n")
@@ -156,9 +156,9 @@ class KlumJsonSchemaGenerationTest extends Specification {
         properties['inherited-size']['x-klum-constraint-source'] == 'example.CapacityBase#inheritedWords'
         properties.keySet().containsAll(['old-child', 'old-operation', 'old-inherited'])
         !properties.containsKey('hidden')
-        !properties['old-child'].containsKey('deprecated')
-        !properties['old-operation'].containsKey('deprecated')
-        !properties['old-inherited'].containsKey('deprecated')
+        properties['old-child'].deprecated == true
+        properties['old-operation'].deprecated == true
+        properties['old-inherited'].deprecated == true
         !child.containsKey('deprecated')
         !trap.exists()
         !new File(producer, 'api/src').exists()
@@ -176,6 +176,116 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         where:
         generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#deprecation')
+    def 'deprecated Schema members remain admitted with advisory metadata by default with Groovy #generation'() {
+        given:
+        fixture(generation, false, true, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.P2', 'example.DeprecatedFallbackKey', 'example.DeprecatedFieldOverlap', 'example.DeprecatedOperationOverlap'])\n")
+
+        when:
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.P2')
+        def root = schema.get('$defs').get('example.P2_DSL$Builder')
+        def properties = root.properties
+        def child = schema.get('$defs').get('example.P2Child_DSL$Builder')
+        def keylessChild = schema.get('$defs').get('example.P2Child_DSL$Builder::keyless')
+        def fallback = document('example.DeprecatedFallbackKey').get('$defs').get('example.DeprecatedFallbackKey_DSL$Builder')
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'deprecation-' + generation)
+        validation.mkdirs()
+        ['P2', 'DeprecatedFallbackKey'].each { model ->
+            new File(validation, model.toLowerCase() + '.schema.json').bytes = output('example.' + model).bytes
+        }
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        properties.oldEndpoint.type == 'string'
+        properties.oldEndpoint.deprecated == true
+        properties.oldEndpoint.description.startsWith('Returns the oldEndpoint.')
+        properties.endpoint.type == 'string'
+        !properties.endpoint.containsKey('deprecated')
+        properties['old-inherited'].deprecated == true
+        properties['old-inherited-operation'].deprecated == true
+        properties.directOperation == [type: 'string', deprecated: true]
+        ['oldCount', 'oldTags', 'oldLabels', 'oldMode', 'oldEnabled', 'oldTagsOperation'].every { properties[it].deprecated == true }
+        properties.oldTagsOperation.type == 'array'
+        !properties.oldTagsOperation.get('items').containsKey('deprecated')
+        properties['old-operation'].deprecated == true
+        properties['old-child'].subMap(['$ref', 'deprecated']) == ['$ref': '#/$defs/example.P2Child_DSL%24Builder', deprecated: true]
+        properties.child.subMap(['$ref', 'deprecated']) == ['$ref': '#/$defs/example.P2Child_DSL%24Builder']
+        properties.children.deprecated == true
+        properties.children.additionalProperties == ['$ref': '#/$defs/example.P2Child_DSL%24Builder%3A%3Akeyless']
+        child.properties.name == [type: 'string', deprecated: true]
+        child.required == ['name']
+        schema.get('$defs').get('example.P2InheritedKey_DSL$Builder').properties.name == [type: 'string', deprecated: true]
+        schema.get('$defs').get('example.P2InheritedKey_DSL$Builder').required == ['name']
+        !child.containsKey('deprecated')
+        !child.properties.value.containsKey('deprecated')
+        !keylessChild.properties.containsKey('name')
+        !keylessChild.containsKey('deprecated')
+        fallback.properties['legacy-id'] == [type: 'string', deprecated: true]
+        fallback.required == ['legacy-id']
+        document('example.DeprecatedFieldOverlap').get('$defs').get('example.DeprecatedFieldOverlap_DSL$Builder').properties.key.deprecated == true
+        !document('example.DeprecatedFieldOverlap').get('$defs').get('example.DeprecatedFieldOverlap_DSL$Builder').properties.setKey.containsKey('deprecated')
+        !document('example.DeprecatedOperationOverlap').get('$defs').get('example.DeprecatedOperationOverlap_DSL$Builder').properties.key.containsKey('deprecated')
+        document('example.DeprecatedOperationOverlap').get('$defs').get('example.DeprecatedOperationOverlap_DSL$Builder').properties.setKey.deprecated == true
+        !root.containsKey('required')
+        !root.containsKey('deprecated')
+        !properties.keySet().intersect(['hidden', 'hiddenOperation', 'excludedLink', 'excludedState', 'unsupportedOperation', 'collision', 'mixed-collision', 'Create', 'CreateFrom'])
+        schema.get('x-klum-unsupported').values().any { it.contains('collision') }
+        publicDeprecationSites('schema', 'example/P2_DSL$TemplateScope.class').containsAll(['Create', 'CreateFrom'])
+        !trap.exists()
+        !new File(consumer, 'src').exists()
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'missing source deprecation facts preserve legacy structural generation with Groovy #generation'() {
+        given:
+        fixture(generation, false, true, true)
+        rewriteDeprecationFacts('schema', true)
+        rewriteDeprecationFacts('api', true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.P2', 'example.DeprecatedFallbackKey'])\n")
+
+        when:
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.P2')
+        def properties = schema.get('$defs').get('example.P2_DSL$Builder').properties
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        properties.keySet().containsAll(['oldEndpoint', 'endpoint', 'old-inherited', 'old-inherited-operation', 'old-child', 'old-operation', 'directOperation'])
+        !output('example.P2').text.contains('"deprecated"')
+        !output('example.DeprecatedFallbackKey').text.contains('"deprecated"')
+        publicDeprecationSites('schema', 'example/P2_DSL$Builder.class').containsAll(['getOldEndpoint', 'oldOperation', 'child'])
+        !trap.exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'deprecated generated selection does not override explicit nondeprecated source fact'() {
+        given:
+        fixture('3', false, true, true)
+        rewriteDeprecationFacts('schema', false)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.P2'])\n")
+
+        when:
+        run('generateKlumJsonSchema')
+        def properties = document('example.P2').get('$defs').get('example.P2_DSL$Builder').properties
+
+        then:
+        publicDeprecationSites('schema', 'example/P2_DSL$Builder.class').contains('child')
+        !properties.child.containsKey('deprecated')
+        properties['old-child'].deprecated == true
     }
 
     private Set<String> publicDeprecationSites(String artifact, String entry) {
@@ -884,7 +994,7 @@ import java.lang.annotation.*
     @Size(min=2, max=3) List<String> words
     @Size(min=2, max=3) Set<String> distinct
     @Size(min=2, max=3) Map<String, String> labels
-    @Size(min=2, max=3) Map<String, P2Child> children
+    @Deprecated @Size(min=2, max=3) Map<String, P2Child> children
     @Size(min=1, max=1) String text
     @Pattern(regexp='[A-Z]+', flags=Pattern.Flag.CASE_INSENSITIVE) String code
     @DecimalMin(value='0.1', groups=Later) BigDecimal groupedDecimal
@@ -894,12 +1004,40 @@ import java.lang.annotation.*
     @P2Pattern String composedPattern
     @Deprecated @JsonProperty('old-child') P2Child oldChild
     P2Child child
+    P2InheritedKey inheritedChild
+    @Deprecated String oldEndpoint
+    @Deprecated int oldCount
+    @Deprecated List<String> oldTags
+    @Deprecated Map<String, String> oldLabels
+    @Deprecated Mode oldMode
+    @Deprecated Boolean oldEnabled
+    @Deprecated @Builder.Method void oldTagsOperation(List<String> values) { }
+    String endpoint
     @Deprecated @JsonIgnore String hidden
+    @Deprecated @Field(FieldType.LINK) P2Child excludedLink
+    @Deprecated transient String excludedState
+    @Deprecated @JsonProperty('collision') String oldCollision
+    @JsonProperty('collision') String newCollision
+    @Deprecated @JsonProperty('mixed-collision') String mixedCollision
+    @Builder.Method @JsonProperty('mixed-collision') void mixedOperation(String value) { }
+    @Deprecated @Builder.Method @JsonIgnore void hiddenOperation(String value) { }
+    @Deprecated @Builder.Method void unsupportedOperation(String first, String second) { }
+    @Deprecated @Builder.Method void directOperation(String value) { throw new AssertionError('operation executed') }
     @Deprecated @Builder.Method @JsonProperty('old-operation') void oldOperation(String text) {
         throw new AssertionError('P2 operation executed')
     }
 }
-@DSL class P2Child { @Key String name; String value }
+@Deprecated @DSL class P2Child { @Deprecated @Key String name; String value }
+@DSL class P2InheritedKey extends P2Child { String extra }
+@DSL class DeprecatedFieldOverlap {
+    @Deprecated String key
+    @Builder.Method void setKey(String value) { this.key = value }
+}
+@DSL class DeprecatedOperationOverlap {
+    String key
+    @Deprecated @Builder.Method void setKey(String value) { this.key = value }
+}
+@DSL class DeprecatedFallbackKey { @Deprecated @Key @JsonProperty('legacy-id') String key; String value }
 @Constraint(validatedBy=[]) @Pattern(regexp='a')
 @Retention(RetentionPolicy.RUNTIME)
 @Target([ElementType.FIELD])
@@ -921,6 +1059,7 @@ import com.blackbuild.klum.ast.layer3.DefaultValues
             writeSource('api/src/main/groovy/example/CapacityBase.groovy', """
 package example
 import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Builder
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.*
 @DSL abstract class CapacityBase {
@@ -932,6 +1071,9 @@ import jakarta.validation.constraints.*
             File base = new File(producer, 'api/src/main/groovy/example/CapacityBase.groovy')
             base.text = base.text.replace('@DSL abstract class CapacityBase {', """@DSL abstract class CapacityBase {
     @Deprecated @JsonProperty('old-inherited') String oldInherited
+    @Deprecated @Builder.Method @JsonProperty('old-inherited-operation') void inheritedOperation(String value) {
+        throw new AssertionError('inherited operation executed')
+    }
     @JsonProperty('inherited-size') @Size(min=1) List<String> inheritedWords
 """)
         }
@@ -988,6 +1130,55 @@ class InitializationControl {
 """)
         runner(producer, ':api:jar').build()
         publish('api', 'api/build/libs/api.jar', '')
+    }
+
+    private void rewriteDeprecationFacts(String artifact, boolean legacy) {
+        File jar = new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")
+        File replacement = new File(directory, 'deprecation.jar')
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
+                input.entries().each { entry ->
+                    byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+                    if (entry.name.endsWith('_DSL$Builder.class')) {
+                        ClassWriter writer = new ClassWriter(0)
+                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                                optionalDeprecation(super.visitAnnotation(descriptor, visible), legacy)
+                            }
+                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                                        if (legacy && annotation.endsWith('GeneratedInput$Operation;')) return null
+                                        optionalDeprecation(super.visitAnnotation(annotation, visible), legacy)
+                                    }
+                                    @Override void visitEnd() {
+                                        // Synthetic compatibility alias on a selected overload, not source deprecation.
+                                        if (name == 'child') super.visitAnnotation('Ljava/lang/Deprecated;', true).visitEnd()
+                                        super.visitEnd()
+                                    }
+                                }
+                            }
+                        }, 0)
+                        bytes = writer.toByteArray()
+                    }
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        jar.bytes = replacement.bytes
+    }
+
+    private static AnnotationVisitor optionalDeprecation(AnnotationVisitor delegate, boolean legacy) {
+        new AnnotationVisitor(Opcodes.ASM9, delegate) {
+            @Override void visit(String name, Object value) {
+                if (!legacy || name != 'sourceDeprecated') super.visit(name, value)
+            }
+            @Override AnnotationVisitor visitAnnotation(String name, String descriptor) {
+                optionalDeprecation(super.visitAnnotation(name, descriptor), legacy)
+            }
+        }
     }
 
     // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
