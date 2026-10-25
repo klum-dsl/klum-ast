@@ -327,8 +327,8 @@ status belongs to the actual published head and is reported separately; local ch
 ## Assigned decimal delivery checkpoint
 
 The narrow direct DecimalMin/DecimalMax implementation is now separately assigned and recorded in
-[the decimal delivery evidence](../issue-959-decimal-bounds.md) and ADR 0031's decimal checkpoint. It selects the separate
-`decimalConstraints` property and independent completeness marker, without broadening the P1 integral Boolean or
-accepting D7. The Decimal bounds section above remains the governing precision/conjunction/exclusion contract, subject to the numeric responsibility clarification above.
+[the decimal delivery evidence](../issue-959-decimal-bounds.md) and ADR 0031's decimal checkpoint. The original separate
+`decimalConstraints` and P1 Boolean activation are superseded: supported integral and decimal declarations project
+automatically, requiring both existing completeness markers. D7 remains unaccepted. The Decimal bounds section above remains the governing precision/conjunction/exclusion contract, subject to the numeric responsibility clarification above.
 The initial characterization status and hand-authored candidate corpus remain historical evidence; delivered schemas
 are qualified separately. Other P2 candidates and broader #959 work remain deferred.

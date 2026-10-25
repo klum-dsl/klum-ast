@@ -333,8 +333,8 @@ rename/exclusion; a dependency does not select the root's format. One profile ap
 contracts, including those from independent JARs and inherited declarations. No child class setting silently overrides it.
 Consumers needing a fixed foreign spelling use literal Schema renames or the independently configured Jackson importer.
 
-Proposed Gradle location: `klumSchema.jsonSchema.namingProfile = 'kebab-v1'`, alongside `rootTypes` and independently of
-`integralConstraints`. This would be an execution-time tracked input passed as an inert JDK string across the isolated
+Historical naming-only proposal: `klumSchema.jsonSchema.namingProfile = 'kebab-v1'`, alongside `rootTypes`. The former
+`integralConstraints` control has been removed; numeric projection is unconditional. This naming proposal would be an execution-time tracked input passed as an inert JDK string across the isolated
 loader boundary. One task profile covers its roots; generating the same root in two profiles requires separately
 configured output ownership/tasks, not silent overwrite. Exact multi-task convenience is deferred. Profile/algorithm
 changes invalidate caching. A new incompatible profile/version must fail on old tooling rather than weaken output.
@@ -406,8 +406,8 @@ identities within each root artifact; any internal definition/contract caches in
 root's choice cannot contaminate another root or generation run.
 
 Names are resolved before P1/P2 metadata is placed. Bounds/text/deprecation attach by original declaring source and
-input position, never by searching for a string that resembles a property. `integralConstraints` remains orthogonal;
-naming cannot enable decimal/Size/Pattern/default mappings or change null/omission/machine-bound semantics. Authored
+input position, never by searching for a string that resembles a property. Numeric projection is unconditional;
+this unaccepted naming proposal cannot broaden Size/Pattern/default mappings or change null/omission/machine bounds. Authored
 operation payloads do not acquire bounds from effects on similarly named Model fields.
 
 For relationship-local defaults/constraints/deprecation, resolve both parent-use and child target through the selected
