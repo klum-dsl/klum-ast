@@ -664,3 +664,43 @@ D7's field-level projection-control direction is maintainer input, not an accept
 requires a separate vocabulary/semantics decision and, after approval, a separate implementation PR. It does not block
 this independently mergeable numeric baseline. No annotation, suppression, policy object, setter validation, callback,
 SPI or general filtering infrastructure is implemented here. Other D3–D7 questions and release placement stay deferred.
+
+
+## D7 field constraint projection slice — #959
+
+Date: 2026-10-26. Status: **Implemented narrow slice; other D7 topics remain deferred**.
+Authority: the accepted first D7 implementation assignment following merged PR #973. This supersedes only the
+projection enum/transport questions in the earlier vocabulary checkpoint, not the historical evidence or broader D7 deferrals.
+
+Select `com.blackbuild.klum.ast.ConstraintProjection`, a documented FIELD-only, RUNTIME-retained annotation, with
+nested enum `Policy { PROJECT, TEXT_ONLY, OMIT }` and default `PROJECT`. Nesting keeps the single-purpose vocabulary
+local without a generic policy framework. Three values suffice: faithful supported assertions with existing fallback
+constraint descriptions; all captured constraint descriptions without assertions; or no constraint-derived output,
+including source attribution. Absence and an empty annotation both retain #972's default behavior. There is no global flag.
+
+Policy follows the exact effective declaring field identity after approved propagation. Inherited/renamed sources keep
+their declaring policy; an independently accepted replacement declaration selects its own/default policy under existing
+hierarchy/collision/exclusion rules. A field policy does not recurse into referenced owned definitions. Ordinary
+prose/Javadoc, standard deprecation, structure/machine bounds, naming/admission, construction keys, omission/null and
+runtime validation remain independent. Captured unsupported constraints are still descriptive except under `OMIT`.
+
+Transport is one explicit compiler-folded enum fact `GeneratedInput.Field.constraintProjection` plus
+`GeneratedInput.Schema.projectionVersion=1` on declaring public Builder contracts. The enum is read from declaration
+bytes as inert descriptor/name facts, not through authored annotation proxies. Existing numeric versions remain 1.
+Generation always checks policy completeness across root/declaring/inherited/reachable owned contracts, including when
+output is omitted; missing/unknown/incompatible policy and malformed supported numeric facts fail atomically with
+artifact/source and recompile guidance. Runtime structural reading accepts the fact without using it for admission.
+This is matched internal linkage, not a promise that old strict readers accept newer facts.
+
+The supported constraint subset is unchanged: single eligible direct Jakarta Min/Max on integral scalars and
+DecimalMin/Max on integral/BigDecimal scalars; empty groups/payload and group context restrictions remain. Approved
+one-hop default-only propagation is already effective before capture (for example NotNull descriptions); annotations
+with required values cannot be propagated. Arbitrary composed/repeatable hard mappings are not introduced.
+
+Naming profiles/scope/precedence, broader JsonNaming, examples/Javadoc-tag machine data pending separate AnnoDocimal
+structured-tag retention, selective filtering, defaults, setter-time validation, provider SPI and the other D3–D7 mappings
+remain open. Jackson/Bean Validation stay optional adapters. No WIRE carrier, registry/callback, Schema execution,
+Model-byte inspection or runtime/interpreter/Gradle task surface is added.
+
+See [slice evidence and qualification](../implementation/issue-959-d7-constraint-projection.md) and
+[user contract](../user/Json-Schema.md#field-constraint-projection).

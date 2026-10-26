@@ -1,5 +1,11 @@
 # Unreleased
 
+- Added field-level `@ConstraintProjection` with nested `Policy.PROJECT` (default), `TEXT_ONLY` and `OMIT` for
+  generated JSON Schema constraint output. Direct and approved propagated facts share the policy; ordinary prose,
+  deprecation, structural bounds, admission and runtime validation stay independent. Recompile declaring/inherited/owned
+  Schemas with matching versions for required public Builder policy facts. See [field policy](docs/user/Json-Schema.md#field-constraint-projection)
+  and [migration](docs/user/Migration.md#field-constraint-projection) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Generated JSON Schema automatically projects supported direct Jakarta Min/Max on integral properties and exact
   DecimalMin/DecimalMax on BigDecimal/integral properties, including inclusive/exclusive endpoints. The unreleased
   `integralConstraints` and `decimalConstraints` global properties are removed without aliases or a replacement selector.

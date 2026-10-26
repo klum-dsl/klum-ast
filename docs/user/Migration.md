@@ -644,3 +644,17 @@ Generation requires matching compiler/runtime/plugin versions and complete publi
 inherited/owned dependencies. Malformed, incomplete or incompatible numeric facts fail with source/artifact and
 recompile/package guidance. Use precision-capable numeric parsers/validators. See [numeric migration](#integral-json-schema-bounds)
 and the [decimal contract](Json-Schema.md#decimal-constraints).
+
+
+## Field constraint projection
+
+Supported numeric projection remains automatic. To change the generated artifact for one field, use
+`@ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY)` for runtime-constraint prose or
+`@ConstraintProjection(ConstraintProjection.Policy.OMIT)` to omit constraint-derived output. The default `PROJECT`
+retains the always-on faithful numeric baseline. Ordinary prose, deprecation, structural machine limits, input
+admission and runtime validation remain independent; no global switch is restored.
+
+Recompile and package root, inherited and owned Schemas together with matching compiler/runtime/plugin versions:
+new generators require `projectionVersion=1` and explicitly retained field policies. Older strict readers are not
+compatible with newer generated facts. There is no mixed-version fallback. See the
+[field policy example and limits](Json-Schema.md#field-constraint-projection).
