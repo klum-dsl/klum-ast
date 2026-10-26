@@ -124,6 +124,227 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Issue('959')
     @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#type-naming-profiles')
+    def 'resolve input naming from source-free hierarchy contracts with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.NamingBase', 'example.NamingService', 'example.NamingGrandchild', 'example.NamingRepeated', 'example.NamingIdentity', 'example.NamingKey', 'example.NamingLiteralKey', 'example.NamingKeyCollisionOwner'])
+tasks.register('namingControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.NamingControl'
+}
+""")
+
+        when:
+        run('generateKlumJsonSchema')
+        def service = document('example.NamingService').get('$defs').get('example.NamingService_DSL$Builder')
+        def grandchild = document('example.NamingGrandchild').get('$defs').get('example.NamingGrandchild_DSL$Builder')
+        def repeated = document('example.NamingRepeated').get('$defs').get('example.NamingRepeated_DSL$Builder')
+        def base = document('example.NamingBase').get('$defs').get('example.NamingBase_DSL$Builder')
+        def identity = document('example.NamingIdentity').get('$defs').get('example.NamingIdentity_DSL$Builder')
+        def defs = document('example.NamingService').get('$defs')
+        def key = document('example.NamingKey').get('$defs').get('example.NamingKey_DSL$Builder')
+
+        then:
+        service.properties.keySet() == ['display-name', 'displayName', 'service-name', 'url-value', 'xml2-parser', 'version2-url',
+                'already_snake', 'Ångström-url', 'URL', 'empty-rename', 'neutral-ignore', 'configure-endpoint', 'literal-operation',
+                'service-details', 'other-details', 'worker-instances', 'labels'] as Set
+        service.additionalProperties == false
+        !service.properties.containsKey('hidden-value')
+        !service.properties.containsKey('ignored-operation')
+        service.properties.URL.type == 'string'
+        grandchild.properties.keySet() == service.properties.keySet() + 'final-name'
+        repeated.properties.keySet() == service.properties.keySet() + 'equal-name'
+        !base.properties.containsKey('displayName')
+        !base.properties.containsKey('display-name')
+        base.properties.keySet() == ['URL', 'emptyRename', 'neutralIgnore', 'literal-operation'] as Set
+        identity.properties.keySet() == ['nativeName', 'URLValue'] as Set
+        defs.get('example.NamingDetails_DSL$Builder').properties.keySet() == ['nativeName'] as Set
+        defs.get('example.NamingWorker_DSL$Builder::keyless').properties.keySet() == ['image-name'] as Set
+        service.properties.'service-details'.get('$ref') == service.properties.'other-details'.get('$ref')
+        key.required == ['service-id']
+        key.properties.keySet() == ['service-id', 'display-name'] as Set
+        document('example.NamingLiteralKey').get('$defs').get('example.NamingLiteralKey_DSL$Builder').required == ['Service/ID']
+        document('example.NamingKeyCollisionOwner').get('$defs').get('example.NamingKeyCollision_DSL$Builder::keyless').properties.keySet() == ['url-value'] as Set
+        !trap.exists()
+        !new File(consumer, 'src').exists()
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(producer, 'api/build/classes').exists()
+        !new File(producer, 'schema/build/classes').exists()
+        !new File(producer, 'owned/src').exists()
+        !new File(producer, 'owned/build/classes').exists()
+
+        when: 'the separately packaged interpreter checks the same exact names without compiler dependencies'
+        def result = run('namingControl')
+
+        then:
+        result.output.contains('Naming interpreter/schema agreement passed')
+        trap.text == 'executed'
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'reject invalid profile contracts before schema replacement and input execution: #root with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.NamingService'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.NamingService').bytes
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.add('example.$root')
+tasks.register('rejectedNamingControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.NamingControl'
+    args('$root')
+}
+""")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = runner(consumer, 'rejectedNamingControl').build()
+
+        then:
+        failed.output.contains(diagnostic)
+        failed.output.contains(first)
+        failed.output.contains(second)
+        interpreted.output.contains('Rejected naming contract before execution')
+        output('example.NamingService').bytes == previous
+        !output('example.' + root).exists()
+        !trap.exists()
+
+        where:
+        generation | root                      | diagnostic                             | first                             | second
+        '3'        | 'NamingConflict'          | 'Conflicting explicit input profiles'  | 'example.NamingService'            | 'example.NamingConflict'
+        '4'        | 'NamingConflict'          | 'Conflicting explicit input profiles'  | 'example.NamingService'            | 'example.NamingConflict'
+        '5'        | 'NamingIdentityConflict'  | 'Conflicting explicit input profiles'  | 'example.NamingIdentity'           | 'example.NamingIdentityConflict'
+        '3'        | 'NamingCollision'         | 'KEBAB_CASE external-name collision'   | 'example.NamingCollision#URLValue' | 'example.NamingCollision#urlValue'
+        '4'        | 'NamingCollision'         | 'KEBAB_CASE external-name collision'   | 'example.NamingCollision#URLValue' | 'example.NamingCollision#urlValue'
+        '5'        | 'NamingCollision'         | 'KEBAB_CASE external-name collision'   | 'example.NamingCollision#URLValue' | 'example.NamingCollision#urlValue'
+        '3'        | 'NamingKeyCollision'      | 'construction key external-name collision' | 'example.NamingKeyCollision#URLValue' | 'example.NamingKeyCollision#urlValue'
+    }
+
+    @Issue('959')
+    def 'required naming metadata fails closed in both consumers: #target #kind'() {
+        given:
+        fixture(generation, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.NamingService'])
+tasks.register('rejectedNamingControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.NamingControl'
+    args('NamingService')
+}
+""")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.NamingService').bytes
+        rewriteNamingFacts(target, kind)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+        def interpreted = runner(consumer, 'rejectedNamingControl').build()
+
+        then:
+        failed.output.contains('example.' + target)
+        failed.output.contains(kind == 'native' ? 'Malformed UTF-16' : 'naming metadata')
+        failed.output.contains('recompile and package')
+        interpreted.output.contains('Rejected naming contract before execution')
+        output('example.NamingService').bytes == previous
+        !trap.exists()
+
+        where:
+        generation | target          | kind
+        '3'        | 'NamingService' | 'version'
+        '4'        | 'NamingService' | 'future'
+        '5'        | 'NamingService' | 'profile'
+        '3'        | 'NamingService' | 'explicit'
+        '3'        | 'NamingService' | 'unknown'
+        '3'        | 'NamingService' | 'inconsistent'
+        '3'        | 'NamingService' | 'native'
+        '3'        | 'NamingBase'    | 'legacy'
+        '4'        | 'NamingBase'    | 'legacy'
+        '5'        | 'NamingBase'    | 'legacy'
+        '3'        | 'NamingBase'    | 'profile'
+        '3'        | 'NamingWorker'  | 'version'
+        '3'        | 'NamingDetails' | 'profile'
+    }
+
+    @Issue('959')
+    def 'complete legacy identity contracts preserve native schema output'() {
+        given:
+        fixture('3', false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Deployment', 'example.NamingIdentity'])\n")
+        run('generateKlumJsonSchema')
+        def previous = ['example.Deployment', 'example.NamingIdentity'].collectEntries { [(it): output(it).bytes] }
+        ['api', 'schema', 'owned'].each { rewriteNamingFacts('*', 'legacy', it) }
+
+        when:
+        run('generateKlumJsonSchema', '--refresh-dependencies')
+
+        then:
+        previous.every { root, bytes -> output(root).bytes == bytes }
+        !trap.exists()
+    }
+
+    private void rewriteNamingFacts(String target, String kind, String artifact = null) {
+        String module = artifact ?: (target in ['NamingBase', 'NamingIdentity', 'NamingKeyBase', 'NamingLiteralKey'] ? 'api' :
+                target in ['NamingDetails', 'NamingWorker'] ? 'owned' : 'schema')
+        File jar = new File(repository, "fixture/$module/1.0/$module-1.0.jar")
+        File replacement = new File(directory, 'naming-' + module + '.jar')
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
+                input.entries().each { entry ->
+                    byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+                    if (entry.name.endsWith('_DSL$Builder.class') && (target == '*' || entry.name == 'example/' + target + '_DSL$Builder.class')) {
+                        def writer = new ClassWriter(0)
+                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                                def downstream = super.visitAnnotation(descriptor, visible)
+                                if (!descriptor.endsWith('GeneratedInput$Schema;')) return downstream
+                                new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                                    @Override void visit(String member, Object value) {
+                                        if (kind == 'legacy' && member.startsWith('naming')) return
+                                        if (kind == 'version' && member == 'namingVersion') return
+                                        if (kind == 'profile' && member == 'namingProfile') return
+                                        if (kind == 'explicit' && member == 'namingExplicit') return
+                                        if (kind == 'future' && member == 'namingVersion') value = 2
+                                        if (kind == 'unknown' && member == 'namingProfile') value = 'FUTURE'
+                                        if (kind == 'inconsistent' && member == 'namingExplicit') value = false
+                                        super.visit(member, value)
+                                    }
+                                }
+                            }
+                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                                        def downstream = super.visitAnnotation(annotation, visible)
+                                        if (kind != 'native' || !(annotation.endsWith('GeneratedInput$Field;') || annotation.endsWith('GeneratedInput$Selection;'))) return downstream
+                                        new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                                            @Override void visit(String member, Object value) {
+                                                if (value == 'serviceName' && member in ['value', 'field']) value = String.valueOf((char) 0xD800)
+                                                super.visit(member, value)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }, 0)
+                        bytes = writer.toByteArray()
+                    }
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        java.nio.file.Files.move(replacement.toPath(), jar.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+
+    @Issue('959')
+    @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#field-constraint-projection')
     def 'choose field constraint projection without changing structural facts with Groovy #generation'() {
         given:
@@ -967,7 +1188,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -978,7 +1199,7 @@ import com.blackbuild.klum.ast.DSL
         String groovy = notation(System.getProperty("gdslGroovy$generation"))
         String compiler = classpath(System.getProperty('gdslCompilerClasspath'))
         String runtime = classpath(System.getProperty('gdslRuntimeClasspath'))
-        new File(producer, 'settings.gradle').text = "include 'api', 'schema'"
+        new File(producer, 'settings.gradle').text = "include 'api', 'schema'" + (naming ? ", 'owned'" : '')
         new File(producer, 'build.gradle').text = """
 subprojects {
     apply plugin: 'groovy'
@@ -1326,11 +1547,24 @@ import java.lang.annotation.*
 """)
         }
         if (projection) projectionSources()
+        if (naming) {
+            namingSources()
+            new File(producer, 'build.gradle').append("\nproject(':schema') { dependencies { implementation project(':owned') } }\n")
+            runner(producer, ':owned:jar').build()
+            publish('owned', 'owned/build/libs/owned.jar', '')
+        }
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
-        publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
+        publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency>' +
+                (naming ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')
         new File(producer, 'schema/src').deleteDir()
         new File(producer, 'api/src').deleteDir()
+        if (naming) {
+            new File(producer, 'api/build/classes').deleteDir()
+            new File(producer, 'schema/build/classes').deleteDir()
+            new File(producer, 'owned/src').deleteDir()
+            new File(producer, 'owned/build/classes').deleteDir()
+        }
         new File(consumer, 'settings.gradle').text = "rootProject.name = 'schema-consumer'"
         new File(consumer, 'build.gradle').text = """
 plugins { id 'com.blackbuild.klum-ast-schema' }
@@ -1348,6 +1582,117 @@ tasks.register('initializeControl', JavaExec) {
     mainClass = 'example.InitializationControl'
 }
 """
+    }
+
+    private void namingSources() {
+        writeSource('owned/src/main/groovy/example/NamingDetails.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.InputNaming.Profile
+@DSL class NamingDetails { String nativeName }
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingWorker { @Key String workerId; String imageName }
+''')
+        writeSource('api/src/main/groovy/example/NamingBase.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.InputNaming.Profile
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.fasterxml.jackson.annotation.*
+@DSL class NamingBase {
+    String displayName
+    @JsonProperty('displayName') String literalName
+    @JsonProperty('URL') String endpointUrl
+    @JsonProperty('') String emptyRename
+    @JsonIgnore(false) String neutralIgnore
+    @JsonIgnore @JsonProperty('hidden-literal') String hiddenValue
+    @Builder.Method @JsonProperty('literal-operation') void literalOperation(String value) { neutralIgnore = value }
+    @Builder.Method @JsonIgnore void ignoredOperation(String value) { throw new AssertionError('ignored operation') }
+}
+@InputNaming(Profile.IDENTITY) @DSL class NamingIdentity { String nativeName; String URLValue }
+@DSL class NamingKeyBase { @Key String serviceId }
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingLiteralKey { @Key @JsonProperty('Service/ID') String serviceId }
+class NamingControl {
+    static void main(String[] args) {
+        if (args.length) {
+            def type = Class.forName('example.' + args[0], false, NamingControl.classLoader)
+            try {
+                KlumStructuredInput.readRoot(type, (args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
+                throw new AssertionError('invalid contract accepted')
+            } catch (KlumModelException expected) {
+                assert expected.message.contains('input profiles') || expected.message.contains('collision') || expected.message.contains('naming metadata') || expected.message.contains('construction key') || expected.message.contains('Malformed UTF-16')
+                println 'Rejected naming contract before execution'
+            }
+            return
+        }
+        def type = Class.forName('example.NamingService', false, NamingControl.classLoader)
+        def input = ['display-name': 'Base', displayName: 'Literal', 'service-name': 'Catalog', 'url-value': 'url',
+                'xml2-parser': 'xml', 'version2-url': 'v2', already_snake: 'snake', 'Ångström-url': 'unicode',
+                URL: 'exact', 'empty-rename': 'empty', 'neutral-ignore': 'false is neutral',
+                'service-details': [nativeName: 'first'], 'other-details': [nativeName: 'second'],
+                'worker-instances': ['Worker/Blue': ['image-name': 'worker:1']], labels: ['Team/Blue': 'ops']]
+        def result = KlumStructuredInput.readRoot(type, input, 'naming.yaml')
+        assert result.displayName == 'Base' && result.literalName == 'Literal'
+        assert result.serviceName == 'Catalog' && result.URLValue == 'url'
+        assert result.XML2Parser == 'xml' && result.version2URL == 'v2'
+        assert result.already_snake == 'snake' && result.ÅngströmURL == 'unicode'
+        assert result.endpointUrl == 'exact' && result.emptyRename == 'empty'
+        assert result.neutralIgnore == 'false is neutral' && result.hiddenValue == null
+        assert result.serviceDetails.nativeName == 'first' && result.otherDetails.nativeName == 'second'
+        assert result.workerInstances['Worker/Blue'].workerId == 'Worker/Blue'
+        assert result.workerInstances['Worker/Blue'].imageName == 'worker:1'
+        assert result.labels == ['Team/Blue': 'ops']
+        def operated = KlumStructuredInput.readRoot(type, ['configure-endpoint': 'operation', 'literal-operation': 'literal'], 'operation.yaml')
+        assert operated.serviceName == 'operation' && operated.neutralIgnore == 'literal'
+        try {
+            KlumStructuredInput.readRoot(type, [serviceName: 'alias'], 'alias.yaml')
+            throw new AssertionError('native alias accepted')
+        } catch (KlumModelException expected) { assert expected.message.contains('serviceName') }
+        def keyed = KlumStructuredInput.readRoot(Class.forName('example.NamingKey', false, NamingControl.classLoader), ['service-id': 'Instance/Blue', 'display-name': 'Blue'], 'key.yaml')
+        assert keyed.serviceId == 'Instance/Blue' && keyed.displayName == 'Blue'
+        def literalKey = KlumStructuredInput.readRoot(NamingLiteralKey, ['Service/ID': 'Instance/Red'], 'key.yaml')
+        assert literalKey.serviceId == 'Instance/Red'
+        def keyless = KlumStructuredInput.readRoot(Class.forName('example.NamingKeyCollisionOwner', false, NamingControl.classLoader), [services: [instance: ['url-value': 'property']]], 'keyless.yaml')
+        assert keyless.services.instance.URLValue == 'instance' && keyless.services.instance.urlValue == 'property'
+        println 'Naming interpreter/schema agreement passed'
+    }
+}
+""")
+        writeSource('schema/src/main/groovy/example/NamingService.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.InputNaming.Profile
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingService extends NamingBase {
+    static { new File('${trap.absolutePath}').text = 'executed' }
+    String serviceName
+    String URLValue
+    String XML2Parser
+    String version2URL
+    String already_snake
+    String ÅngströmURL
+    NamingDetails serviceDetails
+    NamingDetails otherDetails
+    Map<String, NamingWorker> workerInstances
+    Map<String, String> labels
+    @Builder.Method void configureEndpoint(String value) { serviceName = value }
+}
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingKey extends NamingKeyBase { String displayName }
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingKeyCollision { @Key String URLValue; String urlValue }
+@DSL class NamingKeyCollisionOwner { Map<String, NamingKeyCollision> services }
+@DSL class NamingGrandchild extends NamingService { String finalName }
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingRepeated extends NamingService { String equalName }
+@InputNaming(Profile.IDENTITY) @DSL class NamingConflict extends NamingService {
+    static { new File('${trap.absolutePath}').text = 'executed'; throw new AssertionError('invalid profile initialized') }
+}
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingIdentityConflict extends NamingIdentity {
+    static { new File('${trap.absolutePath}').text = 'executed'; throw new AssertionError('invalid profile initialized') }
+}
+@InputNaming(Profile.KEBAB_CASE) @DSL class NamingCollision {
+    static { new File('${trap.absolutePath}').text = 'executed'; throw new AssertionError('collision initialized') }
+    String URLValue
+    String urlValue
+}
+""")
     }
 
     private void projectionSources() {
