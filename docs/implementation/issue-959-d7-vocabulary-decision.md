@@ -7,8 +7,8 @@ The [first implementation slice](issue-959-d7-constraint-projection.md) and
 settle the enum, retention, declaring-field semantics and required transport only. The historical open questions below
 retain their decision-time wording; naming, examples and broader D7 semantics remain deferred.
 The next independent [external naming/exclusion decision brief](issue-959-d7-external-naming-decision.md)
-records the subsequently confirmed current-project need for type-wide profiles and binding inheritance, while keeping
-remaining semantics explicit for maintainer review.
+records the confirmed type-profile/literal authoring contract, binding inheritance and bounded binary probes required
+before a separately assigned implementation.
 Audited baseline: `6ec0a0404515722deccc3fc68ca4a8d9325c2170`, merged [PR #972](https://github.com/klum-dsl/klum-ast/pull/972).
 Authority: [ADR 0031 accepted vocabulary direction](../adr/0031-structured-schema-input-artifacts.md#d7-vocabulary-direction--959).
 The [earlier D7 record](issue-959-d7-naming-profiles.md) retains historical probes and broader alternatives; its proposed algorithms, precedence and annotation names are not decisions.

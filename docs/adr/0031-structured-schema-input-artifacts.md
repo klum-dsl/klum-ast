@@ -711,7 +711,7 @@ See [slice evidence and qualification](../implementation/issue-959-d7-constraint
 
 ## D7 type-wide naming direction — #959
 
-Date: 2026-10-26. Status: **Need and inheritance direction accepted; remaining semantics open; design only.**
+Date: 2026-10-26. Status: **Design-only authoring contract confirmed; bounded binary probes precede implementation.**
 The maintainer identifies another current project besides Schelm that preconverts kebab-case input Map keys to
 camelCase and finds this brittle. Type-wide naming profiles with per-entry literal overrides are therefore an immediate
 use case. This supersedes the external-naming brief's earlier profile deferral and root-only recommendation; it does
@@ -725,7 +725,9 @@ not make Schelm's observed camelCase a different requirement or authorize implem
   relationships between ordinary separate types, not lexical nested class declarations; no nested-class support
   guarantee is added.
 - Kebab boundaries are accepted: `serviceName -> service-name`, `URLValue -> url-value`, `XML2Parser -> xml2-parser`,
-  `version2URL -> version2-url`, keeping digits attached to the preceding word. Literal overrides remain available.
+  `version2URL -> version2-url`, keeping digits attached to the preceding word. Non-ASCII characters and existing
+  separators remain unchanged; apply only ASCII boundaries/lowercasing. `already_snake` stays unchanged;
+  `ÅngströmURL -> Ångström-url`. Literal overrides remain available.
 - Profile-induced collisions reject the conflicting type with a diagnostic identifying both declarations, before input
   execution or schema publication. Do not silently remove colliding entries; a literal override can resolve the conflict.
 - The first slice covers structured input and JSON Schema only. The current project does not require the new profile
@@ -733,11 +735,13 @@ not make Schelm's observed camelCase a different requirement or authorize implem
 - Include focused Klum name/exclusion annotations in this slice, retaining compatible `JsonProperty`/`JsonIgnore`
   support so naming can be authored entirely with Klum annotations. Accepted names are `InputNaming` with nested
   `Profile.IDENTITY`/`KEBAB_CASE`, `InputName('literal')` and marker `InputIgnore`, all in `com.blackbuild.klum.ast`.
-  Exact targets/retention and bridge edge combinations remain open. Equivalent Klum/Jackson declarations coalesce;
-  contradictory declarations fail contract resolution with both origins in the diagnostic, rather than canonical or
-  annotation-order precedence.
-- Package-info remains deferred. Remaining punctuation/Unicode algorithm details and exact source-free metadata
-  compatibility remain to be settled.
+  Contracts are confirmed: `RUNTIME` retention; type-only `InputNaming` with a required explicit profile value;
+  field/admitted-method `InputName` with a required nonempty literal and marker `InputIgnore`, including selected key
+  fields. Equivalent Klum/Jackson declarations coalesce; different explicit literal names fail with both origins,
+  including on an excluded entry. Exclusion wins over renaming, including mixed annotations; `JsonIgnore(false)` is neutral and cannot undo exclusion. No canonical or
+  annotation-order winner selection.
+- Package-info remains deferred. Exact source-free metadata compatibility requires bounded probes before implementation;
+  the author-facing behavior does not require a root selector or mapper strategy.
 
 The [updated decision brief](../implementation/issue-959-d7-external-naming-decision.md) distinguishes accepted direction
 from remaining recommendations and binary probes. Both interpreter and generator must use one shared grammar, without
