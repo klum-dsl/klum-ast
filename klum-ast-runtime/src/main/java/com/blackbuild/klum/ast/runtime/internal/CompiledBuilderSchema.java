@@ -188,7 +188,9 @@ final class CompiledBuilderSchema {
             if (naming == Profile.KEBAB_CASE) {
                 List<Entry> candidates = facts.entries().stream().map(CompiledBuilderSchema::profileEntry).toList();
                 entries.putAll(admitted(candidates, rejected, true));
-                if (key != null) key = profileKey(key);
+                if (key != null) {
+                    key = profileKey(key);
+                }
             } else {
                 facts.entries().forEach(entry -> entries.put(entry.externalName(), entry));
             }
@@ -216,7 +218,9 @@ final class CompiledBuilderSchema {
             if (group.size() == 1) entries.put(name, group.get(0));
             else {
                 String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
-                if (strict) throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
+                if (strict) {
+                    throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
+                }
                 group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
             }
         });
@@ -304,9 +308,10 @@ final class CompiledBuilderSchema {
                 .filter(entry -> Boolean.TRUE.equals(entry.getValue().namingExplicit)).toList();
         if (explicit.isEmpty()) return Profile.IDENTITY;
         for (Map.Entry<Class<?>, Metadata> entry : hierarchy.entrySet()) {
-            if (entry.getValue().namingVersion != 1)
+            if (entry.getValue().namingVersion != 1) {
                 throw invalid("Selected input profile requires naming metadata version 1 on " + namingOrigin(entry.getKey())
                         + "; recompile and package this Schema hierarchy with matching KlumAST compiler/runtime/plugin versions");
+            }
         }
         String selected = explicit.get(0).getValue().namingProfile;
         if (explicit.stream().anyMatch(entry -> !entry.getValue().namingProfile.equals(selected))) {
@@ -325,7 +330,9 @@ final class CompiledBuilderSchema {
         validateNaming(declared, builder);
         hierarchy.put(builder, declared);
         for (Class<?> parent : Arrays.stream(builder.getInterfaces()).sorted(Comparator.comparing(Class::getName)).toList()) {
-            if (parent.getName().endsWith(BUILDER_SUFFIX)) namingHierarchy(parent, hierarchy);
+            if (parent.getName().endsWith(BUILDER_SUFFIX)) {
+                namingHierarchy(parent, hierarchy);
+            }
         }
     }
 
@@ -334,8 +341,9 @@ final class CompiledBuilderSchema {
         if (declared.namingVersion == 0 && !any) return; // Complete legacy identity facts remain valid.
         if (declared.namingVersion != 1 || declared.namingExplicit == null || declared.namingProfile == null
                 || !Set.of(IDENTITY_NAME, KEBAB_NAME).contains(declared.namingProfile)
-                || !declared.namingExplicit && !declared.namingProfile.equals(IDENTITY_NAME))
+                || !declared.namingExplicit && !declared.namingProfile.equals(IDENTITY_NAME)) {
             throw invalid("Invalid or incomplete naming metadata version " + declared.namingVersion + " on " + namingOrigin(builder));
+        }
     }
 
     private static String namingOrigin(Class<?> builder) {
@@ -355,7 +363,9 @@ final class CompiledBuilderSchema {
     private static Key profileKey(Key key) throws IOException, ClassNotFoundException {
         Metadata declaring = metadata(key.contract());
         Literals literal = declaring.keyMember;
-        if (literal == null) literal = declaring.methods.values().stream().filter(value -> key.nativeName().equals(value.key)).findFirst().orElseThrow();
+        if (literal == null) {
+            literal = declaring.methods.values().stream().filter(value -> key.nativeName().equals(value.key)).findFirst().orElseThrow();
+        }
         if (!literal.rename.isEmpty() || key.ignored()) return key;
         return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
                 key.source(), key.contract(), key.sourceDeprecated());
@@ -789,27 +799,43 @@ final class CompiledBuilderSchema {
 
         @Override public void visit(String member, Object value) {
             if (!seen.add(member)) throw invalid("Duplicate schema member " + member);
-            if (member.equals("namingVersion") && value instanceof Integer version) {
-                result.namingVersion = version;
-            } else if (member.equals("namingExplicit") && value instanceof Boolean flag) {
-                result.namingExplicit = flag;
-            } else if (member.equals("namingProfile") && value instanceof String profile) {
-                result.namingProfile = profile;
-            } else if (member.equals("constraintVersion") && value instanceof Integer version) {
-                result.constraintVersion = version;
-            } else if (member.equals("decimalVersion") && value instanceof Integer version) {
-                result.decimalVersion = version;
-            } else if (member.equals("projectionVersion") && value instanceof Integer version) {
-                result.projectionVersion = version;
-            } else if (member.equals("groupRedefined") && value instanceof Boolean flag) {
-                result.groupRedefined = flag;
-            } else if (member.equals("key") && value instanceof String text) {
-                result.key = text;
-            } else if (member.equals("keyInput") && value instanceof Boolean flag) {
-                result.keyInput = flag;
-            } else {
-                throw invalid("Unknown schema member " + member);
+            switch (member) {
+                case "namingVersion" -> result.namingVersion = integer(member, value);
+                case "namingExplicit" -> result.namingExplicit = flag(member, value);
+                case "namingProfile" -> result.namingProfile = text(member, value);
+                case "constraintVersion" -> result.constraintVersion = integer(member, value);
+                case "decimalVersion" -> result.decimalVersion = integer(member, value);
+                case "projectionVersion" -> result.projectionVersion = integer(member, value);
+                case "groupRedefined" -> result.groupRedefined = flag(member, value);
+                case "key" -> result.key = text(member, value);
+                case "keyInput" -> result.keyInput = flag(member, value);
+                default -> throw unknownMember(member);
             }
+        }
+
+        private static int integer(String member, Object value) {
+            if (value instanceof Integer number) {
+                return number;
+            }
+            throw unknownMember(member);
+        }
+
+        private static boolean flag(String member, Object value) {
+            if (value instanceof Boolean flag) {
+                return flag;
+            }
+            throw unknownMember(member);
+        }
+
+        private static String text(String member, Object value) {
+            if (value instanceof String text) {
+                return text;
+            }
+            throw unknownMember(member);
+        }
+
+        private static IllegalArgumentException unknownMember(String member) {
+            return invalid("Unknown schema member " + member);
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {

@@ -158,8 +158,9 @@ final class StructuredInputAdmissionPlan {
         if (naming != null) {
             Expression value = naming.getMember(VALUE);
             if (!(value instanceof PropertyExpression property)
-                    || !Set.of(InputNaming.Profile.IDENTITY.name(), InputNaming.Profile.KEBAB_CASE.name()).contains(property.getPropertyAsString()))
+                    || !Set.of(InputNaming.Profile.IDENTITY.name(), InputNaming.Profile.KEBAB_CASE.name()).contains(property.getPropertyAsString())) {
                 throw new IllegalArgumentException("@InputNaming requires an explicit supported Profile on " + model.getName());
+            }
             profile = property.getPropertyAsString();
         }
         schema.setMember("namingVersion", new ConstantExpression(1));

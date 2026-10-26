@@ -76,8 +76,8 @@ annotation Strings rather than assumed representable source identifiers.
 Java 17 root `./gradlew check --no-parallel --max-workers=2` passed at `06b9d90a9887257d188d1108efcfbaf1a276e871`
 in 21m14s: G3/G4/G5 totals **3,218 / 2,672 / 2,672**, zero failures/errors, existing skips **17 / 16 / 16**.
 This includes all 93 packaged JSON Schema cases, licenses, lane isolation, plugin checks and documentation rendering.
-No production source changed after that check. Subsequent test-only decoder/initialization controls and import cleanup
-pass **95 focused compiler/runtime cases per G3/G4/G5 lane** and **24 packaged naming cases** (2m42s).
+Only review brace corrections and a private typed scalar-dispatch simplification followed that production revision. Subsequent decoder/initialization
+controls and import cleanup pass **95 focused compiler/runtime cases per G3/G4/G5 lane** and **24 packaged naming cases** (2m42s).
 
 Actual public Builder classfile deltas from the three explicit naming fields are **75 bytes** for absent/identity facts
 and **77 bytes** for kebab facts, identical across G3/G4/G5. All 135 relative Markdown targets/anchors and balanced
@@ -98,3 +98,24 @@ Documentary traceability:
   the same markers linked to [JSON Schema](../user/Json-Schema.md#type-naming-profiles).
 - [Migration](../user/Migration.md#type-naming-profiles), [ADR](../adr/0031-structured-schema-input-artifacts.md#d7-type-profile-implementation-slice--959)
   and [changelog](../../CHANGES.md) describe only delivered profile behavior. The feature issue remains open.
+
+### Independent review and delivery boundary
+
+The worker launched separate read-only Standards and Specification agents only after the completed branch was ready at
+`a052cf1a7f8a7b28f3616fa7333a1b5817599c35` (three occupied slots including the worker). Specification reported zero
+actionable findings. Standards reported one grouped P3 finding: missing braces on new nested/multiline conditionals.
+The follow-up adds braces to those guards and related new private resolver guards. Both reviewers confirmed zero remaining
+findings after that correction. Preventative Sonar hygiene then replaces the grown scalar visitor dispatch chain with a
+private typed switch, preserving exact accepted scalar types and unknown-member errors. Both independent agents reviewed
+that additive diff and again reported **zero remaining findings**. Reviewed commits are preserved. Final post-correction
+verification passed in **6m05s**: 95 compiler/runtime cases per G3/G4/G5 lane and **all 93 packaged JSON Schema regressions**,
+plus affected source licenses, lane isolation and plugin validation. A prior committed-head run also passed documentation
+rendering. Final Markdown/diff and four-commit history review passed before publication; no history rewrite was needed.
+
+GitHub CLI repository delivery authority is **authorized**; Git SSH branch delivery is independently checked by the
+publication action. The base was refreshed before review and remains the #975 merge. History contains focused implementation,
+packaged/documentation qualification, decoder qualification and an additive review correction. Tracker impact is
+**Related: #959**, with **no curation/release-index impact**: this partial profile slice neither completes the parent issue
+nor changes its release placement. Draft publication is authorized; merge and issue closure are outside this assignment.
+The final callback and PR checks supply exact published-head CI/Sonar evidence; no clean remote result is declared in advance.
+Hive delivery/archive reconciliation is requested after worker completion; the worker does not self-archive.

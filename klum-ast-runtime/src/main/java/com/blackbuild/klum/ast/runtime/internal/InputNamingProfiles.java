@@ -33,7 +33,9 @@ final class InputNamingProfiles {
         for (int index = 0; index < nativeName.length(); index++) {
             char current = nativeName.charAt(index);
             if (upper(current)) {
-                if (boundary(nativeName, index)) result.append('-');
+                if (boundary(nativeName, index)) {
+                    result.append('-');
+                }
                 result.append((char) (current + ('a' - 'A')));
             } else {
                 result.append(current);
@@ -56,8 +58,9 @@ final class InputNamingProfiles {
         for (int index = 0; index < value.length(); index++) {
             char current = value.charAt(index);
             if (Character.isHighSurrogate(current)) {
-                if (index + 1 >= value.length() || !Character.isLowSurrogate(value.charAt(++index)))
+                if (index + 1 >= value.length() || !Character.isLowSurrogate(value.charAt(++index))) {
                     throw new IllegalArgumentException("Malformed UTF-16 native input name at " + source);
+                }
             } else if (Character.isLowSurrogate(current)) {
                 throw new IllegalArgumentException("Malformed UTF-16 native input name at " + source);
             }
