@@ -1,6 +1,6 @@
 # #959 D7: field constraint projection
 
-Date: 2026-10-26. Status: implementation and focused qualification; final checks/reviews pending.
+Date: 2026-10-26. Status: implementation, full local qualification and independent reviews complete; draft publication follows.
 Base: current `origin/master` at `681aa0be48ae520638d97c613a52442e0ad0e3e2`, after merged #972 and #973.
 Branch: `codex/959-constraint-projection`. Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959), which remains open.
 Authority: accepted first D7 slice assignment, [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#d7-field-constraint-projection-slice--959)
@@ -72,4 +72,27 @@ Validation remain optional adapters. No WIRE carrier, registry, callback or gene
 
 ## Qualification and delivery
 
-Pending final test totals, independent review dispositions and draft PR/CI evidence. No merge or #959 closure is authorized.
+JDK 17 `./gradlew check --no-parallel --max-workers=2` passed at stable revision `8ebe9a3bd` in **18m 52s**
+(141 tasks, 76 executed). Groovy 3/4/5 totals: **3,159 / 2,637 / 2,637**, zero failures/errors, with **17 / 16 / 16**
+existing skips and no new suppression. All **69** packaged schema-generator cases pass. The new policy runtime test
+passes all three cases in each lane. Licenses, test-lane isolation, plugin validation and documentation renderer checks pass.
+The final focused run (11 packaged policy/corruption cases plus three runtime cases) passed before this full run.
+
+External `jsonschema==4.23.0` against newly emitted outputs passes structural **195 inputs / 18 metaschemas**, integral
+**429 / 3**, decimal **426 / 3**, deprecation **96 / 6**, plus **97** retained hand-authored P2 inputs. Ten contradictory
+emitted schemas pass metaschema validation, accept omission and reject their supplied-value corpus. Producer-generation
+byte identity remains enforced by the retained validators.
+
+Independent read-only Standards and Specification subagents reviewed `681aa0be...8ebe9a3bd`: **zero findings on each axis**.
+The two reasoning commits separate the implementation/test cycle from the contract/user/release documentation; history
+review found no need to rewrite them. The subsequent evidence-only commit changes no qualified code, test or build input.
+All six changed Markdown files have balanced fences; **121** relative targets and **56** local anchors pass, as does the
+branch diff check. Current user pages stay in the existing navigation; no new page/sidebar entry is required.
+
+Delivery authorization: Git SSH branch publication **authorized** (receive-pack dry run succeeded); connected GitHub
+reads **authorized**. Actual draft PR/issue delivery and CI/Sonar outcomes are recorded on the linked PR and issue to avoid
+repeated evidence-only CI triggers. No local shared-project Sonar upload is performed; full PR CI/Sonar is the authoritative
+remote check. At the local handoff boundary those remote checks have not run, and no remote passing result is claimed here.
+
+Tracker relationship is **Related: #959**; no issue closure, labels, milestone, release placement or curation change.
+No merge is authorized. Hive owns subsequent delivery/archive reconciliation.
