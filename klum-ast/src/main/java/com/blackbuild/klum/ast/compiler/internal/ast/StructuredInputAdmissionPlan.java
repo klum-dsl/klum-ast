@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
+import com.blackbuild.klum.ast.InputNaming;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
@@ -39,6 +40,7 @@ import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.expr.Expression;
@@ -144,9 +146,25 @@ final class StructuredInputAdmissionPlan {
         transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
                 .forEach(field -> enrichField(builder, field, entries, rejections, invisible));
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
+        enrichNaming(model, schema);
         StructuredInputConstraintMetadata.enrichSchema(model, schema);
         builder.addAnnotation(schema);
         restoreAuthoredFacts(transformation);
+    }
+
+    private static void enrichNaming(ClassNode model, AnnotationNode schema) {
+        AnnotationNode naming = annotation(model, InputNaming.class.getName());
+        String profile = InputNaming.Profile.IDENTITY.name();
+        if (naming != null) {
+            Expression value = naming.getMember(VALUE);
+            if (!(value instanceof PropertyExpression property)
+                    || !Set.of(InputNaming.Profile.IDENTITY.name(), InputNaming.Profile.KEBAB_CASE.name()).contains(property.getPropertyAsString()))
+                throw new IllegalArgumentException("@InputNaming requires an explicit supported Profile on " + model.getName());
+            profile = property.getPropertyAsString();
+        }
+        schema.setMember("namingVersion", new ConstantExpression(1));
+        schema.setMember("namingExplicit", new ConstantExpression(naming != null));
+        schema.setMember("namingProfile", new ConstantExpression(profile));
     }
 
     private static void enrichDeprecation(AnnotatedNode source, AnnotationNode fact) {

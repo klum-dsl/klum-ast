@@ -43,6 +43,12 @@ public final class GeneratedInput {
         int decimalVersion() default 0;
         /** Completeness of effective field artifact policy; zero denotes older artifacts. */
         int projectionVersion() default 0;
+        /** Independent completeness of declared naming/absence facts; zero denotes legacy identity contracts. */
+        int namingVersion() default 0;
+        /** Explicit presence is separate from a binding IDENTITY selection. */
+        boolean namingExplicit() default false;
+        /** Compiler-folded finite profile name; always emitted with namingVersion=1. */
+        String namingProfile() default "IDENTITY";
         boolean groupRedefined() default false;
         String key() default "";
         boolean keyInput() default false;
