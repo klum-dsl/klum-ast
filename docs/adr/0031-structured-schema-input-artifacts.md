@@ -564,6 +564,34 @@ and the maintainer decisions needed before later implementation. **D7 does not b
 the active bounded decimal-bounds slice can proceed under its own assignment and existing D1/D2 boundaries.
 No runtime behavior, generated output, release or milestone commitment follows from this checkpoint.
 
+## D7 vocabulary direction — #959
+
+Date: 2026-10-26. Status: **Accepted bounded design direction; enum contract and implementation remain open**.
+This extends the earlier deferral with the maintainer's selected authoring shape, recorded in the
+[D7 decision brief](../implementation/issue-959-d7-vocabulary-decision.md#accepted-maintainer-decision--2026-10-26).
+
+- Select **B: a small family of focused Klum annotations**, separating language shaping from advisory projection.
+  Allow compatible optional Jackson annotation inputs. Preserve the existing narrow `JsonProperty`/`JsonIgnore`
+  support; equivalent facts may coexist and conflicts diagnose rather than depend on annotation order. Broader
+  `JsonNaming` support needs its own bounded decision. Jackson/Bean Validation remain optional adapters, not the
+  canonical contract or required dependencies. ADR 0009's independent binding behavior remains intact.
+- **Defer examples**, favoring reconsideration when AnnoDocimal can retain structured Javadoc tags in separate
+  annotations. Existing parsed tag access is distinct from that transport. Scalar examples authored as simple
+  strings remain a possible fallback, with no accepted syntax, scalar conversion, placement or profile semantics.
+- Select the singular field-level annotation name **`ConstraintProjection`**, with an enum-valued policy instead
+  of the earlier suppression marker. **The enum type name, constant names, final value set and default remain
+  undecided.** Normal projection, text-only descriptions and omission of constraint-derived output are the
+  candidate behaviors discussed; `ProjectionType` and `PROJECT`/`TEXT_ONLY`/`SKIP` are provisional spellings only.
+  Policy concerns supported effective field contributions, including approved propagated origins; it does not
+  enable arbitrary composed mappings. Ordinary prose, standard deprecation, structural types/machine bounds,
+  naming/admission, construction-key/null/omission semantics and runtime validation remain independent.
+
+Keep compiler-folded source facts on generated public Builder declarations as the preferred transport seam; no
+concrete fact format, annotation package, retention/override/completeness rule or naming-scope precedence is
+selected here. The brief retains the remaining decisions and bounded probe needs. This supersedes its original
+examples-first and single-marker recommendations, not the stable always-on faithful numeric baseline delivered
+by #972. No production implementation, installed public API, issue/milestone change or release commitment follows.
+
 ## Exact direct decimal authoring bounds — #959 narrow follow-up
 
 Date: 2026-10-25. Status: **Approved bounded implementation; D7 remains deferred**.
