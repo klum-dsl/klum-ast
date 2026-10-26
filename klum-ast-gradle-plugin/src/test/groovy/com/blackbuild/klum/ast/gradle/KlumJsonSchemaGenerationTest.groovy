@@ -30,6 +30,8 @@ import groovyjarjarasm.asm.ClassVisitor
 import groovyjarjarasm.asm.ClassWriter
 import groovyjarjarasm.asm.Opcodes
 import groovyjarjarasm.asm.MethodVisitor
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -340,7 +342,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
                 }
             }
         }
-        java.nio.file.Files.move(replacement.toPath(), jar.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        Files.move(replacement.toPath(), jar.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
 
     @Issue('959')

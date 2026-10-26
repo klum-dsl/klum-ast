@@ -558,6 +558,89 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         damage << ['schema marker', 'selection', 'source', 'role', 'fixed property key', 'exclusion']
     }
 
+    @Issue('959')
+    def 'naming decoder rejects damaged binary facts before initialization: #damage'() {
+        given:
+        def jar = compileJar([trapped('''
+            package damagednaming
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.InputNaming
+            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            @DSL class Configuration { String value }
+        ''')])
+        def damaged = rewriteContract(jar, 'damagednaming/Configuration_DSL$Builder.class', damage)
+        def binaries = isolated([damaged])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('damagednaming.Configuration_DSL$Builder', false, binaries),
+                Class.forName('damagednaming.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains(diagnostic)
+        failure.message.contains('damagednaming.Configuration')
+        failure.message.contains('recompile and package')
+        System.getProperty('wire.schema.executed') == null
+
+        when: 'the independent initialization control proves the producer trap is live'
+        Class.forName('damagednaming.Configuration', true, binaries)
+
+        then:
+        thrown(AssertionError)
+        System.getProperty('wire.schema.executed') == 'initialized'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        damage                | diagnostic
+        'naming version'      | 'naming metadata version 0'
+        'naming future'       | 'naming metadata version 2'
+        'naming explicit'     | 'naming metadata'
+        'naming profile'      | 'naming metadata'
+        'naming unknown'      | 'naming metadata'
+        'naming inconsistent' | 'naming metadata'
+        'naming duplicate'    | 'Duplicate schema member namingProfile'
+        'naming type'         | 'Unknown schema member namingExplicit'
+        'naming enum'         | 'Unexpected schema enum namingProfile'
+        'naming native'       | 'Malformed UTF-16'
+    }
+
+    @Issue('959')
+    def 'selected profile requires declared absence provenance from a legacy binary ancestor'() {
+        given:
+        def api = compileJar([trapped('''
+            package legacyprofile
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Base { String inheritedName }
+        ''')])
+        def child = compileJar([trapped('''
+            package legacyprofile
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.InputNaming
+            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            @DSL class Configuration extends Base { String localName }
+        ''')], [api])
+        def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'naming legacy')
+        def binaries = isolated([legacy, child])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('legacyprofile.Configuration_DSL$Builder', false, binaries),
+                Class.forName('legacyprofile.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('Selected input profile requires naming metadata version 1')
+        failure.message.contains('legacyprofile.Base')
+        failure.message.contains('artifact')
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
     def 'directory contracts with unescaped spaces retain exact resource origins'() {
         given:
         def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
@@ -726,7 +809,29 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                 if (damage == 'schema marker' && descriptor.endsWith('GeneratedInput$Schema;')) {
                     return null
                 }
-                super.visitAnnotation(descriptor, visible)
+                def downstream = super.visitAnnotation(descriptor, visible)
+                if (!damage.startsWith('naming ') || !descriptor.endsWith('GeneratedInput$Schema;')) return downstream
+                new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                    @Override void visit(String member, Object value) {
+                        if (damage == 'naming legacy' && member.startsWith('naming')) return
+                        if (damage == 'naming version' && member == 'namingVersion') return
+                        if (damage == 'naming explicit' && member == 'namingExplicit') return
+                        if (damage == 'naming profile' && member == 'namingProfile') return
+                        if (damage == 'naming future' && member == 'namingVersion') value = 2
+                        if (damage == 'naming unknown' && member == 'namingProfile') value = 'FUTURE'
+                        if (damage == 'naming inconsistent' && member == 'namingExplicit') value = false
+                        if (damage == 'naming type' && member == 'namingExplicit') value = 'true'
+                        if (damage == 'naming enum' && member == 'namingProfile') {
+                            super.visitEnum(member, 'Lunavailable/UserEnum;', 'KEBAB_CASE')
+                            return
+                        }
+                        super.visit(member, value)
+                    }
+                    @Override void visitEnd() {
+                        if (damage == 'naming duplicate') super.visit('namingProfile', 'IDENTITY')
+                        super.visitEnd()
+                    }
+                }
             }
 
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
@@ -750,6 +855,11 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     private static AnnotationVisitor damageAnnotation(AnnotationVisitor visitor, String annotation, String damage) {
         new AnnotationVisitor(Opcodes.ASM9, visitor) {
             @Override void visit(String member, Object value) {
+                if (damage == 'naming native' && value == 'value'
+                        && (annotation.endsWith('GeneratedInput$Field;') && member == 'value'
+                        || annotation.endsWith('GeneratedInput$Selection;') && member == 'field')) {
+                    value = String.valueOf((char) 0xD800)
+                }
                 if (damage == 'source' && annotation.endsWith('GeneratedInput$Field;') && member == 'value') {
                     value = 'forged'
                 }

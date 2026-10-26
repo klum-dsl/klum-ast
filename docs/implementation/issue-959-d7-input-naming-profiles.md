@@ -63,13 +63,32 @@ defaults, Bean Validation/provider SPI and additional grammar remain deferred. N
 
 ## Qualification and delivery
 
-Focused runtime/compiler and packaged plugin results, full root verification, independent Standards/Specification review,
-final branch/base/head, delivery authority, PR and final-head CI/Sonar status are recorded below once complete.
+The branch is `codex/959-input-naming-profiles`, based on the #975 merge above. Independent review and remote
+CI/Sonar are separate gates; the worker callback names the final published head and live remote results.
 The packaged fixture uses separate API/base, derived Schema and owned-value artifacts; sources, mirrors and compiler
 outputs are absent from the consumer, whose classpath contains no compiler or databind. The happy path compares exact
 closed-schema properties with real interpreter acceptance and rejects native aliases. Negative cases retain prior output
 and active Builder state, and use execution traps with positive controls. Malformed UTF-16 is tested as actual classfile
 annotation Strings rather than assumed representable source identifiers.
+
+### Local verification before independent review
+
+Java 17 root `./gradlew check --no-parallel --max-workers=2` passed at `06b9d90a9887257d188d1108efcfbaf1a276e871`
+in 21m14s: G3/G4/G5 totals **3,218 / 2,672 / 2,672**, zero failures/errors, existing skips **17 / 16 / 16**.
+This includes all 93 packaged JSON Schema cases, licenses, lane isolation, plugin checks and documentation rendering.
+No production source changed after that check. Subsequent test-only decoder/initialization controls and import cleanup
+pass **95 focused compiler/runtime cases per G3/G4/G5 lane** and **24 packaged naming cases** (2m42s).
+
+Actual public Builder classfile deltas from the three explicit naming fields are **75 bytes** for absent/identity facts
+and **77 bytes** for kebab facts, identical across G3/G4/G5. All 135 relative Markdown targets/anchors and balanced
+fences across affected documentation passed; final diff/commit-history checks precede publication.
+
+The decoder cases exercise unknown/future/missing/inconsistent facts, duplicate members, wrong scalar/enum encodings,
+legacy ancestry and actually representable malformed UTF-16 Strings. Positive controls prove initialization traps live.
+The packaged cases verify separate API/base, derived and owned JARs on each generation, exact interpreter/schema names,
+explicit identity/equal/conflicting hierarchy choices, literal overrides, first-child collision recovery, owned-type
+independence, inherited construction keys and position-specific key collisions, preserved old schema output and legacy
+identity byte-for-byte output. Direct tests retain active Builder state on rejected contracts.
 
 Documentary traceability:
 
