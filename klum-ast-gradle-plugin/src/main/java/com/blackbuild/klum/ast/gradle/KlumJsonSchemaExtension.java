@@ -26,12 +26,9 @@ package com.blackbuild.klum.ast.gradle;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.SetProperty;
-import org.gradle.api.provider.Property;
 
-/** Explicit roots and binary inputs for opt-in structural JSON Schema generation. */
+/** Explicit roots and binary inputs for JSON Schema generation. */
 public abstract class KlumJsonSchemaExtension {
-    /** Off by default: authoring bounds for supplied direct integral Min/Max properties. */
-    public abstract Property<Boolean> getIntegralConstraints();
     /** Fully qualified DSL Model binary names; generated Builder names are not accepted. */
     public abstract SetProperty<String> getRootTypes();
     /** Complete Schema/API/runtime/annotation classpath, isolated from the Gradle daemon. */

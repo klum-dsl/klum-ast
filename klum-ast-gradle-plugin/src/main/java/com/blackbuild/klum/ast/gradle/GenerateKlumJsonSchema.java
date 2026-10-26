@@ -28,7 +28,6 @@ import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.SetProperty;
-import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Input;
@@ -52,7 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /** Opt-in task; no contract classes or classloaders survive execution. */
 @CacheableTask
@@ -62,9 +61,6 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
 
     @Input
     public abstract SetProperty<String> getRootTypes();
-
-    @Input
-    public abstract Property<Boolean> getIntegralConstraints();
 
     @Classpath
     public abstract ConfigurableFileCollection getClasspath();
@@ -82,7 +78,6 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
     // Gradle task decoration requires an accessible constructor.
     @SuppressWarnings("java:S5993")
     public GenerateKlumJsonSchema() {
-        getIntegralConstraints().convention(false);
         try {
             getToolClasspath().from(new File(GenerateKlumJsonSchema.class.getProtectionDomain().getCodeSource().getLocation().toURI()));
         } catch (URISyntaxException failure) {
@@ -127,9 +122,9 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
             Constructor<?> constructor = implementation.getDeclaredConstructor();
             // Access only our own private plugin class; Schema contracts always use public reflection through the facade.
             constructor.setAccessible(true);
-            BiFunction<List<String>, Boolean, Map<String, String>> projection =
-                    (BiFunction<List<String>, Boolean, Map<String, String>>) constructor.newInstance();
-            return projection.apply(roots, getIntegralConstraints().get());
+            Function<List<String>, Map<String, String>> projection =
+                    (Function<List<String>, Map<String, String>>) constructor.newInstance();
+            return projection.apply(roots);
         } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
             throw new GradleException("JSON Schema generation failed for explicit roots " + roots
                     + "; check the configured Schema/API/runtime/annotation classpath: " + failure.getMessage(), failure);

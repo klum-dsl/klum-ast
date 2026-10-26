@@ -38,6 +38,8 @@ public final class GeneratedInput {
     public @interface Schema {
         /** Versioned completeness marker for opt-in constraint projection; zero denotes older artifacts. */
         int constraintVersion() default 0;
+        /** Independent completeness for exact direct decimal facts; zero denotes older artifacts. */
+        int decimalVersion() default 0;
         boolean groupRedefined() default false;
         String key() default "";
         boolean keyInput() default false;
@@ -87,6 +89,8 @@ public final class GeneratedInput {
     public @interface Constraint {
         String annotation();
         long value() default 0L;
+        String decimalValue() default "";
+        boolean inclusive() default true;
         boolean plain();
         String declaration();
     }

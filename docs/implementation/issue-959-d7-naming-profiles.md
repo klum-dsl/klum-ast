@@ -60,13 +60,12 @@ change, not a projector-only string replacement.
   [`CompiledBuilderSchema`](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/CompiledBuilderSchema.java)
   collects parents, source identities and literal annotations; it currently prunes name collisions per hierarchy.
 - [`JsonSchemaProjection`](../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/runtime/internal/JsonSchemaProjection.java)
-  uses those external names for `properties` and construction-key `required`. The current Gradle surface offers roots
-  and `integralConstraints`, with no naming choice. Keyed member/keyless definitions are distinct positions.
+  uses those external names for `properties` and construction-key `required`. The current Gradle surface offers roots and existing classpath/output configuration, with no numeric or naming selector. Keyed member/keyless definitions are distinct positions.
 - [`KlumStructuredInput`](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/KlumStructuredInput.java)
   exposes self-contained and explicit-rootKey `readRoot`, plus active `applyToBuilder`, with no naming option.
   [#953](https://github.com/klum-dsl/klum-ast/issues/953) is still a Factory convenience design, not an installed API.
 - [P0/D1](evidence/issue-959-p0-binary-metadata.md) requires inert public Builder metadata rather than Model-byte
-  fallback. [P1](issue-959-p1-integral-profile.md) adds narrowly activated integral assertions.
+  fallback. [P1](issue-959-p1-integral-profile.md) originally added narrowly activated integral assertions; PR #972 supersedes the global activation flags with always-on numeric projection.
   [P2](evidence/issue-959-p2-candidates.md) distinguishes source identity from effective placement. Neither supplies a
   naming extension or a license to interpret annotation prose as facts.
 - [`NamingProfileD7CharacterizationTest`](https://github.com/klum-dsl/klum-ast/blob/e41a70fff/klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/NamingProfileD7CharacterizationTest.groovy)
@@ -334,8 +333,8 @@ rename/exclusion; a dependency does not select the root's format. One profile ap
 contracts, including those from independent JARs and inherited declarations. No child class setting silently overrides it.
 Consumers needing a fixed foreign spelling use literal Schema renames or the independently configured Jackson importer.
 
-Proposed Gradle location: `klumSchema.jsonSchema.namingProfile = 'kebab-v1'`, alongside `rootTypes` and independently of
-`integralConstraints`. This would be an execution-time tracked input passed as an inert JDK string across the isolated
+Historical naming-only proposal: `klumSchema.jsonSchema.namingProfile = 'kebab-v1'`, alongside `rootTypes`. The former
+`integralConstraints` control has been removed; numeric projection is unconditional. This naming proposal would be an execution-time tracked input passed as an inert JDK string across the isolated
 loader boundary. One task profile covers its roots; generating the same root in two profiles requires separately
 configured output ownership/tasks, not silent overwrite. Exact multi-task convenience is deferred. Profile/algorithm
 changes invalidate caching. A new incompatible profile/version must fail on old tooling rather than weaken output.
@@ -407,8 +406,8 @@ identities within each root artifact; any internal definition/contract caches in
 root's choice cannot contaminate another root or generation run.
 
 Names are resolved before P1/P2 metadata is placed. Bounds/text/deprecation attach by original declaring source and
-input position, never by searching for a string that resembles a property. `integralConstraints` remains orthogonal;
-naming cannot enable decimal/Size/Pattern/default mappings or change null/omission/machine-bound semantics. Authored
+input position, never by searching for a string that resembles a property. Numeric projection is unconditional;
+this unaccepted naming proposal cannot broaden Size/Pattern/default mappings or change null/omission/machine bounds. Authored
 operation payloads do not acquire bounds from effects on similarly named Model fields.
 
 For relationship-local defaults/constraints/deprecation, resolve both parent-use and child target through the selected
@@ -530,3 +529,49 @@ Tracker relationship: **Related: #959**; issue #959 remains open. The tracker co
 leaves the active decimal-bounds assignment unblocked. Curation impact: none; no release gate, owner, dependency or
 acceptance state is changed. The only accepted D7 result is deliberate deferral, not adoption of any proposal above.
 Hive reconciliation is requested after delivery; no merge or archive action is authorized here.
+
+
+## Field-level hard-constraint projection opt-out — proposal only
+
+Status: **Maintainer direction recorded; vocabulary and semantics require approval. No implementation is authorized.**
+PR #972 provides an independently mergeable always-on numeric baseline. This narrower proposal does not settle the
+other naming/profile/example questions above. Its motivation is explicit control over artifact assertions while runtime
+validation retains its own ownership.
+
+**Recommendation:** a single dependency-free Klum field marker, provisionally `@NoConstraintProjection`. The name describes
+projection policy rather than claiming normalization, repair or validation elsewhere. It follows the focused field
+annotation style of `@Field`/`@Required` and avoids a policy object or enum. `@NoJsonSchemaConstraints` is more destination-
+specific but can imply removing structural restrictions; `@Normalized` would make an unrelated runtime claim. Final
+name/package remain maintainer decisions; no annotation type is added to this branch.
+
+Proposed usage, **not an available API**:
+
+```groovy
+@DSL class Capacity {
+    @NoConstraintProjection
+    @Min(0L) @Max(100L) Integer percentage
+}
+```
+
+| Decision | Recommended smallest semantics |
+| --- | --- |
+| Granularity | Suppress all supported **declaration-derived** hard assertions for that field. No annotation-class arrays, per-keyword switches, groups or selective filters initially. |
+| Target/retention | `FIELD` only, `RUNTIME` retention, consistent with existing field-authoring annotations. No type/package/getter/parameter/method policy initially. Consumers use inert Builder facts, never runtime Model annotation reflection. |
+| Effective contributions | Apply one policy to the resolved field's complete supported assertion contributions, irrespective of direct, propagated or future approved composed/meta origins. Gate assertion emission after contribution selection; do not just skip scanning annotations physically on the source field. |
+| Current composition boundary | Current hard mapping recognizes the bounded direct Jakarta numeric subset; arbitrary Bean composed/meta and repeatable rules remain descriptive. Existing `@PropagateAnnotation` is one-hop, default-only annotation propagation, not general Bean composition. Future qualified contributors must obey the same field policy; the opt-out does not itself enable them. |
+| Inheritance/override | Policy follows the selected original field fact through inherited/renamed/owned uses. A child cannot change it by annotating an unrelated getter/setter. If existing admission rules genuinely select a replacement field declaration, that declaration supplies its policy; no new override or re-enable mechanism initially. |
+| Structural invariants | Always retain type, machine ranges, container/object grammar, names/exclusions, admission, null behavior and construction-key requirements. The field remains admitted. Suppression changes no runtime/Bean constraints or completed-Model validation. |
+| Descriptions | Keep source prose and deterministic runtime-constraint descriptions for suppressed declarations, identifying that hard projection was suppressed. Preserve descriptions for unsupported whole composed/repeated declarations; do not peel or execute them. |
+| Minimal metadata | One explicit effective suppression Boolean per original source-associated public Builder field fact, frozen by the compiler. Reuse existing source/selection association; no Model reads, annotation graphs, provider registry or policy object. A small internal fact-version/completeness update must make missing policy facts actionable rather than guessing. |
+
+An explicitly propagated opt-out marker should behave like its effective field declaration if the existing propagation
+mechanism admits it; the later implementation must qualify capture ordering and source-free binary inheritance.
+Meta-annotation scanning of the policy itself is not added implicitly. Suppression cannot turn missing/incompatible
+Builder facts into a permissive metadata fallback. The chosen runtime retention does not authorize
+annotation-proxy execution or require a Bean provider at schema-consumer runtime.
+
+**Approval needed:** final marker name/package; all-contribution granularity and structural fence; field-only target and
+retention; selected-declaration inheritance/re-enable behavior; effective contribution and propagated-policy treatment;
+minimal completeness/version handling. After approval, implement and qualify in a separate PR against the stable numeric
+baseline. No global switch returns. Setter-time validation, callbacks/SPIs, general filtering, broader composed mappings,
+container/element rules and unrelated D7 naming/examples remain explicitly deferred.

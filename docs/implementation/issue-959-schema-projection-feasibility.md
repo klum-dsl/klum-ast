@@ -1,5 +1,17 @@
 # Constraint and default projection: feasibility and decision gates
 
+## Current always-on numeric projection rule — PR #972
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+
+Supported direct Min/Max and DecimalMin/DecimalMax project automatically whenever JSON Schema is generated. The
+unreleased `integralConstraints` and `decimalConstraints` flags are removed without aliases or a replacement selector.
+Both existing constraint metadata versions are required on reachable root/inherited/owned public Builder contracts.
+
+This supersedes earlier global opt-in, contradiction-rejection and integer-feasibility requirements, including #966.
+Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
+and structural projection errors retain fail-closed handling and output atomicity.
+
 Date: 2026-10-24. Status: **D1 and D2 accepted; bounded P1 assigned and implemented; P2 characterized; D3–D6 and additional production mappings remain unapproved.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959), including its
 [design input](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6385826650).
@@ -12,16 +24,15 @@ Maintainer decision, 2026-10-24, following the [P0 binary metadata evidence](evi
 - **Option A only:** the compiler must enrich the generated public Builder contract with minimal inert,
   source-associated facts. The generator reads that contract only as its constraint/default metadata authority.
   Declaring Model class-byte reading is excluded as a production authority and as a fallback.
-- **Existing structural generation stays as-is.** When a consumer explicitly enables the future enhanced
-  constraint/default projection profile and a required Schema artifact lacks the new metadata, generation must fail
-  closed with actionable guidance to recompile and package that Schema artifact with the required metadata.
+- **Numeric projection is always on.** The earlier structural-only/opt-in activation is superseded. If a required
+  Schema artifact lacks complete supported numeric metadata, generation must fail closed with actionable guidance to recompile and package that Schema artifact with the required metadata.
   Missing facts must not be silently omitted. No compatibility or reporting mode is introduced now.
 
 P0 demonstrated that inert capture can preserve the tested declaration sites and relationship-use placement without
 consumer Model-byte inspection. That supports A while preserving [ADR 0031](../adr/0031-structured-schema-input-artifacts.md)'s
 public-contract inspection boundary. B's ability to recover facts from current Model bytes does not justify broadening
-that boundary or making incomplete enhanced output appear authoritative. Gating failure on explicit future enhanced
-projection preserves the current structural generator's behavior for existing artifacts.
+that boundary or making incomplete output appear authoritative. The historical opt-in failure gate is superseded by
+the always-on numeric completeness requirement; runtime admission remains separate.
 
 D1 settles metadata authority and this missing-artifact rule. It does not select the production encoding, exact generated
 ABI, emission hook, profile configuration, supported mappings, raw-input assertion strength, default meaning or public SPI.
@@ -30,14 +41,14 @@ D2 settles the raw-input semantic profile below; D3–D6 remain unapproved. The 
 implementation must satisfy D1. The historical D1 documentation delivery contained no compiler, generator, runtime
 or test changes.
 
-## Accepted D2: opt-in raw-input authoring bounds
+## Accepted D2: raw-input authoring bounds (historical activation superseded)
 
 The [D2 raw-input profile evidence](evidence/issue-959-d2-raw-input-profile.md) characterizes the semantic boundary at
-`e18f21b24b4017844720ef0072b95635491a32be`. The maintainer accepted **B** on 2026-10-24: explicitly selected,
-off-by-default authoring bounds on supplied ordinary direct integral properties. It preserves omission/null admission
+`e18f21b24b4017844720ef0072b95635491a32be`. The maintainer originally accepted **B** on 2026-10-24: explicitly
+selected, off-by-default authoring bounds (activation now superseded by always-on generation) on supplied ordinary direct integral properties. It preserves omission/null admission
 and separates schema validity from final Model validation. Construction-time repairs are hypothetical boundary cases,
 not an expected use case or a reason to weaken raw bounds. The accepted semantic contract is recorded in the evidence
-report and [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#opt-in-raw-input-assertions--959-d2).
+report and [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#raw-input-assertions--959-d2).
 The historical D2 delivery added characterization-only runtime fixtures and a manually invoked candidate-schema corpus.
 The later bounded P1 assignment implements direct integral projection; defaults and broader mappings remain deferred.
 
@@ -128,14 +139,14 @@ and raw message templates; do not interpolate bundles, evaluate expressions, inv
 annotation class/enum values. Opaque closures remain symbolic references, never translated logic. Recognize constraints
 through an approved finite metadata traversal (`@Constraint`, Klum validation and relationship markers), not every
 annotation; recursion/cycles, missing annotation definitions and malformed repeatable containers need bounded diagnostics.
-Absent required metadata is different from a discovered unsupported constraint: accepted D1 requires failure when the
-future enhanced profile is explicitly enabled and its required Schema metadata is missing. Descriptions are not a
+Absent required metadata is different from a discovered unsupported constraint: accepted D1 plus the always-on
+clarification requires failure whenever generation lacks its required supported numeric metadata. Descriptions are not a
 compatibility/reporting escape hatch for that failure; their D2 semantics are accepted, while exact formatting and implementation remain later work.
 
-Combine independent hard fragments conjunctively (`allOf` or a proven intersection), retaining the original type and
+Combine independent hard numeric fragments conjunctively (direct keywords or `allOf`), retaining the original type and
 machine bounds. A provider cannot replace another annotation's restriction, admission, names or `$defs`. Contradictory
-bounds must produce a deterministic location-rich failure, not last-wins behavior or silently lost constraints. The
-normalizer must distinguish one declaration copied to multiple generated methods from truly repeated constraints.
+numeric bounds remain valid assertions, without a satisfiability check or silently lost constraints. The
+metadata extraction must distinguish one declaration copied to multiple generated methods from truly repeated constraints.
 
 ## Candidate mappings and semantic gates
 
@@ -269,7 +280,7 @@ meet the separate execution contract above; it cannot silently join the reflecti
 
 | Combination | Proposed deterministic rule |
 | --- | --- |
-| Several assertions | Conjoin at the same resolved target, preserving base schema restrictions. Diagnose contradictions detected by supported mappings. Do not claim a general satisfiability solver for arbitrary fragments; unsupported composition remains a diagnostic. |
+| Several assertions | Conjoin at the same resolved target, preserving base schema restrictions. Preserve contradictory numeric assertions without satisfiability analysis; unsupported composition remains a diagnostic. |
 | Several descriptions | Append after existing prose in stable provenance order. Suppress only duplicated extraction of the same occurrence; retain distinct repeatable declarations and disambiguate their origins. |
 | Several literal defaults | Equal normalized literals at one target may share one emitted annotation while retaining origins. Conflicting values produce a diagnostic and description-only fallbacks unless an approved static precedence rule selects one. `allOf` does not resolve competing default annotations. |
 | Assertion plus default | Do not weaken an assertion to accommodate a default. Check the literal against supported structural fragments; if inconsistent or compatibility is unprovable, withhold the default annotation and explain the reason. Execute neither runtime validation nor a provider to settle it. |
@@ -410,8 +421,8 @@ D3–D6 and broader P2–P4 work remain recommendations; no release commitment f
 
 | Decision | Status / proposed answer | What remains blocked |
 | --- | --- | --- |
-| D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. Existing structural generation stays as-is; explicit future enhanced projection fails closed on missing required Schema metadata, with recompile/package guidance. No compatibility/reporting mode now. | Bounded P1 now records its internal encoding, fact set, emission hook and qualification. Broader D3–D6 mappings remain unapproved. |
-| D2: raw-input strength/profile | **B accepted.** [Characterization and accepted contract](evidence/issue-959-d2-raw-input-profile.md): direct integral Min/Max, empty groups/payload, explicit off-by-default activation; deterministic text for unsupported complete declarations. Preserve null/admission and no inferred required. | P1 now records exact activation, metadata and qualification. Hypothetical construction-time repairs do not weaken the accepted raw-input policy; broader mappings need another assignment. |
+| D1: metadata authority and missing artifacts | **Accepted:** Option A only, compiler-owned minimal inert source-associated facts on the generated public Builder; generator reads that contract only. No production Model-byte authority or fallback. The old structural-only/opt-in activation is superseded; generation always requires complete supported numeric facts and fails closed with recompile/package guidance. No compatibility/reporting mode now. | Bounded P1 now records its internal encoding, fact set, emission hook and qualification. Broader D3–D6 mappings remain unapproved. |
+| D2: raw-input strength/profile | **B accepted.** [Characterization and accepted contract](evidence/issue-959-d2-raw-input-profile.md): direct integral Min/Max, empty groups/payload; original off-by-default activation is superseded by always-on supported numeric projection; deterministic text for unsupported complete declarations. Preserve null/admission and no inferred required. | P1 now records exact activation, metadata and qualification. Hypothetical construction-time repairs do not weaken the accepted raw-input policy; broader mappings need another assignment. |
 | D3: custom extension | Defer callbacks and description SPI; first establish useful generic text. | Any build-time user-code execution or new public provider API. Later callback approval must amend the no-execution promise explicitly. |
 | D4: default meaning | Probe scalar relationship literals; initially describe ambiguous precedence. | Whether unambiguous declared fallback may use standard `default`; array/coercion/type-level support and handling multiple sources. |
 | D5: delivery and release | Keep #959 open and untargeted; P0 evidence is complete, while later delivery needs separate scheduling. | Milestone/4.2 commitment, further architectural decisions and publication beyond the bounded P1 assignment. Quantity grammar remains consumer-owned; #962 remains separate. |

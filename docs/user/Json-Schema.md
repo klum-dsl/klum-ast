@@ -56,7 +56,7 @@ previous successful output; it must not be mistaken for a successful fresh gener
 
 Generation emits Draft 2020-12 `deprecated: true` by default for an admitted input member whose Schema source
 field, construction key or authored `@Builder.Method` declaration carries `java.lang.Deprecated`. This advisory
-annotation is independent of `integralConstraints`; there is no deprecation switch.
+annotation has no deprecation switch.
 
 (See: `KlumJsonSchemaGenerationTest#'deprecated Schema members remain admitted with advisory metadata by default with Groovy #generation'`.)
 
@@ -81,21 +81,21 @@ validation. It changes no defaults, converters, lifecycle or migration behavior.
 framework aliases such as TemplateScope `Create`/`CreateFrom` do not mark admitted members. `since` and `forRemoval`
 are not interpreted.
 
-Current compilers retain explicit true/false source facts on public Builder contracts. Older artifacts that lack these
-optional facts continue generating their structural schema; the advisory keyword is omitted for those members,
+Current compilers retain explicit true/false source facts on public Builder contracts. Artifacts that lack these
+optional facts can still generate when required numeric metadata is complete; the advisory keyword is omitted for those members,
 even if public methods carry `@Deprecated`. Generation never guesses provenance from an alias or reads Model bytes.
 Recompile and package the Schema and its inherited/owned dependencies with matching versions to obtain complete
-source deprecation metadata. The separate opt-in integral profile still requires its own complete constraint facts.
+source deprecation metadata. Numeric projection always requires complete supported constraint facts.
 
-## Opt-in integral constraints
+## Integral constraints
 
-The default output remains structural. Select `integralConstraints` separately to add raw-input authoring bounds for
-ordinary direct fields carrying Jakarta `@Min` and/or `@Max`. The supported targets are byte, short, int, long, their
+Generation automatically adds raw-input authoring bounds for ordinary direct fields carrying Jakarta `@Min` and/or
+`@Max`. No global constraint flag or profile selector is required. The supported targets are byte, short, int, long, their
 boxed counterparts and BigInteger, with empty annotation groups/payload and no relevant group redefinition/sequence.
 Bounds apply to supplied values and intersect the existing machine range exactly. Inherited, renamed and nested owned
 properties retain their effective input names; ignored properties remain absent.
 
-(See: `KlumJsonSchemaGenerationTest#'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'`.)
+(See: `KlumJsonSchemaGenerationTest#'generate integral authoring bounds by default from binary Builder contracts with Groovy #generation'`.)
 
 ```groovy
 // Schema source, compiled with the current KlumAST compiler:
@@ -113,11 +113,11 @@ import jakarta.validation.constraints.Max
 // Schema project's build.gradle:
 klumSchema.jsonSchema {
     rootTypes.add('example.Capacity')
-    integralConstraints = true
 }
 ```
 
-The `percentage` input now has `type: integer`, `minimum: 0` and `maximum: 100`, retaining its source description.
+The `percentage` input retains `type: integer` and its machine bounds, with conjunctive `minimum: 0` and `maximum: 100`
+assertions in `allOf`, retaining its source description.
 Both endpoints, mathematical integer `100.0`, zero and omission pass. Supplied -1/101 fail the bounds; explicit null,
 false, fractions, empty strings and numeric strings retain their structural rejection for this property. Independent
 String/Boolean properties still admit empty strings/false. No `required` comes from `@NotNull`, `@Required` or bounds;
@@ -131,21 +131,68 @@ fails. Defaults, initializers, Templates, lifecycle code, converters and custom 
 Destination-field bounds do not constrain authored operation arguments. No `default` or `const` is inferred.
 
 Only compiler-enriched public Builder contracts supply constraint facts. Recompile and package every reachable Schema,
-including inherited and owned dependency Schemas, with matching compiler/runtime/plugin versions before enabling this
-profile. Missing, unsupported-version, malformed or unverifiable required metadata fails generation with root/use,
+including inherited and owned dependency Schemas, with matching compiler/runtime/plugin versions before generation. Missing, unsupported-version, malformed or unverifiable required metadata fails generation with root/use,
 public Builder, available source/external-name and artifact context plus recompile/package guidance. The generator
-never reads Model bytes to fill gaps and does not downgrade incomplete enhanced output. Failure preserves the last
-successful files and manifest. A contradictory intersection, including a bound outside the machine range, also fails.
-Profile selection is a tracked Gradle input and uses the same filenames/output ownership as structural generation;
-use separate task/output configurations if both artifacts are needed simultaneously.
+never reads Model bytes to fill gaps and does not downgrade incomplete output. Failure preserves the last
+successful files and manifest. Supported numeric constraints are projected faithfully, including mutually contradictory
+bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+Root selection, binary inputs and output ownership retain the existing tracked Gradle task contract.
 
 Complete unsupported direct field declarations retain labelled `Runtime constraint (not enforced by this schema)`
 descriptions appended to existing prose. Descriptions identify the annotation and its explicitly authored attributes;
 they do not evaluate annotation defaults or interpret constraint code. Explicit groups/payload (including explicit
-Default groups), composed/repeatable declarations, decimals, Size/Pattern, quantity grammars and relationship closures
+Default groups), composed/repeatable declarations, Size/Pattern, quantity grammars and relationship closures
 receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
 relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
 Issue [#959](https://github.com/klum-dsl/klum-ast/issues/959) remains open for these broader decisions.
+
+## Decimal constraints
+
+Generation automatically projects exact direct Jakarta `@DecimalMin`/`@DecimalMax` bounds on ordinary `BigDecimal`
+and supported integral scalar properties. Direct integral Min/Max restrictions conjoin with decimal bounds on integral
+targets. BigDecimal Min/Max declarations remain runtime descriptions, preserving the supported numeric-type subset.
+No global numeric flag or profile selector is provided.
+
+(See: `KlumJsonSchemaGenerationTest#'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'`.)
+
+```groovy
+@DSL
+class Price {
+    @DecimalMin(value = '0.10', inclusive = false)
+    @DecimalMax('9007199254740993.0000000001')
+    BigDecimal amount
+}
+
+klumSchema.jsonSchema {
+    rootTypes.add('example.Price')
+}
+// amount: type number, exclusiveMinimum 0.10, maximum 9007199254740993.0000000001
+```
+
+Inclusive bounds use numeric `minimum`/`maximum`; exclusive bounds use Draft 2020-12 numeric
+`exclusiveMinimum`/`exclusiveMaximum`. Parsing and JSON rendering preserve exact mathematical decimal
+values, including exponent, leading-plus and zero spellings, without conversion to double. JSON text need not retain
+its authored scale/spelling. Consumers must use precision-capable JSON parsers and validators to retain this guarantee;
+JavaScript Number and other binary floating representations may round these tokens.
+
+Each declared bound and the structural integer type/machine restrictions remain conjunctive. Independent keywords
+coexist directly; repeated numeric keywords use `allOf`. Contradictory bounds, equal exclusive endpoints and fractional
+intervals containing no integer generate valid schemas that reject supplied values for that property. Optional properties
+remain omittable. Generation performs no numeric satisfiability analysis. Invalid decimal values and unrepresentable
+exponent/scale still fail before replacing previous output, with source, external-name and public-contract diagnostics.
+Neither bounds nor contradictions infer raw requiredness.
+
+Only one effective direct declaration of each bound, empty groups/payload and no relevant hierarchy group redefinition
+are supported. String, float/double/Number, composed/repeatable, type-use, getter/parameter and authored-operation
+arguments receive no decimal assertions. All original requiredness, null admission, interpreter, Jackson, defaults,
+Templates and lifecycle behavior remains unchanged. This is a supplied-input authoring policy, with no Bean Validation
+equivalence or final construction-success promise.
+
+The generator reads only inert compiler facts on public Builders, including inherited and owned dependencies; it never
+reads Model implementation bytes, parses human descriptions into constraints or invokes authored code. The separate
+`decimalVersion=1` and `constraintVersion=1` completeness markers and explicit decimal String/inclusive facts are
+always required. Incomplete or incompatible numeric artifacts fail with recompile/package guidance. Align compiler, runtime and Gradle plugin versions and recompile all
+reachable Schema dependencies. No general profile naming or D7 decision is introduced.
 
 ## Supported input and limits
 
@@ -204,7 +251,7 @@ This default artifact does **not** describe the payload of the four-argument exp
 `applyToBuilder` target: those payloads must omit their already supplied root/target key. There is no additional Gradle
 mode for those entry points. See the [migration guidance](Migration.md#explicit-structured-construction-keys).
 
-The default JSON Schema validates structure only; the opt-in profile adds the authoring bounds described above. It does not guarantee Java numeric conversion, input interpretation, binding,
+Generated JSON Schema preserves structural restrictions and projects the supported authoring bounds described above. It does not guarantee Java numeric conversion, input interpretation, binding,
 lifecycle, materialization or completed validation. Integral primitives/wrappers retain exact bounds; float/double use
 `number` as a structural approximation, while BigInteger/BigDecimal retain mathematical numeric semantics. Completed
 `@Required` is not translated into raw-input `required`; defaults and arbitrary Groovy validation are not evaluated.

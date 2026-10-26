@@ -1,4 +1,6 @@
 /.sonar_lock
+# Generated local Sonar analysis caches, including caches below source roots.
+.sonar/
 # Eclipse
 /.project
 /.classpath

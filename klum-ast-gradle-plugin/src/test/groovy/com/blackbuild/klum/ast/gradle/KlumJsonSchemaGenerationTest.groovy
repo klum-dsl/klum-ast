@@ -123,10 +123,10 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
-    def 'retain P2 descriptions and project source deprecation from binaries with Groovy #generation'() {
+    def 'project supported numeric bounds and retain unsupported P2 descriptions and source deprecation from binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.P2']); integralConstraints = true }\n")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.P2']) }\n")
 
         when:
         def result = run('generateKlumJsonSchema')
@@ -136,10 +136,9 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        properties.amount.description.contains('DecimalMin(inclusive=false, value="-1.2300E+2")')
-        properties.amount.description.contains('DecimalMax(value="1E+3")')
+        properties.amount.exclusiveMinimum == -123G
+        properties.amount.maximum == 1000G
         properties.amount.type == 'number'
-        !properties.amount.containsKey('exclusiveMinimum')
         properties.words.description.contains('Size(max=3, min=2)')
         properties.distinct.type == 'array'
         properties.labels.type == 'object'
@@ -307,16 +306,125 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Issue('959')
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#opt-in-integral-constraints')
-    def 'generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation'() {
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#decimal-constraints')
+    def 'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'() {
+        given:
+        fixture(generation, false, true, false, true)
+
+        when:
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Price', 'example.SequencedPrice'])\n")
+        def result = run('generateKlumJsonSchema')
+        def schema = document('example.Price')
+        def root = schema.get('$defs').get('example.Price_DSL$Builder')
+        def properties = root.properties
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'decimal-' + generation)
+        validation.mkdirs()
+        new File(validation, 'price.schema.json').bytes = output('example.Price').bytes
+
+        then:
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        properties.amount.exclusiveMinimum == 0.10G
+        properties.amount.maximum == 9007199254740993.0000000001G
+        properties.amount.description.contains('Authored price.')
+        properties.equal.minimum == 1G && properties.equal.maximum == 1G
+        properties.zero.minimum == 0G && properties.zero.maximum == 0G
+        properties.exponent.minimum == 2500G && properties.exponent.maximum == 3E+3G
+        properties.tiny.minimum == 1E-1000G
+        properties.'inherited-price'.exclusiveMinimum == -1.2300E+2G
+        properties.'inherited-price'.'x-klum-constraint-source' == 'example.DecimalBase#inherited'
+        ['boundedByte', 'boundedShort', 'boundedPrimitiveShort', 'boundedInt', 'boundedPrimitiveInt', 'boundedLong', 'boundedPrimitiveLong', 'boundedBigInteger'].every {
+            properties[it].type == 'integer' && properties[it].exclusiveMinimum == -0.1G && numericBounds(properties[it], 'maximum').any { bound -> bound == 1.1G }
+        }
+        properties.units.type == 'integer'
+        numericBounds(properties.units, 'minimum').any { bound -> bound == 2G } && properties.units.exclusiveMaximum == 3.1G
+        properties.machine.minimum == -128 && properties.machine.maximum == 127
+        properties.machine.exclusiveMinimum == -0.1G
+        properties.tight.minimum == 2G && properties.tight.exclusiveMinimum == 1.0G
+        properties.tie.exclusiveMinimum == 2G && properties.tie.minimum == 2G
+        properties.child.'$ref'
+        schema.get('$defs').get('example.DecimalChild_DSL$Builder').properties.amount.minimum == 0G
+        ['text', 'floating', 'doubleValue', 'grouped', 'payloadBound', 'repeated', 'composed'].every {
+            !properties[it].containsKey('exclusiveMinimum') && !properties[it].containsKey('minimum')
+                    && properties[it].description.contains('Runtime constraint (not enforced by this schema')
+        }
+        properties.operation.type == 'number' && !properties.operation.containsKey('minimum')
+        !root.containsKey('required')
+        document('example.SequencedPrice').get('$defs').get('example.SequencedPrice_DSL$Builder').properties.amount.description.contains('group redefinition/sequence')
+        !document('example.SequencedPrice').get('$defs').get('example.SequencedPrice_DSL$Builder').properties.amount.containsKey('maximum')
+        !trap.exists()
+        !new File(producer, 'schema/src').exists() && !new File(producer, 'api/src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'generation requires complete decimal facts on #target: #kind'() {
+        given:
+        fixture('3', false, true, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.Price']) }\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Price').bytes
+        File manifest = new File(output('example.Price').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        stripConstraintFacts(target, kind)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+
+        then:
+        failed.output.contains(target + '_DSL$Builder')
+        failed.output.contains('recompile and package')
+        failed.output.contains(reason)
+        output('example.Price').bytes == previous
+        manifest.text == previousManifest
+        !trap.exists()
+
+        where:
+        target         | kind                    | reason
+        'Price'        | 'decimal-version'       | 'decimal metadata version 0'
+        'DecimalBase'  | 'decimal-version'       | 'decimal metadata version 0'
+        'DecimalChild' | 'decimal-version'       | 'decimal metadata version 0'
+        'Price'        | 'future-decimal'        | 'decimal metadata version 2'
+        'Price'        | 'decimalValue'          | 'missing direct decimal facts'
+        'Price'        | 'inclusive'             | 'missing direct decimal facts'
+    }
+
+    @Issue('959')
+    def 'decimal policy errors preserve previous output: #model'() {
+        given:
+        fixture('3', false, true, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Price'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Price').bytes
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['example.$model']) }\n")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.contains(reason)
+        failed.output.contains('example.' + model + '#amount')
+        failed.output.contains("external input 'amount'")
+        output('example.Price').bytes == previous
+        !output('example.' + model).exists()
+        !trap.exists()
+
+        where:
+        model                | reason
+        'MalformedDecimal'   | 'Invalid decimal bound'
+        'Unrepresentable'    | 'Invalid decimal bound'
+    }
+
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#integral-constraints')
+    def 'generate integral authoring bounds by default from binary Builder contracts with Groovy #generation'() {
         given:
         fixture(generation, false, true)
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
-        run('generateKlumJsonSchema')
-        def structural = document('example.Capacity').get('$defs').get('example.Capacity_DSL$Builder')
 
         when:
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
         def result = run('generateKlumJsonSchema')
         def schema = document('example.Capacity')
         def root = schema.get('$defs').get('example.Capacity_DSL$Builder')
@@ -326,10 +434,8 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        structural.properties.percentage.minimum == -2147483648
-        structural.properties.percentage.maximum == 2147483647
-        root.properties.percentage.minimum == 0
-        root.properties.percentage.maximum == 100
+        numericBounds(root.properties.percentage, 'minimum') == [-2147483648G, 0G]
+        numericBounds(root.properties.percentage, 'maximum') == [2147483647G, 100G]
         root.properties.percentage.description.contains('Percentage of available capacity.')
         !root.containsKey('required')
         schema.description.contains('raw-input authoring')
@@ -342,19 +448,18 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
-    def 'enhanced mode fails closed for #kind #target metadata and preserves structural outputs'() {
+    def 'generation fails closed for #kind #target metadata and preserves previous outputs'() {
         given:
         fixture('3', false, true)
-        stripConstraintFacts(target, kind)
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
         run('generateKlumJsonSchema')
         byte[] previous = output('example.Capacity').bytes
         File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
         String previousManifest = manifest.text
+        stripConstraintFacts(target, kind)
 
         when:
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
-        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
 
         then:
         failed.output.contains("root 'example.Capacity'")
@@ -383,7 +488,6 @@ class KlumJsonSchemaGenerationTest extends Specification {
         new File(consumer, 'build.gradle').append("""
 klumSchema.jsonSchema {
     rootTypes.set(['example.Capacity', 'example.SequencedCapacity'])
-    integralConstraints = true
 }
 """)
 
@@ -400,7 +504,7 @@ klumSchema.jsonSchema {
         root.properties.repeated.minimum == -2147483648
         root.properties.customRepeated.minimum == -2147483648
         root.properties.decimal.type == 'number'
-        !root.properties.decimal.containsKey('minimum')
+        root.properties.decimal.minimum == 0.1G
         !root.properties.numericText.containsKey('minimum')
         root.properties.grouped.description.contains('groups=')
         root.properties.warning.description.contains('payload=')
@@ -418,11 +522,11 @@ klumSchema.jsonSchema {
     }
 
     @Issue('959')
-    def 'direct integral bounds intersect machine ranges without projecting later construction behavior'() {
+    def 'direct integral bounds conjoin with machine ranges without projecting later construction behavior'() {
         given:
         fixture('3', false, true)
         new File(consumer, 'build.gradle').append("""
-klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints = true }
+klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
 """)
 
         when:
@@ -432,13 +536,15 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints
 
         then:
         ['byteValue', 'boxedByte', 'shortValue', 'boxedShort', 'intValue', 'percentage', 'longValue', 'boxedLong', 'large'].every {
-            properties[it].minimum == 0 && properties[it].maximum == 100
+            numericBounds(properties[it], 'minimum').any { bound -> bound == 0G } && numericBounds(properties[it], 'maximum').any { bound -> bound == 100G }
         }
         properties.machine.minimum == -128
         properties.machine.maximum == 127
+        numericBounds(properties.machine, 'minimum') == [-128G, -1000G]
+        numericBounds(properties.machine, 'maximum') == [127G, 1000G]
         properties.exact.minimum == -9223372036854775808G
         properties.exact.maximum == 9223372036854775807G
-        properties.'inherited-percent'.minimum == 0
+        numericBounds(properties.'inherited-percent', 'minimum').any { bound -> bound == 0G }
         properties.'inherited-percent'.'x-klum-constraint-source' == 'example.CapacityBase#inherited'
         !properties.containsKey('inherited')
         !properties.containsKey('hidden')
@@ -455,34 +561,31 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']); integralConstraints
     }
 
     @Issue('959')
-    def 'empty selected integral intersections fail before replacing successful output: #model'() {
+    def 'contradictory numeric declarations project without additional configuration'() {
         given:
-        fixture('3', false, true)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Capacity'])\n")
-        run('generateKlumJsonSchema')
-        byte[] previous = output('example.Capacity').bytes
-        new File(consumer, 'build.gradle').append("""
-klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints = true }
-""")
+        fixture('3', false, true, false, true)
+        def models = ['Impossible', 'ImpossibleByte', 'EqualExclusive', 'UpperExclusive', 'BothExclusive',
+                      'ReversedDecimal', 'NoInteger', 'ByteOverflow', 'MixedBounds', 'ExtremeBounds']
+        def roots = models.collect { "'example.$it'" }.join(', ')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set([$roots])\n")
 
         when:
-        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def result = run('generateKlumJsonSchema')
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'numeric-contradictions')
+        validation.mkdirs()
+        models.each { new File(validation, it + '.schema.json').bytes = output('example.' + it).bytes }
+        def impossible = document('example.Impossible').get('$defs').get('example.Impossible_DSL$Builder').properties.percent
 
         then:
-        failed.output.contains('Empty integral constraint intersection')
-        failed.output.contains("example.$model#percentage")
-        failed.output.contains("example.$model" + '_DSL$Builder')
-        failed.output.contains("external input 'percent'")
-        failed.output.contains('minimum 200')
-        failed.output.contains('maximum ' + maximum)
-        output('example.Capacity').bytes == previous
-        !output('example.' + model).exists()
+        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        numericBounds(impossible, 'minimum') == [-2147483648G, 100G]
+        numericBounds(impossible, 'maximum') == [2147483647G, 50G]
         !trap.exists()
+    }
 
-        where:
-        model            | maximum
-        'Impossible'     | '100'
-        'ImpossibleByte' | '127'
+    private static List numericBounds(Map schema, String keyword) {
+        def fragments = [schema] + (schema.allOf ?: [])
+        fragments.findAll { it.containsKey(keyword) }.collect { it[keyword] }
     }
 
     @Issue('959')
@@ -495,7 +598,6 @@ klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints =
         File manifest = new File(output('example.Capacity').parentFile, '.klum-json-schema-outputs')
         String previousManifest = manifest.text
         stripConstraintFacts('Capacity', kind)
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = true\n')
 
         when:
         def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
@@ -552,7 +654,7 @@ klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints =
         'CollisionHolder' | 'Collision' | 'external-name collision' | true
     }
 
-    @Issue('954')
+    @Issue(['954', '959'])
     def 'missing key facts cannot silently project a keyed document: #model'() {
         given:
         fixture('3')
@@ -638,10 +740,9 @@ klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints =
     }
 
     @Issue(['529', '959'])
-    def 'reuses configuration and build caches after output deletion and project relocation with enhanced profile #enhanced'() {
+    def 'reuses configuration and build caches after output deletion and project relocation'() {
         given:
         fixture('3')
-        new File(consumer, 'build.gradle').append('\nklumSchema.jsonSchema.integralConstraints = ' + enhanced + '\n')
         String cache = new File(directory, 'build-cache').absolutePath.replace('\\', '/')
         new File(consumer, 'settings.gradle').append("\nbuildCache { local { directory = '$cache' } }\n")
         run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
@@ -674,8 +775,6 @@ klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints =
         output('example.Deployment').text == original
         !trap.exists()
 
-        where:
-        enhanced << [false, true]
     }
 
     def 'diagnoses empty invalid and unqualified roots without executing Schema code: #roots'() {
@@ -714,6 +813,7 @@ klumSchema.jsonSchema { rootTypes.set(['example.$model']); integralConstraints =
         !output('example.Deployment').exists()
     }
 
+    @Issue(['529', '959'])
     def 'rejects a Builder contract belonging to a different DSL Model'() {
         given:
         fixture('3')
@@ -787,7 +887,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -898,8 +998,8 @@ class Legacy_DSL {
 }
 class LegacyHolder {}
 class LegacyHolder_DSL {
-    @GeneratedInput.Schema interface Builder<SELF extends LegacyHolder> {
-        @GeneratedInput.Field('child') Legacy_DSL.Builder getChild()
+    @GeneratedInput.Schema(constraintVersion=1, decimalVersion=1, groupRedefined=false) interface Builder<SELF extends LegacyHolder> {
+        @GeneratedInput.Field(value='child', constraints=[]) Legacy_DSL.Builder getChild()
         @GeneratedInput.Selection(field = 'child', role = 'OWNED_OBJECT') void child(Consumer input)
     }
     interface Factory { LegacyHolder One() }
@@ -973,7 +1073,7 @@ class RuleValidator implements ConstraintValidator<Rule, Integer> {
     void initialize(Rule rule) { throw new AssertionError('validator initialize executed') }
     boolean isValid(Integer value, ConstraintValidatorContext context) { throw new AssertionError('validator executed') }
 }
-@DSL class Impossible { @JsonProperty('percent') @Min(200L) @Max(100L) Integer percentage }
+@DSL class Impossible { @JsonProperty('percent') @Min(100L) @Max(50L) Integer percentage }
 @DSL class ImpossibleByte { @JsonProperty('percent') @Min(200L) byte percentage }
 @DSL @GroupSequence([SequencedCapacity]) class SequencedCapacity extends CapacityBase {}
 @DSL class CapacityChild { @Min(0L) @Max(100L) Integer percentage }
@@ -1075,6 +1175,73 @@ import jakarta.validation.constraints.*
         throw new AssertionError('inherited operation executed')
     }
     @JsonProperty('inherited-size') @Size(min=1) List<String> inheritedWords
+""")
+        }
+        if (decimals) {
+            writeSource('api/src/main/groovy/example/DecimalBase.groovy', """
+package example
+import com.blackbuild.klum.ast.DSL
+import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.validation.constraints.*
+@DSL abstract class DecimalBase {
+    @JsonProperty('inherited-price') @DecimalMin(value='-1.2300E+2', inclusive=false) BigDecimal inherited
+}
+class DecimalConstants {
+    public static final String HIGH = '9007199254740993.0000000001'
+}
+""")
+            writeSource('schema/src/main/groovy/example/Price.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.*
+import jakarta.validation.Constraint
+import jakarta.validation.GroupSequence
+import java.lang.annotation.*
+@DSL class Price extends DecimalBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Model initialized') }
+    /** Authored price. */
+    @DecimalMin(value='0.10', inclusive=false) @DecimalMax(value=DecimalConstants.HIGH, inclusive=true) BigDecimal amount
+    @DecimalMin('1.00') @DecimalMax('1E+0') BigDecimal equal
+    @DecimalMin('-0.00') @DecimalMax('+0E+2') BigDecimal zero
+    @DecimalMin('+2.50E+3') @DecimalMax('3E+3') BigDecimal exponent
+    @DecimalMin('1E-1000') BigDecimal tiny
+    ${[Byte: 'boundedByte', Short: 'boundedShort', short: 'boundedPrimitiveShort', Integer: 'boundedInt', int: 'boundedPrimitiveInt', Long: 'boundedLong', long: 'boundedPrimitiveLong', BigInteger: 'boundedBigInteger'].collect { type, name -> "@DecimalMin(value='-0.1', inclusive=false) @DecimalMax('1.1') $type $name" }.join('\n    ')}
+    @Min(2L) @Max(4L) @DecimalMin('1.1') @DecimalMax(value='3.1', inclusive=false) Integer units
+    @DecimalMin(value='-0.1', inclusive=false) byte machine
+    @Min(2L) @DecimalMin(value='1.0', inclusive=false) BigInteger tight
+    @Min(2L) @DecimalMin(value='2.00', inclusive=false) BigInteger tie
+    @DecimalMin('1') String text
+    @DecimalMin('1') float floating
+    @DecimalMin('1') double doubleValue
+    @DecimalMin(value='1', groups=Later) BigDecimal grouped
+    @DecimalMin(value='1', payload=Warning) BigDecimal payloadBound
+    @DecimalMin.List([@DecimalMin('1'), @DecimalMin('2')]) BigDecimal repeated
+    @DecimalPolicy BigDecimal composed
+    DecimalChild child
+    @Builder.Method void operation(@DecimalMin('1') BigDecimal value) { throw new AssertionError('operation executed') }
+}
+@DSL @GroupSequence([SequencedPrice]) class SequencedPrice extends Price {}
+@DSL class DecimalChild { @DecimalMin('0') BigDecimal amount }
+@DecimalMin('1') @Constraint(validatedBy=[]) @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD])
+@interface DecimalPolicy {
+    String message() default 'decimal'
+    Class[] groups() default []
+    Class[] payload() default []
+}
+@DSL class EqualExclusive { @DecimalMin(value='1.00', inclusive=false) @DecimalMax('1E+0') BigDecimal amount }
+@DSL class BothExclusive { @DecimalMin(value='1.00', inclusive=false) @DecimalMax(value='1E+0', inclusive=false) BigDecimal amount }
+@DSL class UpperExclusive { @DecimalMin('1.00') @DecimalMax(value='1E+0', inclusive=false) BigDecimal amount }
+@DSL class ReversedDecimal { @DecimalMin('2') @DecimalMax('1') BigDecimal amount }
+@DSL class NoInteger { @DecimalMin('0.1') @DecimalMax('0.9') BigInteger amount }
+@DSL class ByteOverflow { @DecimalMin(value='127.0', inclusive=false) byte amount }
+@DSL class MixedBounds { @Min(2L) @DecimalMax(value='2.00', inclusive=false) Integer amount }
+@DSL class ExtremeBounds {
+    @DecimalMin('1E+1000000') @DecimalMax('-1E+1000000') BigDecimal huge
+    @DecimalMin('1E-2147483647') @DecimalMax('-1E-2147483647') BigDecimal tiny
+    @DecimalMin('-1E+1000000') @DecimalMax('1E+1000000') BigDecimal ordinary
+}
+@DSL class MalformedDecimal { @DecimalMin('no-number') BigDecimal amount }
+@DSL class Unrepresentable { @DecimalMin('1E+2147483648') BigDecimal amount }
 """)
         }
         publishApi('Inherited region documentation.')
@@ -1183,8 +1350,8 @@ class InitializationControl {
 
     // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
     private void stripConstraintFacts(String target, String kind) {
-        File jar = new File(repository, 'fixture/' + (target == 'CapacityBase' ? 'api' : 'schema') + '/1.0/'
-                + (target == 'CapacityBase' ? 'api' : 'schema') + '-1.0.jar')
+        File jar = new File(repository, 'fixture/' + (target in ['CapacityBase', 'DecimalBase'] ? 'api' : 'schema') + '/1.0/'
+                + (target in ['CapacityBase', 'DecimalBase'] ? 'api' : 'schema') + '-1.0.jar')
         File replacement = new File(directory, 'stripped.jar')
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
@@ -1199,8 +1366,15 @@ class InitializationControl {
                                 if (!descriptor.endsWith('GeneratedInput$Schema;')) return delegate
                                 new AnnotationVisitor(Opcodes.ASM9, delegate) {
                                     @Override void visit(String name, Object value) {
-                                        if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) super.visit(name, value)
-                                        else if (kind == 'future-version') super.visit(name, 2)
+                                        if (name == 'decimalVersion' && kind in ['decimal-version', 'future-decimal']) {
+                                            if (kind == 'future-decimal') {
+                                                super.visit(name, 2)
+                                            }
+                                        } else if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) {
+                                            super.visit(name, value)
+                                        } else if (kind == 'future-version') {
+                                            super.visit(name, 2)
+                                        }
                                     }
                                 }
                             }
@@ -1228,6 +1402,7 @@ class InitializationControl {
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
+                                                                if (kind in ['decimalValue', 'inclusive'] && attribute == kind) return
                                                                 if (kind in ['plain', 'value'] && attribute == 'plain' || kind in ['value', 'group-value'] && attribute == 'value') return
                                                                 super.visit(attribute, value)
                                                             }

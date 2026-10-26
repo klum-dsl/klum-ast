@@ -1,5 +1,17 @@
 # #959 P1: direct integral authoring profile
 
+## Current always-on numeric projection rule — PR #972
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+
+Supported direct Min/Max and DecimalMin/DecimalMax project automatically whenever JSON Schema is generated. The
+unreleased `integralConstraints` and `decimalConstraints` flags are removed without aliases or a replacement selector.
+Both existing constraint metadata versions are required on reachable root/inherited/owned public Builder contracts.
+
+This supersedes earlier global opt-in, contradiction-rejection and integer-feasibility requirements, including #966.
+Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
+and structural projection errors retain fail-closed handling and output atomicity.
+
 Date: 2026-10-25. Scope: bounded implementation of accepted D1/D2; issue #959 remains open.
 Base: `0fe8938fcda25517a04b6082921bba589a4ada83` (current master including merged D1 and D2).
 Tracker impact: **Related: #959**. No milestone, issue-state or broader release-gate change.
@@ -7,7 +19,7 @@ Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#minimal-i
 [D1](issue-959-schema-projection-feasibility.md#accepted-d1-metadata-authority-and-missing-artifacts),
 [D2 semantics and runtime evidence](evidence/issue-959-d2-raw-input-profile.md).
 
-## Delivered behavior and seams
+## Historical P1 delivery behavior and seams (global flags superseded)
 
 The consumer deliberately selects `klumSchema.jsonSchema.integralConstraints = true`; selecting generation alone remains
 structural. The Boolean is a tracked Gradle task input. It crosses the existing isolated tool boundary as a JDK value,
@@ -29,8 +41,8 @@ is read to supply facts. Model types can still be resolved from public signature
 The private projector maps only one direct Jakarta Min and/or Max on admitted ordinary integral scalar properties,
 intersecting inclusive bounds with machine limits. Effective hierarchy group redefinitions suppress hard projection.
 Complete unsupported direct field declarations retain labelled runtime descriptions of explicitly authored attributes;
-composed/repeated rules are described whole and never peeled. Source descriptions are preserved. Empty intersections
-fail with the source, effective name and Builder. Missing/unsupported-version metadata adds artifact and recompilation
+composed/repeated rules are described whole and never peeled. Source descriptions are preserved. Contradictory numeric
+assertions now generate successfully, superseding the rejection delivered in #966. Missing/unsupported-version metadata adds artifact and recompilation
 instructions. Failure occurs before output replacement, preserving successful files and manifest.
 
 Omission and explicit-null admission remain structural; NotNull/Required never infer requiredness. No defaults/consts,
@@ -57,7 +69,7 @@ and Bean adapter to establish later repair/invalidation/default/conversion behav
 
 `KlumJsonSchemaGenerationTest` adds the documentary feature
 `generate opt-in integral authoring bounds from binary Builder contracts with Groovy #generation`, linked to
-[the user contract](../user/Json-Schema.md#opt-in-integral-constraints). It covers the off-by-default switch, compiler
+[the user contract](../user/Json-Schema.md#integral-constraints). It covers the off-by-default switch, compiler
 versions, direct and inherited/renamed/nested/ignored inputs, all nine integral target forms, exact Java-long endpoints,
 machine intersections, unsupported contexts/descriptions, unchanged requiredness, and construction non-projection.
 Stripped root/base/child completeness markers, a future version and missing field facts characterize fail-closed enhanced

@@ -98,28 +98,39 @@ final class CompiledBuilderSchema {
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, Boolean schemaKey, Boolean sourceDeprecated) { }
-    record ConstraintRule(String annotation, String value, boolean plain, String declaration) { }
+    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive) { }
     record ConstraintProfile(boolean groupRedefined, Map<String, List<ConstraintRule>> fields) { }
 
-    /** Enhanced-only completeness check. Old metadata continues through the structural reader unchanged. */
+    /** Numeric projection completeness check; the separate structural admission reader remains unchanged. */
     static ConstraintProfile constraintProfile(Class<?> builder) {
         try {
             Metadata metadata = metadata(builder);
             if (metadata.constraintVersion != 1 || metadata.groupRedefined == null)
                 throw invalid("missing or unsupported constraint metadata version " + metadata.constraintVersion);
+            if (metadata.decimalVersion != 1)
+                throw invalid("missing or unsupported decimal metadata version " + metadata.decimalVersion);
             Map<String, List<ConstraintRule>> fields = new LinkedHashMap<>();
             for (Literals literal : metadata.methods.values()) {
                 if (literal.field == null) continue;
                 if (literal.constraints == null)
                     throw invalid("missing constraint facts for source field #" + literal.field);
+                validateDecimalFacts(literal);
                 if (fields.putIfAbsent(literal.field, List.copyOf(literal.constraints)) != null)
                     throw invalid("duplicate constraint source field #" + literal.field);
             }
             return new ConstraintProfile(metadata.groupRedefined, Collections.unmodifiableMap(fields));
         } catch (IOException | ClassNotFoundException | RuntimeException failure) {
-            throw invalid("Enhanced integral constraints require complete public Builder metadata on '" + builder.getName()
+            throw invalid("JSON Schema constraints require complete public Builder metadata on '" + builder.getName()
                     + "' (artifact " + builder.getProtectionDomain().getCodeSource() + "): " + failure.getMessage()
                     + "; recompile and package this Schema and its inherited/owned Schema dependencies with matching KlumAST compiler/runtime versions");
+        }
+    }
+
+    private static void validateDecimalFacts(Literals literal) {
+        for (ConstraintRule rule : literal.constraints) {
+            if (decimalRule(rule.annotation()) && (rule.decimalValue() == null || rule.inclusive() == null)) {
+                throw invalid("missing direct decimal facts for source field #" + literal.field);
+            }
         }
     }
 
@@ -603,6 +614,7 @@ final class CompiledBuilderSchema {
     private static final class Metadata {
         boolean schema;
         int constraintVersion;
+        int decimalVersion;
         Boolean groupRedefined;
         boolean keyInput;
         Literals keyMember;
@@ -686,11 +698,19 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
-            if (member.equals("constraintVersion") && value instanceof Integer version) result.constraintVersion = version;
-            else if (member.equals("groupRedefined") && value instanceof Boolean flag) result.groupRedefined = flag;
-            else if (member.equals("key") && value instanceof String text) result.key = text;
-            else if (member.equals("keyInput") && value instanceof Boolean flag) result.keyInput = flag;
-            else throw invalid("Unknown schema member " + member);
+            if (member.equals("constraintVersion") && value instanceof Integer version) {
+                result.constraintVersion = version;
+            } else if (member.equals("decimalVersion") && value instanceof Integer version) {
+                result.decimalVersion = version;
+            } else if (member.equals("groupRedefined") && value instanceof Boolean flag) {
+                result.groupRedefined = flag;
+            } else if (member.equals("key") && value instanceof String text) {
+                result.key = text;
+            } else if (member.equals("keyInput") && value instanceof Boolean flag) {
+                result.keyInput = flag;
+            } else {
+                throw invalid("Unknown schema member " + member);
+            }
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
@@ -763,6 +783,10 @@ final class CompiledBuilderSchema {
                 + (field.rename.isEmpty() ? field.field : field.rename) + "'");
     }
 
+    private static boolean decimalRule(String annotation) {
+        return Set.of("jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax").contains(annotation);
+    }
+
     /** Decodes inert strings/longs/booleans only; no Bean annotation classes/proxies or validator code. */
     private static final class ConstraintAnnotationVisitor extends AnnotationVisitor {
         private final Literals field;
@@ -771,6 +795,8 @@ final class CompiledBuilderSchema {
         private String value = "";
         private boolean plain;
         private String declaration;
+        private String decimalValue;
+        private Boolean inclusive;
 
         ConstraintAnnotationVisitor(Literals field) {
             super(Opcodes.ASM9);
@@ -785,6 +811,8 @@ final class CompiledBuilderSchema {
                     if (!(literal instanceof Long)) throw invalid("Integral constraint value must be a Java long");
                     value = literal.toString();
                 }
+                case "decimalValue" -> decimalValue = (String) literal;
+                case "inclusive" -> inclusive = (Boolean) literal;
                 case "plain" -> plain = (Boolean) literal;
                 case "declaration" -> declaration = (String) literal;
                 default -> throw invalid("Unknown constraint member " + member);
@@ -801,9 +829,9 @@ final class CompiledBuilderSchema {
             if (!seen.contains("plain")) throw invalidConstraint(field, "Missing constraint eligibility");
             boolean integral = Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation);
             if (integral && !seen.contains(VALUE)) throw invalidConstraint(field, "Missing direct integral bound");
-            if (plain && (!integral
+            if (plain && !decimalRule(annotation) && (!integral
                     || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
-            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration));
+            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive));
         }
     }
 

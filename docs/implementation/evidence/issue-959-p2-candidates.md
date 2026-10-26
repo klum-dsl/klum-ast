@@ -1,12 +1,25 @@
 # #959 P2: decimal, cardinality, pattern and deprecation characterization
 
+## Current always-on numeric projection rule — PR #972
+
+Supported numeric constraints are projected faithfully, including mutually contradictory bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+
+Supported direct Min/Max and DecimalMin/DecimalMax project automatically whenever JSON Schema is generated. The
+unreleased `integralConstraints` and `decimalConstraints` flags are removed without aliases or a replacement selector.
+Both existing constraint metadata versions are required on reachable root/inherited/owned public Builder contracts.
+
+This supersedes earlier global opt-in, contradiction-rejection and integer-feasibility requirements, including #966.
+Historical checks and experiments below describe their original revisions. Missing/malformed/incompatible facts
+and structural projection errors retain fail-closed handling and output atomicity.
+
 Date: 2026-10-25. Base: `1788ea0f578d8376ae673b543a9fa7b057c3a4f1` (master, merged PR #966).
 Status: **Design and characterization only; no additional production mappings approved or implemented.**
 Tracker impact: **Related: #959**; issue stays open and untargeted. No release, curation or milestone change.
 Authority: [ADR 0031](../../adr/0031-structured-schema-input-artifacts.md),
 [D1 and feasibility](../issue-959-schema-projection-feasibility.md),
 [D2](issue-959-d2-raw-input-profile.md), [P1](../issue-959-p1-integral-profile.md).
-This record supersedes the feasibility inventory's provisional P2 rows, not accepted D1/D2 or P1 behavior.
+The original P2 record superseded the feasibility inventory's provisional rows. The current numeric projection
+clarification above additionally supersedes contradiction rejection in accepted D2/P1; all other decisions remain.
 
 ## Outcome and assignment boundaries
 
@@ -106,12 +119,12 @@ finite binary floating targets can round even when preflight succeeds.
 **Mapping:** inclusive DecimalMin/DecimalMax become numeric `minimum`/`maximum`; exclusive forms become numeric
 `exclusiveMinimum`/`exclusiveMaximum` (Draft 2020-12 uses numeric values, not old Boolean exclusive flags). Conjoin with
 all existing restrictions, including P1 Min/Max. Parse the effective annotation String with `BigDecimal(String)`, without
-a MathContext/double conversion. Compare with `compareTo`, not scale-sensitive equals. Render a valid exact JSON numeric
+a MathContext/double conversion. Retain independent assertions without numeric comparison. Render a valid exact JSON numeric
 token, preserving mathematical value rather than textual scale or sign-of-zero. Exponent input, leading plus and
 trailing zero are legal BigDecimal spellings; they are not all suitable verbatim JSON tokens. For example `+2.50E+3`
 needs normalized JSON rendering. The existing private JSON writer accepts BigInteger but not BigDecimal.
 
-**Intersections:** retain the tighter lower/upper endpoints; at equal endpoints exclusive wins. Reject L > U, or L = U
+**Historical intersections proposal (superseded by the PR #972 maintainer correction):** retain the tighter lower/upper endpoints; at equal endpoints exclusive wins. Reject L > U, or L = U
 when either end excludes equality. For integral targets also prove a surviving integer: inclusive lower uses ceil(L),
 exclusive lower floor(L)+1; inclusive upper floor(U), exclusive upper ceil(U)-1, then intersect machine limits. Thus
 `0.1 <= integer <= 0.9`, `byte > 127.0`, and `1.00 <= number < 1E+0` are contradictions even though omission remains legal.
@@ -127,7 +140,7 @@ neighbors, machine/integer conjunctions and contradictions using Decimal-parsed 
 **Necessary facts/stop conditions:** inert effective decimal String, Boolean inclusive (default true), annotation identity,
 eligibility/selection context, source, completeness/version. Compiler constant folding must retain actual String values,
 including symbolic constants, without evaluating user fields; authored text is insufficient. Malformed decimal Strings,
-unrepresentable exponent/scale, missing attributes and impossible intersections fail explicitly; do not publish rounded
+unrepresentable exponent/scale and missing attributes fail explicitly; contradictory numeric assertions remain valid schemas; do not publish rounded
 bounds. JSON Schema is mathematical but validators/parsers may use binary floats, including JavaScript Number. The
 Decimal-based external corpus proves the candidate, not every editor's arbitrary-precision support or JSON-to-host
 parser behavior. A future assignment must retain this limitation and test emitted tokens with a precision-capable
@@ -309,3 +322,13 @@ status belongs to the actual published head and is reported separately; local ch
   inspected provider source; no validator invocation.
 - [ECMA RegExp specification](https://tc39.es/ecma262/multipage/text-processing.html#sec-regexp-regular-expression-objects):
   standards reference, with the exact local engine version pinned above rather than claiming universal engine parity.
+
+
+## Assigned decimal delivery checkpoint
+
+The narrow direct DecimalMin/DecimalMax implementation is now separately assigned and recorded in
+[the decimal delivery evidence](../issue-959-decimal-bounds.md) and ADR 0031's decimal checkpoint. The original separate
+`decimalConstraints` and P1 Boolean activation are superseded: supported integral and decimal declarations project
+automatically, requiring both existing completeness markers. D7 remains unaccepted. The Decimal bounds section above remains the governing precision/conjunction/exclusion contract, subject to the numeric responsibility clarification above.
+The initial characterization status and hand-authored candidate corpus remain historical evidence; delivered schemas
+are qualified separately. Other P2 candidates and broader #959 work remain deferred.
