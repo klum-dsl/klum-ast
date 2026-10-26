@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import com.blackbuild.klum.ast.ConstraintProjection.Policy;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
@@ -161,22 +163,34 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (entry.role() == CompiledBuilderSchema.Role.OPERATION) return;
         CompiledBuilderSchema.ConstraintProfile profile = constraintProfiles.get(entry.contract());
         String field = entry.source().substring(entry.source().lastIndexOf('#') + 1);
-        List<CompiledBuilderSchema.ConstraintRule> rules = profile.fields().get(field);
-        if (rules == null) throw new IllegalArgumentException("Missing constraint source facts for '" + entry.source()
+        CompiledBuilderSchema.FieldConstraints constraints = profile.fields().get(field);
+        if (constraints == null) throw new IllegalArgumentException("Missing constraint source facts for '" + entry.source()
                 + "', external input '" + entry.externalName() + "', public Builder '" + entry.contract().getName()
                 + "'; recompile and package the Schema with matching KlumAST versions");
+        contributeConstraints(entry, value, groupRedefined, constraints);
+    }
+
+    private void contributeConstraints(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined,
+                                       CompiledBuilderSchema.FieldConstraints constraints) {
         boolean ordinaryScalar = entry.role() == CompiledBuilderSchema.Role.PROPERTY
                 && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR;
         boolean integralProperty = ordinaryScalar && "integer".equals(value.get("type"));
         boolean decimalProperty = ordinaryScalar && entry.payload().type() == BigDecimal.class;
         List<Map<String, Object>> bounds = new ArrayList<>();
-        for (CompiledBuilderSchema.ConstraintRule rule : rules) {
-            if (!groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty)) continue;
-            String reason = groupRedefined ? "group redefinition/sequence" : "outside the supported direct numeric, empty groups/payload subset";
+        for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
+            // Validate supported facts even when policy suppresses their output; unknown data must fail closed.
+            boolean projected = !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
+            if (constraints.policy() == Policy.OMIT || constraints.policy() == Policy.PROJECT && projected) continue;
+            String reason = constraintReason(constraints.policy(), groupRedefined);
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
-        conjoinBounds(value, bounds);
-        if (!rules.isEmpty()) value.put("x-klum-constraint-source", entry.source());
+        if (constraints.policy() == Policy.PROJECT) conjoinBounds(value, bounds);
+        if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
+    }
+
+    private static String constraintReason(Policy policy, boolean groupRedefined) {
+        if (policy == Policy.TEXT_ONLY) return "field projection policy TEXT_ONLY";
+        return groupRedefined ? "group redefinition/sequence" : "outside the supported direct numeric, empty groups/payload subset";
     }
 
     private static void conjoinBounds(Map<String, Object> value, List<Map<String, Object>> bounds) {
@@ -207,7 +221,9 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             return true;
         } catch (NumberFormatException failure) {
             throw new IllegalArgumentException("Invalid decimal bound for '" + entry.source() + "', external input '"
-                    + entry.externalName() + "', public Builder '" + entry.contract().getName() + "': " + rule.decimalValue(), failure);
+                    + entry.externalName() + "', public Builder '" + entry.contract().getName() + "' (artifact "
+                    + entry.contract().getProtectionDomain().getCodeSource() + "): " + rule.decimalValue()
+                    + "; recompile and package the Schema with matching KlumAST versions", failure);
         }
     }
 

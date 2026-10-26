@@ -123,6 +123,86 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#field-constraint-projection')
+    def 'choose field constraint projection without changing structural facts with Groovy #generation'() {
+        given:
+        fixture(generation, false, true, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Projection'])\n")
+
+        when:
+        run('generateKlumJsonSchema')
+        def schema = document('example.Projection')
+        def root = schema.get('$defs').get('example.Projection_DSL$Builder')
+        def properties = root.properties
+
+        then:
+        properties.projected.allOf == [[minimum: 1]]
+        properties.implicit.findAll { key, value -> key != 'x-klum-constraint-source' } == properties.projected.findAll { key, value -> key != 'x-klum-constraint-source' }
+        properties.'replica-count'.type == 'integer'
+        properties.'replica-count'.minimum == -2147483648
+        properties.'replica-count'.maximum == 2147483647
+        !properties.'replica-count'.containsKey('allOf')
+        properties.'replica-count'.description.startsWith('Desired replica count.')
+        properties.'replica-count'.description.contains('Runtime constraint (not enforced by this schema; field projection policy TEXT_ONLY): @jakarta.validation.constraints.Min(value=1)')
+        properties.'replica-count'.deprecated == true
+        properties.omitted == [type: 'integer', minimum: -2147483648, maximum: 2147483647, description: 'Private capacity rule.', deprecated: true]
+        properties.decimalText.type == 'number'
+        !properties.decimalText.containsKey('exclusiveMinimum')
+        properties.decimalText.description.contains('DecimalMin(inclusive=false, value="0.10")')
+        properties.propagatedText.description.contains('@jakarta.validation.constraints.NotNull()')
+        properties.propagatedOmit == [type: 'string', description: 'Required label.']
+        properties.directText.description == properties.propagatedText.description
+        properties.directOmit == properties.propagatedOmit
+        properties.'inherited-percent'.description.contains('field projection policy TEXT_ONLY')
+        !properties.'inherited-percent'.containsKey('allOf')
+        schema.get('$defs').get('example.ProjectionChild_DSL$Builder').properties.amount == [type: 'number', description: 'Amount.']
+        schema.get('$defs').get('example.ProjectionChild_DSL$Builder').properties.quantity.allOf == [[minimum: 2]]
+        !properties.child.containsKey('x-klum-constraint-source')
+        !properties.child.description.contains('Size')
+        !properties.containsKey('hidden')
+        !properties.containsKey('collision')
+        !root.containsKey('required')
+        !trap.exists()
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'field policy metadata fails closed before replacing output: #target #kind'() {
+        given:
+        fixture('3', false, true, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Projection'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Projection').bytes
+        stripConstraintFacts(target, kind)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+
+        then:
+        failed.output.contains('example.' + target + '_DSL$Builder')
+        failed.output.contains(diagnostic)
+        failed.output.contains('recompile and package')
+        output('example.Projection').bytes == previous
+        !trap.exists()
+
+        where:
+        target            | kind                 | diagnostic
+        'Projection'      | 'projection-version' | 'projection metadata version 0'
+        'CapacityBase'    | 'projection-version' | 'projection metadata version 0'
+        'ProjectionChild' | 'projection-version' | 'projection metadata version 0'
+        'Projection'      | 'future-projection'  | 'projection metadata version 2'
+        'Projection'      | 'policy'             | 'missing constraint projection policy'
+        'ProjectionChild' | 'policy'             | 'missing constraint projection policy'
+        'Projection'      | 'unknown-policy'     | 'FUTURE'
+        'ProjectionChild' | 'bad-decimal'        | 'Invalid decimal bound'
+    }
+
+    @Issue('959')
     def 'project supported numeric bounds and retain unsupported P2 descriptions and source deprecation from binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
@@ -887,7 +967,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -990,6 +1070,7 @@ class Misdirected_DSL {
         writeSource('schema/src/main/groovy/example/Legacy_DSL.groovy', """
 package example
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
+import com.blackbuild.klum.ast.ConstraintProjection
 import java.util.function.Consumer
 class Legacy {}
 class Legacy_DSL {
@@ -998,8 +1079,8 @@ class Legacy_DSL {
 }
 class LegacyHolder {}
 class LegacyHolder_DSL {
-    @GeneratedInput.Schema(constraintVersion=1, decimalVersion=1, groupRedefined=false) interface Builder<SELF extends LegacyHolder> {
-        @GeneratedInput.Field(value='child', constraints=[]) Legacy_DSL.Builder getChild()
+    @GeneratedInput.Schema(constraintVersion=1, decimalVersion=1, projectionVersion=1, groupRedefined=false) interface Builder<SELF extends LegacyHolder> {
+        @GeneratedInput.Field(value='child', constraints=[], constraintProjection=ConstraintProjection.Policy.PROJECT) Legacy_DSL.Builder getChild()
         @GeneratedInput.Selection(field = 'child', role = 'OWNED_OBJECT') void child(Consumer input)
     }
     interface Factory { LegacyHolder One() }
@@ -1244,6 +1325,7 @@ import java.lang.annotation.*
 @DSL class Unrepresentable { @DecimalMin('1E+2147483648') BigDecimal amount }
 """)
         }
+        if (projection) projectionSources()
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -1266,6 +1348,58 @@ tasks.register('initializeControl', JavaExec) {
     mainClass = 'example.InitializationControl'
 }
 """
+    }
+
+    private void projectionSources() {
+        File base = new File(producer, 'api/src/main/groovy/example/CapacityBase.groovy')
+        base.text = base.text.replace('import com.blackbuild.klum.ast.DSL', 'import com.blackbuild.klum.ast.*')
+                .replace("@JsonProperty('inherited-percent')", "@ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY) @JsonProperty('inherited-percent')")
+        writeSource('api/src/main/groovy/example/ProjectionChild.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.*
+@DSL class ProjectionChild {
+    /** Amount. */
+    @ConstraintProjection(ConstraintProjection.Policy.OMIT) @DecimalMin('0.1') BigDecimal amount
+    @Min(2L) Integer quantity
+}
+''')
+        writeSource('schema/src/main/groovy/example/Projection.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.ConstraintProjection.Policy
+import com.fasterxml.jackson.annotation.*
+import jakarta.validation.constraints.*
+import java.lang.annotation.*
+@DSL class Projection extends CapacityBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
+    /** Projected replicas. */
+    @ConstraintProjection @Min(1L) Integer projected
+    /** Projected replicas. */
+    @Min(1L) Integer implicit
+    /** Desired replica count. */
+    @Deprecated @JsonProperty('replica-count') @Min(1L)
+    @ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
+    /** Private capacity rule. */
+    @Deprecated @Min(1L) @ConstraintProjection(Policy.OMIT) Integer omitted
+    @DecimalMin(value='0.10', inclusive=false) @ConstraintProjection(Policy.TEXT_ONLY) BigDecimal decimalText
+    /** Required label. */
+    @Needed @ConstraintProjection(Policy.TEXT_ONLY) String propagatedText
+    /** Required label. */
+    @Needed @ConstraintProjection(Policy.OMIT) String propagatedOmit
+    /** Required label. */
+    @NotNull @ConstraintProjection(Policy.TEXT_ONLY) String directText
+    /** Required label. */
+    @NotNull @ConstraintProjection(Policy.OMIT) String directOmit
+    @JsonIgnore @ConstraintProjection(Policy.OMIT) @Min(1L) Integer hidden
+    @Size(min=1) @ConstraintProjection(Policy.OMIT) ProjectionChild child
+    @JsonProperty('collision') @ConstraintProjection(Policy.OMIT) String first
+    @JsonProperty('collision') String second
+}
+@PropagateAnnotation(NotNull)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Needed {}
+""")
     }
 
     private void publishApi(String documentation) {
@@ -1350,8 +1484,8 @@ class InitializationControl {
 
     // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
     private void stripConstraintFacts(String target, String kind) {
-        File jar = new File(repository, 'fixture/' + (target in ['CapacityBase', 'DecimalBase'] ? 'api' : 'schema') + '/1.0/'
-                + (target in ['CapacityBase', 'DecimalBase'] ? 'api' : 'schema') + '-1.0.jar')
+        String artifact = target in ['CapacityBase', 'DecimalBase', 'ProjectionChild'] ? 'api' : 'schema'
+        File jar = new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")
         File replacement = new File(directory, 'stripped.jar')
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
@@ -1366,7 +1500,9 @@ class InitializationControl {
                                 if (!descriptor.endsWith('GeneratedInput$Schema;')) return delegate
                                 new AnnotationVisitor(Opcodes.ASM9, delegate) {
                                     @Override void visit(String name, Object value) {
-                                        if (name == 'decimalVersion' && kind in ['decimal-version', 'future-decimal']) {
+                                        if (name == 'projectionVersion' && kind in ['projection-version', 'future-projection']) {
+                                            if (kind == 'future-projection') super.visit(name, 2)
+                                        } else if (name == 'decimalVersion' && kind in ['decimal-version', 'future-decimal']) {
                                             if (kind == 'future-decimal') {
                                                 super.visit(name, 2)
                                             }
@@ -1386,6 +1522,10 @@ class InitializationControl {
                                         AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                                            @Override void visitEnum(String member, String enumDescriptor, String value) {
+                                                if (member == 'constraintProjection' && kind == 'policy') return
+                                                super.visitEnum(member, enumDescriptor, member == 'constraintProjection' && kind == 'unknown-policy' ? 'FUTURE' : value)
+                                            }
                                             @Override AnnotationVisitor visitArray(String member) {
                                                 if (kind == 'field' && member == 'constraints') return null
                                                 AnnotationVisitor array = super.visitArray(member)
@@ -1402,6 +1542,10 @@ class InitializationControl {
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
+                                                                if (kind == 'bad-decimal' && attribute == 'decimalValue') {
+                                                                    super.visit(attribute, 'malformed')
+                                                                    return
+                                                                }
                                                                 if (kind in ['decimalValue', 'inclusive'] && attribute == kind) return
                                                                 if (kind in ['plain', 'value'] && attribute == 'plain' || kind in ['value', 'group-value'] && attribute == 'value') return
                                                                 super.visit(attribute, value)

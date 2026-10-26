@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
+import com.blackbuild.klum.ast.ConstraintProjection;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -55,10 +56,17 @@ final class StructuredInputConstraintMetadata {
     static void enrichSchema(ClassNode model, AnnotationNode schema) {
         schema.setMember("constraintVersion", new ConstantExpression(1));
         schema.setMember("decimalVersion", new ConstantExpression(1));
+        schema.setMember("projectionVersion", new ConstantExpression(1));
         schema.setMember("groupRedefined", new ConstantExpression(groupRedefined(model, new HashSet<>())));
     }
 
     static void enrichField(FieldNode field, AnnotationNode fact) {
+        List<AnnotationNode> policies = field.getAnnotations(ClassHelper.make(ConstraintProjection.class));
+        Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
+        // Let the ordinary annotation compiler fold enum constants, including static imports.
+        fact.setMember("constraintProjection", selected == null
+                ? new PropertyExpression(new ClassExpression(ClassHelper.make(ConstraintProjection.Policy.class)), "PROJECT")
+                : selected);
         ListExpression constraints = new ListExpression();
         List<AnnotationNode> declarations = field.getAnnotations().stream().filter(StructuredInputConstraintMetadata::constraint).toList();
         declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
