@@ -1,9 +1,20 @@
 # #959 D7: vocabulary and semantics decision brief
 
-Date: 2026-10-26. Status: **Recommendation for maintainer review; D7 remains deferred.**
+Date: 2026-10-26. Status: **Vocabulary direction accepted; enum contract and implementation remain open.**
 Audited baseline: `6ec0a0404515722deccc3fc68ca4a8d9325c2170`, merged [PR #972](https://github.com/klum-dsl/klum-ast/pull/972).
-Authority: [ADR 0031 D7 checkpoint](../adr/0031-structured-schema-input-artifacts.md#d7-checkpoint--canonical-shaping-vocabulary-deferred).
+Authority: [ADR 0031 accepted vocabulary direction](../adr/0031-structured-schema-input-artifacts.md#d7-vocabulary-direction--959).
 The [earlier D7 record](issue-959-d7-naming-profiles.md) retains historical probes and broader alternatives; its proposed algorithms, precedence and annotation names are not decisions.
+
+## Accepted maintainer decision — 2026-10-26
+
+The maintainer selected **B: a small family of focused Klum annotations**, keeping language shaping separate from advisory projection and allowing compatible Jackson annotation inputs. The following decisions supersede this brief's original examples-first recommendation and single suppression-marker proposal:
+
+- Preserve the existing optional `JsonProperty`/`JsonIgnore` compatibility. Equivalent Klum/Jackson facts may coexist; conflicting declarations should diagnose rather than depend on annotation order. Broader `JsonNaming` support requires a separate bounded compatibility decision. Neither Jackson nor Bean Validation owns the canonical contract or becomes a required dependency.
+- **Defer examples.** Reconsider authoring through AnnoDocimal when structured Javadoc tags can be retained as separate annotations. Existing structured `Documentation.getTags()` access is distinct from that transport capability. Scalar examples authored as simple strings remain a possible fallback, not an accepted example syntax or type-conversion rule. Structured JSON examples, placement/profile rules and the annotation/tag bridge below remain deferred alternatives.
+- Use the singular author annotation name **`ConstraintProjection`**, with an enum-valued policy rather than the earlier `NoConstraintProjection` marker. The enum type name, constant names, final value set and default are **still to be decided**. Normal assertion projection, text-only constraint descriptions and omission of constraint-derived output are the candidate behaviors discussed; the provisional spellings `PROJECT`, `TEXT_ONLY` and `SKIP` do not constitute an accepted enum contract.
+- Apply projection policy to the field's supported effective constraint contributions, including approved propagated origins, without enabling arbitrary composed-constraint projection. Preserve ordinary documentation, standard deprecation, structural types/machine bounds, naming/admission, key/null/omission semantics and runtime validation. This is artifact policy only.
+
+No package, other annotation spelling, naming profile/scope precedence, generated metadata format or implementation assignment is accepted. The always-on faithful numeric baseline from #972 remains intact. This records the maintainer's decision in this conversation; it does not authorize production work, tracker changes or release placement.
 
 ## Problem, goal and exclusions
 
@@ -11,7 +22,7 @@ Schema Developers need to describe the structured input they publish, including 
 
 Seek a **deep module**: a small author interface whose source-associated facts give both consumers leverage through the existing compiled-contract seam. Keep declaration matching, inheritance, collision resolution, metadata decoding and JSON placement in its implementation. Advisory facts should not acquire interpreter behavior merely to share that seam.
 
-This brief makes no implementation assignment or accepted ADR change. Numeric projection is the stable, always-on, faithful baseline, including contradictory representable bounds. No public descriptor framework, generic annotation DSL, registry/SPI, required Jackson/Bean dependency, WIRE-carrier revival, new admission grammar, release placement or tracker change is proposed here.
+This brief records the accepted design direction without an implementation assignment. Numeric projection is the stable, always-on, faithful baseline, including contradictory representable bounds. No public descriptor framework, generic annotation DSL, registry/SPI, required Jackson/Bean dependency, WIRE-carrier revival, new admission grammar, release placement or tracker change follows.
 
 ## Audit: facts versus unproved extensions
 
@@ -44,19 +55,19 @@ These alternatives concern authoring; all can use minimal compiler-folded facts 
 | Jackson/Bean bridges | Optional producers of the same bounded facts; umbrella cannot promise importer parity. | Optional per-fact adapters; supported Bean assertions remain independent. | Natural reuse, but making these primary contradicts the Klum-owned contract direction and excludes dependency-free authors. | Natural optional bridges, with explicit conflict rules for language facts and no runtime validation coupling. |
 | Explainable without transport | “Describe this input” is simple until unrelated switches interact. | “Name it, omit it, illustrate it, or suppress its projected assertions” explains each effect. | Easy only for users already familiar with several foreign semantics. | “These change accepted tokens; these document/project them” is concise; shared machinery stays hidden. |
 
-**Recommendation:** B for authoring, with D's semantic separation. Do not require a common public namespace or meta-annotation. D is equally viable if “no common vocabulary” means independent public concerns; reject only the interpretation that also duplicates internal source/name resolution. A is a credible fallback if maintainers prefer a single import and accept a permanently bounded target/member set. C remains an optional compatibility path, not canonical authority.
+**Selected direction:** B for authoring, with D's semantic separation and optional Jackson compatibility. Do not require a common public namespace or meta-annotation. The table retains the alternatives assessed before selection; A and C are not selected as the canonical authoring shape.
 
 C can also offer dependency-free authoring if its Klum override expresses every required fact without foreign imports; that version converges on B with optional adapters. Its useful economy is reusing existing author declarations, not delegating language ownership to another library.
 
 ## Vocabulary matrix
 
-“Recommend now” means a proposal for approval, never an accepted or installed feature.
+Accepted direction is distinct from an installed feature; unresolved details remain explicit.
 
-| Capability | Recommend now | Defer | Reject / no evidence |
+| Capability | Accepted direction / retained baseline | Defer / unresolved | Reject / no evidence |
 | --- | --- | --- | --- |
-| External names | Preserve identity and existing literal bridges; focused member literal name/exclusion if canonical spellings are wanted. | Nondefault profiles, type/package/root precedence, aliases and include overrides. | Exporter-only renaming; automatic discovery of mapper strategies; treating identity as a camel normalizer. |
-| Examples | First-class advisory full-payload JSON examples on fields and admitted one-payload operations; annotation as the initial machine input. | Javadoc bridge, type/root/item targets, profile-qualified variants and cross-source merging. | Groovy expression/closure evaluation; parsing free prose as data; constructing Models to obtain samples. |
-| Constraint projection | Separate field-local all-supported-contributions suppression as a candidate. | Exact marker name, inclusion in a later increment, relationship-depth extension, selective suppression. | Removing runtime validators or machine/type restrictions; global opt-in restoration; pretending arbitrary Bean composition is supported. |
+| External names | Focused family, identity baseline and optional compatible Jackson literals; diagnose conflicting facts. | Canonical name/exclusion spellings, nondefault profiles, type/package/root precedence, aliases and include overrides. | Exporter-only renaming; automatic discovery of mapper strategies; treating identity as a camel normalizer. |
+| Examples | Advisory only when revisited; deferred from the initial direction. | Separate AnnoDocimal tag annotations; possible scalar/string fallback; all syntax, placement and profile rules. | Groovy expression/closure evaluation; parsing free prose as data; constructing Models to obtain samples. |
+| Constraint projection | Field-level `ConstraintProjection` with an enum-valued policy over supported effective contributions. | Enum name/constants/final value set/default, retention and metadata completeness details, relationship-depth extension, selective suppression. | Removing runtime validators or machine/type restrictions; global opt-in restoration; pretending arbitrary Bean composition is supported. |
 | Deprecation/descriptions | Standard `@Deprecated`; existing retained documentation. | `since`/`forRemoval` policy and richer description authoring only with demand. | Duplicate D7 deprecation flag. |
 | Package metadata | Keep outside the initial interface. | Reconsider only for a concrete repeated-family convention and an artifact-owned compile-time rule. | Ambient package lookup, subpackage inference, first-on-classpath resolution. |
 | Transport/adapters | Minimal inert facts on declaring public Builder declarations; optional literal compatibility/enrichment. | Companion only after one named fact demonstrably exceeds faithful/economic annotation transport. | WIRE carrier, annotation graph descriptors, registry/SPI, provider execution or required Jackson/Bean linkage. |
@@ -69,13 +80,15 @@ Identity preserves every character (`URLValue` stays `URLValue`); ordinary `serv
 
 If alternate profiles acquire a concrete use case, evaluate **one explicit root-document selection shared by both consumers** first. It avoids an unevidenced member > type > package > caller ladder. Type defaults create a real choice about inherited declarations and nested dependencies; package defaults add a second ownership problem. Do not add either merely because retention is possible. Profile selection must preserve literal renames and literal Map/instance keys, values, enums and key values; resolve before collision pruning and before any execution/output replacement. Construction-key member names remain position-sensitive.
 
-For a future canonical/legacy conflict, recommend equal facts coalesce and incompatible facts at the same source fail with both origins. Canonical metadata absent means today's narrow Jackson literals continue to work; adding a canonical annotation should not silently change direct Jackson binding. Whether canonical facts instead override a foreign rename/ignore is a maintainer choice, especially for conflicting includes/exclusions. No mapper/mixin parity follows. [JsonNaming selects a strategy class](https://github.com/FasterXML/jackson-databind/blob/2.20/src/main/java/com/fasterxml/jackson/databind/annotation/JsonNaming.java); core must not instantiate it.
+The accepted compatibility direction allows equal facts to coexist and diagnoses incompatible Klum/Jackson declarations rather than selecting by annotation order. Canonical metadata absent means today's narrow Jackson literals continue to work; adding a canonical annotation should not silently change direct Jackson binding. Diagnostic severity and exact handling of contradictory includes/exclusions still need the bounded naming contract. No mapper/mixin parity follows. [JsonNaming selects a strategy class](https://github.com/FasterXML/jackson-databind/blob/2.20/src/main/java/com/fasterxml/jackson/databind/annotation/JsonNaming.java); core must not instantiate it.
 
 Package metadata does **not** earn initial scope. JDK [Package metadata](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Package.html) is tied to class loader/code source, not a model-family hierarchy. Any later scheme must bind an exact producer artifact's package declaration at compilation, fold the result onto that producer's Builder, track recompilation inputs, and reject unresolved duplicate origins. It must not consult an arbitrary consumer-classpath package-info or imply subpackage inheritance.
 
 ## Examples: advisory input values, not prose or defaults
 
-Recommend one annotation with a constant String array: **each string encodes one complete JSON value**. This uses ordinary [annotation element types](https://docs.oracle.com/javase/specs/jls/se17/html/jls-9.html#jls-9.6.1) rather than a nested annotation DSL. Strings require JSON quotes, numbers remain exact, and arrays/objects are genuine structured values. For example, one encoded `["a","b"]` yields `examples: [["a","b"]]`, not two examples. JSON Schema [examples](https://json-schema.org/draft/2020-12/json-schema-validation#section-9.5) is an array of illustrative values, with no added admission assertion.
+**Deferred alternative retained for later review; none of this section's example contract is accepted.** Prefer revisiting separately retained AnnoDocimal tags before adding a Klum example annotation. A scalar/string fallback would still need to decide whether `'42'` means a JSON String or a numeric literal; do not infer conversion from the field type.
+
+The original alternative was one annotation with a constant String array: **each string encodes one complete JSON value**. This uses ordinary [annotation element types](https://docs.oracle.com/javase/specs/jls/se17/html/jls-9.html#jls-9.6.1) rather than a nested annotation DSL. Strings require JSON quotes, numbers remain exact, and arrays/objects are genuine structured values. For example, one encoded `["a","b"]` yields `examples: [["a","b"]]`, not two examples. JSON Schema [examples](https://json-schema.org/draft/2020-12/json-schema-validation#section-9.5) is an array of illustrative values, with no added admission assertion.
 
 | Authoring input | Assessment |
 | --- | --- |
@@ -96,19 +109,29 @@ Object examples are authored in the **actual current external grammar**, includi
 
 Recommend generation failure for malformed explicit machine JSON/metadata, with source and target, preserving previous artifacts; the interpreter ignores advisory examples. Reject duplicate object keys, interpolation, expressions, NaN/infinity and uncontrolled size/depth; preserve exact representable numbers without double conversion. Exact limits/parser remain probe outputs. Do not execute initializers, factories, defaults, Templates, lifecycle, validator/provider discovery or user annotation code. A syntactically valid example need not be universally valid: any static incompatibility diagnostic stays advisory, and must not introduce numeric satisfiability analysis. Adding/removing examples changes no admission, requiredness, null behavior, runtime validation or construction result.
 
-## Field suppression: one possible capability within D7
+## ConstraintProjection: accepted shape, unresolved enum contract
 
 Keep **direct source facts**, **supported effective contributions**, and **emitted assertions** distinct. Today the generator supports a bounded direct Jakarta numeric subset; custom/meta/composed/repeatable constraints can be retained as descriptions without becoming hard assertions. A supported contribution can originate from a source annotation produced by approved propagation; suppression must not depend only on the spelling physically written at the field. Future composed mappings require their own acceptance.
 
-Recommend a separate FIELD-only marker, provisionally `@NoConstraintProjection`, suppressing **all supported declaration-derived hard assertions contributed for that effective field**. This policy follows the declaring source through inherited public contracts. It applies after supported contribution selection, before assertion placement. A child source's own constraints inside a referenced definition remain independent; no recursive subtree erasure is implied. Initially qualify ordinary scalar fields; do not promise relationship-depth behavior without a concrete mapping.
+The accepted shape is a field-level **`ConstraintProjection` annotation with an enum-valued policy**, replacing the proposed `NoConstraintProjection` marker. Its candidate behavioral distinctions are:
+
+| Candidate behavior | Declaration-derived assertions | Constraint-derived descriptions |
+| --- | --- | --- |
+| Normal projection | Emit the supported subset | Keep fallback descriptions for unsupported constraints |
+| Text only | Omit | Describe constraints, including those otherwise projectable |
+| Omit constraint projection | Omit | Omit |
+
+The enum type, final values, names and default remain open; this table preserves the discussed semantics for that decision without freezing `ProjectionType` or `PROJECT`/`TEXT_ONLY`/`SKIP`. An absent policy preserves today's always-on supported projection. No annotation or enum is installed.
+
+The policy covers **all supported declaration-derived contributions for that effective field** and follows declaring source identity through inherited public contracts. It applies after supported contribution selection, before assertion/constraint-description placement. A child source's own constraints inside a referenced definition remain independent; no recursive subtree erasure is implied. Exact inherited-policy override, retention and completeness rules still require a bounded contract. Initially qualify ordinary scalar fields; do not promise relationship-depth behavior without a concrete mapping.
 
 All-versus-selective is consequential. All is explainable without exposing annotation class names, JSON keywords or contribution registries, and includes newly supported declaration contributions later; that forward effect must be documented. Selective suppression needs stable identities for direct/propagated/composed contributions and conflict rules, with no demonstrated need yet. Do not remove every `minimum`/`maximum` keyword from the final schema: machine bounds may use those same keywords.
 
-Preserve numeric type/machine limits, enum/shape restrictions, admission, naming/exclusion, construction-key requiredness, null/omission rules and all runtime validation. Retain source facts, required completeness checks and malformed-fact diagnostics even when assertions are suppressed; this is not a metadata escape hatch. Keep descriptions with an explicit “projection suppressed; runtime constraint remains” explanation, examples and standard deprecation. No Model/setter mutation, validator disabling, normalization/repair promise, general filtering layer or new global option follows.
+Preserve numeric type/machine limits, enum/shape restrictions, admission, naming/exclusion, construction-key requiredness, null/omission rules and all runtime validation. Ordinary source documentation and standard deprecation remain independent of every mode. Text-only output should identify that assertions were not projected and runtime constraints remain; omission concerns constraint-derived output, not ordinary prose. Retaining source facts, required completeness checks and malformed-fact diagnostics is the metadata recommendation, still to be qualified with the enum contract. No Model/setter mutation, validator disabling, normalization/repair promise, general filtering layer or new global option follows.
 
-## Three Groovy authoring sketches for taste
+## Historical Groovy authoring sketches for taste
 
-**All new names below are placeholders; none is accepted, available or executable as written.** Existing `DSL`, `Builder.Method` and Jakarta annotations retain their current meaning. No package for the proposed annotations is chosen. Profile/type/package syntax is intentionally absent.
+**These predecision sketches retain the alternatives evaluated, not current implementation scope.** Their `NoConstraintProjection` marker and examples-first direction are superseded by the accepted decision above. Other new names remain placeholders, and the sketches are unavailable and not executable as written. Existing `DSL`, `Builder.Method` and Jakarta annotations retain their current meaning. No package for the proposed annotations is chosen. Profile/type/package syntax is intentionally absent.
 
 A — bounded umbrella (one annotation, mixed concerns):
 
@@ -123,7 +146,7 @@ import jakarta.validation.constraints.Min
 }
 ```
 
-B — focused family (recommended direction; only examples in the first increment):
+B — focused family (selected shape; example and marker spellings below are historical):
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
@@ -157,27 +180,27 @@ import jakarta.validation.constraints.Min
 
 The operation example illustrates its Map payload, not a Service object export. Its `Team/Blue` key is data. This sketch does not make existing tags machine-readable today.
 
-## Recommended first increment and decision gate
+## Remaining bounded decisions and compatibility consequences
 
-**Smallest first increment:** only the focused advisory example annotation on full field payloads and admitted one-payload operations, in today's grammar. It adds a missing capability with retained evidence and no new naming precedence. The common seam already supplies exact input positions; reuse that locality rather than making examples justify new interpreter options. Literal name/exclusion annotations are the next language candidate if dependency-free authoring is wanted; profiles, package/type scope, suppression and bridges are independently reviewable later capabilities.
+The original examples-first increment is superseded. The next bounded design question is the `ConstraintProjection` enum contract and its minimal source-free metadata, independently of examples and broader naming profiles. Selecting the annotation family is not an implementation assignment or approval of every possible family member.
 
-Minimal transport preference: fold explicit JSON literals onto the declaring public Builder's exact field-associated getter or authored-operation declaration, once per source. Retain target/source association and advisory format version; types/signatures, selected groups and inheritance already supply the rest. Do not copy whole annotations/AST graphs or materialize a per-profile resolved descriptor. Prefer a distinct optional fact over casually adding members to existing strict generated annotations: the reader rejects unknown members. Probe the chosen route rather than claiming additive annotation defaults ensure compatibility.
+Prefer minimal compiler-folded policy facts on the declaring public Builder field declaration, reusing source/selection identity. Policy must control supported contributions, not annotation scanning or removal of final JSON keywords. No new fact format/version is selected here. Existing strict generated-annotation readers reject unknown members; qualify any additive route rather than claiming annotation defaults establish compatibility. Keep the transport implementation hidden.
 
-Old producers can omit examples without weakening language; malformed known example facts should diagnose. Old consumers may ignore a separate advisory fact only after qualification. A future language rename/exclusion cannot safely be ignored by an old interpreter: it needs an explicit capability/completeness contract, matching consumer versions and source-aware recompile/package failure, without disturbing #972's numeric markers. Annotation defaults are applied dynamically ([JLS](https://docs.oracle.com/javase/specs/jls/se17/html/jls-9.html#jls-9.6.2)); freeze intended facts at compilation. A missing optional advisory fact and a missing required language fact are different compatibility cases.
+A future language rename/exclusion cannot safely be ignored by an old interpreter: it needs an explicit capability/completeness contract, matching consumer versions and source-aware recompile/package failure, without disturbing #972's numeric markers. Projection-policy compatibility likewise needs producer/consumer qualification rather than silent loss of the author's choice. Annotation defaults are applied dynamically ([JLS](https://docs.oracle.com/javase/specs/jls/se17/html/jls-9.html#jls-9.6.2)); freeze intended facts at compilation. Missing optional examples and missing required language/policy facts are different cases.
 
-String payloads face modified-UTF-8 constant-pool limits ([JVMS](https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-4.html#jvms-4.4.7)); impose modest measured limits before considering overflow machinery. No current fact demonstrates a companion is necessary. No public runtime methods, projection SPI or dependency on a JSON mapper/provider belongs to this increment.
+If examples are revisited, String payloads face modified-UTF-8 constant-pool limits ([JVMS](https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-4.html#jvms-4.4.7)); impose modest measured limits before considering overflow machinery. No current fact demonstrates a companion is necessary. No public runtime methods, projection SPI or dependency on a JSON mapper/provider follows from this direction.
 
-Maintainer decisions, in bounded order:
+Remaining maintainer decisions:
 
-1. **Shape and priority:** B with D's semantic separation, and examples first; or A's bounded umbrella / naming or suppression first? Accepting the direction does not accept every later annotation.
-2. **Example contract:** choose the public name; approve whole-payload field/method scope, JSON-string array, no Javadoc bridge initially, malformed-generation failure and unchanged runtime semantics. Confirm the placement/profile rules above rather than just a tag spelling.
-3. **Later language contract:** are dependency-free literal naming/exclusion needed now? Choose canonical-versus-legacy conflict behavior before naming annotations; require a concrete nonidentity document before settling algorithms or root/type/package precedence.
-4. **Later projection contract:** approve or decline field-local all-supported suppression separately; choose its exact name and confirm descriptions/completeness/forward-effect rules. No selective-filter vocabulary by default.
+1. **Projection enum:** choose its type name, final value set, constant spellings and default; settle the exact descriptions and omitted constraint-source diagnostics. `ConstraintProjection` is the accepted annotation name, not an enum name.
+2. **Policy transport:** settle retention, inherited-policy override and completeness/version behavior, with source-free binary qualification. No selective-filter vocabulary by default.
+3. **Later language contract:** choose canonical name/exclusion annotation spellings and conflict diagnostics; require a concrete nonidentity document before settling algorithms or root/type/package precedence. Jackson naming strategies remain a separate adapter decision.
+4. **Deferred examples:** revisit separate retained AnnoDocimal tags; decide whether a scalar/string fallback is needed and what its values mean before selecting any syntax or placement rules.
 
-Before an ADR decision on the example contract, one **isolated, finite test-only probe** should compare a local annotation surrogate with strict retained tags: Groovy 3/4/5 API/base/derived JAR producers, deleted sources/mirrors, independent no-Jackson/no-Bean consumer, scalar/object/array and operation/relationship uses, multiline/escaping, exact numbers and duplicate/malformed JSON, two relationship uses of one child, and small/near-limit payload sizes. Snapshot exact public metadata and byte sizes; keep throwing initializers silent and compare hand-authored schema acceptance with examples stripped. Limit to these cases; no production hooks, annotation artifact changes or full implementation. Java Javadoc processing is needed only if the tag bridge remains a contender. Existing historical probes are not that missing binary qualification. This brief records the probe need and does not run or schedule it.
+Before accepting concrete policy transport, a bounded isolated test-only probe should qualify direct/propagated and inherited field policy on Groovy 3/4/5 public Builder binaries, including old/missing facts and unchanged runtime validation. It must distinguish machine bounds from declaration assertions and ordinary prose from constraint descriptions. No production hooks or new annotation artifact is authorized by this record. The earlier finite example/tag/JAR/size probe remains relevant only if examples are revisited; it is not a prerequisite for recording today's direction. Neither probe is run or scheduled here.
 
-After approval, recommend separate issues for **input examples** and **language naming/exclusion/profiles**; split **field projection suppression** only if selected. No umbrella issue should block the delivered numeric baseline. Exact relationships/release placement remain maintainer-owned; create no issues yet. Keep the existing ADR deferral unchanged until a recommendation is accepted and its necessary probe is resolved.
+Recommend separate follow-ups for **constraint projection policy**, **language naming/exclusion/profiles**, and deferred **input examples** when selected. No umbrella issue should block the delivered numeric baseline. Exact issue relationships/release placement remain maintainer-owned; create no issues yet. The ADR now accepts the bounded vocabulary direction while leaving implementation and the remaining contracts open.
 
 ## Delivery and verification
 
-This is one local decision-brief document only. Production code, executable tests, public interfaces, accepted ADR text, current user documentation, migration navigation and `CHANGES.md` are unchanged. Tracker impact: related #959; no curation/release-gate change. No feature or decision PR is warranted before maintainer acceptance. Required checks are Markdown/fences, relative targets/anchors and diff checks; Groovy lanes are unnecessary for this document-only change. Historical qualification cited above is explicitly not a new test result.
+The local documentation record now includes this brief, the accepted ADR checkpoint and supersession pointers in the historical D7 note. Production code, executable tests, installed public interfaces, current user documentation, migration navigation and `CHANGES.md` are unchanged. Tracker impact: related #959; no curation/release-gate change, issue update or implementation assignment. Required checks are Markdown/fences, relative targets/anchors and diff checks; Groovy lanes are unnecessary for this document-only change. Historical qualification cited above is explicitly not a new test result.

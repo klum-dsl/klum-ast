@@ -5,6 +5,12 @@ Characterization base: `9504604fb` (merged P2 characterization). Documentation r
 Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md), with
 [ADR 0009](../adr/0009-jackson-interoperability.md) unchanged.
 
+**Later decision, 2026-10-26:** the [accepted vocabulary direction](issue-959-d7-vocabulary-decision.md#accepted-maintainer-decision--2026-10-26)
+selects focused annotations with optional Jackson compatibility, defers examples, and selects singular
+`ConstraintProjection` with an enum-valued policy. Enum naming, values and default remain open. The historical
+recommendations below, including `NoConstraintProjection` and its Boolean transport, are superseded where they
+conflict with that decision. No implementation is authorized; the numeric baseline is already merged in #972.
+
 ## Maintainer reconciliation — D7 deferred
 
 The [ADR 0031 checkpoint](../adr/0031-structured-schema-input-artifacts.md#d7-checkpoint--canonical-shaping-vocabulary-deferred)
@@ -532,6 +538,10 @@ Hive reconciliation is requested after delivery; no merge or archive action is a
 
 
 ## Field-level hard-constraint projection opt-out — proposal only
+
+**Superseded shape:** the later decision selects `ConstraintProjection` with an unresolved enum contract rather
+than the marker/Boolean proposal below. The structural/runtime fences remain relevant; this section retains the
+earlier alternatives and is not a current annotation or metadata assignment.
 
 Status: **Maintainer direction recorded; vocabulary and semantics require approval. No implementation is authorized.**
 PR #972 provides an independently mergeable always-on numeric baseline. This narrower proposal does not settle the
