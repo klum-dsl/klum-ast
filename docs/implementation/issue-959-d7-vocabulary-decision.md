@@ -6,6 +6,9 @@ The [first implementation slice](issue-959-d7-constraint-projection.md) and
 [ADR checkpoint](../adr/0031-structured-schema-input-artifacts.md#d7-field-constraint-projection-slice--959)
 settle the enum, retention, declaring-field semantics and required transport only. The historical open questions below
 retain their decision-time wording; naming, examples and broader D7 semantics remain deferred.
+The next independent [external naming/exclusion decision brief](issue-959-d7-external-naming-decision.md)
+evaluates retaining the current literal grammar versus focused Klum literals and deferred profiles; it is a proposal
+for maintainer review.
 Audited baseline: `6ec0a0404515722deccc3fc68ca4a8d9325c2170`, merged [PR #972](https://github.com/klum-dsl/klum-ast/pull/972).
 Authority: [ADR 0031 accepted vocabulary direction](../adr/0031-structured-schema-input-artifacts.md#d7-vocabulary-direction--959).
 The [earlier D7 record](issue-959-d7-naming-profiles.md) retains historical probes and broader alternatives; its proposed algorithms, precedence and annotation names are not decisions.

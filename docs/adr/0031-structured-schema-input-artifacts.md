@@ -697,6 +697,9 @@ DecimalMin/Max on integral/BigDecimal scalars; empty groups/payload and group co
 one-hop default-only propagation is already effective before capture (for example NotNull descriptions); annotations
 with required values cannot be propagated. Arbitrary composed/repeatable hard mappings are not introduced.
 
+The next independent [external naming/exclusion brief](../implementation/issue-959-d7-external-naming-decision.md)
+records current evidence and unaccepted alternatives for maintainer review; it changes no language decision.
+
 Naming profiles/scope/precedence, broader JsonNaming, examples/Javadoc-tag machine data pending separate AnnoDocimal
 structured-tag retention, selective filtering, defaults, setter-time validation, provider SPI and the other D3–D7 mappings
 remain open. Jackson/Bean Validation stay optional adapters. No WIRE carrier, registry/callback, Schema execution,
