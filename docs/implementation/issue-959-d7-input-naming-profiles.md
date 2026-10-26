@@ -119,3 +119,24 @@ packaged/documentation qualification, decoder qualification and an additive revi
 nor changes its release placement. Draft publication is authorized; merge and issue closure are outside this assignment.
 The final callback and PR checks supply exact published-head CI/Sonar evidence; no clean remote result is declared in advance.
 Hive delivery/archive reconciliation is requested after worker completion; the worker does not self-archive.
+
+### PR Sonar follow-up
+
+The original published head `2c36c6436f336a9ff887905bbcaf19f24b029394` passed the complete
+[PR CI run](https://github.com/klum-dsl/klum-ast/actions/runs/40378678725), including separate G3/G4/G5 annotation-propagation
+artifact qualification and JUnit reporting. PR Sonar quality gate was **OK**, with **95.6%** new-code coverage,
+**0.0%** duplication and **zero hotspots to review**. The analysis nevertheless reported **33 unresolved maintainability
+observations**; a passing gate is not recorded as a clean finding result.
+
+An additive follow-up addresses all observations: 27 Groovy guard-brace sites (`groovydre:S8306`), three excessive nesting
+sites (`groovydre:S134`), explicit Boolean presence checking (`java:S5411`), moving the conditional inside `List.copyOf`
+(`java:S9358`) and removing loop-counter mutation from UTF-16 validation (`java:S127`). Archive traversal, diamond emission
+and the disposable profile-probe customizer now have cohesive private test helpers. UTF-16 validation checks both adjacent
+halves without modifying the loop counter, accepting the same valid strings and rejecting the same malformed ones.
+Actual low-surrogate and broken-pair classfile damage cases supplement the original high-surrogate case. No assertion,
+metadata check, profile rule or Sonar profile was weakened; no suppression was added.
+
+Both independent reviewers inspected the additive changes and reported **zero remaining findings**. Final follow-up
+validation passed in **6m13s**: **97 focused compiler/runtime cases per G3/G4/G5 lane** and **all 93 packaged JSON Schema
+regressions**, plus licenses, lane isolation and plugin validation. Published/reviewed commits remain intact; this is one
+consolidated Sonar correction commit. Exact final-head CI/Sonar results are recorded in the PR checks and worker callback.

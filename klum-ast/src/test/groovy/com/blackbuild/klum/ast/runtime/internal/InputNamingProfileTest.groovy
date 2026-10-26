@@ -145,10 +145,14 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         new ClassReader(original).accept(new ClassVisitor(Opcodes.ASM9, stripped) {
             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                 def downstream = super.visitAnnotation(descriptor, visible)
-                if (!descriptor.endsWith('GeneratedInput$Schema;')) return downstream
+                if (!descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return downstream
+                }
                 new AnnotationVisitor(Opcodes.ASM9, downstream) {
                     @Override void visit(String member, Object value) {
-                        if (!member.startsWith('naming')) super.visit(member, value)
+                        if (!member.startsWith('naming')) {
+                            super.visit(member, value)
+                        }
                     }
                 }
             }

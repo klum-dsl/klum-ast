@@ -298,51 +298,85 @@ tasks.register('rejectedNamingControl', JavaExec) {
         File replacement = new File(directory, 'naming-' + module + '.jar')
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
-                input.entries().each { entry ->
-                    byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
-                    if (entry.name.endsWith('_DSL$Builder.class') && (target == '*' || entry.name == 'example/' + target + '_DSL$Builder.class')) {
-                        def writer = new ClassWriter(0)
-                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
-                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                                def downstream = super.visitAnnotation(descriptor, visible)
-                                if (!descriptor.endsWith('GeneratedInput$Schema;')) return downstream
-                                new AnnotationVisitor(Opcodes.ASM9, downstream) {
-                                    @Override void visit(String member, Object value) {
-                                        if (kind == 'legacy' && member.startsWith('naming')) return
-                                        if (kind == 'version' && member == 'namingVersion') return
-                                        if (kind == 'profile' && member == 'namingProfile') return
-                                        if (kind == 'explicit' && member == 'namingExplicit') return
-                                        if (kind == 'future' && member == 'namingVersion') value = 2
-                                        if (kind == 'unknown' && member == 'namingProfile') value = 'FUTURE'
-                                        if (kind == 'inconsistent' && member == 'namingExplicit') value = false
-                                        super.visit(member, value)
-                                    }
-                                }
-                            }
-                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
-                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                                        def downstream = super.visitAnnotation(annotation, visible)
-                                        if (kind != 'native' || !(annotation.endsWith('GeneratedInput$Field;') || annotation.endsWith('GeneratedInput$Selection;'))) return downstream
-                                        new AnnotationVisitor(Opcodes.ASM9, downstream) {
-                                            @Override void visit(String member, Object value) {
-                                                if (value == 'serviceName' && member in ['value', 'field']) value = String.valueOf((char) 0xD800)
-                                                super.visit(member, value)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }, 0)
-                        bytes = writer.toByteArray()
-                    }
-                    output.putNextEntry(new JarEntry(entry.name))
-                    output.write(bytes)
-                    output.closeEntry()
-                }
+                input.entries().each { entry -> rewriteNamingEntry(input, output, entry, target, kind) }
             }
         }
         Files.move(replacement.toPath(), jar.toPath(), StandardCopyOption.REPLACE_EXISTING)
+    }
+
+    private static void rewriteNamingEntry(JarFile input, JarOutputStream output, JarEntry entry, String target, String kind) {
+        byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+        if (entry.name.endsWith('_DSL$Builder.class') && (target == '*' || entry.name == 'example/' + target + '_DSL$Builder.class')) {
+            bytes = damageNamingContract(bytes, kind)
+        }
+        output.putNextEntry(new JarEntry(entry.name))
+        output.write(bytes)
+        output.closeEntry()
+    }
+
+    private static byte[] damageNamingContract(byte[] bytes, String kind) {
+        def writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                def downstream = super.visitAnnotation(descriptor, visible)
+                if (!descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return downstream
+                }
+                namingSchemaMutation(downstream, kind)
+            }
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                namingNativeMutation(super.visitMethod(access, name, descriptor, signature, exceptions), kind)
+            }
+        }, 0)
+        writer.toByteArray()
+    }
+
+    private static AnnotationVisitor namingSchemaMutation(AnnotationVisitor downstream, String kind) {
+        new AnnotationVisitor(Opcodes.ASM9, downstream) {
+            @Override void visit(String member, Object value) {
+                if (kind == 'legacy' && member.startsWith('naming')) {
+                    return
+                }
+                if (kind == 'version' && member == 'namingVersion') {
+                    return
+                }
+                if (kind == 'profile' && member == 'namingProfile') {
+                    return
+                }
+                if (kind == 'explicit' && member == 'namingExplicit') {
+                    return
+                }
+                if (kind == 'future' && member == 'namingVersion') {
+                    value = 2
+                }
+                if (kind == 'unknown' && member == 'namingProfile') {
+                    value = 'FUTURE'
+                }
+                if (kind == 'inconsistent' && member == 'namingExplicit') {
+                    value = false
+                }
+                super.visit(member, value)
+            }
+        }
+    }
+
+    private static MethodVisitor namingNativeMutation(MethodVisitor downstream, String kind) {
+        new MethodVisitor(Opcodes.ASM9, downstream) {
+            @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                def visitor = super.visitAnnotation(annotation, visible)
+                if (kind != 'native' || !(annotation.endsWith('GeneratedInput$Field;') || annotation.endsWith('GeneratedInput$Selection;'))) {
+                    return visitor
+                }
+                new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                    @Override void visit(String member, Object value) {
+                        if (value == 'serviceName' && member in ['value', 'field']) {
+                            value = String.valueOf((char) 0xD800)
+                        }
+                        super.visit(member, value)
+                    }
+                }
+            }
+        }
     }
 
     @Issue('959')

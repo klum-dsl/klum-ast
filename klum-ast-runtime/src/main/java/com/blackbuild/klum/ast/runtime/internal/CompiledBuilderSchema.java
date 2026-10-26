@@ -294,7 +294,7 @@ final class CompiledBuilderSchema {
             declarations.addAll(inherited.declarations());
         }
         validateKeyMetadata(metadata, key, builder);
-        List<Entry> resolved = nativeCandidates ? List.copyOf(entries) : List.copyOf(admitted(entries, rejections, false).values());
+        List<Entry> resolved = List.copyOf(nativeCandidates ? entries : admitted(entries, rejections, false).values());
         Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
         return facts;
@@ -341,7 +341,7 @@ final class CompiledBuilderSchema {
         if (declared.namingVersion == 0 && !any) return; // Complete legacy identity facts remain valid.
         if (declared.namingVersion != 1 || declared.namingExplicit == null || declared.namingProfile == null
                 || !Set.of(IDENTITY_NAME, KEBAB_NAME).contains(declared.namingProfile)
-                || !declared.namingExplicit && !declared.namingProfile.equals(IDENTITY_NAME)) {
+                || Boolean.FALSE.equals(declared.namingExplicit) && !declared.namingProfile.equals(IDENTITY_NAME)) {
             throw invalid("Invalid or incomplete naming metadata version " + declared.namingVersion + " on " + namingOrigin(builder));
         }
     }

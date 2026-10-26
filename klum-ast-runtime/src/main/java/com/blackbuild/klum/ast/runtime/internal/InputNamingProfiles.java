@@ -57,11 +57,12 @@ final class InputNamingProfiles {
     private static void requireUtf16(String value, String source) {
         for (int index = 0; index < value.length(); index++) {
             char current = value.charAt(index);
-            if (Character.isHighSurrogate(current)) {
-                if (index + 1 >= value.length() || !Character.isLowSurrogate(value.charAt(++index))) {
-                    throw new IllegalArgumentException("Malformed UTF-16 native input name at " + source);
-                }
-            } else if (Character.isLowSurrogate(current)) {
+            if (Character.isHighSurrogate(current)
+                    && (index + 1 >= value.length() || !Character.isLowSurrogate(value.charAt(index + 1)))) {
+                throw new IllegalArgumentException("Malformed UTF-16 native input name at " + source);
+            }
+            if (Character.isLowSurrogate(current)
+                    && (index == 0 || !Character.isHighSurrogate(value.charAt(index - 1)))) {
                 throw new IllegalArgumentException("Malformed UTF-16 native input name at " + source);
             }
         }

@@ -190,7 +190,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         new JarFile(jar).withCloseable { archive ->
             new ClassReader(archive.getInputStream(archive.getJarEntry(contract))).accept(new ClassVisitor(Opcodes.ASM9) {
                 @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                    if (annotation != 'Lprofiletransport/Facts;') return null
+                    if (annotation != 'Lprofiletransport/Facts;') {
+                        return null
+                    }
                     new AnnotationVisitor(Opcodes.ASM9) {
                         @Override void visit(String member, Object value) { result.profile[member] = value }
                     }
@@ -210,13 +212,19 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                             } else if (annotation.endsWith('GeneratedInput$Selection;')) {
                                 return new AnnotationVisitor(Opcodes.ASM9) {
                                     @Override void visit(String member, Object value) {
-                                        if (member == 'field') result.selections.add(value)
+                                        if (member == 'field') {
+                                            result.selections.add(value)
+                                        }
                                     }
                                 }
                             } else if (annotation == 'Lcom/fasterxml/jackson/annotation/JsonProperty;') {
                                 values = result.operations.computeIfAbsent(name) { [:] }
                                 return new AnnotationVisitor(Opcodes.ASM9) {
-                                    @Override void visit(String member, Object value) { if (member == 'value') values.rename = value }
+                                    @Override void visit(String member, Object value) {
+                                        if (member == 'value') {
+                                            values.rename = value
+                                        }
+                                    }
                                 }
                             }
                             new AnnotationVisitor(Opcodes.ASM9) {
@@ -605,6 +613,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         'naming type'         | 'Unknown schema member namingExplicit'
         'naming enum'         | 'Unexpected schema enum namingProfile'
         'naming native'       | 'Malformed UTF-16'
+        'naming low'          | 'Malformed UTF-16'
+        'naming broken pair'  | 'Malformed UTF-16'
     }
 
     @Issue('959')
@@ -763,25 +773,29 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                     rewriteEntry(input, archive, entry, contract, damage)
                 }
                 if (damage in ['diamond', 'profile diamond']) {
-                    def writer = new ClassWriter(0)
-                    writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
-                            'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
-                            'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
-                    def schema = writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true)
-                    if (damage == 'profile diamond') {
-                        schema.visit('namingVersion', 1)
-                        schema.visit('namingExplicit', false)
-                        schema.visit('namingProfile', 'IDENTITY')
-                    }
-                    schema.visitEnd()
-                    writer.visitEnd()
-                    archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
-                    archive.write(writer.toByteArray())
-                    archive.closeEntry()
+                    appendDiamond(archive, damage == 'profile diamond')
                 }
             }
         }
         output
+    }
+
+    private static void appendDiamond(JarOutputStream archive, boolean profiled) {
+        def writer = new ClassWriter(0)
+        writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
+                'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
+                'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
+        def schema = writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true)
+        if (profiled) {
+            schema.visit('namingVersion', 1)
+            schema.visit('namingExplicit', false)
+            schema.visit('namingProfile', 'IDENTITY')
+        }
+        schema.visitEnd()
+        writer.visitEnd()
+        archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
+        archive.write(writer.toByteArray())
+        archive.closeEntry()
     }
 
     private static void rewriteEntry(JarFile input, JarOutputStream archive, JarEntry entry, String contract, String damage) {
@@ -810,17 +824,35 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                     return null
                 }
                 def downstream = super.visitAnnotation(descriptor, visible)
-                if (!damage.startsWith('naming ') || !descriptor.endsWith('GeneratedInput$Schema;')) return downstream
+                if (!damage.startsWith('naming ') || !descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return downstream
+                }
                 new AnnotationVisitor(Opcodes.ASM9, downstream) {
                     @Override void visit(String member, Object value) {
-                        if (damage == 'naming legacy' && member.startsWith('naming')) return
-                        if (damage == 'naming version' && member == 'namingVersion') return
-                        if (damage == 'naming explicit' && member == 'namingExplicit') return
-                        if (damage == 'naming profile' && member == 'namingProfile') return
-                        if (damage == 'naming future' && member == 'namingVersion') value = 2
-                        if (damage == 'naming unknown' && member == 'namingProfile') value = 'FUTURE'
-                        if (damage == 'naming inconsistent' && member == 'namingExplicit') value = false
-                        if (damage == 'naming type' && member == 'namingExplicit') value = 'true'
+                        if (damage == 'naming legacy' && member.startsWith('naming')) {
+                            return
+                        }
+                        if (damage == 'naming version' && member == 'namingVersion') {
+                            return
+                        }
+                        if (damage == 'naming explicit' && member == 'namingExplicit') {
+                            return
+                        }
+                        if (damage == 'naming profile' && member == 'namingProfile') {
+                            return
+                        }
+                        if (damage == 'naming future' && member == 'namingVersion') {
+                            value = 2
+                        }
+                        if (damage == 'naming unknown' && member == 'namingProfile') {
+                            value = 'FUTURE'
+                        }
+                        if (damage == 'naming inconsistent' && member == 'namingExplicit') {
+                            value = false
+                        }
+                        if (damage == 'naming type' && member == 'namingExplicit') {
+                            value = 'true'
+                        }
                         if (damage == 'naming enum' && member == 'namingProfile') {
                             super.visitEnum(member, 'Lunavailable/UserEnum;', 'KEBAB_CASE')
                             return
@@ -828,7 +860,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                         super.visit(member, value)
                     }
                     @Override void visitEnd() {
-                        if (damage == 'naming duplicate') super.visit('namingProfile', 'IDENTITY')
+                        if (damage == 'naming duplicate') {
+                            super.visit('namingProfile', 'IDENTITY')
+                        }
                         super.visitEnd()
                     }
                 }
@@ -855,10 +889,13 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     private static AnnotationVisitor damageAnnotation(AnnotationVisitor visitor, String annotation, String damage) {
         new AnnotationVisitor(Opcodes.ASM9, visitor) {
             @Override void visit(String member, Object value) {
-                if (damage == 'naming native' && value == 'value'
+                if (damage in ['naming native', 'naming low', 'naming broken pair'] && value == 'value'
                         && (annotation.endsWith('GeneratedInput$Field;') && member == 'value'
                         || annotation.endsWith('GeneratedInput$Selection;') && member == 'field')) {
-                    value = String.valueOf((char) 0xD800)
+                    value = damage == 'naming low' ? String.valueOf((char) 0xDC00) : String.valueOf((char) 0xD800)
+                    if (damage == 'naming broken pair') {
+                        value += 'x'
+                    }
                 }
                 if (damage == 'source' && annotation.endsWith('GeneratedInput$Field;') && member == 'value') {
                     value = 'forged'
@@ -918,27 +955,39 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
          new File(GroovyObject.protectionDomain.codeSource.location.toURI()), new File(AnnoDoc.protectionDomain.codeSource.location.toURI())]
     }
 
+    private static CompilationCustomizer profileTransportProbe() {
+        new CompilationCustomizer(CompilePhase.INSTRUCTION_SELECTION) {
+            @Override void call(SourceUnit source, GeneratorContext context, ClassNode type) {
+                foldProfileProbeFacts(source, type)
+            }
+        }
+    }
+
+    private static void foldProfileProbeFacts(SourceUnit source, ClassNode type) {
+        if (!type.annotations.any { it.classNode.name == 'com.blackbuild.klum.ast.DSL' }) {
+            return
+        }
+        def builder = GeneratedDslSupport.of(type).builderInterface.redirect()
+        def choice = type.annotations.find { it.classNode.name == 'profiletransport.Choice' }
+        def factType = type.module.classes.find { it.name == 'profiletransport.Facts' }
+        if (factType == null) {
+            factType = ClassHelper.make(Class.forName('profiletransport.Facts', false, source.classLoader))
+        }
+        def fact = new AnnotationNode(factType)
+        fact.addMember('version', new ConstantExpression(1))
+        fact.addMember('explicit', new ConstantExpression(choice != null))
+        fact.addMember('profile', new ConstantExpression(choice == null ? 'IDENTITY' : choice.getMember('value').value))
+        fact.runtimeRetention = true
+        builder.addAnnotation(fact)
+    }
+
     private File compileJar(List<String> sources, List<File> dependencies = [], boolean profileProbe = false) {
         File directory = tempFolder.newFolder()
         File classes = new File(directory, 'classes')
         def configuration = new CompilerConfiguration(compilerConfiguration)
         configuration.targetDirectory = classes
         if (profileProbe) {
-            configuration.addCompilationCustomizers(new CompilationCustomizer(CompilePhase.INSTRUCTION_SELECTION) {
-                @Override void call(SourceUnit source, GeneratorContext context, ClassNode type) {
-                    if (!type.annotations.any { it.classNode.name == 'com.blackbuild.klum.ast.DSL' }) return
-                    def builder = GeneratedDslSupport.of(type).builderInterface.redirect()
-                    def choice = type.annotations.find { it.classNode.name == 'profiletransport.Choice' }
-                    def factType = type.module.classes.find { it.name == 'profiletransport.Facts' }
-                    if (factType == null) factType = ClassHelper.make(Class.forName('profiletransport.Facts', false, source.classLoader))
-                    def fact = new AnnotationNode(factType)
-                    fact.addMember('version', new ConstantExpression(1))
-                    fact.addMember('explicit', new ConstantExpression(choice != null))
-                    fact.addMember('profile', new ConstantExpression(choice == null ? 'IDENTITY' : choice.getMember('value').value))
-                    fact.runtimeRetention = true
-                    builder.addAnnotation(fact)
-                }
-            })
+            configuration.addCompilationCustomizers(profileTransportProbe())
         }
         new GroovyClassLoader(getClass().classLoader, configuration).withCloseable { compiler ->
             dependencies.each { compiler.addClasspath(it.path) }
