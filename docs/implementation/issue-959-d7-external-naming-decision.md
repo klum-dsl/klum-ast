@@ -37,11 +37,12 @@ Accepted scope direction:
   the same new profile under managed Jackson import. Existing Jackson naming behavior remains independently supported.
 - Include focused Klum name/exclusion annotations alongside the profile annotation, retaining compatible existing
   `JsonProperty`/`JsonIgnore` inputs. The authoring vocabulary must be usable entirely through Klum annotations. The
-  `InputName`/`InputIgnore` spellings remain proposals until explicitly finalized; accepting the shape does not install them.
+  accepted vocabulary is `InputNaming` with nested `Profile.IDENTITY`/`KEBAB_CASE`, `InputName('literal')` and marker
+  `InputIgnore`, all in `com.blackbuild.klum.ast`. This records the public design; no annotation types are installed yet.
 - Equivalent Klum/Jackson declarations coalesce. Contradictory declarations on an entry are an error with both
   origins in the diagnostic; no canonical-over-adapter override or annotation-order selection. This fails contract
   resolution rather than silently reducing the admitted grammar. Exact edge combinations below remain to be reviewed.
-- Defer package-info configuration. Final annotation/enum vocabulary, punctuation/Unicode details and compatibility/
+- Defer package-info configuration. Punctuation/Unicode details, exact annotation targets/retention and compatibility/
   metadata policy remain open. No root/runtime selector is required by the demonstrated use case.
 
 Recommend a finite type annotation as the next design surface, starting with identity and kebab-case. Preserve the
@@ -113,11 +114,13 @@ import com.fasterxml.jackson.annotation.JsonProperty
 The examples describe separate inputs; operation order still matters if both are supplied. `Team/Blue` remains data.
 Exclusion controls this structured language; it does not prevent ordinary Groovy DSL configuration of `internalNote`.
 
-**B — focused literals, selected alongside profiles.** `InputName` and `InputIgnore` are placeholder spellings with no selected
-package or installed types. This is accepted authoring shape with provisional names; it is not an available API or implementation assignment.
+**B — focused literals, selected alongside profiles.** Names and package are accepted, but these types are not
+installed yet. This is the accepted authoring design, not an executable example or implementation assignment.
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.InputIgnore
+import com.blackbuild.klum.ast.InputName
 
 @DSL class Service {
     @InputName('service-name') String serviceName
@@ -132,14 +135,16 @@ and a combined annotation adds a meaningless excluded-name combination. Initiall
 and admitted authored methods, with applicability qualified separately. No getter/parameter/type/package shorthand,
 include override or source-erasure claim. Existing exclusions and role eligibility retain authority.
 
-**C — finite type profile, selected design direction.** `InputNaming` and `Profile` are also placeholders, unavailable today.
+**C — finite type profile, selected design direction.** `InputNaming` and its nested `Profile` have accepted names;
+implementation remains separately unassigned.
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.InputNaming
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @DSL class ServiceBase { String displayName } // no profile: introduction is open
-@InputNaming(Profile.KEBAB_V1)
+@InputNaming(InputNaming.Profile.KEBAB_CASE)
 @DSL class Service extends ServiceBase {
     String serviceName
     @JsonProperty('URL') String endpointUrl
@@ -154,14 +159,15 @@ import com.fasterxml.jackson.annotation.JsonProperty
 Accepted inheritance can be illustrated by extending this example: an unannotated `DerivedService` inherits
 `Service`'s explicit profile; selecting identity on `DerivedService` is an error. Conversely, an unannotated base leaves
 room for its first annotated child to choose kebab-case for its complete effective contract. Entry literals such as `URL`
-remain exact. Final annotation/enum spellings remain unselected; owned child types resolve their own profile.
+remain exact. Owned child types resolve their own profile. The only initial profile values are
+`InputNaming.Profile.IDENTITY` and `InputNaming.Profile.KEBAB_CASE`.
 
 ## Compare the smallest interfaces
 
 | Option | Benefit | Cost / recommendation |
 | --- | --- | --- |
 | No new annotation; retain A | Zero new author syntax, metadata migration or caller configuration. Works for inspected Schelm. | Insufficient for the newly confirmed class-wide use case; retain as the unchanged default for unconfigured types. |
-| Focused literal name/exclude B | Klum-owned dependency-free authoring with the same small grammar. | New source vocabulary, bridge conflicts and matched-binary qualification. **Selected for this slice** with the type profile, preserving compatible Jackson inputs. Final spellings/targets remain to be settled. Equivalent bridge facts coalesce; contradictions fail with both origins. |
+| Focused literal name/exclude B | Klum-owned dependency-free authoring with the same small grammar. | New source vocabulary, bridge conflicts and matched-binary qualification. **Selected for this slice** with the type profile, preserving compatible Jackson inputs. Names are accepted; exact targets/retention remain to be settled. Equivalent bridge facts coalesce; contradictions fail with both origins. |
 | Finite type profile annotation C | Many conventional names from one declaration; publishable producer intent. | **Selected direction** for the immediate project need. Explicit inherited-profile conflicts reject; owned values keep their own type policy. Binary facts still require qualification. |
 | Explicit root/runtime + Gradle configuration | One integration-owned grammar across reachable owned binaries; no naming annotation necessary. | Matching runtime/generator selection, new call shapes/cache inputs, candidate preservation. **Defer**; caller-owned whole-document override is not the demonstrated type-wide requirement and could violate binding ancestor profiles. Plugin-only renaming is invalid. |
 | Package defaults | Reduce repeated type declarations in one source package. | Package-info provenance, split artifacts, compilation order and recompilation scope. **Defer**; package retention alone does not justify package semantics. |
@@ -307,17 +313,20 @@ explicit profiles bind descendants; unannotated ancestry leaves introduction ope
 entries; composed owned values resolve their own type policy, with no lexical nested-class support promise. These
 supersede this brief's earlier profile deferral and root-only recommendation. Kebab acronym/digit boundaries and
 nonidentity collision failure are also accepted, with specific literal overrides. The first slice covers structured
-input and JSON Schema only; a Jackson profile adapter is not required. Focused Klum name/exclusion annotations belong
-in the same slice, retaining compatible `JsonProperty`/`JsonIgnore` input. Equivalent declarations coalesce;
+input and JSON Schema only; a Jackson profile adapter is not required. The accepted authoring vocabulary is
+`InputNaming`/nested `Profile.IDENTITY` and `KEBAB_CASE`, `InputName` and marker `InputIgnore`, all in
+`com.blackbuild.klum.ast`. Focused literals belong in the same slice, retaining compatible `JsonProperty`/`JsonIgnore` input. Equivalent declarations coalesce;
 contradictions fail with both origins rather than silently selecting Klum or annotation order. No release placement changes.
 
 Remaining decisions, one branch at a time:
 
-1. **Vocabulary/algorithm:** select annotation/package and finite profile identifiers; settle the remaining punctuation,
-   Unicode and malformed-input rules around the accepted acronym/digit boundaries. Identity must be explicit as well as
-   the unconfigured default; explicit identity binds descendants. No full Jackson strategy compatibility is implied.
-2. **Entry authoring:** finalize the selected Klum literal annotations' names, retention and exact field/key/admitted-method
-   targets; review the remaining edge combinations under the accepted coalesce/error rule. Existing Jackson literals remain supported.
+1. **Algorithm completion:** settle the remaining punctuation, Unicode and malformed-input rules around the accepted
+   acronym/digit boundaries. The annotation names/package and two initial profile constants are accepted. Identity is
+   explicit as well as the unconfigured default; explicit identity binds descendants. No full Jackson strategy compatibility is implied.
+2. **Annotation contract:** finalize retention and exact type/field/key/admitted-method targets; review the remaining
+   bridge edge combinations under the accepted coalesce/error rule. Recommend `RUNTIME` retention, explicit required
+   `InputNaming.value` (no accidental bare-annotation lock), exact nonempty `InputName.value`, and marker `InputIgnore`.
+   Existing Jackson literals remain supported.
 3. **Transport and delivery:** qualify exact declared-profile/absence/provenance facts and old/missing/unknown metadata,
    then approve minimal completeness/version handling and source-free binary acceptance before a separately assigned
    implementation. No public descriptor, new issue, milestone or release commitment is selected here. A delivered
@@ -336,7 +345,8 @@ The original local brief passed 68 relative Markdown targets/anchors, fences and
 The inheritance update passed 69 relative Markdown targets/anchors across three changed documents, balanced fences,
 `git diff --check` and documentation-only scope review. The kebab/collision/slice-scope checkpoint also passed all 69
 relative targets/anchors, balanced fences, whitespace and documentation-only scope checks. The selected Klum literal/
-bridge-conflict checkpoint passed those same checks. No runtime tests were run.
+bridge-conflict and accepted-vocabulary checkpoints passed those same checks.
+No runtime tests were run.
 Groovy lanes and schema-generation runs are omitted under the documentation-only testing rule. Runtime behavior above
 is source/test inspection evidence, not a claim of newly executed tests. The final callback records exact commit and
 check outcomes; Hive reconciliation is not requested while this resumed maintainer discussion remains active.

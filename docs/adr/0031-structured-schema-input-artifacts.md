@@ -731,12 +731,13 @@ not make Schelm's observed camelCase a different requirement or authorize implem
 - The first slice covers structured input and JSON Schema only. The current project does not require the new profile
   through ObjectMapper/managed Jackson import; existing Jackson naming stays independent.
 - Include focused Klum name/exclusion annotations in this slice, retaining compatible `JsonProperty`/`JsonIgnore`
-  support so naming can be authored entirely with Klum annotations. `InputName`/`InputIgnore` remain proposed spellings;
-  final names/targets/retention and exact edge combinations remain open. Equivalent Klum/Jackson declarations coalesce;
+  support so naming can be authored entirely with Klum annotations. Accepted names are `InputNaming` with nested
+  `Profile.IDENTITY`/`KEBAB_CASE`, `InputName('literal')` and marker `InputIgnore`, all in `com.blackbuild.klum.ast`.
+  Exact targets/retention and bridge edge combinations remain open. Equivalent Klum/Jackson declarations coalesce;
   contradictory declarations fail contract resolution with both origins in the diagnostic, rather than canonical or
   annotation-order precedence.
-- Package-info remains deferred. Final vocabulary, remaining punctuation/Unicode algorithm details and exact source-free
-  metadata compatibility remain to be settled.
+- Package-info remains deferred. Remaining punctuation/Unicode algorithm details and exact source-free metadata
+  compatibility remain to be settled.
 
 The [updated decision brief](../implementation/issue-959-d7-external-naming-decision.md) distinguishes accepted direction
 from remaining recommendations and binary probes. Both interpreter and generator must use one shared grammar, without
