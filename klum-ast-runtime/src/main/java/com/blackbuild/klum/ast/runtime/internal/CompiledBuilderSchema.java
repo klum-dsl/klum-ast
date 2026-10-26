@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import com.blackbuild.klum.ast.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import groovyjarjarasm.asm.AnnotationVisitor;
@@ -99,7 +100,8 @@ final class CompiledBuilderSchema {
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, Boolean schemaKey, Boolean sourceDeprecated) { }
     record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive) { }
-    record ConstraintProfile(boolean groupRedefined, Map<String, List<ConstraintRule>> fields) { }
+    record FieldConstraints(Policy policy, List<ConstraintRule> rules) { }
+    record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) { }
 
     /** Numeric projection completeness check; the separate structural admission reader remains unchanged. */
     static ConstraintProfile constraintProfile(Class<?> builder) {
@@ -109,13 +111,18 @@ final class CompiledBuilderSchema {
                 throw invalid("missing or unsupported constraint metadata version " + metadata.constraintVersion);
             if (metadata.decimalVersion != 1)
                 throw invalid("missing or unsupported decimal metadata version " + metadata.decimalVersion);
-            Map<String, List<ConstraintRule>> fields = new LinkedHashMap<>();
+            if (metadata.projectionVersion != 1)
+                throw invalid("missing or unsupported projection metadata version " + metadata.projectionVersion);
+            Map<String, FieldConstraints> fields = new LinkedHashMap<>();
             for (Literals literal : metadata.methods.values()) {
                 if (literal.field == null) continue;
                 if (literal.constraints == null)
                     throw invalid("missing constraint facts for source field #" + literal.field);
+                if (literal.constraintProjection == null)
+                    throw invalid("missing constraint projection policy for source field #" + literal.field);
                 validateDecimalFacts(literal);
-                if (fields.putIfAbsent(literal.field, List.copyOf(literal.constraints)) != null)
+                FieldConstraints constraints = new FieldConstraints(Policy.valueOf(literal.constraintProjection), List.copyOf(literal.constraints));
+                if (fields.putIfAbsent(literal.field, constraints) != null)
                     throw invalid("duplicate constraint source field #" + literal.field);
             }
             return new ConstraintProfile(metadata.groupRedefined, Collections.unmodifiableMap(fields));
@@ -609,12 +616,14 @@ final class CompiledBuilderSchema {
         boolean query;
         boolean ignored;
         List<ConstraintRule> constraints;
+        String constraintProjection;
     }
     private record Invisible(String member, String reason) { }
     private static final class Metadata {
         boolean schema;
         int constraintVersion;
         int decimalVersion;
+        int projectionVersion;
         Boolean groupRedefined;
         boolean keyInput;
         Literals keyMember;
@@ -702,6 +711,8 @@ final class CompiledBuilderSchema {
                 result.constraintVersion = version;
             } else if (member.equals("decimalVersion") && value instanceof Integer version) {
                 result.decimalVersion = version;
+            } else if (member.equals("projectionVersion") && value instanceof Integer version) {
+                result.projectionVersion = version;
             } else if (member.equals("groupRedefined") && value instanceof Boolean flag) {
                 result.groupRedefined = flag;
             } else if (member.equals("key") && value instanceof String text) {
@@ -902,6 +913,12 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visitEnum(String member, String descriptor, String value) {
+            if (annotation.equals(FIELD) && member.equals("constraintProjection")
+                    && descriptor.equals("Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;")) {
+                if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
+                literal.constraintProjection = value;
+                return;
+            }
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected enum input fact " + member);
         }
 

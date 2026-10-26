@@ -87,6 +87,59 @@ even if public methods carry `@Deprecated`. Generation never guesses provenance 
 Recompile and package the Schema and its inherited/owned dependencies with matching versions to obtain complete
 source deprecation metadata. Numeric projection always requires complete supported constraint facts.
 
+## Field constraint projection
+
+`@ConstraintProjection` selects the artifact policy for one Schema field's captured effective runtime constraints.
+Its nested `ConstraintProjection.Policy` enum has three values:
+
+| Policy | Supported hard assertions | Constraint descriptions and source attribution |
+| --- | --- | --- |
+| `PROJECT` (default, also when the annotation is absent) | Project faithfully | Keep fallback descriptions for unsupported forms |
+| `TEXT_ONLY` | Omit | Describe every captured constraint as a runtime constraint not enforced by this schema |
+| `OMIT` | Omit | Omit |
+
+(See: `KlumJsonSchemaGenerationTest#'choose field constraint projection without changing structural facts with Groovy #generation'`.)
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.ConstraintProjection
+import com.blackbuild.klum.ast.ConstraintProjection.Policy
+import jakarta.validation.constraints.Min
+
+@DSL class Capacity {
+    /** Desired replica count. */
+    @Deprecated @Min(1L)
+    @ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
+
+    /** Private capacity rule. */
+    @Deprecated @Min(1L)
+    @ConstraintProjection(Policy.OMIT) Integer omitted
+}
+```
+
+Both properties keep integer types, machine limits, ordinary prose and deprecation. `replicas` additionally describes
+`@Min` as a runtime constraint; `omitted` has only its ordinary prose. Neither gains the constraint's `minimum: 1`
+assertion. Normal input admission, naming/exclusion, construction keys, null/omission, defaults, lifecycle and runtime
+validation stay unchanged. This annotation does not make a failing runtime Model valid.
+
+The field's declaring source owns the policy, including inherited and externally renamed members. A replacement
+Schema declaration uses its own policy, defaulting to `PROJECT`; there is no separate inherited override switch.
+A relationship policy covers that field's constraint contribution only: it never erases a referenced child's own
+constraints or structural shape. Every captured constraint on the field follows the selected policy; there is no
+per-annotation selector. Future supported contributions will follow the same field policy.
+
+Approved one-hop `@PropagateAnnotation` contributions are captured after propagation and obey the same rules as direct
+annotations. For example, propagated and direct `@NotNull` produce the same constraint description under `TEXT_ONLY`,
+and neither produces one under `OMIT`. Propagation uses defaults only, so it cannot supply Min/Max or DecimalMin/Max's
+required values. This adds no hard mappings for arbitrary composed, repeatable, getter, type-use or container-element
+constraints. Unsupported captured forms remain descriptive under `PROJECT` and `TEXT_ONLY`.
+
+Recompile and package every declaring/inherited/owned Schema with matching compiler/runtime/plugin versions. The
+generator requires explicit policy facts even for `PROJECT` and `OMIT`; old, missing, incompatible or malformed facts
+fail before replacing outputs. Suppression does not waive validation of supported numeric facts. No Model-byte fallback,
+Schema execution, required Jackson/Bean Validation adapter or global projection switch is introduced. See
+[migration](Migration.md#field-constraint-projection) and [issue #959](https://github.com/klum-dsl/klum-ast/issues/959).
+
 ## Integral constraints
 
 Generation automatically adds raw-input authoring bounds for ordinary direct fields carrying Jakarta `@Min` and/or

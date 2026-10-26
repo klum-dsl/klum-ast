@@ -1,0 +1,53 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package com.blackbuild.klum.ast;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Selects generated JSON Schema output for the field's supported effective runtime constraints.
+ * Does not change runtime validation, input admission, ordinary documentation, deprecation or structural bounds.
+ * An inherited field keeps its declaring policy; a replacement declaration selects its own policy.
+ */
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface ConstraintProjection {
+    /** Artifact policy; absence and an annotation without a value both select {@link Policy#PROJECT}. */
+    Policy value() default Policy.PROJECT;
+
+    /** Constraint-derived artifact output only; no recursive relationship or runtime validation policy. */
+    enum Policy {
+        /** Project supported assertions, retaining descriptions for unsupported constraint forms. */
+        PROJECT,
+        /** Describe captured runtime constraints without projecting their hard assertions. */
+        TEXT_ONLY,
+        /** Omit all constraint-derived output, including descriptions and source attribution. */
+        OMIT
+    }
+}

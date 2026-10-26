@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.generated;
 
+import com.blackbuild.klum.ast.ConstraintProjection;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -36,10 +37,12 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
     public @interface Schema {
-        /** Versioned completeness marker for opt-in constraint projection; zero denotes older artifacts. */
+        /** Versioned completeness marker for constraint projection; zero denotes older artifacts. */
         int constraintVersion() default 0;
         /** Independent completeness for exact direct decimal facts; zero denotes older artifacts. */
         int decimalVersion() default 0;
+        /** Completeness of effective field artifact policy; zero denotes older artifacts. */
+        int projectionVersion() default 0;
         boolean groupRedefined() default false;
         String key() default "";
         boolean keyInput() default false;
@@ -70,6 +73,8 @@ public final class GeneratedInput {
         boolean sourceDeprecated() default false;
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};
+        /** Explicit compiler-folded field policy, independent of structural admission. */
+        ConstraintProjection.Policy constraintProjection() default ConstraintProjection.Policy.PROJECT;
         boolean fixedKey() default false;
         boolean schemaKey() default false;
         String exclusion() default "";
