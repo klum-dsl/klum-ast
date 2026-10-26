@@ -35,13 +35,20 @@ Accepted scope direction:
   a specific literal rename can resolve the conflict.
 - Limit this slice to structured-input interpretation and JSON Schema generation. The current project does not require
   the same new profile under managed Jackson import. Existing Jackson naming behavior remains independently supported.
+- Include focused Klum name/exclusion annotations alongside the profile annotation, retaining compatible existing
+  `JsonProperty`/`JsonIgnore` inputs. The authoring vocabulary must be usable entirely through Klum annotations. The
+  `InputName`/`InputIgnore` spellings remain proposals until explicitly finalized; accepting the shape does not install them.
+- Equivalent Klum/Jackson declarations coalesce. Contradictory declarations on an entry are an error with both
+  origins in the diagnostic; no canonical-over-adapter override or annotation-order selection. This fails contract
+  resolution rather than silently reducing the admitted grammar. Exact edge combinations below remain to be reviewed.
 - Defer package-info configuration. Final annotation/enum vocabulary, punctuation/Unicode details and compatibility/
   metadata policy remain open. No root/runtime selector is required by the demonstrated use case.
 
 Recommend a finite type annotation as the next design surface, starting with identity and kebab-case. Preserve the
-accepted **focused Klum annotation family** direction and existing optional Jackson literal inputs. Separate new Klum
-literal annotations may still be useful, but are not a prerequisite for class-wide profiles. Do not require replacing
-existing literals merely to opt into a profile. Broader Jackson `JsonNaming` compatibility remains a separate decision.
+accepted **focused Klum annotation family** direction and existing optional Jackson literal inputs. The maintainer
+selected Klum-owned per-entry name/exclusion annotations for this slice as well as the type profile. Do not require
+replacing existing Jackson literals merely to opt into a profile. Broader Jackson `JsonNaming` compatibility remains a
+separate decision.
 
 Seek a **deep module** at the existing compiled-contract **seam**: one source-associated name/admission implementation
 serves interpreter and generator. Keep selection, inheritance, collision handling and metadata decoding local to that
@@ -106,8 +113,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 The examples describe separate inputs; operation order still matters if both are supplied. `Team/Blue` remains data.
 Exclusion controls this structured language; it does not prevent ordinary Groovy DSL configuration of `internalNote`.
 
-**B — focused literals, optional complement to profiles.** `InputName` and `InputIgnore` are placeholder spellings with no selected
-package or installed types. This sketch is unavailable, not an executable example or an annotation assignment.
+**B — focused literals, selected alongside profiles.** `InputName` and `InputIgnore` are placeholder spellings with no selected
+package or installed types. This is accepted authoring shape with provisional names; it is not an available API or implementation assignment.
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
@@ -154,7 +161,7 @@ remain exact. Final annotation/enum spellings remain unselected; owned child typ
 | Option | Benefit | Cost / recommendation |
 | --- | --- | --- |
 | No new annotation; retain A | Zero new author syntax, metadata migration or caller configuration. Works for inspected Schelm. | Insufficient for the newly confirmed class-wide use case; retain as the unchanged default for unconfigured types. |
-| Focused literal name/exclude B | Klum-owned dependency-free authoring with the same small grammar. | New source vocabulary, bridge conflicts and matched-binary qualification. **Optional complement** if producer dependency avoidance is required; not a profile prerequisite. |
+| Focused literal name/exclude B | Klum-owned dependency-free authoring with the same small grammar. | New source vocabulary, bridge conflicts and matched-binary qualification. **Selected for this slice** with the type profile, preserving compatible Jackson inputs. Final spellings/targets remain to be settled. Equivalent bridge facts coalesce; contradictions fail with both origins. |
 | Finite type profile annotation C | Many conventional names from one declaration; publishable producer intent. | **Selected direction** for the immediate project need. Explicit inherited-profile conflicts reject; owned values keep their own type policy. Binary facts still require qualification. |
 | Explicit root/runtime + Gradle configuration | One integration-owned grammar across reachable owned binaries; no naming annotation necessary. | Matching runtime/generator selection, new call shapes/cache inputs, candidate preservation. **Defer**; caller-owned whole-document override is not the demonstrated type-wide requirement and could violate binding ancestor profiles. Plugin-only renaming is invalid. |
 | Package defaults | Reduce repeated type declarations in one source package. | Package-info provenance, split artifacts, compilation order and recompilation scope. **Defer**; package retention alone does not justify package semantics. |
@@ -164,10 +171,12 @@ selection, WIRE companion revival, Model-byte fallback, user-code execution and 
 Jackson dependency in core and no Bean/mapper provider discovery. Broader `JsonNaming` is a separate optional compatibility
 decision, not implied by either literals or profiles.
 
-## Per-entry literals and optional Klum equivalents
+## Per-entry literals and selected Klum equivalents
 
-Existing literal overrides remain supported under profiles. The following conflict policy applies only if focused
-Klum literal equivalents are separately selected; it remains proposed, not today's installed behavior:
+Existing literal overrides remain supported under profiles, and focused Klum equivalents are selected for this slice.
+**Accepted general rule:** equivalent Klum/Jackson facts coalesce; contradictory declarations fail with both origins
+rather than selecting by annotation order or letting Klum silently win. The detailed edge combinations below remain
+proposed; acceptance of the general rule is not automatic approval of every combination or today's installed behavior:
 
 1. Resolve the compiler-selected declaration and existing role eligibility first. The new names never widen admission.
 2. Read exact canonical and narrow Jackson facts at that same source position. Equivalent renames/exclusions coalesce.
@@ -298,15 +307,17 @@ explicit profiles bind descendants; unannotated ancestry leaves introduction ope
 entries; composed owned values resolve their own type policy, with no lexical nested-class support promise. These
 supersede this brief's earlier profile deferral and root-only recommendation. Kebab acronym/digit boundaries and
 nonidentity collision failure are also accepted, with specific literal overrides. The first slice covers structured
-input and JSON Schema only; a Jackson profile adapter is not required. No release placement changes.
+input and JSON Schema only; a Jackson profile adapter is not required. Focused Klum name/exclusion annotations belong
+in the same slice, retaining compatible `JsonProperty`/`JsonIgnore` input. Equivalent declarations coalesce;
+contradictions fail with both origins rather than silently selecting Klum or annotation order. No release placement changes.
 
 Remaining decisions, one branch at a time:
 
 1. **Vocabulary/algorithm:** select annotation/package and finite profile identifiers; settle the remaining punctuation,
    Unicode and malformed-input rules around the accepted acronym/digit boundaries. Identity must be explicit as well as
    the unconfigured default; explicit identity binds descendants. No full Jackson strategy compatibility is implied.
-2. **Entry authoring:** decide whether new Klum literal annotations belong in this slice, then settle names, retention,
-   exact field/key/admitted-method targets and the proposed strict bridge table. Existing Jackson literals remain supported.
+2. **Entry authoring:** finalize the selected Klum literal annotations' names, retention and exact field/key/admitted-method
+   targets; review the remaining edge combinations under the accepted coalesce/error rule. Existing Jackson literals remain supported.
 3. **Transport and delivery:** qualify exact declared-profile/absence/provenance facts and old/missing/unknown metadata,
    then approve minimal completeness/version handling and source-free binary acceptance before a separately assigned
    implementation. No public descriptor, new issue, milestone or release commitment is selected here. A delivered
@@ -315,7 +326,8 @@ Remaining decisions, one branch at a time:
 ## Delivery and validation boundary
 
 This task changes the local decision brief and navigation pointers only. ADR 0031 records accepted need, inheritance
-and composed-type scope, accepted kebab boundaries, collision failure and structured-input/schema-only scope.
+and composed-type scope, accepted kebab boundaries, collision failure, structured-input/schema-only scope, and the
+selected Klum literal authoring family with compatible Jackson inputs.
 Remaining profile semantics are explicitly unresolved and installed behavior is unchanged.
 Tracker impact: Related #959; no issue comment/state/label/milestone or curation change. No production code, annotations, executable fixtures or user-facing release claims are changed. No implementation
 PR exists. Local committed delivery is sufficient while maintainer choices remain open; no draft PR is required.
@@ -323,7 +335,8 @@ PR exists. Local committed delivery is sufficient while maintainer choices remai
 The original local brief passed 68 relative Markdown targets/anchors, fences and whitespace/scope checks.
 The inheritance update passed 69 relative Markdown targets/anchors across three changed documents, balanced fences,
 `git diff --check` and documentation-only scope review. The kebab/collision/slice-scope checkpoint also passed all 69
-relative targets/anchors, balanced fences, whitespace and documentation-only scope checks; no runtime tests were run.
+relative targets/anchors, balanced fences, whitespace and documentation-only scope checks. The selected Klum literal/
+bridge-conflict checkpoint passed those same checks. No runtime tests were run.
 Groovy lanes and schema-generation runs are omitted under the documentation-only testing rule. Runtime behavior above
 is source/test inspection evidence, not a claim of newly executed tests. The final callback records exact commit and
 check outcomes; Hive reconciliation is not requested while this resumed maintainer discussion remains active.

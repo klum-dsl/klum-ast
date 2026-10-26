@@ -730,6 +730,11 @@ not make Schelm's observed camelCase a different requirement or authorize implem
   execution or schema publication. Do not silently remove colliding entries; a literal override can resolve the conflict.
 - The first slice covers structured input and JSON Schema only. The current project does not require the new profile
   through ObjectMapper/managed Jackson import; existing Jackson naming stays independent.
+- Include focused Klum name/exclusion annotations in this slice, retaining compatible `JsonProperty`/`JsonIgnore`
+  support so naming can be authored entirely with Klum annotations. `InputName`/`InputIgnore` remain proposed spellings;
+  final names/targets/retention and exact edge combinations remain open. Equivalent Klum/Jackson declarations coalesce;
+  contradictory declarations fail contract resolution with both origins in the diagnostic, rather than canonical or
+  annotation-order precedence.
 - Package-info remains deferred. Final vocabulary, remaining punctuation/Unicode algorithm details and exact source-free
   metadata compatibility remain to be settled.
 
