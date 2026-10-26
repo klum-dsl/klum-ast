@@ -140,3 +140,27 @@ Both independent reviewers inspected the additive changes and reported **zero re
 validation passed in **6m13s**: **97 focused compiler/runtime cases per G3/G4/G5 lane** and **all 93 packaged JSON Schema
 regressions**, plus licenses, lane isolation and plugin validation. Published/reviewed commits remain intact; this is one
 consolidated Sonar correction commit. Exact final-head CI/Sonar results are recorded in the PR checks and worker callback.
+
+### Bounded candidate-preservation review of PR #976
+
+The remaining inheritance/exclusion concern was reviewed against published head
+`aea47c643d36d0287d3c66e87fafebc40d799d91`, starting with existing tests. No production defect was found.
+The existing packaged naming cases already cover first-child recovery of ancestor naming collisions, inherited literal
+overrides/ignores, exact interpreter/projector names, independent owned types, complete ordinary-collision rejection,
+position-specific construction keys and execution traps. Core tests cover source-free diamonds, source deduplication,
+identity pruning, unsupported declarations and exact rejection provenance.
+
+One interaction lacked direct coverage: first-child recovery combined with inherited non-naming rejections. The single
+new `CompiledBuilderSchemaTest` feature, `first descendant profile preserves non-naming ancestor exclusions: #profile`,
+uses separately compiled ancestor/child JARs with deleted compilation outputs. It compares absent, explicit `IDENTITY`
+and first `KEBAB_CASE` descendants. Only kebab recovers the native/literal collision pair; protected, unsupported scalar,
+abstract-owned, ignored and unsupported-operation sources retain identical rejection reasons. The ignored literal
+overlaps a recovered kebab name, verifying exclusion before collision handling. An initialization trap and positive
+control establish that resolution does not execute the producer. Production code and naming semantics are unchanged.
+
+Focused qualification on Java 17 passes **100 compiler/runtime cases per G3/G4/G5 lane**, including the three new rows,
+and **10 existing packaged naming cases** (happy paths on G3/G4/G5 plus seven invalid-contract/key-position cases).
+Affected test licenses, lane isolation and `git diff --check` pass. Separate Standards and Specification reviewers report
+zero actionable findings on both the preservation path and the added regression. This closes the bounded correctness
+concern; merge remains a maintainer action after the current PR checks pass. No merge, issue closure or curation change
+is part of this review.

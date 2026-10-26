@@ -185,6 +185,76 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         System.clearProperty('wire.schema.executed')
     }
 
+    @Issue('959')
+    def 'first descendant profile preserves non-naming ancestor exclusions: #profile'() {
+        given:
+        def api = compileJar([trapped('''
+            package namingexclusions
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.*
+            @DSL abstract class AbstractChild {}
+            @DSL class Base {
+                String validName
+                String displayName
+                @JsonProperty('displayName') String literalName
+                @JsonIgnore @JsonProperty('display-name') String hiddenValue
+                @Field(FieldType.PROTECTED) String internalValue
+                char unsupportedValue
+                AbstractChild abstractChild
+                @Builder.Method void raw(Map values) { throw new AssertionError('authored operation') }
+                @Builder.Method void reset() { throw new AssertionError('authored operation') }
+            }
+        ''')] + NAMING)
+        def child = compileJar(["""
+            package namingexclusions
+            import com.blackbuild.klum.ast.*
+            $annotation
+            @DSL class Child extends Base {}
+        """], [api])
+        def binaries = isolated([api, child])
+
+        when:
+        def ancestor = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName('namingexclusions.Base_DSL$Builder', false, binaries),
+                Class.forName('namingexclusions.Base_DSL$Factory', false, binaries))
+        def descendant = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName('namingexclusions.Child_DSL$Builder', false, binaries),
+                Class.forName('namingexclusions.Child_DSL$Factory', false, binaries))
+        def exclusions = ancestor.rejections.findAll { !it.reason.contains('collision') }
+
+        then: 'only naming-collision sources can recover; structural, unsupported and ignored sources stay rejected'
+        ancestor.entries*.externalName == ['validName']
+        ancestor.rejections.count { it.reason.contains('collision') } == 2
+        exclusions*.source as Set == [
+                'namingexclusions.Base#abstractChild', 'namingexclusions.Base#hiddenValue',
+                'namingexclusions.Base#internalValue', 'namingexclusions.Base#unsupportedValue',
+                'namingexclusions.Base#raw(java.util.Map):void', 'namingexclusions.Base#reset():void'
+        ] as Set
+        descendant.rejections.findAll { !it.reason.contains('collision') } == exclusions
+        descendant.rejections.count { it.reason.contains('collision') } == (profile == 'KEBAB_CASE' ? 0 : 2)
+        descendant.entries.collectEntries { [(it.externalName): it.source] } == expected.collectEntries { name, member ->
+            [(name): "namingexclusions.Base#$member".toString()]
+        }
+        System.getProperty('wire.schema.executed') == null
+
+        when: 'the same source-free producer is explicitly initialized as a positive control'
+        Class.forName('namingexclusions.Base', true, binaries)
+
+        then:
+        thrown(AssertionError)
+        System.getProperty('wire.schema.executed') == 'initialized'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        profile      | annotation                                    | expected
+        'absent'     | ''                                            | [validName: 'validName']
+        'IDENTITY'   | '@InputNaming(InputNaming.Profile.IDENTITY)'   | [validName: 'validName']
+        'KEBAB_CASE' | '@InputNaming(InputNaming.Profile.KEBAB_CASE)' | ['valid-name': 'validName', 'display-name': 'displayName', displayName: 'literalName']
+    }
+
     private static Map rawNamingFacts(File jar, String contract) {
         def result = [fields: [:], selections: [], key: [:], operations: [:], profile: [:]]
         new JarFile(jar).withCloseable { archive ->
