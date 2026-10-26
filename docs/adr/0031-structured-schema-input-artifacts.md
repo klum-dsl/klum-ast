@@ -724,8 +724,14 @@ not make Schelm's observed camelCase a different requirement or authorize implem
 - Composed owned values resolve names from their own type/hierarchy, independently of their owner. This refers to
   relationships between ordinary separate types, not lexical nested class declarations; no nested-class support
   guarantee is added.
-- Package-info configuration remains deferred. Final vocabulary and finite algorithms, collision behavior and exact
-  source-free metadata compatibility remain to be settled.
+- Kebab boundaries are accepted: `serviceName -> service-name`, `URLValue -> url-value`, `XML2Parser -> xml2-parser`,
+  `version2URL -> version2-url`, keeping digits attached to the preceding word. Literal overrides remain available.
+- Profile-induced collisions reject the conflicting type with a diagnostic identifying both declarations, before input
+  execution or schema publication. Do not silently remove colliding entries; a literal override can resolve the conflict.
+- The first slice covers structured input and JSON Schema only. The current project does not require the new profile
+  through ObjectMapper/managed Jackson import; existing Jackson naming stays independent.
+- Package-info remains deferred. Final vocabulary, remaining punctuation/Unicode algorithm details and exact source-free
+  metadata compatibility remain to be settled.
 
 The [updated decision brief](../implementation/issue-959-d7-external-naming-decision.md) distinguishes accepted direction
 from remaining recommendations and binary probes. Both interpreter and generator must use one shared grammar, without

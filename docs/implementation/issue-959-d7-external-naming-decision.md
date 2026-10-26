@@ -1,6 +1,6 @@
 # #959 D7: external naming and exclusion decision brief
 
-Date: 2026-10-26. Status: **Type-profile need and inheritance direction accepted; remaining semantics open; no implementation authorized.**
+Date: 2026-10-26. Status: **Type-profile scope, inheritance, kebab boundaries and collision failure accepted; remaining semantics open; no implementation authorized.**
 
 Audited base: `3daea832e4e6fa9247c6ab8cb7e53f61da5772bb` (`origin/master`, merged
 [PR #974](https://github.com/klum-dsl/klum-ast/pull/974)). Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
@@ -28,8 +28,15 @@ Accepted scope direction:
 - Composed owned values resolve naming from their own type/hierarchy; the owner's profile does not cascade. This
   concerns relationships between ordinary separate types, not lexical nested class declarations. It adds no support
   guarantee for nested classes, which the maintainer discourages.
-- Defer package-info configuration. Final annotation/enum vocabulary, algorithm details and compatibility/metadata
-  policy remain open. No root/runtime selector is required by the demonstrated use case.
+- Accept kebab boundaries `serviceName -> service-name`, `URLValue -> url-value`, `XML2Parser -> xml2-parser` and
+  `version2URL -> version2-url`, keeping digits attached to the preceding word. Specific literal overrides remain available.
+- A nonidentity profile that produces colliding admitted entry names rejects the type, naming both declarations. It
+  must not silently exclude the colliders and keep the rest. Reject before input execution or schema publication;
+  a specific literal rename can resolve the conflict.
+- Limit this slice to structured-input interpretation and JSON Schema generation. The current project does not require
+  the same new profile under managed Jackson import. Existing Jackson naming behavior remains independently supported.
+- Defer package-info configuration. Final annotation/enum vocabulary, punctuation/Unicode details and compatibility/
+  metadata policy remain open. No root/runtime selector is required by the demonstrated use case.
 
 Recommend a finite type annotation as the next design surface, starting with identity and kebab-case. Preserve the
 accepted **focused Klum annotation family** direction and existing optional Jackson literal inputs. Separate new Klum
@@ -69,7 +76,7 @@ It corroborates the [earlier consultation](issue-959-d7-naming-profiles.md#stake
 | Schema producer must publish exact names without any Jackson annotation dependency. | Identified architectural possibility; immediate demand unknown. Workaround: use native names or optional Jackson annotation input, if organizationally acceptable. If neither is acceptable, focused Klum literals have direct value. |
 | Schema Developer in another current project needs kebab-case authoring against camelCase members. | **Immediate**, reported directly by the maintainer. Existing workaround preconverts input Map keys; it works but is brittle. Type-wide profiles with entry overrides are now the primary use case. No separate source inspection or measured conversion cost is claimed. |
 | Integration owner needs one caller-selected alternate casing across every independent binary dependency. | Still unconfirmed: type-wide demand does not imply root-wide override. Source-free generation remains a qualification requirement for the selected type policy. |
-| Same document must work under both Jackson and structured input. | Unknown requirement. Use a bounded common subset only if explicitly requested; mapper-wide parity is not delivered by name conversion. |
+| Same document must work under both Jackson and structured input. | **Not required for this first slice**, confirmed by the maintainer for the current project. Existing Jackson binding remains independent; mapper-wide parity is not delivered by name conversion. |
 
 Hypotheses, not requirements: a package convention is necessary; every dependency must follow the caller's casing;
 camelCase means normalization rather than unchanged spelling; a Jackson strategy has the desired acronym rules; a
@@ -212,20 +219,23 @@ A profile applies to member tokens, including admitted authored-operation names 
 Ordinary data Map keys, keyed-instance keys, fixed identity values, enum values and custom Map-operation payload keys stay
 literal. Exact target qualification remains required; naming does not broaden operation or ownership admission.
 
-Start with identity and kebab-case; defer snake and a separate camel normalizer unless requested. The
-[earlier finite algorithm](issue-959-d7-naming-profiles.md#proposed-v1-transformation-contract) is a candidate to approve,
-not Jackson equivalence: ASCII lower/digit-to-upper and acronym-final-capital boundaries, ASCII lowercase mapping,
-digits attached, other Unicode/punctuation opaque, no locale/normalization callbacks. Illustrative vectors include
-`URLValue -> url-value`, `XML2Parser -> xml2-parser`, `already_snake -> already_snake`. Confirm those spellings against the
-actual input convention before freezing the algorithm. Reject unknown profiles; no arbitrary naming-strategy execution.
+Start with identity and kebab-case; defer snake and a separate camel normalizer unless requested. **Accepted kebab
+boundaries:** `serviceName -> service-name`, `URLValue -> url-value`, `XML2Parser -> xml2-parser`,
+`version2URL -> version2-url`; digits remain attached to the preceding word. Specific entry overrides retain authority.
+The [earlier finite algorithm](issue-959-d7-naming-profiles.md#proposed-v1-transformation-contract) supplies a proposed
+complete rule: ASCII lower/digit-to-upper and acronym-final-capital boundaries, ASCII lowercase mapping, other Unicode/
+punctuation opaque, no locale/normalization callbacks. Punctuation/Unicode and malformed UTF-16 rules still need review;
+the four accepted vectors do not accept every historical algorithm detail or claim Jackson equivalence. Reject unknown
+profiles; no arbitrary naming-strategy execution.
 
 Resolve names from **native candidates before collision pruning**. The current resolved entry map has already lost
 colliding parent candidates; transforming its surviving strings is insufficient when a child first introduces a profile.
 Keep structural/exclusion reasons separate from name collisions. Recompute conflicts under the effective type profile
-without resurrecting sources excluded for other reasons. Preserve existing no-profile identity results. For an explicit
-nonidentity profile, recommend deterministic contract failure on any collision in admitted scopes before execution or
-output replacement, including field/operation, overload and position-specific key conflicts. This stricter nonidentity
-failure remains a maintainer choice; it is not today's universal collision behavior. No first/last-wins or native aliases.
+without resurrecting sources excluded for other reasons. Preserve existing no-profile identity results. **Accepted:**
+a nonidentity profile rejects a type with colliding admitted entry names before input execution or schema publication,
+with a diagnostic naming the conflicting declarations. A literal entry override can resolve the conflict. Include field/
+operation, overload and position-specific key conflicts in qualification. This stricter nonidentity failure is newly
+accepted direction, not today's universal collision behavior. No first/last-wins, silently dropped colliders or native aliases.
 
 A type-owned profile should require **no new runtime overload or plugin naming selector**: both consumers resolve it from
 the same compiled contract. Cache by effective contract and key position; inherited declarations retain source identity
@@ -259,8 +269,9 @@ filtering; no amount of package annotation reflection repairs lost candidates. L
 constraintVersion/decimalVersion/projectionVersion responsibilities; a naming decision must not weaken their checks or
 couple them to a new umbrella version. Advisory deprecation absence differs from required language-fact absence.
 
-Managed Jackson import retains mapper-owned naming/coercion/aliases and all four existing modes. A Klum-only rename would
-shape structured input, not automatically teach ObjectMapper that spelling. Use the existing Jackson literal too when
+Managed Jackson import retains mapper-owned naming/coercion/aliases and all four existing modes. **Confirmed slice
+scope:** the current project needs the new type profile only for structured input and JSON Schema, not ObjectMapper.
+A Klum-only rename would shape structured input, not automatically teach ObjectMapper that spelling. Use the existing Jackson literal too when
 both routes intentionally share one token. That duplicate annotation is acceptable interoperability; an automatic Klum
 annotation adapter for Jackson would require separate demand and qualification.
 
@@ -285,19 +296,18 @@ compiler/runtime/plugin path or an arbitrary Jackson strategy.
 Already settled: current-project need; type-wide profiles; per-entry overrides; no package-info in the first scope;
 explicit profiles bind descendants; unannotated ancestry leaves introduction open; introduced profiles cover inherited
 entries; composed owned values resolve their own type policy, with no lexical nested-class support promise. These
-supersede this brief's earlier profile deferral and root-only recommendation. No release placement changes.
+supersede this brief's earlier profile deferral and root-only recommendation. Kebab acronym/digit boundaries and
+nonidentity collision failure are also accepted, with specific literal overrides. The first slice covers structured
+input and JSON Schema only; a Jackson profile adapter is not required. No release placement changes.
 
 Remaining decisions, one branch at a time:
 
-1. **Vocabulary/algorithm:** select annotation/package, finite profile identifiers and exact kebab vectors for acronym,
-   digit, punctuation and Unicode cases. Identity must be explicit as well as the unconfigured default; explicit identity
-   binds descendants. Do not assume the earlier algorithm or Jackson compatibility is accepted.
-2. **Entry/admission behavior:** confirm coverage of fields/keys/admitted authored methods and nonidentity collision failure.
-   If new Klum literal annotations are wanted now, settle their names, retention and the proposed strict bridge table;
-   preserving existing Jackson literals alone is sufficient for the accepted per-entry override requirement.
-3. **Interoperability:** managed Jackson remains independent. Determine whether the current project additionally needs
-   the same naming profile under ObjectMapper; if so, identify a bounded adapter requirement separately.
-4. **Transport and delivery:** qualify exact declared-profile/absence/provenance facts and old/missing/unknown metadata,
+1. **Vocabulary/algorithm:** select annotation/package and finite profile identifiers; settle the remaining punctuation,
+   Unicode and malformed-input rules around the accepted acronym/digit boundaries. Identity must be explicit as well as
+   the unconfigured default; explicit identity binds descendants. No full Jackson strategy compatibility is implied.
+2. **Entry authoring:** decide whether new Klum literal annotations belong in this slice, then settle names, retention,
+   exact field/key/admitted-method targets and the proposed strict bridge table. Existing Jackson literals remain supported.
+3. **Transport and delivery:** qualify exact declared-profile/absence/provenance facts and old/missing/unknown metadata,
    then approve minimal completeness/version handling and source-free binary acceptance before a separately assigned
    implementation. No public descriptor, new issue, milestone or release commitment is selected here. A delivered
    feature later needs documentary `@Issue`/`@Tag`/`@See` coverage, user/migration navigation and changelog updates.
@@ -305,13 +315,15 @@ Remaining decisions, one branch at a time:
 ## Delivery and validation boundary
 
 This task changes the local decision brief and navigation pointers only. ADR 0031 records accepted need, inheritance
-and composed-type scope. Remaining profile semantics are explicitly unresolved and installed behavior is unchanged.
+and composed-type scope, accepted kebab boundaries, collision failure and structured-input/schema-only scope.
+Remaining profile semantics are explicitly unresolved and installed behavior is unchanged.
 Tracker impact: Related #959; no issue comment/state/label/milestone or curation change. No production code, annotations, executable fixtures or user-facing release claims are changed. No implementation
 PR exists. Local committed delivery is sufficient while maintainer choices remain open; no draft PR is required.
 
 The original local brief passed 68 relative Markdown targets/anchors, fences and whitespace/scope checks.
-The resumed design update passed all 69 relative Markdown targets/anchors across the three changed documents,
-balanced fences, `git diff --check` and documentation-only scope review.
+The inheritance update passed 69 relative Markdown targets/anchors across three changed documents, balanced fences,
+`git diff --check` and documentation-only scope review. The kebab/collision/slice-scope checkpoint also passed all 69
+relative targets/anchors, balanced fences, whitespace and documentation-only scope checks; no runtime tests were run.
 Groovy lanes and schema-generation runs are omitted under the documentation-only testing rule. Runtime behavior above
 is source/test inspection evidence, not a claim of newly executed tests. The final callback records exact commit and
 check outcomes; Hive reconciliation is not requested while this resumed maintainer discussion remains active.
