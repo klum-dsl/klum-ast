@@ -698,7 +698,7 @@ one-hop default-only propagation is already effective before capture (for exampl
 with required values cannot be propagated. Arbitrary composed/repeatable hard mappings are not introduced.
 
 The next independent [external naming/exclusion brief](../implementation/issue-959-d7-external-naming-decision.md)
-records current evidence and unaccepted alternatives for maintainer review; it changes no language decision.
+records evidence and maintainer choices; the later type-wide naming checkpoint below records the accepted direction.
 
 Naming profiles/scope/precedence, broader JsonNaming, examples/Javadoc-tag machine data pending separate AnnoDocimal
 structured-tag retention, selective filtering, defaults, setter-time validation, provider SPI and the other D3–D7 mappings
@@ -707,3 +707,28 @@ Model-byte inspection or runtime/interpreter/Gradle task surface is added.
 
 See [slice evidence and qualification](../implementation/issue-959-d7-constraint-projection.md) and
 [user contract](../user/Json-Schema.md#field-constraint-projection).
+
+
+## D7 type-wide naming direction — #959
+
+Date: 2026-10-26. Status: **Need and inheritance direction accepted; remaining semantics open; design only.**
+The maintainer identifies another current project besides Schelm that preconverts kebab-case input Map keys to
+camelCase and finds this brittle. Type-wide naming profiles with per-entry literal overrides are therefore an immediate
+use case. This supersedes the external-naming brief's earlier profile deferral and root-only recommendation; it does
+not make Schelm's observed camelCase a different requirement or authorize implementation.
+
+- An explicit profile binds descendants. Unannotated subtypes inherit it; the same explicit profile may be repeated;
+  a different explicit profile is rejected. Explicit `IDENTITY` is binding too.
+- Unannotated ancestry leaves the choice open. A child may introduce a profile over its local and inherited eligible
+  entries; this does not change the ancestor's standalone contract. Literal names/exclusions retain authority.
+- Composed owned values resolve names from their own type/hierarchy, independently of their owner. This refers to
+  relationships between ordinary separate types, not lexical nested class declarations; no nested-class support
+  guarantee is added.
+- Package-info configuration remains deferred. Final vocabulary and finite algorithms, collision behavior and exact
+  source-free metadata compatibility remain to be settled.
+
+The [updated decision brief](../implementation/issue-959-d7-external-naming-decision.md) distinguishes accepted direction
+from remaining recommendations and binary probes. Both interpreter and generator must use one shared grammar, without
+ambient mapper/classpath/reflection-order policy or user-code execution. Existing independent Jackson import, #972/#974
+projection behavior and deferred examples remain intact. No production annotation, runtime/plugin option, metadata
+format, implementation assignment, issue/milestone change or release commitment is accepted here.
