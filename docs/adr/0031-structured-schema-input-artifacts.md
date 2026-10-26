@@ -697,6 +697,9 @@ DecimalMin/Max on integral/BigDecimal scalars; empty groups/payload and group co
 one-hop default-only propagation is already effective before capture (for example NotNull descriptions); annotations
 with required values cannot be propagated. Arbitrary composed/repeatable hard mappings are not introduced.
 
+The next independent [external naming/exclusion brief](../implementation/issue-959-d7-external-naming-decision.md)
+records evidence and maintainer choices; the later type-wide naming checkpoint below records the accepted direction.
+
 Naming profiles/scope/precedence, broader JsonNaming, examples/Javadoc-tag machine data pending separate AnnoDocimal
 structured-tag retention, selective filtering, defaults, setter-time validation, provider SPI and the other D3–D7 mappings
 remain open. Jackson/Bean Validation stay optional adapters. No WIRE carrier, registry/callback, Schema execution,
@@ -704,3 +707,44 @@ Model-byte inspection or runtime/interpreter/Gradle task surface is added.
 
 See [slice evidence and qualification](../implementation/issue-959-d7-constraint-projection.md) and
 [user contract](../user/Json-Schema.md#field-constraint-projection).
+
+
+## D7 type-wide naming direction — #959
+
+Date: 2026-10-26. Status: **Design-only authoring contract confirmed; bounded binary probes precede implementation.**
+The maintainer identifies another current project besides Schelm that preconverts kebab-case input Map keys to
+camelCase and finds this brittle. Type-wide naming profiles with per-entry literal overrides are therefore an immediate
+use case. This supersedes the external-naming brief's earlier profile deferral and root-only recommendation; it does
+not make Schelm's observed camelCase a different requirement or authorize implementation.
+
+- An explicit profile binds descendants. Unannotated subtypes inherit it; the same explicit profile may be repeated;
+  a different explicit profile is rejected. Explicit `IDENTITY` is binding too.
+- Unannotated ancestry leaves the choice open. A child may introduce a profile over its local and inherited eligible
+  entries; this does not change the ancestor's standalone contract. Literal names/exclusions retain authority.
+- Composed owned values resolve names from their own type/hierarchy, independently of their owner. This refers to
+  relationships between ordinary separate types, not lexical nested class declarations; no nested-class support
+  guarantee is added.
+- Kebab boundaries are accepted: `serviceName -> service-name`, `URLValue -> url-value`, `XML2Parser -> xml2-parser`,
+  `version2URL -> version2-url`, keeping digits attached to the preceding word. Non-ASCII characters and existing
+  separators remain unchanged; apply only ASCII boundaries/lowercasing. `already_snake` stays unchanged;
+  `ÅngströmURL -> Ångström-url`. Literal overrides remain available.
+- Profile-induced collisions reject the conflicting type with a diagnostic identifying both declarations, before input
+  execution or schema publication. Do not silently remove colliding entries; a literal override can resolve the conflict.
+- The first slice covers structured input and JSON Schema only. The current project does not require the new profile
+  through ObjectMapper/managed Jackson import; existing Jackson naming stays independent.
+- Include focused Klum name/exclusion annotations in this slice, retaining compatible `JsonProperty`/`JsonIgnore`
+  support so naming can be authored entirely with Klum annotations. Accepted names are `InputNaming` with nested
+  `Profile.IDENTITY`/`KEBAB_CASE`, `InputName('literal')` and marker `InputIgnore`, all in `com.blackbuild.klum.ast`.
+  Contracts are confirmed: `RUNTIME` retention; type-only `InputNaming` with a required explicit profile value;
+  field/admitted-method `InputName` with a required nonempty literal and marker `InputIgnore`, including selected key
+  fields. Equivalent Klum/Jackson declarations coalesce; different explicit literal names fail with both origins,
+  including on an excluded entry. Exclusion wins over renaming, including mixed annotations; `JsonIgnore(false)` is neutral and cannot undo exclusion. No canonical or
+  annotation-order winner selection.
+- Package-info remains deferred. Exact source-free metadata compatibility requires bounded probes before implementation;
+  the author-facing behavior does not require a root selector or mapper strategy.
+
+The [updated decision brief](../implementation/issue-959-d7-external-naming-decision.md) distinguishes accepted direction
+from remaining recommendations and binary probes. Both interpreter and generator must use one shared grammar, without
+ambient mapper/classpath/reflection-order policy or user-code execution. Existing independent Jackson import, #972/#974
+projection behavior and deferred examples remain intact. No production annotation, runtime/plugin option, metadata
+format, implementation assignment, issue/milestone change or release commitment is accepted here.
