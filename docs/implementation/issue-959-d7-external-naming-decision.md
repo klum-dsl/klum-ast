@@ -359,7 +359,8 @@ Before implementation, bounded technical evidence is still required:
 Those probes and their result review precede a separately authorized implementation; this is not an instruction to run
 them now. Final transport encoding is an evidence decision, not an open requirement for a new authoring interface.
 Release placement remains unassigned. Any later delivered feature needs documentary `@Issue`/`@Tag`/`@See`, current user
-pages, migration navigation and changelog updates. No new issue, tracker mutation or publication follows from this record.
+pages, migration navigation and changelog updates. The design does not authorize implementation or tracker changes.
+The maintainer subsequently requested publication of this documentation-only record as a pull request.
 
 ## Delivery and validation boundary
 
@@ -368,12 +369,13 @@ and composed-type scope, accepted kebab boundaries, collision failure, structure
 selected Klum literal authoring family with compatible Jackson inputs.
 The design-only authoring contract is confirmed. Binary qualification precedes a separately assigned implementation;
 installed behavior is unchanged. Tracker impact: Related #959; no issue comment/state/label/milestone or curation change.
-No production code, annotations, executable fixtures or user-facing release claims are changed. No implementation
-PR exists. The local committed design record is the delivery for this assignment; no draft PR is required.
+No production code, annotations, executable fixtures or user-facing release claims are changed. The maintainer's
+subsequent publication request authorizes a draft documentation-only pull request against master. It is not an
+implementation PR; the bounded probes and their review remain a separate prerequisite to implementation.
 
 Final documentation validation: all 69 relative Markdown targets/anchors across the three task documents, balanced
 fences, `git diff --check`, documentation-only scope and local history review. No runtime tests were run.
 Groovy lanes and schema-generation runs are omitted under the documentation-only testing rule. Runtime behavior above
 is source/test inspection evidence, not a claim of newly executed tests. The final callback records exact commit and
-check outcomes. This completes the design-only assignment; request Hive reconciliation without self-applying archive
-state. The bounded future probes are a separate assignment, not unfinished production work in this task.
+check outcomes and the requested draft pull request. Request Hive reconciliation after delivery without self-applying
+archive state. The bounded future probes are a separate assignment, not unfinished production work in this task.
