@@ -107,3 +107,10 @@ root input for incompatible owned-artifact cases, removing its earlier dependenc
 The owned-closure focused check passes on Groovy 3, including omitted direct/transitive/inherited-owned rejection,
 active Builder non-mutation, valid cycles and an excluded incompatible target. The 10 packaged protocol rows also pass
 with omitted child input. This correction was reviewed before starting the sole full-root qualification for the follow-up.
+
+
+Both independent reviewers confirm **zero remaining actionable findings** at
+`83df285e2e058b1e13391258fd49d9be827afc33`. Specification independently reran the direct probe: omitted and supplied
+incompatible owned contracts both reject, root initialization stays untouched, and the initializer positive control
+passes (`/tmp/977-owned-review-after.groovy`). The full-root run follows this review with tracked files frozen.
+All **205 relative Markdown targets/anchors** and balanced fences across the changed documentation pass; diff checks pass.
