@@ -1,7 +1,8 @@
 # #959 emitted Pattern qualification result
 
-Date: 2026-10-27. Source checkpoint: `ef7d13d881b1ce63fcbd0061a7c375e450fb6f22`.
-Run after successful full root qualification with the [independent oracle](qualify_emitted.py).
+Date: 2026-10-27. Source checkpoint: `9fddf3569fa931e355a665c88bef8d855520ee88`.
+Rebased onto merged D7-EXAMPLES `1db75518818ec1c7f5e92caa0c4eebd660f4e73d`.
+Run after successful post-rebase full root qualification with the [independent oracle](qualify_emitted.py).
 The oracle consumes the emitted G3/G4/G5 schema documents and uses independent hand-authored expected languages.
 
 ```json
@@ -28,5 +29,5 @@ closes the widening. Java malformed-source controls remain errors, while their g
 runtime-description-only schema output. No runtime validator/provider or Schema code is executed by generation.
 
 The retained P2 Java corpus has 64 rows; two additional malformed expressions make the 66 oracle controls above.
-This external result is local qualification, not PR CI or SonarCloud evidence. Remote delivery remains gated as recorded
+This external result is local qualification, not PR CI or SonarCloud evidence. Draft delivery is authorized after the successful post-rebase qualification recorded
 in the [implementation handoff](../../issue-959-pattern-projection.md#documentary-and-delivery-record).

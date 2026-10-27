@@ -1,6 +1,6 @@
 # #959 PATTERN-PROJECTION implementation and qualification
 
-Date: 2026-10-27. Local speculative sibling of D7-EXAMPLES. Related: #959; tracker state is unchanged.
+Date: 2026-10-27. Bounded implementation rebased onto merged D7-EXAMPLES. Related: #959; tracker state is unchanged.
 
 ## Authority and scope
 
@@ -95,7 +95,7 @@ placement, binary transport and atomicity. The unpublished corrective history wa
 its abandoned global registration is absent from the final history/diff. A final evidence-only documentation commit
 follows this qualified production/test tree.
 
-No CI/Sonar upload, push, PR or tracker mutation is performed.
+At the pre-rebase checkpoint no CI/Sonar upload, push, PR or tracker mutation had been performed.
 
 ## Documentary and delivery record
 
@@ -124,6 +124,24 @@ an example that does not satisfy the Pattern. `GeneratedInput.Schema.version=1` 
 or compatibility mode is added. Tracker impact is `Related: #959`; no issue closure, labels, milestone or release-placement
 change is requested.
 
-Post-rebase validation/reviews are in progress at this checkpoint. Earlier passing totals above are historical evidence,
-not a passing claim for this rebased head. Hive delivery/archive reconciliation remains separate; this worker does not
-merge or self-archive.
+Post-rebase source checkpoint: `9fddf3569fa931e355a665c88bef8d855520ee88`. The tree is clean and the merge base is exactly
+`1db75518818ec1c7f5e92caa0c4eebd660f4e73d`; a final remote read confirms master still points there.
+
+- Focused grammar, Pattern binary/corruption and advisory-examples coexistence run: **74 cases**, zero failures/errors/skips.
+- Java 17 full root `check`: **passed in 12m42s**; G3/G4/G5 totals **3387 / 2754 / 2754**, zero failures/errors,
+  existing skips **17 / 16 / 16**. All **127** packaged JSON Schema regressions and **53** recognizer cases pass.
+- Explicit CI propagation artifact matrix: **passed in 46s**, **1 / 2 / 2** executable matrix cases across G3/G4/G5,
+  zero failures/errors/skips, using `--no-parallel --max-workers=2`.
+- The independent oracle is rerun after full root generation: all three producer schemas agree; **27,211** Java/Draft
+  String comparisons, **54,422** ECMA checks, the retained **66** Java controls and **75** neutrality/admission checks pass.
+- Independent Standards review: **zero findings** against the exact merged base at the source checkpoint.
+- Independent Specification review: **zero findings** at the same checkpoint, including conflict resolution and examples
+  independence. The protocol marker remains 1. Final diff/Markdown/relative-link checks pass.
+
+The rebased commit sequence was reviewed before first publication. The final evidence update changes documentation only;
+production and executable test inputs retain the fully qualified source tree above. No no-global-transform/module-service
+invariant or existing test is relaxed. Git SSH push preflight and gh CLI repository capability checks are authorized;
+no credentials, scopes or raw authentication errors are recorded. The maintainer explicitly requests the dedicated push
+and draft PR. PR CI/Sonar is a separate authoritative gate and no passing remote result is inferred from local checks.
+No merge, issue closure, label, milestone or release-placement mutation is authorized. Hive reconciles delivery/archive;
+this worker does not merge or self-archive.
