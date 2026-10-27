@@ -105,7 +105,7 @@ final class CompiledBuilderSchema {
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated) { }
+                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) { }
     record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive) { }
     record FieldConstraints(Policy policy, List<ConstraintRule> rules) { }
     record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) { }
@@ -144,7 +144,7 @@ final class CompiledBuilderSchema {
     }
 
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract,
-               boolean sourceDeprecated, String ignoreReason) { }
+               boolean sourceDeprecated, String ignoreReason, List<String> examples) { }
     record Rejection(String source, String reason, String collisionName) {
         Rejection(String source, String reason) { this(source, reason, null); }
     }
@@ -352,7 +352,7 @@ final class CompiledBuilderSchema {
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
         return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated());
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples());
     }
 
     private static Key profileKey(Key key) throws IOException, ClassNotFoundException {
@@ -363,7 +363,7 @@ final class CompiledBuilderSchema {
         }
         if (!literal.names.rename.isEmpty() || key.ignored()) return key;
         return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
-                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason());
+                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason(), key.examples());
     }
 
     private static Key inheritKey(Key key, Key inherited) {
@@ -402,7 +402,7 @@ final class CompiledBuilderSchema {
 
     private static Key constructionKey(BuilderContext context, Literals literal) {
         return new Key(literal.key, literal.names.rename.isEmpty() ? literal.key : literal.names.rename,
-                literal.names.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated, ignoreReason(literal.names));
+                literal.names.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated, ignoreReason(literal.names), literal.examples);
     }
 
     private static void collectDeclarations(BuilderContext context,
@@ -450,7 +450,7 @@ final class CompiledBuilderSchema {
         String name = literal.names.rename.isEmpty() ? field : literal.names.rename;
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed ? field : null,
-                literal.names.origin, literal.doc, Boolean.TRUE.equals(literal.schemaKey), literal.sourceDeprecated));
+                literal.names.origin, literal.doc, Boolean.TRUE.equals(literal.schemaKey), literal.sourceDeprecated, literal.examples));
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -513,7 +513,7 @@ final class CompiledBuilderSchema {
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = names.rename.isEmpty() ? method.getName() : names.rename;
         entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
-                null, null, null, names.origin, literal.doc, false, literal.operationDeprecated));
+                null, null, null, names.origin, literal.doc, false, literal.operationDeprecated, literal.operationExamples));
     }
 
     private static String fieldReason(Type type, Literals literal) {
@@ -694,6 +694,7 @@ final class CompiledBuilderSchema {
     }
 
     private static final class Literals {
+        String location = "construction key";
         String key;
         String field;
         String selection;
@@ -712,6 +713,8 @@ final class CompiledBuilderSchema {
         boolean query;
         List<ConstraintRule> constraints;
         String constraintProjection;
+        List<String> examples;
+        List<String> operationExamples;
     }
     private record Invisible(String member, String reason) { }
     private static final class Metadata {
@@ -768,14 +771,54 @@ final class CompiledBuilderSchema {
         String source = namingOrigin(owner) + "#" + signature;
         if (literal.field != null || literal.key != null) {
             validateNameFacts(literal.names, source);
+            validateExamples(literal.examples, source);
             if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
         if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
         if (literal.operationFact) {
             validateNameFacts(literal.operationNames, source);
+            validateExamples(literal.operationExamples, source);
             if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
         if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
+    }
+
+    private static void validateExamples(List<String> examples, String source) {
+        if (examples == null || examples.size() > 16) throw invalid("Missing or oversized examples metadata on " + source + ", example 1, UTF-16 offset 0: invalid array");
+        int total = 0;
+        for (int index = 0; index < examples.size(); index++) {
+            String text = examples.get(index);
+            int bytes = 0;
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                bytes += c >= 1 && c <= 127 ? 1 : c <= 2047 ? 2 : 3;
+            }
+            total += bytes;
+            if (bytes > 8192 || total > 32768)
+                throw invalid("Examples metadata on " + source + ", example " + (index + 1)
+                        + ", UTF-16 offset 0: modified-UTF-8 size limit exceeded");
+        }
+    }
+
+    record Examples(String source, Class<?> contract, List<String> values) { }
+
+    /** All surviving facts, including ignored/unsupported declarations; never scans Model annotations. */
+    static List<Examples> exampleDeclarations(Class<?> builder) {
+        try {
+            Metadata metadata = metadata(builder);
+            List<Examples> result = new ArrayList<>();
+            if (metadata.keyMember != null)
+                result.add(new Examples(schemaName(builder) + "#" + metadata.keyMember.key, builder, metadata.keyMember.examples));
+            metadata.methods.forEach((signature, literal) -> {
+                if (literal.examples != null)
+                    result.add(new Examples(schemaName(builder) + "#" + (literal.field == null ? literal.key : literal.field), builder, literal.examples));
+                if (literal.operationExamples != null)
+                    result.add(new Examples(schemaName(builder) + "#" + signature, builder, literal.operationExamples));
+            });
+            return List.copyOf(result);
+        } catch (IOException | ClassNotFoundException failure) {
+            throw invalid("Cannot read examples on " + namingOrigin(builder));
+        }
     }
 
     private static void validateFieldFacts(Literals literal, String source) {
@@ -846,6 +889,7 @@ final class CompiledBuilderSchema {
 
         @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             Literals literal = new Literals();
+            literal.location = name + descriptor;
             result.methods.put(name + descriptor, literal);
             return new ContractMethodVisitor(literal);
         }
@@ -972,6 +1016,10 @@ final class CompiledBuilderSchema {
                 + (field.names.rename.isEmpty() ? field.field : field.names.rename) + "'");
     }
 
+    private static IllegalArgumentException invalidExamples(Literals literal, String reason) {
+        return invalid("Invalid examples metadata on #" + literal.location + ", example 1, UTF-16 offset 0: " + reason);
+    }
+
     private static boolean decimalRule(String annotation) {
         return Set.of("jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax").contains(annotation);
     }
@@ -1035,6 +1083,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
+            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> {
                     if (member.equals(SOURCE_DEPRECATED)) {
@@ -1105,6 +1154,23 @@ final class CompiledBuilderSchema {
         }
 
         @Override public AnnotationVisitor visitArray(String member) {
+            if (member.equals("examples") && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation)) {
+                boolean operation = annotation.equals(OPERATION_FACT);
+                if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(literal, "duplicate array");
+                List<String> examples = new ArrayList<>();
+                if (operation) literal.operationExamples = examples;
+                else literal.examples = examples;
+                return new AnnotationVisitor(Opcodes.ASM9) {
+                    @Override public void visit(String ignored, Object value) {
+                        if (!(value instanceof String text)) throw invalidExamples(literal, "requires String array elements");
+                        if (examples.size() >= 16) throw invalidExamples(literal, "exceeds 16 examples");
+                        examples.add(text);
+                    }
+                    @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(literal, "unexpected nested array"); }
+                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(literal, "unexpected annotation"); }
+                    @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(literal, "unexpected enum"); }
+                };
+            }
             if (annotation.equals(FIELD) && member.equals("constraints")) {
                 if (literal.constraints != null) throw invalid("Duplicate constraint facts");
                 literal.constraints = new ArrayList<>();
