@@ -30,14 +30,46 @@ No historical/mixed-toolchain compatibility promise follows from unchanged devel
   syntax with safe diagnostics.
 - `KlumJsonSchemaGenerationTest#'project advisory examples at exact source-free input positions with Groovy #generation'`
   is the `@Issue('959')`, `@Tag('documentary')`, `@See` binary G3/G4/G5 example. Separate API/owned/derived JARs remain after
-  producer sources/classes are deleted. Consumers use runtime/annotations/Groovy without compiler, Jackson/provider or
+  producer sources/classes are deleted. Consumers use runtime/annotations/Groovy without compiler, Jackson databind/validation-provider libraries or
   source mirrors. A throwing static initializer has a separate deliberate positive control.
 - `KlumJsonSchemaGenerationTest#'invalid carried examples fail before replacing any output: #target #kind'` mutates
   root/inherited/owned arrays and proves that every previous document and the manifest survive failed generation.
   Missing/duplicate/wrong-type/nested/enum/count/byte/total/depth/duplicate-key and ignored-carried controls are included.
   Successful output also exercises up-to-date and build-cache restoration with byte-identical content.
 
-Final qualification/review/delivery results are recorded below when complete; this section does not claim unrun checks.
+## Final local qualification and review
+
+JDK 17, reviewed production/test commit `290694e83`; final sequential `./gradlew check` passed in **15m15s**, 140 tasks
+(70 executed, 70 up-to-date). Groovy 3/4/5 JUnit totals: **3387 / 2760 / 2760**; **zero failures/errors**;
+**17 / 16 / 16 existing skips**. `InputExamplesTest` contributes 17 passing cases in each lane. All **121 packaged JSON
+Schema cases** and the **53-case private JSON corpus** pass. Licenses, plugin validation, lane isolation, aggregate
+coverage, release/documentation checks and the full source-mirror suite pass. No new suppression or dependency is added.
+
+Independent Python `jsonschema 4.23.0` qualification passes **111 metaschema/input controls**, using the full Draft 2020-12
+metaschema plus annotation/validation vocabularies and 17 positive/negative inputs per producer, compared with examples
+removed. G3/G4/G5 bytes are identical. Exact long-decimal and arbitrarily large-exponent lexemes and JSON null survive;
+the independent decoder validates JSON syntax without imposing numeric-range limits on advisory values. A disposable
+JDK17/G3 static-imported Java constant control also passes with a throwing supplying-class initializer. Replay scripts and
+logs are local `/private/tmp/d7-validate.py`, `/private/tmp/d7-constant-controls.py`, `/private/tmp/d7-final-check.log`,
+`/private/tmp/d7-review-final.log`; generated corpus lives in the plugin's `build/schema-validation/`.
+
+An initial overlapping full/focused run is not qualification evidence: it changed class files during coverage and reported
+mirror-fixture failures. It was canceled. The stable sequential focused mirror control and final full suite above
+supersede that run; no historical failure cause is claimed from the canceled run.
+
+Independent code-review **Standards: zero remaining findings**; **Specification: zero remaining findings**. The Standards
+naming observation was addressed by `collectDeclarationProfiles` / declaration-metadata diagnostics. The Specification
+finding was addressed by exact later-element/count indices and top-level enum/nested-annotation handling; the packaged
+negative matrix now asserts example 2, count 17, total-byte example 5 and safe UTF-16 diagnostics. Both axes independently
+rechecked the changes. The four local reasoning commits were reviewed for focus/order; no rewrite was necessary.
+The final evidence-only documentation commit does not change the qualified production/test inputs.
+
+## Delivery and tracker impact
+
+Tracker relationship: **Related: #959**. Parent issue remains open; enhancement/needs-triage labels, no milestone, curation
+and release placement are unchanged. No Pattern changes or merge are assigned. Draft publication is authorized by the
+implementation assignment after local qualification. Authoritative PR CI/Sonar remains a separate gate and must not be
+inferred from local results. Review/merge and Hive delivery/archive reconciliation remain pending.
 
 ## Historical probe (superseded proposal)
 
