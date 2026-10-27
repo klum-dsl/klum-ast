@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.ConstraintProjection;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
+import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -75,12 +76,22 @@ final class StructuredInputConstraintMetadata {
 
     private static AnnotationNode rule(AnnotationNode annotation, List<AnnotationNode> declarations) {
         String name = annotation.getClassNode().getName();
+        // Use Groovy's inert ConstantValue/AST folding, never reflective field reads or evaluation.
+        if (name.equals("jakarta.validation.constraints.Pattern")) {
+            annotation.getMembers().replaceAll((member, expression) -> ExpressionUtils.transformInlineConstants(expression));
+        }
         AnnotationNode rule = new AnnotationNode(ClassHelper.make(GeneratedInput.Constraint.class));
+        rule.setSourcePosition(annotation);
         rule.setMember("annotation", new ConstantExpression(name));
         rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
         rule.setMember("plain", ConstantExpression.FALSE);
         boolean decimal = name.equals("jakarta.validation.constraints.DecimalMin") || name.equals("jakarta.validation.constraints.DecimalMax");
         if (name.equals(MIN) || name.equals(MAX) || decimal) captureBound(annotation, declarations, rule, decimal);
+        if (name.equals("jakarta.validation.constraints.Pattern")) {
+            rule.setMember("regexp", annotation.getMember("regexp"));
+            rule.setMember("patternFlagsEmpty", new ConstantExpression(empty(annotation.getMember("flags"))));
+            rule.setMember("plain", new ConstantExpression(plain(annotation, declarations)));
+        }
         return rule;
     }
 
@@ -93,9 +104,13 @@ final class StructuredInputConstraintMetadata {
             Expression inclusive = annotation.getMember("inclusive");
             rule.setMember("inclusive", inclusive == null ? ConstantExpression.TRUE : inclusive);
         }
-        boolean plain = empty(annotation.getMember("groups")) && empty(annotation.getMember("payload"))
-                && declarations.stream().filter(other -> other.getClassNode().getName().equals(annotation.getClassNode().getName())).count() == 1;
+        boolean plain = plain(annotation, declarations);
         rule.setMember("plain", new ConstantExpression(plain));
+    }
+
+    private static boolean plain(AnnotationNode annotation, List<AnnotationNode> declarations) {
+        return empty(annotation.getMember("groups")) && empty(annotation.getMember("payload"))
+                && declarations.stream().filter(other -> other.getClassNode().getName().equals(annotation.getClassNode().getName())).count() == 1;
     }
 
     private static boolean empty(Expression expression) {
@@ -133,11 +148,23 @@ final class StructuredInputConstraintMetadata {
         if (expression instanceof ClassExpression type) return type.getType().getName();
         if (expression instanceof ConstantExpression constant) {
             Object value = constant.getValue();
-            return value instanceof String text ? "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"") + "\"" : String.valueOf(value);
+            return value instanceof String text ? "\"" + escape(text) + "\"" : String.valueOf(value);
         }
         if (expression instanceof PropertyExpression property)
             return render(property.getObjectExpression()) + "." + property.getPropertyAsString();
         return "<runtime expression: " + expression.getClass().getSimpleName() + ">";
+    }
+
+    private static String escape(String text) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\\' || c == '"') result.append('\\').append(c);
+            else if (Character.isISOControl(c) || Character.isSurrogate(c) || c == '\u2028' || c == '\u2029')
+                result.append(String.format("\\u%04x", (int) c));
+            else result.append(c);
+        }
+        return result.toString();
     }
 
     private static boolean groupRedefined(ClassNode type, Set<String> visited) {

@@ -183,15 +183,42 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         boolean integralProperty = ordinaryScalar && "integer".equals(value.get("type"));
         boolean decimalProperty = ordinaryScalar && entry.payload().type() == BigDecimal.class;
         List<Map<String, Object>> bounds = new ArrayList<>();
+        List<Map<String, Object>> patterns = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
             // Validate supported facts even when policy suppresses their output; unknown data must fail closed.
-            boolean projected = !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
+            String patternReason = patternReason(entry, rule, groupRedefined, patterns);
+            boolean projected = patternReason != null && patternReason.isEmpty() || !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
             if (constraints.policy() == Policy.OMIT || constraints.policy() == Policy.PROJECT && projected) continue;
-            String reason = constraintReason(constraints.policy(), groupRedefined);
+            String reason = constraints.policy() == Policy.PROJECT && patternReason != null ? patternReason : constraintReason(constraints.policy(), groupRedefined);
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
-        if (constraints.policy() == Policy.PROJECT) conjoinBounds(value, bounds);
+        if (constraints.policy() == Policy.PROJECT) {
+            conjoinBounds(value, bounds);
+            appendConjunction(value, patterns);
+        }
         if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
+    }
+
+    private static String patternReason(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
+                                        boolean groupRedefined, List<Map<String, Object>> patterns) {
+        if (!rule.annotation().equals("jakarta.validation.constraints.Pattern")) return null;
+        if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
+                || entry.payload().type() != String.class || entry.schemaKey()) return "unsupported Pattern site/type";
+        if (!rule.plain() || groupRedefined) return "Pattern groups/payload or group redefinition/sequence";
+        if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return "nonempty Pattern flags";
+        BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
+        if (result.reason() != null) return result.reason();
+        patterns.add(Map.of("pattern", result.assertion()));
+        patterns.add(Map.of("not", Map.of("type", "string", "pattern", "[^ -~]")));
+        return "";
+    }
+
+    @SuppressWarnings("unchecked") // allOf is created here exclusively as a list of assertion maps.
+    private static void appendConjunction(Map<String, Object> value, List<Map<String, Object>> additions) {
+        if (additions.isEmpty()) return;
+        List<Map<String, Object>> conjunction = new ArrayList<>((List<Map<String, Object>>) value.getOrDefault("allOf", List.of()));
+        conjunction.addAll(additions);
+        value.put("allOf", conjunction);
     }
 
     private static String constraintReason(Policy policy, boolean groupRedefined) {
@@ -207,7 +234,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                 if (value.putIfAbsent(keyword, endpoint) != null) conjunction.add(bound);
             });
         }
-        if (!conjunction.isEmpty()) value.put("allOf", conjunction);
+        appendConjunction(value, conjunction);
     }
 
     private boolean projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
