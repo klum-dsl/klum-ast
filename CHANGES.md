@@ -1,5 +1,10 @@
 # Unreleased
 
+- Added `@InputExamples` for advisory JSON Schema values on exact field/key/operation payloads and parent relationship
+  uses. Source-free generation preserves JSON null/number lexemes and rejects malformed, ambiguous or oversized examples
+  atomically. Defaults, requiredness, runtime input and validation are unchanged; the development metadata version stays 1.
+  See [examples](docs/user/Json-Schema.md#advisory-input-examples) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Unified structured-input/JSON Schema metadata under one required protocol version. Older or incomplete Builder
   contracts are rejected; recompile participating Schema hierarchies and owned artifacts with matching tools.
   Removed legacy identity/operation reconstruction and feature-specific version markers; valid-Schema behavior is

@@ -63,7 +63,7 @@ Structured input and JSON Schema generation require Schemas compiled with a matc
 Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
 
 The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
-require exactly that version and complete naming, exclusion, constraint, projection, source-provenance and key facts.
+require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key and inert example-array facts.
 The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
 future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
 completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked
@@ -386,3 +386,29 @@ The key examples live in
 linked to [#954](https://github.com/klum-dsl/klum-ast/issues/954).
 Related language work: [#932](https://github.com/klum-dsl/klum-ast/issues/932); optional matching JSON Schema generation
 remains [#529](https://github.com/klum-dsl/klum-ast/issues/529).
+
+
+## Advisory input examples
+
+`@InputExamples` documents eligible field/key declarations and admitted authored one-payload operations for
+[generated JSON Schema](Json-Schema.md#advisory-input-examples). It changes no runtime input or construction behavior.
+
+(See: `InputExamplesTest#'document example values without supplying defaults or changing input admission'`.)
+
+```groovy
+@DSL class Service {
+    @InputExamples(['"Catalog"', 'null']) String displayName
+}
+
+def configured = KlumStructuredInput.readRoot(Service, [displayName: 'Configured'], 'service.yaml')
+def omitted = KlumStructuredInput.readRoot(Service, [:], 'service.yaml')
+assert configured.displayName == 'Configured'
+assert omitted.displayName == null
+```
+
+Each annotation String is one complete JSON value. The shared byte reader verifies inert example-array transport and
+size limits before input execution, including omitted admitted ownership targets. It does not parse JSON, derive defaults,
+change naming/exclusion/requiredness, run validation, or execute example payloads. A syntactically invalid JSON example can
+therefore compile and construct normally, while JSON Schema generation fails. Examples do not make null admissible.
+Compile-time constant folding never reads a static field reflectively to obtain example text. See the generator contract
+for exact placements, grammar, safe diagnostics and limits; Javadoc/AnnoDocimal transport is unnecessary.

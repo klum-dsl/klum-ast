@@ -827,3 +827,39 @@ classpath classes are not inspected. There is no version negotiation, registry, 
 or new authoring API. Supported naming, key positions, admission, numeric assertions, projection policy, runtime validation,
 initialization safety and output atomicity are preserved. See
 [implementation and qualification](../implementation/issue-959-unified-metadata-protocol.md).
+
+
+## D7 advisory input examples — #959
+
+Date: 2026-10-27. Status: **Accepted bounded implementation**.
+Authority: [maintainer decision](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6442779190).
+This supersedes the earlier examples/AnnoDocimal deferral only for the explicit annotation route.
+
+`@InputExamples(String[] value)` is documented, runtime-retained and FIELD/METHOD-targeted. Each constant String is one
+complete JSON value. Direct authored facts are folded independently onto `GeneratedInput.Field`, `Key` and `Operation`,
+including empty arrays for absence and the suppressed-key getter fallback. No getter/parameter/type/package policy,
+annotation propagation, Javadoc transport, registry or execution supplies examples.
+
+Examples follow existing effective source identity, inheritance, naming and exclusion. They attach to the exact property,
+member construction key, one-payload authored operation, or parent relationship use. Containers carry whole payloads;
+keyless definitions omit construction-key examples. A relationship's examples never enter shared child definitions or
+sibling uses. ConstraintProjection and deprecation remain independent. Existing admission/collision decisions prevail;
+examples cannot admit an unsupported declaration or merge ancestor/local facts.
+
+The compiler and shared byte reader enforce 16 examples/declaration, 8192 modified-UTF-8 bytes/example and 32768 bytes/decl.
+Only the private generator parses JSON, with complete RFC 8259 value consumption, depth at most 32 containers, duplicate
+**decoded** object-key rejection, no BOM/raw controls/unpaired surrogates, and no number conversion. A privately constructed
+validated value writes the original text, preserving number lexemes and JSON null. All carried facts on participating
+contracts are checked before exclusion/projection; excluded target types and unrelated classes are not traversed.
+Failures precede replacement of any output or manifest, identify source/artifact/example index/UTF-16 offset and reason,
+and never echo payload text. Compilation and interpretation enforce inert transport; malformed JSON syntax is a generation
+failure and does not itself reject ordinary construction.
+
+Examples are advisory annotations only. They supply no defaults and change no requiredness, runtime validation, lifecycle,
+input admission, converters, templates or execution. Usefulness/schema-validity is the author's responsibility.
+
+The current `GeneratedInput.Schema.version=1` is unchanged. No per-feature marker or 4.2-development release/recompilation
+cutover is introduced. Matching current compiler/runtime/plugin facts remain required, without a historical or mixed-toolchain
+compatibility promise. Any formal protocol bump belongs to actual 4.2 release preparation.
+[Implementation evidence](../implementation/issue-959-d7-examples.md) and
+[user contract](../user/Json-Schema.md#advisory-input-examples) describe this slice. Pattern projection is independent.
