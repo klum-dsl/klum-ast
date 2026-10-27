@@ -821,8 +821,9 @@ and recompilation guidance. No identity-only acceptance, old operation-annotatio
 completeness, optional older provenance or unknown key-authority state remains. Current key-member facts for suppressed
 public getters and separate field/operation names on a shared accessor remain necessary current compiler facts.
 
-The exact public Builder byte reader is the common gate. Consumers retain their existing hierarchy/owned-contract read
-paths and inspect no unrelated classpath classes. There is no version negotiation, registry, adapter, migration framework
+The exact public Builder byte reader is the common gate. The interpreter reuses its per-read plan cache to validate the admitted ownership closure before execution, including
+omitted children and recursive contracts; the generator already visits that closure. Excluded targets and unrelated
+classpath classes are not inspected. There is no version negotiation, registry, adapter, migration framework
 or new authoring API. Supported naming, key positions, admission, numeric assertions, projection policy, runtime validation,
 initialization safety and output atomicity are preserved. See
 [implementation and qualification](../implementation/issue-959-unified-metadata-protocol.md).

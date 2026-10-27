@@ -10,7 +10,8 @@ choices in #972–#977; it does not change the authoring vocabulary or valid-Sch
 The compiler explicitly emits `GeneratedInput.Schema.version=1`. The reader requires exactly 1, and does not apply
 annotation defaults to missing classfile facts. Missing/older/future/malformed versions fail with the affected
 Schema/public Builder, artifact where available and recompilation guidance. Participating inherited and owned contracts
-use the same rule at the existing consumer read points; no unrelated-classpath scan or new eager graph traversal is added.
+use the same rule. The interpreter reuses its per-read plan cache to check the admitted ownership closure, including omitted
+children, before execution. Caching before following edges closes cycles; excluded targets and unrelated classes are not followed.
 
 Removed:
 
@@ -74,7 +75,7 @@ Five independently optional version values become one exact-version gate. Raw-an
 fallback dispatch are deleted, as are nullable validated provenance/authority states and the unknown-authority consumer
 branches. The added checks enforce required current facts in the existing reader; there is no registry, adapter, version
 negotiation, migration layer or replacement protocol abstraction. The shared reader shrinks from **1,165 to 1,140 lines** with **154 to 149 explicit `if` statements**. Across reader,
-interpreter and projector, **37 lines and 10 explicit `if` statements** are removed. The two compiler enrichment classes
+interpreter and projector, **27 lines and 8 explicit `if` statements** are removed. The two compiler enrichment classes
 also lose four marker emissions; the generated annotation loses four version fields. This simple lexical count is not a
 formal complexity score: the material reduction is one supported protocol state, zero legacy acceptance routes and fewer
 consumer states, while strict current-fact validation is centralized rather than negotiated.
@@ -86,3 +87,23 @@ named constants. Full PR CI/Sonar remains authoritative; no fast pre-PR scan is 
 
 Delivery updates existing PR #977 with additive commits and one consolidated follow-up. No merged PR, issue/milestone,
 authoring API or release placement is changed. Do not merge; Hive archive reconciliation remains separate.
+
+
+### Independent review correction before full qualification
+
+Standards review of `fce804ebb55ed6997c39279d48ac9233f1298117` against the follow-up base reported zero findings.
+Specification review found one P2 gap: the original interpreter checked an ordinary direct owned contract only when a
+nested value was supplied. A direct Java 17/Groovy 3 probe (`/tmp/977-owned-review.groovy`) demonstrated root initialization
+and successful empty input despite a reachable Child protocol changed to 2; supplied child input rejected it.
+
+The correction extends the existing preparation plan cache: store each decoded contract before following only admitted
+nested-object payloads. No new graph abstraction/cache/registry is introduced. This required bounded closure validation
+matches the generator's definition traversal, handles recursive types and leaves excluded/unrelated targets untouched.
+Core regressions cover omitted, transitive and inherited-owned incompatibility, a live root initializer control, active
+Builder non-mutation, valid cycles and an excluded incompatible target. The packaged protocol matrix now supplies empty
+root input for incompatible owned-artifact cases, removing its earlier dependence on supplied child data.
+
+
+The owned-closure focused check passes on Groovy 3, including omitted direct/transitive/inherited-owned rejection,
+active Builder non-mutation, valid cycles and an excluded incompatible target. The 10 packaged protocol rows also pass
+with omitted child input. This correction was reviewed before starting the sole full-root qualification for the follow-up.

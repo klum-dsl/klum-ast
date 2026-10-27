@@ -66,8 +66,9 @@ The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every
 require exactly that version and complete naming, exclusion, constraint, projection, source-provenance and key facts.
 The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
 future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
-completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. Contracts are checked
-at the existing hierarchy and owned-model read points; unrelated classpath classes are not scanned.
+completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked
+before execution, including omitted owned inputs; the per-read cache terminates recursive contracts. Excluded targets
+and unrelated classpath classes are not scanned.
 
 ## Type naming profiles
 

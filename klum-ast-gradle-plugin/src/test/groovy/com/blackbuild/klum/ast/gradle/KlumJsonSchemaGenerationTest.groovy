@@ -133,7 +133,7 @@ klumSchema.jsonSchema.rootTypes.set(['example.NamingService'])
 tasks.register('rejectedNamingControl', JavaExec) {
     classpath = klumSchema.jsonSchema.classpath
     mainClass = 'example.NamingControl'
-    args('NamingService')
+    args('NamingService', 'omit-owned')
 }
 ''')
         run('generateKlumJsonSchema')
@@ -1880,7 +1880,7 @@ class NamingControl {
         if (args.length) {
             def type = Class.forName('example.' + args[0], false, NamingControl.classLoader)
             try {
-                KlumStructuredInput.readRoot(type, (args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
+                KlumStructuredInput.readRoot(type, (args.length > 1 ? [:] : args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
                 throw new AssertionError('invalid contract accepted')
             } catch (KlumModelException expected) {
                 assert expected.message.contains('input profiles') || expected.message.contains('collision') || expected.message.contains('naming metadata') || expected.message.contains('metadata protocol') || expected.message.contains('Missing constraint') || expected.message.contains('Unknown constraint projection policy') || expected.message.contains('Invalid decimal bound') || expected.message.contains('missing direct decimal facts') || expected.message.contains('construction key') || expected.message.contains('Malformed UTF-16')

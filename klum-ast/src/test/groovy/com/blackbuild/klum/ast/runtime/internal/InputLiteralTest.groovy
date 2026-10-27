@@ -28,6 +28,11 @@ import com.blackbuild.klum.ast.InputName
 import com.blackbuild.klum.ast.InputIgnore
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import groovyjarjarasm.asm.AnnotationVisitor
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
@@ -183,6 +188,110 @@ class InputLiteralTest extends AbstractDSLSpec {
         fieldAnnotation             | methodAnnotation                            | external       | ignoredSource
         '@InputIgnore'              | "@InputName('setter/exact')"                 | 'setter/exact' | '#key'
         "@InputName('field/exact')" | '@InputIgnore'                              | 'field/exact'  | '#setKey('
+    }
+
+    def 'omitted owned contracts reject incompatible protocol before root execution: #target #version'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                static { System.setProperty('literal.executed', 'initialized') }
+                Middle middle
+            }
+            @DSL class Middle { Service recursive; Child child }
+            @DSL class ChildBase { String inheritedValue }
+            @DSL class Child extends ChildBase { String value }
+        ''')
+        rewriteProtocol(target, version)
+
+        when:
+        KlumStructuredInput.readRoot(type, [:], 'omitted.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('metadata protocol version ' + version)
+        failure.message.contains('literals.' + target)
+        failure.message.contains('/middle')
+        failure.message.contains('recompile and package')
+        System.getProperty('literal.executed') == null
+
+        when: 'the independent control proves the root initializer is live'
+        Class.forName('literals.Service', true, artifacts)
+
+        then:
+        System.getProperty('literal.executed') == 'initialized'
+
+        where:
+        target   | version
+        'Middle' | 0
+        'Child'  | 0
+        'Child'  | 2
+        'ChildBase' | 2
+    }
+
+    def 'incompatible omitted ownership leaves active Builder configuration untouched'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                String value
+                Child child
+                @Builder.Method void configure(String next) {
+                    System.setProperty('literal.executed', 'operation')
+                    value = next
+                }
+            }
+            @DSL class Child { String value }
+        ''')
+        rewriteProtocol('Child', 2)
+        Throwable rejected
+
+        when:
+        def result = type.Create.With {
+            value 'before'
+            try {
+                KlumStructuredInput.applyToBuilder(delegate, [configure: 'after'], 'active.yaml')
+            } catch (KlumModelException failure) { rejected = failure }
+        }
+
+        then:
+        rejected.message.contains('metadata protocol version 2')
+        result.value == 'before'
+        result.child == null
+        System.getProperty('literal.executed') == null
+    }
+
+    def 'owned contract cycles terminate without inspecting excluded targets'() {
+        given:
+        def type = schema('''
+            @DSL class Service { Middle middle; @InputIgnore Excluded excluded }
+            @DSL class Middle { Service recursive; Child child }
+            @DSL class Child { String value }
+            @DSL class Excluded { String hidden }
+        ''')
+        rewriteProtocol('Excluded', 2)
+
+        when:
+        def result = KlumStructuredInput.readRoot(type, [:], 'recursive.yaml')
+
+        then:
+        result.middle == null
+        result.excluded == null
+    }
+
+    private void rewriteProtocol(String type, int version) {
+        def file = new File(compilerConfiguration.targetDirectory, 'literals/' + type + '_DSL$Builder.class')
+        def writer = new ClassWriter(0)
+        new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                def downstream = super.visitAnnotation(descriptor, visible)
+                if (!descriptor.endsWith('GeneratedInput$Schema;')) { return downstream }
+                new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                    @Override void visit(String member, Object value) {
+                        super.visit(member, member == 'version' ? version : value)
+                    }
+                }
+            }
+        }, 0)
+        file.bytes = writer.toByteArray()
     }
 
     def 'canonical literals have required exact values and field or method runtime targets'() {

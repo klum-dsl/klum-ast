@@ -250,8 +250,18 @@ public final class StructuredInputSupport {
         }
 
         private CompiledBuilderSchema plan(Class<?> model, String path) {
-            try { return plans.computeIfAbsent(model, CompiledBuilderSchema::read); }
-            catch (KlumModelException failure) {
+            CompiledBuilderSchema known = plans.get(model);
+            if (known != null) return known;
+            try {
+                CompiledBuilderSchema decoded = CompiledBuilderSchema.read(model);
+                plans.put(model, decoded); // Register before following ownership so recursive contracts terminate.
+                for (Entry entry : decoded.entries().values()) {
+                    if (entry.payload().kind() == Kind.NESTED_OBJECT) {
+                        plan(entry.payload().type(), pointer(path, entry.externalName()));
+                    }
+                }
+                return decoded;
+            } catch (KlumModelException failure) {
                 throw new KlumModelException(source + " at '" + (path.isEmpty() ? "/" : path) + "': " + failure.getMessage(), failure);
             }
         }
