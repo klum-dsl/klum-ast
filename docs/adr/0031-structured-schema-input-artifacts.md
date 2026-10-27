@@ -862,7 +862,7 @@ No infrastructure is retained for future typed examples. Pattern projection is s
 
 ## Conservative Pattern projection — #959
 
-Date: 2026-10-27. Status: **Accepted bounded implementation slice; remote delivery pending sibling merge/revalidation**.
+Date: 2026-10-27. Status: **Accepted bounded implementation slice; rebased onto merged D7 examples for delivery**.
 Authority: [maintainer decision](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6442779190).
 This supersedes only the Pattern deferral for direct singleton Jakarta Pattern on eligible ordinary String fields.
 

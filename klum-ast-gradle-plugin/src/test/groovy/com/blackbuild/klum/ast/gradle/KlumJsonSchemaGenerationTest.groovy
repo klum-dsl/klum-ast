@@ -193,6 +193,8 @@ tasks.register('exampleControl', JavaExec) {
         then:
         properties.slug.allOf == [[pattern: '^[a-z][a-z0-9-]{0,62}$'], [not: [type: 'string', pattern: '[^ -~]']]]
         properties.slug.description == 'Release slug.'
+        properties.slug.examples == ['release-1', 'NOT VALID']
+        properties.'text-only'.examples == ['outside']
         properties.'Inherited/Code'.allOf[0].pattern == '^[A-Z]{2}$'
         properties.'Inherited/Code'.'x-klum-constraint-source' == 'example.PatternBase#inheritedCode'
         properties.'optional-token'.allOf[0].pattern == '^a{0,2}$'
@@ -214,7 +216,7 @@ tasks.register('exampleControl', JavaExec) {
         !properties.'mixed-list'.containsKey('allOf')
         properties.'mixed-list'.description.contains('Pattern$List')
         properties.'text-only'.description.contains('field projection policy TEXT_ONLY')
-        properties.omitted == [type: 'string', description: 'Retained prose.', deprecated: true]
+        properties.omitted == [type: 'string', description: 'Retained prose.', deprecated: true, examples: ['outside']]
         !properties.containsKey('excluded')
         !properties.'wrong-type'.containsKey('allOf')
         !properties.container.items.containsKey('pattern')
@@ -2388,7 +2390,7 @@ import static example.PatternConstants.TOKEN
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Pattern Schema initialized') }
     $corpusFields
     /** Release slug. */
-    @Pattern(regexp=TOKEN) String slug
+    @InputExamples(['release-1', 'NOT VALID']) @Pattern(regexp=TOKEN) String slug
     @Pattern(regexp=TOKEN, flags=Pattern.Flag.COMMENTS) String constantFallback
     @Pattern(regexp='a', flags=Pattern.Flag.UNIX_LINES) String unix
     @Pattern(regexp='a', flags=Pattern.Flag.MULTILINE) String multiline
@@ -2407,9 +2409,9 @@ import static example.PatternConstants.TOKEN
     @Pattern.List([@Pattern(regexp='a'), @Pattern(regexp='b')]) String repeated
     @Pattern.List([@Pattern(regexp='a')]) String singletonList
     @Pattern(regexp='a') @Pattern.List([@Pattern(regexp='b')]) String mixedList
-    @Pattern(regexp='a') @ConstraintProjection(Policy.TEXT_ONLY) String textOnly
+    @InputExamples(['outside']) @Pattern(regexp='a') @ConstraintProjection(Policy.TEXT_ONLY) String textOnly
     /** Retained prose. */
-    @Deprecated @Pattern(regexp='a') @ConstraintProjection(Policy.OMIT) String omitted
+    @InputExamples(['outside']) @Deprecated @Pattern(regexp='a') @ConstraintProjection(Policy.OMIT) String omitted
     @InputIgnore @Pattern(regexp='a') String excluded
     @Pattern(regexp='a') Integer wrongType
     @Pattern(regexp='a') List<String> container

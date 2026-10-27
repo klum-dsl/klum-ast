@@ -37,7 +37,7 @@ inheritance/owned-locality rules remain independent. D7 examples code is untouch
 - `JsonSchemaProjection`: original eligible String property placement, empty groups/payload/flags/hierarchy checks,
   anchored pattern plus typed `not` ASCII guard, and stable fallback reasons. Conjunction appends preserve prior `allOf`.
 
-## Qualification
+## Pre-rebase qualification (local checkpoint)
 
 Focused Gradle plugin tests pass: 53 recognizer cases plus 18 packaged source-free cases (three G3/G4/G5 producers and
 fifteen corruption scenarios). Fixtures package independent API/base, derived Schema and owned Schema JARs, then delete
@@ -109,11 +109,21 @@ Original refreshed master base: `6c6d8c568b9cc99e68dc521950373611b4b513b7`.
 Worktree: `/Users/stephan/.codex/worktrees/959-pattern-projection/klum-ast`.
 Branch: `codex/959-pattern-projection`. Initial production/test checkpoint: `9a5ec72ba58811d0fecfb749df69692f9f655921`.
 
-At final local handoff, sibling [D7-EXAMPLES PR #978](https://github.com/klum-dsl/klum-ast/pull/978) is verified **OPEN**
-at `1159c5ec40d851436cf4920f146c46d6e57b806b`, with no merge commit. This branch is **not rebased** onto D7-EXAMPLES;
-its original base remains the refreshed master above. Implementation validation and reviews are complete locally;
-post-sibling-merge rebase, revalidation and final review/checks are deliberately still pending. No examples source is changed.
+## Rebase onto merged D7-EXAMPLES
 
-Remote delivery is prohibited until D7-EXAMPLES is verified merged, this branch is rebased onto that exact merge head,
-and validation/reviews/final checks pass after rebase. If pending, hand off `(ready:commit)` as expressly requested, even
-when local commits exist. Hive must reconcile delivery/archive separately; this worker does not self-archive.
+PR #978 is verified merged as `1db75518818ec1c7f5e92caa0c4eebd660f4e73d`. Refreshed `origin/master` is exactly that
+merge commit, and the Pattern commits are rebased onto it. The previous sibling delivery hold is satisfied; publication
+still requires the post-rebase validation/reviews recorded in the delivery update. The maintainer explicitly authorizes
+pushing this dedicated branch and opening a draft PR for #959, without merging.
+
+Conflict resolution retains both the examples-bearing input-entry record and typed Pattern constraint record. Test
+fixture switches are independent, so examples and Pattern fixtures select their respective source sets. ADR, migration
+and changelog sections preserve both accepted features. No examples production behavior is changed. Source-free G3/G4/G5
+Pattern fixtures additionally verify that documentary examples remain advisory under PROJECT/TEXT_ONLY/OMIT, including
+an example that does not satisfy the Pattern. `GeneratedInput.Schema.version=1` remains unchanged. No feature protocol
+or compatibility mode is added. Tracker impact is `Related: #959`; no issue closure, labels, milestone or release-placement
+change is requested.
+
+Post-rebase validation/reviews are in progress at this checkpoint. Earlier passing totals above are historical evidence,
+not a passing claim for this rebased head. Hive delivery/archive reconciliation remains separate; this worker does not
+merge or self-archive.
