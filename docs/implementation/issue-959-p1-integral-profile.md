@@ -26,7 +26,7 @@ structural. The Boolean is a tracked Gradle task input. It crosses the existing 
 without retaining loaded contracts in configuration state. Existing output names, manifest/stale handling and loader
 isolation remain in place. The artifact identifies its raw-input policy and final-validation limitation.
 
-The compiler enriches existing public Builder declarations. `GeneratedInput.Schema.constraintVersion=1` and explicit
+The compiler enriches existing public Builder declarations. Shared `GeneratedInput.Schema.version=1` and explicit
 `groupRedefined` establish coverage; explicit field `constraints` arrays establish complete field facts, including no
 constraints. Inert nested facts hold annotation identity, deterministic authored attributes, and direct Min/Max Java-long
 values with empty-groups/payload eligibility. Ordinary compiler annotation-constant folding handles literal or symbolic

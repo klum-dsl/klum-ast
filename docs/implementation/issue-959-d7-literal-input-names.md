@@ -21,29 +21,18 @@ both source declarations. Existing identity collision behavior, inherited source
 remain intact. Excluding a key cannot remove required identity; external root keys and keyed owned Maps remain valid.
 Owned types use their own naming policy. Data/instance keys remain literal.
 
-## Minimal public Builder transport
+## Current public Builder protocol
 
-Existing generated field/key `rename` and `ignored` slots carry the effective language facts. The existing generated
-`Operation` annotation gains the same slots; exact source-authored operations no longer depend on annotation order when
-consumed. Each declaration also emits `nameOrigin` (`IDENTITY`, `JSON_PROPERTY`, `INPUT_NAME`, `IGNORE`, `INPUT_IGNORE`).
-This distinguishes source exclusion diagnostics and permits strict consistency/completeness checks. All three facts are
-explicit, including empty/false values. Declaring `Schema.literalVersion=1` is independent of profile/numeric/decimal/
-projection completeness. No descriptor duplication, companion, runtime overload, plugin selector or public metadata SPI
-is added.
+The [unified protocol follow-up](issue-959-unified-metadata-protocol.md) supersedes the original feature-specific markers
+and older-binary compatibility in this PR. `GeneratedInput.Schema.version=1` is explicitly emitted on every declaring
+Builder and is required by both consumers with all current facts. Older or incomplete contracts are rejected; recompile
+participating Schema hierarchies and owned artifacts with a matching supported toolchain.
 
-`CompiledBuilderSchema` reads only exact public Builder resources and reflected public signatures, verifies artifact
-identity and validates literal versions/facts before constructing the shared interpreter/projector contract. Missing,
-future, unknown, inconsistent, duplicate or wrongly encoded required facts fail with source/artifact recompile guidance.
-Current raw Jackson annotations cannot overwrite compiler-folded facts. Complete legacy facts with no literal marker
-retain the old field/key slots and authored-operation Jackson reader. New canonical operation annotations without their
-required marker fail; arbitrary removal of every sign of new facts is not a compatibility promise. Older strict readers
-reject the new marker rather than silently losing the language choice. Use matched tools and recompile affected Schemas.
-
-The retained profile binary evidence established that fields/keys retain their existing exact name/exclusion slots and
-that operations need explicit folding on their selected public declaration. The implementation adds no new transport
-kind. A test-only byte comparison of the documentary public Builder measures **103 bytes** for the new marker/origin/
-operation-slot facts on each G3/G4/G5 producer (4,364 / 4,364 / 4,383 total Builder bytes respectively). The first focused regression run passed before the new literal coverage. The bounded source-free fixtures then
-qualify the actual new vocabulary rather than inferring support from annotation defaults.
+Existing field/key slots and authored-operation facts retain exact `rename`, `ignored` and `nameOrigin` values, including
+empty/false values. Separate field/key and operation records remain necessary when declarations share one public
+signature. Exact resource/artifact verification and public signatures are the only metadata authority; raw Jackson
+annotations cannot overwrite or reconstruct the compiler's facts. Numeric assertions, projection, naming, key positions
+and runtime validation retain their semantics. No metadata SPI or new authoring API is introduced.
 
 ## Evidence and scope
 
@@ -60,8 +49,8 @@ qualify the actual new vocabulary rather than inferring support from annotation 
   feature `project literal names and exclusions from source-free artifacts with Groovy #generation` links
   [JSON Schema](../user/Json-Schema.md#literal-names-and-exclusion). Real interpreter acceptance is checked against exact
   closed-schema properties, inherited keys, owned independence, keyless ignored keys, runtime-name key fallback, aliases,
-  Map data/instance keys and operation tokens. Negative cases preserve previous output and execution traps. Complete legacy
-  literal facts retain byte-for-byte schema output independently of naming-profile completeness.
+  Map data/instance keys and operation tokens. Negative cases preserve previous output and execution traps. Older/incomplete contracts now reject under the shared
+  protocol; the former compatibility-success fixtures have been removed.
 
 The initial new core test run exposed a fixture setup error: the DSL-specific `createClass` helper expected a generated
 Builder for the disposable Jackson annotation declarations. Using the existing Groovy loader for those annotation stubs
@@ -71,6 +60,12 @@ Only the relevant ADR checkpoint, current Structured Input/JSON Schema/Migration
 historical decision/probe records retain their dated deferrals. No new pages or navigation entries are needed. Package,
 root/global/relationship profiles, JsonNaming, mapper adapters, examples, defaults, relationship selectors, new runtime
 signatures and metadata SPI remain outside scope.
+
+## Historical qualification of the original literal slice
+
+The records below belong to the original PR revisions before the unified-protocol follow-up. They retain the first-red
+and correction audit; their former compatibility tests and counts are not the current protocol contract or qualification.
+Current protocol rules and results are in the [follow-up evidence](issue-959-unified-metadata-protocol.md).
 
 ## Qualification and delivery boundary
 
@@ -119,8 +114,7 @@ The plugin task had two bounded failure causes:
   unchanged throughout the controlled rerun; no version override, copied dependency, warmup or relaxed assertion is used.
 - Three existing G3/G4/G5 deprecation-absence cases removed the whole generated Operation annotation. The reader correctly
   diagnosed missing required literal operation facts. The damage helper now removes only `sourceDeprecated`, preserving
-  independent required language facts while retaining every existing structural/advisory assertion. Actual legacy literal
-  compatibility remains separately tested with old literal-version/fact shapes.
+  independent required language facts while retaining every existing structural/advisory assertion. Those historical compatibility-success fixtures are removed by the unified-protocol follow-up.
 
 First-red XMLs, root output and fixture-version inventory are retained under `/tmp/959-literal-root-first-red` and the
 adjacent `959-literal-root-fixture-versions.txt`. The controlled check runs the original first source-mirror feature and

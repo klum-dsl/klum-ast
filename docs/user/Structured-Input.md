@@ -57,6 +57,18 @@ Compile Schemas successfully with the current KlumAST compiler and distribute th
 Missing or inconsistent generated structured-input metadata reports recompile/package guidance. An in-memory-only
 Schema without packaged generated metadata cannot use this route.
 
+## Metadata protocol
+
+Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.
+Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
+
+The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
+require exactly that version and complete naming, exclusion, constraint, projection, source-provenance and key facts.
+The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
+future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
+completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. Contracts are checked
+at the existing hierarchy and owned-model read points; unrelated classpath classes are not scanned.
+
 ## Type naming profiles
 
 Select `@InputNaming` on a Schema type to use the same exact member tokens in structured input and generated

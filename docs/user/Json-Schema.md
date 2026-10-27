@@ -74,12 +74,11 @@ stay literal; owned definitions use the owned type's hierarchy rather than the o
 `@InputName` or compatible `@JsonProperty` names override the profile; `@InputIgnore`/`@JsonIgnore` exclusions remain effective. The generator and interpreter share one resolver over public Builder facts;
 Model bytes, mapper strategies and annotation proxies do not provide naming facts.
 
-Conflicting explicit profiles, nonidentity member collisions and malformed/incomplete required naming metadata fail before
+Conflicting explicit profiles, nonidentity member collisions and malformed/incomplete required metadata fail before
 schema publication, preserving previous successful output. An ignored/colliding required key still makes member-key
-positions unrepresentable; keyless definitions retain existing behavior. No-profile/identity schemas retain their native
-output. Recompile selected hierarchies and align tool versions; complete legacy identity contracts remain usable where
-no selected profile requires missing ancestry facts. Numeric/projection completeness remains independently required.
-See [migration](Migration.md#type-naming-profiles).
+positions unrepresentable; keyless definitions retain existing behavior. Properly compiled no-profile/identity Schemas
+retain their native output. Recompile participating hierarchies and owned artifacts with the supported protocol; see
+[migration](Migration.md#structured-input-metadata-protocol).
 
 ## Literal names and exclusion
 
@@ -105,11 +104,11 @@ and keyed-instance identities remain literal.
 
 A literal can separate profile-colliding declarations; remaining nonidentity collisions fail before artifact replacement.
 An ignored required key still makes a member-key position unrepresentable; externally keyed owned Map bodies remain keyless.
-The compiler freezes exact names, exclusion and origin on declaring public Builder contracts with independent literal
-completeness. Missing, unknown, inconsistent or malformed required facts fail with source/artifact and recompile guidance,
-preserving prior successful schema output. Complete legacy identity facts retain their established output; no Model-byte
-fallback or Schema-code execution fills missing metadata. Align tool versions and recompile affected Schemas; see
-[migration](Migration.md#literal-names-and-exclusion).
+The compiler freezes exact names, exclusion and origin on declaring public Builder contracts. Both consumers require the
+same supported metadata protocol and complete facts. Missing, unknown, inconsistent or malformed facts fail with
+Schema/Builder, artifact and recompilation guidance, preserving prior successful output. Older contracts are rejected;
+no Model-byte fallback or Schema-code execution fills missing metadata. See
+[migration](Migration.md#structured-input-metadata-protocol).
 
 ## Deprecation
 
@@ -140,11 +139,10 @@ validation. It changes no defaults, converters, lifecycle or migration behavior.
 framework aliases such as TemplateScope `Create`/`CreateFrom` do not mark admitted members. `since` and `forRemoval`
 are not interpreted.
 
-Current compilers retain explicit true/false source facts on public Builder contracts. Artifacts that lack these
-optional facts can still generate when required numeric metadata is complete; the advisory keyword is omitted for those members,
-even if public methods carry `@Deprecated`. Generation never guesses provenance from an alias or reads Model bytes.
-Recompile and package the Schema and its inherited/owned dependencies with matching versions to obtain complete
-source deprecation metadata. Numeric projection always requires complete supported constraint facts.
+Current compilers retain required explicit true/false source-deprecation facts on public Builder contracts. Missing
+facts reject the contract under the shared protocol, even though the generated keyword itself is advisory. Generation
+never guesses provenance from an alias or reads Model bytes. Recompile participating Schema artifacts with a matching
+toolchain; numeric assertions and deprecation output retain their independent functional semantics.
 
 ## Field constraint projection
 
@@ -300,11 +298,10 @@ arguments receive no decimal assertions. All original requiredness, null admissi
 Templates and lifecycle behavior remains unchanged. This is a supplied-input authoring policy, with no Bean Validation
 equivalence or final construction-success promise.
 
-The generator reads only inert compiler facts on public Builders, including inherited and owned dependencies; it never
-reads Model implementation bytes, parses human descriptions into constraints or invokes authored code. The separate
-`decimalVersion=1` and `constraintVersion=1` completeness markers and explicit decimal String/inclusive facts are
-always required. Incomplete or incompatible numeric artifacts fail with recompile/package guidance. Align compiler, runtime and Gradle plugin versions and recompile all
-reachable Schema dependencies. No general profile naming or D7 decision is introduced.
+The matching supported metadata protocol and complete explicit numeric facts are required on root, declaring/inherited
+and participating owned contracts. Missing, malformed or incompatible facts fail atomically with Schema/Builder,
+artifact and recompilation guidance. Align compiler, runtime and Gradle plugin versions and recompile participating
+Schema dependencies. This does not change numeric assertion semantics.
 
 ## Supported input and limits
 

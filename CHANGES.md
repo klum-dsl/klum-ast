@@ -1,5 +1,10 @@
 # Unreleased
 
+- Unified structured-input/JSON Schema metadata under one required protocol version. Older or incomplete Builder
+  contracts are rejected; recompile participating Schema hierarchies and owned artifacts with matching tools.
+  Removed legacy identity/operation reconstruction and feature-specific version markers; valid-Schema behavior is
+  unchanged. See [migration](docs/user/Migration.md#structured-input-metadata-protocol) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Added `@InputName('literal')` and marker `@InputIgnore` for shared structured-input and JSON Schema member shaping.
   Exact literals override type profiles; exclusion removes eligible fields and authored Builder operations from both
   consumers. Equal Jackson equivalents coalesce; contradictory names fail even when excluded. Construction identity,

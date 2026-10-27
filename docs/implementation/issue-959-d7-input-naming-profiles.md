@@ -27,7 +27,7 @@ class loading is distinct from initialization. Production annotation-proxy evalu
 
 | Fact | Encoding / responsibility |
 | --- | --- |
-| Completeness | `GeneratedInput.Schema.namingVersion=1`, independent of numeric/decimal/field-policy versions |
+| Completeness | Shared `GeneratedInput.Schema.version=1` for all required metadata |
 | Explicit selection | Explicitly emitted `namingExplicit` Boolean on every declaring Builder |
 | Declared profile | Explicitly emitted inert `namingProfile` String, `IDENTITY` for absent declarations |
 | Provenance | Exact public Builder identity, corresponding Schema type and verified artifact/resource origin |
@@ -44,11 +44,9 @@ An explicit choice binds descendants, including identity; equal repetition is al
 ancestry names inherited members while the standalone ancestor remains native. Owned types resolve independently even
 when reached through two owner fields. No ownership cascade, mutable policy, caller selector or plugin option is added.
 
-Unknown versions/profiles, missing explicit/profile facts in version 1, inconsistent absence facts and missing naming
-ancestry under a selected profile fail with source/artifact recompile/package guidance. Complete legacy identity facts
-remain supported where no selected feature requires unavailable provenance. Matched tools and Schema recompilation are
-required for selected hierarchies; no blanket compatibility claim is made for arbitrary old artifacts or erased facts.
-Numeric/decimal/projection completeness is neither relaxed nor coupled to naming.
+The shared supported protocol requires naming explicitness/profile facts throughout every participating hierarchy,
+including unprofiled/identity contracts. Missing, unknown, inconsistent or malformed facts reject with Schema/artifact and
+recompilation guidance. Recompile participating artifacts with matching tools; no older-contract acceptance remains.
 
 ## Preserved Jackson bridge and limits
 

@@ -29,12 +29,11 @@ captured facts follow the same description policy. Future supported contribution
 
 ## Transport and authority
 
-Each declaring generated public Builder has `projectionVersion=1`; each field has an explicitly emitted
-`constraintProjection` enum, including the default. Groovy's ordinary compiler folds the typed annotation expression,
-including static imports. The shared ASM reader retains only the descriptor and name; generation validates the known
-policy and completeness. `constraintVersion=1` and `decimalVersion=1` stay unchanged. Structural/runtime reading does
-not consult policy for admission. Matching compiler/runtime/plugin versions and recompilation of every reachable
-root/inherited/owned contract are required; older strict readers reject newer facts and no mixed-version fallback is added.
+Each declaring generated public Builder has the shared `GeneratedInput.Schema.version=1`; each field explicitly emits
+`constraintProjection`, including its default, and complete numeric facts. The exact byte reader checks known policy and
+fact completeness for both consumers without executing Schema code. Policy still controls generation, not admission or
+runtime validation. Recompile participating root/inherited/owned artifacts with a matching toolchain; older or incomplete
+contracts are rejected without mixed-version fallback.
 
 The original declaring field identity determines policy, including inherited/renamed sources. Existing hierarchy,
 collision and exclusion authority remains unchanged. An independently admitted replacement declaration uses its own

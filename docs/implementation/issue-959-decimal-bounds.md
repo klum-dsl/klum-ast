@@ -20,11 +20,10 @@ Direct integral Min/Max and exact DecimalMin/DecimalMax keep the existing eligib
 and independent-conjunction behavior. Contradictory representable assertions generate successfully; no solver or
 numeric-domain rejection remains. `NumericBounds` stays deleted. BigDecimal parsing/rendering stays exact and sparse.
 
-Both `constraintVersion=1` and `decimalVersion=1` are required for root, declaring/inherited and reachable owned public
-Builder contracts. Retaining both avoids unnecessary generated ABI/compiler changes; they already carry the needed
-complete facts. The private numeric fact reader now unconditionally checks decimal and integral completeness; its unused selector is removed. Missing,
-malformed or incompatible facts fail atomically with source/artifact and recompile/package guidance. The separate
-runtime admission reader is unchanged; no Model bytes or authored code supply missing facts.
+The shared `GeneratedInput.Schema.version=1` and complete explicit numeric facts are required on participating root,
+declaring/inherited and owned contracts. Both consumers reject missing, malformed or incompatible required metadata with
+Schema/Builder, artifact and recompilation guidance. Numeric assertions remain generation/runtime-validation behavior;
+no Model bytes or authored code supply missing facts.
 
 The tests now exercise one always-on path, retaining numeric/exponent/conjunction/contradiction, binary API/Schema,
 inherited/renamed/owned, unsupported-description, no-execution, metadata failure, output ownership and caching checks.
@@ -107,7 +106,7 @@ properties, with empty groups/payload and no relevant hierarchy group redefiniti
 original P1 numeric-type scope and conjoins with decimal declarations on integral targets. BigDecimal Min/Max stays
 descriptive, as outside that scope. D7 naming/profile/example vocabulary remains deferred.
 
-Compiler enrichment adds independent `decimalVersion=1` on each declaring public Builder, and exact compiler-folded
+Compiler enrichment emits the shared supported protocol on each declaring public Builder, and exact compiler-folded
 String `decimalValue` plus explicit effective Boolean `inclusive` on direct decimal constraint facts. Original field
 source identity, declaring contract, effective selected admission and hierarchy eligibility remain authoritative.
 Default inclusive=true is explicitly frozen. Symbolic String constants are folded by the ordinary annotation compiler;
@@ -115,7 +114,7 @@ our capture evaluates no expression, reads no user field reflectively and execut
 Bean annotations remain at their original sites. There is no new metadata framework, provider or extension SPI.
 
 The byte reader consumes only public Builder facts, without Model implementation resources, source files, annotation
-proxies or user code. Missing/future integral or decimal completeness and missing decimal String/inclusive members
+proxies or user code. Incompatible protocol versions, incomplete numeric facts and missing decimal String/inclusive members
 always fail generation with artifact, public-contract, source/use
 and recompile/package guidance, including inherited and owned dependencies. This is matched internal linkage; an older
 strict runtime reader is not promised to consume newly enriched contracts. No Model-byte inference or descriptive-text
