@@ -65,16 +65,36 @@ Reproduce after packaged tests:
 ```
 
 Supply equivalent pinned tools rather than depending on that local virtual environment. Oracle helper classes are
-created only in a temporary directory. Results are recorded in the final handoff/evidence update.
+created only in a temporary directory. Final results are recorded below and in the linked result artifact.
 
 Initial independent review found missing collector-origin proof and singleton eligibility consistency; both are addressed
 with compiler-origin retention/shared-reader validation and explicit regressions. Standards requested braces and clearer
-projection result states; both are addressed. Re-review and full root qualification remain in progress at this checkpoint.
+projection result states; both are addressed. Both final review axes report zero remaining findings at the final implementation checkpoint recorded below.
 A later full check caught ADR 0014's explicit no-global-transform invariant; origin capture was corrected to use the
 existing KlumCast handoff and a SOURCE-only internal fact. The module-contract test is preserved, not weakened.
 An initial full check was deliberately stopped after a mid-run documentation commit caused nested source-mirror fixture
-publication to use a different inferred version from the built plugin. That run is not claimed as passing; a clean,
-fixed-head rerun is required. No unrelated source-mirror behavior change is made.
+publication to use a different inferred version from the built plugin. That run supplies no passing evidence; the clean
+fixed-head qualification below replaces it. No unrelated source-mirror behavior change is made.
+The clean final implementation checkpoint `ef7d13d881b1ce63fcbd0061a7c375e450fb6f22` passes Java 17 full root
+`check` in 13m51s. Groovy 3/4/5 totals are **3365 / 2743 / 2743**, with **zero failures/errors** and **17 / 16 / 16**
+existing skips. All **116** packaged JSON Schema regressions and **53** recognizer cases pass without skips. Root checks
+include licenses, lane isolation, plugin validation, JPMS boundaries and the complete module suites. No existing test
+or module-service contract was weakened.
+
+The additional explicit `annotationPropagationArtifactsGroovy3`, `annotationPropagationArtifactsGroovy4` and
+`annotationPropagationArtifactsGroovy5` matrix passes in 45s, with **1 / 2 / 2** executable matrix cases and no failures,
+errors or skips. These tasks are intentionally outside root `check`. Their internal artifact rows qualify actual
+classpath/named-module compiler and consumer arrangements. The contributor source change is therefore covered beyond
+ordinary unit/lane tests.
+
+The independent oracle was rerun against the successful full run's emitted schemas with the same passing counts above;
+[recorded result](evidence/issue-959-pattern-projection/qualified-result.md). Added relative documentation links,
+Markdown fences and `git diff --check` pass. Both independent Standards and Specification reviews have zero remaining
+findings. The final code review covers bounded parsing, typed facts, activation/origin proof, field policies, source
+placement, binary transport and atomicity. The unpublished corrective history was simplified before final qualification;
+its abandoned global registration is absent from the final history/diff. A final evidence-only documentation commit
+follows this qualified production/test tree.
+
 No CI/Sonar upload, push, PR or tracker mutation is performed.
 
 ## Documentary and delivery record
@@ -87,7 +107,12 @@ No issue comment is posted because tracker changes are explicitly excluded; this
 
 Original refreshed master base: `6c6d8c568b9cc99e68dc521950373611b4b513b7`.
 Worktree: `/Users/stephan/.codex/worktrees/959-pattern-projection/klum-ast`.
-Branch: `codex/959-pattern-projection`. Production/test checkpoint: `9a5ec72ba58811d0fecfb749df69692f9f655921`.
+Branch: `codex/959-pattern-projection`. Initial production/test checkpoint: `9a5ec72ba58811d0fecfb749df69692f9f655921`.
+
+At final local handoff, sibling [D7-EXAMPLES PR #978](https://github.com/klum-dsl/klum-ast/pull/978) is verified **OPEN**
+at `1159c5ec40d851436cf4920f146c46d6e57b806b`, with no merge commit. This branch is **not rebased** onto D7-EXAMPLES;
+its original base remains the refreshed master above. Implementation validation and reviews are complete locally;
+post-sibling-merge rebase, revalidation and final review/checks are deliberately still pending. No examples source is changed.
 
 Remote delivery is prohibited until D7-EXAMPLES is verified merged, this branch is rebased onto that exact merge head,
 and validation/reviews/final checks pass after rebase. If pending, hand off `(ready:commit)` as expressly requested, even
