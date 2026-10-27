@@ -129,3 +129,21 @@ The correction restores `Schema#field` context at the shared required-field vali
 Schema-name extraction for diagnostics. No validation or assertion is relaxed. Focused decimal/required-fact and core
 G3/G4/G5 confirmation follow; final full PR CI/Sonar will qualify the resulting published revision. There is no repeated
 local full-suite run for this diagnostic-only correction.
+
+
+### Reviewed correction and publication handoff
+
+At `972001f90f2cfc8cdca011a1778d7202892b25a0`, the focused confirmation passes in **2m03s**:
+**177 cases in each of G3/G4/G5**, plus **9 plugin cases**, zero failures/errors/skips. The plugin selection includes both
+original decimal failures, all five paired correct-version/required-fact cases and both missing-decimal-fact cases.
+The diagnostic assertions are unchanged. Standards and Specification reviews of this correction both report zero
+actionable findings. The earlier local root's two failures remain recorded above; this focused result does not relabel
+that root run as successful. Full exact-head PR CI/Sonar is the final qualification authority and its result is recorded
+in PR #977's consolidated follow-up, avoiding another evidence-only commit/CI cycle after remote qualification.
+
+Documentation targets/anchors/fences and diff checks pass. Local commit-history review confirms additive, reasoned
+commits after the already published/reviewed base; no unrelated changes or history rewrite. GitHub CLI repository
+mutation authority and Git-over-SSH branch-push authority both verify **authorized** independently (repository permission
+check and exact-branch push dry run). No connected-App mutation channel is used. Tracker impact remains `Related: #959`;
+issue state, labels, milestones and release placement remain unchanged. The maintainer explicitly requests a review-ready
+PR and prohibits merging; publication updates #977 and stops before merge or Hive archive reconciliation.
