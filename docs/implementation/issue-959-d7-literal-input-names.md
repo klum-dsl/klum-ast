@@ -89,3 +89,45 @@ a fast pre-PR upload to the shared project. No clean Sonar result is inferred fr
 
 Tracker impact is **Related: #959**, with no issue/milestone/label or curation/release-placement change. No merge is
 performed. Hive delivery/archive reconciliation is requested after worker delivery; the worker does not self-archive.
+
+
+### Independent review after correction
+
+Separate read-only Standards and Specification reviewers inspected `432f518fa220dec73209a2f595315cfa3241f9bd` against
+the fixed base, then the additive correction `ef931453636133249647aa93d3ebac8728730d68`. The original Standards review found
+one P3 unbraced else chain; Specification found the independently reproduced P2 shared-accessor regression described above.
+Both reviewers confirm **zero remaining actionable findings** at the corrected revision. Reviewed commits are preserved;
+the correction is an additive reasoning step. Focused Groovy 3 shared-accessor/source-isolation regressions pass.
+
+All **130 relative Markdown targets/anchors** and balanced fences across the affected documentation pass, including the
+renderer-style extensionless Templates link. Final diff/history review checks focused implementation, synchronized
+documentation and the independently required source-isolation correction. GitHub CLI repository-delivery capability is
+**authorized**; Git SSH delivery is independently checked at publication. No credential values/scopes or raw auth errors
+are retained.
+
+
+### Retained first completed root failure
+
+The next Java 17 root check at `ef931453636133249647aa93d3ebac8728730d68` finished **failed** in 20m41s; this result is
+retained, not replaced by later success. G4/G5 totals were **2,731 / 2,731**, zero failures/errors, existing skips **16 / 16**.
+The plugin task had two bounded failure causes:
+
+- Eleven source-mirror cases requested clean-version BOM `4.2.0-dev.188+codex.959.literal.input.names.ef93145`, but the
+  nested fixture publisher emitted only `4.2.0-dev.188.uncommitted+codex.959.literal.input.names.ef93145`. The worker edited
+  this evidence document during the run, changing Nebula's version identity between outer and nested builds. This is an
+  invalidated qualification input, not evidence of a product correction. Preserve the first XML/logs and keep the checkout
+  unchanged throughout the controlled rerun; no version override, copied dependency, warmup or relaxed assertion is used.
+- Three existing G3/G4/G5 deprecation-absence cases removed the whole generated Operation annotation. The reader correctly
+  diagnosed missing required literal operation facts. The damage helper now removes only `sourceDeprecated`, preserving
+  independent required language facts while retaining every existing structural/advisory assertion. Actual legacy literal
+  compatibility remains separately tested with old literal-version/fact shapes.
+
+First-red XMLs, root output and fixture-version inventory are retained under `/tmp/959-literal-root-first-red` and the
+adjacent `959-literal-root-fixture-versions.txt`. The controlled check runs the original first source-mirror feature and
+all three existing deprecation-absence cases with a frozen checkout before final full-root qualification.
+
+
+The frozen-input controlled check passed in **28s**: the original first mirror feature and all three advisory-deprecation
+G3/G4/G5 cases, **4 cases, zero failures/errors/skips**. This changes no product code, assertion, version selection or
+fixture publication procedure. Both independent review axes confirm **zero actionable findings** on the one-line damage-
+helper adaptation. The final root run starts only after committing this stable state; no tracked edits occur during it.

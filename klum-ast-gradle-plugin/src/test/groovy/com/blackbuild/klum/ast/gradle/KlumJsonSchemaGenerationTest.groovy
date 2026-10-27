@@ -2082,7 +2082,7 @@ class InitializationControl {
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                                        if (legacy && annotation.endsWith('GeneratedInput$Operation;')) return null
+                                        // Erase advisory deprecation only; operations also carry required literal facts.
                                         optionalDeprecation(super.visitAnnotation(annotation, visible), legacy)
                                     }
                                     @Override void visitEnd() {
