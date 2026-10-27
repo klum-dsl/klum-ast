@@ -148,6 +148,8 @@ tasks.register('exampleControl', JavaExec) {
 
         then:
         failed.output.toLowerCase().contains('examples')
+        failed.output.contains('example ' + (kind.endsWith('-later') ? 2 : kind == 'count' ? 17 : kind == 'total' ? 5 : 1))
+        failed.output.contains('UTF-16 offset')
         failed.output.contains('example.' + target)
         failed.output.contains('artifact')
         !failed.output.contains('SECRET_PAYLOAD')
@@ -161,7 +163,13 @@ tasks.register('exampleControl', JavaExec) {
         'ExampleService' | 'schema' | 'missing'
         'ExampleService' | 'schema' | 'duplicate'
         'ExampleService' | 'schema' | 'scalar'
+        'ExampleService' | 'schema' | 'enum-member'
+        'ExampleService' | 'schema' | 'nested-member'
         'ExampleService' | 'schema' | 'element'
+        'ExampleService' | 'schema' | 'element-later'
+        'ExampleService' | 'schema' | 'nested-later'
+        'ExampleService' | 'schema' | 'enum-later'
+        'ExampleService' | 'schema' | 'syntax-later'
         'ExampleService' | 'schema' | 'nested'
         'ExampleService' | 'schema' | 'enum'
         'ExampleService' | 'schema' | 'count'
@@ -641,9 +649,12 @@ tasks.register('rejectedNamingControl', JavaExec) {
                         if (member != 'examples') return super.visitArray(member)
                         if (kind == 'missing') return null
                         if (kind == 'scalar') { super.visit(member, 'SECRET_PAYLOAD'); return null }
+                        if (kind == 'enum-member') { super.visitEnum(member, 'Lexample/Secret;', 'SECRET_PAYLOAD'); return null }
+                        if (kind == 'nested-member') { super.visitAnnotation(member, 'Lexample/Secret;').visitEnd(); return null }
                         if (kind == 'duplicate') super.visitArray(member).visitEnd()
                         def array = super.visitArray(member)
-                        switch (kind) {
+                        if (kind.endsWith('-later')) array.visit(null, 'null')
+                        switch (kind.replace('-later', '')) {
                             case 'element': array.visit(null, 1); break
                             case 'nested': array.visitArray(null).visitEnd(); break
                             case 'enum': array.visitEnum(null, 'Lexample/Secret;', 'SECRET_PAYLOAD'); break

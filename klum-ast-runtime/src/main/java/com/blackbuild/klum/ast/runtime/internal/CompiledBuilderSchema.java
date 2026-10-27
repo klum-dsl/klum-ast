@@ -1016,8 +1016,8 @@ final class CompiledBuilderSchema {
                 + (field.names.rename.isEmpty() ? field.field : field.names.rename) + "'");
     }
 
-    private static IllegalArgumentException invalidExamples(Literals literal, String reason) {
-        return invalid("Invalid examples metadata on #" + literal.location + ", example 1, UTF-16 offset 0: " + reason);
+    private static IllegalArgumentException invalidExamples(Literals literal, int index, String reason) {
+        return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ", UTF-16 offset 0: " + reason);
     }
 
     private static boolean decimalRule(String annotation) {
@@ -1083,7 +1083,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
-            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, "expected String array");
+            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, 1, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> {
                     if (member.equals(SOURCE_DEPRECATED)) {
@@ -1144,6 +1144,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visitEnum(String member, String descriptor, String value) {
+            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, 1, "unexpected enum");
             if (annotation.equals(FIELD) && member.equals("constraintProjection")
                     && descriptor.equals("Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;")) {
                 if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
@@ -1156,19 +1157,19 @@ final class CompiledBuilderSchema {
         @Override public AnnotationVisitor visitArray(String member) {
             if (member.equals("examples") && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation)) {
                 boolean operation = annotation.equals(OPERATION_FACT);
-                if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(literal, "duplicate array");
+                if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(literal, 1, "duplicate array");
                 List<String> examples = new ArrayList<>();
                 if (operation) literal.operationExamples = examples;
                 else literal.examples = examples;
                 return new AnnotationVisitor(Opcodes.ASM9) {
                     @Override public void visit(String ignored, Object value) {
-                        if (!(value instanceof String text)) throw invalidExamples(literal, "requires String array elements");
-                        if (examples.size() >= 16) throw invalidExamples(literal, "exceeds 16 examples");
+                        if (!(value instanceof String text)) throw invalidExamples(literal, examples.size() + 1, "requires String array elements");
+                        if (examples.size() >= 16) throw invalidExamples(literal, examples.size() + 1, "exceeds 16 examples");
                         examples.add(text);
                     }
-                    @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(literal, "unexpected nested array"); }
-                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(literal, "unexpected annotation"); }
-                    @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(literal, "unexpected enum"); }
+                    @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(literal, examples.size() + 1, "unexpected nested array"); }
+                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(literal, examples.size() + 1, "unexpected annotation"); }
+                    @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(literal, examples.size() + 1, "unexpected enum"); }
                 };
             }
             if (annotation.equals(FIELD) && member.equals("constraints")) {
@@ -1195,6 +1196,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, 1, "unexpected annotation");
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected nested input fact " + member);
             return null;
         }
