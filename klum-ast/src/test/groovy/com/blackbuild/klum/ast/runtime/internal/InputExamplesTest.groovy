@@ -179,12 +179,27 @@ class InputExamplesTest extends AbstractDSLSpec {
         kind          | annotation
         'empty'       | '[]'
         'count'       | '[' + (1..17).collect { "'null'" }.join(',') + ']'
+        'three bytes' | "'" + ('中' * 2731) + "'"
+        'NUL bytes'   | "'" + ('\u0000' * 4097) + "'"
         'one bytes'   | "'" + ('x' * 8193) + "'"
         'total bytes' | '[' + (1..5).collect { "'" + ('x' * 7000) + "'" }.join(',') + ']'
         'null'        | '[null]'
         'number'      | '[42]'
         'call'        | '[System.getProperty("SECRET_PAYLOAD")]'
         'gstring'     | '["${System.nanoTime()}"]'
+    }
+
+    def 'accept exact declaration byte and count boundaries'() {
+        given:
+        String values = '[' + (1..4).collect { "'" + ('x' * 8192) + "'" }.join(',') + ']'
+
+        when:
+        def type = schema("@DSL class Service { @InputExamples($values) String value; @InputExamples(" +
+                '[' + (1..16).collect { "'null'" }.join(',') + ']) String many }')
+
+        then:
+        CompiledBuilderSchema.read(type).entries().get('value').examples().size() == 4
+        CompiledBuilderSchema.read(type).entries().get('many').examples().size() == 16
     }
 
     def 'accept modified UTF8 boundaries without parsing JSON at compilation'() {

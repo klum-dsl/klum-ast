@@ -67,6 +67,7 @@ final class StructuredInputExamples {
                 values.addExpression(new ConstantExpression(text));
             }
         }
+        if (!annotations.isEmpty()) annotations.get(0).setMember("value", values);
         fact.setMember("examples", values);
     }
 

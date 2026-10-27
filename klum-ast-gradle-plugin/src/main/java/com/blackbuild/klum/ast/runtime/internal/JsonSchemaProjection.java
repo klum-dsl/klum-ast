@@ -116,6 +116,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
             deprecate(key, schema.key().sourceDeprecated());
+            examples(key, schema.key().examples(), schema.key().source(), schema.key().contract());
             properties.put(schema.key().externalName(), key);
             object.put("required", List.of(schema.key().externalName()));
         }
@@ -133,8 +134,20 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
+        examples(value, entry.examples(), entry.source(), entry.contract());
         constrain(entry, value, groupRedefined);
         return value;
+    }
+
+    private static List<JsonExample> parseExamples(List<String> values, String source, Class<?> contract) {
+        List<JsonExample> result = new ArrayList<>();
+        for (int index = 0; index < values.size(); index++)
+            result.add(JsonExample.parse(values.get(index), source, contract, index + 1));
+        return List.copyOf(result);
+    }
+
+    private static void examples(Map<String, Object> target, List<String> values, String source, Class<?> contract) {
+        if (!values.isEmpty()) target.put("examples", parseExamples(values, source, contract));
     }
 
     private static void deprecate(Map<String, Object> value, boolean sourceDeprecated) {
@@ -144,7 +157,13 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
         CompiledBuilderSchema.ConstraintProfile profile;
         try {
-            profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
+            profile = constraintProfiles.get(builder);
+            if (profile == null) {
+                profile = CompiledBuilderSchema.constraintProfile(builder);
+                for (CompiledBuilderSchema.Examples declaration : CompiledBuilderSchema.exampleDeclarations(builder))
+                    parseExamples(declaration.values(), declaration.source(), declaration.contract());
+                constraintProfiles.put(builder, profile);
+            }
         } catch (RuntimeException failure) {
             String affected = schema.entries().values().stream().filter(entry -> entry.contract() == builder)
                     .map(entry -> entry.source() + " (external input '" + entry.externalName() + "')")
@@ -315,6 +334,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
 
     /** Deterministic JSON with exact numeric values and no rendering dependency in runtime or the plugin. */
     private static String json(Object value) {
+        if (value instanceof JsonExample example) return example.json();
         if (value instanceof String string) return quote(string);
         if (value instanceof Map<?, ?> map)
             return map.entrySet().stream().sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
