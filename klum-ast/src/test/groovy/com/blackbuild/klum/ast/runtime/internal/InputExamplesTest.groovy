@@ -60,8 +60,8 @@ class InputExamplesTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
-                @InputExamples(['"Catalog"', 'null']) String displayName
-                @InputExamples(['not JSON']) String syntaxCheckedAtGeneration
+                @InputExamples(['Catalog', 'catalog.internal']) String displayName
+                @InputExamples(['ordinary documentation']) String note
             }
         ''')
 
@@ -72,18 +72,18 @@ class InputExamplesTest extends AbstractDSLSpec {
         then:
         configured.displayName == 'Configured'
         omitted.displayName == null
-        omitted.syntaxCheckedAtGeneration == null
-        CompiledBuilderSchema.read(type).entries().get('displayName').examples() == ['"Catalog"', 'null']
+        omitted.note == null
+        CompiledBuilderSchema.read(type).entries().get('displayName').examples() == ['Catalog', 'catalog.internal']
     }
 
     def 'retain distinct field operation and suppressed-key facts and fold String constants'() {
         given:
         def type = schema('''
             @DSL class Service {
-                static final String SAMPLE = '"' + 'sample' + '"'
-                @Key @InputExamples(['"id"']) String key
+                static final String SAMPLE = 'sample'
+                @Key @InputExamples(['id']) String key
                 @InputExamples([SAMPLE]) String value
-                @Builder.Method @InputName('operation') @InputExamples(['"operation"'])
+                @Builder.Method @InputName('operation') @InputExamples(['operation'])
                 void setValue(String input) { value = input }
             }
         ''')
@@ -94,9 +94,9 @@ class InputExamplesTest extends AbstractDSLSpec {
 
         then:
         contract.getAnnotation(GeneratedInput.Schema).version() == 1
-        schema.key().examples() == ['"id"']
-        schema.entries().get('value').examples() == ['"sample"']
-        schema.entries().get('operation').examples() == ['"operation"']
+        schema.key().examples() == ['id']
+        schema.entries().get('value').examples() == ['sample']
+        schema.entries().get('operation').examples() == ['operation']
     }
 
     def 'missing owned examples facts reject input before mutating an active Builder'() {
@@ -154,7 +154,7 @@ class InputExamplesTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)
-        failure.message.contains('compile-time constant String')
+        failure.message.contains('compile-time constant strings')
         !failure.message.contains('AssertionError: constant execution trap')
     }
 
@@ -167,7 +167,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         failure.message.contains('duplicate annotation') || failure.message.contains('repeated annotation')
     }
 
-    def 'reject unsupported annotation values and transport bounds: #kind'() {
+    def 'reject non-string or executable annotation values: #kind'() {
         when:
         schema("@DSL class Service { @InputExamples($annotation) String value }")
 
@@ -176,41 +176,45 @@ class InputExamplesTest extends AbstractDSLSpec {
         failure.message.contains('InputExamples')
 
         where:
-        kind          | annotation
-        'empty'       | '[]'
-        'count'       | '[' + (1..17).collect { "'null'" }.join(',') + ']'
-        'three bytes' | "'" + ('中' * 2731) + "'"
-        'NUL bytes'   | "'" + ('\u0000' * 4097) + "'"
-        'one bytes'   | "'" + ('x' * 8193) + "'"
-        'total bytes' | '[' + (1..5).collect { "'" + ('x' * 7000) + "'" }.join(',') + ']'
-        'null'        | '[null]'
-        'number'      | '[42]'
-        'call'        | '[System.getProperty("SECRET_PAYLOAD")]'
-        'gstring'     | '["${System.nanoTime()}"]'
+        kind      | annotation
+        'null'    | '[null]'
+        'number'  | '[42]'
+        'call'    | '[System.getProperty("SECRET_PAYLOAD")]'
+        'gstring' | '["${System.nanoTime()}"]'
     }
 
-    def 'accept exact declaration byte and count boundaries'() {
+    def 'accept ordinary annotation arrays beyond the former JSON-specific bounds'() {
         given:
-        String values = '[' + (1..4).collect { "'" + ('x' * 8192) + "'" }.join(',') + ']'
+        String text = 'documentation ' * 1000
+        String values = '[' + (1..17).collect { "'example'" }.join(',') + ']'
 
         when:
-        def type = schema("@DSL class Service { @InputExamples($values) String value; @InputExamples(" +
-                '[' + (1..16).collect { "'null'" }.join(',') + ']) String many }')
+        def type = schema("@DSL class Service { @InputExamples([${text.inspect()}]) String value; " +
+                "@InputExamples($values) int many; @InputExamples([]) boolean empty }")
+        def entries = CompiledBuilderSchema.read(type).entries()
 
         then:
-        CompiledBuilderSchema.read(type).entries().get('value').examples().size() == 4
-        CompiledBuilderSchema.read(type).entries().get('many').examples().size() == 16
+        entries.get('value').examples() == [text]
+        entries.get('many').examples() == ['example'] * 17
+        entries.get('empty').examples().empty
     }
 
-    def 'accept modified UTF8 boundaries without parsing JSON at compilation'() {
+    def 'compiled nonconstant references are rejected without initializing the supplying class'() {
         given:
-        String sample = '\u0000' * 4096
-        String quoted = "'" + sample + "'"
+        loader.parseClass('''
+            package examples
+            class Values {
+                static { throw new AssertionError('binary initialization trap') }
+                static final String SAMPLE = System.getProperty('user.name')
+            }
+        ''')
 
         when:
-        def type = schema("@DSL class Service { @InputExamples([$quoted]) String value }")
+        schema('@DSL class Service { @InputExamples([Values.SAMPLE]) String value }')
 
         then:
-        CompiledBuilderSchema.read(type).entries().get('value').examples() == [sample]
+        def failure = thrown(MultipleCompilationErrorsException)
+        failure.message.contains('compile-time constant strings')
+        !failure.message.contains('AssertionError: binary initialization trap')
     }
 }

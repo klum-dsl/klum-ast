@@ -30,11 +30,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Advisory examples for the exact structured-input property or authored operation payload.
- * Each compile-time constant string is one complete RFC 8259 JSON value, not a default.
- * JSON syntax is checked by JSON Schema generation; construction and runtime validation are unchanged.
- * Arrays must contain 1–16 examples, each at most 8192 modified-UTF-8 bytes, at most 32768 in total.
- * Generation rejects duplicate decoded object keys, unsafe Unicode and nesting deeper than 32 containers.
+ * Documentary strings for the exact structured-input property or authored operation payload.
+ * Emitted as JSON Schema string examples, without parsing or validation against the property type or runtime constraints.
+ * Values must be compile-time constant strings; they do not supply defaults or change construction behavior.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

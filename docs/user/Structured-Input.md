@@ -390,14 +390,14 @@ remains [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 
 ## Advisory input examples
 
-`@InputExamples` documents eligible field/key declarations and admitted authored one-payload operations for
-[generated JSON Schema](Json-Schema.md#advisory-input-examples). It changes no runtime input or construction behavior.
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. See [generated JSON Schema](Json-Schema.md#advisory-input-examples).
 
 (See: `InputExamplesTest#'document example values without supplying defaults or changing input admission'`.)
 
 ```groovy
 @DSL class Service {
-    @InputExamples(['"Catalog"', 'null']) String displayName
+    @InputExamples(['Catalog', 'catalog.internal']) String displayName
 }
 
 def configured = KlumStructuredInput.readRoot(Service, [displayName: 'Configured'], 'service.yaml')
@@ -406,9 +406,7 @@ assert configured.displayName == 'Configured'
 assert omitted.displayName == null
 ```
 
-Each annotation String is one complete JSON value. The shared byte reader verifies inert example-array transport and
-size limits before input execution, including omitted admitted ownership targets. It does not parse JSON, derive defaults,
-change naming/exclusion/requiredness, run validation, or execute example payloads. A syntactically invalid JSON example can
-therefore compile and construct normally, while JSON Schema generation fails. Examples do not make null admissible.
-Compile-time constant folding never reads a static field reflectively to obtain example text. See the generator contract
-for exact placements, grammar, safe diagnostics and limits; Javadoc/AnnoDocimal transport is unnecessary.
+Documentation strings do not supply values or change input admission, naming/exclusion, defaults, validation or lifecycle.
+The shared byte reader checks required string-array metadata without interpreting its contents. Compiler constant capture
+never reads a static field reflectively to obtain a value. Owned/inherited public Builder declarations remain the authority;
+no Model-byte fallback, Javadoc transport, provider or callback participates.

@@ -374,55 +374,40 @@ Real ScHelm root/output qualification remains a consumer-owned acceptance gate f
 
 ## Advisory input examples
 
-`@InputExamples` supplies ordered advisory JSON values for eligible input declarations. Each compile-time constant String
-is one complete JSON value; a JSON array within one string is one example. The annotation array must be nonempty.
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints.
 
 (See: `KlumJsonSchemaGenerationTest#'project advisory examples at exact source-free input positions with Groovy #generation'`.)
 
 ```groovy
 @DSL class Service {
-    @Key @InputExamples(['"catalog"']) String id
-    @InputName('service.name')
-    @InputExamples(['"Catalog"', 'null', '"Catalog"']) String serviceName
-    @InputExamples(['["blue","green"]']) List<String> tags
-    @Builder.Method @InputExamples(['{"host":"api"}'])
-    void endpoint(Map<String, String> input) { /* configure Builder state */ }
-}
-@DSL class Deployment {
-    @InputExamples(['{"id":"catalog","service.name":"Catalog"}']) Service primary
-    @InputExamples(['{"worker":{"service.name":"Worker"}}']) Map<String, Service> services
+    @InputExamples(['localhost', 'database.internal']) String host
+    @InputExamples(['42', 'many replicas']) int replicas
+    @InputExamples(['API endpoint settings'])
+    @Builder.Method void endpoint(Map<String, String> input) { /* configure Builder state */ }
 }
 ```
 
-The property above receives `examples: ["Catalog", null, "Catalog"]`. Values and duplicates retain declaration order.
-Examples never supply a default, permit null, require an omitted property, relax a constraint, or guarantee successful
-construction. Authors own example usefulness; the generator checks syntax, not schema-validity or completed validation.
+The `host` property receives `examples: ["localhost", "database.internal"]`. The numeric `replicas` property receives
+`examples: ["42", "many replicas"]`: both values are strings, with no promise that they are valid instances of that
+property. Text such as `null`, `{not JSON`, quotes, backslashes, newlines and Unicode remains documentation; the ordinary
+JSON Schema serializer escapes it. Order, duplicate strings and empty strings are retained. An empty annotation array
+supplies no examples. Values must be compile-time constant strings, and no authored code is executed to obtain them.
 
 | Declaration | Placement |
 | --- | --- |
-| Eligible ordinary scalar/List/Map | Exact effective property; a container example is its whole payload |
-| Selected construction key | Actual member-key property only; no keyless body/outer Map-key examples |
-| Admitted authored one-payload `@Builder.Method` | Exact operation payload, including whole List/Map values |
-| Owned relationship | Parent property alongside `$ref`; whole input object, using the child's actual names/key position |
-| Keyed owned Map | Whole instance-keyed outer object on the parent Map property |
+| Eligible ordinary field, including List/Map | Exact effective property, rather than its items or values |
+| Selected construction key | Actual member-key property; absent from keyless bodies and outer instance keys |
+| Admitted authored one-payload `@Builder.Method` | Exact operation payload |
+| Owned relationship or keyed owned Map | Parent relationship-use property, alongside its reference/container schema |
 
-Parent examples do not leak into shared child definitions or sibling uses. An owned type retains examples on its own
-member declarations. Inherited facts retain their effective source identity, and an accepted local replacement supplies
-only its own facts; existing ambiguous-source/collision rejection is unchanged. Profiles and literal naming change property
-tokens, never the JSON text inside examples. `@InputIgnore` and compatible Jackson exclusions suppress output;
-`ConstraintProjection.PROJECT`, `TEXT_ONLY`, `OMIT`, prose and deprecation remain independent.
-Unsupported/helper/lifecycle/query/LINK shapes gain no admission. Type, package, root-object, per-item, getter/parameter,
-meta-annotation/default propagation, Javadoc tags and runtime-derived examples are outside this feature.
+Inherited examples retain their effective source declaration. Naming profiles, literal names and exclusions select the
+same input member as before. Parent relationship notes stay local to that use; they never enter shared child definitions
+or sibling uses. An owned type retains documentation on its own members. `ConstraintProjection`, ordinary prose and
+`deprecated` remain independent. Unsupported members gain no admission.
 
-Generation accepts RFC 8259 scalar/container values, JSON whitespace and escapes, preserving numeric spelling and JSON
-null. It rejects comments, trailing data/commas, invalid numbers/escapes, duplicate decoded object keys, BOM, raw string
-controls and unpaired Unicode surrogates. Limits are **16 examples/declaration**, **8192 modified-UTF-8 bytes/example**,
-**32768 bytes/declaration**, **32 nested containers**. Classfile modified UTF-8 counts NUL as two bytes and each UTF-16
-surrogate as three; the quotes/escapes in the JSON text count too. Oversized/nonconstant/wrong-type/empty annotations fail
-compilation. The byte reader checks transport again without executing Schema code; only generation parses JSON syntax.
-
-Malformed carried JSON, including on ignored/unsupported facts in a participating contract, fails before any prior output
-or manifest is replaced. Diagnostics identify source, artifact, one-based example index, zero-based UTF-16 offset and
-reason without echoing payload text. Excluded target types and unrelated classpath classes are not scanned. The
-[shared development metadata protocol](Migration.md#structured-input-metadata-protocol) stays at version 1; this feature
-adds no version gate or release cutover. Formal protocol/recompilation preparation belongs to the actual 4.2 release.
+Examples supply no defaults, change no requiredness or runtime input types, and do not participate in validation,
+conversion, templates or lifecycle. There is no content grammar or example evaluator. Ordinary annotation/JVM constraints
+apply; excessively large carried documentation is rejected defensively. The source-free public Builder metadata remains
+authoritative, and malformed or missing required metadata fails before replacing successful output. The unified
+[development metadata protocol](Migration.md#structured-input-metadata-protocol) remains version 1.

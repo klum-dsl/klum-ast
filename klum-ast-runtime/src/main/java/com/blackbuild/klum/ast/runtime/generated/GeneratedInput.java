@@ -62,7 +62,7 @@ public final class GeneratedInput {
         boolean ignored() default false;
         /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
-        /** Ordered JSON texts; explicitly emitted even when the source has no examples. */
+        /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
         String[] examples() default {};
     }
 
@@ -77,7 +77,7 @@ public final class GeneratedInput {
         boolean ignored() default false;
         /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
-        /** Ordered JSON texts; explicitly emitted even when the source has no examples. */
+        /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
         String[] examples() default {};
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};

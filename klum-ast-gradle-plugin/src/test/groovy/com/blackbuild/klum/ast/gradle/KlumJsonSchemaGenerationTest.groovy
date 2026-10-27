@@ -45,6 +45,7 @@ import spock.lang.TempDir
 
 @Issue('529')
 class KlumJsonSchemaGenerationTest extends Specification {
+    private static final String DOCUMENTARY_TEXT = 'a "quoted" \\path\nMünchen 😀'
     @TempDir File directory
     File consumer
     File producer
@@ -68,8 +69,7 @@ tasks.register('exampleControl', JavaExec) {
 
         when:
         run('generateKlumJsonSchema', '--build-cache')
-        // JsonSlurper has an exponent-size limit; the writer must still preserve this legal lexeme.
-        def schema = new JsonSlurper().parseText(output('example.ExampleService').text.replace('1e9999999999999999999999', '1e99'))
+        def schema = document('example.ExampleService')
         def root = schema.get('$defs').get('example.ExampleService_DSL$Builder')
         def properties = root.properties
         def member = schema.get('$defs').get('example.ExampleChild_DSL$Builder')
@@ -80,25 +80,25 @@ tasks.register('exampleControl', JavaExec) {
         new File(validation, 'examples.schema.json').bytes = first
 
         then:
-        properties.'service.name'.examples == ['Catalog', null, 'Catalog']
+        properties.'service.name'.examples == ['Catalog', 'catalog.internal', 'Catalog']
         properties.'service.name'.deprecated
         properties.'binary-constant'.examples == ['binary constant']
         !properties.'service.name'.containsKey('default')
         properties.'display-name'.examples == ['inherited']
-        properties.'inherited-child'.examples == [[key: 'inherited', 'child.name': 'three']]
+        properties.'inherited-child'.examples == ['inherited database']
         !output('example.ExampleService').text.contains('SECRET_PAYLOAD')
         properties.configure.examples == ['override']
         properties.'configure-base'.examples == ['base']
-        properties.endpoint.examples == [[host: 'api']]
-        properties.tags.examples == [['blue', 'green']]
+        properties.endpoint.examples == ['API endpoint settings']
+        properties.tags.examples == ['blue, green']
         !properties.tags.items.containsKey('examples')
-        properties.labels.examples == [[team: 'ops']]
+        properties.labels.examples == ['team: ops']
         !properties.labels.additionalProperties.containsKey('examples')
-        properties.primary.examples == [[key: 'direct', 'child.name': 'one']]
+        properties.primary.examples == ['primary database']
         properties.primary.containsKey('$ref')
         !properties.sibling.containsKey('examples')
-        properties.fixed.examples == [['child.name': 'fixed']]
-        properties.children.examples == [[worker: ['child.name': 'two']]]
+        properties.fixed.examples == ['fixed database']
+        properties.children.examples == ['worker databases']
         member.properties.key.examples == ['catalog']
         member.properties.'child.name'.examples == ['child']
         !member.containsKey('examples')
@@ -109,8 +109,10 @@ tasks.register('exampleControl', JavaExec) {
         !properties.containsKey('hidden')
         !properties.containsKey('link')
         !properties.containsKey('unsupported')
-        output('example.ExampleService').text.contains('9007199254740993.0000000001')
-        output('example.ExampleService').text.contains('1e9999999999999999999999')
+        properties.escaped.examples == [DOCUMENTARY_TEXT]
+        properties.varied.examples == ['null', '{not JSON', '01', '[unclosed']
+        properties.replicas.examples == ['42', 'many replicas']
+        properties.enabled.examples == ['true', 'enabled']
         !trap.exists()
         !new File(producer, 'api/src').exists()
         !new File(producer, 'schema/build/classes').exists()
@@ -148,8 +150,7 @@ tasks.register('exampleControl', JavaExec) {
 
         then:
         failed.output.toLowerCase().contains('examples')
-        failed.output.contains('example ' + (kind.endsWith('-later') ? 2 : kind == 'count' ? 17 : kind == 'total' ? 5 : 1))
-        failed.output.contains('UTF-16 offset')
+        if (kind == 'excessive') assert failed.output.contains('excessive documentary text')
         failed.output.contains('example.' + target)
         failed.output.contains('artifact')
         !failed.output.contains('SECRET_PAYLOAD')
@@ -158,26 +159,14 @@ tasks.register('exampleControl', JavaExec) {
 
         where:
         target           | artifact | kind
-        'ExampleService' | 'schema' | 'syntax'
-        'ExampleService' | 'schema' | 'ignored'
         'ExampleService' | 'schema' | 'missing'
         'ExampleService' | 'schema' | 'duplicate'
         'ExampleService' | 'schema' | 'scalar'
-        'ExampleService' | 'schema' | 'enum-member'
-        'ExampleService' | 'schema' | 'nested-member'
         'ExampleService' | 'schema' | 'element'
-        'ExampleService' | 'schema' | 'element-later'
-        'ExampleService' | 'schema' | 'nested-later'
-        'ExampleService' | 'schema' | 'enum-later'
-        'ExampleService' | 'schema' | 'syntax-later'
         'ExampleService' | 'schema' | 'nested'
-        'ExampleService' | 'schema' | 'enum'
-        'ExampleService' | 'schema' | 'count'
-        'ExampleService' | 'schema' | 'bytes'
-        'ExampleService' | 'schema' | 'total'
-        'ExampleService' | 'schema' | 'depth'
-        'ExampleBase'    | 'api'    | 'syntax'
-        'ExampleChild'   | 'owned'  | 'syntax'
+        'ExampleService' | 'schema' | 'excessive'
+        'ExampleBase'    | 'api'    | 'missing'
+        'ExampleChild'   | 'owned'  | 'missing'
     }
 
     @Issue(['529', '950', '954'])
@@ -631,15 +620,14 @@ tasks.register('rejectedNamingControl', JavaExec) {
             }
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 def downstream = super.visitMethod(access, name, descriptor, signature, exceptions)
-                if (kind.startsWith('examples-')) return exampleMutation(downstream, name, kind.substring('examples-'.length()))
+                if (kind.startsWith('examples-')) return exampleMutation(downstream, kind.substring('examples-'.length()))
                 namingNativeMutation(downstream, kind)
             }
         }, 0)
         writer.toByteArray()
     }
 
-    private static MethodVisitor exampleMutation(MethodVisitor downstream, String name, String kind) {
-        if (kind == 'ignored' && name != 'getSecret') return downstream
+    private static MethodVisitor exampleMutation(MethodVisitor downstream, String kind) {
         new MethodVisitor(Opcodes.ASM9, downstream) {
             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                 def visitor = super.visitAnnotation(descriptor, visible)
@@ -649,20 +637,13 @@ tasks.register('rejectedNamingControl', JavaExec) {
                         if (member != 'examples') return super.visitArray(member)
                         if (kind == 'missing') return null
                         if (kind == 'scalar') { super.visit(member, 'SECRET_PAYLOAD'); return null }
-                        if (kind == 'enum-member') { super.visitEnum(member, 'Lexample/Secret;', 'SECRET_PAYLOAD'); return null }
-                        if (kind == 'nested-member') { super.visitAnnotation(member, 'Lexample/Secret;').visitEnd(); return null }
                         if (kind == 'duplicate') super.visitArray(member).visitEnd()
                         def array = super.visitArray(member)
-                        if (kind.endsWith('-later')) array.visit(null, 'null')
-                        switch (kind.replace('-later', '')) {
+                        switch (kind) {
                             case 'element': array.visit(null, 1); break
                             case 'nested': array.visitArray(null).visitEnd(); break
-                            case 'enum': array.visitEnum(null, 'Lexample/Secret;', 'SECRET_PAYLOAD'); break
-                            case 'count': (1..17).each { array.visit(null, 'null') }; break
-                            case 'bytes': array.visit(null, 'x' * 8193); break
-                            case 'total': (1..5).each { array.visit(null, 'x' * 7000) }; break
-                            case 'depth': array.visit(null, '[' * 33 + 'null' + ']' * 33); break
-                            default: array.visit(null, '{"SECRET_PAYLOAD":1,"SECRET_PAYLOAD":2}')
+                            case 'excessive': (1..257).each { array.visit(null, 'x' * 4096) }; break
+                            default: array.visit(null, 'ordinary documentation')
                         }
                         array.visitEnd()
                         null
@@ -1933,19 +1914,19 @@ package example
 import com.blackbuild.klum.ast.*
 class ExampleTexts {
     static { throw new AssertionError('binary constant initialization trap') }
-    public static final String VALUE = '"binary constant"'
+    public static final String VALUE = 'binary constant'
 }
 @DSL abstract class ExampleBase {
-    @InputExamples(['"inherited"']) String displayName
-    @Builder.Method @InputExamples(['"base"']) void configureBase(String value) { displayName = value }
+    @InputExamples(['inherited']) String displayName
+    @Builder.Method @InputExamples(['base']) void configureBase(String value) { displayName = value }
 }
 ''')
         writeSource('owned/src/main/groovy/example/ExampleChild.groovy', '''
 package example
 import com.blackbuild.klum.ast.*
-@DSL abstract class ExampleKeyBase { @Key @InputExamples(['"catalog"']) String key }
+@DSL abstract class ExampleKeyBase { @Key @InputExamples(['catalog']) String key }
 @DSL class ExampleChild extends ExampleKeyBase {
-    @InputName('child.name') @InputExamples(['"child"']) String childName
+    @InputName('child.name') @InputExamples(['child']) String childName
     ExampleChild nested
 }
 ''')
@@ -1955,31 +1936,33 @@ import com.blackbuild.klum.ast.*
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.fasterxml.jackson.annotation.*
 @DSL class ExampleOwnedBase extends ExampleBase {
-    @InputExamples(['{"key":"inherited","child.name":"three"}']) ExampleChild inheritedChild
+    @InputExamples(['inherited database']) ExampleChild inheritedChild
 }
 @DSL class ExampleExcluded { @InputExamples(['SECRET_PAYLOAD']) String value }
 @DSL class ExampleUnrelated { @InputExamples(['SECRET_PAYLOAD']) String value }
 @DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class ExampleService extends ExampleOwnedBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
-    static final String NUMBER = '9007199254740993.0000000001'
     @InputExamples([ExampleTexts.VALUE]) String binaryConstant
     @Deprecated @InputName('service.name') @JsonProperty('service.name')
     @ConstraintProjection(ConstraintProjection.Policy.OMIT)
-    @InputExamples(['"Catalog"', 'null', '"Catalog"']) String serviceName
-    @InputExamples([NUMBER, '1e9999999999999999999999', 'true', 'false', '""', '[1,null,[2]]']) String varied
-    @InputExamples(['["blue","green"]']) List<String> tags
-    @InputExamples(['{"team":"ops"}']) Map<String, String> labels
-    @InputExamples(['{"key":"direct","child.name":"one"}']) ExampleChild primary
+    @InputExamples(['Catalog', 'catalog.internal', 'Catalog']) String serviceName
+    @InputExamples(['null', '{not JSON', '01', '[unclosed']) String varied
+    @InputExamples([${DOCUMENTARY_TEXT.inspect()}]) String escaped
+    @InputExamples(['42', 'many replicas']) int replicas
+    @InputExamples(['true', 'enabled']) boolean enabled
+    @InputExamples(['blue, green']) List<String> tags
+    @InputExamples(['team: ops']) Map<String, String> labels
+    @InputExamples(['primary database']) ExampleChild primary
     ExampleChild sibling
-    @Field(key=Field.FieldName) @InputExamples(['{"child.name":"fixed"}']) ExampleChild fixed
-    @InputExamples(['{"worker":{"child.name":"two"}}']) Map<String, ExampleChild> children
+    @Field(key=Field.FieldName) @InputExamples(['fixed database']) ExampleChild fixed
+    @InputExamples(['worker databases']) Map<String, ExampleChild> children
     @InputIgnore ExampleExcluded excludedTarget
-    @InputIgnore @InputExamples(['"hidden"']) String secret
-    @JsonIgnore @InputExamples(['"jackson hidden"']) String hidden
+    @InputIgnore @InputExamples(['hidden']) String secret
+    @JsonIgnore @InputExamples(['jackson hidden']) String hidden
     @Field(FieldType.LINK) @InputExamples(['{}']) ExampleChild link
-    @Builder.Method @InputName('endpoint') @InputExamples(['{"host":"api"}'])
+    @Builder.Method @InputName('endpoint') @InputExamples(['API endpoint settings'])
     void endpoint(Map<String, String> input) { throw new AssertionError('operation executed') }
-    @Builder.Method @InputExamples(['"override"']) void configure(String input) { throw new AssertionError('operation executed') }
+    @Builder.Method @InputExamples(['override']) void configure(String input) { throw new AssertionError('operation executed') }
     @Builder.Method @InputExamples(['true']) void unsupported(Object input) { throw new AssertionError('unsupported executed') }
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
 }
@@ -1988,6 +1971,7 @@ class ExampleControl {
 }
 """)
     }
+
 
     private void literalSources() {
         writeSource('owned/src/main/groovy/example/LiteralDetails.groovy', '''

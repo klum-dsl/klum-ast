@@ -771,54 +771,16 @@ final class CompiledBuilderSchema {
         String source = namingOrigin(owner) + "#" + signature;
         if (literal.field != null || literal.key != null) {
             validateNameFacts(literal.names, source);
-            validateExamples(literal.examples, source);
+            if (literal.examples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
         if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
         if (literal.operationFact) {
             validateNameFacts(literal.operationNames, source);
-            validateExamples(literal.operationExamples, source);
+            if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
         if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
-    }
-
-    private static void validateExamples(List<String> examples, String source) {
-        if (examples == null || examples.size() > 16) throw invalid("Missing or oversized examples metadata on " + source + ", example 1, UTF-16 offset 0: invalid array");
-        int total = 0;
-        for (int index = 0; index < examples.size(); index++) {
-            String text = examples.get(index);
-            int bytes = 0;
-            for (int i = 0; i < text.length(); i++) {
-                char c = text.charAt(i);
-                bytes += c >= 1 && c <= 127 ? 1 : c <= 2047 ? 2 : 3;
-            }
-            total += bytes;
-            if (bytes > 8192 || total > 32768)
-                throw invalid("Examples metadata on " + source + ", example " + (index + 1)
-                        + ", UTF-16 offset 0: modified-UTF-8 size limit exceeded");
-        }
-    }
-
-    record Examples(String source, Class<?> contract, List<String> values) { }
-
-    /** All surviving facts, including ignored/unsupported declarations; never scans Model annotations. */
-    static List<Examples> exampleDeclarations(Class<?> builder) {
-        try {
-            Metadata metadata = metadata(builder);
-            List<Examples> result = new ArrayList<>();
-            if (metadata.keyMember != null)
-                result.add(new Examples(schemaName(builder) + "#" + metadata.keyMember.key, builder, metadata.keyMember.examples));
-            metadata.methods.forEach((signature, literal) -> {
-                if (literal.examples != null)
-                    result.add(new Examples(schemaName(builder) + "#" + (literal.field == null ? literal.key : literal.field), builder, literal.examples));
-                if (literal.operationExamples != null)
-                    result.add(new Examples(schemaName(builder) + "#" + signature, builder, literal.operationExamples));
-            });
-            return List.copyOf(result);
-        } catch (IOException | ClassNotFoundException failure) {
-            throw invalid("Cannot read examples on " + namingOrigin(builder));
-        }
     }
 
     private static void validateFieldFacts(Literals literal, String source) {
@@ -1017,7 +979,7 @@ final class CompiledBuilderSchema {
     }
 
     private static IllegalArgumentException invalidExamples(Literals literal, int index, String reason) {
-        return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ", UTF-16 offset 0: " + reason);
+        return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ": " + reason);
     }
 
     private static boolean decimalRule(String annotation) {
@@ -1162,9 +1124,12 @@ final class CompiledBuilderSchema {
                 if (operation) literal.operationExamples = examples;
                 else literal.examples = examples;
                 return new AnnotationVisitor(Opcodes.ASM9) {
+                    private int characters;
                     @Override public void visit(String ignored, Object value) {
                         if (!(value instanceof String text)) throw invalidExamples(literal, examples.size() + 1, "requires String array elements");
-                        if (examples.size() >= 16) throw invalidExamples(literal, examples.size() + 1, "exceeds 16 examples");
+                        // Classfile constants can be reused thousands of times; bound expanded documentary output.
+                        characters += text.length();
+                        if (characters > 1_048_576) throw invalidExamples(literal, examples.size() + 1, "excessive documentary text");
                         examples.add(text);
                     }
                     @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(literal, examples.size() + 1, "unexpected nested array"); }

@@ -23,12 +23,13 @@ No version negotiation or mixed-version mode is supported. Authoring annotations
 
 ### Advisory input examples
 
-`@InputExamples` adds advisory JSON values to generated schemas without changing input admission, defaults, requiredness
-or runtime validation. Current development Builder facts explicitly carry bounded example arrays, including empty absence
-arrays. `GeneratedInput.Schema.version` remains 1; there is no per-feature marker or release/recompilation cutover in this
-slice. Keep the current compiler/runtime/plugin aligned; unchanged development version markers do not establish a
-historical or mixed-toolchain compatibility promise. Actual 4.2 release preparation owns any formal protocol bump.
-See [syntax, placement, grammar and limits](Json-Schema.md#advisory-input-examples).
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. Write `@InputExamples(['localhost'])`, without JSON quoting.
+A note on a numeric, boolean or object property is still a string and is not promised to be a valid instance value.
+
+Current development Builder facts retain source-specific string arrays, including empty absence arrays. The unified
+`GeneratedInput.Schema.version` remains 1; this slice adds no metadata version, feature gate or compatibility mechanism.
+Keep the current compiler/runtime/plugin aligned. See [syntax and placement](Json-Schema.md#advisory-input-examples).
 
 ### Literal names and exclusion
 
