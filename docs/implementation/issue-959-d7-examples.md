@@ -36,10 +36,11 @@ content validation remains. Empty arrays emit no keyword; empty strings, order a
 The compiler uses `ExpressionUtils.transformInlineConstants(Expression)`, Groovy's AST-only overload. Its implementation
 was inspected for G3 and qualified on all supported generations. The owner-accepting overload can call reflective
 `Field.get` and initialize an authored class, so it is not used. A small VariableExpression-to-owner-property adapter is
-needed for a source-local constant before accessed-field resolution. A final String-constant guard and normalization of
+needed for a source-local constant before accessed-field resolution. The owner is the declaring Schema, including
+annotations on operations that have been moved to a generated Builder. A final String-constant guard and normalization of
 the source annotation prevent fallback evaluation during later annotation compilation. There is no custom recursion,
 operator implementation, cycle evaluator or speculative expression support. Literal, local and compiled constants are
-covered; nonconstant source and binary references have initialization traps.
+covered, including local constants on authored operations; nonconstant source and binary references have initialization traps.
 
 JVM/compiler constraints bound annotation strings, arrays and constant pools. The reader additionally caps aggregate text
 at 1,048,576 UTF-16 units per declaration: a compact defensive guard against classfile constant-pool reuse amplifying output.
@@ -63,8 +64,8 @@ Both documentary features carry `@Issue('959')`, `@Tag('documentary')`, and `@Se
 
 ## Qualification, reduction and delivery
 
-JDK17 source/test revision `7b5d7e2d`: final sequential `./gradlew check` passed in **12m51s**, 140 tasks (68 executed,
-72 up-to-date). Groovy 3/4/5 totals are **3316 / 2754 / 2754**, with **zero failures/errors** and **17 / 16 / 16 existing
+JDK17 source/test revision `f9da352e`: final sequential `./gradlew check` passed in **12m50s**, 140 tasks (60 executed,
+80 up-to-date). Groovy 3/4/5 totals are **3316 / 2754 / 2754**, with **zero failures/errors** and **17 / 16 / 16 existing
 skips**. The focused `InputExamplesTest` passes **11 cases in every lane**. All **109 packaged JSON Schema cases** pass.
 Separate G3/G4/G5 annotation-propagation artifact qualifiers pass (1 / 2 / 2 cases, no failures/errors/skips). Licenses,
 plugin validation, source mirrors, lane isolation, coverage and release/documentation checks pass. No suppression or
@@ -74,8 +75,8 @@ Independent `jsonschema 4.23.0` checks pass **93 schema/input controls**, confir
 quote/backslash/newline/Unicode round trips, unchanged input acceptance with examples removed, and byte-identical G3/G4/G5
 output. All **43 retained schema documents** pass the Draft 2020-12 metaschema. A standalone JDK17/G3 Java static-imported
 constant control also passes without initializing its supplying class. Local replay: `/private/tmp/d7-documentary-validate.py`,
-`/private/tmp/d7-constant-controls.py`, `/private/tmp/d7-documentary-final-check.log`,
-`/private/tmp/d7-documentary-review-tests.log`, `/private/tmp/d7-documentary-artifacts.log`.
+`/private/tmp/d7-constant-controls.py`, `/private/tmp/d7-documentary-qualified-check.log`,
+`/private/tmp/d7-documentary-review-tests.log`, `/private/tmp/d7-documentary-qualified-artifacts.log`.
 
 ### Before/after complexity
 
@@ -84,18 +85,18 @@ Compared with the previously published `1159c5ec4`, using the fixed PR base `6c6
 | Measure | Parsed-value implementation | Documentary strings |
 | --- | ---: | ---: |
 | Production Java net physical LOC introduced by this PR | 462 | 160 |
-| Test Java/Groovy net physical LOC introduced by this PR | 533 | 448 |
+| Test Java/Groovy net physical LOC introduced by this PR | 533 | 451 |
 | Dedicated JSON grammar cases | 53 | 0 |
 | Feature test executions, including G3/G4/G5 lanes | 127 | 44 |
 
 LOC is reproducible from `git diff --numstat <base> <revision>`, scoped to production/test Java and Groovy; it includes
-comments/license headers. Production contribution is **302 lines smaller (65%)**; test contribution is **85 lines smaller
-(16%)**. The deleted parser alone was 211 physical Java lines. The runtime feature cases shrink from 17 to 11 per lane;
+comments/license headers. Production contribution is **302 lines smaller (65%)**; test contribution is **82 lines smaller
+(15%)**. The deleted parser alone was 211 physical Java lines. The runtime feature cases shrink from 17 to 11 per lane;
 packaged examples cases shrink from 23 to 11. The remaining tests target the documentary contract and metadata integrity.
 
 ### Review disposition and risks
 
-Independent Standards and Specification reviews report **zero remaining findings**, including the final metadata cleanup.
+Independent Standards and Specification reviews report **zero remaining findings**, including the final metadata cleanup and the concrete moved-operation constant correction.
 The previous PR head's 18 Sonar observations are addressed in source by deleting parser/budget machinery or by narrow
 retained-code cleanup: metadata-local diagnostics, a semantic member-name constant, a cohesive array-reader method, and
 local test guard braces. No global style policy, broad suppression or future feature abstraction was introduced. The new
