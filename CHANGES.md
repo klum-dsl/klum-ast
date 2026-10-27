@@ -1,10 +1,17 @@
 # Unreleased
 
+- Added `@InputName('literal')` and marker `@InputIgnore` for shared structured-input and JSON Schema member shaping.
+  Exact literals override type profiles; exclusion removes eligible fields and authored Builder operations from both
+  consumers. Equal Jackson equivalents coalesce; contradictory names fail even when excluded. Construction identity,
+  ordinary Groovy configuration and runtime validation retain their semantics. Align tools and recompile Schemas.
+  See [literals](docs/user/Structured-Input.md#literal-names-and-exclusion) and
+  [migration](docs/user/Migration.md#literal-names-and-exclusion) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Added type-level `@InputNaming(InputNaming.Profile.IDENTITY/KEBAB_CASE)` for shared structured-input and JSON Schema
   member names. Explicit profiles bind descendants; a first profiled child also names inherited entries. Owned types,
   literal Jackson overrides/exclusions and data/instance keys keep their own semantics. Nonidentity collisions and
   conflicting profiles reject before execution/publication. Align tools and recompile selected Schema hierarchies.
-  Klum `InputName`/`InputIgnore` remain deferred. See [profiles](docs/user/Structured-Input.md#type-naming-profiles)
+  See [profiles](docs/user/Structured-Input.md#type-naming-profiles)
   and [migration](docs/user/Migration.md#type-naming-profiles) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
 
 - Added field-level `@ConstraintProjection` with nested `Policy.PROJECT` (default), `TEXT_ONLY` and `OMIT` for

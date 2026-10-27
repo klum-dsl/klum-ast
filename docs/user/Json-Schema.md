@@ -71,8 +71,7 @@ conflicting choices, exact Jackson literals/exclusions and independently resolve
 
 Properties include eligible authored-operation tokens and self-contained construction-key tokens. Data and instance keys
 stay literal; owned definitions use the owned type's hierarchy rather than the owner's profile. Literal nonempty
-`@JsonProperty` names override the profile; existing `@JsonIgnore` exclusions remain effective. `InputName`/`InputIgnore`
-are not implemented by this slice. The generator and interpreter share one resolver over public Builder facts;
+`@InputName` or compatible `@JsonProperty` names override the profile; `@InputIgnore`/`@JsonIgnore` exclusions remain effective. The generator and interpreter share one resolver over public Builder facts;
 Model bytes, mapper strategies and annotation proxies do not provide naming facts.
 
 Conflicting explicit profiles, nonidentity member collisions and malformed/incomplete required naming metadata fail before
@@ -81,6 +80,36 @@ positions unrepresentable; keyless definitions retain existing behavior. No-prof
 output. Recompile selected hierarchies and align tool versions; complete legacy identity contracts remain usable where
 no selected profile requires missing ancestry facts. Numeric/projection completeness remains independently required.
 See [migration](Migration.md#type-naming-profiles).
+
+## Literal names and exclusion
+
+`@InputName` and `@InputIgnore` share the interpreter's [literal contract](Structured-Input.md#literal-names-and-exclusion).
+Exact literals name eligible fields, construction-key members and admitted authored operations; ignored entries are absent
+from closed object properties. Equal Jackson literals coalesce, while contradictory names fail even on ignored sources.
+Neither annotation widens admission or changes runtime validation. Owned values resolve their own names; data Map keys
+and keyed-instance identities remain literal.
+
+(See: `KlumJsonSchemaGenerationTest#'project literal names and exclusions from source-free artifacts with Groovy #generation'`.)
+
+```groovy
+@DSL class ServiceBase {
+    @Key @InputName('Service/ID') String serviceId
+    @InputName('URL/exact') String URLValue
+    String urlValue
+    @InputIgnore String hiddenValue
+}
+@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@DSL class Service extends ServiceBase {}
+// Closed properties: Service/ID (required), URL/exact, url-value.
+```
+
+A literal can separate profile-colliding declarations; remaining nonidentity collisions fail before artifact replacement.
+An ignored required key still makes a member-key position unrepresentable; externally keyed owned Map bodies remain keyless.
+The compiler freezes exact names, exclusion and origin on declaring public Builder contracts with independent literal
+completeness. Missing, unknown, inconsistent or malformed required facts fail with source/artifact and recompile guidance,
+preserving prior successful schema output. Complete legacy identity facts retain their established output; no Model-byte
+fallback or Schema-code execution fills missing metadata. Align tool versions and recompile affected Schemas; see
+[migration](Migration.md#literal-names-and-exclusion).
 
 ## Deprecation
 
@@ -289,7 +318,7 @@ Reusable definition identities and references retain fully qualified generated B
 The generated document uses reusable `$defs`/`$ref` for concrete owned objects, closed object properties, literal String
 keys for ordinary data maps and keyed owned maps, scalar/enum values, supported field containers, and admitted authored
 `@Builder.Method` operations with one payload. Inherited members and retained prose are preserved. A Map/List operation
-payload remains one value. Explicit ignore, literal nonempty rename, then identity fallback determine external names.
+payload remains one value. Exclusion, compatible literal rename, type profile and identity fallback determine external names.
 Concrete owned relationships in compatible binary API/Schema dependencies follow the same admission rules as local
 relationships, including inherited fields and keyed Map values. No alternate naming strategy is currently configurable.
 

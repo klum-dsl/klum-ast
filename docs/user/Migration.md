@@ -9,13 +9,28 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Literal names and exclusion
+
+Use `@InputName('literal')` and marker `@InputIgnore` for dependency-free structured-input/JSON Schema shaping on eligible
+fields, selected construction keys and admitted Builder methods. Exact names add no alias. Compatible Jackson names
+coalesce; conflicting explicit names now fail with both origins, including excluded entries. Empty `InputName` is invalid;
+empty Jackson names retain fallback. False Jackson ignore cannot undo Klum exclusion. Ordinary Groovy names and validation
+remain unchanged; Jackson import needs its own matching annotations when the same spelling is desired.
+
+Recompile/package affected Schemas with matching compiler/runtime/plugin versions. Declaring public Builder contracts
+retain independent `literalVersion=1` and explicit effective name/exclusion/origin facts, including authored operations.
+Missing/unknown/malformed required literal facts fail before execution or schema replacement. Existing complete legacy
+facts remain supported; new language choices are never inferred from absent required metadata. Naming-profile and numeric,
+decimal and projection completeness remain independent. An ignored key does not remove construction identity obligations.
+See [structured input](Structured-Input.md#literal-names-and-exclusion) and [JSON Schema](Json-Schema.md#literal-names-and-exclusion).
+
 ### Type naming profiles
 
 `@InputNaming` now selects type-owned `IDENTITY` or bounded ASCII `KEBAB_CASE` for structured input and JSON Schema.
 Its profile is required. An explicit choice binds descendants, including explicit identity; an unannotated hierarchy
 leaves room for its first profiled child. Profiles cover inherited eligible members without changing standalone ancestors.
-Owned types resolve their own hierarchy. Existing Jackson literal overrides/exclusions stay supported; Klum
-`InputName`/`InputIgnore` remain deferred. Managed Jackson import keeps its independent naming behavior.
+Owned types resolve their own hierarchy. Existing Jackson literal overrides/exclusions stay supported alongside
+[Klum literals](#literal-names-and-exclusion). Managed Jackson import keeps its independent naming behavior.
 
 Use matching compiler/runtime/plugin versions and recompile/package every declaring type in a selected Schema hierarchy.
 New Builder markers explicitly retain profile/absence and an independent `namingVersion=1`. Missing ancestry facts,

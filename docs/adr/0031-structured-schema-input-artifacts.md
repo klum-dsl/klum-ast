@@ -781,3 +781,28 @@ See [probe/implementation evidence](../implementation/issue-959-d7-input-naming-
 [structured-input contract](../user/Structured-Input.md#type-naming-profiles) and
 [JSON Schema contract](../user/Json-Schema.md#type-naming-profiles). Package/root/relationship selectors, examples transport,
 constraint policy changes and the remaining D7 work stay deferred. Related: #959; issue state and release placement stay unchanged.
+
+
+## D7 literal name and exclusion implementation slice — #959
+
+Date: 2026-10-27. Status: **Implemented bounded slice following merged PR #976**.
+Authority: the accepted [external naming decision](../implementation/issue-959-d7-external-naming-decision.md) and the
+literal-vocabulary assignment. This supersedes only the earlier profile slice's `InputName`/`InputIgnore` deferral.
+
+`InputName` and marker `InputIgnore` in `com.blackbuild.klum.ast` have RUNTIME retention and FIELD/METHOD targets.
+The required exact nonempty String names source fields, selected keys or already admitted authored Builder methods.
+Eligibility/exclusion precedes compatible literals, then inherited/local profiles and identity. Equal Klum/Jackson names
+coalesce; contradictory names fail with both origins before exclusion, independent of annotation order. `InputIgnore` or
+true/default `JsonIgnore` excludes; false ignore is neutral. Compatible rename plus exclusion is valid. Literal overrides
+can separate profile collisions; unresolved nonidentity collisions retain source-aware failure and identity behavior stays
+unchanged. Construction-key positions and external identity obligations remain intact.
+
+Existing field/key slots retain effective rename/exclusion. Authored-operation facts now fold the same choices. Explicit
+name-origin facts distinguish native, Jackson/Klum literals and Jackson/Klum exclusion; independent `literalVersion=1`
+requires complete facts on declaring public Builder contracts. No raw Model bytes, annotation-proxy execution or Schema
+execution participates. Unknown, malformed or missing required facts fail with source/artifact recompile guidance;
+complete legacy facts retain their established grammar. Numeric/decimal/projection/profile responsibilities stay independent.
+
+The [implementation evidence](../implementation/issue-959-d7-literal-input-names.md) records packaged G3/G4/G5 qualification.
+There are no package/root/global profiles, broader JsonNaming, mapper adapters, examples, defaults, relationship selectors,
+runtime overloads or metadata SPI. Ordinary Groovy configuration, Jackson import and runtime validation remain independent.
