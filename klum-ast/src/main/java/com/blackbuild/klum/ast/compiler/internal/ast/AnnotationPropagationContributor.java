@@ -100,6 +100,11 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
             }
             return EffectiveDeclarationContribution.none();
         }
+        if (target instanceof FieldNode && StructuredInputSourceOrigins.needed(declaration.getAnnotations())) {
+            // Return the transient fact through the existing handoff; never mutate the inspected declaration.
+            additions.add(new EffectiveAnnotation(StructuredInputSourceOrigins.capture(declaration.getAnnotations()),
+                    "original structured-input field declarations", target));
+        }
         return additions.isEmpty() ? EffectiveDeclarationContribution.none() : new EffectiveDeclarationContribution(additions);
     }
 

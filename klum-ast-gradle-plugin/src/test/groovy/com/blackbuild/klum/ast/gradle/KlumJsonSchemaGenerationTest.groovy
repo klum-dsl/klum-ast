@@ -171,6 +171,123 @@ tasks.register('exampleControl', JavaExec) {
         'ExampleChild'   | 'owned'  | 'missing'
     }
 
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#conservative-pattern-projection')
+    def 'project bounded release identifiers from source-free artifacts with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Release', 'example.PatternKey', 'example.PatternGrouped'])\n")
+        new File(producer, 'api/build/classes').deleteDir()
+        new File(producer, 'schema/build/classes').deleteDir()
+
+        when:
+        run('generateKlumJsonSchema', '--configuration-cache')
+        def schema = document('example.Release')
+        def release = schema.'$defs'.'example.Release_DSL$Builder'
+        def properties = release.properties
+        File validation = new File(System.getProperty('schemaValidationDirectory'), generation)
+        validation.mkdirs()
+        new File(validation, 'pattern.schema.json').bytes = output('example.Release').bytes
+
+        then:
+        properties.slug.allOf == [[pattern: '^[a-z][a-z0-9-]{0,62}$'], [not: [type: 'string', pattern: '[^ -~]']]]
+        properties.slug.description == 'Release slug.'
+        properties.slug.examples == ['release-1', 'NOT VALID']
+        properties.'text-only'.examples == ['outside']
+        properties.'Inherited/Code'.allOf[0].pattern == '^[A-Z]{2}$'
+        properties.'Inherited/Code'.'x-klum-constraint-source' == 'example.PatternBase#inheritedCode'
+        properties.'optional-token'.allOf[0].pattern == '^a{0,2}$'
+        properties.flagged.description.contains('nonempty Pattern flags')
+        ['flagged', 'unix', 'multiline', 'dotall', 'unicode-case', 'canonical'].every { properties[it].description.contains('nonempty Pattern flags') && !properties[it].containsKey('allOf') }
+        properties.'constant-fallback'.description.contains('regexp="[a-z][a-z0-9-]{0,62}"')
+        properties.payload.description.contains('groups/payload')
+        properties.composed.description.contains('@example.ComposedPattern()')
+        !properties.composed.containsKey('allOf')
+        properties.alias.description.contains('@example.AliasedPattern()')
+        !properties.alias.containsKey('allOf')
+        properties.controls.description.contains('regexp="a\\u000a"')
+        properties.grouped.description.contains('groups/payload')
+        properties.unbounded.description.contains('unsupported Pattern source syntax')
+        properties.malformed.description.contains('regexp="["')
+        properties.repeated.description.contains('Pattern$List')
+        properties.'singleton-list'.description.contains('Pattern$List')
+        !properties.'singleton-list'.containsKey('allOf')
+        !properties.'mixed-list'.containsKey('allOf')
+        properties.'mixed-list'.description.contains('Pattern$List')
+        properties.'text-only'.description.contains('field projection policy TEXT_ONLY')
+        properties.omitted == [type: 'string', description: 'Retained prose.', deprecated: true, examples: ['outside']]
+        !properties.containsKey('excluded')
+        !properties.'wrong-type'.containsKey('allOf')
+        !properties.container.items.containsKey('pattern')
+        properties.first.'$ref' == properties.second.'$ref'
+        schema.'$defs'.'example.PatternChild_DSL$Builder'.properties.'child-code'.allOf[0].pattern == '^[A-Z]{2}$'
+        !document('example.PatternKey').'$defs'.'example.PatternKey_DSL$Builder'.properties.name.containsKey('allOf')
+        document('example.PatternGrouped').'$defs'.'example.PatternGrouped_DSL$Builder'.properties.value.description.contains('group redefinition')
+        !release.containsKey('required')
+        !trap.exists()
+        ['api', 'schema'].every { !new File(producer, "$it/src").exists() && !new File(producer, "$it/build/classes").exists() }
+
+        when:
+        def admitted = run('patternAdmissionControl')
+        def cached = run('generateKlumJsonSchema', '--configuration-cache')
+        then:
+        admitted.output.contains('Pattern remains independent of interpreter admission')
+        cached.output.contains('Reusing configuration cache.')
+        cached.task(':generateKlumJsonSchema').outcome == TaskOutcome.UP_TO_DATE
+
+        when:
+        def control = runner(consumer, 'patternInitializeControl').buildAndFail()
+        then:
+        control.output.contains('Pattern Schema initialized')
+        trap.text == 'initialized'
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'corrupt Pattern facts fail both consumers atomically: #target #selectedField #kind'() {
+        given:
+        fixture('3', false, false, false, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Release'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.Release').bytes
+        File manifest = new File(output('example.Release').parentFile, '.klum-json-schema-outputs')
+        String previousManifest = manifest.text
+        stripConstraintFacts(target, kind, selectedField)
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+        then:
+        failed.output.contains(reason)
+        failed.output.contains('recompile and package')
+        output('example.Release').bytes == previous
+        manifest.text == previousManifest
+        !trap.exists()
+        when:
+        def rejected = runner(consumer, 'patternReadControl', '--refresh-dependencies').build()
+        then:
+        rejected.output.contains('Rejected Pattern metadata before execution')
+        !trap.exists()
+        where:
+        target | selectedField | kind | reason
+        'Release' | 'slug' | 'regexp' | 'Missing direct Pattern facts'
+        'Release' | 'textOnly' | 'regexp' | 'Missing direct Pattern facts'
+        'Release' | 'omitted' | 'regexp' | 'Missing direct Pattern facts'
+        'Release' | 'slug' | 'patternFlagsEmpty' | 'Missing direct Pattern facts'
+        'Release' | 'textOnly' | 'patternFlagsEmpty' | 'Missing direct Pattern facts'
+        'Release' | 'omitted' | 'patternFlagsEmpty' | 'Missing direct Pattern facts'
+        'Release' | 'slug' | 'bad-regexp' | 'Pattern regexp must be a String'
+        'Release' | 'omitted' | 'bad-flags' | 'Pattern flag emptiness must be a Boolean'
+        'PatternBase' | 'inheritedCode' | 'regexp' | 'Missing direct Pattern facts'
+        'PatternChild' | 'childCode' | 'patternFlagsEmpty' | 'Missing direct Pattern facts'
+        'Release' | 'slug' | 'duplicate-pattern' | 'Inconsistent singleton Pattern eligibility'
+        'Release' | 'textOnly' | 'duplicate-pattern' | 'Inconsistent singleton Pattern eligibility'
+        'Release' | 'omitted' | 'duplicate-pattern' | 'Inconsistent singleton Pattern eligibility'
+        'Release' | 'omitted' | 'duplicate-regexp' | 'Duplicate constraint member regexp'
+        'Release' | 'textOnly' | 'unknown-pattern' | 'Unknown constraint member futurePatternFact'
+    }
+
     @Issue(['529', '950', '954'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')
@@ -1545,7 +1662,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -1556,7 +1673,7 @@ import com.blackbuild.klum.ast.DSL
         String groovy = notation(System.getProperty("gdslGroovy$generation"))
         String compiler = classpath(System.getProperty('gdslCompilerClasspath'))
         String runtime = classpath(System.getProperty('gdslRuntimeClasspath'))
-        new File(producer, 'settings.gradle').text = "include 'api', 'schema'" + (naming ? ", 'owned'" : '')
+        new File(producer, 'settings.gradle').text = "include 'api', 'schema'" + (naming || patterns ? ", 'owned'" : '')
         new File(producer, 'build.gradle').text = """
 subprojects {
     apply plugin: 'groovy'
@@ -1883,9 +2000,13 @@ import java.lang.annotation.*
 @DSL class Unrepresentable { @DecimalMin('1E+2147483648') BigDecimal amount }
 """)
         }
+        if (patterns) {
+            new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
+            patternSources()
+        }
         if (projection) projectionSources()
-        if (naming) {
-            namingSources()
+        if (naming || patterns) {
+            if (naming) { namingSources() }
             if (literals) { literalSources() }
             if (examples) { exampleSources() }
             new File(producer, 'build.gradle').append("\nproject(':schema') { dependencies { implementation project(':owned') } }\n")
@@ -1895,10 +2016,10 @@ import java.lang.annotation.*
         publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency>' +
-                (naming ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')
+                (naming || patterns ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')
         new File(producer, 'schema/src').deleteDir()
         new File(producer, 'api/src').deleteDir()
-        if (naming) {
+        if (naming || patterns) {
             new File(producer, 'api/build/classes').deleteDir()
             new File(producer, 'schema/build/classes').deleteDir()
             new File(producer, 'owned/src').deleteDir()
@@ -1916,6 +2037,20 @@ klumSchema.jsonSchema {
     rootTypes.add('example.Service')
     ${defaults ? '' : 'classpath.setFrom(configurations.schemaBinary, files(' + runtime + ', ' + groovy + '))'}
 }
+${patterns ? """
+tasks.register('patternAdmissionControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.PatternAdmissionControl'
+}
+tasks.register('patternReadControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.PatternReadControl'
+}
+tasks.register('patternInitializeControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.PatternInitializeControl'
+}
+""" : ''}
 tasks.register('initializeControl', JavaExec) {
     classpath = klumSchema.jsonSchema.classpath
     mainClass = 'example.InitializationControl'
@@ -2184,6 +2319,122 @@ import com.blackbuild.klum.ast.InputNaming.Profile
 """)
     }
 
+    private void patternSources() {
+        List<String> acceptedPatterns = ['[A-Z]{2}[0-9]{4}', '^[A-Z]{2}[0-9]{4}$', '[a-z][a-z0-9-]{0,62}',
+                'a?', 'a{0}', '[0-9]{0,3}', '[A-Za-z0-9_.-]{1,8}', 'release-[0-9]{1,3}', '[a]{2}[a]{0,2}',
+                'literal_1', '[0-9]{255}', 'a{255}b{255}c{255}d{255}', '[.]', '[-]']
+        String corpusFields = acceptedPatterns.withIndex().collect { String pattern, int index ->
+            "    @Pattern(regexp='${pattern}') String sample${index}"
+        }.join('\n')
+        writeSource('owned/src/main/groovy/example/PatternChild.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.Pattern
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class PatternChild { @Pattern(regexp='[A-Z]{2}') String childCode }
+''')
+        writeSource('api/src/main/groovy/example/PatternBase.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.Pattern
+@DSL class PatternBase {
+    @InputName('Inherited/Code') @Pattern(regexp='[A-Z]{2}') String inheritedCode
+}
+class PatternConstants { public static final String TOKEN = '[a-z][a-z0-9-]{0,62}' }
+""")
+        writeSource('api/src/main/groovy/example/PatternReadControl.groovy', '''
+package example
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.blackbuild.klum.ast.runtime.KlumModelException
+class PatternReadControl {
+    static void main(String[] args) {
+        Class type = Class.forName('example.Release', false, PatternReadControl.classLoader)
+        try {
+            KlumStructuredInput.readRoot(type, [:], 'pattern.yaml')
+            throw new AssertionError('corrupt Pattern metadata accepted')
+        } catch (KlumModelException expected) {
+            assert expected.message.contains('Pattern')
+            assert expected.message.contains('recompile and package')
+            println 'Rejected Pattern metadata before execution'
+        }
+    }
+}
+class PatternAdmissionControl {
+    static void main(String[] args) {
+        Class type = Class.forName('example.PatternInputOnly', false, PatternAdmissionControl.classLoader)
+        assert KlumStructuredInput.readRoot(type, [code: 'outside pattern'], 'pattern.yaml').code == 'outside pattern'
+        assert KlumStructuredInput.readRoot(type, [:], 'pattern.yaml').code == null
+        try {
+            KlumStructuredInput.readRoot(type, [code: null], 'pattern.yaml')
+            throw new AssertionError('null accepted')
+        } catch (KlumModelException expected) { assert expected.message.contains('null') }
+        println 'Pattern remains independent of interpreter admission'
+    }
+}
+class PatternInitializeControl {
+    static void main(String[] args) { Class.forName('example.Release', true, PatternInitializeControl.classLoader) }
+}
+''')
+        writeSource('schema/src/main/groovy/example/Release.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.ConstraintProjection.Policy
+import jakarta.validation.constraints.*
+import jakarta.validation.groups.Default
+import jakarta.validation.GroupSequence
+import jakarta.validation.Payload
+import groovy.transform.AnnotationCollector
+import jakarta.validation.Constraint
+import java.lang.annotation.*
+import static example.PatternConstants.TOKEN
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class Release extends PatternBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Pattern Schema initialized') }
+    $corpusFields
+    /** Release slug. */
+    @InputExamples(['release-1', 'NOT VALID']) @Pattern(regexp=TOKEN) String slug
+    @Pattern(regexp=TOKEN, flags=Pattern.Flag.COMMENTS) String constantFallback
+    @Pattern(regexp='a', flags=Pattern.Flag.UNIX_LINES) String unix
+    @Pattern(regexp='a', flags=Pattern.Flag.MULTILINE) String multiline
+    @Pattern(regexp='a', flags=Pattern.Flag.DOTALL) String dotall
+    @Pattern(regexp='a', flags=Pattern.Flag.UNICODE_CASE) String unicodeCase
+    @Pattern(regexp='a', flags=Pattern.Flag.CANON_EQ) String canonical
+    @Pattern(regexp='a', payload=Warning) String payload
+    @ComposedPattern String composed
+    @AliasedPattern String alias
+    @Pattern(regexp='a\\n') String controls
+    @Pattern(regexp='^a{0,2}\$', flags=[]) String optionalToken
+    @Pattern(regexp='a', flags=Pattern.Flag.CASE_INSENSITIVE) String flagged
+    @Pattern(regexp='a', groups=Default) String grouped
+    @Pattern(regexp='a+') String unbounded
+    @Pattern(regexp='[') String malformed
+    @Pattern.List([@Pattern(regexp='a'), @Pattern(regexp='b')]) String repeated
+    @Pattern.List([@Pattern(regexp='a')]) String singletonList
+    @Pattern(regexp='a') @Pattern.List([@Pattern(regexp='b')]) String mixedList
+    @InputExamples(['outside']) @Pattern(regexp='a') @ConstraintProjection(Policy.TEXT_ONLY) String textOnly
+    /** Retained prose. */
+    @InputExamples(['outside']) @Deprecated @Pattern(regexp='a') @ConstraintProjection(Policy.OMIT) String omitted
+    @InputIgnore @Pattern(regexp='a') String excluded
+    @Pattern(regexp='a') Integer wrongType
+    @Pattern(regexp='a') List<String> container
+    @ConstraintProjection(Policy.OMIT) PatternChild first
+    PatternChild second
+    @Builder.Method void configure(String value) { throw new AssertionError('operation executed') }
+}
+@DSL class PatternInputOnly { @Pattern(regexp='a') String code }
+@DSL class PatternKey { @Key @Pattern(regexp='[A-Z]{2}') String name }
+@Pattern(regexp='a') @AnnotationCollector @interface AliasedPattern {}
+interface Warning extends Payload {}
+@Constraint(validatedBy=[]) @Pattern(regexp='a')
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface ComposedPattern {
+    String message() default ''
+    Class[] groups() default []
+    Class[] payload() default []
+}
+@GroupSequence([PatternGrouped]) @DSL class PatternGrouped { @Pattern(regexp='a') String value }
+""")
+    }
+
     private void projectionSources() {
         File base = new File(producer, 'api/src/main/groovy/example/CapacityBase.groovy')
         base.text = base.text.replace('import com.blackbuild.klum.ast.DSL', 'import com.blackbuild.klum.ast.*')
@@ -2319,8 +2570,8 @@ class InitializationControl {
     }
 
     // Corrupt only public facts, retaining the Model's real Bean annotations as a no-fallback control.
-    private void stripConstraintFacts(String target, String kind) {
-        String artifact = target in ['CapacityBase', 'DecimalBase', 'ProjectionChild'] ? 'api' : 'schema'
+    private void stripConstraintFacts(String target, String kind, String selectedField = null) {
+        String artifact = target == 'PatternChild' ? 'owned' : target in ['CapacityBase', 'DecimalBase', 'ProjectionChild', 'PatternBase'] ? 'api' : 'schema'
         File jar = new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")
         File replacement = new File(directory, 'stripped.jar')
         new JarFile(jar).withCloseable { input ->
@@ -2333,6 +2584,7 @@ class InitializationControl {
                         reader.accept(new ClassVisitor(Opcodes.ASM9, writer) {
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions)
+                                if (selectedField != null && name != 'get' + selectedField.capitalize()) { return delegate }
                                 if (kind == 'group-value' && name != 'getGrouped') {
                                     return delegate
                                 }
@@ -2357,10 +2609,27 @@ class InitializationControl {
                                                     return null
                                                 }
                                                 new AnnotationVisitor(Opcodes.ASM9, array) {
+                                                    @Override void visitEnd() {
+                                                        if (kind == 'duplicate-pattern') {
+                                                            AnnotationVisitor duplicate = array.visitAnnotation(null, 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Constraint;')
+                                                            duplicate.visit('annotation', 'jakarta.validation.constraints.Pattern')
+                                                            duplicate.visit('declaration', '@jakarta.validation.constraints.Pattern(regexp="a")')
+                                                            duplicate.visit('plain', true)
+                                                            duplicate.visit('regexp', 'a')
+                                                            duplicate.visit('patternFlagsEmpty', true)
+                                                            duplicate.visitEnd()
+                                                        }
+                                                        super.visitEnd()
+                                                    }
                                                     @Override AnnotationVisitor visitAnnotation(String elementName, String elementDescriptor) {
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
+                                                                if (kind == 'duplicate-regexp' && attribute == 'regexp') { super.visit(attribute, value) }
+                                                                if (kind == 'unknown-pattern' && attribute == 'regexp') { super.visit('futurePatternFact', value) }
+                                                                if (kind in ['regexp', 'patternFlagsEmpty'] && attribute == kind) { return }
+                                                                if (kind == 'bad-regexp' && attribute == 'regexp') { super.visit(attribute, 17); return }
+                                                                if (kind == 'bad-flags' && attribute == 'patternFlagsEmpty') { super.visit(attribute, 'true'); return }
                                                                 if (kind == 'bad-decimal' && attribute == 'decimalValue') {
                                                                     super.visit(attribute, 'malformed')
                                                                     return

@@ -109,6 +109,10 @@ public final class GeneratedInput {
         long value() default 0L;
         String decimalValue() default "";
         boolean inclusive() default true;
+        /** Explicit decoded source for each direct Jakarta Pattern, including unsupported forms. */
+        String regexp() default "";
+        /** Explicit effective flag emptiness; absence is never interpreted as empty. */
+        boolean patternFlagsEmpty() default false;
         boolean plain();
         String declaration();
     }

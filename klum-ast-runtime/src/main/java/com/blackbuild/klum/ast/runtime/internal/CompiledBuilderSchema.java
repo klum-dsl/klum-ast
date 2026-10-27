@@ -107,7 +107,7 @@ final class CompiledBuilderSchema {
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) { }
-    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive) { }
+    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive, String regexp, Boolean patternFlagsEmpty) { }
     record FieldConstraints(Policy policy, List<ConstraintRule> rules) { }
     record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) { }
 
@@ -793,6 +793,13 @@ final class CompiledBuilderSchema {
             throw invalidConstraint(literal, "Unknown constraint projection policy " + literal.constraintProjection + " on " + source);
         }
         validateDecimalFacts(literal, source);
+        List<ConstraintRule> patterns = literal.constraints.stream()
+                .filter(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
+        boolean repeatedPattern = patterns.size() > 1 || literal.constraints.stream()
+                .anyMatch(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
+        if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
+            throw invalidConstraint(literal, "Inconsistent singleton Pattern eligibility on " + source);
+        }
     }
 
     private static void validateNameFacts(NameFacts names, String source) {
@@ -993,6 +1000,8 @@ final class CompiledBuilderSchema {
         private String declaration;
         private String decimalValue;
         private Boolean inclusive;
+        private String regexp;
+        private Boolean patternFlagsEmpty;
 
         ConstraintAnnotationVisitor(Literals field) {
             super(Opcodes.ASM9);
@@ -1006,6 +1015,14 @@ final class CompiledBuilderSchema {
                 case VALUE -> {
                     if (!(literal instanceof Long)) throw invalid("Integral constraint value must be a Java long");
                     value = literal.toString();
+                }
+                case "regexp" -> {
+                    if (!(literal instanceof String)) throw invalidConstraint(field, "Pattern regexp must be a String");
+                    regexp = (String) literal;
+                }
+                case "patternFlagsEmpty" -> {
+                    if (!(literal instanceof Boolean)) throw invalidConstraint(field, "Pattern flag emptiness must be a Boolean");
+                    patternFlagsEmpty = (Boolean) literal;
                 }
                 case "decimalValue" -> decimalValue = (String) literal;
                 case "inclusive" -> inclusive = (Boolean) literal;
@@ -1025,9 +1042,14 @@ final class CompiledBuilderSchema {
             if (!seen.contains("plain")) throw invalidConstraint(field, "Missing constraint eligibility");
             boolean integral = Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation);
             if (integral && !seen.contains(VALUE)) throw invalidConstraint(field, "Missing direct integral bound");
-            if (plain && !decimalRule(annotation) && (!integral
+            boolean pattern = annotation.equals("jakarta.validation.constraints.Pattern");
+            if (pattern && (regexp == null || patternFlagsEmpty == null))
+                throw invalidConstraint(field, "Missing direct Pattern facts (regexp/patternFlagsEmpty)");
+            if (!pattern && (regexp != null || patternFlagsEmpty != null))
+                throw invalidConstraint(field, "Pattern facts on a non-Pattern declaration");
+            if (plain && !pattern && !decimalRule(annotation) && (!integral
                     || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
-            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive));
+            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty));
         }
     }
 

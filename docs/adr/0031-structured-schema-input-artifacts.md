@@ -858,3 +858,47 @@ The unified `GeneratedInput.Schema.version=1` is unchanged; no feature version o
 No infrastructure is retained for future typed examples. Pattern projection is separate.
 [Implementation evidence](../implementation/issue-959-d7-examples.md) records the reduction and qualification;
 [user documentation](../user/Json-Schema.md#advisory-input-examples) gives the authoring contract.
+
+
+## Conservative Pattern projection — #959
+
+Date: 2026-10-27. Status: **Accepted bounded implementation slice; rebased onto merged D7 examples for delivery**.
+Authority: [maintainer decision](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6442779190).
+This supersedes only the Pattern deferral for direct singleton Jakarta Pattern on eligible ordinary String fields.
+
+Adopt the evidence-defined ASCII-BOUNDED-1 finite literal/class/quantifier grammar and limits, with optional paired
+outer anchors. Conjoin the anchored assertion with the typed printable-ASCII guard. Java full matching and ECMA/Draft
+2020-12 supplied-String predicates must agree; no weakened hard translation is allowed. Unsupported complete declarations
+remain deterministic runtime-constraint descriptions. Flags, groups/payload, hierarchy group changes, composition/repeats,
+non-direct origins, keys, operations, container elements and non-String positions remain outside hard eligibility.
+
+Compiler-frozen regexp String and Boolean flag emptiness extend existing constraint facts. Both consumers validate them
+before policy or execution, including suppressed facts and omitted owned closure. The public Builder is the sole byte
+source; no Model fallback, provider/user-code execution, interpreter validation or new SPI/flag is introduced. Existing
+PROJECT/TEXT_ONLY/OMIT, source attribution, inherited names/exclusion, null/omission and independent conjunction remain.
+
+Per the same maintainer decision, retain `GeneratedInput.Schema.version=1` during 4.2 development. Formal release protocol
+cutover belongs to actual release preparation. Current tools require matching, completely recompiled participating
+artifacts; unchanged marker is not a mixed/historical toolchain promise. No feature-specific version is added.
+
+See [implementation/qualification](../implementation/issue-959-pattern-projection.md) and
+[user contract](../user/Json-Schema.md#conservative-pattern-projection). Related: #959, without tracker-state or release-placement change.
+
+
+### Pattern origin proof within the existing compiler handoff
+
+The existing KlumCast-owned contributor additionally returns a transient internal SOURCE annotation for an eligible
+original field only when its source annotations include direct Jakarta Pattern or a Groovy AnnotationCollector use.
+Its private metadata retains immutable original annotation identities before collector expansion. This is compiler-fact
+capture for the accepted Pattern slice, separate from default-only annotation propagation in ADR 0029 D2; no propagation
+request, copied Bean constraint, user annotation change or emitted behavior is inferred. Other no-request declarations
+remain untouched. The inspected declaration and annotation members are not mutated by the contributor: KlumCast owns
+attachment through the existing complete-batch handoff. Capture is complete before that handoff and the contributor
+performs no subsequent mutation. The transient marker may follow normal field-to-accessor copying but is never emitted
+to class files or public Builder contracts and is not an authored annotation or validation rule.
+
+This preserves ADR 0014's local-transform activation and exact module services. No independently registered global
+transform, generic preprocessing API, new SPI, source parsing or runtime inspection is introduced. Later Pattern capture
+requires identity in the original snapshot; copied/collector-supplied origins remain whole descriptions. The binary
+G3/G4/G5 collector regression and existing propagation/JPMS qualification protect both the new origin fact and unchanged
+activation boundaries.

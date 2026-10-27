@@ -31,6 +31,22 @@ Current development Builder facts retain source-specific string arrays, includin
 `GeneratedInput.Schema.version` remains 1; this slice adds no metadata version, feature gate or compatibility mechanism.
 Keep the current compiler/runtime/plugin aligned. See [syntax and placement](Json-Schema.md#advisory-input-examples).
 
+
+### Conservative Pattern projection
+
+Eligible direct singleton Jakarta Pattern constraints on ordinary String fields now project automatically under the
+existing `PROJECT` policy, using the bounded ASCII grammar and printable-ASCII guard described in
+[JSON Schema](Json-Schema.md#conservative-pattern-projection). Unsupported forms remain runtime descriptions. Use
+`TEXT_ONLY` or `OMIT` for existing field-level control; input admission, defaults and completed runtime validation stay
+independent. No new task flag exists.
+
+Recompile and package roots and participating inherited/owned Schemas with matching compiler/runtime/plugin versions.
+Explicit decoded regexp and flag-emptiness facts are required even for descriptive or omitted constraints. Missing or
+malformed metadata fails before execution or output replacement. `GeneratedInput.Schema.version` stays at its current
+value during 4.2 development; formal release-protocol cutover/recompilation preparation remains deferred. This grants
+no historical or mixed-toolchain compatibility promise.
+
+
 ### Literal names and exclusion
 
 Use `@InputName('literal')` and marker `@InputIgnore` for dependency-free structured-input/JSON Schema shaping on eligible

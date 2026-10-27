@@ -5,6 +5,13 @@
   Defaults, requiredness, runtime input and lifecycle are unchanged; the unified metadata version stays 1.
   See [examples](docs/user/Json-Schema.md#advisory-input-examples) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
 
+
+- Project direct singleton Jakarta Pattern constraints for bounded ASCII String identifiers with anchored Draft 2020-12
+  assertions and a typed printable-ASCII guard. Unsupported forms remain runtime descriptions; field policies, null/omission
+  and runtime validation remain independent. Recompile participating Schema artifacts with matching tools. See
+  [Pattern projection](docs/user/Json-Schema.md#conservative-pattern-projection) and
+  [migration](docs/user/Migration.md#conservative-pattern-projection) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Unified structured-input/JSON Schema metadata under one required protocol version. Older or incomplete Builder
   contracts are rejected; recompile participating Schema hierarchies and owned artifacts with matching tools.
   Removed legacy identity/operation reconstruction and feature-specific version markers; valid-Schema behavior is
