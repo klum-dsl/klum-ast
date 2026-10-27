@@ -63,8 +63,49 @@ Both documentary features carry `@Issue('959')`, `@Tag('documentary')`, and `@Se
 
 ## Qualification, reduction and delivery
 
-Current simplification qualification and measured before/after LOC are recorded here after the final checks. Earlier typed
-implementation results are historical and do not qualify this changed contract.
+JDK17 source/test revision `7b5d7e2d`: final sequential `./gradlew check` passed in **12m51s**, 140 tasks (68 executed,
+72 up-to-date). Groovy 3/4/5 totals are **3316 / 2754 / 2754**, with **zero failures/errors** and **17 / 16 / 16 existing
+skips**. The focused `InputExamplesTest` passes **11 cases in every lane**. All **109 packaged JSON Schema cases** pass.
+Separate G3/G4/G5 annotation-propagation artifact qualifiers pass (1 / 2 / 2 cases, no failures/errors/skips). Licenses,
+plugin validation, source mirrors, lane isolation, coverage and release/documentation checks pass. No suppression or
+dependency was added. A superseded local run was canceled for observed review cleanup; it is not qualification evidence.
+
+Independent `jsonschema 4.23.0` checks pass **93 schema/input controls**, confirm **57 string-only example locations**,
+quote/backslash/newline/Unicode round trips, unchanged input acceptance with examples removed, and byte-identical G3/G4/G5
+output. All **43 retained schema documents** pass the Draft 2020-12 metaschema. A standalone JDK17/G3 Java static-imported
+constant control also passes without initializing its supplying class. Local replay: `/private/tmp/d7-documentary-validate.py`,
+`/private/tmp/d7-constant-controls.py`, `/private/tmp/d7-documentary-final-check.log`,
+`/private/tmp/d7-documentary-review-tests.log`, `/private/tmp/d7-documentary-artifacts.log`.
+
+### Before/after complexity
+
+Compared with the previously published `1159c5ec4`, using the fixed PR base `6c6d8c568`:
+
+| Measure | Parsed-value implementation | Documentary strings |
+| --- | ---: | ---: |
+| Production Java net physical LOC introduced by this PR | 462 | 160 |
+| Test Java/Groovy net physical LOC introduced by this PR | 533 | 448 |
+| Dedicated JSON grammar cases | 53 | 0 |
+| Feature test executions, including G3/G4/G5 lanes | 127 | 44 |
+
+LOC is reproducible from `git diff --numstat <base> <revision>`, scoped to production/test Java and Groovy; it includes
+comments/license headers. Production contribution is **302 lines smaller (65%)**; test contribution is **85 lines smaller
+(16%)**. The deleted parser alone was 211 physical Java lines. The runtime feature cases shrink from 17 to 11 per lane;
+packaged examples cases shrink from 23 to 11. The remaining tests target the documentary contract and metadata integrity.
+
+### Review disposition and risks
+
+Independent Standards and Specification reviews report **zero remaining findings**, including the final metadata cleanup.
+The previous PR head's 18 Sonar observations are addressed in source by deleting parser/budget machinery or by narrow
+retained-code cleanup: metadata-local diagnostics, a semantic member-name constant, a cohesive array-reader method, and
+local test guard braces. No global style policy, broad suppression or future feature abstraction was introduced. The new
+head's CI/Sonar remains a separate gate; these observations are not claimed closed in the service before reanalysis.
+
+No known correctness defect remains after local qualification. Documentary strings intentionally provide no guarantee of
+valid instances for numeric, boolean, object or constrained properties. The internal aggregate-text guard can reject
+pathological documentation before output replacement. Compiler constant capture is qualified on the supported Groovy
+versions; unsupported nonconstant expressions are rejected without reflective fallback. Earlier typed implementation
+results are historical and do not qualify this changed contract.
 
 The existing PR is updated with additive commits; reviewed history is preserved. Tracker relationship is **Related: #959**;
 issue labels, milestone and state are unchanged by this slice. No merge is authorized. PR CI/Sonar is a separate
