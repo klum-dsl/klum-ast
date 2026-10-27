@@ -106,7 +106,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                     + schema.model().getName() + "', not requested DSL Model '" + rootModel + "'");
         if (Modifier.isAbstract(schema.model().getModifiers()))
             throw new IllegalArgumentException("Abstract root/owned target requires a separately qualified alias policy: " + builder.getName());
-        boolean groupRedefined = collectDeclarationProfiles(builder, schema, source);
+        boolean groupRedefined = collectConstraintProfiles(builder, schema, source);
         Map<String, Object> object = new LinkedHashMap<>();
         definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
@@ -147,7 +147,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (sourceDeprecated) value.put("deprecated", true);
     }
 
-    private boolean collectDeclarationProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
+    private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
         CompiledBuilderSchema.ConstraintProfile profile;
         try {
             profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
@@ -155,12 +155,12 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             String affected = schema.entries().values().stream().filter(entry -> entry.contract() == builder)
                     .map(entry -> entry.source() + " (external input '" + entry.externalName() + "')")
                     .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException("Declaration metadata at input use '" + source + "', admitted sources ["
+            throw new IllegalArgumentException("Constraint metadata at input use '" + source + "', admitted sources ["
                     + affected + "]: " + failure.getMessage(), failure);
         }
         boolean groupRedefined = profile.groupRedefined();
         for (Class<?> parent : builder.getInterfaces()) {
-            if (parent.getName().endsWith(BUILDER)) groupRedefined |= collectDeclarationProfiles(parent, schema, source);
+            if (parent.getName().endsWith(BUILDER)) groupRedefined |= collectConstraintProfiles(parent, schema, source);
         }
         return groupRedefined;
     }

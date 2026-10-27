@@ -183,7 +183,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         'gstring' | '["${System.nanoTime()}"]'
     }
 
-    def 'accept ordinary annotation arrays beyond the former JSON-specific bounds'() {
+    def 'transport ordinary string arrays and empty documentation without content restrictions'() {
         given:
         String text = 'documentation ' * 1000
         String values = '[' + (1..17).collect { "'example'" }.join(',') + ']'
