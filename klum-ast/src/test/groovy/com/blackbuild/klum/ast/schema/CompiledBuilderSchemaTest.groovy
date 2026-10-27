@@ -312,6 +312,35 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     }
 
     @Issue('959')
+    def 'source-free shared accessors preserve distinct field and authored-operation facts'() {
+        given:
+        def jar = compileJar([trapped('''
+            package literalaccessor
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                String value
+                @Builder.Method @InputIgnore String getValue() { value }
+                @InputName('field/exact') String key
+                @Builder.Method @InputName('setter/exact') void setKey(String value) { key = value }
+            }
+        ''')])
+        def binaries = isolated([jar])
+
+        when:
+        def plan = CompiledBuilderSchemaReplacementProbe.read(Class.forName('literalaccessor.Configuration_DSL$Builder', false, binaries),
+                Class.forName('literalaccessor.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        plan.entries*.externalName as Set == ['value', 'field/exact', 'setter/exact'] as Set
+        plan.rejections.find { it.source.contains('#getValue(') }.reason == 'excluded by @InputIgnore'
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    @Issue('959')
     def 'literal decoder rejects incomplete facts before initialization: #damage'() {
         given:
         def jar = compileJar([trapped('''

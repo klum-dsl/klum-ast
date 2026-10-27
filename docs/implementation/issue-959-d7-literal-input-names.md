@@ -41,7 +41,8 @@ reject the new marker rather than silently losing the language choice. Use match
 
 The retained profile binary evidence established that fields/keys retain their existing exact name/exclusion slots and
 that operations need explicit folding on their selected public declaration. The implementation adds no new transport
-kind. The first focused regression run passed before the new literal coverage. The bounded source-free fixtures then
+kind. A test-only byte comparison of the documentary public Builder measures **103 bytes** for the new marker/origin/
+operation-slot facts on each G3/G4/G5 producer (4,364 / 4,364 / 4,383 total Builder bytes respectively). The first focused regression run passed before the new literal coverage. The bounded source-free fixtures then
 qualify the actual new vocabulary rather than inferring support from annotation defaults.
 
 ## Evidence and scope
@@ -75,7 +76,13 @@ signatures and metadata SPI remain outside scope.
 
 Focused Java 17 qualification passed in 2m28s: **141 compiler/runtime cases per G3/G4/G5 lane**, plus **16 packaged literal
 cases**, zero failures/errors/skips. This includes byte-for-byte legacy schema output across all three producer generations.
-The root check and independent Standards/Specification reviews are running; their results will be recorded before publication. The final handoff records the
+The first independent review found a P3 brace violation and a P2 shared-accessor regression. A source-authored Builder
+getter can share a public method with a generated field accessor; treating both naming records as one record rejected a
+previously valid identity Schema. The reviewer reproduced the failure with direct CompilationUnit compilation and
+confirmed a legacy-fact control. The correction retains separate private name facts for field/key and operation sources,
+including opposite exclusions and fallback-setter sharing; it adds direct interpreter and source-free regressions.
+The initial root check was canceled (exit 130) after this substantive correction; it is not reported as a passing run.
+Final root qualification and review confirmation are recorded below when complete. The final handoff records the
 exact final commit, draft PR and live remote validation separately from local evidence. The repository's current Sonar
 procedure requires local source hygiene and reserves authoritative coverage-bearing analysis for full PR CI; it prohibits
 a fast pre-PR upload to the shared project. No clean Sonar result is inferred from local tests.

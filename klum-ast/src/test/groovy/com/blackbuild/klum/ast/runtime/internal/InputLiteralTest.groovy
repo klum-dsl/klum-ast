@@ -98,6 +98,93 @@ class InputLiteralTest extends AbstractDSLSpec {
         CompiledBuilderSchema.read(type).entries().keySet() == ['service.id', 'configure/URL'] as Set
     }
 
+    def 'field and authored getter facts stay independent on a shared public accessor: #fieldAnnotation #methodAnnotation'() {
+        given:
+        def type = schema("""
+            @DSL class Service {
+                $fieldAnnotation String value
+                @Builder.Method $methodAnnotation String getValue() { value }
+            }
+        """)
+
+        when:
+        def plan = CompiledBuilderSchema.read(type)
+        def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
+
+        then:
+        plan.entries().keySet() == [external] as Set
+        result.value == 'catalog'
+        plan.rejections().find { it.source.contains('#getValue(') }.reason == reason
+
+        where:
+        fieldAnnotation             | methodAnnotation                         | external      | reason
+        ''                          | ''                                       | 'value'       | '@Builder.Method must declare exactly one payload'
+        "@InputName('field/exact')" | "@InputName('getter/exact') @InputIgnore" | 'field/exact' | 'excluded by @InputIgnore'
+        "@InputName('field/exact')" | "@JsonProperty('getter/exact') @JsonIgnore" | 'field/exact' | 'excluded by @JsonIgnore(true)'
+    }
+
+    def 'field exclusion does not replace the authored getter rejection on a shared accessor'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @InputIgnore String value
+                @Builder.Method String getValue() { value }
+            }
+        ''')
+
+        when:
+        def plan = CompiledBuilderSchema.read(type)
+
+        then:
+        plan.entries().isEmpty()
+        plan.rejections().find { it.source == 'literals.Service#value' }.reason == 'excluded by @InputIgnore'
+        plan.rejections().find { it.source.contains('#getValue(') }.reason == '@Builder.Method must declare exactly one payload'
+    }
+
+    def 'field and authored setter facts stay independent on a shared fallback accessor'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @InputName('field/exact') String key
+                @Builder.Method @InputName('setter/exact') void setKey(String value) { key = value }
+            }
+        ''')
+
+        when:
+        def plan = CompiledBuilderSchema.read(type)
+        def field = KlumStructuredInput.readRoot(type, ['field/exact': 'field'], 'shared.yaml')
+        def operation = KlumStructuredInput.readRoot(type, ['setter/exact': 'setter'], 'shared.yaml')
+
+        then:
+        plan.entries().keySet() == ['field/exact', 'setter/exact'] as Set
+        field.key == 'field'
+        operation.key == 'setter'
+    }
+
+    def 'field and operation exclusion remain independent on a shared setter: #fieldAnnotation #methodAnnotation'() {
+        given:
+        def type = schema("""
+            @DSL class Service {
+                $fieldAnnotation String key
+                @Builder.Method $methodAnnotation void setKey(String value) { key = value }
+            }
+        """)
+
+        when:
+        def plan = CompiledBuilderSchema.read(type)
+        def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
+
+        then:
+        plan.entries().keySet() == [external] as Set
+        result.key == 'catalog'
+        plan.rejections().find { it.source.contains(ignoredSource) }.reason == 'excluded by @InputIgnore'
+
+        where:
+        fieldAnnotation             | methodAnnotation                            | external       | ignoredSource
+        '@InputIgnore'              | "@InputName('setter/exact')"                 | 'setter/exact' | '#key'
+        "@InputName('field/exact')" | '@InputIgnore'                              | 'field/exact'  | '#setKey('
+    }
+
     def 'canonical literals have required exact values and field or method runtime targets'() {
         when:
         def value = InputName.getDeclaredMethod('value')
