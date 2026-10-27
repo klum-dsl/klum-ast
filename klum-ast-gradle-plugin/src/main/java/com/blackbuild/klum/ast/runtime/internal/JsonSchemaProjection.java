@@ -176,6 +176,9 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         contributeConstraints(entry, value, groupRedefined, constraints);
     }
 
+    private enum PatternStatus { UNRELATED, PROJECTED, UNSUPPORTED }
+    private record PatternProjection(PatternStatus status, String reason) { }
+
     private void contributeConstraints(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined,
                                        CompiledBuilderSchema.FieldConstraints constraints) {
         boolean ordinaryScalar = entry.role() == CompiledBuilderSchema.Role.PROPERTY
@@ -186,10 +189,12 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         List<Map<String, Object>> patterns = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
             // Validate supported facts even when policy suppresses their output; unknown data must fail closed.
-            String patternReason = patternReason(entry, rule, groupRedefined, patterns);
-            boolean projected = patternReason != null && patternReason.isEmpty() || !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
+            PatternProjection pattern = projectPattern(entry, rule, groupRedefined, patterns);
+            boolean projected = pattern.status() == PatternStatus.PROJECTED
+                    || !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
             if (constraints.policy() == Policy.OMIT || constraints.policy() == Policy.PROJECT && projected) continue;
-            String reason = constraints.policy() == Policy.PROJECT && patternReason != null ? patternReason : constraintReason(constraints.policy(), groupRedefined);
+            String reason = constraints.policy() == Policy.PROJECT && pattern.status() == PatternStatus.UNSUPPORTED
+                    ? pattern.reason() : constraintReason(constraints.policy(), groupRedefined);
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
         if (constraints.policy() == Policy.PROJECT) {
@@ -199,18 +204,18 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
     }
 
-    private static String patternReason(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
+    private static PatternProjection projectPattern(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
                                         boolean groupRedefined, List<Map<String, Object>> patterns) {
-        if (!rule.annotation().equals("jakarta.validation.constraints.Pattern")) return null;
+        if (!rule.annotation().equals("jakarta.validation.constraints.Pattern")) return new PatternProjection(PatternStatus.UNRELATED, null);
         if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
-                || entry.payload().type() != String.class || entry.schemaKey()) return "unsupported Pattern site/type";
-        if (!rule.plain() || groupRedefined) return "Pattern groups/payload or group redefinition/sequence";
-        if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return "nonempty Pattern flags";
+                || entry.payload().type() != String.class || entry.schemaKey()) return new PatternProjection(PatternStatus.UNSUPPORTED, "unsupported Pattern site/type");
+        if (!rule.plain() || groupRedefined) return new PatternProjection(PatternStatus.UNSUPPORTED, "Pattern not a direct singleton, nonempty groups/payload or group redefinition/sequence");
+        if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return new PatternProjection(PatternStatus.UNSUPPORTED, "nonempty Pattern flags");
         BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
-        if (result.reason() != null) return result.reason();
+        if (result.reason() != null) return new PatternProjection(PatternStatus.UNSUPPORTED, result.reason());
         patterns.add(Map.of("pattern", result.assertion()));
         patterns.add(Map.of("not", Map.of("type", "string", "pattern", "[^ -~]")));
-        return "";
+        return new PatternProjection(PatternStatus.PROJECTED, null);
     }
 
     @SuppressWarnings("unchecked") // allOf is created here exclusively as a list of assertion maps.

@@ -883,3 +883,22 @@ artifacts; unchanged marker is not a mixed/historical toolchain promise. No feat
 
 See [implementation/qualification](../implementation/issue-959-pattern-projection.md) and
 [user contract](../user/Json-Schema.md#conservative-pattern-projection). Related: #959, without tracker-state or release-placement change.
+
+
+### Pattern origin proof within the existing compiler handoff
+
+The existing KlumCast-owned contributor additionally returns a transient internal SOURCE annotation for an eligible
+original field only when its source annotations include direct Jakarta Pattern or a Groovy AnnotationCollector use.
+Its private metadata retains immutable original annotation identities before collector expansion. This is compiler-fact
+capture for the accepted Pattern slice, separate from default-only annotation propagation in ADR 0029 D2; no propagation
+request, copied Bean constraint, user annotation change or emitted behavior is inferred. Other no-request declarations
+remain untouched. The inspected declaration and annotation members are not mutated by the contributor: KlumCast owns
+attachment through the existing complete-batch handoff. Capture is complete before that handoff and the contributor
+performs no subsequent mutation. The transient marker may follow normal field-to-accessor copying but is never emitted
+to class files or public Builder contracts and is not an authored annotation or validation rule.
+
+This preserves ADR 0014's local-transform activation and exact module services. No independently registered global
+transform, generic preprocessing API, new SPI, source parsing or runtime inspection is introduced. Later Pattern capture
+requires identity in the original snapshot; copied/collector-supplied origins remain whole descriptions. The binary
+G3/G4/G5 collector regression and existing propagation/JPMS qualification protect both the new origin fact and unchanged
+activation boundaries.

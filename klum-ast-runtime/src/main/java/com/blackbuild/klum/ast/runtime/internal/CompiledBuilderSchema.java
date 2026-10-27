@@ -793,6 +793,13 @@ final class CompiledBuilderSchema {
             throw invalidConstraint(literal, "Unknown constraint projection policy " + literal.constraintProjection + " on " + source);
         }
         validateDecimalFacts(literal, source);
+        List<ConstraintRule> patterns = literal.constraints.stream()
+                .filter(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
+        boolean repeatedPattern = patterns.size() > 1 || literal.constraints.stream()
+                .anyMatch(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
+        if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
+            throw invalidConstraint(literal, "Inconsistent singleton Pattern eligibility on " + source);
+        }
     }
 
     private static void validateNameFacts(NameFacts names, String source) {

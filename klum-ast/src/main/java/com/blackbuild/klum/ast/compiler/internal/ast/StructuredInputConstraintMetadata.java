@@ -68,13 +68,13 @@ final class StructuredInputConstraintMetadata {
         ListExpression constraints = new ListExpression();
         List<AnnotationNode> declarations = field.getAnnotations().stream().filter(StructuredInputConstraintMetadata::constraint).toList();
         declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
-                .map(annotation -> rule(annotation, declarations))
+                .map(annotation -> rule(field, annotation, declarations))
                 .map(AnnotationConstantExpression::new).forEach(constraints::addExpression);
         // Explicit empty arrays distinguish complete absence of rules from stripped/old field metadata.
         fact.setMember("constraints", constraints);
     }
 
-    private static AnnotationNode rule(AnnotationNode annotation, List<AnnotationNode> declarations) {
+    private static AnnotationNode rule(FieldNode field, AnnotationNode annotation, List<AnnotationNode> declarations) {
         String name = annotation.getClassNode().getName();
         // Use Groovy's inert ConstantValue/AST folding, never reflective field reads or evaluation.
         if (name.equals("jakarta.validation.constraints.Pattern")) {
@@ -83,14 +83,16 @@ final class StructuredInputConstraintMetadata {
         AnnotationNode rule = new AnnotationNode(ClassHelper.make(GeneratedInput.Constraint.class));
         rule.setSourcePosition(annotation);
         rule.setMember("annotation", new ConstantExpression(name));
-        rule.setMember("declaration", new ConstantExpression(declaration(annotation)));
+        rule.setMember("declaration", new ConstantExpression(declaration(name.equals("jakarta.validation.constraints.Pattern")
+                ? StructuredInputSourceOrigins.original(field, annotation) : annotation)));
         rule.setMember("plain", ConstantExpression.FALSE);
         boolean decimal = name.equals("jakarta.validation.constraints.DecimalMin") || name.equals("jakarta.validation.constraints.DecimalMax");
         if (name.equals(MIN) || name.equals(MAX) || decimal) captureBound(annotation, declarations, rule, decimal);
         if (name.equals("jakarta.validation.constraints.Pattern")) {
             rule.setMember("regexp", annotation.getMember("regexp"));
             rule.setMember("patternFlagsEmpty", new ConstantExpression(empty(annotation.getMember("flags"))));
-            rule.setMember("plain", new ConstantExpression(plain(annotation, declarations)));
+            rule.setMember("plain", new ConstantExpression(StructuredInputSourceOrigins.direct(field, annotation) && plain(annotation, declarations)
+                    && declarations.stream().noneMatch(other -> other.getClassNode().getName().equals("jakarta.validation.constraints.Pattern$List"))));
         }
         return rule;
     }
@@ -159,10 +161,13 @@ final class StructuredInputConstraintMetadata {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '\\' || c == '"') result.append('\\').append(c);
-            else if (Character.isISOControl(c) || Character.isSurrogate(c) || c == '\u2028' || c == '\u2029')
+            if (c == '\\' || c == '"') {
+                result.append('\\').append(c);
+            } else if (Character.isISOControl(c) || Character.isSurrogate(c) || c == '\u2028' || c == '\u2029') {
                 result.append(String.format("\\u%04x", (int) c));
-            else result.append(c);
+            } else {
+                result.append(c);
+            }
         }
         return result.toString();
     }

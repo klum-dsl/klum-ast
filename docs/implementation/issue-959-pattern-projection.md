@@ -21,9 +21,16 @@ inheritance/owned-locality rules remain independent. D7 examples code is untouch
 
 - Compiler `StructuredInputConstraintMetadata`: explicitly carries decoded regexp and flag emptiness for direct Pattern,
   including unsupported forms. Groovy's one-argument inert AST/ConstantValue folding retains static imported Strings;
-  no reflective value read is introduced. Captured declarations deterministically escape controls and surrogates.
+  no reflective value read is introduced. The existing KlumCast contributor returns a transient SOURCE marker retaining original field annotation identities
+  before collector expansion, without mutating the inspected declaration. It activates only for direct Pattern or
+  AnnotationCollector source uses on eligible original fields, separately from default-only propagation; other no-request
+  declarations remain untouched. Copied/aliased Pattern facts remain descriptive
+  and retain the authored alias declaration. The marker is not emitted to binaries/public contracts; compiler activation
+  and JPMS services remain unchanged, with no global transform or new SPI.
+  Captured declarations deterministically escape controls and surrogates.
 - `GeneratedInput.Constraint` / `CompiledBuilderSchema`: add typed inert fields and strict completeness/type checks on the
-  exact public Builder bytes before either consumer runs. Suppression never supplies missing facts. Existing protocol,
+  exact public Builder bytes before either consumer runs. Multiple Pattern records cannot claim singleton eligibility.
+  Suppression never supplies missing facts. Existing protocol,
   naming, projection, numeric and ownership-closure checks remain active.
 - Private plugin `BoundedAsciiPattern`: complete-input finite recognizer, no regex compilation. All lexical tokens,
   bounds/length/piece/maximum ceilings and outer anchors are checked before emitting a hard assertion.
@@ -32,10 +39,10 @@ inheritance/owned-locality rules remain independent. D7 examples code is untouch
 
 ## Qualification
 
-Focused Gradle plugin tests pass: 53 recognizer cases plus 13 packaged source-free cases (three G3/G4/G5 producers and
-ten corruption scenarios). Fixtures package independent API/base, derived Schema and owned Schema JARs, then delete
+Focused Gradle plugin tests pass: 53 recognizer cases plus 18 packaged source-free cases (three G3/G4/G5 producers and
+fifteen corruption scenarios). Fixtures package independent API/base, derived Schema and owned Schema JARs, then delete
 source and compiler class outputs. All seven flags, empty flags, static constant fallback, groups/payload, sequence,
-whole composition/repeat containers, invalid regex source, wrong types/containers/keys, inherited literal names,
+collector aliases, whole composition/repeat and singleton containers, invalid regex source, wrong types/containers/keys, inherited literal names,
 exclusion, child locality, ordinary prose/deprecation, all field policies, cache reuse and positive initialization traps
 are covered. Corrupt root/TEXT_ONLY/OMIT/inherited/omitted-owned facts reject in both consumers before execution and
 preserve prior schemas and manifest. A separate interpreter control proves raw Pattern does not become input validation;
@@ -60,7 +67,14 @@ Reproduce after packaged tests:
 Supply equivalent pinned tools rather than depending on that local virtual environment. Oracle helper classes are
 created only in a temporary directory. Results are recorded in the final handoff/evidence update.
 
-Full root `check` and independent Standards/Specification reviews are in progress at this checkpoint; no pass is yet claimed.
+Initial independent review found missing collector-origin proof and singleton eligibility consistency; both are addressed
+with compiler-origin retention/shared-reader validation and explicit regressions. Standards requested braces and clearer
+projection result states; both are addressed. Re-review and full root qualification remain in progress at this checkpoint.
+A later full check caught ADR 0014's explicit no-global-transform invariant; origin capture was corrected to use the
+existing KlumCast handoff and a SOURCE-only internal fact. The module-contract test is preserved, not weakened.
+An initial full check was deliberately stopped after a mid-run documentation commit caused nested source-mirror fixture
+publication to use a different inferred version from the built plugin. That run is not claimed as passing; a clean,
+fixed-head rerun is required. No unrelated source-mirror behavior change is made.
 No CI/Sonar upload, push, PR or tracker mutation is performed.
 
 ## Documentary and delivery record

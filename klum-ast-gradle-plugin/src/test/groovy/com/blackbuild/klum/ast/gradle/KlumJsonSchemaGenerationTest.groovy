@@ -202,11 +202,17 @@ tasks.register('exampleControl', JavaExec) {
         properties.payload.description.contains('groups/payload')
         properties.composed.description.contains('@example.ComposedPattern()')
         !properties.composed.containsKey('allOf')
+        properties.alias.description.contains('@example.AliasedPattern()')
+        !properties.alias.containsKey('allOf')
         properties.controls.description.contains('regexp="a\\u000a"')
         properties.grouped.description.contains('groups/payload')
         properties.unbounded.description.contains('unsupported Pattern source syntax')
         properties.malformed.description.contains('regexp="["')
         properties.repeated.description.contains('Pattern$List')
+        properties.'singleton-list'.description.contains('Pattern$List')
+        !properties.'singleton-list'.containsKey('allOf')
+        !properties.'mixed-list'.containsKey('allOf')
+        properties.'mixed-list'.description.contains('Pattern$List')
         properties.'text-only'.description.contains('field projection policy TEXT_ONLY')
         properties.omitted == [type: 'string', description: 'Retained prose.', deprecated: true]
         !properties.containsKey('excluded')
@@ -273,6 +279,11 @@ tasks.register('exampleControl', JavaExec) {
         'Release' | 'omitted' | 'bad-flags' | 'Pattern flag emptiness must be a Boolean'
         'PatternBase' | 'inheritedCode' | 'regexp' | 'Missing direct Pattern facts'
         'PatternChild' | 'childCode' | 'patternFlagsEmpty' | 'Missing direct Pattern facts'
+        'Release' | 'slug' | 'duplicate-pattern' | 'Inconsistent singleton Pattern eligibility'
+        'Release' | 'textOnly' | 'duplicate-pattern' | 'Inconsistent singleton Pattern eligibility'
+        'Release' | 'omitted' | 'duplicate-pattern' | 'Inconsistent singleton Pattern eligibility'
+        'Release' | 'omitted' | 'duplicate-regexp' | 'Duplicate constraint member regexp'
+        'Release' | 'textOnly' | 'unknown-pattern' | 'Unknown constraint member futurePatternFact'
     }
 
     @Issue(['529', '950', '954'])
@@ -2369,6 +2380,7 @@ import jakarta.validation.constraints.*
 import jakarta.validation.groups.Default
 import jakarta.validation.GroupSequence
 import jakarta.validation.Payload
+import groovy.transform.AnnotationCollector
 import jakarta.validation.Constraint
 import java.lang.annotation.*
 import static example.PatternConstants.TOKEN
@@ -2385,6 +2397,7 @@ import static example.PatternConstants.TOKEN
     @Pattern(regexp='a', flags=Pattern.Flag.CANON_EQ) String canonical
     @Pattern(regexp='a', payload=Warning) String payload
     @ComposedPattern String composed
+    @AliasedPattern String alias
     @Pattern(regexp='a\\n') String controls
     @Pattern(regexp='^a{0,2}\$', flags=[]) String optionalToken
     @Pattern(regexp='a', flags=Pattern.Flag.CASE_INSENSITIVE) String flagged
@@ -2392,6 +2405,8 @@ import static example.PatternConstants.TOKEN
     @Pattern(regexp='a+') String unbounded
     @Pattern(regexp='[') String malformed
     @Pattern.List([@Pattern(regexp='a'), @Pattern(regexp='b')]) String repeated
+    @Pattern.List([@Pattern(regexp='a')]) String singletonList
+    @Pattern(regexp='a') @Pattern.List([@Pattern(regexp='b')]) String mixedList
     @Pattern(regexp='a') @ConstraintProjection(Policy.TEXT_ONLY) String textOnly
     /** Retained prose. */
     @Deprecated @Pattern(regexp='a') @ConstraintProjection(Policy.OMIT) String omitted
@@ -2404,6 +2419,7 @@ import static example.PatternConstants.TOKEN
 }
 @DSL class PatternInputOnly { @Pattern(regexp='a') String code }
 @DSL class PatternKey { @Key @Pattern(regexp='[A-Z]{2}') String name }
+@Pattern(regexp='a') @AnnotationCollector @interface AliasedPattern {}
 interface Warning extends Payload {}
 @Constraint(validatedBy=[]) @Pattern(regexp='a')
 @Retention(RetentionPolicy.RUNTIME)
@@ -2591,10 +2607,24 @@ class InitializationControl {
                                                     return null
                                                 }
                                                 new AnnotationVisitor(Opcodes.ASM9, array) {
+                                                    @Override void visitEnd() {
+                                                        if (kind == 'duplicate-pattern') {
+                                                            AnnotationVisitor duplicate = array.visitAnnotation(null, 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Constraint;')
+                                                            duplicate.visit('annotation', 'jakarta.validation.constraints.Pattern')
+                                                            duplicate.visit('declaration', '@jakarta.validation.constraints.Pattern(regexp="a")')
+                                                            duplicate.visit('plain', true)
+                                                            duplicate.visit('regexp', 'a')
+                                                            duplicate.visit('patternFlagsEmpty', true)
+                                                            duplicate.visitEnd()
+                                                        }
+                                                        super.visitEnd()
+                                                    }
                                                     @Override AnnotationVisitor visitAnnotation(String elementName, String elementDescriptor) {
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
+                                                                if (kind == 'duplicate-regexp' && attribute == 'regexp') super.visit(attribute, value)
+                                                                if (kind == 'unknown-pattern' && attribute == 'regexp') super.visit('futurePatternFact', value)
                                                                 if (kind in ['regexp', 'patternFlagsEmpty'] && attribute == kind) return
                                                                 if (kind == 'bad-regexp' && attribute == 'regexp') { super.visit(attribute, 17); return }
                                                                 if (kind == 'bad-flags' && attribute == 'patternFlagsEmpty') { super.visit(attribute, 'true'); return }

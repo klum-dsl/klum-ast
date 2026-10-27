@@ -71,9 +71,13 @@ final class BoundedAsciiPattern {
                 if (cursor >= body.length() || body.charAt(cursor++) != ']') return false;
                 return true;
             }
-            if (body.startsWith("A-Z", cursor) || body.startsWith("a-z", cursor) || body.startsWith("0-9", cursor)) cursor += 3;
-            else if (word(c) || c == '.') cursor++;
-            else return false;
+            if (body.startsWith("A-Z", cursor) || body.startsWith("a-z", cursor) || body.startsWith("0-9", cursor)) {
+                cursor += 3;
+            } else if (word(c) || c == '.') {
+                cursor++;
+            } else {
+                return false;
+            }
             terms++;
         }
         return false;
