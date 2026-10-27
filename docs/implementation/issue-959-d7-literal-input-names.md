@@ -109,7 +109,7 @@ are retained.
 ### Retained first completed root failure
 
 The next Java 17 root check at `ef931453636133249647aa93d3ebac8728730d68` finished **failed** in 20m41s; this result is
-retained, not replaced by later success. G4/G5 totals were **2,731 / 2,731**, zero failures/errors, existing skips **16 / 16**.
+retained, not replaced by later success. G4/G5 main-module subtotals were **2,731 / 2,731**, zero failures/errors, existing skips **16 / 16**.
 The plugin task had two bounded failure causes:
 
 - Eleven source-mirror cases requested clean-version BOM `4.2.0-dev.188+codex.959.literal.input.names.ef93145`, but the
@@ -131,3 +131,19 @@ The frozen-input controlled check passed in **28s**: the original first mirror f
 G3/G4/G5 cases, **4 cases, zero failures/errors/skips**. This changes no product code, assertion, version selection or
 fixture publication procedure. Both independent review axes confirm **zero actionable findings** on the one-line damage-
 helper adaptation. The final root run starts only after committing this stable state; no tracked edits occur during it.
+
+
+### Final frozen qualification
+
+Java 17 `./gradlew check --no-parallel --max-workers=2` passed at
+`80fd1699d98a95ce4dfc86b1fb9b8c95e804d012` in **20m51s**, with a clean, unchanged checkout throughout the run.
+All root-module test reports total **3,299 / 2,737 / 2,737 G3/G4/G5 cases**, zero failures/errors and existing skips
+**17 / 16 / 16**. The compatibility totals include six test-support cases per lane in addition to the earlier main-module
+subtotals. The plugin baseline has **540 cases**, including **all 109 packaged JSON Schema cases** and **all 11 source-mirror
+cases**, with zero failures/errors/skips. Root documentation, licenses, plugin validation and lane isolation pass.
+
+Final relative-target/anchor/fence verification passes **130 targets**; diff checks pass. The final follow-up changes only
+this evidence document after qualification, leaving production/test sources and build configuration unchanged. The four implementation/
+documentation/correction commits were reviewed for reasoning and scope; reviewed history is preserved. Draft publication
+uses **Related: #959**. No product decision remains; remote PR CI/Sonar and later review/merge are separate delivery gates.
+The final worker callback records the published head and PR identity, without implying a remote passing result in advance.
