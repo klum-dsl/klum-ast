@@ -61,26 +61,33 @@ final class BoundedAsciiPattern {
     private boolean atom() {
         char c = body.charAt(cursor++);
         if (word(c) || c == '-') return true;
-        if (c != '[') return false;
+        return c == '[' && characterClass();
+    }
+
+    private boolean characterClass() {
         int terms = 0;
         while (cursor < body.length()) {
-            c = body.charAt(cursor);
+            char c = body.charAt(cursor);
             if (c == ']') { cursor++; return terms > 0; }
             if (c == '-') {
                 cursor++;
-                if (cursor >= body.length() || body.charAt(cursor++) != ']') return false;
-                return true;
+                return cursor < body.length() && body.charAt(cursor++) == ']';
             }
-            if (body.startsWith("A-Z", cursor) || body.startsWith("a-z", cursor) || body.startsWith("0-9", cursor)) {
-                cursor += 3;
-            } else if (word(c) || c == '.') {
-                cursor++;
-            } else {
-                return false;
-            }
+            if (!classTerm()) return false;
             terms++;
         }
         return false;
+    }
+
+    private boolean classTerm() {
+        if (body.startsWith("A-Z", cursor) || body.startsWith("a-z", cursor) || body.startsWith("0-9", cursor)) {
+            cursor += 3;
+            return true;
+        }
+        char c = body.charAt(cursor);
+        if (!word(c) && c != '.') return false;
+        cursor++;
+        return true;
     }
 
     private int repetitions() {

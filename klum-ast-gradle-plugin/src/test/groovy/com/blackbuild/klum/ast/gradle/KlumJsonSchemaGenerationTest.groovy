@@ -2006,7 +2006,7 @@ import java.lang.annotation.*
         }
         if (projection) projectionSources()
         if (naming || patterns) {
-            if (naming) namingSources()
+            if (naming) { namingSources() }
             if (literals) { literalSources() }
             if (examples) { exampleSources() }
             new File(producer, 'build.gradle').append("\nproject(':schema') { dependencies { implementation project(':owned') } }\n")
@@ -2584,7 +2584,7 @@ class InitializationControl {
                         reader.accept(new ClassVisitor(Opcodes.ASM9, writer) {
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions)
-                                if (selectedField != null && name != 'get' + selectedField.capitalize()) return delegate
+                                if (selectedField != null && name != 'get' + selectedField.capitalize()) { return delegate }
                                 if (kind == 'group-value' && name != 'getGrouped') {
                                     return delegate
                                 }
@@ -2625,9 +2625,9 @@ class InitializationControl {
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
-                                                                if (kind == 'duplicate-regexp' && attribute == 'regexp') super.visit(attribute, value)
-                                                                if (kind == 'unknown-pattern' && attribute == 'regexp') super.visit('futurePatternFact', value)
-                                                                if (kind in ['regexp', 'patternFlagsEmpty'] && attribute == kind) return
+                                                                if (kind == 'duplicate-regexp' && attribute == 'regexp') { super.visit(attribute, value) }
+                                                                if (kind == 'unknown-pattern' && attribute == 'regexp') { super.visit('futurePatternFact', value) }
+                                                                if (kind in ['regexp', 'patternFlagsEmpty'] && attribute == kind) { return }
                                                                 if (kind == 'bad-regexp' && attribute == 'regexp') { super.visit(attribute, 17); return }
                                                                 if (kind == 'bad-flags' && attribute == 'patternFlagsEmpty') { super.visit(attribute, 'true'); return }
                                                                 if (kind == 'bad-decimal' && attribute == 'decimalValue') {

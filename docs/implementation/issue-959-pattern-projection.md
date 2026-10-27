@@ -145,3 +145,38 @@ no credentials, scopes or raw authentication errors are recorded. The maintainer
 and draft PR. PR CI/Sonar is a separate authoritative gate and no passing remote result is inferred from local checks.
 No merge, issue closure, label, milestone or release-placement mutation is authorized. Hive reconciles delivery/archive;
 this worker does not merge or self-archive.
+
+
+## PR #979 SonarCloud follow-up
+
+The initial full PR CI at `2774302cf399116024e0c20f55a487019a2e773f` passed its quality gate but reported **11 open
+maintainability findings**, with zero security hotspots. The maintainer requested all findings addressed. The reviewed
+commits are preserved; the correction is one additive follow-up, without suppressions or rule/configuration changes.
+
+| Findings | Correction |
+| --- | --- |
+| 2 × Java S3776 | Separate atom/class/class-term recognition and name the existing constraint-description suppression policy. |
+| 3 × Java S1192 | Reuse STRING_TYPE and introduce private constants for the Pattern annotation identity and plain fact member. |
+| 1 × Java S1126 | Return the existing trailing-hyphen closing predicate directly, preserving cursor advancement. |
+| 5 × Groovy S8306 | Add local braces to the reported fixture guards and corruption branches. |
+
+The accepted grammar, emitted assertions/fallback reasons, projection policies, typed metadata, origin proof, protocol
+marker and advisory examples behavior are unchanged. Independent Standards and Specification reviews of this correction
+against the published head both report zero findings.
+
+Local validation passes:
+
+- Focused Pattern/metadata/examples run: **74** cases, no failures/errors/skips.
+- Complete Gradle-plugin `check`: **611** cases, no failures/errors/skips, including all **127** schema and **53** recognizer cases.
+- Focused compiler policy/admission checks: **27 / 27 / 27** cases across Groovy 3/4/5, no failures/errors/skips.
+- Compiler lane-isolation and license checks pass. The combined affected-module/compiler run completed in **9m44s**.
+- The independent emitted-schema oracle again agrees across all three producers: **27,211** Java/Draft String checks,
+  **54,422** ECMA checks, **66** retained Java controls and **75** neutrality/admission checks.
+- An isolated JDK 17 differential program compares the prior and refactored recognizers on **409,410** candidate sources
+  (class-token combinations through depth four plus 100,000 deterministic seed-959 source strings), with identical
+  assertion and fallback-reason results. This supplements the permanent regression suite.
+- Final diff checks pass. No user-facing behavior, release placement or tracker-state change is included.
+
+The normal current-head PR CI/Sonar analysis must confirm the resulting issue state after publication. The prior green
+gate and local tests are not recorded as a clean Sonar result for the follow-up. The consolidated PR disposition comment
+will record the follow-up commit, validation and the independently observed remote result. No merge is authorized.

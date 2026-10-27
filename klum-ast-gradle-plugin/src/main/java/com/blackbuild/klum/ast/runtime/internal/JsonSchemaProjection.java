@@ -192,7 +192,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             PatternProjection pattern = projectPattern(entry, rule, groupRedefined, patterns);
             boolean projected = pattern.status() == PatternStatus.PROJECTED
                     || !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
-            if (constraints.policy() == Policy.OMIT || constraints.policy() == Policy.PROJECT && projected) continue;
+            if (suppressConstraintDescription(constraints.policy(), projected)) continue;
             String reason = constraints.policy() == Policy.PROJECT && pattern.status() == PatternStatus.UNSUPPORTED
                     ? pattern.reason() : constraintReason(constraints.policy(), groupRedefined);
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
@@ -202,6 +202,10 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             appendConjunction(value, patterns);
         }
         if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
+    }
+
+    private static boolean suppressConstraintDescription(Policy policy, boolean projected) {
+        return policy == Policy.OMIT || policy == Policy.PROJECT && projected;
     }
 
     private static PatternProjection projectPattern(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
@@ -214,7 +218,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
         if (result.reason() != null) return new PatternProjection(PatternStatus.UNSUPPORTED, result.reason());
         patterns.add(Map.of("pattern", result.assertion()));
-        patterns.add(Map.of("not", Map.of("type", "string", "pattern", "[^ -~]")));
+        patterns.add(Map.of("not", Map.of("type", STRING_TYPE, "pattern", "[^ -~]")));
         return new PatternProjection(PatternStatus.PROJECTED, null);
     }
 
