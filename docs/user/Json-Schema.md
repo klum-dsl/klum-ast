@@ -193,9 +193,60 @@ constraints. Unsupported captured forms remain descriptive under `PROJECT` and `
 
 Recompile and package every declaring/inherited/owned Schema with matching compiler/runtime/plugin versions. The
 generator requires explicit policy facts even for `PROJECT` and `OMIT`; old, missing, incompatible or malformed facts
-fail before replacing outputs. Suppression does not waive validation of supported numeric facts. No Model-byte fallback,
+fail before replacing outputs. Suppression does not waive validation of supported numeric or Pattern facts. No Model-byte fallback,
 Schema execution, required Jackson/Bean Validation adapter or global projection switch is introduced. See
 [migration](Migration.md#field-constraint-projection) and [issue #959](https://github.com/klum-dsl/klum-ast/issues/959).
+
+## Conservative Pattern projection
+
+A direct singleton `jakarta.validation.constraints.Pattern` on an admitted ordinary `String` field projects automatically
+under `ConstraintProjection.Policy.PROJECT` when it belongs to the finite `ASCII-BOUNDED-1` subset. This supports bounded
+identifiers and codes. It requires empty groups, payload and flags and no hierarchy group sequence/redefinition/provider.
+
+(See: `KlumJsonSchemaGenerationTest#'project bounded release identifiers from source-free artifacts with Groovy #generation'`.)
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import jakarta.validation.constraints.Pattern
+
+@DSL class Release {
+    /** Release slug. */
+    @Pattern(regexp = '[a-z][a-z0-9-]{0,62}') String slug
+}
+// slug: type string, allOf [pattern ^[a-z][a-z0-9-]{0,62}$,
+//                         not {type string, pattern [^ -~]}].
+```
+
+The grammar accepts concatenated ASCII letters, digits, `_`, `-`, and positive classes containing letters, digits,
+`_`, `.`, the exact ranges `A-Z`, `a-z`, `0-9`, and an optional final literal hyphen. For example `[.]`, `[-]` and
+`[A-Za-z0-9_.-]` qualify. Each atom may use `?`, `{n}` or `{m,n}`. Bounds are decimal 0..255 with no leading zeros;
+lower must not exceed upper. The decoded source is 1..256 UTF-16 units, the body has 1..32 pieces, and summed maximum
+repetitions must not exceed 1024. `{0}` is allowed. Optional outer anchors must be paired `^...$`; the body cannot be empty.
+No trimming or normalization occurs.
+
+The generated assertion is anchored and conjoined with `not: {type: string, pattern: "[^ -~]"}`. This rejects every
+non-printable-ASCII character, including final newlines that some validators otherwise accept with `$`. Every accepted
+source consumes only printable ASCII, so the guard preserves Java full matching on supplied Strings. Its inner type
+keeps the constraint fragment neutral on nonstrings; the existing structural String rule still rejects supplied null
+and other types. Optional omission stays allowed. No `required`, `minLength`, default or interpreter validation is inferred.
+
+Every complete unsupported form becomes deterministic runtime-constraint description text with a stable reason: flags,
+nonempty groups/payload, group context, unsupported syntax or an admission ceiling. Escapes, arbitrary ranges, wildcard
+dot, negation, intersections, groups, alternation, Unicode, unbounded/lazy/possessive repetitions, repeated containers and
+custom composition receive no hard Pattern assertion. Even malformed runtime regex source is retained as text; generation
+does not repair it. Declaration text retains the whole captured annotation and escapes control characters. Messages are
+uninterpreted data, with no bundle or EL evaluation.
+
+`TEXT_ONLY` describes every captured declaration without assertions; `OMIT` removes constraint-derived output. Ordinary
+prose/deprecation, structural types, naming/exclusion, original inherited source identity and owned-definition locality
+remain independent. Keys, operation payloads, container elements, non-String values and non-direct origins are outside
+this hard subset. Existing capture sites are unchanged. No regex engine/transpiler, provider, custom flag or SPI is added.
+
+The compiler emits explicit decoded `regexp` and `patternFlagsEmpty` facts even for unsupported direct Patterns. Both
+consumers require complete facts before applying any field policy, including omitted owned relationships. Corrupt/missing
+facts fail atomically with public Builder/artifact/source and recompile/package guidance. Use matching compiler/runtime/
+plugin versions and recompile participating artifacts; see [migration](Migration.md#conservative-pattern-projection).
+The current shared metadata marker remains unchanged during 4.2 development; release-protocol preparation is separate.
 
 ## Integral constraints
 
@@ -251,7 +302,7 @@ Root selection, binary inputs and output ownership retain the existing tracked G
 Complete unsupported direct field declarations retain labelled `Runtime constraint (not enforced by this schema)`
 descriptions appended to existing prose. Descriptions identify the annotation and its explicitly authored attributes;
 they do not evaluate annotation defaults or interpret constraint code. Explicit groups/payload (including explicit
-Default groups), composed/repeatable declarations, Size/Pattern, quantity grammars and relationship closures
+Default groups), composed/repeatable declarations, Size and unsupported Pattern forms, quantity grammars and relationship closures
 receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
 relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
 Issue [#959](https://github.com/klum-dsl/klum-ast/issues/959) remains open for these broader decisions.

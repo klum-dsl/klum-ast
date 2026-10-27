@@ -858,3 +858,28 @@ The unified `GeneratedInput.Schema.version=1` is unchanged; no feature version o
 No infrastructure is retained for future typed examples. Pattern projection is separate.
 [Implementation evidence](../implementation/issue-959-d7-examples.md) records the reduction and qualification;
 [user documentation](../user/Json-Schema.md#advisory-input-examples) gives the authoring contract.
+
+
+## Conservative Pattern projection — #959
+
+Date: 2026-10-27. Status: **Accepted bounded implementation slice; remote delivery pending sibling merge/revalidation**.
+Authority: [maintainer decision](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6442779190).
+This supersedes only the Pattern deferral for direct singleton Jakarta Pattern on eligible ordinary String fields.
+
+Adopt the evidence-defined ASCII-BOUNDED-1 finite literal/class/quantifier grammar and limits, with optional paired
+outer anchors. Conjoin the anchored assertion with the typed printable-ASCII guard. Java full matching and ECMA/Draft
+2020-12 supplied-String predicates must agree; no weakened hard translation is allowed. Unsupported complete declarations
+remain deterministic runtime-constraint descriptions. Flags, groups/payload, hierarchy group changes, composition/repeats,
+non-direct origins, keys, operations, container elements and non-String positions remain outside hard eligibility.
+
+Compiler-frozen regexp String and Boolean flag emptiness extend existing constraint facts. Both consumers validate them
+before policy or execution, including suppressed facts and omitted owned closure. The public Builder is the sole byte
+source; no Model fallback, provider/user-code execution, interpreter validation or new SPI/flag is introduced. Existing
+PROJECT/TEXT_ONLY/OMIT, source attribution, inherited names/exclusion, null/omission and independent conjunction remain.
+
+Per the same maintainer decision, retain `GeneratedInput.Schema.version=1` during 4.2 development. Formal release protocol
+cutover belongs to actual release preparation. Current tools require matching, completely recompiled participating
+artifacts; unchanged marker is not a mixed/historical toolchain promise. No feature-specific version is added.
+
+See [implementation/qualification](../implementation/issue-959-pattern-projection.md) and
+[user contract](../user/Json-Schema.md#conservative-pattern-projection). Related: #959, without tracker-state or release-placement change.
