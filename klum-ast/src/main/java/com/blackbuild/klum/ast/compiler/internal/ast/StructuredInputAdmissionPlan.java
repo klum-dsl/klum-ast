@@ -279,7 +279,7 @@ final class StructuredInputAdmissionPlan {
                     // Read the authored implementation, never a generated/compatibility projection's annotations.
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
                     enrichDeprecation(method, operation);
-                    StructuredInputExamples.enrich(method, method.getDeclaringClass(), operation, source(method));
+                    StructuredInputExamples.enrich(method, transformation.annotatedClass, operation, source(method));
                     enrichName(externalName(method), operation);
                     api.addAnnotation(operation);
                     method.getAnnotations().stream().filter(annotation -> authoredFacts.contains(annotation.getClassNode().getName()))

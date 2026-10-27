@@ -85,6 +85,8 @@ class InputExamplesTest extends AbstractDSLSpec {
                 @InputExamples([SAMPLE]) String value
                 @Builder.Method @InputName('operation') @InputExamples(['operation'])
                 void setValue(String input) { value = input }
+                @Builder.Method @InputExamples([SAMPLE])
+                void configure(String input) { value = input }
             }
         ''')
 
@@ -97,6 +99,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         schema.key().examples() == ['id']
         schema.entries().get('value').examples() == ['sample']
         schema.entries().get('operation').examples() == ['operation']
+        schema.entries().get('configure').examples() == ['sample']
     }
 
     def 'missing owned examples facts reject input before mutating an active Builder'() {
