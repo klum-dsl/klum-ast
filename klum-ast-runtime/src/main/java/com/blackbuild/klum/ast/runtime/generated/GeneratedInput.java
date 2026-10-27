@@ -62,6 +62,8 @@ public final class GeneratedInput {
         boolean ignored() default false;
         /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
+        /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
+        String[] examples() default {};
     }
 
     /** Original field association on its public getter. Types and owner remain reflected. */
@@ -75,6 +77,8 @@ public final class GeneratedInput {
         boolean ignored() default false;
         /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
+        /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
+        String[] examples() default {};
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};
         /** Explicit compiler-folded field policy, independent of structural admission. */
@@ -90,6 +94,8 @@ public final class GeneratedInput {
     @Target(ElementType.METHOD)
     public @interface Operation {
         boolean sourceDeprecated();
+        /** Separate from any field facts on this same public declaration. */
+        String[] examples() default {};
         String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;

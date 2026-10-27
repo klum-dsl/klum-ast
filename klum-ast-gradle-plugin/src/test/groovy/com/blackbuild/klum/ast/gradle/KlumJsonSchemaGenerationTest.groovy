@@ -45,12 +45,131 @@ import spock.lang.TempDir
 
 @Issue('529')
 class KlumJsonSchemaGenerationTest extends Specification {
+    private static final String DOCUMENTARY_TEXT = 'a "quoted" \\path\nMünchen 😀'
     @TempDir File directory
     File consumer
     File producer
     File repository
     File trap
     boolean packagedPlugin
+
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#advisory-input-examples')
+    def 'project advisory examples at exact source-free input positions with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, false, true)
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema.rootTypes.set(['example.ExampleService'])
+tasks.register('exampleControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.ExampleControl'
+}
+''')
+
+        when:
+        run('generateKlumJsonSchema', '--build-cache')
+        def schema = document('example.ExampleService')
+        def root = schema.get('$defs').get('example.ExampleService_DSL$Builder')
+        def properties = root.properties
+        def member = schema.get('$defs').get('example.ExampleChild_DSL$Builder')
+        def keyless = schema.get('$defs').get('example.ExampleChild_DSL$Builder::keyless')
+        byte[] first = output('example.ExampleService').bytes
+        File validation = new File(System.getProperty('schemaValidationDirectory'), generation)
+        validation.mkdirs()
+        new File(validation, 'examples.schema.json').bytes = first
+
+        then:
+        properties.'service.name'.examples == ['Catalog', 'catalog.internal', 'Catalog']
+        properties.'service.name'.deprecated
+        properties.'binary-constant'.examples == ['binary constant']
+        !properties.'service.name'.containsKey('default')
+        properties.'display-name'.examples == ['inherited']
+        properties.'inherited-child'.examples == ['inherited database']
+        !output('example.ExampleService').text.contains('SECRET_PAYLOAD')
+        properties.configure.examples == ['override']
+        properties.'configure-base'.examples == ['base']
+        properties.endpoint.examples == ['API endpoint settings']
+        properties.tags.examples == ['blue, green']
+        !properties.tags.items.containsKey('examples')
+        properties.labels.examples == ['team: ops']
+        !properties.labels.additionalProperties.containsKey('examples')
+        properties.primary.examples == ['primary database']
+        properties.primary.containsKey('$ref')
+        !properties.sibling.containsKey('examples')
+        properties.fixed.examples == ['fixed database']
+        properties.children.examples == ['worker databases']
+        member.properties.key.examples == ['catalog']
+        member.properties.'child.name'.examples == ['child']
+        !member.containsKey('examples')
+        !keyless.containsKey('examples')
+        !keyless.properties.containsKey('key')
+        !root.containsKey('required')
+        !properties.containsKey('secret')
+        !properties.containsKey('hidden')
+        !properties.containsKey('link')
+        !properties.containsKey('unsupported')
+        properties.escaped.examples == [DOCUMENTARY_TEXT]
+        properties.varied.examples == ['null', '{not JSON', '01', '[unclosed']
+        properties.replicas.examples == ['42', 'many replicas']
+        properties.enabled.examples == ['true', 'enabled']
+        !trap.exists()
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/build/classes').exists()
+        !new File(producer, 'owned/src').exists()
+
+        when:
+        def unchanged = run('generateKlumJsonSchema', '--build-cache')
+        output('example.ExampleService').parentFile.deleteDir()
+        def cached = run('generateKlumJsonSchema', '--build-cache')
+        def control = runner(consumer, 'exampleControl').buildAndFail()
+
+        then:
+        unchanged.task(':generateKlumJsonSchema').outcome == TaskOutcome.UP_TO_DATE
+        cached.task(':generateKlumJsonSchema').outcome == TaskOutcome.FROM_CACHE
+        output('example.ExampleService').bytes == first
+        control.output.contains('Schema initialization control')
+        trap.text == 'initialized'
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'invalid carried examples fail before replacing any output: #target #kind'() {
+        given:
+        fixture('3', false, false, false, false, false, true, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Deployment', 'example.ExampleService'])\n")
+        run('generateKlumJsonSchema')
+        File outputDirectory = output('example.ExampleService').parentFile
+        Map<String, List<Byte>> previous = outputDirectory.listFiles().collectEntries { [(it.name): it.bytes.toList()] }
+        rewriteNamingFacts(target, 'examples-' + kind, artifact)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        failed.output.toLowerCase().contains('examples')
+        if (kind == 'excessive') {
+            assert failed.output.contains('excessive documentary text')
+        }
+        failed.output.contains('example.' + target)
+        failed.output.contains('artifact')
+        !failed.output.contains('SECRET_PAYLOAD')
+        outputDirectory.listFiles().collectEntries { [(it.name): it.bytes.toList()] } == previous
+        !trap.exists()
+
+        where:
+        target           | artifact | kind
+        'ExampleService' | 'schema' | 'missing'
+        'ExampleService' | 'schema' | 'duplicate'
+        'ExampleService' | 'schema' | 'scalar'
+        'ExampleService' | 'schema' | 'element'
+        'ExampleService' | 'schema' | 'nested'
+        'ExampleService' | 'schema' | 'excessive'
+        'ExampleBase'    | 'api'    | 'missing'
+        'ExampleChild'   | 'owned'  | 'missing'
+    }
 
     @Issue(['529', '950', '954'])
     @Tag('documentary')
@@ -502,10 +621,51 @@ tasks.register('rejectedNamingControl', JavaExec) {
                 namingSchemaMutation(downstream, kind)
             }
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                namingNativeMutation(super.visitMethod(access, name, descriptor, signature, exceptions), kind)
+                def downstream = super.visitMethod(access, name, descriptor, signature, exceptions)
+                if (kind.startsWith('examples-')) {
+                    return exampleMutation(downstream, kind.substring('examples-'.length()))
+                }
+                namingNativeMutation(downstream, kind)
             }
         }, 0)
         writer.toByteArray()
+    }
+
+    private static MethodVisitor exampleMutation(MethodVisitor downstream, String kind) {
+        new MethodVisitor(Opcodes.ASM9, downstream) {
+            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                def visitor = super.visitAnnotation(descriptor, visible)
+                if (!descriptor.endsWith('GeneratedInput$Field;') && !descriptor.endsWith('GeneratedInput$Operation;') && !descriptor.endsWith('GeneratedInput$Key;')) {
+                    return visitor
+                }
+                new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                    @Override AnnotationVisitor visitArray(String member) {
+                        if (member != 'examples') {
+                            return super.visitArray(member)
+                        }
+                        if (kind == 'missing') {
+                            return null
+                        }
+                        if (kind == 'scalar') {
+                            super.visit(member, 'SECRET_PAYLOAD')
+                            return null
+                        }
+                        if (kind == 'duplicate') {
+                            super.visitArray(member).visitEnd()
+                        }
+                        def array = super.visitArray(member)
+                        switch (kind) {
+                            case 'element': array.visit(null, 1); break
+                            case 'nested': array.visitArray(null).visitEnd(); break
+                            case 'excessive': (1..257).each { array.visit(null, 'x' * 4096) }; break
+                            default: array.visit(null, 'ordinary documentation')
+                        }
+                        array.visitEnd()
+                        null
+                    }
+                }
+            }
+        }
     }
 
     private static AnnotationVisitor namingSchemaMutation(AnnotationVisitor downstream, String kind) {
@@ -1385,7 +1545,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -1727,6 +1887,7 @@ import java.lang.annotation.*
         if (naming) {
             namingSources()
             if (literals) { literalSources() }
+            if (examples) { exampleSources() }
             new File(producer, 'build.gradle').append("\nproject(':schema') { dependencies { implementation project(':owned') } }\n")
             runner(producer, ':owned:jar').build()
             publish('owned', 'owned/build/libs/owned.jar', '')
@@ -1761,6 +1922,71 @@ tasks.register('initializeControl', JavaExec) {
 }
 """
     }
+
+    private void exampleSources() {
+        writeSource('api/src/main/groovy/example/ExampleBase.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+class ExampleTexts {
+    static { throw new AssertionError('binary constant initialization trap') }
+    public static final String VALUE = 'binary constant'
+}
+@DSL abstract class ExampleBase {
+    @InputExamples(['inherited']) String displayName
+    @Builder.Method @InputExamples(['base']) void configureBase(String value) { displayName = value }
+}
+''')
+        writeSource('owned/src/main/groovy/example/ExampleChild.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+@DSL abstract class ExampleKeyBase { @Key @InputExamples(['catalog']) String key }
+@DSL class ExampleChild extends ExampleKeyBase {
+    @InputName('child.name') @InputExamples(['child']) String childName
+    ExampleChild nested
+}
+''')
+        writeSource('schema/src/main/groovy/example/ExampleService.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.fasterxml.jackson.annotation.*
+@DSL class ExampleOwnedBase extends ExampleBase {
+    @InputExamples(['inherited database']) ExampleChild inheritedChild
+}
+@DSL class ExampleExcluded { @InputExamples(['SECRET_PAYLOAD']) String value }
+@DSL class ExampleUnrelated { @InputExamples(['SECRET_PAYLOAD']) String value }
+@DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class ExampleService extends ExampleOwnedBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
+    @InputExamples([ExampleTexts.VALUE]) String binaryConstant
+    @Deprecated @InputName('service.name') @JsonProperty('service.name')
+    @ConstraintProjection(ConstraintProjection.Policy.OMIT)
+    @InputExamples(['Catalog', 'catalog.internal', 'Catalog']) String serviceName
+    @InputExamples(['null', '{not JSON', '01', '[unclosed']) String varied
+    @InputExamples([${DOCUMENTARY_TEXT.inspect()}]) String escaped
+    @InputExamples(['42', 'many replicas']) int replicas
+    @InputExamples(['true', 'enabled']) boolean enabled
+    @InputExamples(['blue, green']) List<String> tags
+    @InputExamples(['team: ops']) Map<String, String> labels
+    @InputExamples(['primary database']) ExampleChild primary
+    ExampleChild sibling
+    @Field(key=Field.FieldName) @InputExamples(['fixed database']) ExampleChild fixed
+    @InputExamples(['worker databases']) Map<String, ExampleChild> children
+    @InputIgnore ExampleExcluded excludedTarget
+    @InputIgnore @InputExamples(['hidden']) String secret
+    @JsonIgnore @InputExamples(['jackson hidden']) String hidden
+    @Field(FieldType.LINK) @InputExamples(['{}']) ExampleChild link
+    @Builder.Method @InputName('endpoint') @InputExamples(['API endpoint settings'])
+    void endpoint(Map<String, String> input) { throw new AssertionError('operation executed') }
+    @Builder.Method @InputExamples(['override']) void configure(String input) { throw new AssertionError('operation executed') }
+    @Builder.Method @InputExamples(['true']) void unsupported(Object input) { throw new AssertionError('unsupported executed') }
+    @PostCreate void created() { throw new AssertionError('lifecycle executed') }
+}
+class ExampleControl {
+    static void main(String[] args) { Class.forName('example.ExampleService', true, ExampleControl.classLoader) }
+}
+""")
+    }
+
 
     private void literalSources() {
         writeSource('owned/src/main/groovy/example/LiteralDetails.groovy', '''

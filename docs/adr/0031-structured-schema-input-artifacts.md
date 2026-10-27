@@ -827,3 +827,34 @@ classpath classes are not inspected. There is no version negotiation, registry, 
 or new authoring API. Supported naming, key positions, admission, numeric assertions, projection policy, runtime validation,
 initialization safety and output atomicity are preserved. See
 [implementation and qualification](../implementation/issue-959-unified-metadata-protocol.md).
+
+
+## D7 documentary string examples — #959
+
+Date: 2026-10-27. Status: **Accepted simplification for PR #978**.
+Authority: the maintainer's [PR #978](https://github.com/klum-dsl/klum-ast/pull/978) simplification decision. This supersedes
+the earlier parsed-example decision and the examples/AnnoDocimal deferral for the explicit annotation route.
+
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. FIELD/METHOD targeting, runtime retention and the required
+`String[] value` are retained. Empty arrays mean no examples; values, duplicates and order are preserved. Non-JSON text,
+quotes, backslashes, newlines and Unicode use the existing JSON Schema serializer. There is no typed-value parser,
+content grammar, evaluator, example provider or validation callback.
+
+Separate `GeneratedInput.Field`, `Key` and `Operation` arrays carry the original declaration's strings, including the
+suppressed-key getter fallback. Inheritance, ownership, naming/literal/exclusion, constraint projection and deprecation
+select and describe the same sources. Placement is the exact field, member-key or authored-operation payload, or parent
+relationship use. Relationship notes never leak into shared child definitions; keyless definitions omit key notes.
+The byte reader verifies required string-array shape without source/Model inspection or annotation-proxy execution.
+
+The compiler uses Groovy's existing AST-only constant folding, with a small local-field-reference normalization before
+scope resolution. The overload that can reflectively read a static field is not used. Nonconstant values fail before
+ordinary annotation compilation could initialize a supplying class. There is no custom recursive constant evaluator.
+JVM/compiler annotation limits apply. One private aggregate-text guard prevents repeated classfile constants from
+amplifying into excessive output; there is no public per-string/count/depth limit contract.
+
+Examples change no runtime input admission, defaults, requiredness, constraints, conversion, templates or lifecycle.
+The unified `GeneratedInput.Schema.version=1` is unchanged; no feature version or compatibility mechanism is added.
+No infrastructure is retained for future typed examples. Pattern projection is separate.
+[Implementation evidence](../implementation/issue-959-d7-examples.md) records the reduction and qualification;
+[user documentation](../user/Json-Schema.md#advisory-input-examples) gives the authoring contract.

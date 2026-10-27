@@ -180,6 +180,7 @@ final class StructuredInputAdmissionPlan {
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Key.class));
         fact.setMember(VALUE, new ConstantExpression(key.getName()));
         enrichDeprecation(key, fact);
+        StructuredInputExamples.enrich(key, key.getOwner(), fact, source(key));
         Name name = externalName(key);
         enrichName(name, fact);
         // Runtime-name overlaps such as `key` have no public getter; no writable key operation exists either.
@@ -198,6 +199,7 @@ final class StructuredInputAdmissionPlan {
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
         fact.setMember(VALUE, new ConstantExpression(field.getName()));
         enrichDeprecation(field, fact);
+        StructuredInputExamples.enrich(field, field.getOwner(), fact, source(field));
         Name name = externalName(field);
         enrichName(name, fact);
         Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
@@ -277,6 +279,7 @@ final class StructuredInputAdmissionPlan {
                     // Read the authored implementation, never a generated/compatibility projection's annotations.
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
                     enrichDeprecation(method, operation);
+                    StructuredInputExamples.enrich(method, transformation.annotatedClass, operation, source(method));
                     enrichName(externalName(method), operation);
                     api.addAnnotation(operation);
                     method.getAnnotations().stream().filter(annotation -> authoredFacts.contains(annotation.getClassNode().getName()))

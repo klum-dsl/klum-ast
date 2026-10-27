@@ -61,6 +61,7 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
 final class CompiledBuilderSchema {
     static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
     private static final String VALUE = "value";
+    private static final String EXAMPLES = "examples";
     private static final String IDENTITY_NAME = "IDENTITY";
     private static final String KEBAB_NAME = "KEBAB_CASE";
     private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
@@ -105,7 +106,7 @@ final class CompiledBuilderSchema {
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated) { }
+                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) { }
     record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive) { }
     record FieldConstraints(Policy policy, List<ConstraintRule> rules) { }
     record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) { }
@@ -144,7 +145,7 @@ final class CompiledBuilderSchema {
     }
 
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract,
-               boolean sourceDeprecated, String ignoreReason) { }
+               boolean sourceDeprecated, String ignoreReason, List<String> examples) { }
     record Rejection(String source, String reason, String collisionName) {
         Rejection(String source, String reason) { this(source, reason, null); }
     }
@@ -352,7 +353,7 @@ final class CompiledBuilderSchema {
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
         return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated());
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples());
     }
 
     private static Key profileKey(Key key) throws IOException, ClassNotFoundException {
@@ -363,7 +364,7 @@ final class CompiledBuilderSchema {
         }
         if (!literal.names.rename.isEmpty() || key.ignored()) return key;
         return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
-                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason());
+                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason(), key.examples());
     }
 
     private static Key inheritKey(Key key, Key inherited) {
@@ -402,7 +403,7 @@ final class CompiledBuilderSchema {
 
     private static Key constructionKey(BuilderContext context, Literals literal) {
         return new Key(literal.key, literal.names.rename.isEmpty() ? literal.key : literal.names.rename,
-                literal.names.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated, ignoreReason(literal.names));
+                literal.names.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated, ignoreReason(literal.names), literal.examples);
     }
 
     private static void collectDeclarations(BuilderContext context,
@@ -450,7 +451,7 @@ final class CompiledBuilderSchema {
         String name = literal.names.rename.isEmpty() ? field : literal.names.rename;
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed ? field : null,
-                literal.names.origin, literal.doc, Boolean.TRUE.equals(literal.schemaKey), literal.sourceDeprecated));
+                literal.names.origin, literal.doc, Boolean.TRUE.equals(literal.schemaKey), literal.sourceDeprecated, literal.examples));
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -513,7 +514,7 @@ final class CompiledBuilderSchema {
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = names.rename.isEmpty() ? method.getName() : names.rename;
         entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
-                null, null, null, names.origin, literal.doc, false, literal.operationDeprecated));
+                null, null, null, names.origin, literal.doc, false, literal.operationDeprecated, literal.operationExamples));
     }
 
     private static String fieldReason(Type type, Literals literal) {
@@ -694,6 +695,7 @@ final class CompiledBuilderSchema {
     }
 
     private static final class Literals {
+        String location = "construction key";
         String key;
         String field;
         String selection;
@@ -712,6 +714,8 @@ final class CompiledBuilderSchema {
         boolean query;
         List<ConstraintRule> constraints;
         String constraintProjection;
+        List<String> examples;
+        List<String> operationExamples;
     }
     private record Invisible(String member, String reason) { }
     private static final class Metadata {
@@ -768,11 +772,13 @@ final class CompiledBuilderSchema {
         String source = namingOrigin(owner) + "#" + signature;
         if (literal.field != null || literal.key != null) {
             validateNameFacts(literal.names, source);
+            if (literal.examples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
         if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
         if (literal.operationFact) {
             validateNameFacts(literal.operationNames, source);
+            if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
         if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
@@ -846,6 +852,7 @@ final class CompiledBuilderSchema {
 
         @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             Literals literal = new Literals();
+            literal.location = name + descriptor;
             result.methods.put(name + descriptor, literal);
             return new ContractMethodVisitor(literal);
         }
@@ -1035,6 +1042,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> {
                     if (member.equals(SOURCE_DEPRECATED)) {
@@ -1095,6 +1103,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visitEnum(String member, String descriptor, String value) {
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected enum");
             if (annotation.equals(FIELD) && member.equals("constraintProjection")
                     && descriptor.equals("Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;")) {
                 if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
@@ -1104,7 +1113,34 @@ final class CompiledBuilderSchema {
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected enum input fact " + member);
         }
 
+        private IllegalArgumentException invalidExamples(int index, String reason) {
+            return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ": " + reason);
+        }
+
+        private AnnotationVisitor examplesArray() {
+            boolean operation = annotation.equals(OPERATION_FACT);
+            if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(1, "duplicate array");
+            List<String> examples = new ArrayList<>();
+            if (operation) literal.operationExamples = examples;
+            else literal.examples = examples;
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                private int characters;
+                @Override public void visit(String ignored, Object value) {
+                    if (!(value instanceof String text)) throw invalidExamples(examples.size() + 1, "requires String array elements");
+                    // Classfile constants can be reused thousands of times; bound expanded documentary output.
+                    characters += text.length();
+                    if (characters > 1_048_576) throw invalidExamples(examples.size() + 1, "excessive documentary text");
+                    examples.add(text);
+                }
+                @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(examples.size() + 1, "unexpected nested array"); }
+                @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(examples.size() + 1, "unexpected annotation"); }
+                @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(examples.size() + 1, "unexpected enum"); }
+            };
+        }
+
         @Override public AnnotationVisitor visitArray(String member) {
+            if (member.equals(EXAMPLES) && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation))
+                return examplesArray();
             if (annotation.equals(FIELD) && member.equals("constraints")) {
                 if (literal.constraints != null) throw invalid("Duplicate constraint facts");
                 literal.constraints = new ArrayList<>();
@@ -1129,6 +1165,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected annotation");
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected nested input fact " + member);
             return null;
         }

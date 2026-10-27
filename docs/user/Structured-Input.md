@@ -63,7 +63,7 @@ Structured input and JSON Schema generation require Schemas compiled with a matc
 Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
 
 The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
-require exactly that version and complete naming, exclusion, constraint, projection, source-provenance and key facts.
+require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key and inert example-array facts.
 The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
 future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
 completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked
@@ -386,3 +386,27 @@ The key examples live in
 linked to [#954](https://github.com/klum-dsl/klum-ast/issues/954).
 Related language work: [#932](https://github.com/klum-dsl/klum-ast/issues/932); optional matching JSON Schema generation
 remains [#529](https://github.com/klum-dsl/klum-ast/issues/529).
+
+
+## Advisory input examples
+
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. See [generated JSON Schema](Json-Schema.md#advisory-input-examples).
+
+(See: `InputExamplesTest#'document example values without supplying defaults or changing input admission'`.)
+
+```groovy
+@DSL class Service {
+    @InputExamples(['Catalog', 'catalog.internal']) String displayName
+}
+
+def configured = KlumStructuredInput.readRoot(Service, [displayName: 'Configured'], 'service.yaml')
+def omitted = KlumStructuredInput.readRoot(Service, [:], 'service.yaml')
+assert configured.displayName == 'Configured'
+assert omitted.displayName == null
+```
+
+Documentation strings do not supply values or change input admission, naming/exclusion, defaults, validation or lifecycle.
+The shared byte reader checks required string-array metadata without interpreting its contents. Compiler constant capture
+never reads a static field reflectively to obtain a value. Owned/inherited public Builder declarations remain the authority;
+no Model-byte fallback, Javadoc transport, provider or callback participates.

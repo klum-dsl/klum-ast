@@ -21,6 +21,16 @@ missing/corrupt required facts fail with Schema/Builder, artifact and recompile 
 replacement. Neither identity-only compatibility nor authored-operation reconstruction from old annotations remains.
 No version negotiation or mixed-version mode is supported. Authoring annotations and valid-Schema behavior are unchanged.
 
+### Advisory input examples
+
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. Write `@InputExamples(['localhost'])`, without JSON quoting.
+A note on a numeric, boolean or object property is still a string and is not promised to be a valid instance value.
+
+Current development Builder facts retain source-specific string arrays, including empty absence arrays. The unified
+`GeneratedInput.Schema.version` remains 1; this slice adds no metadata version, feature gate or compatibility mechanism.
+Keep the current compiler/runtime/plugin aligned. See [syntax and placement](Json-Schema.md#advisory-input-examples).
+
 ### Literal names and exclusion
 
 Use `@InputName('literal')` and marker `@InputIgnore` for dependency-free structured-input/JSON Schema shaping on eligible

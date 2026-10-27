@@ -116,6 +116,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
             deprecate(key, schema.key().sourceDeprecated());
+            examples(key, schema.key().examples());
             properties.put(schema.key().externalName(), key);
             object.put("required", List.of(schema.key().externalName()));
         }
@@ -133,8 +134,13 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
+        examples(value, entry.examples());
         constrain(entry, value, groupRedefined);
         return value;
+    }
+
+    private static void examples(Map<String, Object> target, List<String> values) {
+        if (!values.isEmpty()) target.put("examples", values);
     }
 
     private static void deprecate(Map<String, Object> value, boolean sourceDeprecated) {

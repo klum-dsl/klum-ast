@@ -370,3 +370,44 @@ optional [structured-input feature](Structured-Input.md), tracked under #932.
 
 Real ScHelm root/output qualification remains a consumer-owned acceptance gate for overall
 [#529](https://github.com/klum-dsl/klum-ast/issues/529). This Gradle slice selects no ScHelm roots, packaging or publication policy.
+
+
+## Advisory input examples
+
+`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints.
+
+(See: `KlumJsonSchemaGenerationTest#'project advisory examples at exact source-free input positions with Groovy #generation'`.)
+
+```groovy
+@DSL class Service {
+    @InputExamples(['localhost', 'database.internal']) String host
+    @InputExamples(['42', 'many replicas']) int replicas
+    @InputExamples(['API endpoint settings'])
+    @Builder.Method void endpoint(Map<String, String> input) { /* configure Builder state */ }
+}
+```
+
+The `host` property receives `examples: ["localhost", "database.internal"]`. The numeric `replicas` property receives
+`examples: ["42", "many replicas"]`: both values are strings, with no promise that they are valid instances of that
+property. Text such as `null`, `{not JSON`, quotes, backslashes, newlines and Unicode remains documentation; the ordinary
+JSON Schema serializer escapes it. Order, duplicate strings and empty strings are retained. An empty annotation array
+supplies no examples. Values must be compile-time constant strings, and no authored code is executed to obtain them.
+
+| Declaration | Placement |
+| --- | --- |
+| Eligible ordinary field, including List/Map | Exact effective property, rather than its items or values |
+| Selected construction key | Actual member-key property; absent from keyless bodies and outer instance keys |
+| Admitted authored one-payload `@Builder.Method` | Exact operation payload |
+| Owned relationship or keyed owned Map | Parent relationship-use property, alongside its reference/container schema |
+
+Inherited examples retain their effective source declaration. Naming profiles, literal names and exclusions select the
+same input member as before. Parent relationship notes stay local to that use; they never enter shared child definitions
+or sibling uses. An owned type retains documentation on its own members. `ConstraintProjection`, ordinary prose and
+`deprecated` remain independent. Unsupported members gain no admission.
+
+Examples supply no defaults, change no requiredness or runtime input types, and do not participate in validation,
+conversion, templates or lifecycle. There is no content grammar or example evaluator. Ordinary annotation/JVM constraints
+apply; excessively large carried documentation is rejected defensively. The source-free public Builder metadata remains
+authoritative, and malformed or missing required metadata fails before replacing successful output. The unified
+[development metadata protocol](Migration.md#structured-input-metadata-protocol) remains version 1.
