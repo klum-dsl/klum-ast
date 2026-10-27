@@ -51,7 +51,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
     private final Map<Class<?>, CompiledBuilderSchema.ConstraintProfile> constraintProfiles = new LinkedHashMap<>();
-    private enum KeyPosition { MEMBER, KEYLESS, UNKNOWN_DIRECT }
+    private enum KeyPosition { MEMBER, KEYLESS }
 
     @Override
     public Map<String, String> apply(List<String> roots) {
@@ -137,8 +137,8 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return value;
     }
 
-    private static void deprecate(Map<String, Object> value, Boolean sourceDeprecated) {
-        if (Boolean.TRUE.equals(sourceDeprecated)) value.put("deprecated", true);
+    private static void deprecate(Map<String, Object> value, boolean sourceDeprecated) {
+        if (sourceDeprecated) value.put("deprecated", true);
     }
 
     private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
@@ -234,21 +234,15 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
 
     private static KeyPosition keyPosition(CompiledBuilderSchema.Entry entry) {
         if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP
-                || Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null)
+                || entry.schemaKey())
             return KeyPosition.KEYLESS;
-        if (entry.role() == CompiledBuilderSchema.Role.OWNED_OBJECT && entry.schemaKey() == null)
-            return KeyPosition.UNKNOWN_DIRECT;
         return KeyPosition.MEMBER;
     }
 
     private static void validateKeyPosition(CompiledBuilderSchema schema, KeyPosition position, String source) {
         if (schema.keyName().isEmpty()) return;
-        if (position == KeyPosition.UNKNOWN_DIRECT)
-            throw unrepresentable(schema, position, source, "missing direct relationship key-authority metadata; recompile and package the Schema");
         if (position == KeyPosition.KEYLESS) return;
         CompiledBuilderSchema.Key key = schema.key();
-        if (key == null)
-            throw unrepresentable(schema, position, source, "missing construction key metadata; recompile and package the Schema");
         if (key.ignored())
             throw unrepresentable(schema, position, source, "required construction key " + key.source() + " " + key.ignoreReason());
         List<String> collisions = schema.keyCollisions();

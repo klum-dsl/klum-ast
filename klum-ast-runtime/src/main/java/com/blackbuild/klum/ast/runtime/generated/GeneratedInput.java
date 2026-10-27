@@ -37,20 +37,12 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
     public @interface Schema {
-        /** Versioned completeness marker for constraint projection; zero denotes older artifacts. */
-        int constraintVersion() default 0;
-        /** Independent completeness for exact direct decimal facts; zero denotes older artifacts. */
-        int decimalVersion() default 0;
-        /** Completeness of effective field artifact policy; zero denotes older artifacts. */
-        int projectionVersion() default 0;
-        /** Independent completeness of declared naming/absence facts; zero denotes legacy identity contracts. */
-        int namingVersion() default 0;
+        /** Required protocol version; producers explicitly emit the supported value. */
+        int version() default 0;
         /** Explicit presence is separate from a binding IDENTITY selection. */
         boolean namingExplicit() default false;
-        /** Compiler-folded finite profile name; always emitted with namingVersion=1. */
+        /** Compiler-folded finite profile name; always emitted with the current protocol. */
         String namingProfile() default "IDENTITY";
-        /** Completeness of folded literal names/exclusions, independent of type profiles. */
-        int literalVersion() default 0;
         boolean groupRedefined() default false;
         String key() default "";
         boolean keyInput() default false;
@@ -64,11 +56,11 @@ public final class GeneratedInput {
     @Target(ElementType.METHOD)
     public @interface Key {
         String value();
-        /** Compiler-folded origin; explicitly emitted with literalVersion=1. */
+        /** Compiler-folded origin; explicitly emitted by current producers. */
         String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;
-        /** Explicit source declaration fact; absence in older bytecode means unknown, never inferred. */
+        /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
     }
 
@@ -77,11 +69,11 @@ public final class GeneratedInput {
     @Target(ElementType.METHOD)
     public @interface Field {
         String value();
-        /** Compiler-folded origin; explicitly emitted with literalVersion=1. */
+        /** Compiler-folded origin; explicitly emitted by current producers. */
         String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;
-        /** Explicit source declaration fact; absence in older bytecode means unknown, never inferred. */
+        /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};

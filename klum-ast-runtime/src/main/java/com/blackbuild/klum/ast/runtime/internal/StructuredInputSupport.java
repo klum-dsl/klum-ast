@@ -119,7 +119,7 @@ public final class StructuredInputSupport {
     }
 
     private enum Position {
-        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, SCHEMA_CHILD, MAP_VALUE, UNKNOWN_DIRECT;
+        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, SCHEMA_CHILD, MAP_VALUE;
         boolean memberKey() { return this == ROOT || this == DIRECT; }
         String authority() {
             return switch (this) {
@@ -257,12 +257,6 @@ public final class StructuredInputSupport {
         }
 
         private void validatePosition(CompiledBuilderSchema plan, Key key, Position position, String path, Object input) {
-            if (position == Position.UNKNOWN_DIRECT && !plan.keyName().isEmpty())
-                throw problem(source, path, plan.contract(), DOMAIN_NAME,
-                        "direct relationship key-authority metadata; recompile and package the Schema", input, null);
-            if (position.memberKey() && !plan.keyName().isEmpty() && key == null)
-                throw problem(source, path, plan.contract(), plan.keyName(),
-                        "construction key metadata; recompile and package the Schema", input, null);
             if (position.memberKey() && key != null) validateMemberKey(plan, key, path, input);
         }
 
@@ -342,8 +336,8 @@ public final class StructuredInputSupport {
         }
 
         private static Position directPosition(Entry entry) {
-            if (Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null) return Position.SCHEMA_CHILD;
-            return entry.schemaKey() == null ? Position.UNKNOWN_DIRECT : Position.DIRECT;
+            if (entry.schemaKey()) return Position.SCHEMA_CHILD;
+            return Position.DIRECT;
         }
 
         private Method method(Entry entry, String path) {

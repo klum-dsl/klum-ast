@@ -149,7 +149,7 @@ final class StructuredInputAdmissionPlan {
         transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
                 .forEach(field -> enrichField(builder, field, entries, rejections, invisible));
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
-        schema.setMember("literalVersion", new ConstantExpression(1));
+        schema.setMember("version", new ConstantExpression(1));
         enrichNaming(model, schema);
         StructuredInputConstraintMetadata.enrichSchema(model, schema);
         builder.addAnnotation(schema);
@@ -167,7 +167,6 @@ final class StructuredInputAdmissionPlan {
             }
             profile = property.getPropertyAsString();
         }
-        schema.setMember("namingVersion", new ConstantExpression(1));
         schema.setMember("namingExplicit", new ConstantExpression(naming != null));
         schema.setMember("namingProfile", new ConstantExpression(profile));
     }

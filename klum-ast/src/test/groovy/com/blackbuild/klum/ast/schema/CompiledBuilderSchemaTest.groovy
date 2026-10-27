@@ -341,7 +341,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     }
 
     @Issue('959')
-    def 'literal decoder rejects incomplete facts before initialization: #damage'() {
+    def 'protocol and required literal facts reject corruption before initialization: #damage'() {
         given:
         def jar = compileJar([trapped('''
             package damagedliteral
@@ -361,7 +361,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('literal')
+        failure.message.contains('metadata')
         failure.message.contains('damagedliteral.Configuration')
         failure.message.contains('recompile and package')
         System.getProperty('wire.schema.executed') == null
@@ -371,7 +371,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         System.clearProperty('wire.schema.executed')
 
         where:
-        damage << ['literal schema version', 'literal schema future', 'literal schema type',
+        damage << ['literal schema missing', 'literal schema older', 'literal schema future', 'literal schema type',
                    'literal Field origin', 'literal Field unknown', 'literal Field rename', 'literal Field ignored',
                    'literal Key origin', 'literal Key rename', 'literal Key ignored',
                    'literal Operation origin', 'literal Operation rename', 'literal Operation ignored',
@@ -796,8 +796,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         where:
         damage                | diagnostic
-        'naming version'      | 'naming metadata version 0'
-        'naming future'       | 'naming metadata version 2'
+        'naming absent'       | 'naming metadata'
         'naming explicit'     | 'naming metadata'
         'naming profile'      | 'naming metadata'
         'naming unknown'      | 'naming metadata'
@@ -811,7 +810,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     }
 
     @Issue('959')
-    def 'selected profile requires declared absence provenance from a legacy binary ancestor'() {
+    def 'every inherited contract requires the protocol without a selected profile'() {
         given:
         def api = compileJar([trapped('''
             package legacyprofile
@@ -822,10 +821,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             package legacyprofile
             import com.blackbuild.klum.ast.DSL
             import com.blackbuild.klum.ast.InputNaming
-            @InputNaming(InputNaming.Profile.KEBAB_CASE)
             @DSL class Configuration extends Base { String localName }
         ''')], [api])
-        def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'naming legacy')
+        def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'literal schema missing')
         def binaries = isolated([legacy, child])
 
         when:
@@ -834,7 +832,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('Selected input profile requires naming metadata version 1')
+        failure.message.contains('Unsupported structured-input metadata protocol version 0')
         failure.message.contains('legacyprofile.Base')
         failure.message.contains('artifact')
         System.getProperty('wire.schema.executed') == null
@@ -966,24 +964,23 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                     rewriteEntry(input, archive, entry, contract, damage)
                 }
                 if (damage in ['diamond', 'profile diamond']) {
-                    appendDiamond(archive, damage == 'profile diamond')
+                    appendDiamond(archive)
                 }
             }
         }
         output
     }
 
-    private static void appendDiamond(JarOutputStream archive, boolean profiled) {
+    private static void appendDiamond(JarOutputStream archive) {
         def writer = new ClassWriter(0)
         writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
                 'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
                 'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
         def schema = writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true)
-        if (profiled) {
-            schema.visit('namingVersion', 1)
-            schema.visit('namingExplicit', false)
-            schema.visit('namingProfile', 'IDENTITY')
-        }
+        schema.visit('version', 1)
+        schema.visit('groupRedefined', false)
+        schema.visit('namingExplicit', false)
+        schema.visit('namingProfile', 'IDENTITY')
         schema.visitEnd()
         writer.visitEnd()
         archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
@@ -1025,10 +1022,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                 }
                 new AnnotationVisitor(Opcodes.ASM9, downstream) {
                     @Override void visit(String member, Object value) {
-                        if (damage == 'naming legacy' && member.startsWith('naming')) {
-                            return
-                        }
-                        if (damage == 'naming version' && member == 'namingVersion') {
+                        if (damage == 'naming absent' && member.startsWith('naming')) {
                             return
                         }
                         if (damage == 'naming explicit' && member == 'namingExplicit') {
@@ -1036,9 +1030,6 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                         }
                         if (damage == 'naming profile' && member == 'namingProfile') {
                             return
-                        }
-                        if (damage == 'naming future' && member == 'namingVersion') {
-                            value = 2
                         }
                         if (damage == 'naming unknown' && member == 'namingProfile') {
                             value = 'FUTURE'
@@ -1090,9 +1081,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         }
         new AnnotationVisitor(Opcodes.ASM9, visitor) {
             @Override void visit(String member, Object value) {
-                if (member == 'literalVersion') {
-                    if (parts[2] == 'version') { return }
-                    value = parts[2] == 'future' ? 2 : '1'
+                if (member == 'version') {
+                    if (parts[2] == 'missing') { return }
+                    value = [older: 0, future: 2, type: '1'][parts[2]]
                 }
                 if (member == 'nameOrigin' && parts[2] == 'origin'
                         || member == 'rename' && parts[2] == 'rename'
