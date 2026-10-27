@@ -2082,7 +2082,9 @@ class InitializationControl {
     private static AnnotationVisitor deprecationMutation(AnnotationVisitor delegate, boolean removeFacts) {
         new AnnotationVisitor(Opcodes.ASM9, delegate) {
             @Override void visit(String name, Object value) {
-                if (!removeFacts || name != 'sourceDeprecated') super.visit(name, value)
+                if (!removeFacts || name != 'sourceDeprecated') {
+                    super.visit(name, value)
+                }
             }
             @Override AnnotationVisitor visitAnnotation(String name, String descriptor) {
                 deprecationMutation(super.visitAnnotation(name, descriptor), removeFacts)
@@ -2105,7 +2107,9 @@ class InitializationControl {
                         reader.accept(new ClassVisitor(Opcodes.ASM9, writer) {
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions)
-                                if (kind == 'group-value' && name != 'getGrouped') return delegate
+                                if (kind == 'group-value' && name != 'getGrouped') {
+                                    return delegate
+                                }
                                 new MethodVisitor(Opcodes.ASM9, delegate) {
                                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                                         AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)

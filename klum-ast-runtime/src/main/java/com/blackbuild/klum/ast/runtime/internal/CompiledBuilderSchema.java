@@ -863,7 +863,7 @@ final class CompiledBuilderSchema {
         @Override public void visit(String member, Object value) {
             if (!seen.add(member)) throw invalid("Duplicate schema member " + member);
             switch (member) {
-                case "version" -> result.version = integer(member, value);
+                case "version" -> result.version = integer(value);
                 case "namingExplicit" -> result.namingExplicit = flag(member, value);
                 case "namingProfile" -> result.namingProfile = text(member, value);
                 case "groupRedefined" -> result.groupRedefined = flag(member, value);
@@ -873,7 +873,7 @@ final class CompiledBuilderSchema {
             }
         }
 
-        private static int integer(String member, Object value) {
+        private static int integer(Object value) {
             if (value instanceof Integer number) {
                 return number;
             }

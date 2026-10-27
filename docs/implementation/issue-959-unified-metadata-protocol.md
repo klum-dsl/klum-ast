@@ -147,3 +147,15 @@ mutation authority and Git-over-SSH branch-push authority both verify **authoriz
 check and exact-branch push dry run). No connected-App mutation channel is used. Tracker impact remains `Related: #959`;
 issue state, labels, milestones and release placement remain unchanged. The maintainer explicitly requests a review-ready
 PR and prohibits merging; publication updates #977 and stops before merge or Hive archive reconciliation.
+
+
+### Actual Sonar follow-up
+
+Full remote root qualification and Sonar execution pass at `589663f4ddff0333dfdf49918e8912b43adc72c7`
+in [CI run 40485582903](https://github.com/klum-dsl/klum-ast/actions/runs/40485582903).
+The Sonar API confirms that exact head and a passed gate with zero bugs/vulnerabilities. The prior three maintainability
+observations are gone, but the new analysis reports three different maintainability findings: two missing brace pairs in
+existing test bytecode visitors (`groovydre:S8306`) and an unused `member` argument in the integer-version decoder
+(`java:S1172`). The follow-up adds those braces and removes that unused argument, with no assertion, control-flow or
+validation change. Bounded affected tests and reviews confirm this minimal correction; final exact-head PR CI/Sonar results
+belong to the consolidated PR follow-up. No suppression or scanner-policy change is introduced.
