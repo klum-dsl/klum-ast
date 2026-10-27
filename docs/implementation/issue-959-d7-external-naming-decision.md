@@ -2,6 +2,10 @@
 
 Date: 2026-10-26. Status: **Design-only authoring contract confirmed; bounded binary probes precede any implementation assignment.**
 
+Subsequent implementation scope: the assignment after merged #975 splits the confirmed family into a
+[profile-only first slice](issue-959-d7-input-naming-profiles.md) and a later `InputName`/`InputIgnore` slice.
+The original combined-slice statements below are retained as the design record; they no longer determine that delivery partition.
+
 Audited base: `3daea832e4e6fa9247c6ab8cb7e53f61da5772bb` (`origin/master`, merged
 [PR #974](https://github.com/klum-dsl/klum-ast/pull/974)). Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
 This is the next independent language-shaping discussion after `ConstraintProjection`. Numeric projection, field policy

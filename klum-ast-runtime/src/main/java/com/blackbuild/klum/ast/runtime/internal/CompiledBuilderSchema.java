@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.InputNaming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import groovyjarjarasm.asm.AnnotationVisitor;
@@ -59,6 +60,8 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
 final class CompiledBuilderSchema {
     static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
     private static final String VALUE = "value";
+    private static final String IDENTITY_NAME = "IDENTITY";
+    private static final String KEBAB_NAME = "KEBAB_CASE";
     private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
     private static final String BUILDER_SUFFIX = "_DSL$Builder";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
@@ -175,21 +178,31 @@ final class CompiledBuilderSchema {
             Class<?> model = modelOf(builder);
             if (model == null || Arrays.stream(factory.getMethods()).noneMatch(method -> method.getName().equals("One") && method.getReturnType() == model))
                 throw invalid("Builder self bound and Factory result disagree");
-            Facts facts = collect(builder, new LinkedHashMap<>());
+            Profile naming = resolveNaming(builder);
+            Facts facts = collect(builder, new LinkedHashMap<>(), naming == Profile.KEBAB_CASE);
             List<Rejection> rejected = new ArrayList<>(facts.rejections());
             List<Declaration> declarations = new ArrayList<>(facts.declarations());
             declarations.addAll(scope(factory));
             Map<String, Entry> entries = new LinkedHashMap<>();
-            facts.entries().forEach(entry -> entries.put(entry.externalName(), entry));
+            Key key = facts.key();
+            if (naming == Profile.KEBAB_CASE) {
+                List<Entry> candidates = facts.entries().stream().map(CompiledBuilderSchema::profileEntry).toList();
+                entries.putAll(admitted(candidates, rejected, true));
+                if (key != null) {
+                    key = profileKey(key);
+                }
+            } else {
+                facts.entries().forEach(entry -> entries.put(entry.externalName(), entry));
+            }
             return new CompiledBuilderSchema(builder, model, entries, rejected.stream().distinct()
-                    .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(), declarations, facts.key(), metadata(builder).key);
+                    .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(), declarations, key, metadata(builder).key);
         } catch (ReflectiveOperationException | LinkageError | IOException | RuntimeException failure) {
             throw failure(builder.getName(), failure);
         }
     }
 
     /** Resolve each declaring hierarchy before its descendants, preserving previously rejected parent sources. */
-    private static Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected) {
+    private static Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected, boolean strict) {
         Map<String, Entry> sources = new LinkedHashMap<>();
         for (Entry entry : candidates) {
             Entry previous = sources.putIfAbsent(entry.source(), entry);
@@ -205,6 +218,9 @@ final class CompiledBuilderSchema {
             if (group.size() == 1) entries.put(name, group.get(0));
             else {
                 String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
+                if (strict) {
+                    throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
+                }
                 group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
             }
         });
@@ -243,7 +259,7 @@ final class CompiledBuilderSchema {
         return List.copyOf(result);
     }
 
-    private static Facts collect(Class<?> builder, Map<Class<?>, Facts> known) throws IOException, ClassNotFoundException {
+    private static Facts collect(Class<?> builder, Map<Class<?>, Facts> known, boolean nativeCandidates) throws IOException, ClassNotFoundException {
         Facts existing = known.get(builder);
         if (existing != null) return existing;
         List<Entry> entries = new ArrayList<>();
@@ -271,17 +287,88 @@ final class CompiledBuilderSchema {
             Class<?> parentModel = modelOf(parent);
             if (parentModel == null || parentModel == Object.class || !parent.getName().endsWith(BUILDER_SUFFIX)) continue;
             if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
-            Facts inherited = collect(parent, known);
+            Facts inherited = collect(parent, known, nativeCandidates);
             key = inheritKey(key, inherited.key());
             entries.addAll(inherited.entries());
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
         }
         validateKeyMetadata(metadata, key, builder);
-        Map<String, Entry> resolved = admitted(entries, rejections);
-        Facts facts = new Facts(List.copyOf(resolved.values()), List.copyOf(rejections), declarations.stream().distinct().toList(), key);
+        List<Entry> resolved = List.copyOf(nativeCandidates ? entries : admitted(entries, rejections, false).values());
+        Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
         return facts;
+    }
+
+    /** Declaring public contracts are the sole authority, including explicit absence and source/artifact identity. */
+    private static Profile resolveNaming(Class<?> builder) throws IOException, ClassNotFoundException {
+        Map<Class<?>, Metadata> hierarchy = new LinkedHashMap<>();
+        namingHierarchy(builder, hierarchy);
+        List<Map.Entry<Class<?>, Metadata>> explicit = hierarchy.entrySet().stream()
+                .filter(entry -> Boolean.TRUE.equals(entry.getValue().namingExplicit)).toList();
+        if (explicit.isEmpty()) return Profile.IDENTITY;
+        for (Map.Entry<Class<?>, Metadata> entry : hierarchy.entrySet()) {
+            if (entry.getValue().namingVersion != 1) {
+                throw invalid("Selected input profile requires naming metadata version 1 on " + namingOrigin(entry.getKey())
+                        + "; recompile and package this Schema hierarchy with matching KlumAST compiler/runtime/plugin versions");
+            }
+        }
+        String selected = explicit.get(0).getValue().namingProfile;
+        if (explicit.stream().anyMatch(entry -> !entry.getValue().namingProfile.equals(selected))) {
+            String declarations = explicit.stream().map(entry -> namingOrigin(entry.getKey()) + " @InputNaming("
+                    + entry.getValue().namingProfile + ")").sorted().collect(Collectors.joining(", "));
+            throw invalid("Conflicting explicit input profiles: " + declarations);
+        }
+        return Profile.valueOf(selected);
+    }
+
+    private static void namingHierarchy(Class<?> builder, Map<Class<?>, Metadata> hierarchy)
+            throws IOException, ClassNotFoundException {
+        if (hierarchy.containsKey(builder)) return;
+        requirePublic(builder);
+        Metadata declared = metadata(builder);
+        validateNaming(declared, builder);
+        hierarchy.put(builder, declared);
+        for (Class<?> parent : Arrays.stream(builder.getInterfaces()).sorted(Comparator.comparing(Class::getName)).toList()) {
+            if (parent.getName().endsWith(BUILDER_SUFFIX)) {
+                namingHierarchy(parent, hierarchy);
+            }
+        }
+    }
+
+    private static void validateNaming(Metadata declared, Class<?> builder) {
+        boolean any = declared.namingExplicit != null || declared.namingProfile != null;
+        if (declared.namingVersion == 0 && !any) return; // Complete legacy identity facts remain valid.
+        if (declared.namingVersion != 1 || declared.namingExplicit == null || declared.namingProfile == null
+                || !Set.of(IDENTITY_NAME, KEBAB_NAME).contains(declared.namingProfile)
+                || Boolean.FALSE.equals(declared.namingExplicit) && !declared.namingProfile.equals(IDENTITY_NAME)) {
+            throw invalid("Invalid or incomplete naming metadata version " + declared.namingVersion + " on " + namingOrigin(builder));
+        }
+    }
+
+    private static String namingOrigin(Class<?> builder) {
+        String model = builder.getName().substring(0, builder.getName().length() - BUILDER_SUFFIX.length());
+        URL origin = builder.getProtectionDomain().getCodeSource() == null ? null : builder.getProtectionDomain().getCodeSource().getLocation();
+        return model + " [public Builder " + builder.getName() + ", artifact " + origin + "]";
+    }
+
+    private static Entry profileEntry(Entry entry) {
+        if (!entry.nameOrigin().equals(IDENTITY_NAME)) return entry;
+        String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
+        return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(),
+                entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated());
+    }
+
+    private static Key profileKey(Key key) throws IOException, ClassNotFoundException {
+        Metadata declaring = metadata(key.contract());
+        Literals literal = declaring.keyMember;
+        if (literal == null) {
+            literal = declaring.methods.values().stream().filter(value -> key.nativeName().equals(value.key)).findFirst().orElseThrow();
+        }
+        if (!literal.rename.isEmpty() || key.ignored()) return key;
+        return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
+                key.source(), key.contract(), key.sourceDeprecated());
     }
 
     private static Key inheritKey(Key key, Key inherited) {
@@ -366,7 +453,7 @@ final class CompiledBuilderSchema {
         String name = literal.rename.isEmpty() ? field : literal.rename;
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed ? field : null,
-                literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.sourceDeprecated));
+                literal.rename.isEmpty() ? IDENTITY_NAME : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.sourceDeprecated));
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -428,7 +515,7 @@ final class CompiledBuilderSchema {
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = literal.rename.isEmpty() ? method.getName() : literal.rename;
         entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
-                null, null, null, literal.rename.isEmpty() ? "IDENTITY" : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.operationDeprecated));
+                null, null, null, literal.rename.isEmpty() ? IDENTITY_NAME : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.operationDeprecated));
     }
 
     private static String fieldReason(Type type, Literals literal) {
@@ -624,6 +711,9 @@ final class CompiledBuilderSchema {
         int constraintVersion;
         int decimalVersion;
         int projectionVersion;
+        int namingVersion;
+        Boolean namingExplicit;
+        String namingProfile;
         Boolean groupRedefined;
         boolean keyInput;
         Literals keyMember;
@@ -700,6 +790,7 @@ final class CompiledBuilderSchema {
 
     private static final class SchemaAnnotationVisitor extends AnnotationVisitor {
         private final Metadata result;
+        private final Set<String> seen = new LinkedHashSet<>();
 
         SchemaAnnotationVisitor(Metadata result) {
             super(Opcodes.ASM9);
@@ -707,21 +798,44 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
-            if (member.equals("constraintVersion") && value instanceof Integer version) {
-                result.constraintVersion = version;
-            } else if (member.equals("decimalVersion") && value instanceof Integer version) {
-                result.decimalVersion = version;
-            } else if (member.equals("projectionVersion") && value instanceof Integer version) {
-                result.projectionVersion = version;
-            } else if (member.equals("groupRedefined") && value instanceof Boolean flag) {
-                result.groupRedefined = flag;
-            } else if (member.equals("key") && value instanceof String text) {
-                result.key = text;
-            } else if (member.equals("keyInput") && value instanceof Boolean flag) {
-                result.keyInput = flag;
-            } else {
-                throw invalid("Unknown schema member " + member);
+            if (!seen.add(member)) throw invalid("Duplicate schema member " + member);
+            switch (member) {
+                case "namingVersion" -> result.namingVersion = integer(member, value);
+                case "namingExplicit" -> result.namingExplicit = flag(member, value);
+                case "namingProfile" -> result.namingProfile = text(member, value);
+                case "constraintVersion" -> result.constraintVersion = integer(member, value);
+                case "decimalVersion" -> result.decimalVersion = integer(member, value);
+                case "projectionVersion" -> result.projectionVersion = integer(member, value);
+                case "groupRedefined" -> result.groupRedefined = flag(member, value);
+                case "key" -> result.key = text(member, value);
+                case "keyInput" -> result.keyInput = flag(member, value);
+                default -> throw unknownMember(member);
             }
+        }
+
+        private static int integer(String member, Object value) {
+            if (value instanceof Integer number) {
+                return number;
+            }
+            throw unknownMember(member);
+        }
+
+        private static boolean flag(String member, Object value) {
+            if (value instanceof Boolean flag) {
+                return flag;
+            }
+            throw unknownMember(member);
+        }
+
+        private static String text(String member, Object value) {
+            if (value instanceof String text) {
+                return text;
+            }
+            throw unknownMember(member);
+        }
+
+        private static IllegalArgumentException unknownMember(String member) {
+            return invalid("Unknown schema member " + member);
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
@@ -729,6 +843,10 @@ final class CompiledBuilderSchema {
                 throw invalid("Unknown or duplicate schema key member " + member);
             result.keyMember = new Literals();
             return new MethodAnnotationVisitor(KEY_ANNOTATION, result.keyMember);
+        }
+
+        @Override public void visitEnum(String member, String descriptor, String value) {
+            throw invalid("Unexpected schema enum " + member);
         }
 
         @Override public AnnotationVisitor visitArray(String member) {

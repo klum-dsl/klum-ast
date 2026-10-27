@@ -24,6 +24,15 @@
 package com.blackbuild.klum.ast.schema
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
+import com.blackbuild.klum.ast.compiler.internal.ast.GeneratedDslSupport
+import org.codehaus.groovy.control.customizers.CompilationCustomizer
+import org.codehaus.groovy.control.CompilePhase
+import org.codehaus.groovy.control.SourceUnit
+import org.codehaus.groovy.classgen.GeneratorContext
+import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.AnnotationNode
+import org.codehaus.groovy.ast.expr.ConstantExpression
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.compiler.internal.ast.StructuredInputContractFixtures
 import com.blackbuild.klum.ast.runtime.KlumModelException
@@ -59,6 +68,245 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         @interface JsonIgnore { boolean value() default true }
     ''']
 
+
+    @Issue('959')
+    def 'D7 binary probe folds explicit type choices onto public Builder contracts'() {
+        given:
+        def api = compileJar(['''
+            package profiletransport
+            import com.blackbuild.klum.ast.*
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.TYPE])
+            @interface Choice { String value() }
+            @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.TYPE])
+            @interface Facts { int version(); boolean explicit(); String profile() }
+            @DSL class Base { String displayName }
+            @Choice('IDENTITY') @DSL class Locked { String nativeName }
+            @DSL class Owned { String ownName }
+        '''], [], true)
+        def child = compileJar(['''
+            package profiletransport
+            import com.blackbuild.klum.ast.*
+            @Choice('KEBAB_CASE') @DSL class Child extends Base { Owned first; Owned second }
+            @Choice('KEBAB_CASE') @DSL class Conflict extends Locked { String localName }
+        '''], [api], true)
+        def descendants = compileJar(['''
+            package profiletransport
+            import com.blackbuild.klum.ast.*
+            @DSL class Grandchild extends Child { String finalName }
+            @Choice('KEBAB_CASE') @DSL class Repeated extends Child { String equalName }
+            @Choice('IDENTITY') @DSL class Different extends Child { String changedName }
+        '''], [api, child], true)
+        def binaries = isolated([api, child, descendants])
+
+        when:
+        def base = rawNamingFacts(api, 'profiletransport/Base_DSL$Builder.class').profile
+        def locked = rawNamingFacts(api, 'profiletransport/Locked_DSL$Builder.class').profile
+        def selected = rawNamingFacts(child, 'profiletransport/Child_DSL$Builder.class').profile
+        def absent = rawNamingFacts(descendants, 'profiletransport/Grandchild_DSL$Builder.class').profile
+        def equal = rawNamingFacts(descendants, 'profiletransport/Repeated_DSL$Builder.class').profile
+        def different = rawNamingFacts(descendants, 'profiletransport/Different_DSL$Builder.class').profile
+
+        then:
+        base == [version: 1, explicit: false, profile: 'IDENTITY']
+        locked == [version: 1, explicit: true, profile: 'IDENTITY']
+        selected == [version: 1, explicit: true, profile: 'KEBAB_CASE']
+        absent == base
+        equal == selected
+        different == locked
+        rawNamingFacts(child, 'profiletransport/Conflict_DSL$Builder.class').profile == selected
+        rawNamingFacts(api, 'profiletransport/Owned_DSL$Builder.class').profile == base
+        Class.forName('profiletransport.Grandchild_DSL$Builder', false, binaries).interfaces*.name.contains('profiletransport.Child_DSL$Builder')
+        !binaries.resolved.contains('profiletransport.Choice')
+
+        cleanup:
+        binaries?.close()
+    }
+
+    @Issue('959')
+    def 'D7 binary probe retains native candidates before identity collision pruning'() {
+        given:
+        def api = compileJar(['''
+            package namingprobe
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.*
+            @DSL class Base {
+                static { System.setProperty('wire.schema.executed', 'initialized'); throw new AssertionError('probe trap') }
+                @Key String serviceId
+                String displayName
+                @JsonProperty('displayName') String literalName
+                @JsonIgnore String hiddenValue
+                @Builder.Method @JsonProperty('URL') void configureURL(String value) {}
+            }
+            @DSL class Owned { String nativeName }
+        '''] + NAMING)
+        def child = compileJar(['''
+            package namingprobe
+            import com.blackbuild.klum.ast.*
+            @DSL class Child extends Base { String localName; Owned first; Owned second }
+        '''], [api])
+        def grandchild = compileJar(['''
+            package namingprobe
+            import com.blackbuild.klum.ast.*
+            @DSL class Grandchild extends Child { String finalName }
+        '''], [api, child])
+        def binaries = isolated([api, child, grandchild])
+        def builder = Class.forName('namingprobe.Grandchild_DSL$Builder', false, binaries)
+
+        when:
+        def identity = CompiledBuilderSchemaReplacementProbe.read(builder,
+                Class.forName('namingprobe.Grandchild_DSL$Factory', false, binaries))
+        def declarations = rawNamingFacts(api, 'namingprobe/Base_DSL$Builder.class')
+
+        then: 'identity collisions prune the resolved map but public facts retain both candidates and exact overrides'
+        !identity.entries*.externalName.contains('displayName')
+        identity.rejections.count { it.reason.contains('collision') } == 2
+        declarations.fields.displayName.value == 'displayName'
+        declarations.fields.literalName.rename == 'displayName'
+        declarations.fields.hiddenValue.ignored == true
+        declarations.selections.contains('displayName')
+        declarations.selections.contains('literalName')
+        declarations.key.value == 'serviceId'
+        declarations.operations.configureURL.rename == 'URL'
+        builder.interfaces*.name.contains('namingprobe.Child_DSL$Builder')
+        builder.interfaces.find { it.name == 'namingprobe.Child_DSL$Builder' }.interfaces*.name.contains('namingprobe.Base_DSL$Builder')
+        !binaries.resolved.any { it.endsWith('$WirePlan') || it.endsWith('$Builder') && !it.contains('_DSL') }
+        System.getProperty('wire.schema.executed') == null
+
+        when: 'a separate positive control initializes the binary producer'
+        Class.forName('namingprobe.Base', true, binaries)
+
+        then:
+        thrown(AssertionError)
+        System.getProperty('wire.schema.executed') == 'initialized'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    @Issue('959')
+    def 'first descendant profile preserves non-naming ancestor exclusions: #profile'() {
+        given:
+        def api = compileJar([trapped('''
+            package namingexclusions
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.*
+            @DSL abstract class AbstractChild {}
+            @DSL class Base {
+                String validName
+                String displayName
+                @JsonProperty('displayName') String literalName
+                @JsonIgnore @JsonProperty('display-name') String hiddenValue
+                @Field(FieldType.PROTECTED) String internalValue
+                char unsupportedValue
+                AbstractChild abstractChild
+                @Builder.Method void raw(Map values) { throw new AssertionError('authored operation') }
+                @Builder.Method void reset() { throw new AssertionError('authored operation') }
+            }
+        ''')] + NAMING)
+        def child = compileJar(["""
+            package namingexclusions
+            import com.blackbuild.klum.ast.*
+            $annotation
+            @DSL class Child extends Base {}
+        """], [api])
+        def binaries = isolated([api, child])
+
+        when:
+        def ancestor = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName('namingexclusions.Base_DSL$Builder', false, binaries),
+                Class.forName('namingexclusions.Base_DSL$Factory', false, binaries))
+        def descendant = CompiledBuilderSchemaReplacementProbe.read(
+                Class.forName('namingexclusions.Child_DSL$Builder', false, binaries),
+                Class.forName('namingexclusions.Child_DSL$Factory', false, binaries))
+        def exclusions = ancestor.rejections.findAll { !it.reason.contains('collision') }
+
+        then: 'only naming-collision sources can recover; structural, unsupported and ignored sources stay rejected'
+        ancestor.entries*.externalName == ['validName']
+        ancestor.rejections.count { it.reason.contains('collision') } == 2
+        exclusions*.source as Set == [
+                'namingexclusions.Base#abstractChild', 'namingexclusions.Base#hiddenValue',
+                'namingexclusions.Base#internalValue', 'namingexclusions.Base#unsupportedValue',
+                'namingexclusions.Base#raw(java.util.Map):void', 'namingexclusions.Base#reset():void'
+        ] as Set
+        descendant.rejections.findAll { !it.reason.contains('collision') } == exclusions
+        descendant.rejections.count { it.reason.contains('collision') } == (profile == 'KEBAB_CASE' ? 0 : 2)
+        descendant.entries.collectEntries { [(it.externalName): it.source] } == expected.collectEntries { name, member ->
+            [(name): "namingexclusions.Base#$member".toString()]
+        }
+        System.getProperty('wire.schema.executed') == null
+
+        when: 'the same source-free producer is explicitly initialized as a positive control'
+        Class.forName('namingexclusions.Base', true, binaries)
+
+        then:
+        thrown(AssertionError)
+        System.getProperty('wire.schema.executed') == 'initialized'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        profile      | annotation                                    | expected
+        'absent'     | ''                                            | [validName: 'validName']
+        'IDENTITY'   | '@InputNaming(InputNaming.Profile.IDENTITY)'   | [validName: 'validName']
+        'KEBAB_CASE' | '@InputNaming(InputNaming.Profile.KEBAB_CASE)' | ['valid-name': 'validName', 'display-name': 'displayName', displayName: 'literalName']
+    }
+
+    private static Map rawNamingFacts(File jar, String contract) {
+        def result = [fields: [:], selections: [], key: [:], operations: [:], profile: [:]]
+        new JarFile(jar).withCloseable { archive ->
+            new ClassReader(archive.getInputStream(archive.getJarEntry(contract))).accept(new ClassVisitor(Opcodes.ASM9) {
+                @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                    if (annotation != 'Lprofiletransport/Facts;') {
+                        return null
+                    }
+                    new AnnotationVisitor(Opcodes.ASM9) {
+                        @Override void visit(String member, Object value) { result.profile[member] = value }
+                    }
+                }
+                @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    new MethodVisitor(Opcodes.ASM9) {
+                        @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                            def values = [:]
+                            if (annotation.endsWith('GeneratedInput$Field;')) {
+                                return new AnnotationVisitor(Opcodes.ASM9) {
+                                    @Override void visit(String member, Object value) { values[member] = value }
+                                    @Override void visitEnd() { result.fields[values.value] = values }
+                                }
+                            }
+                            if (annotation.endsWith('GeneratedInput$Key;')) {
+                                values = result.key
+                            } else if (annotation.endsWith('GeneratedInput$Selection;')) {
+                                return new AnnotationVisitor(Opcodes.ASM9) {
+                                    @Override void visit(String member, Object value) {
+                                        if (member == 'field') {
+                                            result.selections.add(value)
+                                        }
+                                    }
+                                }
+                            } else if (annotation == 'Lcom/fasterxml/jackson/annotation/JsonProperty;') {
+                                values = result.operations.computeIfAbsent(name) { [:] }
+                                return new AnnotationVisitor(Opcodes.ASM9) {
+                                    @Override void visit(String member, Object value) {
+                                        if (member == 'value') {
+                                            values.rename = value
+                                        }
+                                    }
+                                }
+                            }
+                            new AnnotationVisitor(Opcodes.ASM9) {
+                                @Override void visit(String member, Object value) { values[member] = value }
+                            }
+                        }
+                    }
+                }
+            }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+        }
+        result
+    }
 
     def 'compiled public contract matches every expected fact: #fixture'() {
         given:
@@ -388,6 +636,91 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         damage << ['schema marker', 'selection', 'source', 'role', 'fixed property key', 'exclusion']
     }
 
+    @Issue('959')
+    def 'naming decoder rejects damaged binary facts before initialization: #damage'() {
+        given:
+        def jar = compileJar([trapped('''
+            package damagednaming
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.InputNaming
+            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            @DSL class Configuration { String value }
+        ''')])
+        def damaged = rewriteContract(jar, 'damagednaming/Configuration_DSL$Builder.class', damage)
+        def binaries = isolated([damaged])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('damagednaming.Configuration_DSL$Builder', false, binaries),
+                Class.forName('damagednaming.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains(diagnostic)
+        failure.message.contains('damagednaming.Configuration')
+        failure.message.contains('recompile and package')
+        System.getProperty('wire.schema.executed') == null
+
+        when: 'the independent initialization control proves the producer trap is live'
+        Class.forName('damagednaming.Configuration', true, binaries)
+
+        then:
+        thrown(AssertionError)
+        System.getProperty('wire.schema.executed') == 'initialized'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        damage                | diagnostic
+        'naming version'      | 'naming metadata version 0'
+        'naming future'       | 'naming metadata version 2'
+        'naming explicit'     | 'naming metadata'
+        'naming profile'      | 'naming metadata'
+        'naming unknown'      | 'naming metadata'
+        'naming inconsistent' | 'naming metadata'
+        'naming duplicate'    | 'Duplicate schema member namingProfile'
+        'naming type'         | 'Unknown schema member namingExplicit'
+        'naming enum'         | 'Unexpected schema enum namingProfile'
+        'naming native'       | 'Malformed UTF-16'
+        'naming low'          | 'Malformed UTF-16'
+        'naming broken pair'  | 'Malformed UTF-16'
+    }
+
+    @Issue('959')
+    def 'selected profile requires declared absence provenance from a legacy binary ancestor'() {
+        given:
+        def api = compileJar([trapped('''
+            package legacyprofile
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Base { String inheritedName }
+        ''')])
+        def child = compileJar([trapped('''
+            package legacyprofile
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.InputNaming
+            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            @DSL class Configuration extends Base { String localName }
+        ''')], [api])
+        def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'naming legacy')
+        def binaries = isolated([legacy, child])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('legacyprofile.Configuration_DSL$Builder', false, binaries),
+                Class.forName('legacyprofile.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('Selected input profile requires naming metadata version 1')
+        failure.message.contains('legacyprofile.Base')
+        failure.message.contains('artifact')
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
     def 'directory contracts with unescaped spaces retain exact resource origins'() {
         given:
         def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
@@ -446,6 +779,32 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         damage << ['shadow resource', 'missing resource', 'protocol']
     }
 
+    @Issue('959')
+    def 'profile resolution deduplicates native candidates through a source-free diamond'() {
+        given:
+        def source = StructuredInputContractFixtures.ADMISSION.replace('import com.blackbuild.klum.ast.DSL',
+                'import com.blackbuild.klum.ast.DSL\nimport com.blackbuild.klum.ast.InputNaming').replace('@DSL class Parent extends Base',
+                '@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class Parent extends Base')
+        def jar = compileJar([trapped(source)] + NAMING)
+        def diamond = rewriteContract(jar, 'admission/Parent_DSL$Builder.class', 'profile diamond')
+        def binaries = isolated([diamond])
+
+        when:
+        def actual = CompiledBuilderSchemaReplacementProbe.read(Class.forName('admission.Parent_DSL$Builder', false, binaries),
+                Class.forName('admission.Parent_DSL$Factory', false, binaries))
+
+        then:
+        actual.entries.count { it.externalName == 'inherited-label' } == 1
+        actual.entries.count { it.externalName == 'inherited-operation' } == 1
+        actual.entries*.externalName.contains('renamed')
+        !actual.entries*.externalName.contains('secret')
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
     def 'diamond parent paths resolve one declaring inventory without duplicate admission'() {
         given:
         def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
@@ -483,20 +842,30 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                 input.entries().each { entry ->
                     rewriteEntry(input, archive, entry, contract, damage)
                 }
-                if (damage == 'diamond') {
-                    def writer = new ClassWriter(0)
-                    writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
-                            'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
-                            'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
-                    writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true).visitEnd()
-                    writer.visitEnd()
-                    archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
-                    archive.write(writer.toByteArray())
-                    archive.closeEntry()
+                if (damage in ['diamond', 'profile diamond']) {
+                    appendDiamond(archive, damage == 'profile diamond')
                 }
             }
         }
         output
+    }
+
+    private static void appendDiamond(JarOutputStream archive, boolean profiled) {
+        def writer = new ClassWriter(0)
+        writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
+                'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
+                'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
+        def schema = writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true)
+        if (profiled) {
+            schema.visit('namingVersion', 1)
+            schema.visit('namingExplicit', false)
+            schema.visit('namingProfile', 'IDENTITY')
+        }
+        schema.visitEnd()
+        writer.visitEnd()
+        archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
+        archive.write(writer.toByteArray())
+        archive.closeEntry()
     }
 
     private static void rewriteEntry(JarFile input, JarOutputStream archive, JarEntry entry, String contract, String damage) {
@@ -513,7 +882,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def writer = new ClassWriter(0)
         new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override void visit(int version, int access, String name, String signature, String parent, String[] interfaces) {
-                if (damage == 'diamond') {
+                if (damage in ['diamond', 'profile diamond']) {
                     interfaces = (interfaces.toList() + 'admission/Diamond_DSL$Builder') as String[]
                     signature += 'Ladmission/Diamond_DSL$Builder<TSELF;>;'
                 }
@@ -524,7 +893,49 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                 if (damage == 'schema marker' && descriptor.endsWith('GeneratedInput$Schema;')) {
                     return null
                 }
-                super.visitAnnotation(descriptor, visible)
+                def downstream = super.visitAnnotation(descriptor, visible)
+                if (!damage.startsWith('naming ') || !descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return downstream
+                }
+                new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                    @Override void visit(String member, Object value) {
+                        if (damage == 'naming legacy' && member.startsWith('naming')) {
+                            return
+                        }
+                        if (damage == 'naming version' && member == 'namingVersion') {
+                            return
+                        }
+                        if (damage == 'naming explicit' && member == 'namingExplicit') {
+                            return
+                        }
+                        if (damage == 'naming profile' && member == 'namingProfile') {
+                            return
+                        }
+                        if (damage == 'naming future' && member == 'namingVersion') {
+                            value = 2
+                        }
+                        if (damage == 'naming unknown' && member == 'namingProfile') {
+                            value = 'FUTURE'
+                        }
+                        if (damage == 'naming inconsistent' && member == 'namingExplicit') {
+                            value = false
+                        }
+                        if (damage == 'naming type' && member == 'namingExplicit') {
+                            value = 'true'
+                        }
+                        if (damage == 'naming enum' && member == 'namingProfile') {
+                            super.visitEnum(member, 'Lunavailable/UserEnum;', 'KEBAB_CASE')
+                            return
+                        }
+                        super.visit(member, value)
+                    }
+                    @Override void visitEnd() {
+                        if (damage == 'naming duplicate') {
+                            super.visit('namingProfile', 'IDENTITY')
+                        }
+                        super.visitEnd()
+                    }
+                }
             }
 
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
@@ -548,6 +959,14 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     private static AnnotationVisitor damageAnnotation(AnnotationVisitor visitor, String annotation, String damage) {
         new AnnotationVisitor(Opcodes.ASM9, visitor) {
             @Override void visit(String member, Object value) {
+                if (damage in ['naming native', 'naming low', 'naming broken pair'] && value == 'value'
+                        && (annotation.endsWith('GeneratedInput$Field;') && member == 'value'
+                        || annotation.endsWith('GeneratedInput$Selection;') && member == 'field')) {
+                    value = damage == 'naming low' ? String.valueOf((char) 0xDC00) : String.valueOf((char) 0xD800)
+                    if (damage == 'naming broken pair') {
+                        value += 'x'
+                    }
+                }
                 if (damage == 'source' && annotation.endsWith('GeneratedInput$Field;') && member == 'value') {
                     value = 'forged'
                 }
@@ -606,11 +1025,40 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
          new File(GroovyObject.protectionDomain.codeSource.location.toURI()), new File(AnnoDoc.protectionDomain.codeSource.location.toURI())]
     }
 
-    private File compileJar(List<String> sources, List<File> dependencies = []) {
+    private static CompilationCustomizer profileTransportProbe() {
+        new CompilationCustomizer(CompilePhase.INSTRUCTION_SELECTION) {
+            @Override void call(SourceUnit source, GeneratorContext context, ClassNode type) {
+                foldProfileProbeFacts(source, type)
+            }
+        }
+    }
+
+    private static void foldProfileProbeFacts(SourceUnit source, ClassNode type) {
+        if (!type.annotations.any { it.classNode.name == 'com.blackbuild.klum.ast.DSL' }) {
+            return
+        }
+        def builder = GeneratedDslSupport.of(type).builderInterface.redirect()
+        def choice = type.annotations.find { it.classNode.name == 'profiletransport.Choice' }
+        def factType = type.module.classes.find { it.name == 'profiletransport.Facts' }
+        if (factType == null) {
+            factType = ClassHelper.make(Class.forName('profiletransport.Facts', false, source.classLoader))
+        }
+        def fact = new AnnotationNode(factType)
+        fact.addMember('version', new ConstantExpression(1))
+        fact.addMember('explicit', new ConstantExpression(choice != null))
+        fact.addMember('profile', new ConstantExpression(choice == null ? 'IDENTITY' : choice.getMember('value').value))
+        fact.runtimeRetention = true
+        builder.addAnnotation(fact)
+    }
+
+    private File compileJar(List<String> sources, List<File> dependencies = [], boolean profileProbe = false) {
         File directory = tempFolder.newFolder()
         File classes = new File(directory, 'classes')
         def configuration = new CompilerConfiguration(compilerConfiguration)
         configuration.targetDirectory = classes
+        if (profileProbe) {
+            configuration.addCompilationCustomizers(profileTransportProbe())
+        }
         new GroovyClassLoader(getClass().classLoader, configuration).withCloseable { compiler ->
             dependencies.each { compiler.addClasspath(it.path) }
             def unit = new CompilationUnit(configuration, null, compiler)

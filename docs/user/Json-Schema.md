@@ -52,6 +52,36 @@ unrelated files. It also removes earlier Builder-named files recorded in that ma
 untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
 previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
 
+## Type naming profiles
+
+Schema `@InputNaming(InputNaming.Profile.KEBAB_CASE)` selects the same resolved member names used by
+[`KlumStructuredInput`](Structured-Input.md#type-naming-profiles). No task option or runtime overload selects naming.
+`IDENTITY` preserves native spelling and explicitly binds descendants too. First-child introduction, compatible repetition,
+conflicting choices, exact Jackson literals/exclusions and independently resolved owned types follow that shared contract.
+
+(See: `KlumJsonSchemaGenerationTest#'resolve input naming from source-free hierarchy contracts with Groovy #generation'`.)
+
+```groovy
+@DSL class ServiceBase { String displayName }
+@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@DSL class Service extends ServiceBase { String serviceName }
+// Generated closed properties: display-name, service-name.
+// Standalone ServiceBase still has displayName.
+```
+
+Properties include eligible authored-operation tokens and self-contained construction-key tokens. Data and instance keys
+stay literal; owned definitions use the owned type's hierarchy rather than the owner's profile. Literal nonempty
+`@JsonProperty` names override the profile; existing `@JsonIgnore` exclusions remain effective. `InputName`/`InputIgnore`
+are not implemented by this slice. The generator and interpreter share one resolver over public Builder facts;
+Model bytes, mapper strategies and annotation proxies do not provide naming facts.
+
+Conflicting explicit profiles, nonidentity member collisions and malformed/incomplete required naming metadata fail before
+schema publication, preserving previous successful output. An ignored/colliding required key still makes member-key
+positions unrepresentable; keyless definitions retain existing behavior. No-profile/identity schemas retain their native
+output. Recompile selected hierarchies and align tool versions; complete legacy identity contracts remain usable where
+no selected profile requires missing ancestry facts. Numeric/projection completeness remains independently required.
+See [migration](Migration.md#type-naming-profiles).
+
 ## Deprecation
 
 Generation emits Draft 2020-12 `deprecated: true` by default for an admitted input member whose Schema source

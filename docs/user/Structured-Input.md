@@ -57,6 +57,61 @@ Compile Schemas successfully with the current KlumAST compiler and distribute th
 Missing or inconsistent generated structured-input metadata reports recompile/package guidance. An in-memory-only
 Schema without packaged generated metadata cannot use this route.
 
+## Type naming profiles
+
+Select `@InputNaming` on a Schema type to use the same exact member tokens in structured input and generated
+[JSON Schema](Json-Schema.md#type-naming-profiles). Its required value is `InputNaming.Profile.IDENTITY` or
+`InputNaming.Profile.KEBAB_CASE`; there is no default value or caller/plugin selector.
+
+(See: `InputNamingProfileTest#'choose kebab member names while keeping owned values and data keys independent'`.)
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.InputNaming
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+
+@DSL class ServiceBase { String displayName }
+@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@DSL class Service extends ServiceBase {
+    String serviceName
+    Map<String, String> labels
+    Details serviceDetails
+}
+@DSL class Details { String nativeName }
+
+def service = KlumStructuredInput.readRoot(Service,
+        ['display-name': 'Catalog', 'service-name': 'catalog', labels: ['Team/Blue': 'ops'],
+         'service-details': [nativeName: 'own policy']], 'service.yaml')
+assert service.serviceName == 'catalog'
+assert service.labels == ['Team/Blue': 'ops']
+```
+
+An unannotated child inherits an explicit ancestor profile. Repeating that profile is permitted; a different explicit
+choice rejects the subtype with both declaring types/artifacts in the diagnostic. An explicit `IDENTITY` also binds
+descendants. When every ancestor is unannotated, the first annotated child chooses its complete effective grammar,
+including inherited members; the standalone ancestor keeps native spelling. Owned values resolve their own type hierarchy,
+as `Details` does above. Ownership does not cascade the owner's profile.
+
+`KEBAB_CASE` inserts a hyphen before ASCII uppercase after ASCII lowercase/digits, and at an uppercase acronym-to-word
+boundary, then lowercases only ASCII A-Z. It uses original adjacency: `URLValue` becomes `url-value`, `XML2Parser`
+becomes `xml2-parser`, and `version2URL` becomes `version2-url`. Existing separators and non-ASCII characters remain
+unchanged: `already_snake` stays as written and `ÅngströmURL` becomes `Ångström-url`. There is no Unicode normalization,
+transliteration or locale rule. Malformed UTF-16 in transformed native metadata is rejected.
+
+Profiles affect only eligible field, construction-key and admitted authored-operation member names. They add no native-name
+alias. Data Map keys, keyed-instance keys, fixed identity values, enum values and operation Map-payload keys remain literal.
+Existing supported nonempty `@JsonProperty` names remain exact; they are never transformed. Empty `@JsonProperty` falls
+back to native/profile spelling. `@JsonIgnore`/`@JsonIgnore(true)` excludes before naming, and `@JsonIgnore(false)` is neutral.
+Naming does not admit otherwise unsupported declarations. Klum `InputName` and `InputIgnore` are deferred to a later slice;
+use the existing Jackson literal bridge when an exact override/exclusion is needed now.
+
+Under a nonidentity profile, collisions between eligible member tokens reject the type with both source declarations,
+before input executes. A literal rename can remove the collision. Construction-key collisions still depend on whether the
+input position supplies the key as a member; outer instance keys and explicit root keys retain authority. No-profile and
+identity collision behavior is unchanged. Match compiler/runtime/plugin versions and recompile a selected type hierarchy;
+missing, unknown or malformed required naming facts fail with recompile/package guidance. See
+[migration](Migration.md#type-naming-profiles).
+
 ## Construction keys
 
 Self-contained documents use `readRoot(Class<T>, Object parsed, String sourceName)`. A keyed root requires the actual

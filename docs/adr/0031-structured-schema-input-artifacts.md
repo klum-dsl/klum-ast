@@ -748,3 +748,36 @@ from remaining recommendations and binary probes. Both interpreter and generator
 ambient mapper/classpath/reflection-order policy or user-code execution. Existing independent Jackson import, #972/#974
 projection behavior and deferred examples remain intact. No production annotation, runtime/plugin option, metadata
 format, implementation assignment, issue/milestone change or release commitment is accepted here.
+
+
+## D7 type-profile implementation slice — #959
+
+Date: 2026-10-26. The implementation assignment following merged #975 deliberately splits the accepted authoring family:
+**deliver `InputNaming` profiles now; defer `InputName`/`InputIgnore` to the subsequent literal-vocabulary slice.** This
+supersedes only the earlier combined delivery scope, not its accepted later vocabulary or bridge-conflict decisions.
+
+`com.blackbuild.klum.ast.InputNaming` has runtime retention, TYPE target and a required nested `Profile` value with exactly
+`IDENTITY` and `KEBAB_CASE`. Both consumers resolve one effective profile from public Builder type facts before name
+collision pruning. Explicit ancestor choices bind descendants, equal repetition coalesces, conflicting choices reject with
+source/artifact provenance, and a first profiled descendant governs inherited/local native candidates. The standalone
+unannotated ancestor retains identity behavior. Owned types resolve independently. The bounded ASCII algorithm above
+applies only to native eligible member tokens, never literals or data/instance keys; malformed UTF-16 native metadata fails.
+
+Independent `GeneratedInput.Schema.namingVersion=1`, explicitly emitted `namingExplicit` and inert `namingProfile` String
+retain declared choice versus absence. Provenance is the exact declaring public Builder/type/artifact, without copied
+Model names or additional source descriptors. Unknown/incomplete facts fail; selected profiles require complete naming
+facts throughout their hierarchy. Complete legacy identity contracts remain usable where no selected profile requires
+missing ancestry provenance. Constraint/decimal/projection versions keep their independent requirements. No umbrella
+version, Model bytes, WIRE companion, annotation proxies, user-code execution or registry is added.
+
+Nonidentity member collisions reject before input execution/schema publication with both declarations. Construction-key
+collisions retain position-specific handling. Complete no-profile and identity behavior remains unchanged, including
+existing parent collision pruning. Native candidates remain available under a first child profile so identity collisions
+can be reconsidered without resurrecting structurally excluded sources. The existing Jackson-only literal bridge is
+preserved exactly: ignore true/absent value, then nonempty literal `JsonProperty`, then profile/native fallback; false ignore
+is neutral and empty rename falls back. No broader Jackson strategy or managed-import profile adapter is implemented.
+
+See [probe/implementation evidence](../implementation/issue-959-d7-input-naming-profiles.md),
+[structured-input contract](../user/Structured-Input.md#type-naming-profiles) and
+[JSON Schema contract](../user/Json-Schema.md#type-naming-profiles). Package/root/relationship selectors, examples transport,
+constraint policy changes and the remaining D7 work stay deferred. Related: #959; issue state and release placement stay unchanged.

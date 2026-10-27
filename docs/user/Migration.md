@@ -9,6 +9,24 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Type naming profiles
+
+`@InputNaming` now selects type-owned `IDENTITY` or bounded ASCII `KEBAB_CASE` for structured input and JSON Schema.
+Its profile is required. An explicit choice binds descendants, including explicit identity; an unannotated hierarchy
+leaves room for its first profiled child. Profiles cover inherited eligible members without changing standalone ancestors.
+Owned types resolve their own hierarchy. Existing Jackson literal overrides/exclusions stay supported; Klum
+`InputName`/`InputIgnore` remain deferred. Managed Jackson import keeps its independent naming behavior.
+
+Use matching compiler/runtime/plugin versions and recompile/package every declaring type in a selected Schema hierarchy.
+New Builder markers explicitly retain profile/absence and an independent `namingVersion=1`. Missing ancestry facts,
+unknown/incomplete facts and nonidentity collisions fail before input execution or schema replacement; no Model-byte
+fallback fills gaps. Complete legacy identity contracts preserve native spelling and output when no selected profile
+requires their missing provenance. Existing numeric/decimal/field-policy completeness checks remain independent.
+
+Inputs selecting kebab-case must use the new exact member names; native spelling is not an alias. Data/instance keys and
+literal overrides stay unchanged. Construction-key position rules remain in force. See
+[structured input](Structured-Input.md#type-naming-profiles) and [generated schemas](Json-Schema.md#type-naming-profiles).
+
 ### Advisory JSON Schema deprecation
 
 Generated schemas now include `deprecated: true` for admitted Schema-deprecated members by default, independently of
