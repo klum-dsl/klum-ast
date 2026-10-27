@@ -116,7 +116,9 @@ class InputExamplesTest extends AbstractDSLSpec {
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         def visitor = super.visitAnnotation(annotation, visible)
-                        if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
+                        if (!annotation.endsWith('GeneratedInput$Field;')) {
+                            return visitor
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                             @Override AnnotationVisitor visitArray(String member) {
                                 member == 'examples' ? null : super.visitArray(member)

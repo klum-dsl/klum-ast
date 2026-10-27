@@ -61,6 +61,7 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
 final class CompiledBuilderSchema {
     static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
     private static final String VALUE = "value";
+    private static final String EXAMPLES = "examples";
     private static final String IDENTITY_NAME = "IDENTITY";
     private static final String KEBAB_NAME = "KEBAB_CASE";
     private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
@@ -978,10 +979,6 @@ final class CompiledBuilderSchema {
                 + (field.names.rename.isEmpty() ? field.field : field.names.rename) + "'");
     }
 
-    private static IllegalArgumentException invalidExamples(Literals literal, int index, String reason) {
-        return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ": " + reason);
-    }
-
     private static boolean decimalRule(String annotation) {
         return Set.of("jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax").contains(annotation);
     }
@@ -1045,7 +1042,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visit(String member, Object value) {
-            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, 1, "expected String array");
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> {
                     if (member.equals(SOURCE_DEPRECATED)) {
@@ -1106,7 +1103,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public void visitEnum(String member, String descriptor, String value) {
-            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, 1, "unexpected enum");
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected enum");
             if (annotation.equals(FIELD) && member.equals("constraintProjection")
                     && descriptor.equals("Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;")) {
                 if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
@@ -1116,27 +1113,34 @@ final class CompiledBuilderSchema {
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected enum input fact " + member);
         }
 
+        private IllegalArgumentException invalidExamples(int index, String reason) {
+            return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ": " + reason);
+        }
+
+        private AnnotationVisitor examplesArray() {
+            boolean operation = annotation.equals(OPERATION_FACT);
+            if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(1, "duplicate array");
+            List<String> examples = new ArrayList<>();
+            if (operation) literal.operationExamples = examples;
+            else literal.examples = examples;
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                private int characters;
+                @Override public void visit(String ignored, Object value) {
+                    if (!(value instanceof String text)) throw invalidExamples(examples.size() + 1, "requires String array elements");
+                    // Classfile constants can be reused thousands of times; bound expanded documentary output.
+                    characters += text.length();
+                    if (characters > 1_048_576) throw invalidExamples(examples.size() + 1, "excessive documentary text");
+                    examples.add(text);
+                }
+                @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(examples.size() + 1, "unexpected nested array"); }
+                @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(examples.size() + 1, "unexpected annotation"); }
+                @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(examples.size() + 1, "unexpected enum"); }
+            };
+        }
+
         @Override public AnnotationVisitor visitArray(String member) {
-            if (member.equals("examples") && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation)) {
-                boolean operation = annotation.equals(OPERATION_FACT);
-                if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(literal, 1, "duplicate array");
-                List<String> examples = new ArrayList<>();
-                if (operation) literal.operationExamples = examples;
-                else literal.examples = examples;
-                return new AnnotationVisitor(Opcodes.ASM9) {
-                    private int characters;
-                    @Override public void visit(String ignored, Object value) {
-                        if (!(value instanceof String text)) throw invalidExamples(literal, examples.size() + 1, "requires String array elements");
-                        // Classfile constants can be reused thousands of times; bound expanded documentary output.
-                        characters += text.length();
-                        if (characters > 1_048_576) throw invalidExamples(literal, examples.size() + 1, "excessive documentary text");
-                        examples.add(text);
-                    }
-                    @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(literal, examples.size() + 1, "unexpected nested array"); }
-                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(literal, examples.size() + 1, "unexpected annotation"); }
-                    @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(literal, examples.size() + 1, "unexpected enum"); }
-                };
-            }
+            if (member.equals(EXAMPLES) && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation))
+                return examplesArray();
             if (annotation.equals(FIELD) && member.equals("constraints")) {
                 if (literal.constraints != null) throw invalid("Duplicate constraint facts");
                 literal.constraints = new ArrayList<>();
@@ -1161,7 +1165,7 @@ final class CompiledBuilderSchema {
         }
 
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
-            if (member.equals("examples") && annotation.startsWith(PREFIX)) throw invalidExamples(literal, 1, "unexpected annotation");
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected annotation");
             if (annotation.startsWith(PREFIX)) throw invalid("Unexpected nested input fact " + member);
             return null;
         }

@@ -150,7 +150,9 @@ tasks.register('exampleControl', JavaExec) {
 
         then:
         failed.output.toLowerCase().contains('examples')
-        if (kind == 'excessive') assert failed.output.contains('excessive documentary text')
+        if (kind == 'excessive') {
+            assert failed.output.contains('excessive documentary text')
+        }
         failed.output.contains('example.' + target)
         failed.output.contains('artifact')
         !failed.output.contains('SECRET_PAYLOAD')
@@ -620,7 +622,9 @@ tasks.register('rejectedNamingControl', JavaExec) {
             }
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 def downstream = super.visitMethod(access, name, descriptor, signature, exceptions)
-                if (kind.startsWith('examples-')) return exampleMutation(downstream, kind.substring('examples-'.length()))
+                if (kind.startsWith('examples-')) {
+                    return exampleMutation(downstream, kind.substring('examples-'.length()))
+                }
                 namingNativeMutation(downstream, kind)
             }
         }, 0)
@@ -631,13 +635,24 @@ tasks.register('rejectedNamingControl', JavaExec) {
         new MethodVisitor(Opcodes.ASM9, downstream) {
             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                 def visitor = super.visitAnnotation(descriptor, visible)
-                if (!descriptor.endsWith('GeneratedInput$Field;') && !descriptor.endsWith('GeneratedInput$Operation;') && !descriptor.endsWith('GeneratedInput$Key;')) return visitor
+                if (!descriptor.endsWith('GeneratedInput$Field;') && !descriptor.endsWith('GeneratedInput$Operation;') && !descriptor.endsWith('GeneratedInput$Key;')) {
+                    return visitor
+                }
                 new AnnotationVisitor(Opcodes.ASM9, visitor) {
                     @Override AnnotationVisitor visitArray(String member) {
-                        if (member != 'examples') return super.visitArray(member)
-                        if (kind == 'missing') return null
-                        if (kind == 'scalar') { super.visit(member, 'SECRET_PAYLOAD'); return null }
-                        if (kind == 'duplicate') super.visitArray(member).visitEnd()
+                        if (member != 'examples') {
+                            return super.visitArray(member)
+                        }
+                        if (kind == 'missing') {
+                            return null
+                        }
+                        if (kind == 'scalar') {
+                            super.visit(member, 'SECRET_PAYLOAD')
+                            return null
+                        }
+                        if (kind == 'duplicate') {
+                            super.visitArray(member).visitEnd()
+                        }
                         def array = super.visitArray(member)
                         switch (kind) {
                             case 'element': array.visit(null, 1); break
