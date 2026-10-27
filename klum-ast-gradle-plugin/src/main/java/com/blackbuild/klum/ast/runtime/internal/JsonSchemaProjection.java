@@ -250,7 +250,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (key == null)
             throw unrepresentable(schema, position, source, "missing construction key metadata; recompile and package the Schema");
         if (key.ignored())
-            throw unrepresentable(schema, position, source, "required construction key " + key.source() + " excluded by @JsonIgnore(true)");
+            throw unrepresentable(schema, position, source, "required construction key " + key.source() + " " + key.ignoreReason());
         List<String> collisions = schema.keyCollisions();
         if (!collisions.isEmpty())
             throw unrepresentable(schema, position, source, "required construction key external-name collision for '"

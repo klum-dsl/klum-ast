@@ -49,6 +49,8 @@ public final class GeneratedInput {
         boolean namingExplicit() default false;
         /** Compiler-folded finite profile name; always emitted with namingVersion=1. */
         String namingProfile() default "IDENTITY";
+        /** Completeness of folded literal names/exclusions, independent of type profiles. */
+        int literalVersion() default 0;
         boolean groupRedefined() default false;
         String key() default "";
         boolean keyInput() default false;
@@ -62,6 +64,8 @@ public final class GeneratedInput {
     @Target(ElementType.METHOD)
     public @interface Key {
         String value();
+        /** Compiler-folded origin; explicitly emitted with literalVersion=1. */
+        String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;
         /** Explicit source declaration fact; absence in older bytecode means unknown, never inferred. */
@@ -73,6 +77,8 @@ public final class GeneratedInput {
     @Target(ElementType.METHOD)
     public @interface Field {
         String value();
+        /** Compiler-folded origin; explicitly emitted with literalVersion=1. */
+        String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;
         /** Explicit source declaration fact; absence in older bytecode means unknown, never inferred. */
@@ -92,6 +98,9 @@ public final class GeneratedInput {
     @Target(ElementType.METHOD)
     public @interface Operation {
         boolean sourceDeprecated();
+        String nameOrigin() default "";
+        String rename() default "";
+        boolean ignored() default false;
     }
 
     /** Internal compiler facts; not an annotation for Schema authors or a projection SPI. */

@@ -126,6 +126,146 @@ class KlumJsonSchemaGenerationTest extends Specification {
 
     @Issue('959')
     @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#literal-names-and-exclusion')
+    def 'project literal names and exclusions from source-free artifacts with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, true)
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema.rootTypes.set(['example.LiteralService', 'example.LiteralKeyFallback', 'example.LiteralKeyOwner'])
+tasks.register('literalControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.LiteralControl'
+}
+''')
+
+        when:
+        run('generateKlumJsonSchema')
+        def schema = document('example.LiteralService')
+        def service = schema.get('$defs').get('example.LiteralService_DSL$Builder')
+        def worker = schema.get('$defs').get('example.LiteralWorker_DSL$Builder::keyless')
+        def details = schema.get('$defs').get('example.LiteralDetails_DSL$Builder')
+
+        then:
+        service.properties.keySet() == ['Service/ID', 'URL/exact', 'url-value', 'displayName', 'display-name',
+                                        'set/Endpoint', 'details', 'workers', 'labels', 'items/exact'] as Set
+        service.required == ['Service/ID']
+        service.additionalProperties == false
+        service.properties.'items/exact'.type == 'array'
+        details.properties.keySet() == ['child/Name'] as Set
+        worker.properties.keySet() == ['Image/Name'] as Set
+        document('example.LiteralKeyFallback').get('$defs').get('example.LiteralKeyFallback_DSL$Builder').required == ['Fallback/ID']
+        document('example.LiteralKeyOwner').get('$defs').get('example.LiteralKeyCollision_DSL$Builder::keyless').properties.keySet() == ['Key/exact'] as Set
+        !trap.exists()
+        ['api', 'schema', 'owned'].every { !new File(producer, "$it/src").exists() && !new File(producer, "$it/build/classes").exists() }
+        !new File(consumer, 'src').exists()
+
+        when:
+        def interpreted = run('literalControl')
+
+        then:
+        interpreted.output.contains('Literal interpreter/schema agreement passed')
+        trap.exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'literal collision and excluded key fail before execution and preserve schema output: #target'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.LiteralService'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.LiteralService').bytes
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.$target'])
+tasks.register('rejectedLiteralControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.LiteralControl'
+    args('$target')
+}
+""")
+
+        when:
+        def rejected = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = run('rejectedLiteralControl')
+
+        then:
+        rejected.output.contains(diagnostic)
+        rejected.output.contains(first)
+        rejected.output.contains(second)
+        interpreted.output.contains('Rejected literal contract before execution')
+        output('example.LiteralService').bytes == previous
+        !trap.exists()
+
+        where:
+        generation | target                 | diagnostic                                 | first                            | second
+        '3'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
+        '4'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
+        '5'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
+        '3'        | 'LiteralWorker'        | '@InputIgnore'                              | 'example.LiteralWorker#workerId' | 'required construction key'
+        '3'        | 'LiteralKeyCollision'  | 'construction key external-name collision'  | 'example.LiteralKeyCollision#key' | 'example.LiteralKeyCollision#value'
+    }
+
+    @Issue('959')
+    def 'incomplete literal facts fail both source-free consumers atomically: #generation #kind'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, true)
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema.rootTypes.set(['example.LiteralService'])
+tasks.register('rejectedLiteralControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.LiteralControl'
+    args('LiteralService')
+}
+''')
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.LiteralService').bytes
+        rewriteNamingFacts('LiteralService', kind)
+
+        when:
+        def rejected = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = run('rejectedLiteralControl')
+
+        then:
+        rejected.output.contains('literal metadata')
+        rejected.output.contains('example.LiteralService')
+        rejected.output.contains('recompile and package')
+        interpreted.output.contains('Rejected literal contract before execution')
+        output('example.LiteralService').bytes == previous
+        !trap.exists()
+
+        where:
+        generation | kind
+        '3'        | 'literal-version'
+        '4'        | 'literal-future'
+        '5'        | 'literal-origin'
+        '3'        | 'literal-rename'
+        '3'        | 'literal-ignore'
+    }
+
+    @Issue('959')
+    def 'complete legacy literal facts preserve generated output: Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Deployment', 'example.NamingIdentity', 'example.NamingService'])\n")
+        run('generateKlumJsonSchema')
+        def previous = ['example.Deployment', 'example.NamingIdentity', 'example.NamingService'].collectEntries { [(it): output(it).bytes] }
+        ['api', 'schema', 'owned'].each { rewriteNamingFacts('*', 'literal-legacy', it) }
+
+        when:
+        run('generateKlumJsonSchema')
+
+        then:
+        previous.every { name, bytes -> output(name).bytes == bytes }
+        !trap.exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#type-naming-profiles')
     def 'resolve input naming from source-free hierarchy contracts with Groovy #generation'() {
         given:
@@ -332,6 +472,14 @@ tasks.register('rejectedNamingControl', JavaExec) {
     }
 
     private static AnnotationVisitor namingSchemaMutation(AnnotationVisitor downstream, String kind) {
+        if (kind.startsWith('literal-')) {
+            return new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                @Override void visit(String member, Object value) {
+                    if (kind in ['literal-version', 'literal-legacy'] && member == 'literalVersion') { return }
+                    super.visit(member, kind == 'literal-future' && member == 'literalVersion' ? 2 : value)
+                }
+            }
+        }
         new AnnotationVisitor(Opcodes.ASM9, downstream) {
             @Override void visit(String member, Object value) {
                 if (kind == 'legacy' && member.startsWith('naming')) {
@@ -361,6 +509,24 @@ tasks.register('rejectedNamingControl', JavaExec) {
     }
 
     private static MethodVisitor namingNativeMutation(MethodVisitor downstream, String kind) {
+        if (kind.startsWith('literal-')) {
+            return new MethodVisitor(Opcodes.ASM9, downstream) {
+                @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                    def visitor = super.visitAnnotation(descriptor, visible)
+                    if (!['Field', 'Key', 'Operation'].any { descriptor.endsWith('GeneratedInput$' + it + ';') }) { return visitor }
+                    new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                        @Override void visit(String member, Object value) {
+                            if (kind == 'literal-legacy' && (member == 'nameOrigin'
+                                    || descriptor.endsWith('GeneratedInput$Operation;') && member in ['rename', 'ignored'])) { return }
+                            if (kind == 'literal-origin' && member == 'nameOrigin'
+                                    || kind == 'literal-rename' && member == 'rename'
+                                    || kind == 'literal-ignore' && member == 'ignored') { return }
+                            super.visit(member, value)
+                        }
+                    }
+                }
+            }
+        }
         new MethodVisitor(Opcodes.ASM9, downstream) {
             @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                 def visitor = super.visitAnnotation(annotation, visible)
@@ -1224,7 +1390,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -1585,6 +1751,7 @@ import java.lang.annotation.*
         if (projection) projectionSources()
         if (naming) {
             namingSources()
+            if (literals) { literalSources() }
             new File(producer, 'build.gradle').append("\nproject(':schema') { dependencies { implementation project(':owned') } }\n")
             runner(producer, ':owned:jar').build()
             publish('owned', 'owned/build/libs/owned.jar', '')
@@ -1618,6 +1785,91 @@ tasks.register('initializeControl', JavaExec) {
     mainClass = 'example.InitializationControl'
 }
 """
+    }
+
+    private void literalSources() {
+        writeSource('owned/src/main/groovy/example/LiteralDetails.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+@InputNaming(InputNaming.Profile.IDENTITY) @DSL class LiteralDetails { @InputName('child/Name') String nativeName }
+@DSL class LiteralWorker {
+    @Key @InputName('Worker/ID') @InputIgnore String workerId
+    @InputName('Image/Name') String imageName
+}
+''')
+        writeSource('api/src/main/groovy/example/LiteralBase.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+import com.fasterxml.jackson.annotation.*
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.blackbuild.klum.ast.runtime.KlumModelException
+@DSL class LiteralBase {
+    @Key @InputName('Service/ID') @JsonProperty('Service/ID') String serviceId
+    @InputName('URL/exact') @JsonProperty('URL/exact') String URLValue
+    String urlValue
+    @InputName('displayName') String literalName
+    String displayName
+    @InputIgnore @JsonIgnore(false) String hiddenValue
+    @InputName('ignored-renamed') @JsonIgnore String alsoHidden
+    @Builder.Method @JsonProperty('set/Endpoint') @InputName('set/Endpoint')
+    void configureEndpoint(String value) { urlValue = value }
+    @Builder.Method @InputIgnore void hiddenOperation(String value) { throw new AssertionError('ignored operation') }
+}
+@DSL class LiteralKeyFallback { @Key @InputName('Fallback/ID') String key }
+class LiteralControl {
+    static void main(String[] args) {
+        if (args.length) {
+            def type = Class.forName('example.' + args[0], false, LiteralControl.classLoader)
+            try {
+                KlumStructuredInput.readRoot(type, [:], 'rejected.yaml')
+                throw new AssertionError('invalid contract accepted')
+            } catch (KlumModelException expected) {
+                assert expected.message.contains('collision') || expected.message.contains('literal metadata') || expected.message.contains('@InputIgnore')
+                println 'Rejected literal contract before execution'
+            }
+            return
+        }
+        def type = Class.forName('example.LiteralService', false, LiteralControl.classLoader)
+        def result = KlumStructuredInput.readRoot(type, ['Service/ID': 'Service/Blue', 'URL/exact': 'URL', 'url-value': 'native',
+                displayName: 'literal', 'display-name': 'base', 'set/Endpoint': 'operated', details: ['child/Name': 'child'],
+                workers: ['Worker/Blue': ['Image/Name': 'worker:1']], labels: ['Team/Blue': 'ops'], 'items/exact': ['one', 'two']], 'literal.yaml')
+        assert result.serviceId == 'Service/Blue' && result.URLValue == 'URL' && result.urlValue == 'operated'
+        assert result.literalName == 'literal' && result.displayName == 'base'
+        assert result.details.nativeName == 'child'
+        assert result.workers['Worker/Blue'].workerId == 'Worker/Blue' && result.workers['Worker/Blue'].imageName == 'worker:1'
+        assert result.labels == ['Team/Blue': 'ops'] && result.items == ['one', 'two']
+        assert result.hiddenValue == null && result.alsoHidden == null
+        ['serviceId', 'service-id', 'URLValue', 'urlValue', 'hidden-value', 'ignored-renamed', 'hidden-operation'].each { name ->
+            try {
+                KlumStructuredInput.readRoot(type, 'external', [(name): 'forbidden'], 'alias.yaml')
+                throw new AssertionError('forbidden alias accepted: ' + name)
+            } catch (KlumModelException expected) { assert expected.message.contains(name) }
+        }
+        def fallback = KlumStructuredInput.readRoot(LiteralKeyFallback, ['Fallback/ID': 'fallback'], 'key.yaml')
+        assert fallback.key == 'fallback'
+        println 'Literal interpreter/schema agreement passed'
+    }
+}
+''')
+        writeSource('schema/src/main/groovy/example/LiteralService.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class LiteralService extends LiteralBase {
+    static { new File('${trap.absolutePath}').text = 'initialized' }
+    LiteralDetails details
+    Map<String, LiteralWorker> workers
+    Map<String, String> labels
+    @InputName('items/exact') List<String> items
+}
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class LiteralCollision {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('collision executed') }
+    @InputName('same') String URLValue
+    @InputName('same') String urlValue
+    @InputIgnore @InputName('same') String hidden
+}
+@DSL class LiteralKeyCollision { @Key @InputName('Key/exact') String key; @InputName('Key/exact') String value }
+@DSL class LiteralKeyOwner { Map<String, LiteralKeyCollision> services }
+""")
     }
 
     private void namingSources() {

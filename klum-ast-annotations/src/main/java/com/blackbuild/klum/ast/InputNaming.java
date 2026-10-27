@@ -32,7 +32,7 @@ import java.lang.annotation.Target;
 /**
  * Selects member spelling for structured input and generated JSON Schema.
  * Explicit choices bind Schema descendants; owned values resolve their own type hierarchy.
- * Literal Jackson names and exclusions retain precedence. Data and instance keys are unchanged.
+ * Explicit literal names and exclusions retain precedence. Data and instance keys are unchanged.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

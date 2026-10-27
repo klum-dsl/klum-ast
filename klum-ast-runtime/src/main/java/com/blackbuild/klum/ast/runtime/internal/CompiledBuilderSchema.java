@@ -64,6 +64,9 @@ final class CompiledBuilderSchema {
     private static final String KEBAB_NAME = "KEBAB_CASE";
     private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
     private static final String BUILDER_SUFFIX = "_DSL$Builder";
+    private static final String INPUT_IGNORED = "excluded by @InputIgnore";
+    private static final String INPUT_IGNORE_ORIGIN = "INPUT_IGNORE";
+    private static final Set<String> NAME_ORIGINS = Set.of(IDENTITY_NAME, "JSON_PROPERTY", "INPUT_NAME", "IGNORE", INPUT_IGNORE_ORIGIN);
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String NUMERIC = "NUMERIC";
     private static final String CONTAINER = "CONTAINER";
@@ -80,8 +83,10 @@ final class CompiledBuilderSchema {
     private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
     private static final String IGNORE = "Lcom/fasterxml/jackson/annotation/JsonIgnore;";
+    private static final String INPUT_NAME = "Lcom/blackbuild/klum/ast/InputName;";
+    private static final String INPUT_IGNORE = "Lcom/blackbuild/klum/ast/InputIgnore;";
     private static final String PROPERTY = "Lcom/fasterxml/jackson/annotation/JsonProperty;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC, IGNORE, PROPERTY);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC, IGNORE, PROPERTY, INPUT_NAME, INPUT_IGNORE);
     private static final Set<String> NUMBERS = Set.of("byte", "short", "int", "long", "float", "double",
             "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float",
             "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
@@ -144,7 +149,8 @@ final class CompiledBuilderSchema {
         }
     }
 
-    record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract, Boolean sourceDeprecated) { }
+    record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract,
+               Boolean sourceDeprecated, String ignoreReason) { }
     record Rejection(String source, String reason, String collisionName) {
         Rejection(String source, String reason) { this(source, reason, null); }
     }
@@ -368,7 +374,7 @@ final class CompiledBuilderSchema {
         }
         if (!literal.rename.isEmpty() || key.ignored()) return key;
         return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
-                key.source(), key.contract(), key.sourceDeprecated());
+                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason());
     }
 
     private static Key inheritKey(Key key, Key inherited) {
@@ -407,7 +413,7 @@ final class CompiledBuilderSchema {
 
     private static Key constructionKey(BuilderContext context, Literals literal) {
         return new Key(literal.key, literal.rename.isEmpty() ? literal.key : literal.rename,
-                literal.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated);
+                literal.ignored, context.model().getName() + "#" + literal.key, context.builder(), literal.sourceDeprecated, ignoreReason(literal));
     }
 
     private static void collectDeclarations(BuilderContext context,
@@ -453,7 +459,7 @@ final class CompiledBuilderSchema {
         String name = literal.rename.isEmpty() ? field : literal.rename;
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed ? field : null,
-                literal.rename.isEmpty() ? IDENTITY_NAME : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.sourceDeprecated));
+                nameOrigin(literal), literal.doc, literal.schemaKey, literal.sourceDeprecated));
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -508,18 +514,18 @@ final class CompiledBuilderSchema {
     private static void operation(Method method, Literals literal, Class<?> model, List<Entry> entries, List<Rejection> rejections) {
         String source = model.getName() + "#" + sourceDescriptor(method);
         String reason = null;
-        if (literal.ignored) reason = IGNORED_INPUT;
+        if (literal.ignored) reason = ignoreReason(literal);
         else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
         if (reason == null && payload == null) reason = unsupportedReason(method.getGenericParameterTypes()[0]);
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = literal.rename.isEmpty() ? method.getName() : literal.rename;
         entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
-                null, null, null, literal.rename.isEmpty() ? IDENTITY_NAME : "JSON_PROPERTY", literal.doc, literal.schemaKey, literal.operationDeprecated));
+                null, null, null, nameOrigin(literal), literal.doc, literal.schemaKey, literal.operationDeprecated));
     }
 
     private static String fieldReason(Type type, Literals literal) {
-        if (literal.ignored) return IGNORED_INPUT;
+        if (literal.ignored) return ignoreReason(literal);
         if (!literal.exclusion.isEmpty()) {
             String detail = literal.detail;
             if (literal.exclusion.equals("POPULATION")) {
@@ -612,6 +618,7 @@ final class CompiledBuilderSchema {
     private static String exclusionReason(String category, String detail) {
         return switch (category) {
             case "IGNORE" -> IGNORED_INPUT;
+            case INPUT_IGNORE_ORIGIN -> INPUT_IGNORED;
             case "NO_PAYLOAD" -> "has no admitted scalar, enum, List, or Map payload";
             case "OWNERSHIP" -> "requires one concrete owned relationship";
             case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
@@ -692,6 +699,13 @@ final class CompiledBuilderSchema {
         String role;
         String doc;
         String rename = "";
+        String nameOrigin;
+        boolean renamePresent;
+        boolean ignoredPresent;
+        boolean operationFact;
+        String legacyRename = "";
+        boolean legacyIgnored;
+        boolean canonicalAnnotation;
         boolean fixed;
         Boolean schemaKey;
         // Null is older/absent advisory provenance; never infer it from a generated method annotation.
@@ -712,6 +726,7 @@ final class CompiledBuilderSchema {
         int decimalVersion;
         int projectionVersion;
         int namingVersion;
+        int literalVersion;
         Boolean namingExplicit;
         String namingProfile;
         Boolean groupRedefined;
@@ -734,7 +749,51 @@ final class CompiledBuilderSchema {
                     ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
             if (owner.getName().endsWith(BUILDER_SUFFIX) && !result.schema)
                 throw invalid("Missing generated input enrichment on " + owner.getName());
+            validateLiterals(owner, result);
             return result;
+        }
+    }
+
+    private static String nameOrigin(Literals literal) {
+        return literal.nameOrigin == null ? (literal.rename.isEmpty() ? IDENTITY_NAME : "JSON_PROPERTY") : literal.nameOrigin;
+    }
+
+    private static String ignoreReason(Literals literal) {
+        return INPUT_IGNORE_ORIGIN.equals(literal.nameOrigin) ? INPUT_IGNORED : IGNORED_INPUT;
+    }
+
+    private static void validateLiterals(Class<?> owner, Metadata metadata) {
+        if (!metadata.schema) return;
+        if (metadata.literalVersion != 0 && metadata.literalVersion != 1) {
+            throw invalid("Unsupported literal metadata version " + metadata.literalVersion + " on " + namingOrigin(owner));
+        }
+        if (metadata.keyMember != null) validateLiteral(owner, metadata, metadata.keyMember, "construction key");
+        metadata.methods.forEach((signature, literal) -> validateLiteral(owner, metadata, literal, signature));
+    }
+
+    private static void validateLiteral(Class<?> owner, Metadata metadata, Literals literal, String signature) {
+        boolean declared = literal.field != null || literal.key != null || literal.operationFact;
+        String source = namingOrigin(owner) + "#" + signature;
+        if (metadata.literalVersion == 0) {
+            if (literal.nameOrigin != null || literal.canonicalAnnotation) {
+                throw invalid("Missing literal metadata version on " + source);
+            }
+            if (literal.operation) {
+                literal.rename = literal.legacyRename;
+                literal.ignored = literal.legacyIgnored;
+            }
+            return;
+        }
+        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
+        if (!declared) return;
+        if (!NAME_ORIGINS.contains(literal.nameOrigin == null ? "" : literal.nameOrigin)
+                || !literal.renamePresent || !literal.ignoredPresent) {
+            throw invalid("Invalid or incomplete literal metadata on " + source);
+        }
+        boolean excluded = Set.of("IGNORE", INPUT_IGNORE_ORIGIN).contains(literal.nameOrigin);
+        boolean renamed = Set.of("JSON_PROPERTY", "INPUT_NAME").contains(literal.nameOrigin);
+        if (literal.ignored != excluded || renamed == literal.rename.isEmpty()) {
+            throw invalid("Inconsistent literal metadata on " + source);
         }
     }
 
@@ -800,6 +859,7 @@ final class CompiledBuilderSchema {
         @Override public void visit(String member, Object value) {
             if (!seen.add(member)) throw invalid("Duplicate schema member " + member);
             switch (member) {
+                case "literalVersion" -> result.literalVersion = integer(member, value);
                 case "namingVersion" -> result.namingVersion = integer(member, value);
                 case "namingExplicit" -> result.namingExplicit = flag(member, value);
                 case "namingProfile" -> result.namingProfile = text(member, value);
@@ -900,9 +960,11 @@ final class CompiledBuilderSchema {
             if (!PROTOCOL.contains(annotation)) return null;
             if (annotation.startsWith(PREFIX) && !visible) throw invalid("Generated input annotation requires runtime retention");
             if (!seen.add(annotation)) throw invalid("Duplicate contract annotation " + annotation);
+            if (annotation.equals(INPUT_NAME) || annotation.equals(INPUT_IGNORE)) literal.canonicalAnnotation = true;
             if (annotation.equals(OPERATION)) literal.operation = true;
             if (annotation.equals(QUERY)) literal.query = true;
-            if (annotation.equals(IGNORE)) literal.ignored = true;
+            if (annotation.equals(IGNORE)) literal.legacyIgnored = true;
+            if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
             return new MethodAnnotationVisitor(annotation, literal);
         }
     }
@@ -977,8 +1039,8 @@ final class CompiledBuilderSchema {
         @Override public void visit(String member, Object value) {
             switch (annotation) {
                 case OPERATION_FACT -> {
-                    if (!member.equals(SOURCE_DEPRECATED)) throw invalid("Unknown operation fact " + member);
-                    literal.operationDeprecated = (Boolean) value;
+                    if (member.equals(SOURCE_DEPRECATED)) literal.operationDeprecated = (Boolean) value;
+                    else if (!nameFact(member, value)) throw invalid("Unknown operation fact " + member);
                 }
                 case KEY_ANNOTATION -> keyFact(member, value);
                 case FIELD -> fieldFact(member, value);
@@ -990,25 +1052,21 @@ final class CompiledBuilderSchema {
         private void keyFact(String member, Object value) {
             switch (member) {
                 case VALUE -> literal.key = (String) value;
-                case "rename" -> literal.rename = (String) value;
-                case "ignored" -> literal.ignored = (Boolean) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
-                default -> throw invalid("Unknown construction key fact " + member);
+                default -> { if (!nameFact(member, value)) throw invalid("Unknown construction key fact " + member); }
             }
         }
 
         private void fieldFact(String member, Object value) {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
-                case "rename" -> literal.rename = (String) value;
-                case "ignored" -> literal.ignored = (Boolean) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
                 case "constraints" -> throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                 case "fixedKey" -> literal.fixed = (Boolean) value;
                 case "schemaKey" -> literal.schemaKey = (Boolean) value;
                 case "exclusion" -> literal.exclusion = (String) value;
                 case "detail" -> literal.detail = (String) value;
-                default -> throw invalid("Unknown field fact " + member);
+                default -> { if (!nameFact(member, value)) throw invalid("Unknown field fact " + member); }
             }
         }
 
@@ -1020,12 +1078,27 @@ final class CompiledBuilderSchema {
             }
         }
 
+        private boolean nameFact(String member, Object value) {
+            if (member.equals("nameOrigin") && literal.nameOrigin != null
+                    || member.equals("rename") && literal.renamePresent
+                    || member.equals("ignored") && literal.ignoredPresent) {
+                throw invalid("Duplicate literal metadata member " + member);
+            }
+            switch (member) {
+                case "nameOrigin" -> literal.nameOrigin = (String) value;
+                case "rename" -> { literal.rename = (String) value; literal.renamePresent = true; }
+                case "ignored" -> { literal.ignored = (Boolean) value; literal.ignoredPresent = true; }
+                default -> { return false; }
+            }
+            return true;
+        }
+
         private void namingFact(String member, Object value) {
             if (!member.equals(VALUE)) return;
             switch (annotation) {
                 case DOC -> literal.doc = (String) value;
-                case PROPERTY -> literal.rename = (String) value;
-                case IGNORE -> literal.ignored = (Boolean) value;
+                case PROPERTY -> literal.legacyRename = (String) value;
+                case IGNORE -> literal.legacyIgnored = (Boolean) value;
                 default -> { /* Marker annotations have no naming facts. */ }
             }
         }

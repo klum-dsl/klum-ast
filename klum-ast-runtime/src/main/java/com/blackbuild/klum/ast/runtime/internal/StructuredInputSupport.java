@@ -305,7 +305,7 @@ public final class StructuredInputSupport {
             if (key.ignored())
                 throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
                         "available required construction key declared by " + key.source()
-                                + "; excluded by @JsonIgnore(true); use an explicit rootKey for a root, or Schema derivation/keyed Map for a child", input, null);
+                                + "; " + key.ignoreReason() + "; use an explicit rootKey for a root, or Schema derivation/keyed Map for a child", input, null);
             List<String> collisions = plan.keyCollisions();
             if (!collisions.isEmpty())
                 throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
