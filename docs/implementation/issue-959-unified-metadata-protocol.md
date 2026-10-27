@@ -74,8 +74,8 @@ through root qualification so Nebula's outer/nested fixture versions cannot dive
 Five independently optional version values become one exact-version gate. Raw-annotation reconstruction state and its
 fallback dispatch are deleted, as are nullable validated provenance/authority states and the unknown-authority consumer
 branches. The added checks enforce required current facts in the existing reader; there is no registry, adapter, version
-negotiation, migration layer or replacement protocol abstraction. The shared reader shrinks from **1,165 to 1,140 lines** with **154 to 149 explicit `if` statements**. Across reader,
-interpreter and projector, **27 lines and 8 explicit `if` statements** are removed. The two compiler enrichment classes
+negotiation, migration layer or replacement protocol abstraction. The shared reader shrinks from **1,165 to 1,143 lines** with **154 to 149 explicit `if` statements**. Across reader,
+interpreter and projector, **24 lines and 8 explicit `if` statements** are removed. The two compiler enrichment classes
 also lose four marker emissions; the generated annotation loses four version fields. This simple lexical count is not a
 formal complexity score: the material reduction is one supported protocol state, zero legacy acceptance routes and fewer
 consumer states, while strict current-fact validation is centralized rather than negotiated.
@@ -114,3 +114,18 @@ Both independent reviewers confirm **zero remaining actionable findings** at
 incompatible owned contracts both reject, root initialization stays untouched, and the initializer positive control
 passes (`/tmp/977-owned-review-after.groovy`). The full-root run follows this review with tracked files frozen.
 All **205 relative Markdown targets/anchors** and balanced fences across the changed documentation pass; diff checks pass.
+
+
+### First full-root result and bounded diagnostic correction
+
+The single frozen local root `check` at `baadfbf205fcbd2858fe1a09d865bec517cbea78` finished in **21m07s**.
+Groovy 3/4/5 compiler lanes and G4/G5 adapters passed, but the schema plugin suite had **96/98 passing cases**:
+`MalformedDecimal` and `Unrepresentable` failed the retained exact `example.<Schema>#amount` diagnostic assertion.
+The shared reader now rejects these invalid decimal values before projection; its diagnostic identified Schema,
+Builder, artifact, field and external name separately, losing the contiguous source identity previously supplied by
+the projector. The original failed XML/log were retained outside the repository; this result is not reported as green.
+
+The correction restores `Schema#field` context at the shared required-field validation seam and reuses the existing
+Schema-name extraction for diagnostics. No validation or assertion is relaxed. Focused decimal/required-fact and core
+G3/G4/G5 confirmation follow; final full PR CI/Sonar will qualify the resulting published revision. There is no repeated
+local full-suite run for this diagnostic-only correction.

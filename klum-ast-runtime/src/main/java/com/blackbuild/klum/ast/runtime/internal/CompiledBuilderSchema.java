@@ -129,7 +129,7 @@ final class CompiledBuilderSchema {
         }
     }
 
-    private static void validateDecimalFacts(Literals literal) {
+    private static void validateDecimalFacts(Literals literal, String source) {
         for (ConstraintRule rule : literal.constraints) {
             if (!decimalRule(rule.annotation())) continue;
             if (rule.decimalValue() == null || rule.inclusive() == null) {
@@ -138,7 +138,7 @@ final class CompiledBuilderSchema {
             try {
                 new BigDecimal(rule.decimalValue());
             } catch (NumberFormatException failure) {
-                throw invalidConstraint(literal, "Invalid decimal bound '" + rule.decimalValue() + "'");
+                throw invalidConstraint(literal, "Invalid decimal bound '" + rule.decimalValue() + "' on " + source);
             }
         }
     }
@@ -337,11 +337,14 @@ final class CompiledBuilderSchema {
         }
     }
 
-    private static String namingOrigin(Class<?> builder) {
-        String model = builder.getName().endsWith(BUILDER_SUFFIX)
+    private static String schemaName(Class<?> builder) {
+        return builder.getName().endsWith(BUILDER_SUFFIX)
                 ? builder.getName().substring(0, builder.getName().length() - BUILDER_SUFFIX.length()) : builder.getName();
+    }
+
+    private static String namingOrigin(Class<?> builder) {
         URL origin = builder.getProtectionDomain().getCodeSource() == null ? null : builder.getProtectionDomain().getCodeSource().getLocation();
-        return model + " [public Builder " + builder.getName() + ", artifact " + origin + "]";
+        return schemaName(builder) + " [public Builder " + builder.getName() + ", artifact " + origin + "]";
     }
 
     private static Entry profileEntry(Entry entry) {
@@ -772,7 +775,7 @@ final class CompiledBuilderSchema {
             validateNameFacts(literal.operationNames, source);
             if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
-        if (literal.field != null) validateFieldFacts(literal, source);
+        if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
     }
 
     private static void validateFieldFacts(Literals literal, String source) {
@@ -783,7 +786,7 @@ final class CompiledBuilderSchema {
         } catch (IllegalArgumentException failure) {
             throw invalidConstraint(literal, "Unknown constraint projection policy " + literal.constraintProjection + " on " + source);
         }
-        validateDecimalFacts(literal);
+        validateDecimalFacts(literal, source);
     }
 
     private static void validateNameFacts(NameFacts names, String source) {
