@@ -47,7 +47,7 @@ coverage, release/documentation checks and the full source-mirror suite pass. No
 
 Independent Python `jsonschema 4.23.0` qualification passes **111 metaschema/input controls**, using the full Draft 2020-12
 metaschema plus annotation/validation vocabularies and 17 positive/negative inputs per producer, compared with examples
-removed. G3/G4/G5 bytes are identical. Exact long-decimal and arbitrarily large-exponent lexemes and JSON null survive;
+removed. All **43 retained schema documents** pass the full Draft 2020-12 metaschema. G3/G4/G5 example-schema bytes are identical. Exact long-decimal and arbitrarily large-exponent lexemes and JSON null survive;
 the independent decoder validates JSON syntax without imposing numeric-range limits on advisory values. A disposable
 JDK17/G3 static-imported Java constant control also passes with a throwing supplying-class initializer. Replay scripts and
 logs are local `/private/tmp/d7-validate.py`, `/private/tmp/d7-constant-controls.py`, `/private/tmp/d7-final-check.log`,
@@ -67,9 +67,11 @@ The final evidence-only documentation commit does not change the qualified produ
 ## Delivery and tracker impact
 
 Tracker relationship: **Related: #959**. Parent issue remains open; enhancement/needs-triage labels, no milestone, curation
-and release placement are unchanged. No Pattern changes or merge are assigned. Draft publication is authorized by the
-implementation assignment after local qualification. Authoritative PR CI/Sonar remains a separate gate and must not be
-inferred from local results. Review/merge and Hive delivery/archive reconciliation remain pending.
+and release placement are unchanged. No Pattern changes or merge are assigned. [Draft PR #978](https://github.com/klum-dsl/klum-ast/pull/978) is published against master on
+`codex/959-d7-examples`. Delivery-channel audit: **Git SSH authorized; GitHub CLI authorized**. The draft was verified open,
+mergeable and attached to the worker chat. Authoritative PR CI/Sonar remains a separate gate and must not be inferred from
+local results; final current-head results are reported in the PR/tracker handoff. Review/merge and Hive delivery/archive
+reconciliation remain pending. The worker does not mark itself archive-safe.
 
 ## Historical probe (superseded proposal)
 
