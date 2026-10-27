@@ -54,9 +54,6 @@ final class StructuredInputConstraintMetadata {
     private StructuredInputConstraintMetadata() { }
 
     static void enrichSchema(ClassNode model, AnnotationNode schema) {
-        schema.setMember("constraintVersion", new ConstantExpression(1));
-        schema.setMember("decimalVersion", new ConstantExpression(1));
-        schema.setMember("projectionVersion", new ConstantExpression(1));
         schema.setMember("groupRedefined", new ConstantExpression(groupRedefined(model, new HashSet<>())));
     }
 

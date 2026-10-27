@@ -57,6 +57,19 @@ Compile Schemas successfully with the current KlumAST compiler and distribute th
 Missing or inconsistent generated structured-input metadata reports recompile/package guidance. An in-memory-only
 Schema without packaged generated metadata cannot use this route.
 
+## Metadata protocol
+
+Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.
+Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
+
+The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
+require exactly that version and complete naming, exclusion, constraint, projection, source-provenance and key facts.
+The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
+future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
+completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked
+before execution, including omitted owned inputs; the per-read cache terminates recursive contracts. Excluded targets
+and unrelated classpath classes are not scanned.
+
 ## Type naming profiles
 
 Select `@InputNaming` on a Schema type to use the same exact member tokens in structured input and generated
@@ -102,8 +115,8 @@ Profiles affect only eligible field, construction-key and admitted authored-oper
 alias. Data Map keys, keyed-instance keys, fixed identity values, enum values and operation Map-payload keys remain literal.
 Existing supported nonempty `@JsonProperty` names remain exact; they are never transformed. Empty `@JsonProperty` falls
 back to native/profile spelling. `@JsonIgnore`/`@JsonIgnore(true)` excludes before naming, and `@JsonIgnore(false)` is neutral.
-Naming does not admit otherwise unsupported declarations. Klum `InputName` and `InputIgnore` are deferred to a later slice;
-use the existing Jackson literal bridge when an exact override/exclusion is needed now.
+Naming does not admit otherwise unsupported declarations. Use [literal names and exclusion](#literal-names-and-exclusion)
+for Klum-owned overrides without a Jackson dependency.
 
 Under a nonidentity profile, collisions between eligible member tokens reject the type with both source declarations,
 before input executes. A literal rename can remove the collision. Construction-key collisions still depend on whether the
@@ -111,6 +124,53 @@ input position supplies the key as a member; outer instance keys and explicit ro
 identity collision behavior is unchanged. Match compiler/runtime/plugin versions and recompile a selected type hierarchy;
 missing, unknown or malformed required naming facts fail with recompile/package guidance. See
 [migration](Migration.md#type-naming-profiles).
+
+## Literal names and exclusion
+
+Use `com.blackbuild.klum.ast.InputName` and `InputIgnore` on source fields (including construction keys) or already
+admitted authored `@Builder.Method` operations. `@InputName` requires a nonempty exact String; spaces, punctuation and
+case are preserved. `@InputIgnore` is a marker. Both have runtime retention and FIELD/METHOD targets.
+
+(See: `InputLiteralTest#'choose exact external names and exclude internal configuration'`.)
+
+```groovy
+import com.blackbuild.klum.ast.*
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+
+@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@DSL class Service {
+    @InputName('service.id') String serviceName
+    @InputIgnore String internalNote
+    @Builder.Method @InputName('configure/URL')
+    void configureEndpoint(String value) { serviceName = value }
+    @Builder.Method @InputIgnore
+    void configureInternally(String value) { internalNote = value }
+}
+
+def service = KlumStructuredInput.readRoot(Service, ['service.id': 'catalog'], 'service.yaml')
+assert service.serviceName == 'catalog'
+// Ordinary Groovy configuration keeps its authored names, including ignored members.
+def configured = Service.Create.With { serviceName 'groovy'; configureInternally 'private' }
+assert configured.internalNote == 'private'
+```
+
+Eligibility and exclusion come first, then a compatible explicit literal, then the inherited/local type profile, then
+identity. Naming cannot admit unsupported types or operations. A literal adds no native/profile alias and can separate
+entries that would collide under a nonidentity profile. Unresolved nonidentity collisions fail with both source declarations;
+existing identity collision rejection is unchanged.
+
+Supported `@JsonProperty`/`@JsonIgnore` bridging remains available. Equal nonempty `InputName` and `JsonProperty` names
+coalesce; different names fail deterministically with both annotation origins, **even when excluded**. Empty `JsonProperty`
+falls back; empty `InputName` is invalid. `InputIgnore` or true/absent-value `JsonIgnore` excludes; false `JsonIgnore` cannot
+undo exclusion. Exclusion and a compatible rename can coexist.
+
+Both consumers use compiler-folded facts on the exact public Builder declarations. Exclusion removes members from
+structured input and generated JSON Schema; it changes no ordinary Groovy configuration, runtime validation, defaults or
+completed Model API. An ignored required construction key still needs an external root key, Schema derivation or keyed-Map
+identity; it cannot make an otherwise self-contained key position valid. Data/instance keys remain literal.
+Managed Jackson import remains independently configured: use the Jackson literal too when both routes need one spelling.
+There is no automatic mapper adapter. Recompile Schemas and align compiler/runtime/plugin versions; see
+[migration](Migration.md#literal-names-and-exclusion).
 
 ## Construction keys
 
@@ -185,8 +245,8 @@ services:
 
 Thus `services.worker` must omit `service-id`: `worker` already supplies its identity. A nested direct child inside
 that body still requires its own key when its relationship has no provider. Key names are resolved on the actual
-compiler-selected declaration, including binary inherited keys: `@JsonIgnore(true)` excludes it, a nonempty literal
-`@JsonProperty` renames it, and otherwise its native name applies. Empty `@JsonProperty` falls back to the native name;
+compiler-selected declaration, including binary inherited keys: `@InputIgnore` or `@JsonIgnore(true)` excludes it, a compatible nonempty literal
+`@InputName` or `@JsonProperty` renames it, then the effective type profile/native name applies. Empty `@JsonProperty` uses that fallback;
 `@JsonIgnore(false)` leaves the declaration admitted under its otherwise resolved name. Renames add no alias.
 An ordinary unannotated `key` property remains normal input; an independently
 admitted operation with an old/native spelling keeps its meaning.
@@ -286,8 +346,8 @@ collections, polymorphic selection and CollectionFactory scopes are outside v1. 
 arbitrary caller objects, helper/query/lifecycle names and zero/multi-payload authored operations reject.
 An ordinary unannotated property named `key` is normal domain input; actual `@Key` members follow the position-specific rules above.
 
-Names follow compiler decisions: `@JsonIgnore(true)` excludes an entry; a nonempty literal `@JsonProperty` renames it;
-otherwise the declared identity name applies. Inherited or overload-name collisions reject without choosing a winner.
+Names follow compiler decisions: exclusion, compatible `@InputName`/`@JsonProperty` literal, effective type profile,
+then identity. See [literal names and exclusion](#literal-names-and-exclusion). Inherited or overload-name collisions reject without choosing a winner.
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
 

@@ -255,6 +255,129 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         'KEBAB_CASE' | '@InputNaming(InputNaming.Profile.KEBAB_CASE)' | ['valid-name': 'validName', 'display-name': 'displayName', displayName: 'literalName']
     }
 
+    @Issue('959')
+    def 'literal folding preserves source-free fields keys and operations across artifacts'() {
+        given:
+        def api = compileJar(['''
+            package literalbinary
+            import com.blackbuild.klum.ast.*
+            import com.fasterxml.jackson.annotation.*
+            @DSL class Base {
+                static { System.setProperty('wire.schema.executed', 'initialized'); throw new AssertionError('literal trap') }
+                @Key @InputName('Service/ID') @JsonProperty('Service/ID') String serviceId
+                String displayName
+                @InputName('displayName') String literalName
+                @InputIgnore @JsonIgnore(false) String hiddenValue
+                @Builder.Method @JsonProperty('Configure/URL') @InputName('Configure/URL')
+                void configureEndpoint(String value) { throw new AssertionError('operation executed') }
+                @Builder.Method @InputIgnore void hiddenOperation(String value) { throw new AssertionError('ignored executed') }
+                @InputName('unsupported') Thread unsupported
+            }
+        '''] + NAMING)
+        def child = compileJar(['''
+            package literalbinary
+            import com.blackbuild.klum.ast.*
+            @InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class Child extends Base {
+                @InputName('URL/exact') String URLValue
+                String urlValue
+            }
+        '''], [api])
+        def binaries = isolated([api, child])
+
+        when:
+        def plan = CompiledBuilderSchemaReplacementProbe.read(Class.forName('literalbinary.Child_DSL$Builder', false, binaries),
+                Class.forName('literalbinary.Child_DSL$Factory', false, binaries))
+
+        then:
+        plan.entries*.externalName as Set == ['display-name', 'displayName', 'URL/exact', 'url-value', 'Configure/URL'] as Set
+        plan.entries.find { it.externalName == 'displayName' }.source == 'literalbinary.Base#literalName'
+        plan.entries.find { it.externalName == 'Configure/URL' }.source.startsWith('literalbinary.Base#configureEndpoint(')
+        plan.rejections.find { it.source == 'literalbinary.Base#hiddenValue' }.reason == 'excluded by @InputIgnore'
+        plan.rejections.find { it.source.contains('#hiddenOperation(') }.reason == 'excluded by @InputIgnore'
+        plan.rejections.any { it.source == 'literalbinary.Base#unsupported' }
+        rawNamingFacts(api, 'literalbinary/Base_DSL$Builder.class').key.rename == 'Service/ID'
+        !binaries.resolved.any { it.startsWith('com.blackbuild.klum.ast.compiler.') || it.startsWith('com.fasterxml.jackson.') }
+        System.getProperty('wire.schema.executed') == null
+
+        when: 'the independent positive control proves the static trap is live'
+        Class.forName('literalbinary.Base', true, binaries)
+
+        then:
+        thrown(AssertionError)
+        System.getProperty('wire.schema.executed') == 'initialized'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    @Issue('959')
+    def 'source-free shared accessors preserve distinct field and authored-operation facts'() {
+        given:
+        def jar = compileJar([trapped('''
+            package literalaccessor
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                String value
+                @Builder.Method @InputIgnore String getValue() { value }
+                @InputName('field/exact') String key
+                @Builder.Method @InputName('setter/exact') void setKey(String value) { key = value }
+            }
+        ''')])
+        def binaries = isolated([jar])
+
+        when:
+        def plan = CompiledBuilderSchemaReplacementProbe.read(Class.forName('literalaccessor.Configuration_DSL$Builder', false, binaries),
+                Class.forName('literalaccessor.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        plan.entries*.externalName as Set == ['value', 'field/exact', 'setter/exact'] as Set
+        plan.rejections.find { it.source.contains('#getValue(') }.reason == 'excluded by @InputIgnore'
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+    }
+
+    @Issue('959')
+    def 'protocol and required literal facts reject corruption before initialization: #damage'() {
+        given:
+        def jar = compileJar([trapped('''
+            package damagedliteral
+            import com.blackbuild.klum.ast.*
+            @DSL class Configuration {
+                @Key @InputName('Key/ID') String serviceId
+                @InputName('exact/URL') String value
+                @Builder.Method @InputIgnore void configure(String value) {}
+            }
+        ''')])
+        def damaged = rewriteContract(jar, 'damagedliteral/Configuration_DSL$Builder.class', damage)
+        def binaries = isolated([damaged])
+
+        when:
+        CompiledBuilderSchemaReplacementProbe.read(Class.forName('damagedliteral.Configuration_DSL$Builder', false, binaries),
+                Class.forName('damagedliteral.Configuration_DSL$Factory', false, binaries))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('metadata')
+        failure.message.contains('damagedliteral.Configuration')
+        failure.message.contains('recompile and package')
+        System.getProperty('wire.schema.executed') == null
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('wire.schema.executed')
+
+        where:
+        damage << ['literal schema missing', 'literal schema older', 'literal schema future', 'literal schema type',
+                   'literal Field origin', 'literal Field unknown', 'literal Field rename', 'literal Field ignored',
+                   'literal Key origin', 'literal Key rename', 'literal Key ignored',
+                   'literal Operation origin', 'literal Operation rename', 'literal Operation ignored',
+                   'literal Operation inconsistent']
+    }
+
     private static Map rawNamingFacts(File jar, String contract) {
         def result = [fields: [:], selections: [], key: [:], operations: [:], profile: [:]]
         new JarFile(jar).withCloseable { archive ->
@@ -673,8 +796,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         where:
         damage                | diagnostic
-        'naming version'      | 'naming metadata version 0'
-        'naming future'       | 'naming metadata version 2'
+        'naming absent'       | 'naming metadata'
         'naming explicit'     | 'naming metadata'
         'naming profile'      | 'naming metadata'
         'naming unknown'      | 'naming metadata'
@@ -688,7 +810,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     }
 
     @Issue('959')
-    def 'selected profile requires declared absence provenance from a legacy binary ancestor'() {
+    def 'every inherited contract requires the protocol without a selected profile'() {
         given:
         def api = compileJar([trapped('''
             package legacyprofile
@@ -699,10 +821,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             package legacyprofile
             import com.blackbuild.klum.ast.DSL
             import com.blackbuild.klum.ast.InputNaming
-            @InputNaming(InputNaming.Profile.KEBAB_CASE)
             @DSL class Configuration extends Base { String localName }
         ''')], [api])
-        def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'naming legacy')
+        def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'literal schema missing')
         def binaries = isolated([legacy, child])
 
         when:
@@ -711,7 +832,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('Selected input profile requires naming metadata version 1')
+        failure.message.contains('Unsupported structured-input metadata protocol version 0')
         failure.message.contains('legacyprofile.Base')
         failure.message.contains('artifact')
         System.getProperty('wire.schema.executed') == null
@@ -843,24 +964,23 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                     rewriteEntry(input, archive, entry, contract, damage)
                 }
                 if (damage in ['diamond', 'profile diamond']) {
-                    appendDiamond(archive, damage == 'profile diamond')
+                    appendDiamond(archive)
                 }
             }
         }
         output
     }
 
-    private static void appendDiamond(JarOutputStream archive, boolean profiled) {
+    private static void appendDiamond(JarOutputStream archive) {
         def writer = new ClassWriter(0)
         writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
                 'admission/Diamond_DSL$Builder', '<SELF:Ladmission/Base;>Ljava/lang/Object;Ladmission/Base_DSL$Builder<TSELF;>;',
                 'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
         def schema = writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true)
-        if (profiled) {
-            schema.visit('namingVersion', 1)
-            schema.visit('namingExplicit', false)
-            schema.visit('namingProfile', 'IDENTITY')
-        }
+        schema.visit('version', 1)
+        schema.visit('groupRedefined', false)
+        schema.visit('namingExplicit', false)
+        schema.visit('namingProfile', 'IDENTITY')
         schema.visitEnd()
         writer.visitEnd()
         archive.putNextEntry(new JarEntry('admission/Diamond_DSL$Builder.class'))
@@ -894,15 +1014,15 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                     return null
                 }
                 def downstream = super.visitAnnotation(descriptor, visible)
+                if (damage.startsWith('literal ') && descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return damageLiteral(downstream, descriptor, damage)
+                }
                 if (!damage.startsWith('naming ') || !descriptor.endsWith('GeneratedInput$Schema;')) {
                     return downstream
                 }
                 new AnnotationVisitor(Opcodes.ASM9, downstream) {
                     @Override void visit(String member, Object value) {
-                        if (damage == 'naming legacy' && member.startsWith('naming')) {
-                            return
-                        }
-                        if (damage == 'naming version' && member == 'namingVersion') {
+                        if (damage == 'naming absent' && member.startsWith('naming')) {
                             return
                         }
                         if (damage == 'naming explicit' && member == 'namingExplicit') {
@@ -910,9 +1030,6 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                         }
                         if (damage == 'naming profile' && member == 'namingProfile') {
                             return
-                        }
-                        if (damage == 'naming future' && member == 'namingVersion') {
-                            value = 2
                         }
                         if (damage == 'naming unknown' && member == 'namingProfile') {
                             value = 'FUTURE'
@@ -956,7 +1073,38 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         }
     }
 
+    private static AnnotationVisitor damageLiteral(AnnotationVisitor visitor, String annotation, String damage) {
+        def parts = damage.split(' ')
+        boolean selected = annotation.endsWith('GeneratedInput$' + (parts[1] == 'schema' ? 'Schema' : parts[1]) + ';')
+        if (!selected) {
+            return visitor
+        }
+        new AnnotationVisitor(Opcodes.ASM9, visitor) {
+            @Override void visit(String member, Object value) {
+                if (member == 'version') {
+                    if (parts[2] == 'missing') { return }
+                    value = [older: 0, future: 2, type: '1'][parts[2]]
+                }
+                if (member == 'nameOrigin' && parts[2] == 'origin'
+                        || member == 'rename' && parts[2] == 'rename'
+                        || member == 'ignored' && parts[2] == 'ignored') {
+                    return
+                }
+                if (member == 'nameOrigin' && parts[2] == 'unknown') {
+                    value = 'FUTURE'
+                }
+                if (member == 'ignored' && parts[2] == 'inconsistent') {
+                    value = false
+                }
+                super.visit(member, value)
+            }
+        }
+    }
+
     private static AnnotationVisitor damageAnnotation(AnnotationVisitor visitor, String annotation, String damage) {
+        if (damage.startsWith('literal ')) {
+            return damageLiteral(visitor, annotation, damage)
+        }
         new AnnotationVisitor(Opcodes.ASM9, visitor) {
             @Override void visit(String member, Object value) {
                 if (damage in ['naming native', 'naming low', 'naming broken pair'] && value == 'value'

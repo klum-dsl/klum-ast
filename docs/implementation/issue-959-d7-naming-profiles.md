@@ -1,5 +1,9 @@
 # #959 D7: explicit structured-input naming profiles
 
+Metadata compatibility proposals in this historical brief are superseded by the
+[unified protocol](issue-959-unified-metadata-protocol.md): both consumers require current complete public Builder facts;
+older or incomplete contracts must be recompiled. Advisory output does not make its provenance metadata optional.
+
 Date: 2026-10-25. Status: **deliberately deferred; no D7 implementation contract accepted**.
 Characterization base: `9504604fb` (merged P2 characterization). Documentation reconciliation base: `ac9e73bdc`. Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
 Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md), with

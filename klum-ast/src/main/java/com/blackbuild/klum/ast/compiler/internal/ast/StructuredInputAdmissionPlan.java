@@ -28,6 +28,8 @@ import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.InputNaming;
+import com.blackbuild.klum.ast.InputName;
+import com.blackbuild.klum.ast.InputIgnore;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
@@ -77,6 +79,7 @@ final class StructuredInputAdmissionPlan {
     private static final String JSON_IGNORE = "com.fasterxml.jackson.annotation.JsonIgnore";
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
     private static final String VALUE = "value";
+    private static final String INPUT_IGNORED = "excluded by @InputIgnore";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
     private static final String KEYED_OWNERSHIP_REASON = "requires Map<String, concrete keyed DSL Object> ownership";
@@ -146,6 +149,7 @@ final class StructuredInputAdmissionPlan {
         transformation.builderFields.keySet().stream().filter(field -> !excludedField(field))
                 .forEach(field -> enrichField(builder, field, entries, rejections, invisible));
         if (!invisible.getExpressions().isEmpty()) schema.setMember("exclusions", invisible);
+        schema.setMember("version", new ConstantExpression(1));
         enrichNaming(model, schema);
         StructuredInputConstraintMetadata.enrichSchema(model, schema);
         builder.addAnnotation(schema);
@@ -163,7 +167,6 @@ final class StructuredInputAdmissionPlan {
             }
             profile = property.getPropertyAsString();
         }
-        schema.setMember("namingVersion", new ConstantExpression(1));
         schema.setMember("namingExplicit", new ConstantExpression(naming != null));
         schema.setMember("namingProfile", new ConstantExpression(profile));
     }
@@ -178,8 +181,7 @@ final class StructuredInputAdmissionPlan {
         fact.setMember(VALUE, new ConstantExpression(key.getName()));
         enrichDeprecation(key, fact);
         Name name = externalName(key);
-        if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
-        else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
+        enrichName(name, fact);
         // Runtime-name overlaps such as `key` have no public getter; no writable key operation exists either.
         if (getter == null) schema.setMember("keyMember", new AnnotationConstantExpression(fact));
         else getter.addAnnotation(fact);
@@ -197,8 +199,7 @@ final class StructuredInputAdmissionPlan {
         fact.setMember(VALUE, new ConstantExpression(field.getName()));
         enrichDeprecation(field, fact);
         Name name = externalName(field);
-        if (name.ignored()) fact.setMember("ignored", ConstantExpression.TRUE);
-        else if (name.origin() == NameOrigin.JSON_PROPERTY) fact.setMember("rename", new ConstantExpression(name.value()));
+        enrichName(name, fact);
         Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
         if (entry != null && entry.fixedChildKey() != null) fact.setMember("fixedKey", ConstantExpression.TRUE);
         if (entry != null && entry.role() == Role.OWNED_OBJECT) {
@@ -266,7 +267,7 @@ final class StructuredInputAdmissionPlan {
     private static void restoreAuthoredFacts(DSLASTTransformation transformation) {
         // A generated projection can occupy an authored signature before annotation copying occurs.
         // Restore the original admission/naming annotations together; a marker alone can change rejection precedence.
-        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY);
+        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY, InputName.class.getName(), InputIgnore.class.getName());
         transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
@@ -276,6 +277,7 @@ final class StructuredInputAdmissionPlan {
                     // Read the authored implementation, never a generated/compatibility projection's annotations.
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
                     enrichDeprecation(method, operation);
+                    enrichName(externalName(method), operation);
                     api.addAnnotation(operation);
                     method.getAnnotations().stream().filter(annotation -> authoredFacts.contains(annotation.getClassNode().getName()))
                             .forEach(annotation -> {
@@ -287,6 +289,7 @@ final class StructuredInputAdmissionPlan {
 
     /** These sources have no public signature from which even type-based exclusions could be recovered. */
     private static String[] invisibleExclusion(String reason) {
+        if (reason.equals(INPUT_IGNORED)) return new String[]{"INPUT_IGNORE", ""};
         if (reason.equals(IGNORED_INPUT)) return new String[]{"IGNORE", ""};
         if (reason.equals("has no admitted scalar, enum, List, or Map payload")) return new String[]{"NO_PAYLOAD", ""};
         if (reason.equals(OWNERSHIP_REASON)) return new String[]{"OWNERSHIP", ""};
@@ -324,7 +327,7 @@ final class StructuredInputAdmissionPlan {
         if (excludedField(field)) return;
         Name name = externalName(field);
         if (name.ignored()) {
-            rejections.add(new Rejection(source(field), IGNORED_INPUT));
+            rejections.add(new Rejection(source(field), ignoreReason(name)));
             return;
         }
         ClassNode type = field.getType();
@@ -416,7 +419,7 @@ final class StructuredInputAdmissionPlan {
         String source = source(method);
         Name name = externalName(method);
         if (name.ignored()) {
-            rejections.add(new Rejection(source, IGNORED_INPUT));
+            rejections.add(new Rejection(source, ignoreReason(name)));
             return;
         }
         Parameter[] parameters = method.getParameters();
@@ -581,15 +584,48 @@ final class StructuredInputAdmissionPlan {
         return method.getName() + "(" + parameters + "):" + method.getReturnType().redirect().getName();
     }
 
+    private static void enrichName(Name name, AnnotationNode fact) {
+        fact.setMember("nameOrigin", new ConstantExpression(name.origin().name()));
+        fact.setMember("rename", new ConstantExpression(name.origin() == NameOrigin.IDENTITY || name.ignored() ? "" : name.value()));
+        fact.setMember("ignored", new ConstantExpression(name.ignored()));
+    }
+
+    private static String ignoreReason(Name name) {
+        return name.origin() == NameOrigin.INPUT_IGNORE ? INPUT_IGNORED : IGNORED_INPUT;
+    }
+
     private static Name externalName(AnnotatedNode node) {
-        AnnotationNode ignore = annotation(node, JSON_IGNORE);
-        if (ignore != null && (ignore.getMember(VALUE) == null || Boolean.TRUE.equals(literal(ignore.getMember(VALUE)))))
-            return new Name(null, NameOrigin.IGNORE, true);
+        String explicit = inputName(node);
         AnnotationNode property = annotation(node, JSON_PROPERTY);
-        Object value = property == null ? null : literal(property.getMember(VALUE));
-        if (value instanceof String spelling && !spelling.isEmpty())
-            return new Name(spelling, NameOrigin.JSON_PROPERTY, false);
+        Object jackson = property == null ? null : literal(property.getMember(VALUE));
+        requireCompatibleNames(node, explicit, jackson);
+        if (annotation(node, InputIgnore.class.getName()) != null) {
+            return new Name(null, NameOrigin.INPUT_IGNORE, true);
+        }
+        AnnotationNode ignore = annotation(node, JSON_IGNORE);
+        if (ignore != null && (ignore.getMember(VALUE) == null || Boolean.TRUE.equals(literal(ignore.getMember(VALUE))))) {
+            return new Name(null, NameOrigin.IGNORE, true);
+        }
+        if (explicit != null) return new Name(explicit, NameOrigin.INPUT_NAME, false);
+        if (jackson instanceof String spelling && !spelling.isEmpty()) return new Name(spelling, NameOrigin.JSON_PROPERTY, false);
         return new Name(node instanceof FieldNode field ? field.getName() : ((MethodNode) node).getName(), NameOrigin.IDENTITY, false);
+    }
+
+    private static String inputName(AnnotatedNode node) {
+        AnnotationNode input = annotation(node, InputName.class.getName());
+        if (input == null) return null;
+        Object value = literal(input.getMember(VALUE));
+        if (!(value instanceof String spelling) || spelling.isEmpty()) {
+            throw new IllegalArgumentException("@InputName requires a nonempty exact String on " + source(node));
+        }
+        return spelling;
+    }
+
+    private static void requireCompatibleNames(AnnotatedNode node, String explicit, Object jackson) {
+        if (explicit != null && jackson instanceof String spelling && !spelling.isEmpty() && !explicit.equals(jackson)) {
+            throw new IllegalArgumentException("Conflicting literal input names on " + source(node)
+                    + ": @InputName('" + explicit + "') and @JsonProperty('" + jackson + "')");
+        }
     }
 
     private static AnnotationNode annotation(AnnotatedNode node, String name) {
@@ -624,7 +660,7 @@ final class StructuredInputAdmissionPlan {
 
     enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
-    enum NameOrigin { IDENTITY, JSON_PROPERTY, IGNORE }
+    enum NameOrigin { IDENTITY, JSON_PROPERTY, INPUT_NAME, IGNORE, INPUT_IGNORE }
     record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }
     record PublicOperation(String declaringBuilder, String name, List<String> descriptorGroup) {
         PublicOperation {

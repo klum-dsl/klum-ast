@@ -125,6 +125,205 @@ class KlumJsonSchemaGenerationTest extends Specification {
     }
 
     @Issue('959')
+    def 'every participating artifact requires the current metadata protocol: #generation #target #kind'() {
+        given:
+        fixture(generation, false, false, false, false, false, true)
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema.rootTypes.set(['example.NamingService'])
+tasks.register('rejectedNamingControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.NamingControl'
+    args('NamingService', 'omit-owned')
+}
+''')
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.NamingService').bytes
+        rewriteNamingFacts(target, kind)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = run('rejectedNamingControl')
+
+        then:
+        failed.output.contains('metadata protocol version')
+        failed.output.contains('example.' + target)
+        failed.output.contains('artifact')
+        failed.output.contains('recompile and package')
+        interpreted.output.contains('Rejected naming contract before execution')
+        output('example.NamingService').bytes == previous
+        !trap.exists()
+
+        where:
+        generation | target          | kind
+        '3'        | 'NamingService' | 'protocol-missing'
+        '3'        | 'NamingService' | 'protocol-older'
+        '4'        | 'NamingService' | 'protocol-future'
+        '5'        | 'NamingService' | 'protocol-malformed'
+        '3'        | 'NamingBase'    | 'protocol-missing'
+        '4'        | 'NamingBase'    | 'protocol-older'
+        '5'        | 'NamingBase'    | 'protocol-future'
+        '3'        | 'NamingDetails' | 'protocol-missing'
+        '4'        | 'NamingWorker'  | 'protocol-older'
+        '5'        | 'NamingDetails' | 'protocol-future'
+    }
+
+    @Issue('959')
+    def 'correct protocol never permits missing or corrupt required facts: #root #kind'() {
+        given:
+        fixture('3', false, true, false, true, true, true)
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.$root'])
+tasks.register('rejectedNamingControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.NamingControl'
+    args('$root')
+}
+""")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.' + root).bytes
+        stripConstraintFacts(root, kind)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = run('rejectedNamingControl')
+
+        then:
+        failed.output.contains(diagnostic)
+        failed.output.contains('example.' + root)
+        failed.output.contains('recompile and package')
+        interpreted.output.contains('Rejected naming contract before execution')
+        output('example.' + root).bytes == previous
+        !trap.exists()
+
+        where:
+        root         | kind             | diagnostic
+        'Capacity'   | 'field'          | 'Missing constraint facts'
+        'Projection' | 'policy'         | 'Missing constraint projection policy'
+        'Projection' | 'unknown-policy' | 'Unknown constraint projection policy'
+        'Price'      | 'decimalValue'   | 'missing direct decimal facts'
+        'Price'      | 'bad-decimal'    | 'Invalid decimal bound'
+    }
+
+    @Issue('959')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#literal-names-and-exclusion')
+    def 'project literal names and exclusions from source-free artifacts with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, true)
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema.rootTypes.set(['example.LiteralService', 'example.LiteralKeyFallback', 'example.LiteralKeyOwner'])
+tasks.register('literalControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.LiteralControl'
+}
+''')
+
+        when:
+        run('generateKlumJsonSchema')
+        def schema = document('example.LiteralService')
+        def service = schema.get('$defs').get('example.LiteralService_DSL$Builder')
+        def worker = schema.get('$defs').get('example.LiteralWorker_DSL$Builder::keyless')
+        def details = schema.get('$defs').get('example.LiteralDetails_DSL$Builder')
+
+        then:
+        service.properties.keySet() == ['Service/ID', 'URL/exact', 'url-value', 'displayName', 'display-name',
+                                        'set/Endpoint', 'details', 'workers', 'labels', 'items/exact'] as Set
+        service.required == ['Service/ID']
+        service.additionalProperties == false
+        service.properties.'items/exact'.type == 'array'
+        details.properties.keySet() == ['child/Name'] as Set
+        worker.properties.keySet() == ['Image/Name'] as Set
+        document('example.LiteralKeyFallback').get('$defs').get('example.LiteralKeyFallback_DSL$Builder').required == ['Fallback/ID']
+        document('example.LiteralKeyOwner').get('$defs').get('example.LiteralKeyCollision_DSL$Builder::keyless').properties.keySet() == ['Key/exact'] as Set
+        !trap.exists()
+        ['api', 'schema', 'owned'].every { !new File(producer, "$it/src").exists() && !new File(producer, "$it/build/classes").exists() }
+        !new File(consumer, 'src').exists()
+
+        when:
+        def interpreted = run('literalControl')
+
+        then:
+        interpreted.output.contains('Literal interpreter/schema agreement passed')
+        trap.exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'literal collision and excluded key fail before execution and preserve schema output: #target'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.LiteralService'])\n")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.LiteralService').bytes
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.$target'])
+tasks.register('rejectedLiteralControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.LiteralControl'
+    args('$target')
+}
+""")
+
+        when:
+        def rejected = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = run('rejectedLiteralControl')
+
+        then:
+        rejected.output.contains(diagnostic)
+        rejected.output.contains(first)
+        rejected.output.contains(second)
+        interpreted.output.contains('Rejected literal contract before execution')
+        output('example.LiteralService').bytes == previous
+        !trap.exists()
+
+        where:
+        generation | target                 | diagnostic                                 | first                            | second
+        '3'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
+        '4'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
+        '5'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
+        '3'        | 'LiteralWorker'        | '@InputIgnore'                              | 'example.LiteralWorker#workerId' | 'required construction key'
+        '3'        | 'LiteralKeyCollision'  | 'construction key external-name collision'  | 'example.LiteralKeyCollision#key' | 'example.LiteralKeyCollision#value'
+    }
+
+    @Issue('959')
+    def 'incomplete literal facts fail both source-free consumers atomically: #generation #kind'() {
+        given:
+        fixture(generation, false, false, false, false, false, true, true)
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema.rootTypes.set(['example.LiteralService'])
+tasks.register('rejectedLiteralControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.LiteralControl'
+    args('LiteralService')
+}
+''')
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.LiteralService').bytes
+        rewriteNamingFacts('LiteralService', kind)
+
+        when:
+        def rejected = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def interpreted = run('rejectedLiteralControl')
+
+        then:
+        rejected.output.contains('literal metadata')
+        rejected.output.contains('example.LiteralService')
+        rejected.output.contains('recompile and package')
+        interpreted.output.contains('Rejected literal contract before execution')
+        output('example.LiteralService').bytes == previous
+        !trap.exists()
+
+        where:
+        generation | kind
+        '3'        | 'literal-origin'
+        '3'        | 'literal-rename'
+        '3'        | 'literal-ignore'
+    }
+
+
+    @Issue('959')
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#type-naming-profiles')
     def 'resolve input naming from source-free hierarchy contracts with Groovy #generation'() {
@@ -259,37 +458,15 @@ tasks.register('rejectedNamingControl', JavaExec) {
 
         where:
         generation | target          | kind
-        '3'        | 'NamingService' | 'version'
-        '4'        | 'NamingService' | 'future'
         '5'        | 'NamingService' | 'profile'
         '3'        | 'NamingService' | 'explicit'
         '3'        | 'NamingService' | 'unknown'
         '3'        | 'NamingService' | 'inconsistent'
         '3'        | 'NamingService' | 'native'
-        '3'        | 'NamingBase'    | 'legacy'
-        '4'        | 'NamingBase'    | 'legacy'
-        '5'        | 'NamingBase'    | 'legacy'
         '3'        | 'NamingBase'    | 'profile'
-        '3'        | 'NamingWorker'  | 'version'
         '3'        | 'NamingDetails' | 'profile'
     }
 
-    @Issue('959')
-    def 'complete legacy identity contracts preserve native schema output'() {
-        given:
-        fixture('3', false, false, false, false, false, true)
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Deployment', 'example.NamingIdentity'])\n")
-        run('generateKlumJsonSchema')
-        def previous = ['example.Deployment', 'example.NamingIdentity'].collectEntries { [(it): output(it).bytes] }
-        ['api', 'schema', 'owned'].each { rewriteNamingFacts('*', 'legacy', it) }
-
-        when:
-        run('generateKlumJsonSchema', '--refresh-dependencies')
-
-        then:
-        previous.every { root, bytes -> output(root).bytes == bytes }
-        !trap.exists()
-    }
 
     private void rewriteNamingFacts(String target, String kind, String artifact = null) {
         String module = artifact ?: (target in ['NamingBase', 'NamingIdentity', 'NamingKeyBase', 'NamingLiteralKey'] ? 'api' :
@@ -332,22 +509,25 @@ tasks.register('rejectedNamingControl', JavaExec) {
     }
 
     private static AnnotationVisitor namingSchemaMutation(AnnotationVisitor downstream, String kind) {
+        if (kind.startsWith('protocol-')) {
+            return new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                @Override void visit(String member, Object value) {
+                    if (member == 'version') {
+                        if (kind == 'protocol-missing') { return }
+                        value = ['protocol-older': 0, 'protocol-future': 2, 'protocol-malformed': '1'][kind]
+                    }
+                    super.visit(member, value)
+                }
+            }
+        }
+
         new AnnotationVisitor(Opcodes.ASM9, downstream) {
             @Override void visit(String member, Object value) {
-                if (kind == 'legacy' && member.startsWith('naming')) {
-                    return
-                }
-                if (kind == 'version' && member == 'namingVersion') {
-                    return
-                }
                 if (kind == 'profile' && member == 'namingProfile') {
                     return
                 }
                 if (kind == 'explicit' && member == 'namingExplicit') {
                     return
-                }
-                if (kind == 'future' && member == 'namingVersion') {
-                    value = 2
                 }
                 if (kind == 'unknown' && member == 'namingProfile') {
                     value = 'FUTURE'
@@ -361,6 +541,22 @@ tasks.register('rejectedNamingControl', JavaExec) {
     }
 
     private static MethodVisitor namingNativeMutation(MethodVisitor downstream, String kind) {
+        if (kind.startsWith('literal-')) {
+            return new MethodVisitor(Opcodes.ASM9, downstream) {
+                @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                    def visitor = super.visitAnnotation(descriptor, visible)
+                    if (!['Field', 'Key', 'Operation'].any { descriptor.endsWith('GeneratedInput$' + it + ';') }) { return visitor }
+                    new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                        @Override void visit(String member, Object value) {
+                            if (kind == 'literal-origin' && member == 'nameOrigin'
+                                    || kind == 'literal-rename' && member == 'rename'
+                                    || kind == 'literal-ignore' && member == 'ignored') { return }
+                            super.visit(member, value)
+                        }
+                    }
+                }
+            }
+        }
         new MethodVisitor(Opcodes.ASM9, downstream) {
             @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                 def visitor = super.visitAnnotation(annotation, visible)
@@ -449,12 +645,8 @@ tasks.register('rejectedNamingControl', JavaExec) {
 
         where:
         target            | kind                 | diagnostic
-        'Projection'      | 'projection-version' | 'projection metadata version 0'
-        'CapacityBase'    | 'projection-version' | 'projection metadata version 0'
-        'ProjectionChild' | 'projection-version' | 'projection metadata version 0'
-        'Projection'      | 'future-projection'  | 'projection metadata version 2'
-        'Projection'      | 'policy'             | 'missing constraint projection policy'
-        'ProjectionChild' | 'policy'             | 'missing constraint projection policy'
+        'Projection'      | 'policy'             | 'Missing constraint projection policy'
+        'ProjectionChild' | 'policy'             | 'Missing constraint projection policy'
         'Projection'      | 'unknown-policy'     | 'FUTURE'
         'ProjectionChild' | 'bad-decimal'        | 'Invalid decimal bound'
     }
@@ -583,23 +775,23 @@ tasks.register('rejectedNamingControl', JavaExec) {
     }
 
     @Issue('959')
-    def 'missing source deprecation facts preserve legacy structural generation with Groovy #generation'() {
+    def 'missing source deprecation facts reject current metadata with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
-        rewriteDeprecationFacts('schema', true)
-        rewriteDeprecationFacts('api', true)
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.P2', 'example.DeprecatedFallbackKey'])\n")
 
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.P2').bytes
+        rewriteDeprecationFacts('schema', true)
+        rewriteDeprecationFacts('api', true)
+
         when:
-        def result = run('generateKlumJsonSchema')
-        def schema = document('example.P2')
-        def properties = schema.get('$defs').get('example.P2_DSL$Builder').properties
+        def result = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
 
         then:
-        result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        properties.keySet().containsAll(['oldEndpoint', 'endpoint', 'old-inherited', 'old-inherited-operation', 'old-child', 'old-operation', 'directOperation'])
-        !output('example.P2').text.contains('"deprecated"')
-        !output('example.DeprecatedFallbackKey').text.contains('"deprecated"')
+        result.output.contains('Missing source deprecation fact')
+        result.output.contains('recompile and package')
+        output('example.P2').bytes == previous
         publicDeprecationSites('schema', 'example/P2_DSL$Builder.class').containsAll(['getOldEndpoint', 'oldOperation', 'child'])
         !trap.exists()
 
@@ -719,10 +911,6 @@ tasks.register('rejectedNamingControl', JavaExec) {
 
         where:
         target         | kind                    | reason
-        'Price'        | 'decimal-version'       | 'decimal metadata version 0'
-        'DecimalBase'  | 'decimal-version'       | 'decimal metadata version 0'
-        'DecimalChild' | 'decimal-version'       | 'decimal metadata version 0'
-        'Price'        | 'future-decimal'        | 'decimal metadata version 2'
         'Price'        | 'decimalValue'          | 'missing direct decimal facts'
         'Price'        | 'inclusive'             | 'missing direct decimal facts'
     }
@@ -801,20 +989,16 @@ tasks.register('rejectedNamingControl', JavaExec) {
         then:
         failed.output.contains("root 'example.Capacity'")
         failed.output.contains('example.' + target + '_DSL$Builder')
-        failed.output.contains(target == 'CapacityBase' ? 'example.CapacityBase#inherited' : 'example.' + target + '#percentage')
+        failed.output.contains(target == 'CapacityBase' ? 'source field #inherited' : 'source field #percentage')
         failed.output.contains(target == 'CapacityBase' ? "external input 'inherited-percent'" : "external input 'percentage'")
         failed.output.contains('recompile and package')
-        failed.output.contains(kind == 'field' ? 'missing constraint facts' : 'constraint metadata version')
+        failed.output.contains('Missing constraint facts')
         output('example.Capacity').bytes == previous
         manifest.text == previousManifest
         !trap.exists()
 
         where:
         target          | kind
-        'Capacity'      | 'version'
-        'CapacityBase'  | 'version'
-        'CapacityChild' | 'version'
-        'Capacity'      | 'future-version'
         'Capacity'      | 'field'
     }
 
@@ -991,29 +1175,6 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
         'CollisionHolder' | 'Collision' | 'external-name collision' | true
     }
 
-    @Issue(['954', '959'])
-    def 'missing key facts cannot silently project a keyed document: #model'() {
-        given:
-        fixture('3')
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.$model'])\n")
-
-        when:
-        def result = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
-
-        then:
-        result.output.contains("root 'example.$model'")
-        result.output.contains('example.Legacy_DSL$Builder')
-        result.output.contains('key position ' + position)
-        result.output.contains(reason)
-        result.output.contains('recompile and package the Schema')
-        !output('example.' + model).exists()
-        !trap.exists()
-
-        where:
-        model          | position         | reason
-        'Legacy'       | 'MEMBER'         | 'missing construction key metadata'
-        'LegacyHolder' | 'UNKNOWN_DIRECT' | 'missing direct relationship key-authority metadata'
-    }
 
     def 'tracks roots output ownership and binary dependency documentation without stale files'() {
         given:
@@ -1224,7 +1385,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -1319,28 +1480,8 @@ import com.blackbuild.klum.ast.DSL
 package example
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 class Misdirected_DSL {
-    @GeneratedInput.Schema interface Builder<SELF extends Service> {}
+    @GeneratedInput.Schema(version=1, groupRedefined=false, namingExplicit=false, namingProfile='IDENTITY') interface Builder<SELF extends Service> {}
     interface Factory { Service One() }
-}
-""")
-        // An older binary may retain the native key but have no key-input facts.
-        writeSource('schema/src/main/groovy/example/Legacy_DSL.groovy', """
-package example
-import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
-import com.blackbuild.klum.ast.ConstraintProjection
-import java.util.function.Consumer
-class Legacy {}
-class Legacy_DSL {
-    @GeneratedInput.Schema(key = 'name') interface Builder<SELF extends Legacy> {}
-    interface Factory { Legacy One(String key) }
-}
-class LegacyHolder {}
-class LegacyHolder_DSL {
-    @GeneratedInput.Schema(constraintVersion=1, decimalVersion=1, projectionVersion=1, groupRedefined=false) interface Builder<SELF extends LegacyHolder> {
-        @GeneratedInput.Field(value='child', constraints=[], constraintProjection=ConstraintProjection.Policy.PROJECT) Legacy_DSL.Builder getChild()
-        @GeneratedInput.Selection(field = 'child', role = 'OWNED_OBJECT') void child(Consumer input)
-    }
-    interface Factory { LegacyHolder One() }
 }
 """)
         if (constraints) {
@@ -1585,6 +1726,7 @@ import java.lang.annotation.*
         if (projection) projectionSources()
         if (naming) {
             namingSources()
+            if (literals) { literalSources() }
             new File(producer, 'build.gradle').append("\nproject(':schema') { dependencies { implementation project(':owned') } }\n")
             runner(producer, ':owned:jar').build()
             publish('owned', 'owned/build/libs/owned.jar', '')
@@ -1620,6 +1762,91 @@ tasks.register('initializeControl', JavaExec) {
 """
     }
 
+    private void literalSources() {
+        writeSource('owned/src/main/groovy/example/LiteralDetails.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+@InputNaming(InputNaming.Profile.IDENTITY) @DSL class LiteralDetails { @InputName('child/Name') String nativeName }
+@DSL class LiteralWorker {
+    @Key @InputName('Worker/ID') @InputIgnore String workerId
+    @InputName('Image/Name') String imageName
+}
+''')
+        writeSource('api/src/main/groovy/example/LiteralBase.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+import com.fasterxml.jackson.annotation.*
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.blackbuild.klum.ast.runtime.KlumModelException
+@DSL class LiteralBase {
+    @Key @InputName('Service/ID') @JsonProperty('Service/ID') String serviceId
+    @InputName('URL/exact') @JsonProperty('URL/exact') String URLValue
+    String urlValue
+    @InputName('displayName') String literalName
+    String displayName
+    @InputIgnore @JsonIgnore(false) String hiddenValue
+    @InputName('ignored-renamed') @JsonIgnore String alsoHidden
+    @Builder.Method @JsonProperty('set/Endpoint') @InputName('set/Endpoint')
+    void configureEndpoint(String value) { urlValue = value }
+    @Builder.Method @InputIgnore void hiddenOperation(String value) { throw new AssertionError('ignored operation') }
+}
+@DSL class LiteralKeyFallback { @Key @InputName('Fallback/ID') String key }
+class LiteralControl {
+    static void main(String[] args) {
+        if (args.length) {
+            def type = Class.forName('example.' + args[0], false, LiteralControl.classLoader)
+            try {
+                KlumStructuredInput.readRoot(type, [:], 'rejected.yaml')
+                throw new AssertionError('invalid contract accepted')
+            } catch (KlumModelException expected) {
+                assert expected.message.contains('collision') || expected.message.contains('literal metadata') || expected.message.contains('@InputIgnore')
+                println 'Rejected literal contract before execution'
+            }
+            return
+        }
+        def type = Class.forName('example.LiteralService', false, LiteralControl.classLoader)
+        def result = KlumStructuredInput.readRoot(type, ['Service/ID': 'Service/Blue', 'URL/exact': 'URL', 'url-value': 'native',
+                displayName: 'literal', 'display-name': 'base', 'set/Endpoint': 'operated', details: ['child/Name': 'child'],
+                workers: ['Worker/Blue': ['Image/Name': 'worker:1']], labels: ['Team/Blue': 'ops'], 'items/exact': ['one', 'two']], 'literal.yaml')
+        assert result.serviceId == 'Service/Blue' && result.URLValue == 'URL' && result.urlValue == 'operated'
+        assert result.literalName == 'literal' && result.displayName == 'base'
+        assert result.details.nativeName == 'child'
+        assert result.workers['Worker/Blue'].workerId == 'Worker/Blue' && result.workers['Worker/Blue'].imageName == 'worker:1'
+        assert result.labels == ['Team/Blue': 'ops'] && result.items == ['one', 'two']
+        assert result.hiddenValue == null && result.alsoHidden == null
+        ['serviceId', 'service-id', 'URLValue', 'urlValue', 'hidden-value', 'ignored-renamed', 'hidden-operation'].each { name ->
+            try {
+                KlumStructuredInput.readRoot(type, 'external', [(name): 'forbidden'], 'alias.yaml')
+                throw new AssertionError('forbidden alias accepted: ' + name)
+            } catch (KlumModelException expected) { assert expected.message.contains(name) }
+        }
+        def fallback = KlumStructuredInput.readRoot(LiteralKeyFallback, ['Fallback/ID': 'fallback'], 'key.yaml')
+        assert fallback.key == 'fallback'
+        println 'Literal interpreter/schema agreement passed'
+    }
+}
+''')
+        writeSource('schema/src/main/groovy/example/LiteralService.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class LiteralService extends LiteralBase {
+    static { new File('${trap.absolutePath}').text = 'initialized' }
+    LiteralDetails details
+    Map<String, LiteralWorker> workers
+    Map<String, String> labels
+    @InputName('items/exact') List<String> items
+}
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class LiteralCollision {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('collision executed') }
+    @InputName('same') String URLValue
+    @InputName('same') String urlValue
+    @InputIgnore @InputName('same') String hidden
+}
+@DSL class LiteralKeyCollision { @Key @InputName('Key/exact') String key; @InputName('Key/exact') String value }
+@DSL class LiteralKeyOwner { Map<String, LiteralKeyCollision> services }
+""")
+    }
+
     private void namingSources() {
         writeSource('owned/src/main/groovy/example/NamingDetails.groovy', '''
 package example
@@ -1653,10 +1880,10 @@ class NamingControl {
         if (args.length) {
             def type = Class.forName('example.' + args[0], false, NamingControl.classLoader)
             try {
-                KlumStructuredInput.readRoot(type, (args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
+                KlumStructuredInput.readRoot(type, (args.length > 1 ? [:] : args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
                 throw new AssertionError('invalid contract accepted')
             } catch (KlumModelException expected) {
-                assert expected.message.contains('input profiles') || expected.message.contains('collision') || expected.message.contains('naming metadata') || expected.message.contains('construction key') || expected.message.contains('Malformed UTF-16')
+                assert expected.message.contains('input profiles') || expected.message.contains('collision') || expected.message.contains('naming metadata') || expected.message.contains('metadata protocol') || expected.message.contains('Missing constraint') || expected.message.contains('Unknown constraint projection policy') || expected.message.contains('Invalid decimal bound') || expected.message.contains('missing direct decimal facts') || expected.message.contains('construction key') || expected.message.contains('Malformed UTF-16')
                 println 'Rejected naming contract before execution'
             }
             return
@@ -1814,7 +2041,7 @@ class InitializationControl {
         publish('api', 'api/build/libs/api.jar', '')
     }
 
-    private void rewriteDeprecationFacts(String artifact, boolean legacy) {
+    private void rewriteDeprecationFacts(String artifact, boolean removeFacts) {
         File jar = new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")
         File replacement = new File(directory, 'deprecation.jar')
         new JarFile(jar).withCloseable { input ->
@@ -1825,13 +2052,13 @@ class InitializationControl {
                         ClassWriter writer = new ClassWriter(0)
                         new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
                             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                                optionalDeprecation(super.visitAnnotation(descriptor, visible), legacy)
+                                deprecationMutation(super.visitAnnotation(descriptor, visible), removeFacts)
                             }
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                                        if (legacy && annotation.endsWith('GeneratedInput$Operation;')) return null
-                                        optionalDeprecation(super.visitAnnotation(annotation, visible), legacy)
+                                        // Erase advisory deprecation only; operations also carry required literal facts.
+                                        deprecationMutation(super.visitAnnotation(annotation, visible), removeFacts)
                                     }
                                     @Override void visitEnd() {
                                         // Synthetic compatibility alias on a selected overload, not source deprecation.
@@ -1852,13 +2079,15 @@ class InitializationControl {
         jar.bytes = replacement.bytes
     }
 
-    private static AnnotationVisitor optionalDeprecation(AnnotationVisitor delegate, boolean legacy) {
+    private static AnnotationVisitor deprecationMutation(AnnotationVisitor delegate, boolean removeFacts) {
         new AnnotationVisitor(Opcodes.ASM9, delegate) {
             @Override void visit(String name, Object value) {
-                if (!legacy || name != 'sourceDeprecated') super.visit(name, value)
+                if (!removeFacts || name != 'sourceDeprecated') {
+                    super.visit(name, value)
+                }
             }
             @Override AnnotationVisitor visitAnnotation(String name, String descriptor) {
-                optionalDeprecation(super.visitAnnotation(name, descriptor), legacy)
+                deprecationMutation(super.visitAnnotation(name, descriptor), removeFacts)
             }
         }
     }
@@ -1876,28 +2105,11 @@ class InitializationControl {
                         ClassReader reader = new ClassReader(bytes)
                         ClassWriter writer = new ClassWriter(0)
                         reader.accept(new ClassVisitor(Opcodes.ASM9, writer) {
-                            @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                                AnnotationVisitor delegate = super.visitAnnotation(descriptor, visible)
-                                if (!descriptor.endsWith('GeneratedInput$Schema;')) return delegate
-                                new AnnotationVisitor(Opcodes.ASM9, delegate) {
-                                    @Override void visit(String name, Object value) {
-                                        if (name == 'projectionVersion' && kind in ['projection-version', 'future-projection']) {
-                                            if (kind == 'future-projection') super.visit(name, 2)
-                                        } else if (name == 'decimalVersion' && kind in ['decimal-version', 'future-decimal']) {
-                                            if (kind == 'future-decimal') {
-                                                super.visit(name, 2)
-                                            }
-                                        } else if (name != 'constraintVersion' || !(kind in ['version', 'future-version'])) {
-                                            super.visit(name, value)
-                                        } else if (kind == 'future-version') {
-                                            super.visit(name, 2)
-                                        }
-                                    }
-                                }
-                            }
                             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions)
-                                if (kind in ['version', 'future-version'] || kind == 'group-value' && name != 'getGrouped') return delegate
+                                if (kind == 'group-value' && name != 'getGrouped') {
+                                    return delegate
+                                }
                                 new MethodVisitor(Opcodes.ASM9, delegate) {
                                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                                         AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)

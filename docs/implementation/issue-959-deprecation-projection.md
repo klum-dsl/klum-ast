@@ -19,16 +19,14 @@ facts. A minimal internal `Operation` fact is attached to the exact public proje
 never the projection's possibly deprecated framework alias. The construction-key fallback retains its fact inside the
 existing declaring-Builder `Schema.keyMember` when no public getter survives. No public descriptor or SPI is introduced.
 
-The exact public-contract byte reader retains a nullable Boolean independently of integral completeness. Existing
-hierarchy/admission/rename/exclusion/collision resolution produces the effective entries before projection. Deprecation
-is attached to each property/operation payload, beside a relationship `$ref`, or on the outer keyed Map. A construction
-key is marked only in the member-key definition; keyless definitions and ordinary sibling references stay independent.
-Documentation is preserved.
+The exact public-contract byte reader requires explicit source-deprecation Booleans under the shared metadata protocol.
+Hierarchy/admission/rename/exclusion/collision resolution produces the same effective entries. Deprecation is attached to
+each property/operation payload, beside a relationship `$ref`, or on the outer keyed Map. A construction key is marked only
+in member-key definitions; keyless definitions, sibling references and documentation remain unchanged.
 
-**Bounded binary compatibility:** pre-fact artifacts continue ordinary structural generation. Missing source provenance
-omits this advisory keyword, even where Java Deprecated survives on public methods; neither framework-alias guessing
-nor Model-byte fallback is permitted. Recompile root/inherited/owned Schema dependencies for complete annotation metadata.
-The integral profile retains its own opt-in completeness contract and failure behavior.
+**Current compatibility rule:** both consumers reject older or incomplete metadata, including absent source provenance.
+Recompile participating root/inherited/owned Schema artifacts with a matching supported protocol. Neither generated-alias
+guessing nor Model-byte fallback is permitted. This supersedes the original pre-fact compatibility behavior qualified below.
 
 ## Executable coverage and documentation
 

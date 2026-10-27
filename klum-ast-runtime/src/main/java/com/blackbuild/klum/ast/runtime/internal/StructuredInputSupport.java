@@ -119,7 +119,7 @@ public final class StructuredInputSupport {
     }
 
     private enum Position {
-        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, SCHEMA_CHILD, MAP_VALUE, UNKNOWN_DIRECT;
+        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, SCHEMA_CHILD, MAP_VALUE;
         boolean memberKey() { return this == ROOT || this == DIRECT; }
         String authority() {
             return switch (this) {
@@ -250,19 +250,23 @@ public final class StructuredInputSupport {
         }
 
         private CompiledBuilderSchema plan(Class<?> model, String path) {
-            try { return plans.computeIfAbsent(model, CompiledBuilderSchema::read); }
-            catch (KlumModelException failure) {
+            CompiledBuilderSchema known = plans.get(model);
+            if (known != null) return known;
+            try {
+                CompiledBuilderSchema decoded = CompiledBuilderSchema.read(model);
+                plans.put(model, decoded); // Register before following ownership so recursive contracts terminate.
+                for (Entry entry : decoded.entries().values()) {
+                    if (entry.payload().kind() == Kind.NESTED_OBJECT) {
+                        plan(entry.payload().type(), pointer(path, entry.externalName()));
+                    }
+                }
+                return decoded;
+            } catch (KlumModelException failure) {
                 throw new KlumModelException(source + " at '" + (path.isEmpty() ? "/" : path) + "': " + failure.getMessage(), failure);
             }
         }
 
         private void validatePosition(CompiledBuilderSchema plan, Key key, Position position, String path, Object input) {
-            if (position == Position.UNKNOWN_DIRECT && !plan.keyName().isEmpty())
-                throw problem(source, path, plan.contract(), DOMAIN_NAME,
-                        "direct relationship key-authority metadata; recompile and package the Schema", input, null);
-            if (position.memberKey() && !plan.keyName().isEmpty() && key == null)
-                throw problem(source, path, plan.contract(), plan.keyName(),
-                        "construction key metadata; recompile and package the Schema", input, null);
             if (position.memberKey() && key != null) validateMemberKey(plan, key, path, input);
         }
 
@@ -305,7 +309,7 @@ public final class StructuredInputSupport {
             if (key.ignored())
                 throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
                         "available required construction key declared by " + key.source()
-                                + "; excluded by @JsonIgnore(true); use an explicit rootKey for a root, or Schema derivation/keyed Map for a child", input, null);
+                                + "; " + key.ignoreReason() + "; use an explicit rootKey for a root, or Schema derivation/keyed Map for a child", input, null);
             List<String> collisions = plan.keyCollisions();
             if (!collisions.isEmpty())
                 throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
@@ -342,8 +346,8 @@ public final class StructuredInputSupport {
         }
 
         private static Position directPosition(Entry entry) {
-            if (Boolean.TRUE.equals(entry.schemaKey()) || entry.fixedChildKey() != null) return Position.SCHEMA_CHILD;
-            return entry.schemaKey() == null ? Position.UNKNOWN_DIRECT : Position.DIRECT;
+            if (entry.schemaKey()) return Position.SCHEMA_CHILD;
+            return Position.DIRECT;
         }
 
         private Method method(Entry entry, String path) {

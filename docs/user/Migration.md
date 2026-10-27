@@ -9,19 +9,44 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Structured-input metadata protocol
+
+Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.
+Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
+
+`GeneratedInput.Schema.version=1` replaces the earlier feature-specific markers. Producers explicitly emit the supported
+version; the interpreter and generator require exactly it plus all required facts. This includes the declaring/inherited
+hierarchy and participating owned types in other projects or JARs. Missing, older, future or malformed versions and
+missing/corrupt required facts fail with Schema/Builder, artifact and recompile guidance before execution or schema
+replacement. Neither identity-only compatibility nor authored-operation reconstruction from old annotations remains.
+No version negotiation or mixed-version mode is supported. Authoring annotations and valid-Schema behavior are unchanged.
+
+### Literal names and exclusion
+
+Use `@InputName('literal')` and marker `@InputIgnore` for dependency-free structured-input/JSON Schema shaping on eligible
+fields, selected construction keys and admitted Builder methods. Exact names add no alias. Compatible Jackson names
+coalesce; conflicting explicit names now fail with both origins, including excluded entries. Empty `InputName` is invalid;
+empty Jackson names retain fallback. False Jackson ignore cannot undo Klum exclusion. Ordinary Groovy names and validation
+remain unchanged; Jackson import needs its own matching annotations when the same spelling is desired.
+
+Recompile/package affected Schemas with matching compiler/runtime/plugin versions. Declaring public Builder contracts
+retain required effective name/exclusion/origin facts, including authored operations, under the shared
+[metadata protocol](#structured-input-metadata-protocol). Missing/corrupt facts fail before execution or output replacement.
+An ignored key does not remove construction identity obligations. See
+[structured input](Structured-Input.md#literal-names-and-exclusion) and [JSON Schema](Json-Schema.md#literal-names-and-exclusion).
+
 ### Type naming profiles
 
 `@InputNaming` now selects type-owned `IDENTITY` or bounded ASCII `KEBAB_CASE` for structured input and JSON Schema.
 Its profile is required. An explicit choice binds descendants, including explicit identity; an unannotated hierarchy
 leaves room for its first profiled child. Profiles cover inherited eligible members without changing standalone ancestors.
-Owned types resolve their own hierarchy. Existing Jackson literal overrides/exclusions stay supported; Klum
-`InputName`/`InputIgnore` remain deferred. Managed Jackson import keeps its independent naming behavior.
+Owned types resolve their own hierarchy. Existing Jackson literal overrides/exclusions stay supported alongside
+[Klum literals](#literal-names-and-exclusion). Managed Jackson import keeps its independent naming behavior.
 
-Use matching compiler/runtime/plugin versions and recompile/package every declaring type in a selected Schema hierarchy.
-New Builder markers explicitly retain profile/absence and an independent `namingVersion=1`. Missing ancestry facts,
-unknown/incomplete facts and nonidentity collisions fail before input execution or schema replacement; no Model-byte
-fallback fills gaps. Complete legacy identity contracts preserve native spelling and output when no selected profile
-requires their missing provenance. Existing numeric/decimal/field-policy completeness checks remain independent.
+Use matching compiler/runtime/plugin versions and recompile/package participating declaring and owned Schema artifacts.
+The shared [metadata protocol](#structured-input-metadata-protocol) requires explicit profile/absence facts for every
+participating hierarchy, including unprofiled/identity types. Older or incomplete contracts fail before execution or
+schema replacement; no Model-byte fallback fills gaps.
 
 Inputs selecting kebab-case must use the new exact member names; native spelling is not an alias. Data/instance keys and
 literal overrides stay unchanged. Construction-key position rules remain in force. See
@@ -672,7 +697,7 @@ Supported numeric projection remains automatic. To change the generated artifact
 retains the always-on faithful numeric baseline. Ordinary prose, deprecation, structural machine limits, input
 admission and runtime validation remain independent; no global switch is restored.
 
-Recompile and package root, inherited and owned Schemas together with matching compiler/runtime/plugin versions:
-new generators require `projectionVersion=1` and explicitly retained field policies. Older strict readers are not
-compatible with newer generated facts. There is no mixed-version fallback. See the
+Recompile and package root, inherited and participating owned Schemas with matching compiler/runtime/plugin versions.
+The shared [metadata protocol](#structured-input-metadata-protocol) requires explicitly retained field policies and numeric
+facts. Older or incomplete contracts are rejected; no mixed-version fallback remains. See the
 [field policy example and limits](Json-Schema.md#field-constraint-projection).

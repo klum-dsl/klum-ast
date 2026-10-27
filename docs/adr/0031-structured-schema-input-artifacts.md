@@ -490,15 +490,15 @@ implementation; the later assignment authorizes this slice only. See the
 
 - **Historical activation, superseded:** `integralConstraints` was a false-by-default Boolean. PR #972 removes it; supported numeric projection is unconditional.
   Existing root names, filenames, output ownership and isolated loader semantics remain unchanged.
-- Each declaring public Builder's `GeneratedInput.Schema` carries internal `constraintVersion=1` and an explicit
+- Each declaring public Builder's `GeneratedInput.Schema` carries the supported shared metadata protocol and an explicit
   `groupRedefined` fact. Each existing source-associated `GeneratedInput.Field` carries an explicit constraints array,
   including an empty array. Its inert nested facts identify the original annotation, authored description and, for
   direct Min/Max, its compiler-folded Java-long value and empty-groups/payload eligibility. Actual Bean annotations
   remain at their original sites; they are never retargeted onto Builder methods as executable constraints.
 - The exact public-contract byte reader supplies these facts without annotation proxies, Model resource reads or a
   Bean provider. All required declaring/effective/inherited/owned contracts must carry complete supported numeric facts.
-  Missing/incompatible completeness facts fail generation with source/use and recompile/package guidance; the old
-  structural-only compatibility path is superseded for generation, while runtime admission is unchanged.
+  Both consumers reject missing/incompatible facts under the shared protocol with source/artifact and recompilation
+  guidance. Numeric assertions and runtime validation retain their existing separate semantics.
 - Only admitted ordinary integral field properties gain inclusive bounds, intersected with structural machine limits.
   Selection considers the effective hierarchy's group-redefinition facts. Unsupported complete field declarations
   become deterministic runtime descriptions of explicitly authored attributes; there is no generic metadata/default
@@ -539,9 +539,9 @@ there is no Gradle switch. This supersedes the earlier candidate's future-profil
 
 The compiler emits explicit source-deprecation Booleans on existing public `GeneratedInput.Field`/`Key` facts and a
 minimal `GeneratedInput.Operation` fact on the exact public projection of a Schema-authored Builder operation. The
-private reader retains missing as unknown and never derives source deprecation from generated methods or Model bytes.
-An absent optional source-deprecation fact in older artifacts does not fail structural generation; omit the advisory
-keyword for that member. Integral constraints retain their independent completeness/failure contract.
+private reader requires explicit provenance under the shared protocol and never derives it from generated methods or
+Model bytes. Missing source-deprecation facts reject the contract. Advisory output and numeric assertions retain
+independent semantics; their metadata has one completeness boundary.
 
 Apply metadata to the effective property/operation-payload or relationship-use position, and to construction keys
 only where the key member is present. Preserve inheritance, naming/exclusion/collision handling, documentation, shared
@@ -600,7 +600,7 @@ flags are removed without aliases or another selector. Ordinary direct BigDecima
 retain the same single-direct, empty-groups/payload and hierarchy eligibility rules; all original numeric-type and
 unsupported-context exclusions remain.
 
-Each declaring public Builder carries independent `decimalVersion=1`; original field facts carry compiler-folded exact
+Each declaring public Builder carries the supported shared metadata protocol; original field facts carry compiler-folded exact
 String `decimalValue` and explicit effective Boolean `inclusive` for direct decimal annotations. Original source and
 selection stay on existing facts. Generation always requires complete supported versions and facts on reachable declaring/inherited/owned contracts, with fail-closed
 recompile/package diagnostics. No Model-byte fallback, source requirement, annotation-proxy execution or text parsing
@@ -650,11 +650,10 @@ inputs/output placement only. Existing numeric types, eligibility, exact values,
 and independent conjunction remain authoritative. Representable contradictions generate valid Draft 2020-12 schemas;
 no numeric satisfiability analysis occurs. Omission/null/keys and runtime construction/validation remain unchanged.
 
-Require supported complete numeric facts on root, declaring/inherited and reachable owned public Builder contracts.
-Retain `constraintVersion=1` and `decimalVersion=1`: they already encode the required facts, and retaining them avoids
-unnecessary compiler/generated-metadata changes. The generator always requests both completeness checks. Missing,
-malformed or incompatible facts fail atomically with source/artifact and recompile/package guidance; no Model-byte
-fallback or authored-code execution is allowed. Runtime admission's separate structural reader remains unchanged.
+Require the shared supported metadata protocol and complete numeric facts on root, declaring/inherited and participating
+owned public Builder contracts. Both interpreter and generator reject missing, malformed or incompatible required facts
+with Schema/Builder, artifact and recompilation guidance; no Model-byte fallback or authored-code execution is allowed.
+Numeric assertions retain the always-on behavior above; input values and runtime validation are unchanged.
 
 This explicitly supersedes global opt-in requirements in D1/D2/P1/P2 and the earlier PR #972 assignment, including
 merged #966's activation/rejection assumptions. Historical evidence remains attached to its original revisions.
@@ -685,8 +684,8 @@ prose/Javadoc, standard deprecation, structure/machine bounds, naming/admission,
 runtime validation remain independent. Captured unsupported constraints are still descriptive except under `OMIT`.
 
 Transport is one explicit compiler-folded enum fact `GeneratedInput.Field.constraintProjection` plus
-`GeneratedInput.Schema.projectionVersion=1` on declaring public Builder contracts. The enum is read from declaration
-bytes as inert descriptor/name facts, not through authored annotation proxies. Existing numeric versions remain 1.
+the shared `GeneratedInput.Schema.version=1` on declaring public Builder contracts. The enum is read from declaration
+bytes as inert descriptor/name facts, not through authored annotation proxies. All required facts share that protocol boundary.
 Generation always checks policy completeness across root/declaring/inherited/reachable owned contracts, including when
 output is omitted; missing/unknown/incompatible policy and malformed supported numeric facts fail atomically with
 artifact/source and recompile guidance. Runtime structural reading accepts the fact without using it for admission.
@@ -763,12 +762,11 @@ source/artifact provenance, and a first profiled descendant governs inherited/lo
 unannotated ancestor retains identity behavior. Owned types resolve independently. The bounded ASCII algorithm above
 applies only to native eligible member tokens, never literals or data/instance keys; malformed UTF-16 native metadata fails.
 
-Independent `GeneratedInput.Schema.namingVersion=1`, explicitly emitted `namingExplicit` and inert `namingProfile` String
-retain declared choice versus absence. Provenance is the exact declaring public Builder/type/artifact, without copied
-Model names or additional source descriptors. Unknown/incomplete facts fail; selected profiles require complete naming
-facts throughout their hierarchy. Complete legacy identity contracts remain usable where no selected profile requires
-missing ancestry provenance. Constraint/decimal/projection versions keep their independent requirements. No umbrella
-version, Model bytes, WIRE companion, annotation proxies, user-code execution or registry is added.
+The shared `GeneratedInput.Schema.version=1`, explicitly emitted `namingExplicit` and inert `namingProfile` String retain
+declared choice versus absence. Provenance is the exact declaring public Builder/type/artifact. Complete naming facts
+are required throughout every participating hierarchy, including unprofiled/identity types. Older or incomplete contracts
+are rejected with recompilation guidance. Numeric, projection, literal and naming facts share one protocol boundary;
+no Model bytes, companion, annotation proxies, authored-code execution or registry is introduced.
 
 Nonidentity member collisions reject before input execution/schema publication with both declarations. Construction-key
 collisions retain position-specific handling. Complete no-profile and identity behavior remains unchanged, including
@@ -781,3 +779,51 @@ See [probe/implementation evidence](../implementation/issue-959-d7-input-naming-
 [structured-input contract](../user/Structured-Input.md#type-naming-profiles) and
 [JSON Schema contract](../user/Json-Schema.md#type-naming-profiles). Package/root/relationship selectors, examples transport,
 constraint policy changes and the remaining D7 work stay deferred. Related: #959; issue state and release placement stay unchanged.
+
+
+## D7 literal name and exclusion implementation slice — #959
+
+Date: 2026-10-27. Status: **Implemented bounded slice following merged PR #976**.
+Authority: the accepted [external naming decision](../implementation/issue-959-d7-external-naming-decision.md) and the
+literal-vocabulary assignment. This supersedes only the earlier profile slice's `InputName`/`InputIgnore` deferral.
+
+`InputName` and marker `InputIgnore` in `com.blackbuild.klum.ast` have RUNTIME retention and FIELD/METHOD targets.
+The required exact nonempty String names source fields, selected keys or already admitted authored Builder methods.
+Eligibility/exclusion precedes compatible literals, then inherited/local profiles and identity. Equal Klum/Jackson names
+coalesce; contradictory names fail with both origins before exclusion, independent of annotation order. `InputIgnore` or
+true/default `JsonIgnore` excludes; false ignore is neutral. Compatible rename plus exclusion is valid. Literal overrides
+can separate profile collisions; unresolved nonidentity collisions retain source-aware failure and identity behavior stays
+unchanged. Construction-key positions and external identity obligations remain intact.
+
+Existing field/key slots retain effective rename/exclusion. Authored-operation facts now fold the same choices. Explicit
+name-origin facts distinguish native, Jackson/Klum literals and Jackson/Klum exclusion; the shared protocol
+requires complete facts on declaring public Builder contracts. No raw Model bytes, annotation-proxy execution or Schema
+execution participates. Unknown, malformed or missing required facts fail with source/artifact recompile guidance;
+older or incomplete contracts are rejected. Numeric, projection and naming semantics remain unchanged.
+
+The [implementation evidence](../implementation/issue-959-d7-literal-input-names.md) records packaged G3/G4/G5 qualification.
+There are no package/root/global profiles, broader JsonNaming, mapper adapters, examples, defaults, relationship selectors,
+runtime overloads or metadata SPI. Ordinary Groovy configuration, Jackson import and runtime validation remain independent.
+
+
+## Unified structured-input metadata protocol — PR #977
+
+Date: 2026-10-27. Status: **Accepted maintainer simplification for unreleased 4.2 functionality**.
+
+Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.
+Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
+
+One explicitly emitted `GeneratedInput.Schema.version=1` replaces all feature-specific version markers and supersedes
+prior metadata-compatibility statements in this ADR. Both consumers require exactly the supported version and complete,
+valid current facts on every participating contract. This includes inherited and owned contracts across artifacts.
+Missing/older/future/malformed versions, absent facts and contradictions fail with Schema/Builder, artifact where available
+and recompilation guidance. No identity-only acceptance, old operation-annotation reconstruction, conditional profile
+completeness, optional older provenance or unknown key-authority state remains. Current key-member facts for suppressed
+public getters and separate field/operation names on a shared accessor remain necessary current compiler facts.
+
+The exact public Builder byte reader is the common gate. The interpreter reuses its per-read plan cache to validate the admitted ownership closure before execution, including
+omitted children and recursive contracts; the generator already visits that closure. Excluded targets and unrelated
+classpath classes are not inspected. There is no version negotiation, registry, adapter, migration framework
+or new authoring API. Supported naming, key positions, admission, numeric assertions, projection policy, runtime validation,
+initialization safety and output atomicity are preserved. See
+[implementation and qualification](../implementation/issue-959-unified-metadata-protocol.md).

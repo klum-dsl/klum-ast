@@ -114,14 +114,15 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         '@JsonIgnore'                                   | 'key'     | true    | 'key'
     }
 
-    def 'missing new key facts fail the new route but preserve old explicit root use'() {
+    @Issue('959')
+    def 'missing key facts reject member and external-root input'() {
         given:
         createClass '''
             package oldkey
             import com.blackbuild.klum.ast.*
             @DSL class Root { @Key String name; String value }
         '''
-        rewriteContract('oldkey/Root_DSL$Builder.class', 'old')
+        rewriteContract('oldkey/Root_DSL$Builder.class', 'incomplete')
         def binaryLoader = binaryLoader()
         def root = Class.forName('oldkey.Root', false, binaryLoader)
 
@@ -130,21 +131,22 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('construction key metadata')
+        failure.message.contains('Construction key enrichment disagrees')
         failure.message.contains('recompile and package the Schema')
 
         when:
-        def model = KlumStructuredInput.readRoot(root, 'external', [value: 'ok'], 'old-explicit.yaml')
+        KlumStructuredInput.readRoot(root, 'external', [value: 'ok'], 'explicit.yaml')
 
         then:
-        model.name == 'external'
-        model.value == 'ok'
+        def externalFailure = thrown(KlumModelException)
+        externalFailure.message.contains('Construction key enrichment disagrees')
 
         cleanup:
         binaryLoader?.close()
     }
 
-    def 'missing direct authority rejects keyed payloads without guessing from creator overloads'() {
+    @Issue('959')
+    def 'missing direct authority rejects direct and map payloads'() {
         given:
         createClass '''
             package oldkey
@@ -152,7 +154,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
             @DSL class Root { Child child; Map<String, Child> children }
             @DSL class Child { @Key String name }
         '''
-        rewriteContract('oldkey/Root_DSL$Builder.class', 'old')
+        rewriteContract('oldkey/Root_DSL$Builder.class', 'incomplete')
         def binaryLoader = binaryLoader()
         def root = Class.forName('oldkey.Root', false, binaryLoader)
 
@@ -165,16 +167,17 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         failure.message.contains('recompile and package the Schema')
 
         when:
-        def model = KlumStructuredInput.readRoot(root, [children: [outer: [:]]], 'old-map.yaml')
+        KlumStructuredInput.readRoot(root, [children: [outer: [:]]], 'map.yaml')
 
         then:
-        model.child == null
-        model.children.outer.name == 'outer'
+        def mapFailure = thrown(KlumModelException)
+        mapFailure.message.contains('direct relationship key-authority metadata')
 
         cleanup:
         binaryLoader?.close()
     }
 
+    @Issue('959')
     def 'malformed and future key metadata reject with contract and recompile guidance: #mutation'() {
         given:
         createClass '''
@@ -202,7 +205,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
 
         where:
         mutation        | detail
-        'missingGetter' | 'Missing construction key getter enrichment'
+        'missingGetter' | 'Construction key enrichment disagrees'
         'wrongName'     | 'Invalid construction key getter'
         'future'        | 'Unknown schema member futureKeyFact'
         'wrongType'     | 'Invalid construction key getter'
@@ -279,7 +282,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
                 if (!descriptor.endsWith('GeneratedInput$Schema;')) { return target }
                 new AnnotationVisitor(Opcodes.ASM9, target) {
                     @Override void visit(String member, Object value) {
-                        if (mutation != 'old' || member != 'keyInput') { super.visit(member, value) }
+                        if (mutation != 'incomplete' || member != 'keyInput') { super.visit(member, value) }
                     }
                     @Override void visitEnd() {
                         if (mutation == 'future') { super.visit('futureKeyFact', true) }
@@ -291,7 +294,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
                 String resultDescriptor = mutation == 'wrongType' && name == 'getName' ? '()Ljava/lang/Object;' : descriptor
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, resultDescriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (annotation.endsWith('GeneratedInput$Key;') && mutation in ['old', 'missingGetter']) { return null }
+                        if (annotation.endsWith('GeneratedInput$Key;') && mutation in ['incomplete', 'missingGetter']) { return null }
                         def target = super.visitAnnotation(annotation, visible)
                         if (annotation.endsWith('GeneratedInput$Key;') && mutation == 'wrongName') {
                             return new AnnotationVisitor(Opcodes.ASM9, target) {
@@ -300,7 +303,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
                                 }
                             }
                         }
-                        if (annotation.endsWith('GeneratedInput$Field;') && mutation == 'old') {
+                        if (annotation.endsWith('GeneratedInput$Field;') && mutation == 'incomplete') {
                             return new AnnotationVisitor(Opcodes.ASM9, target) {
                                 @Override void visit(String member, Object value) {
                                     if (member != 'schemaKey') { super.visit(member, value) }

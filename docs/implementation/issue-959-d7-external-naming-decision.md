@@ -288,18 +288,13 @@ constructors, lifecycle, validation callbacks or mapper strategy objects. Preser
 across API/base/derived/owned-child JARs. Reflection order and whichever package-info/classpath duplicate loads first cannot
 select policy. Detect ambiguous required contract/fact origins rather than deriving a grammar from them.
 
-Adding annotation members/defaults alone is not proof of binary compatibility: current generated-fact readers reject
-unknown members. Prefer reuse of effective name/exclusion facts for literals if sufficient, with explicit matched version
-and completeness checks wherever new semantics cannot be detected. Required missing/unknown/malformed language facts must
-fail with source/artifact and recompile/package guidance in **both** consumers. Do not infer 'no exclusion' from missing
-new metadata. A legacy supported contract can retain identity only where its existing complete facts establish that
-contract; a selected feature requiring unavailable provenance must fail, not guess. No blanket rejection of all old
-identity artifacts, and no claim that all old artifacts are compatible, is justified before the probe.
+The shared protocol on declaring public Builder contracts requires exact current language and provenance facts in both
+consumers. Older or incomplete contracts are rejected, including identity-only hierarchies. Recompile participating
+artifacts with a matching supported toolchain. No missing exclusion, literal or naming choice is reconstructed.
 
-A first type profile over inherited declarations also needs native candidate/source facts before prior collision
-filtering; no amount of package annotation reflection repairs lost candidates. Literal-only support might need much less metadata. Preserve current
-constraintVersion/decimalVersion/projectionVersion responsibilities; a naming decision must not weaken their checks or
-couple them to a new umbrella version. Advisory deprecation absence differs from required language-fact absence.
+A first type profile over inherited declarations needs native candidate/source facts before collision filtering.
+All required numeric, policy, naming, literal and provenance facts share one supported protocol. This does not change
+their individual functional semantics or permit Model-byte/companion fallback.
 
 Managed Jackson import retains mapper-owned naming/coercion/aliases and all four existing modes. **Confirmed slice
 scope:** the current project needs the new type profile only for structured input and JSON Schema, not ObjectMapper.
