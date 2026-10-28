@@ -147,7 +147,7 @@ Prospective one-parameter conversion through an **already admitted Builder opera
     }
 }
 // Intended future schema position: versionLiteral's raw String, not the Version property.
-// KlumStructuredInput.readRoot(ReleasePlan, [versionLiteral: '1.2.3'])
+// KlumStructuredInput.readRoot(ReleasePlan, [versionLiteral: '1.2.3'], 'release.yaml')
 ```
 
 The method's one String payload is in the existing structural language; the annotation has no current parameter-projection
@@ -244,3 +244,15 @@ Design execution can complete with these choices open because the deliverable is
 local and unpublished; Hive reconciliation and maintainer acceptance/publication disposition are external conditions.
 Tracker impact is design context related to #959; #971/#932 remain independent and open. No issue closure, label,
 milestone, curation/release placement, agent-policy change or production implementation is part of this task.
+
+## Documentation validation and review
+
+The documentation-only change passes `git diff --check`, balanced fenced-block checks and all 60 relative link/anchor
+checks across the ADR and this plan. Groovy lanes and renderer/build suites were not run: no production, build, executable
+fixture or rendered user-documentation input changes. Review compares the pinned base above with this branch's final
+commit; the task handoff records the exact reviewed commit and final results.
+
+The initial independent Standards review found no actionable issue. The independent Specification review found one
+example-call omission: the prospective `readRoot` example lacked the current API's required source name. The follow-up
+adds `release.yaml`, checked against `KlumStructuredInput`'s existing three-argument overload. No API change is proposed.
+Both axes receive the corrected revision for confirmation; publication and maintainer decisions remain external.
