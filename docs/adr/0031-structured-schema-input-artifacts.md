@@ -21,7 +21,8 @@ Design disposition, 2026-10-28: the [contract/projection separation](#proposed-c
 and its [staged plan](../implementation/issue-959-input-projection-architecture.md) distinguish current guarantees from
 accepted P1/P2 architecture and the related, unaccepted P3 custom-projection proposal.
 [S1](../implementation/issue-959-schema-s1-contract.md) is implemented and passes repository qualification; S2 remains
-unassigned. Size stays paused. The required final Sonar upload and draft publication remain gated as recorded in S1 evidence.
+unassigned. Size stays paused. S1 evidence records the maintainer-directed draft publication with local Sonar omitted;
+PR CI/Sonar remains authoritative.
 
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
 [AsBuilder composition](0004-asbuilder-composition-protocol.md),

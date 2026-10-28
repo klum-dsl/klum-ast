@@ -145,18 +145,15 @@ reruns applicable Markdown/diff checks. No extra full lane execution is claimed 
 
 ### Analysis and publication
 
-Publication requires a coverage-bearing final-head local SonarCloud branch analysis against master, with quality-gate
-waiting and inspection of new unresolved findings/hotspots. The final analysis reuses the just-qualified baseline reports;
-there is no coverage-free upload. The exact final revision, analysis outcome and draft PR are recorded in the task handoff.
-[Branch analysis](https://sonarcloud.io/dashboard?id=klum-dsl_klum-ast&branch=codex%2F959-schema-s1-contract).
-Subsequent PR CI/Sonar remains the separate authoritative PR gate; local results do not imply a passing PR check.
+The current pre-PR policy is local tests and independent reviews followed by a draft PR; its CI owns the SonarCloud
+analysis. The original S1 task brief erroneously retained an obsolete final-local-Sonar requirement. The maintainer and
+Hive explicitly correct that brief and direct push/draft creation only, without a local upload or manual workflow
+dispatch. No passing analysis or CI result is inferred from repository tests.
 
-The requested final-head scan is not executed: automatic approval review denies the source/analysis-data upload to
-SonarCloud because the available authorization does not explicitly approve that external payload. No workaround,
-coverage-free scan, source upload, analysis result or quality gate is claimed. The delivery boundary is ready for PR,
-with explicit approval of that source/analysis/coverage upload required before the final scan and draft creation.
-The task handoff presents the exact branch/revision and configured project for that approval.
-
+The earlier local scan attempt was denied by automatic approval review before execution because its external
+source/analysis payload was not explicitly approved. No local source upload, analysis result or quality gate exists.
+The maintainer's subsequent instruction is to omit that upload and proceed directly to the draft PR, rather than seek
+upload approval or retry through another route. The final revision and PR are recorded in the task handoff.
 
 Git SSH feature-branch delivery preflight and GitHub CLI repository capability are **authorized**. No credentials,
 credential scopes or raw authentication errors are inspected or recorded. Draft publication is explicitly assigned;
