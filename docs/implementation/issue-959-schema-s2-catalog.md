@@ -60,7 +60,7 @@ The existing G3/G4/G5 `PatternAdmissionControl` now also proves the plugin catal
 interpreter admission still succeeds. This is an executable dependency boundary, not a source-text search alone.
 
 Focused G3 catalog/recognizer/P2 semantics qualification passes **140** cases without failures/errors/skips.
-Broader frozen-head qualification and independent reviews are recorded below when complete.
+Broader frozen-head qualification and independent reviews are recorded below.
 
 ## Delivery boundary
 
@@ -69,3 +69,53 @@ Tracker impact: related issue #959; curation impact **none**. This internal extr
 dependency, owner, issue acceptance status or published release fact. Size/P3 remain separate decisions.
 Local SonarCloud analysis/upload and manual workflow dispatch are excluded; normal draft-PR CI owns SonarCloud.
 The worker retains its worktree for review/merge and requests Hive reconciliation; it does not self-archive.
+
+
+## Frozen-head qualification and local review
+
+Qualified head: `ca040b1d30bb0223e5a7a9487c1b437ae808d638`. JDK 17 root `check --no-parallel --max-workers=2` plus the explicit
+`annotationPropagationArtifactsGroovy3`, `annotationPropagationArtifactsGroovy4` and
+`annotationPropagationArtifactsGroovy5` tasks pass in **15m 53s**. No source, test, build or documentation file
+changes during this run. Top-level Gradle JUnit reports record:
+
+| Task / lane | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| annotationPropagationArtifactsGroovy3 | 1 | 0 / 0 | 0 |
+| annotationPropagationArtifactsGroovy4 | 2 | 0 / 0 | 0 |
+| annotationPropagationArtifactsGroovy5 | 2 | 0 / 0 | 0 |
+| groovy4Tests | 2,756 | 0 / 0 | 16 |
+| groovy5Tests | 2,756 | 0 / 0 | 16 |
+| test | 3,410 | 0 / 0 | 17 |
+
+The explicit propagation-artifact reports are separate from the ordinary lanes. All **127** packaged schema cases pass,
+including G3/G4/G5 source-free producers and the executable interpreter-without-catalog control. All **632** plugin cases
+and **336** focused core contract/input cases passed before the root check. Plugin validation, licenses, lane isolation,
+generated/public-contract and JPMS suites, and documentation renderer/repository checks pass. No suppression is added.
+
+Every retained schema is regenerated after the frozen commit and all **46** paths/hashes still match the exact-base
+manifest above. The fixed contract/schema expectations, independent test resources and Pattern recognizer are unchanged.
+The artifact audit finds the catalog only in the plugin JAR; runtime/compiler JARs contain neither it nor a compiled
+reference to it.
+
+Independent output qualification also passes:
+
+- Exact-number validation: decimal **426** inputs / **3** metaschemas, integral **429** / **3**. Ten contradictory
+  schemas remain valid Draft 2020-12, admit omission and reject the supplied-value contradiction corpus.
+- Structural **195** input checks / **18** metaschemas; deprecation **96** / **6**, including advisory-removal parity.
+- Retained hand-authored P2 corpus: **97** Draft 2020-12 and **108** ECMA checks.
+- Pattern: **27,211** strings, **54,422** ECMA checks, **27,211** schema checks, **66** Java/P2/malformed controls,
+  **75** neutrality/admission checks; three producer outputs agree. Positive controls reproduce the naive final-LF
+  leak and bare-not nonstring rejection, while the typed guard closes the widening. Tools: JDK 17.0.3,
+  Node 26.12.0, Python 3.9.6 and jsonschema 4.23.0.
+
+Independent read-only Standards and Specification reviewers examine the exact base-to-`ca040b1d30bb0223e5a7a9487c1b437ae808d638` range.
+**Standards: zero findings. Specification: zero findings.** No ordinary implementation children or additional build
+processes are delegated. History review retains focused extraction/tests, architecture ownership, and this final
+qualification record. Required production/test/build inputs at the evidence-only final head remain identical to the
+qualified tree; only this Markdown evidence changes afterward. Markdown fences/relative-file links and
+`git diff --check` are rerun before publication.
+
+Delivery preflight independently verifies Git SSH feature-branch capability and GitHub CLI repository capability as
+**authorized**; no credentials or scopes are recorded. Remote master still equals the exact base at preflight, so no
+refresh/rebase is required. The final branch/commit and draft PR are reported in the task handoff. PR CI/Sonar,
+review/merge and Hive reconciliation remain external; no remote passing result or merge is inferred from local checks.
