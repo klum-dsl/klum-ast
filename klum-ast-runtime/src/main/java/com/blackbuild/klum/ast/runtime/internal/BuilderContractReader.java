@@ -1,0 +1,747 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package com.blackbuild.klum.ast.runtime.internal;
+
+import com.blackbuild.klum.ast.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
+import groovyjarjarasm.asm.AnnotationVisitor;
+import groovyjarjarasm.asm.ClassReader;
+import groovyjarjarasm.asm.ClassVisitor;
+import groovyjarjarasm.asm.MethodVisitor;
+import groovyjarjarasm.asm.Opcodes;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.*;
+import static groovyjarjarasm.asm.Type.getMethodDescriptor;
+
+/**
+ * Reads only exact public Builder/Factory declaration bytes and signatures, without initialization.
+ * Model types may identify self bounds but their bytes, defaults, lifecycle and validators are never inspected.
+ * Required protocol facts are checked even for excluded/suppressed members; failures retain the declaring
+ * Schema, public contract and artifact identity. Unrelated annotations are never instantiated as proxies.
+ * Mutable ASM state stays private; callers receive defensively copied, ordered, inert declaration facts.
+ */
+final class BuilderContractReader {
+    private BuilderContractReader() { }
+    static final String VALUE = "value";
+    static final String EXAMPLES = "examples";
+    static final String IDENTITY_NAME = "IDENTITY";
+    static final String KEBAB_NAME = "KEBAB_CASE";
+    static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
+    static final String BUILDER_SUFFIX = "_DSL$Builder";
+    static final String INPUT_IGNORED = "excluded by @InputIgnore";
+    static final String JSON_PROPERTY_ORIGIN = "JSON_PROPERTY";
+    static final String IGNORE_ORIGIN = "IGNORE";
+    static final String INPUT_IGNORE_ORIGIN = "INPUT_IGNORE";
+    static final Set<String> NAME_ORIGINS = Set.of(IDENTITY_NAME, JSON_PROPERTY_ORIGIN, "INPUT_NAME", IGNORE_ORIGIN, INPUT_IGNORE_ORIGIN);
+    static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
+    static final String NUMERIC = "NUMERIC";
+    static final String CONTAINER = "CONTAINER";
+    static final String PREFIX = "Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$";
+    static final String SCHEMA = PREFIX + "Schema;";
+    static final String KEY_ANNOTATION = PREFIX + "Key;";
+    static final String FIELD = PREFIX + "Field;";
+    static final String OPERATION_FACT = PREFIX + "Operation;";
+    static final String SOURCE_DEPRECATED = "sourceDeprecated";
+    static final String CONSTRAINT = PREFIX + "Constraint;";
+    static final String SELECTION = PREFIX + "Selection;";
+    static final String EXCLUSION = PREFIX + "Exclusion;";
+    static final String OPERATION = "Lcom/blackbuild/klum/ast/Builder$Method;";
+    static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
+    static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
+    static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC);
+    static final Set<String> NUMBERS = Set.of("byte", "short", "int", "long", "float", "double",
+            "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float",
+            "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
+    static final Set<String> COLLECTIONS = Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet", "java.util.EnumSet");
+    static final Set<String> MAPS = Set.of("java.util.Map", "java.util.SortedMap", "java.util.NavigableMap");
+
+    /** Validated declaration facts; names and source roles are still unresolved. */
+    record Metadata(boolean schema, int version, Boolean namingExplicit, String namingProfile,
+                    Boolean groupRedefined, boolean keyInput, Literals keyMember, String key,
+                    List<Invisible> invisible, Map<String, Literals> methods) {
+        Metadata {
+            invisible = List.copyOf(invisible);
+            methods = Collections.unmodifiableMap(new LinkedHashMap<>(methods));
+        }
+    }
+
+    /** Field/key and authored-operation names remain separate even on a shared accessor. */
+    record Literals(String location, String key, String field, String selection, String role, String doc,
+                    NameFacts names, NameFacts operationNames, boolean operationFact, boolean fixed,
+                    Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated,
+                    String exclusion, String detail, boolean operation, boolean query,
+                    List<ConstraintRule> constraints, String constraintProjection,
+                    List<String> examples, List<String> operationExamples) {
+        Literals {
+            constraints = constraints == null ? null : List.copyOf(constraints);
+            examples = examples == null ? null : List.copyOf(examples);
+            operationExamples = operationExamples == null ? null : List.copyOf(operationExamples);
+        }
+    }
+
+    record NameFacts(String rename, String origin, boolean ignored) { }
+
+    private static Metadata freeze(MutableMetadata value) {
+        Map<String, Literals> methods = new LinkedHashMap<>();
+        value.methods.forEach((signature, literal) -> methods.put(signature, freeze(literal)));
+        return new Metadata(value.schema, value.version, value.namingExplicit, value.namingProfile,
+                value.groupRedefined, value.keyInput, value.keyMember == null ? null : freeze(value.keyMember),
+                value.key, value.invisible, methods);
+    }
+
+    private static Literals freeze(MutableLiterals value) {
+        return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
+                freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
+                value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.exclusion, value.detail,
+                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples);
+    }
+
+    private static NameFacts freeze(MutableNameFacts value) {
+        return new NameFacts(value.rename, value.origin, value.ignored);
+    }
+
+    private static void validateDecimalFacts(MutableLiterals literal, String source) {
+        for (ConstraintRule rule : literal.constraints) {
+            if (!decimalRule(rule.annotation())) continue;
+            if (rule.decimalValue() == null || rule.inclusive() == null) {
+                throw invalidConstraint(literal, "missing direct decimal facts");
+            }
+            try {
+                new BigDecimal(rule.decimalValue());
+            } catch (NumberFormatException failure) {
+                throw invalidConstraint(literal, "Invalid decimal bound '" + rule.decimalValue() + "' on " + source);
+            }
+        }
+    }
+
+    private static void validateNaming(MutableMetadata declared, Class<?> builder) {
+        if (declared.namingExplicit == null || declared.namingProfile == null
+                || !Set.of(IDENTITY_NAME, KEBAB_NAME).contains(declared.namingProfile)
+                || Boolean.FALSE.equals(declared.namingExplicit) && !declared.namingProfile.equals(IDENTITY_NAME)) {
+            throw invalid("Invalid or incomplete naming metadata on " + namingOrigin(builder));
+        }
+    }
+
+    static String schemaName(Class<?> builder) {
+        return builder.getName().endsWith(BUILDER_SUFFIX)
+                ? builder.getName().substring(0, builder.getName().length() - BUILDER_SUFFIX.length()) : builder.getName();
+    }
+
+    static String namingOrigin(Class<?> builder) {
+        URL origin = builder.getProtectionDomain().getCodeSource() == null ? null : builder.getProtectionDomain().getCodeSource().getLocation();
+        return schemaName(builder) + " [public Builder " + builder.getName() + ", artifact " + origin + "]";
+    }
+
+    static Declaration declaration(Method method, Literals literal) {
+        if (literal == null) throw invalid("Missing exact contract method " + method);
+        return new Declaration(method.getDeclaringClass().getName(), method.getName(),
+                Arrays.stream(method.getGenericParameterTypes()).map(Type::getTypeName).toList(),
+                method.getGenericReturnType().getTypeName(), literal.doc());
+    }
+
+    static String descriptor(Method method) {
+        return method.getName() + "(" + Arrays.stream(method.getParameterTypes()).map(Class::getTypeName).collect(Collectors.joining(", "))
+                + "):" + method.getReturnType().getTypeName();
+    }
+
+    static String signature(Method method) { return method.getName() + getMethodDescriptor(method); }
+
+    static String exclusionReason(String category, String detail) {
+        return switch (category) {
+            case IGNORE_ORIGIN -> IGNORED_INPUT;
+            case INPUT_IGNORE_ORIGIN -> INPUT_IGNORED;
+            case "NO_PAYLOAD" -> "has no admitted scalar, enum, List, or Map payload";
+            case "OWNERSHIP" -> "requires one concrete owned relationship";
+            case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
+            case "KEY_MAPPING" -> "literal structured instance keys conflict with @Field.keyMapping-derived keys";
+            case NUMERIC -> "unsupported numeric type " + requiredDetail(detail)
+                    + "; use primitive/boxed numeric types, BigInteger or BigDecimal for structured input";
+            case CONTAINER -> "unsupported whole-container payload target " + requiredDetail(detail)
+                    + "; use ordinary List/Map payloads or a supported field's generated element population";
+            case "POPULATION" -> "has no unambiguous compiler-generated element population method " + requiredDetail(detail)
+                    + "; replacement setters and authored overrides are not input paths";
+            case "ABSENT_FIELD" -> "field is absent from the final public Builder contract";
+            default -> throw invalid("Unknown input exclusion " + category);
+        };
+    }
+
+    private static String requiredDetail(String detail) {
+        if (detail.isEmpty()) throw invalid("Missing invisible exclusion detail");
+        return detail;
+    }
+
+    static IllegalArgumentException invalid(String message) { return new IllegalArgumentException(message); }
+
+    static void requirePublic(Class<?> contract) throws ClassNotFoundException {
+        if (!contract.isInterface() || !Modifier.isPublic(contract.getModifiers())
+                || Class.forName(contract.getName(), false, contract.getClassLoader()) != contract)
+            throw invalid("Expected exact public contract identity " + contract.getName());
+    }
+
+    static List<Declaration> scope(Class<?> contract) throws IOException, ClassNotFoundException {
+        requirePublic(contract);
+        Map<Class<?>, Metadata> owners = new LinkedHashMap<>();
+        List<Declaration> result = new ArrayList<>();
+        for (Method method : Arrays.stream(contract.getMethods()).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
+            Class<?> owner = method.getDeclaringClass();
+            if (!owners.containsKey(owner)) owners.put(owner, metadata(owner));
+            result.add(declaration(method, owners.get(owner).methods().get(signature(method))));
+        }
+        return List.copyOf(result);
+    }
+
+    /** Names belong to selected source declarations, which can share one public accessor signature. */
+    private static final class MutableNameFacts {
+        String rename = "";
+        String origin;
+        boolean ignored;
+        boolean renamePresent;
+        boolean ignoredPresent;
+    }
+
+    private static final class MutableLiterals {
+        String location = "construction key";
+        String key;
+        String field;
+        String selection;
+        String role;
+        String doc;
+        final MutableNameFacts names = new MutableNameFacts();
+        final MutableNameFacts operationNames = new MutableNameFacts();
+        boolean operationFact;
+        boolean fixed;
+        Boolean schemaKey;
+        Boolean sourceDeprecated;
+        Boolean operationDeprecated;
+        String exclusion = "";
+        String detail = "";
+        boolean operation;
+        boolean query;
+        List<ConstraintRule> constraints;
+        String constraintProjection;
+        List<String> examples;
+        List<String> operationExamples;
+    }
+    record Invisible(String member, String reason) { }
+    private static final class MutableMetadata {
+        boolean schema;
+        int version;
+        Boolean namingExplicit;
+        String namingProfile;
+        Boolean groupRedefined;
+        boolean keyInput;
+        MutableLiterals keyMember;
+        String key = "";
+        final List<Invisible> invisible = new ArrayList<>();
+        final Map<String, MutableLiterals> methods = new LinkedHashMap<>();
+    }
+
+    /** Exact public declaration resources only. Avoids annotation proxies parsing unrelated user enum annotations. */
+    static Metadata metadata(Class<?> owner) throws IOException, ClassNotFoundException {
+        verifyAnnotationProtocol(owner);
+        String name = owner.getName().replace('.', '/') + ".class";
+        verifyResourceOrigin(owner, name);
+        try (InputStream bytes = owner.getModule().getResourceAsStream(name)) {
+            if (bytes == null) throw new IOException("Missing exact module contract resource " + name);
+            MutableMetadata result = new MutableMetadata();
+            try {
+                new ClassReader(bytes).accept(new MetadataVisitor(owner, name, result),
+                        ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                validateMetadata(owner, result);
+            } catch (RuntimeException failure) {
+                throw invalid("Invalid public Builder metadata on " + namingOrigin(owner) + ": " + failure.getMessage());
+            }
+            if (owner.getName().endsWith(BUILDER_SUFFIX) && !result.schema)
+                throw invalid("Missing generated input enrichment on " + namingOrigin(owner));
+            return freeze(result);
+        }
+    }
+
+    static String ignoreReason(NameFacts names) {
+        return INPUT_IGNORE_ORIGIN.equals(names.origin()) ? INPUT_IGNORED : IGNORED_INPUT;
+    }
+
+    private static void validateMetadata(Class<?> owner, MutableMetadata metadata) {
+        if (!metadata.schema) return;
+        if (metadata.version != 1) {
+            throw invalid("Unsupported structured-input metadata protocol version " + metadata.version + " on " + namingOrigin(owner)
+                    + "; expected version 1; recompile and package the participating Schema artifacts with a matching KlumAST toolchain");
+        }
+        validateNaming(metadata, owner);
+        if (metadata.groupRedefined == null) throw invalid("Missing constraint group facts on " + namingOrigin(owner));
+        if (metadata.keyMember != null) validateLiteral(owner, metadata.keyMember, "construction key");
+        metadata.methods.forEach((signature, literal) -> validateLiteral(owner, literal, signature));
+    }
+
+    private static void validateLiteral(Class<?> owner, MutableLiterals literal, String signature) {
+        String source = namingOrigin(owner) + "#" + signature;
+        if (literal.field != null || literal.key != null) {
+            validateNameFacts(literal.names, source);
+            if (literal.examples == null) throw invalid("Missing examples metadata on " + source);
+            if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
+        }
+        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
+        if (literal.operationFact) {
+            validateNameFacts(literal.operationNames, source);
+            if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
+            if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
+        }
+        if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
+    }
+
+    private static void validateFieldFacts(MutableLiterals literal, String source) {
+        if (literal.constraints == null) throw invalidConstraint(literal, "Missing constraint facts on " + source);
+        if (literal.constraintProjection == null) throw invalid("Missing constraint projection policy on " + source);
+        try {
+            Policy.valueOf(literal.constraintProjection);
+        } catch (IllegalArgumentException failure) {
+            throw invalidConstraint(literal, "Unknown constraint projection policy " + literal.constraintProjection + " on " + source);
+        }
+        validateDecimalFacts(literal, source);
+        List<ConstraintRule> patterns = literal.constraints.stream()
+                .filter(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
+        boolean repeatedPattern = patterns.size() > 1 || literal.constraints.stream()
+                .anyMatch(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
+        if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
+            throw invalidConstraint(literal, "Inconsistent singleton Pattern eligibility on " + source);
+        }
+    }
+
+    private static void validateNameFacts(MutableNameFacts names, String source) {
+        if (!NAME_ORIGINS.contains(names.origin == null ? "" : names.origin)
+                || !names.renamePresent || !names.ignoredPresent) {
+            throw invalid("Invalid or incomplete literal metadata on " + source);
+        }
+        boolean excluded = Set.of(IGNORE_ORIGIN, INPUT_IGNORE_ORIGIN).contains(names.origin);
+        boolean renamed = Set.of(JSON_PROPERTY_ORIGIN, "INPUT_NAME").contains(names.origin);
+        if (names.ignored != excluded || renamed == names.rename.isEmpty()) {
+            throw invalid("Inconsistent literal metadata on " + source);
+        }
+    }
+
+    private static void verifyAnnotationProtocol(Class<?> owner) throws ClassNotFoundException {
+        for (Class<?> protocol : List.of(GeneratedInput.Schema.class, GeneratedInput.Key.class, GeneratedInput.Field.class, GeneratedInput.Selection.class, GeneratedInput.Exclusion.class))
+            if (!Class.forName(protocol.getName(), false, owner.getClassLoader()).isAnnotation())
+                throw invalid("Missing annotation protocol " + protocol.getName());
+    }
+
+    private static void verifyResourceOrigin(Class<?> owner, String name) throws IOException {
+        URL resource = owner.getResource("/" + name);
+        if (resource == null) throw new IOException("Missing exact public contract resource " + name);
+        if (owner.getModule().isNamed()) return;
+        URL origin = owner.getProtectionDomain().getCodeSource() == null ? null : owner.getProtectionDomain().getCodeSource().getLocation();
+        if (origin == null) throw invalid("Missing contract resource origin " + owner.getName());
+        // Compare resource spellings without URL.equals DNS lookups; loader URLs may contain unescaped spaces.
+        boolean matches = resource.openConnection() instanceof JarURLConnection jar
+                ? jar.getJarFileURL().toExternalForm().equals(origin.toExternalForm())
+                : resource.toExternalForm().equals(new URL(origin, name).toExternalForm());
+        if (!matches) throw invalid("Public contract resource origin disagrees with loaded type " + owner.getName());
+    }
+
+    private static final class MetadataVisitor extends ClassVisitor {
+        private final Class<?> owner;
+        private final String name;
+        private final MutableMetadata result;
+
+        MetadataVisitor(Class<?> owner, String name, MutableMetadata result) {
+            super(Opcodes.ASM9);
+            this.owner = owner;
+            this.name = name;
+            this.result = result;
+        }
+
+        @Override public void visit(int version, int access, String internal, String signature, String parent, String[] interfaces) {
+            if (!internal.equals(name.substring(0, name.length() - 6)) || (access & Opcodes.ACC_PUBLIC) == 0 || (access & Opcodes.ACC_INTERFACE) == 0)
+                throw invalid("Public contract resource identity/access mismatch " + owner.getName());
+        }
+
+        @Override public AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+            if (!visible || !annotation.equals(SCHEMA)) return null;
+            if (result.schema) throw invalid("Duplicate input schema marker");
+            result.schema = true;
+            return new SchemaAnnotationVisitor(result);
+        }
+
+        @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+            MutableLiterals literal = new MutableLiterals();
+            literal.location = name + descriptor;
+            result.methods.put(name + descriptor, literal);
+            return new ContractMethodVisitor(literal);
+        }
+    }
+
+    private static final class SchemaAnnotationVisitor extends AnnotationVisitor {
+        private final MutableMetadata result;
+        private final Set<String> seen = new LinkedHashSet<>();
+
+        SchemaAnnotationVisitor(MutableMetadata result) {
+            super(Opcodes.ASM9);
+            this.result = result;
+        }
+
+        @Override public void visit(String member, Object value) {
+            if (!seen.add(member)) throw invalid("Duplicate schema member " + member);
+            switch (member) {
+                case "version" -> result.version = integer(value);
+                case "namingExplicit" -> result.namingExplicit = flag(member, value);
+                case "namingProfile" -> result.namingProfile = text(member, value);
+                case "groupRedefined" -> result.groupRedefined = flag(member, value);
+                case "key" -> result.key = text(member, value);
+                case "keyInput" -> result.keyInput = flag(member, value);
+                default -> throw unknownMember(member);
+            }
+        }
+
+        private static int integer(Object value) {
+            if (value instanceof Integer number) {
+                return number;
+            }
+            throw invalid("Malformed structured-input metadata protocol version: expected an integer");
+        }
+
+        private static boolean flag(String member, Object value) {
+            if (value instanceof Boolean flag) {
+                return flag;
+            }
+            throw unknownMember(member);
+        }
+
+        private static String text(String member, Object value) {
+            if (value instanceof String text) {
+                return text;
+            }
+            throw unknownMember(member);
+        }
+
+        private static IllegalArgumentException unknownMember(String member) {
+            return invalid("Unknown schema member " + member);
+        }
+
+        @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+            if (!member.equals("keyMember") || !descriptor.equals(KEY_ANNOTATION) || result.keyMember != null)
+                throw invalid("Unknown or duplicate schema key member " + member);
+            result.keyMember = new MutableLiterals();
+            return new MethodAnnotationVisitor(KEY_ANNOTATION, result.keyMember);
+        }
+
+        @Override public void visitEnum(String member, String descriptor, String value) {
+            throw invalid("Unexpected schema enum " + member);
+        }
+
+        @Override public AnnotationVisitor visitArray(String member) {
+            if (!member.equals("exclusions")) throw invalid("Unknown schema array " + member);
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                @Override public AnnotationVisitor visitAnnotation(String ignored, String annotation) {
+                    if (!annotation.equals(EXCLUSION)) throw invalid("Invalid invisible exclusion");
+                    return new ExclusionAnnotationVisitor(result);
+                }
+            };
+        }
+    }
+
+    private static final class ExclusionAnnotationVisitor extends AnnotationVisitor {
+        private final MutableMetadata result;
+        private String source;
+        private String category;
+        private String detail = "";
+
+        ExclusionAnnotationVisitor(MutableMetadata result) {
+            super(Opcodes.ASM9);
+            this.result = result;
+        }
+
+        @Override public void visit(String member, Object value) {
+            if (!(value instanceof String text)) throw invalid("Unknown exclusion member " + member);
+            switch (member) {
+                case "member" -> source = text;
+                case "category" -> category = text;
+                case "detail" -> detail = text;
+                default -> throw invalid("Unknown exclusion member " + member);
+            }
+        }
+
+        @Override public void visitEnd() {
+            if (source == null || source.isEmpty() || category == null) throw invalid("Invalid invisible exclusion");
+            result.invisible.add(new Invisible(source, exclusionReason(category, detail)));
+        }
+    }
+
+    private static final class ContractMethodVisitor extends MethodVisitor {
+        private final MutableLiterals literal;
+        private final Set<String> seen = new LinkedHashSet<>();
+
+        ContractMethodVisitor(MutableLiterals literal) {
+            super(Opcodes.ASM9);
+            this.literal = literal;
+        }
+
+        @Override public AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+            if (!PROTOCOL.contains(annotation)) return null;
+            if (annotation.startsWith(PREFIX) && !visible) throw invalid("Generated input annotation requires runtime retention");
+            if (!seen.add(annotation)) throw invalid("Duplicate contract annotation " + annotation);
+            if (annotation.equals(OPERATION)) literal.operation = true;
+            if (annotation.equals(QUERY)) literal.query = true;
+            if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
+            return new MethodAnnotationVisitor(annotation, literal);
+        }
+    }
+
+    private static IllegalArgumentException invalidConstraint(MutableLiterals field, String reason) {
+        return invalid(reason + " for source field #" + field.field + ", external input '"
+                + (field.names.rename.isEmpty() ? field.field : field.names.rename) + "'");
+    }
+
+    private static boolean decimalRule(String annotation) {
+        return Set.of("jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax").contains(annotation);
+    }
+
+    /** Decodes inert strings/longs/booleans only; no Bean annotation classes/proxies or validator code. */
+    private static final class ConstraintAnnotationVisitor extends AnnotationVisitor {
+        private final MutableLiterals field;
+        private final Set<String> seen = new LinkedHashSet<>();
+        private String annotation;
+        private String value = "";
+        private boolean plain;
+        private String declaration;
+        private String decimalValue;
+        private Boolean inclusive;
+        private String regexp;
+        private Boolean patternFlagsEmpty;
+
+        ConstraintAnnotationVisitor(MutableLiterals field) {
+            super(Opcodes.ASM9);
+            this.field = field;
+        }
+
+        @Override public void visit(String member, Object literal) {
+            if (!seen.add(member)) throw invalid("Duplicate constraint member " + member);
+            switch (member) {
+                case "annotation" -> annotation = (String) literal;
+                case VALUE -> {
+                    if (!(literal instanceof Long)) throw invalid("Integral constraint value must be a Java long");
+                    value = literal.toString();
+                }
+                case "regexp" -> {
+                    if (!(literal instanceof String)) throw invalidConstraint(field, "Pattern regexp must be a String");
+                    regexp = (String) literal;
+                }
+                case "patternFlagsEmpty" -> {
+                    if (!(literal instanceof Boolean)) throw invalidConstraint(field, "Pattern flag emptiness must be a Boolean");
+                    patternFlagsEmpty = (Boolean) literal;
+                }
+                case "decimalValue" -> decimalValue = (String) literal;
+                case "inclusive" -> inclusive = (Boolean) literal;
+                case "plain" -> plain = (Boolean) literal;
+                case "declaration" -> declaration = (String) literal;
+                default -> throw invalid("Unknown constraint member " + member);
+            }
+        }
+
+        @Override public AnnotationVisitor visitArray(String member) { throw invalid("Unexpected constraint array " + member); }
+        @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) { throw invalid("Unexpected nested constraint " + member); }
+        @Override public void visitEnum(String member, String descriptor, String literal) { throw invalid("Unexpected constraint enum " + member); }
+
+        @Override public void visitEnd() {
+            if (annotation == null || annotation.isBlank() || declaration == null || declaration.isBlank())
+                throw invalidConstraint(field, "Missing constraint declaration identity");
+            if (!seen.contains("plain")) throw invalidConstraint(field, "Missing constraint eligibility");
+            boolean integral = Set.of("jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max").contains(annotation);
+            if (integral && !seen.contains(VALUE)) throw invalidConstraint(field, "Missing direct integral bound");
+            boolean pattern = annotation.equals("jakarta.validation.constraints.Pattern");
+            if (pattern && (regexp == null || patternFlagsEmpty == null))
+                throw invalidConstraint(field, "Missing direct Pattern facts (regexp/patternFlagsEmpty)");
+            if (!pattern && (regexp != null || patternFlagsEmpty != null))
+                throw invalidConstraint(field, "Pattern facts on a non-Pattern declaration");
+            if (plain && !pattern && !decimalRule(annotation) && (!integral
+                    || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
+            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty));
+        }
+    }
+
+    private static final class MethodAnnotationVisitor extends AnnotationVisitor {
+        private final String annotation;
+        private final MutableLiterals literal;
+
+        MethodAnnotationVisitor(String annotation, MutableLiterals literal) {
+            super(Opcodes.ASM9);
+            this.annotation = annotation;
+            this.literal = literal;
+        }
+
+        @Override public void visit(String member, Object value) {
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
+            switch (annotation) {
+                case OPERATION_FACT -> {
+                    if (member.equals(SOURCE_DEPRECATED)) {
+                        literal.operationDeprecated = (Boolean) value;
+                    } else if (!nameFact(literal.operationNames, member, value)) {
+                        throw invalid("Unknown operation fact " + member);
+                    }
+                }
+                case KEY_ANNOTATION -> keyFact(member, value);
+                case FIELD -> fieldFact(member, value);
+                case SELECTION -> selectionFact(member, value);
+                default -> { if (annotation.equals(DOC) && member.equals(VALUE)) literal.doc = (String) value; }
+            }
+        }
+
+        private void keyFact(String member, Object value) {
+            switch (member) {
+                case VALUE -> literal.key = (String) value;
+                case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                default -> { if (!nameFact(literal.names, member, value)) throw invalid("Unknown construction key fact " + member); }
+            }
+        }
+
+        private void fieldFact(String member, Object value) {
+            switch (member) {
+                case VALUE -> literal.field = (String) value;
+                case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case "constraints" -> throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
+                case "fixedKey" -> literal.fixed = (Boolean) value;
+                case "schemaKey" -> literal.schemaKey = (Boolean) value;
+                case "exclusion" -> literal.exclusion = (String) value;
+                case "detail" -> literal.detail = (String) value;
+                default -> { if (!nameFact(literal.names, member, value)) throw invalid("Unknown field fact " + member); }
+            }
+        }
+
+        private void selectionFact(String member, Object value) {
+            switch (member) {
+                case "field" -> literal.selection = (String) value;
+                case "role" -> literal.role = (String) value;
+                default -> throw invalid("Unknown selection fact " + member);
+            }
+        }
+
+        private boolean nameFact(MutableNameFacts names, String member, Object value) {
+            if (member.equals("nameOrigin") && names.origin != null
+                    || member.equals("rename") && names.renamePresent
+                    || member.equals("ignored") && names.ignoredPresent) {
+                throw invalid("Duplicate literal metadata member " + member);
+            }
+            switch (member) {
+                case "nameOrigin" -> names.origin = (String) value;
+                case "rename" -> { names.rename = (String) value; names.renamePresent = true; }
+                case "ignored" -> { names.ignored = (Boolean) value; names.ignoredPresent = true; }
+                default -> { return false; }
+            }
+            return true;
+        }
+
+        @Override public void visitEnum(String member, String descriptor, String value) {
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected enum");
+            if (annotation.equals(FIELD) && member.equals("constraintProjection")
+                    && descriptor.equals("Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;")) {
+                if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
+                literal.constraintProjection = value;
+                return;
+            }
+            if (annotation.startsWith(PREFIX)) throw invalid("Unexpected enum input fact " + member);
+        }
+
+        private IllegalArgumentException invalidExamples(int index, String reason) {
+            return invalid("Invalid examples metadata on #" + literal.location + ", example " + index + ": " + reason);
+        }
+
+        private AnnotationVisitor examplesArray() {
+            boolean operation = annotation.equals(OPERATION_FACT);
+            if ((operation ? literal.operationExamples : literal.examples) != null) throw invalidExamples(1, "duplicate array");
+            List<String> examples = new ArrayList<>();
+            if (operation) literal.operationExamples = examples;
+            else literal.examples = examples;
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                private int characters;
+                @Override public void visit(String ignored, Object value) {
+                    if (!(value instanceof String text)) throw invalidExamples(examples.size() + 1, "requires String array elements");
+                    // Classfile constants can be reused thousands of times; bound expanded documentary output.
+                    characters += text.length();
+                    if (characters > 1_048_576) throw invalidExamples(examples.size() + 1, "excessive documentary text");
+                    examples.add(text);
+                }
+                @Override public AnnotationVisitor visitArray(String ignored) { throw invalidExamples(examples.size() + 1, "unexpected nested array"); }
+                @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) { throw invalidExamples(examples.size() + 1, "unexpected annotation"); }
+                @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidExamples(examples.size() + 1, "unexpected enum"); }
+            };
+        }
+
+        @Override public AnnotationVisitor visitArray(String member) {
+            if (member.equals(EXAMPLES) && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation))
+                return examplesArray();
+            if (annotation.equals(FIELD) && member.equals("constraints")) {
+                if (literal.constraints != null) throw invalid("Duplicate constraint facts");
+                literal.constraints = new ArrayList<>();
+                return new AnnotationVisitor(Opcodes.ASM9) {
+                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
+                        if (!descriptor.equals(CONSTRAINT)) throw invalid("Unexpected constraint fact " + descriptor);
+                        return new ConstraintAnnotationVisitor(literal);
+                    }
+                    @Override public void visit(String ignored, Object value) {
+                        throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
+                    }
+                    @Override public void visitEnum(String ignored, String descriptor, String value) {
+                        throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
+                    }
+                    @Override public AnnotationVisitor visitArray(String ignored) {
+                        throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
+                    }
+                };
+            }
+            if (annotation.startsWith(PREFIX)) throw invalid("Unexpected array input fact " + member);
+            return null;
+        }
+
+        @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+            if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected annotation");
+            if (annotation.startsWith(PREFIX)) throw invalid("Unexpected nested input fact " + member);
+            return null;
+        }
+
+        @Override public void visitEnd() {
+            if (annotation.equals(KEY_ANNOTATION) && (literal.key == null || literal.key.isEmpty())) throw invalid("Missing construction key association");
+            if (annotation.equals(FIELD) && (literal.field == null || literal.field.isEmpty())) throw invalid("Missing field association");
+            if (annotation.equals(SELECTION) && (literal.selection == null || literal.selection.isEmpty() || literal.role == null))
+                throw invalid("Missing population selection");
+        }
+    }
+}

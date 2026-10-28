@@ -48,7 +48,7 @@ public final class CompiledBuilderSchemaReplacementProbe {
         return result;
     }
     public static List<Map<String, Object>> scope(Class<?> contract) throws IOException, ClassNotFoundException {
-        return CompiledBuilderSchema.scope(contract).stream().map(declaration -> Map.<String, Object>of(
+        return BuilderContractReader.scope(contract).stream().map(declaration -> Map.<String, Object>of(
                 "owner", declaration.owner(), "name", declaration.name(), "parameters", declaration.parameters(),
                 "returns", declaration.returns(), "documentation", declaration.documentation() == null ? "" : declaration.documentation())).toList();
     }

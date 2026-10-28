@@ -233,6 +233,50 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
         parentLoader?.close()
     }
 
+    @Issue('959')
+    def 'validated declaration snapshots defensively freeze nested facts'() {
+        given:
+        createClass '''
+            package frozenfacts
+            import com.blackbuild.klum.ast.*
+            @DSL class Document {
+                @InputExamples(['first', 'second']) String title
+            }
+        '''
+        def binaries = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def builder = Class.forName('frozenfacts.Document_DSL$Builder', false, binaries)
+        def facts = BuilderContractReader.metadata(builder)
+        def field = facts.methods().values().find { it.field() == 'title' }
+
+        when:
+        facts.methods().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        facts.invisible().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        field.examples().add('mutated')
+
+        then:
+        thrown(UnsupportedOperationException)
+        field.examples() == ['first', 'second']
+
+        when:
+        field.constraints().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        cleanup:
+        binaries?.close()
+    }
+
     private static void removeEnrichment(File contract) {
         def writer = new ClassWriter(0)
         new ClassReader(contract.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
