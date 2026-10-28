@@ -19,7 +19,7 @@ Need horizon: identified ScHelm demand, provisional next 4.x integration line; n
 
 Design disposition, 2026-10-28: the [contract/projection separation](#proposed-contract-and-projection-separation--959)
 and its [staged plan](../implementation/issue-959-input-projection-architecture.md) distinguish current guarantees from
-accepted P1/P2 architecture and unaccepted P3/P4/P5 proposals. Implementation remains unassigned; Size stays paused.
+accepted P1/P2 architecture and the related, unaccepted P3 custom-projection proposal. Implementation remains unassigned; Size stays paused.
 
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
 [AsBuilder composition](0004-asbuilder-composition-protocol.md),
@@ -910,10 +910,9 @@ activation boundaries.
 
 ## Proposed contract and projection separation — #959
 
-Date: 2026-10-28. Status: **P1/P2 accepted by the maintainer; P3/P4/P5 remain unaccepted proposals; design/documentation only.**
+Date: 2026-10-28. Status: **P1/P2 accepted by the maintainer; related P3 remains an unaccepted proposal; design/documentation only.**
 Authority: the INPUT-PROJECTION-ARCH design assignment and subsequent maintainer acceptance of P1/P2, informed by
-[#959](https://github.com/klum-dsl/klum-ast/issues/959), the completed Size probe and
-[#971](https://github.com/klum-dsl/klum-ast/issues/971). The
+[#959](https://github.com/klum-dsl/klum-ast/issues/959) and the completed Size probe. The
 [plan and evidence inventory](../implementation/issue-959-input-projection-architecture.md) pin the inspected revisions.
 This is a focused extension of this ADR, not a successor to its language or no-execution decisions.
 
@@ -926,14 +925,13 @@ runtime interpretation, but its mapping decisions are still embedded in the rend
 facts; operations have no production parameter-constraint facts. The unified protocol, field projection policies,
 documentary string examples, always-on numeric mappings and bounded Pattern mapping remain the accepted baseline.
 
-**Accepted maintainer direction for this investigation:** evaluate the separation before more mappings; examine a
-class-valued custom association, a narrow parameter-fact corridor, IDE assistance and import responsibilities. This
-accepts the questions and the design-only scope, not an implementation or a public extension interface.
-
 **Accepted decisions:** P1 and P2 below. Their acceptance does not assign S1/S2 or authorize production changes.
-**Unaccepted proposals:** P3, P4 and P5, including custom projectors, the #971 corridor and import preference/sunset choices.
-**Open decisions** are listed in the plan. **Deferred:** Size implementation, generic validation, custom execution, parameter enforcement, new converter/
-Factory admission, IDE tooling implementation and Jackson deprecation/removal. No release placement changes.
+**Related open design question:** P3 stays here because custom projection can affect the separation of inert contract
+facts, mapping contributions and executable handlers. Its interface, packaging and execution policy are not accepted.
+**Separate investigations:** former P4 (parameter projection/editor assistance) is tracked in
+[#981](https://github.com/klum-dsl/klum-ast/issues/981); former P5 (import guidance/Jackson compatibility) in
+[#982](https://github.com/klum-dsl/klum-ast/issues/982). Neither is a decision or implementation gate in this ADR revision.
+Size implementation and new mappings remain deferred; no release placement changes.
 
 ### P1 — Extract behavior before choosing a record
 
@@ -1017,48 +1015,14 @@ replacement. Validate all metadata first. Treat selected handlers as trusted bui
 Disable output caching/up-to-date reuse for custom mode initially unless all inputs and deterministic behavior are
 separately qualified; built-in task behavior is unchanged. Do not execute handlers in runtime preflight or the IDE.
 
-### P4 — Preserve separate projection, invocation and editor contracts
-
-#971 remains Future/untargeted. A separately approved compiler-only experiment may transport facts from **one parameter
-of an already admitted operation**, with exact original executable descriptor, index mapping, raw type, source and
-eligibility. Generated converter/Factory calls qualify only after #932 explicitly admits/selects them; their mere
-existence is not admission. Begin with the test-evidenced direct Min fact, not arbitrary String validation. Projecting
-these facts would not implement #971's before-body validation requirement or direct Java/Groovy call interception.
-
-The retained G3 Factory `HV000152` and G4/G5 duplicate type-use `AnnotationFormatError` failures remain unresolved.
-A compiler-fact path avoids provider inspection but does not repair those failures; prove its own exact source selection,
-binary inheritance, completeness and G3/G4/G5/JPMS behavior. No ExecutableValidator integration, annotation stripping,
-general validator, or operation-policy expansion is proposed here. Body validation remains the practical workaround.
-
-Current IntelliJ/GDSL evidence includes completion, navigation, Parameter Info and wrong-argument diagnostics, beyond
-completion alone. It establishes no SemVer/Bean-constraint value inspection or argument-example suggestions. Future
-GDSL documentation assistance, a literal-only type-checking extension, or an LSP/IDE consumer of inert facts needs
-separate qualification. Never infer semantic assistance from copied annotations or execute projectors while editing.
-
-### P5 — Prefer Structured Import where its grammar fits; retain managed Jackson Import
-
-Here Structured Import means the existing `KlumStructuredInput` route, not a new public type or a rename of `FromMap`.
-Recommend it for **new Klum-authored Map/List/scalar configuration within the admitted grammar**, because one
-compiler-owned input contract controls naming, preflight, operations and JSON Schema. A caller may still use Jackson as
-the parser producing that tree; parser choice does not select managed Jackson binding. Groovy scripts remain the native
-durable representation under ADR 0009; this preference introduces no persistence/round-trip promise.
-
-Managed Jackson Import remains the explicit foreign-format adapter and an existing 4.x compatibility commitment. It
-has independently useful aliases, mapper policies, polymorphism, identity/LINK handling and Template/Builder modes.
-Its output path is ordinary Jackson serialization of completed Models, independent of input preference. No automatic
-rerouting, deprecation, sunset date or removal follows. The plan's compatibility/migration matrix must be proven for
-actual consumers, including diagnostics and migration workarounds, before even proposing a sunset; remaining export
-support is a separate decision. A preference alone cannot satisfy that gate.
-
 ### Consequences and rejected alternatives
 
 Initial extraction changes no public/generated ABI, protocol version, language, runtime validation, lifecycle, ownership,
 serialization, optional dependency or release behavior. Groovy 3/4/5 and binary/JPMS regressions remain required for later
-code changes. Custom association metadata or parameter facts would be separate generated-linkage changes with explicit
+code changes. Custom association metadata would be a separate generated-linkage change with explicit
 recompilation and compatibility decisions, respecting the current development protocol/release-cutover policy.
 
 Reject a record-first cosmetic rewrite, a generic public contract/validation SPI, a growing mapping switch in the
-reader, parsing rendered annotations, executing constraint validators for schema generation, automatic custom discovery,
-and Jackson removal by preference. They either retain mixed responsibilities, lose metadata authority, cross the trust
-boundary silently or break an independently supported contract. Implementation remains separately assignable; no production
-work or issue update is authorized here. The maintainer separately authorized publication of this documentation as a draft PR.
+reader, parsing rendered annotations, executing constraint validators for schema generation and automatic custom discovery.
+They either retain mixed responsibilities, lose metadata authority or cross the trust boundary silently. Implementation remains separately assignable; no production
+work is authorized here. The maintainer separately authorized draft documentation publication and the P4/P5 issue split.

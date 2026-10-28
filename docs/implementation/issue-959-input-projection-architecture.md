@@ -1,12 +1,12 @@
 # #959: input-contract and constraint-projection architecture plan
 
-Date: 2026-10-28. Status: **P1/P2 accepted; P3/P4/P5 remain unaccepted proposals; implementation unassigned.**
-Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959),
-[#971](https://github.com/klum-dsl/klum-ast/issues/971), [#932](https://github.com/klum-dsl/klum-ast/issues/932).
-Decision source: [ADR 0031 P1–P5 disposition](../adr/0031-structured-schema-input-artifacts.md#proposed-contract-and-projection-separation--959).
+Date: 2026-10-28. Status: **P1/P2 accepted; related P3 remains unaccepted; implementation unassigned.**
+Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
+Decision source: [ADR 0031 P1/P2 decision and P3 proposal](../adr/0031-structured-schema-input-artifacts.md#proposed-contract-and-projection-separation--959).
 The maintainer accepted P1/P2 and authorized recording that disposition and publishing a draft documentation PR.
-P3/P4/P5 remain unaccepted, including custom projectors, #971 and Jackson-sunset choices. S1 and all production work
-remain unassigned; Size stays paused. Existing accepted behavior remains authoritative.
+P3 remains in scope because custom projection can affect this architecture; it is not an accepted extension interface.
+Former P4 and P5 are separate investigations in [#981](https://github.com/klum-dsl/klum-ast/issues/981) and
+[#982](https://github.com/klum-dsl/klum-ast/issues/982). S1 and all production work remain unassigned; Size stays paused.
 
 ## Evidence and current behavior
 
@@ -22,10 +22,9 @@ supersede parsed examples, separate feature versions and global numeric switches
 | [StructuredInputSupport](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/StructuredInputSupport.java): `Preparation`; [unified protocol](issue-959-unified-metadata-protocol.md) | Per-read plans validate the admitted owned closure, including omitted children, before execution. Missing/stripped/malformed facts reject even under OMIT. Preserve source/artifact/recompile diagnostics. |
 | [GenerateKlumJsonSchema](../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/GenerateKlumJsonSchema.java): `project`, `ContractLoader` | Compile-only runtime linkage; plugin/runtime private types share the isolated consumer loader. Only JDK String/collection results cross back. Projection failure precedes output replacement; filesystem publication is not a general transactional rollback guarantee. |
 | SIZE-PROBE, local commit `da5e8bd059fcc80773d8a4556378c56178310cca`, `docs/implementation/issue-959-size-projection-feasibility.md` | Read at its exact commit; not copied into master. List/Map raw cardinality is plausible but undecided; String UTF-16 versus JSON character length, Set deduplication, sorted/custom containers and existing state block a blanket mapping. No executable Size metadata probe was run. |
-| #971 local evidence commit `b0c0c27ebcec10cda0e242ff194a2b5806d9e0d4`, `docs/implementation/issue-971-input-parameter-feasibility.md`; current canonical [issue](https://github.com/klum-dsl/klum-ast/issues/971) | Read exact report and current disposition. Report predates accepted deferral. Test-only Min transport passes G3/G4/G5; full probe retains 0/3/3 failures in 13 cases per lane. Generated Factory hierarchy and G4/G5 duplicate type-use failures are not repaired. The issue remains Future/untargeted, not assigned to 4.2. |
 
-Both local evidence commits are research artifacts, not merged/publication claims; their reports can be recovered with
-`git show <commit>:<path>` in their owning evidence repositories. #971's issue body also retains the decisive findings.
+The Size evidence commit is a local research artifact, not a merged/publication claim; recover its report with
+`git show <commit>:<path>` in its owning evidence repository.
 No executable probe or Groovy suite was rerun for this documentation task.
 
 ## Recommended first implementation slice: contract extraction only
@@ -134,77 +133,6 @@ Keep custom-mode task outputs non-cacheable/not up-to-date initially; only a lat
 Process isolation may bound crashes/timeouts but must not be marketed as a security sandbox. If this trust model is
 unacceptable, stop with built-ins and descriptions; do not disguise execution as reflection-only metadata.
 
-## Narrow future parameter corridor and IDE evidence
-
-Prospective one-parameter conversion through an **already admitted Builder operation** (imports/domain types abbreviated):
-
-```groovy
-@DSL class ReleasePlan {
-    Version version
-
-    @Builder.Method
-    void versionLiteral(@SemVer String raw) {
-        version = Version.parse(raw) // domain parser must validate today
-    }
-}
-// Intended future schema position: versionLiteral's raw String, not the Version property.
-// KlumStructuredInput.readRoot(ReleasePlan, [versionLiteral: '1.2.3'], 'release.yaml')
-```
-
-The method's one String payload is in the existing structural language; the annotation has no current parameter-projection
-or automatic before-body enforcement effect. `Version.parse` is illustrative application code. Start a future transport
-probe with direct Min on Integer as already evidenced by #971; this String/SemVer example is the later use case, not that
-first probe's acceptance result. Do not transplant completed `Version` field constraints onto `raw`.
-
-An eventual admitted `Version(@SemVer String raw)` converter or custom Factory needs a separate #932 grammar/selection
-decision. Freeze original executable descriptor, declaring artifact, parameter index and source-to-public mapping,
-admitted operation identity, raw type, direct-origin/eligibility and explicit empty/present constraints. Require unambiguous
-single selection, including inherited/overridden/bridge and default-argument cases; defer multi-argument, varargs and overload
-alternatives. Projection-only work neither calls the operation nor changes preflight enforcement, Bean Validation or direct
-Java/Groovy invocation. Parameter policy/defaults and binary completeness require a decision before production transport.
-
-The #971 G3 Factory hierarchy failure and G4/G5 duplicate type-use failures remain explicit negatives. A source-fact probe
-can be independent of executable validation; passing it is not evidence that those failures are fixed or the full issue
-can be implemented. No ExecutableValidator integration or provider-rule relaxation belongs in this plan.
-
-| Assistance | What is established / what remains future |
-| --- | --- |
-| Current Klum IntelliJ/GDSL | [Qualified native evidence](evidence/issue-805-portable-gdsl-intellij.md) and [support scope](../user/Portable-GDSL.md#qualified-ide-boundary): source/binary completion, navigation, Parameter Info, wrong-argument diagnostics in IDEA 2026.2.3. These concern public Builder types/signatures, not Bean parameter predicates. Existing GDSL contributes Create/Template members, closure delegates and recipe context. |
-| General Groovy/IntelliJ mechanisms | [JetBrains Groovy assistance](https://www.jetbrains.com/help/idea/coding-assistance-in-groovy.html) documents type/data-flow completion and inspections. [Groovy 3.0.25 type-checking extensions](https://docs.groovy-lang.org/docs/groovy-3.0.25/html/documentation/core-semantics.html#_type_checking_extensions) can add compiler diagnostics, but need explicit integration. Neither source proves automatic SemVer/Bean-parameter value checks or IntelliJ support for a custom compiler extension. |
-| Potential semantic assistance | An LSP/IDE plugin could consume inert parameter facts to show grammar/examples or check literal arguments; a GDSL documentation experiment could investigate display. Dynamic expressions remain unknown without evaluation. Native source/binary, G3/G4/G5 and selected IDE-version tests are required; JSON/YAML JSON Schema editor support is a separate channel from Groovy argument inspection. No editor executes custom handlers. |
-
-No new native IDE observation was made in this task. “Unqualified” is not a claim that all third-party plugins lack the
-capability. Current evidence supports type assistance, not the proposed semantic service.
-
-## Import responsibility and sunset gate
-
-The preference is conditional: new Klum-authored configuration should use Structured Import when it fits its grammar;
-externally owned documents and consumers relying on mapper semantics retain managed Jackson Import. Parser ownership
-is independent of binding. [ADR 0009](../adr/0009-jackson-interoperability.md) commits to managed import across 4.x.
-
-| Capability | Structured Import today | Managed Jackson Import today / concrete migration evidence needed |
-| --- | --- | --- |
-| Names, aliases, mapper customization | InputNaming, InputName/InputIgnore and bounded JsonProperty/JsonIgnore bridge; no general aliases, mixins/views or mapper strategies | Aliases, mapper naming, mixins/views/access/unknown-property policies. Inventory each consumer's spellings and negative collision/exclusion cases; prove explicit rewrites or retain Jackson. |
-| Polymorphism | Concrete admitted owned types; abstract selection and unkeyed relationship collections excluded | Supported Jackson polymorphic owned DSL binding. Prove closed alias/discriminator mapping, every subtype/container and unknown-id diagnostics before migration; no classpath inference. |
-| References and identity | Construction keys and literal keyed owned maps; no raw LINK/reference lookup | Identity/object-id resolution and explicit LINK codecs preserve supported identity. Compare shared references/cycles, forward/unresolved references, keyed ownership and completed LINK context; no automatic inline-to-owned substitution. |
-| Null, coercion and population | Supplied null rejected, strict scalar admission, generated population/order; converters/factories excluded | Caller null/content/coercion/merge/replacement and value codecs. Compare omission/null, numeric strings, collection overwrite/append, parser ordering/duplicates and custom codecs using real fixtures. |
-| Diagnostics | Whole-tree structural preflight; import source and escaped JSON Pointer; later lifecycle causes stay ordinary | Syntax/mapping/I/O wrapping and Jackson path/line/column where available; stable managed diagnostic grammar. Establish replacement error timing, paths and cause preservation, not just positive values. |
-| Templates and Builders | Root and apply-to-active-Builder; no readTemplate or standalone readBuilder facade | Four explicit modes, including value-only Template and active-session Builder creation. Prove equivalent callbacks/session/thread/sealing and Template reuse, or keep affected modes. |
-| Parser ownership | Caller parses Map/List/scalars and rejects duplicate raw names before collapse | Caller-owned parser/tree/Map and mapper configuration, parser remains open. Test JSON/YAML parsing policies, syntax errors and input ownership separately from binding. |
-| Export | No Structured Import export contract or round-trip guarantee | Ordinary completed-Model Jackson serialization, asymmetric output, LINK and Template rules. Retain export dependency/support even if any import mode later migrates; inventory custom serializers and output consumers. |
-
-Evidence sources: [Structured Input](../user/Structured-Input.md), [Jackson Integration](../user/Jackson-Integration.md),
-`StructuredInputDocumentaryTest`, `StructuredInputKeyDocumentaryTest`, `KlumJacksonImporterSpec`,
-`JacksonCustomizationSpec`, `LinkIdentitySpec`, `JacksonYamlInteroperabilityDocumentaryTest` and
-`JacksonImporterDocumentaryTest`. These establish today's contracts, not parity between them.
-
-Sunset would require named consumer/version inventory, a pass/fail/not-used result for **every matrix row and mode**,
-executable migration fixtures with negative diagnostics, documented adapters/costs for gaps, a supported migration window,
-and an explicit compatibility/release decision consistent with 4.x commitments. A failed or unknown required row blocks
-sunset for that consumer. Keep managed Jackson indefinitely where it remains the appropriate foreign adapter; this
-proposal supplies neither parity evidence nor a deprecation date. `Create.FromMap` and the deferred FromStruct naming
-work remain separate; input preference changes neither API.
-
 ## Conditional slice and acceptance map
 
 Every row requires a fresh assignment; only this documentation artifact is delivered now. S1 is the explicit first slice.
@@ -214,8 +142,6 @@ Every row requires a fresh assignment; only this documentation artifact is deliv
 | S1 — #959 / ADR P1, reader/result/resolver extraction | First commit: exact-byte reader + validated facts and both consumers, with regression tests. Second: effective resolver + immutable result (record only if justified), removal of duplicated profile reading, Javadocs and evidence. Preserve final schema bytes, admitted/rejected language and diagnostics. Use CompiledBuilderSchemaReaderTest/CompiledBuilderSchemaTest, naming/key/runtime tests and packaged KlumJsonSchemaGenerationTest; source-free inherited/owned artifacts, omitted children, cycles, malformed/suppressed facts, exact resource identity, initialization traps with positive controls, loader/JPMS and G3/G4/G5. | Any required admission, generated ABI/protocol, output or public dependency change; lost diagnostic/source identity; user-code execution; unavailable binary evidence. Resolve through design, never widen scope to make extraction green. |
 | S2 — #959 / ADR P2, built-in catalog | Move only existing numeric/Pattern families and reasoned unsupported results into the internal catalog, preserving combination/policy in the renderer. One behavior-preserving commit with existing independent precision/Pattern corpora and all policy/name/use-site tests, followed by evidence/Javadocs if useful. Interpreter has no catalog dependency. | New mapping, weaker Pattern proof, numeric satisfiability logic or user registry appears. Size stays paused. |
 | C0 — #959 / ADR P3, optional custom proof | Only after trust/API choices: isolated proof of class-valued association, compiler-frozen arguments/defaults, no handler initialization when unselected, explicit selection, fragment bounds/conjunction/policy/example precedence and deterministic diagnostics. Separate annotation/handler artifacts, no provider/runtime dependencies, malicious/throwing/invalid/missing handlers, source-free G3/G4/G5/JPMS, failed-output preservation and cache policy. Keep opt-in proof out of normal production tasks. | Handler auto-execution, string/prose reconstruction, dependency cycle, unsafe fragment scope or claim of sandbox/no-user-code safety. No public API or custom production implementation until proof and another decision. |
-| P0 — #971 / #932 / ADR P4, future inert parameter proof | One direct Min parameter on an existing admitted Builder method, exact descriptor/index/source/type/completeness with binary inheritance; corruption and no-initialization controls on all lanes and applicable JPMS. One research commit; retain original #971 reds separately. The SemVer converter example is later and requires grammar proof. | Ambiguous source/overload/annotation identity, new structured admission, provider invocation or any enforcement promise. Full #971 remains deferred; this is not its acceptance completion. |
-| I0 — ADR P4/P5, independently selected consumer evidence | Separate IDE experiment or named-consumer import matrix only when commissioned. Native observations for value diagnostics versus type completion; migration fixtures for every used matrix row. One evidence commit per question. | No actual observation/consumer inventory, required Jackson gap, or request to deprecate/remove without compatibility authority. |
 
 All future production slices use focused G3 iteration, final affected G4/G5 lanes and required binary/plugin checks;
 G3 alone cannot establish compatibility. New tests carry the driving `@Issue`, use `Test` suffixes and, for approved
@@ -223,10 +149,9 @@ user-visible behavior, a Groovy documentary test with `@Tag("documentary")` and 
 generator fixtures and initialization controls; compare fixed expected outputs/corpora, not only refactored helpers.
 Do not add pending/ignored tests for unaccepted proposals.
 
-S1/S2 need implementation/Javadocs and ADR status updates; no invented user feature or release note. Any accepted custom
-or parameter feature must update Json-Schema/Structured-Input/Validation and relevant converter/factory user pages,
-Builder-First-Migration/Migration navigation, sidebar if pages change, CHANGES, and documentary/issue traceability.
-An import preference or eventual migration needs an explicit approved update to Jackson-Integration and Structured-Input.
+S1/S2 need implementation/Javadocs and ADR status updates; no invented user feature or release note. Any later accepted
+custom-projection feature must update Json-Schema/Validation and applicable migration/navigation, CHANGES and documentary
+test/issue traceability.
 No current user page, changelog or tracker is changed to imply these proposals already shipped.
 
 ## Maintainer choices and completion boundary
@@ -236,26 +161,18 @@ No current user page, changelog or tracker is changed to imply these proposals a
 2. **Recommended default:** built-ins only. Decide whether trusted, explicitly selected custom build code warrants C0;
    then settle meta-annotation name, typed handler/artifact, finite fragment vocabulary and failure/cache semantics.
    Recommended empty-example semantics preserve today's empty-means-none rule; an explicit veto is a separate change.
-3. **Future only:** decide whether projection-only parameter evidence is worth commissioning independently of full #971;
-   choose any converter/Factory admission and parameter policy separately. No direct-call or executable-validation promise.
-4. **Recommended guidance:** prefer Structured Import within its grammar for new Klum-authored data, retain managed
-   Jackson for foreign mapping. Approve guidance separately; no sunset without the matrix and compatibility decision.
+P3 informs the refactor's design: keep inert annotation facts and source/use identity separate from mapping output and
+handler execution. S1/S2 must not accidentally make the reader depend on a renderer or force a handler into runtime
+preflight. This does not justify adding a public SPI, custom metadata format or speculative handler machinery now.
 
-Design execution can complete with P3/P4/P5 choices open because they remain proposals. Draft documentation publication
-is authorized; PR review/merge, Hive reconciliation and the remaining maintainer choices are external conditions.
-Tracker impact is design context related to #959; #971/#932 remain independent and open. No issue closure, label,
-milestone, curation/release placement, agent-policy change or production implementation is part of this task.
+Draft documentation publication is authorized; PR review/merge, Hive reconciliation and P3 choices remain external.
+The separate issues preserve the P4/P5 evidence and open decisions without making them part of this implementation plan.
+No issue closure, release placement or production implementation follows from this split.
 
 ## Documentation validation and review
 
-The documentation-only change passes `git diff --check`, balanced fenced-block checks and all 60 relative link/anchor
-checks across the ADR and this plan. Groovy lanes and renderer/build suites were not run: no production, build, executable
-fixture or rendered user-documentation input changes. Review compares the pinned base above with this branch's final
-commit; the task handoff records the exact reviewed commit and final results.
-
-The initial independent Standards review found no actionable issue. The independent Specification review found one
-example-call omission: the prospective `readRoot` example lacked the current API's required source name. The follow-up
-adds `release.yaml`, checked against `KlumStructuredInput`'s existing three-argument overload. No API change is proposed.
-Both axes confirmed zero remaining findings at `b49579d3faeab174a558d9b228695f1410be329a`.
-The subsequent P1/P2 acceptance and draft-publication disposition edits change status only; the prior independent
-reviews are reused under the maintainer's explicit instruction. Documentation/diff checks are rerun before publication.
+This change affects architecture documentation only. Run relative link/anchor, fenced-block and diff checks; Groovy lanes
+and build/renderer suites are unnecessary because no executable, build or rendered user-documentation inputs change.
+The initial independent reviews were clear at `b49579d3faeab174a558d9b228695f1410be329a`; status-only acceptance edits
+reused them. The substantive P4/P5 scope split requires fresh independent Standards and Specification review before push.
+The PR follow-up records the final reviewed head and check results.
