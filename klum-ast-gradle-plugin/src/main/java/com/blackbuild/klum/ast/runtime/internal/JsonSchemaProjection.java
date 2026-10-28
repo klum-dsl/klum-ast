@@ -50,6 +50,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private static final String MAXIMUM = "maximum";
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
+    private InputContractResolver resolver;
     private final Map<Class<?>, CompiledBuilderSchema.ConstraintProfile> constraintProfiles = new LinkedHashMap<>();
     private enum KeyPosition { MEMBER, KEYLESS }
 
@@ -62,6 +63,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             diagnostics.clear();
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
+                resolver = new InputContractResolver();
                 String rootDefinition = definition(builder, KeyPosition.MEMBER, root, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
@@ -96,7 +98,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private String definition(Class<?> builder, KeyPosition position, String source, String rootModel) throws ClassNotFoundException {
         Class<?> factory = Class.forName(builder.getName().substring(0, builder.getName().length() - "Builder".length())
                 + "Factory", false, builder.getClassLoader());
-        CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
+        CompiledBuilderSchema schema = resolver.read(builder, factory);
         validateKeyPosition(schema, position, source);
         boolean keyless = position == KeyPosition.KEYLESS;
         String identity = builder.getName() + (keyless && !schema.keyName().isEmpty() ? "::keyless" : "");
@@ -106,7 +108,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                     + schema.model().getName() + "', not requested DSL Model '" + rootModel + "'");
         if (Modifier.isAbstract(schema.model().getModifiers()))
             throw new IllegalArgumentException("Abstract root/owned target requires a separately qualified alias policy: " + builder.getName());
-        boolean groupRedefined = collectConstraintProfiles(builder, schema, source);
+        boolean groupRedefined = collectConstraintProfiles(schema);
         Map<String, Object> object = new LinkedHashMap<>();
         definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
@@ -147,22 +149,9 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (sourceDeprecated) value.put("deprecated", true);
     }
 
-    private boolean collectConstraintProfiles(Class<?> builder, CompiledBuilderSchema schema, String source) {
-        CompiledBuilderSchema.ConstraintProfile profile;
-        try {
-            profile = constraintProfiles.computeIfAbsent(builder, CompiledBuilderSchema::constraintProfile);
-        } catch (RuntimeException failure) {
-            String affected = schema.entries().values().stream().filter(entry -> entry.contract() == builder)
-                    .map(entry -> entry.source() + " (external input '" + entry.externalName() + "')")
-                    .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException("Constraint metadata at input use '" + source + "', admitted sources ["
-                    + affected + "]: " + failure.getMessage(), failure);
-        }
-        boolean groupRedefined = profile.groupRedefined();
-        for (Class<?> parent : builder.getInterfaces()) {
-            if (parent.getName().endsWith(BUILDER)) groupRedefined |= collectConstraintProfiles(parent, schema, source);
-        }
-        return groupRedefined;
+    private boolean collectConstraintProfiles(CompiledBuilderSchema schema) {
+        constraintProfiles.putAll(schema.constraintProfiles());
+        return schema.constraintProfiles().values().stream().anyMatch(CompiledBuilderSchema.ConstraintProfile::groupRedefined);
     }
 
     private void constrain(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined) {

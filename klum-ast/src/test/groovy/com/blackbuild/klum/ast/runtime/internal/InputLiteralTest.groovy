@@ -100,7 +100,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         operated.serviceName == 'operation'
         configured.serviceName == 'groovy'
         configured.internalNote == 'private'
-        CompiledBuilderSchema.read(type).entries().keySet() == ['service.id', 'configure/URL'] as Set
+        new InputContractResolver().read(type).entries().keySet() == ['service.id', 'configure/URL'] as Set
     }
 
     def 'field and authored getter facts stay independent on a shared public accessor: #fieldAnnotation #methodAnnotation'() {
@@ -113,7 +113,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         """)
 
         when:
-        def plan = CompiledBuilderSchema.read(type)
+        def plan = new InputContractResolver().read(type)
         def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
 
         then:
@@ -138,7 +138,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def plan = CompiledBuilderSchema.read(type)
+        def plan = new InputContractResolver().read(type)
 
         then:
         plan.entries().isEmpty()
@@ -156,7 +156,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def plan = CompiledBuilderSchema.read(type)
+        def plan = new InputContractResolver().read(type)
         def field = KlumStructuredInput.readRoot(type, ['field/exact': 'field'], 'shared.yaml')
         def operation = KlumStructuredInput.readRoot(type, ['setter/exact': 'setter'], 'shared.yaml')
 
@@ -176,7 +176,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         """)
 
         when:
-        def plan = CompiledBuilderSchema.read(type)
+        def plan = new InputContractResolver().read(type)
         def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
 
         then:
@@ -316,7 +316,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         """)
 
         when:
-        def plan = CompiledBuilderSchema.read(type)
+        def plan = new InputContractResolver().read(type)
 
         then:
         plan.entries().keySet() == names as Set
@@ -346,7 +346,7 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         then:
         result.serviceName == 'catalog'
-        CompiledBuilderSchema.read(type).entries().keySet() == [' exact/URL '] as Set
+        new InputContractResolver().read(type).entries().keySet() == [' exact/URL '] as Set
 
         where:
         annotations << ["@InputName(' exact/URL ')", "@InputName(' exact/URL ') @JsonProperty(' exact/URL ')",
@@ -401,7 +401,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         then:
         result.URLValue == 'op'
         result.urlValue == '7'
-        CompiledBuilderSchema.read(type).entries().keySet() == ['literalURL', 'url-value', 'stringURL', 'numericURL'] as Set
+        new InputContractResolver().read(type).entries().keySet() == ['literalURL', 'url-value', 'stringURL', 'numericURL'] as Set
     }
 
     def 'ignored key keeps member obligation and permits externally supplied root or map identity'() {

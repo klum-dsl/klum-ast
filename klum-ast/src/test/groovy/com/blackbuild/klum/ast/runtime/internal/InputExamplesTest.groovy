@@ -73,7 +73,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         configured.displayName == 'Configured'
         omitted.displayName == null
         omitted.note == null
-        CompiledBuilderSchema.read(type).entries().get('displayName').examples() == ['Catalog', 'catalog.internal']
+        new InputContractResolver().read(type).entries().get('displayName').examples() == ['Catalog', 'catalog.internal']
     }
 
     def 'retain distinct field operation and suppressed-key facts and fold String constants'() {
@@ -92,7 +92,7 @@ class InputExamplesTest extends AbstractDSLSpec {
 
         when:
         def contract = Class.forName('examples.Service_DSL$Builder', false, artifacts)
-        def schema = CompiledBuilderSchema.read(type)
+        def schema = new InputContractResolver().read(type)
 
         then:
         contract.getAnnotation(GeneratedInput.Schema).version() == 1
@@ -196,7 +196,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         when:
         def type = schema("@DSL class Service { @InputExamples([${text.inspect()}]) String value; " +
                 "@InputExamples($values) int many; @InputExamples([]) boolean empty }")
-        def entries = CompiledBuilderSchema.read(type).entries()
+        def entries = new InputContractResolver().read(type).entries()
 
         then:
         entries.get('value').examples() == [text]

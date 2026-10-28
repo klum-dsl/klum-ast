@@ -231,7 +231,7 @@ class StructuredInputRuntimeBoundaryProbeTest extends AbstractDSLSpec {
 
         def namesFor = { Class type ->
             new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader).withCloseable { binaries ->
-                CompiledBuilderSchema.read(Class.forName(type.name, false, binaries)).entries().collectEntries { name, fact ->
+                new InputContractResolver().read(Class.forName(type.name, false, binaries)).entries().collectEntries { name, fact ->
                     [(name): [role: fact.role().name(), operation: fact.operation()]]
                 }
             }

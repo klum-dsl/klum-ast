@@ -1603,6 +1603,7 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
         !output('example.Misdirected').exists()
     }
 
+    @Issue('959')
     def 'missing isolated runtime cannot fall back to plugin or daemon runtime classes'() {
         given:
         fixture('3')
@@ -1613,6 +1614,7 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
 
         then:
         result.output.contains('Schema/API/runtime/annotation classpath')
+        result.output.contains("Cannot generate JSON Schema for root 'example.Deployment'")
         !trap.exists()
     }
 

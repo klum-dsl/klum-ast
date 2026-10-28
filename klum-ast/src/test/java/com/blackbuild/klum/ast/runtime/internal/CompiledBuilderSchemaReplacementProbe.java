@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public final class CompiledBuilderSchemaReplacementProbe {
     private CompiledBuilderSchemaReplacementProbe() { }
     public static Map<String, Object> read(Class<?> builder, Class<?> factory) {
-        CompiledBuilderSchema schema = CompiledBuilderSchema.read(builder, factory);
+        CompiledBuilderSchema schema = new InputContractResolver().read(builder, factory);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("model", schema.model().getName());
         result.put("builder", schema.contract().getName());
@@ -48,7 +48,7 @@ public final class CompiledBuilderSchemaReplacementProbe {
         return result;
     }
     public static List<Map<String, Object>> scope(Class<?> contract) throws IOException, ClassNotFoundException {
-        return CompiledBuilderSchema.scope(contract).stream().map(declaration -> Map.<String, Object>of(
+        return new BuilderContractReader().scope(contract).stream().map(declaration -> Map.<String, Object>of(
                 "owner", declaration.owner(), "name", declaration.name(), "parameters", declaration.parameters(),
                 "returns", declaration.returns(), "documentation", declaration.documentation() == null ? "" : declaration.documentation())).toList();
     }

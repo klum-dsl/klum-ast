@@ -70,7 +70,7 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
         def document = Class.forName('runtimeplan.Document', false, binaryLoader)
 
         when:
-        def plan = CompiledBuilderSchema.read(document)
+        def plan = new InputContractResolver().read(document)
 
         then:
         plan.entries().keySet() == ['branch', 'entries', 'slot', 'stage', 'title', 'words'] as Set
@@ -122,7 +122,7 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
         def failure
 
         when:
-        try { plan = CompiledBuilderSchema.read(child) }
+        try { plan = new InputContractResolver().read(child) }
         catch (KlumModelException caught) { failure = caught }
 
         then:
@@ -219,7 +219,7 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
         def child = Class.forName('collisionplan.Child', false, binaryLoader)
 
         when:
-        def plan = CompiledBuilderSchema.read(child)
+        def plan = new InputContractResolver().read(child)
 
         then:
         plan.entries().keySet() == ['available'] as Set
@@ -231,6 +231,143 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
         cleanup:
         binaryLoader?.close()
         parentLoader?.close()
+    }
+
+    @Issue('959')
+    def 'validated declaration snapshots defensively freeze nested facts'() {
+        given:
+        createClass '''
+            package frozenfacts
+            import com.blackbuild.klum.ast.*
+            @DSL class Document {
+                @InputExamples(['first', 'second']) String title
+            }
+        '''
+        def binaries = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def builder = Class.forName('frozenfacts.Document_DSL$Builder', false, binaries)
+        def facts = new BuilderContractReader().metadata(builder)
+        def field = facts.methods().values().find { it.field() == 'title' }
+
+        when:
+        facts.methods().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        facts.invisible().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        field.examples().add('mutated')
+
+        then:
+        thrown(UnsupportedOperationException)
+        field.examples() == ['first', 'second']
+
+        when:
+        field.constraints().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        cleanup:
+        binaries?.close()
+    }
+
+    @Issue('959')
+    def 'one resolution session shares exact declaration reads and exposes immutable effective contracts'() {
+        given:
+        createClass '''
+            package sessionfacts
+            import com.blackbuild.klum.ast.*
+            @DSL abstract class Base {
+                static { System.setProperty('input.session.initialized', 'yes'); throw new AssertionError('initialization control') }
+                @Key @InputExamples(['catalog']) String documentId
+                @InputExamples(['first', 'second']) String displayName
+            }
+            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            @DSL class Document extends Base { String title }
+        '''
+        def binaries = new CountingContractLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def document = Class.forName('sessionfacts.Document', false, binaries)
+        def builder = Class.forName('sessionfacts.Base_DSL$Builder', false, binaries)
+        def resolver = new InputContractResolver()
+
+        when:
+        def plan = resolver.read(document)
+        def repeated = resolver.read(document)
+
+        then:
+        binaries.reads['sessionfacts/Document_DSL$Builder.class'] == 1
+        binaries.reads['sessionfacts/Base_DSL$Builder.class'] == 1
+        plan.key().externalName() == 'document-id'
+        plan.entries().keySet() == ['display-name', 'title'] as Set
+        plan.entries() == repeated.entries()
+        plan.constraintProfiles().keySet().contains(builder)
+        plan.constraintProfiles().get(builder).fields().keySet() == ['displayName'] as Set
+        System.getProperty('input.session.initialized') == null
+
+        when:
+        plan.constraintProfiles().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        plan.constraintProfiles().get(builder).fields().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        plan.entries().get('display-name').examples().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        plan.key().examples().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when: 'another session reads declarations again rather than retaining a loader cache'
+        new InputContractResolver().read(document)
+
+        then:
+        binaries.reads['sessionfacts/Document_DSL$Builder.class'] == 2
+        binaries.reads['sessionfacts/Base_DSL$Builder.class'] == 2
+        System.getProperty('input.session.initialized') == null
+
+        when: 'a positive control proves the binary initialization trap is live'
+        Class.forName('sessionfacts.Document', true, binaries)
+
+        then:
+        def failure = thrown(AssertionError)
+        failure.message == 'initialization control'
+        System.getProperty('input.session.initialized') == 'yes'
+
+        cleanup:
+        binaries?.close()
+        System.clearProperty('input.session.initialized')
+    }
+
+    @CompileStatic
+    private static class CountingContractLoader extends URLClassLoader {
+        final Map<String, Integer> reads = new LinkedHashMap<>()
+
+        CountingContractLoader(URL[] urls, ClassLoader parent) { super(urls, parent) }
+
+        @Override
+        URL getResource(String name) {
+            if (name.startsWith('sessionfacts/')) {
+                reads.put(name, reads.getOrDefault(name, 0) + 1)
+            }
+            return super.getResource(name)
+        }
     }
 
     private static void removeEnrichment(File contract) {

@@ -19,7 +19,10 @@ Need horizon: identified ScHelm demand, provisional next 4.x integration line; n
 
 Design disposition, 2026-10-28: the [contract/projection separation](#proposed-contract-and-projection-separation--959)
 and its [staged plan](../implementation/issue-959-input-projection-architecture.md) distinguish current guarantees from
-accepted P1/P2 architecture and the related, unaccepted P3 custom-projection proposal. Implementation remains unassigned; Size stays paused.
+accepted P1/P2 architecture and the related, unaccepted P3 custom-projection proposal.
+[S1](../implementation/issue-959-schema-s1-contract.md) is implemented and passes repository qualification; S2 remains
+unassigned. Size stays paused. S1 evidence records the maintainer-directed draft publication with local Sonar omitted;
+PR CI/Sonar remains authoritative.
 
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
 [AsBuilder composition](0004-asbuilder-composition-protocol.md),
@@ -910,7 +913,7 @@ activation boundaries.
 
 ## Proposed contract and projection separation — #959
 
-Date: 2026-10-28. Status: **P1/P2 accepted by the maintainer; related P3 remains an unaccepted proposal; design/documentation only.**
+Date: 2026-10-28. Status: **P1/P2 accepted; P1/S1 implemented under the separate assignment below; P2/S2 unassigned; P3 unaccepted.**
 Authority: the INPUT-PROJECTION-ARCH design assignment and subsequent maintainer acceptance of P1/P2, informed by
 [#959](https://github.com/klum-dsl/klum-ast/issues/959) and the completed Size probe. The
 [plan and evidence inventory](../implementation/issue-959-input-projection-architecture.md) pin the inspected revisions.
@@ -918,14 +921,15 @@ This is a focused extension of this ADR, not a successor to its language or no-e
 
 ### Facts, direction and decision ownership
 
-**Current facts:** `CompiledBuilderSchema` combines exact public-contract byte decoding, protocol checks,
+**Design-checkpoint facts at the pinned pre-S1 base:** `CompiledBuilderSchema` combined exact public-contract byte decoding, protocol checks,
 reflected signatures, effective naming/admission, immutable-looking result data and constraint-profile extraction.
 `JsonSchemaProjection` already lives in the Gradle plugin; its numeric/Pattern mapping and rendering are separate from
 runtime interpretation, but its mapping decisions are still embedded in the renderer. The compiler captures inert field
 facts; operations have no production parameter-constraint facts. The unified protocol, field projection policies,
 documentary string examples, always-on numeric mappings and bounded Pattern mapping remain the accepted baseline.
 
-**Accepted decisions:** P1 and P2 below. Their acceptance does not assign S1/S2 or authorize production changes.
+**Accepted decisions:** P1 and P2 below. Acceptance alone did not assign implementation. The subsequent S1 assignment
+and qualification are recorded below; S2 remains unassigned.
 **Related open design question:** P3 stays here because custom projection can affect the separation of inert contract
 facts, mapping contributions and executable handlers. Its interface, packaging and execution policy are not accepted.
 **Separate investigations:** former P4 (parameter projection/editor assistance) is tracked in
@@ -1024,5 +1028,32 @@ recompilation and compatibility decisions, respecting the current development pr
 
 Reject a record-first cosmetic rewrite, a generic public contract/validation SPI, a growing mapping switch in the
 reader, parsing rendered annotations, executing constraint validators for schema generation and automatic custom discovery.
-They either retain mixed responsibilities, lose metadata authority or cross the trust boundary silently. Implementation remains separately assignable; no production
-work is authorized here. The maintainer separately authorized draft documentation publication and the P4/P5 issue split.
+They either retain mixed responsibilities, lose metadata authority or cross the trust boundary silently. This design
+acceptance alone authorizes no production work; S1's subsequent assignment and qualification are recorded below. The
+maintainer separately authorized draft documentation publication and the P4/P5 issue split.
+
+
+## Accepted source-free contract separation — #959 / S1
+
+Date: 2026-10-28. The maintainer accepts the architecture proposal's P1/P2 separation and assigns **S1 only**.
+The accepted proposal is pinned at `b49579d3faeab174a558d9b228695f1410be329a`; this implementation starts independently
+from master `d232c81f88d513c8c65d9c67b1939dc717b00067` and does not depend on the proposal branch.
+
+P1 separates the package-private exact public declaration reader (`BuilderContractReader`), effective input resolver
+(`InputContractResolver`) and immutable normalized result (`CompiledBuilderSchema`). The reader validates required
+facts once per exact Class identity within one consumer session. Both consumers reuse those validated facts, including
+constraint profiles, rather than rereading projection metadata. The result retains identity semantics as a final class,
+with copied nested collections and stable owned-type references; it contains no loading, resolution, rendering or lazy cache.
+
+Source identity remains independent of effective external names. Native candidates survive until hierarchy naming
+resolution; field/operation facts, key authority, relationship uses and shared child definitions retain their existing
+roles. Every admitted owned contract, including omitted children and suppressed output, remains validated before input
+execution or schema replacement. Existing cycle reservations and per-read plans remain consumer-owned. No Model bytes,
+annotation proxies, initialization, defaults, lifecycle, validators or other user code participate.
+
+S1 preserves generated ABI/protocol bytes, admission/rejection language, diagnostics, runtime interpretation, JSON Schema
+output, Gradle behavior and package/loader/JPMS boundaries. Constraint mappings and projection policy are unchanged.
+P2's closed built-in catalog is accepted for a separate S2 assignment and is **not implemented here**. Size remains paused;
+custom projectors, parameter facts/#971, IDE tooling and Jackson sunset remain unaccepted and outside this assignment.
+See [S1 implementation and qualification](../implementation/issue-959-schema-s1-contract.md). Related: #959;
+no issue closure, milestone or release-placement change follows.

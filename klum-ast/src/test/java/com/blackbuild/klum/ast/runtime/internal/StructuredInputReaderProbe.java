@@ -33,7 +33,7 @@ public final class StructuredInputReaderProbe {
         boolean rejected = arguments[1].equals("rejected");
         try {
             Class<?> model = Class.forName(arguments[0], false, StructuredInputReaderProbe.class.getClassLoader());
-            CompiledBuilderSchema plan = CompiledBuilderSchema.read(model);
+            CompiledBuilderSchema plan = new InputContractResolver().read(model);
             if (rejected) throw new AssertionError("Expected missing-enrichment rejection");
             System.out.println("ACCEPTED:" + plan.entries().keySet());
         } catch (KlumModelException failure) {
