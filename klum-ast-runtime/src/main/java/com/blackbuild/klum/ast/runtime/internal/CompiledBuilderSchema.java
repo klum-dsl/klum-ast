@@ -70,7 +70,7 @@ final class CompiledBuilderSchema {
     /**
      * Compiler-frozen constraint facts, not executable annotations. {@code plain} states direct-origin/context
      * eligibility, never validity or representability. Declaration text is a canonical description, not source text.
-     * Numeric/Pattern mapping and PROJECT/TEXT_ONLY/OMIT interpretation belong to the existing renderer.
+     * Numeric/Pattern mapping belongs to the plugin catalog; PROJECT/TEXT_ONLY/OMIT belongs to its renderer.
      */
     record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive, String regexp, Boolean patternFlagsEmpty) { }
     record FieldConstraints(Policy policy, List<ConstraintRule> rules) {

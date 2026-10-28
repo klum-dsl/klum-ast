@@ -2362,6 +2362,10 @@ class PatternReadControl {
 }
 class PatternAdmissionControl {
     static void main(String[] args) {
+        try {
+            Class.forName('com.blackbuild.klum.ast.runtime.internal.BuiltinConstraintCatalog', false, PatternAdmissionControl.classLoader)
+            throw new AssertionError('plugin catalog leaked into interpreter classpath')
+        } catch (ClassNotFoundException expected) { /* Plugin-only catalog must be absent. */ }
         Class type = Class.forName('example.PatternInputOnly', false, PatternAdmissionControl.classLoader)
         assert KlumStructuredInput.readRoot(type, [code: 'outside pattern'], 'pattern.yaml').code == 'outside pattern'
         assert KlumStructuredInput.readRoot(type, [:], 'pattern.yaml').code == null

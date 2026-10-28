@@ -20,8 +20,8 @@ Need horizon: identified ScHelm demand, provisional next 4.x integration line; n
 Design disposition, 2026-10-28: the [contract/projection separation](#proposed-contract-and-projection-separation--959)
 and its [staged plan](../implementation/issue-959-input-projection-architecture.md) distinguish current guarantees from
 accepted P1/P2 architecture and the related, unaccepted P3 custom-projection proposal.
-[S1](../implementation/issue-959-schema-s1-contract.md) is implemented and passes repository qualification; S2 remains
-unassigned. Size stays paused. S1 evidence records the maintainer-directed draft publication with local Sonar omitted;
+[S1](../implementation/issue-959-schema-s1-contract.md) is implemented and passes repository qualification;
+[S2](../implementation/issue-959-schema-s2-catalog.md) implements the closed built-in catalog under its separate assignment. Size stays paused. S1 evidence records the maintainer-directed draft publication with local Sonar omitted;
 PR CI/Sonar remains authoritative.
 
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
@@ -913,7 +913,7 @@ activation boundaries.
 
 ## Proposed contract and projection separation — #959
 
-Date: 2026-10-28. Status: **P1/P2 accepted; P1/S1 implemented under the separate assignment below; P2/S2 unassigned; P3 unaccepted.**
+Date: 2026-10-28. Status: **P1/P2 accepted; P1/S1 and P2/S2 implemented under separate assignments below; P3 unaccepted.**
 Authority: the INPUT-PROJECTION-ARCH design assignment and subsequent maintainer acceptance of P1/P2, informed by
 [#959](https://github.com/klum-dsl/klum-ast/issues/959) and the completed Size probe. The
 [plan and evidence inventory](../implementation/issue-959-input-projection-architecture.md) pin the inspected revisions.
@@ -929,7 +929,7 @@ facts; operations have no production parameter-constraint facts. The unified pro
 documentary string examples, always-on numeric mappings and bounded Pattern mapping remain the accepted baseline.
 
 **Accepted decisions:** P1 and P2 below. Acceptance alone did not assign implementation. The subsequent S1 assignment
-and qualification are recorded below; S2 remains unassigned.
+and qualification are recorded below; the separate S2 assignment and extraction are also recorded below.
 **Related open design question:** P3 stays here because custom projection can affect the separation of inert contract
 facts, mapping contributions and executable handlers. Its interface, packaging and execution policy are not accepted.
 **Separate investigations:** former P4 (parameter projection/editor assistance) is tracked in
@@ -1057,3 +1057,23 @@ P2's closed built-in catalog is accepted for a separate S2 assignment and is **n
 custom projectors, parameter facts/#971, IDE tooling and Jackson sunset remain unaccepted and outside this assignment.
 See [S1 implementation and qualification](../implementation/issue-959-schema-s1-contract.md). Related: #959;
 no issue closure, milestone or release-placement change follows.
+
+
+## Accepted closed built-in catalog extraction — #959 / S2
+
+Date: 2026-10-28. The maintainer assigns S2 after merged S1 PR #983 at
+`e7514c3fd37a3f1d056c8567ef5a22557a2bc11c`. The plugin's package-private `BuiltinConstraintCatalog` now selects the
+existing Min/Max, DecimalMin/DecimalMax and conservative Pattern families from validated inert facts and the effective
+field role/raw type/origin/group context. It returns immutable assertion contributions or the existing reasoned
+unsupported result. Unknown annotations retain the existing descriptive fallback. No additional mapping is admitted.
+
+`JsonSchemaProjection` retains field PROJECT/TEXT_ONLY/OMIT routing, independent conjunction and machine fences,
+source/use-site placement, descriptions/examples/deprecation, structural types/null/omission/keys, `$defs` and deterministic
+rendering/diagnostics. `BoundedAsciiPattern` and its ASCII-BOUNDED-1 proof are unchanged. Contradictory representable bounds
+remain independent assertions; there is no normalization or satisfiability analysis.
+
+The catalog lives only in the existing plugin implementation/package and loader seam. The interpreter, compiler and
+contract reader do not call or depend on it. No metadata/protocol/ABI, public type, module, dependency, package or runtime
+admission changes. Size remains paused; custom projectors/discovery, parameter facts/#971 and P3 remain outside this slice.
+[Implementation and qualification](../implementation/issue-959-schema-s2-catalog.md) record the exact base, baseline and
+final evidence. Related: #959; issue state, milestone and release placement are unchanged.
