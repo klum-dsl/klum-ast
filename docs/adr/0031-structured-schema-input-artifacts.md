@@ -902,3 +902,29 @@ transform, generic preprocessing API, new SPI, source parsing or runtime inspect
 requires identity in the original snapshot; copied/collector-supplied origins remain whole descriptions. The binary
 G3/G4/G5 collector regression and existing propagation/JPMS qualification protect both the new origin fact and unchanged
 activation boundaries.
+
+
+## Accepted source-free contract separation — #959 / S1
+
+Date: 2026-10-28. The maintainer accepts the architecture proposal's P1/P2 separation and assigns **S1 only**.
+The accepted proposal is pinned at `b49579d3faeab174a558d9b228695f1410be329a`; this implementation starts independently
+from master `d232c81f88d513c8c65d9c67b1939dc717b00067` and does not depend on the proposal branch.
+
+P1 separates the package-private exact public declaration reader (`BuilderContractReader`), effective input resolver
+(`InputContractResolver`) and immutable normalized result (`CompiledBuilderSchema`). The reader validates required
+facts once per exact Class identity within one consumer session. Both consumers reuse those validated facts, including
+constraint profiles, rather than rereading projection metadata. The result retains identity semantics as a final class,
+with copied nested collections and stable owned-type references; it contains no loading, resolution, rendering or lazy cache.
+
+Source identity remains independent of effective external names. Native candidates survive until hierarchy naming
+resolution; field/operation facts, key authority, relationship uses and shared child definitions retain their existing
+roles. Every admitted owned contract, including omitted children and suppressed output, remains validated before input
+execution or schema replacement. Existing cycle reservations and per-read plans remain consumer-owned. No Model bytes,
+annotation proxies, initialization, defaults, lifecycle, validators or other user code participate.
+
+S1 preserves generated ABI/protocol bytes, admission/rejection language, diagnostics, runtime interpretation, JSON Schema
+output, Gradle behavior and package/loader/JPMS boundaries. Constraint mappings and projection policy are unchanged.
+P2's closed built-in catalog is accepted for a separate S2 assignment and is **not implemented here**. Size remains paused;
+custom projectors, parameter facts/#971, IDE tooling and Jackson sunset remain unaccepted and outside this assignment.
+See [S1 implementation and qualification](../implementation/issue-959-schema-s1-contract.md). Related: #959;
+no issue closure, milestone or release-placement change follows.

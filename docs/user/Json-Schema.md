@@ -9,7 +9,7 @@ or executing Schema code. Use matching plugin, compiler and runtime versions wit
 Apply `com.blackbuild.klum-ast-schema` as described in [Gradle Plugins](Gradle-Plugins.md). Select roots by fully qualified DSL Model binary name,
 consistent with GDSL export. `rootTypes` is a `SetProperty<String>`; use strings rather than class literals so build
 configuration does not load Model classes. Several roots are supported. The task resolves each Model name to its generated
-Builder contract internally and verifies the contract's Model identity through `CompiledBuilderSchema`, without inspecting
+Builder contract internally and verifies the contract's Model identity through the shared internal input-contract resolver, without inspecting
 or initializing the Model implementation. Generated Builder names are rejected as root configuration values, with guidance
 to use the corresponding Model name.
 
