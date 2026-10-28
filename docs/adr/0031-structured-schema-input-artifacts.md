@@ -17,6 +17,10 @@ Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 [Implementation plan](../implementation/adr-0031-structured-schema-input-artifacts.md).
 Need horizon: identified ScHelm demand, provisional next 4.x integration line; no milestone assigned.
 
+Design disposition, 2026-10-28: the [contract/projection separation](#proposed-contract-and-projection-separation--959)
+and its [staged plan](../implementation/issue-959-input-projection-architecture.md) distinguish current guarantees from
+accepted P1/P2 architecture and the related, unaccepted P3 custom-projection proposal. Implementation remains unassigned; Size stays paused.
+
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
 [AsBuilder composition](0004-asbuilder-composition-protocol.md),
 [public generated contracts](0005-generated-dsl-support-api.md),
@@ -902,6 +906,128 @@ transform, generic preprocessing API, new SPI, source parsing or runtime inspect
 requires identity in the original snapshot; copied/collector-supplied origins remain whole descriptions. The binary
 G3/G4/G5 collector regression and existing propagation/JPMS qualification protect both the new origin fact and unchanged
 activation boundaries.
+
+
+## Proposed contract and projection separation — #959
+
+Date: 2026-10-28. Status: **P1/P2 accepted; P1/S1 implemented under the separate assignment below; P2/S2 unassigned; P3 unaccepted.**
+Authority: the INPUT-PROJECTION-ARCH design assignment and subsequent maintainer acceptance of P1/P2, informed by
+[#959](https://github.com/klum-dsl/klum-ast/issues/959) and the completed Size probe. The
+[plan and evidence inventory](../implementation/issue-959-input-projection-architecture.md) pin the inspected revisions.
+This is a focused extension of this ADR, not a successor to its language or no-execution decisions.
+
+### Facts, direction and decision ownership
+
+**Design-checkpoint facts at the pinned pre-S1 base:** `CompiledBuilderSchema` combined exact public-contract byte decoding, protocol checks,
+reflected signatures, effective naming/admission, immutable-looking result data and constraint-profile extraction.
+`JsonSchemaProjection` already lives in the Gradle plugin; its numeric/Pattern mapping and rendering are separate from
+runtime interpretation, but its mapping decisions are still embedded in the renderer. The compiler captures inert field
+facts; operations have no production parameter-constraint facts. The unified protocol, field projection policies,
+documentary string examples, always-on numeric mappings and bounded Pattern mapping remain the accepted baseline.
+
+**Accepted decisions:** P1 and P2 below. Acceptance alone did not assign implementation. The subsequent S1 assignment
+and qualification are recorded below; S2 remains unassigned.
+**Related open design question:** P3 stays here because custom projection can affect the separation of inert contract
+facts, mapping contributions and executable handlers. Its interface, packaging and execution policy are not accepted.
+**Separate investigations:** former P4 (parameter projection/editor assistance) is tracked in
+[#981](https://github.com/klum-dsl/klum-ast/issues/981); former P5 (import guidance/Jackson compatibility) in
+[#982](https://github.com/klum-dsl/klum-ast/issues/982). Neither is a decision or implementation gate in this ADR revision.
+Size implementation and new mappings remain deferred; no release placement changes.
+
+### P1 — Extract behavior before choosing a record
+
+Keep one deep internal contract-reading interface used by the interpreter and generator. Inside it, separate:
+
+| Responsibility | Proposed home and interface |
+| --- | --- |
+| Compiler constraint-fact capture | Existing compiler `StructuredInputConstraintMetadata`; source identity, eligible typed values and explicit completeness, never evaluation. |
+| Source-free contract reader | Runtime internal `BuilderContractReader`; exact public Builder/Factory signatures and selected declaration bytes to validated facts, including artifact identity and protocol errors. |
+| Effective input resolver | Runtime internal `InputContractResolver`; validated candidates/hierarchy to selected entries, naming, exclusions, key positions and rejection reasons. Preserve native candidates until effective naming is resolved. |
+| Normalized immutable contract | Runtime internal `BuilderInputContract`; data only, including declaration identity, payload/role, selected public call, documentation/examples and constraint facts. |
+| Built-in constraint projection | Plugin internal `BuiltinConstraintCatalog`; qualified fact plus effective input position to assertions or a reasoned unsupported result. |
+| JSON Schema assembly/rendering | Existing plugin projector; structure, conjunction, description/example placement, `$defs`, deterministic serialization and generation diagnostics. |
+
+These are responsibility names, not a mandate for six new public types or interfaces. Start with package-private classes
+in the existing runtime internal package and the plugin's existing private tooling package. The plugin currently loads
+its same-package projector beside runtime types in one isolated unnamed module; moving types to subpackages would change
+package access. Do not add public exports, a split named-module arrangement, or a new artifact just to reorganize files.
+Keep the platform-parent loader and existing JPMS qualification. A later package move needs its own demonstrated benefit.
+
+The reader validates required facts once per read session; the resolver must not silently repair missing facts. Both
+consumers must validate the admitted ownership closure, including omitted children and suppressed output, before input
+execution or schema replacement. Share validated declarations rather than independently re-reading constraint profiles.
+Cycles use an identity-indexed graph with a per-session cache, never recursive record equality or a global classloader cache.
+
+Only after extraction assess `BuilderInputContract` as a Java record. A record is suitable if its complete value is the
+interface: defensively copied, deterministically ordered collections; no loading, resolving, lazy mutable cache or JSON
+behavior. Referenced `Class`/`Method` handles, if retained for dispatch, stay local to that loader/session and are never
+invoked by projection, serialized, or retained in Gradle configuration state. Records are only shallowly immutable;
+nested lists/maps need copies too. Keep a final class if controlled construction/access or identity semantics fit better.
+Converting the current behavior-heavy class directly to a record would leave the architectural problem intact.
+
+Javadocs must explain the allowed inspection targets and initialization prohibition, completeness/error contract,
+declaring source versus effective external name, field versus operation role, key position, owned versus use-site facts,
+collection ownership/order, and cache lifetime. In particular, replace the current numeric-only `constraintProfile`
+description, document `plain` as eligibility rather than validity, and explain that a carried annotation description is
+not original source text. The first slice preserves existing diagnostics and generated bytes.
+
+### P2 — Keep built-in mappings in a closed internal catalog
+
+Use a small immutable catalog for the currently supported Jakarta Min/Max, DecimalMin/Max and Pattern mappings. Select
+by annotation identity and qualified role/raw type/origin/group facts, with one implementation per coherent mapping
+family. Keep byte-protocol validation in the reader and source-fact extraction in the compiler; neither calls this catalog.
+The catalog is not ServiceLoader discovery, a user registry, a provider interface or a new runtime dependency. Its
+leverage is locality for mapping eligibility and unsupported reasons; the renderer retains combination and placement.
+
+Preserve exact numeric literals/machine fences, independent conjunction (including contradictory bounds), Pattern's
+ASCII-BOUNDED-1 proof, PROJECT/TEXT_ONLY/OMIT, structural null/omission/key rules and descriptive unsupported declarations.
+No satisfiability engine, new default evaluation or mapping is part of the extraction. Size remains paused pending its
+own raw-cardinality, malformed/contradictory-declaration and metadata decisions.
+
+### P3 — Custom projection is a separate trust decision
+
+Recommend **built-ins only for initial delivery**. If later commissioned, use a distinct Klum meta-annotation on a custom
+constraint annotation, provisionally `@InputConstraintProjector(SemVerProjection)`. Its association is class-valued;
+prefer a bounded class type when a narrow handler contract is approved. This is distinct from the existing field-level
+`@ConstraintProjection` output policy. Annotation declaration, handler signature and packaging remain proposed.
+
+A class literal gives compiler/IDE linkage and refactoring support; a handwritten binary-name String shifts failures to
+generation and is unnecessarily fragile. It does not authorize loading or execution. The compiler would freeze the
+association as inert type identity and typed annotation arguments/defaults on the public Builder, without initializing
+the handler. Reading a stored JVM descriptor is compatible with class-valued authoring. Do not inspect the Model or parse
+the human description to reconstruct missing metadata. The current protocol does not yet transport these custom facts.
+
+The eventual narrow handler would receive only a copied inert annotation descriptor, qualified raw-input shape and
+source/use location. It may return a constraint fragment for that same input value, a stable description amendment, and
+one advisory documentary String example. It receives no Model/Builder, input instance, executable validator, mapper,
+Gradle Project, default supplier or lifecycle context. It is separate from `ConstraintValidator`; neither `initialize`
+nor `isValid` is a projection callback. The plan bounds fragment vocabulary, combination and suppression.
+
+**Trust boundary:** initializing or calling a handler executes user code in the build. A separate classloader or Gradle
+worker is not a security sandbox. Restricting the interface cannot prevent malicious code from filesystem/network access,
+reflection or initializing other classes. Thus the strong no-user-code/no-Model-execution guarantee remains for built-in
+generation only; custom mode could promise that the framework does not supply or invoke Models, not that arbitrary
+handlers cannot do so. A declarative association is not consent to execute a dependency's code.
+
+The smallest later policy is an explicit build-owned allowlist of exact associated handlers and a declared handler
+classpath, default empty; no scanning or transitive auto-activation. Unknown/unselected custom rules remain labelled
+descriptions. Selected missing/incompatible handlers, exceptions or invalid output fail generation before output
+replacement. Validate all metadata first. Treat selected handlers as trusted build code; do not claim a sandbox.
+Disable output caching/up-to-date reuse for custom mode initially unless all inputs and deterministic behavior are
+separately qualified; built-in task behavior is unchanged. Do not execute handlers in runtime preflight or the IDE.
+
+### Consequences and rejected alternatives
+
+Initial extraction changes no public/generated ABI, protocol version, language, runtime validation, lifecycle, ownership,
+serialization, optional dependency or release behavior. Groovy 3/4/5 and binary/JPMS regressions remain required for later
+code changes. Custom association metadata would be a separate generated-linkage change with explicit
+recompilation and compatibility decisions, respecting the current development protocol/release-cutover policy.
+
+Reject a record-first cosmetic rewrite, a generic public contract/validation SPI, a growing mapping switch in the
+reader, parsing rendered annotations, executing constraint validators for schema generation and automatic custom discovery.
+They either retain mixed responsibilities, lose metadata authority or cross the trust boundary silently. This design
+acceptance alone authorizes no production work; S1's subsequent assignment and qualification are recorded below. The
+maintainer separately authorized draft documentation publication and the P4/P5 issue split.
 
 
 ## Accepted source-free contract separation — #959 / S1

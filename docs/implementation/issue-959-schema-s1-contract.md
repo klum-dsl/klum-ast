@@ -106,9 +106,52 @@ matches those exact different version strings. That run was stopped and is not p
 No source-mirror implementation, fixture or build configuration is changed. The correction is committed before the
 next complete root check, with both HEAD and the working tree then held fixed until the build finishes.
 
-## Qualification and delivery
+## Final qualification and delivery boundary
 
-Qualification is in progress; the final handoff records the exact source/final commits, full lane totals, byte comparisons,
-independent Standards/Specification reviews, final-head local coverage-bearing Sonar analysis, and delivery outcome.
-No PR, CI, clean Sonar result, issue mutation, merge or archive state is implied while these gates are pending.
-The subsequent PR CI/Sonar result remains separately authoritative. Hive owns delivery/archive reconciliation.
+The clean, frozen `50ad635aa1ff5839482fe0297a65b4edd3a91bf5` source/test tree passes JDK 17 full root
+`check --no-parallel --max-workers=2` plus the CI-required annotation-propagation artifact tasks in **24m48s**.
+
+| Lane | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline | 3,389 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 2,756 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 2,756 | 0 / 0 | 16 |
+| Propagation artifact G3 / G4 / G5 | 1 / 2 / 2 | 0 / 0 | 0 |
+
+All **127** packaged JSON Schema regressions pass, including the strengthened loader diagnostic. Plugin validation,
+licenses, test-lane isolation, generated/public contract/JPMS coverage and documentation renderer checks pass.
+All **46** retained emitted schema fixtures have identical paths and bytes to the pinned baseline; the fixed compiled
+contract expectations are unchanged. The canonical sorted path-to-SHA256 manifest digest is
+`c8e8ccd767d23430f9cf1bac7eb2c71789c5869cb84d37897dfd345a9552cdb3`.
+Markdown fenced-block/relative-file-link checks and `git diff --check` pass.
+
+Independent read-only Standards and Specification children review the complete base-to-implementation range and both
+additive corrections. **Standards: zero findings. Specification: zero findings.** Root remains the sole build owner;
+no other implementation/research children are used. Reviewed commits are preserved and the history is checked for
+focused reasoning steps and neutral issue references.
+
+### Documentation-only master refresh
+
+During qualification, master advances to `4fa253d6b2d4ec2da4945419bd9aa8b99fe81e57` by merging architecture documentation
+PR #980. Its only changes are ADR 0031 and the design plan; it changes no compiler, runtime, tests, build inputs or user
+behavior. An additive merge preserves the reviewed implementation commits. Its ADR conflict retains both the accepted
+architecture and the subsequent S1 implementation record; current status links to S1 qualification. This consumes current
+master, not the formerly unmerged proposal branch. Original execution base remains
+`d232c81f88d513c8c65d9c67b1939dc717b00067`; the refreshed PR comparison base is the master commit above.
+
+The refreshed branch's production/test/build tree is byte-identical to the qualified source/test tree. Only Markdown
+changes after that qualification, so the documentation-only policy reuses the completed Groovy/plugin/JPMS evidence and
+reruns applicable Markdown/diff checks. No extra full lane execution is claimed for this documentation-only merge.
+
+### Analysis and publication
+
+Publication requires a coverage-bearing final-head local SonarCloud branch analysis against master, with quality-gate
+waiting and inspection of new unresolved findings/hotspots. The final analysis reuses the just-qualified baseline reports;
+there is no coverage-free upload. The exact final revision, analysis outcome and draft PR are recorded in the task handoff.
+[Branch analysis](https://sonarcloud.io/dashboard?id=klum-dsl_klum-ast&branch=codex%2F959-schema-s1-contract).
+Subsequent PR CI/Sonar remains the separate authoritative PR gate; local results do not imply a passing PR check.
+
+Git SSH feature-branch delivery preflight and GitHub CLI repository capability are **authorized**. No credentials,
+credential scopes or raw authentication errors are inspected or recorded. Draft publication is explicitly assigned;
+tracker impact is **Related: #959**, with no closure candidate, state/milestone/label change, release placement or merge.
+Hive owns final delivery/archive reconciliation; the worker retains the worktree while review/merge remain open.
