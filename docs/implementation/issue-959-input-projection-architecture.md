@@ -1,11 +1,12 @@
 # #959: input-contract and constraint-projection architecture plan
 
-Date: 2026-10-28. Status: **Design complete for review; decisions proposed, implementation unassigned.**
+Date: 2026-10-28. Status: **P1/P2 accepted; P3/P4/P5 remain unaccepted proposals; implementation unassigned.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959),
 [#971](https://github.com/klum-dsl/klum-ast/issues/971), [#932](https://github.com/klum-dsl/klum-ast/issues/932).
-Decision source: [ADR 0031 proposed P1–P5](../adr/0031-structured-schema-input-artifacts.md#proposed-contract-and-projection-separation--959).
-The design assignment authorizes this analysis and local documentation only. It does not accept these recommendations,
-resume Size, implement a feature, change a tracker or publish anything. Existing accepted behavior remains authoritative.
+Decision source: [ADR 0031 P1–P5 disposition](../adr/0031-structured-schema-input-artifacts.md#proposed-contract-and-projection-separation--959).
+The maintainer accepted P1/P2 and authorized recording that disposition and publishing a draft documentation PR.
+P3/P4/P5 remain unaccepted, including custom projectors, #971 and Jackson-sunset choices. S1 and all production work
+remain unassigned; Size stays paused. Existing accepted behavior remains authoritative.
 
 ## Evidence and current behavior
 
@@ -29,7 +30,7 @@ No executable probe or Groovy suite was rerun for this documentation task.
 
 ## Recommended first implementation slice: contract extraction only
 
-After explicit acceptance, assign S1 below from a freshly pinned master. Extract the exact-byte reader and immutable
+P1/P2 are accepted; S1 still needs a separate assignment from a freshly pinned master. Extract the exact-byte reader and immutable
 validated declaration facts first; route **both** existing consumers through it, preserving the current facade until the
 resolver/result extraction is complete. Do not make consumers learn decoder details or add pass-through public interfaces.
 The normalized contract is an internal result, not a serialized descriptor, new published protocol or extension surface.
@@ -230,7 +231,7 @@ No current user page, changelog or tracker is changed to imply these proposals a
 
 ## Maintainer choices and completion boundary
 
-1. **Recommended now:** accept the internal P1/P2 separation and commission S1 only. Decide record versus final class
+1. **Accepted:** the internal P1/P2 separation. S1/S2 remain unassigned; decide record versus final class
    from the extracted interface, not before it. Size does not resume as a side effect.
 2. **Recommended default:** built-ins only. Decide whether trusted, explicitly selected custom build code warrants C0;
    then settle meta-annotation name, typed handler/artifact, finite fragment vocabulary and failure/cache semantics.
@@ -240,8 +241,8 @@ No current user page, changelog or tracker is changed to imply these proposals a
 4. **Recommended guidance:** prefer Structured Import within its grammar for new Klum-authored data, retain managed
    Jackson for foreign mapping. Approve guidance separately; no sunset without the matrix and compatibility decision.
 
-Design execution can complete with these choices open because the deliverable is a proposal. Repository delivery remains
-local and unpublished; Hive reconciliation and maintainer acceptance/publication disposition are external conditions.
+Design execution can complete with P3/P4/P5 choices open because they remain proposals. Draft documentation publication
+is authorized; PR review/merge, Hive reconciliation and the remaining maintainer choices are external conditions.
 Tracker impact is design context related to #959; #971/#932 remain independent and open. No issue closure, label,
 milestone, curation/release placement, agent-policy change or production implementation is part of this task.
 
@@ -255,4 +256,6 @@ commit; the task handoff records the exact reviewed commit and final results.
 The initial independent Standards review found no actionable issue. The independent Specification review found one
 example-call omission: the prospective `readRoot` example lacked the current API's required source name. The follow-up
 adds `release.yaml`, checked against `KlumStructuredInput`'s existing three-argument overload. No API change is proposed.
-Both axes receive the corrected revision for confirmation; publication and maintainer decisions remain external.
+Both axes confirmed zero remaining findings at `b49579d3faeab174a558d9b228695f1410be329a`.
+The subsequent P1/P2 acceptance and draft-publication disposition edits change status only; the prior independent
+reviews are reused under the maintainer's explicit instruction. Documentation/diff checks are rerun before publication.

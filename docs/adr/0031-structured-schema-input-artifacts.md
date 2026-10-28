@@ -17,9 +17,9 @@ Generator owner: [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 [Implementation plan](../implementation/adr-0031-structured-schema-input-artifacts.md).
 Need horizon: identified ScHelm demand, provisional next 4.x integration line; no milestone assigned.
 
-Design review, 2026-10-28: the [proposed contract/projection separation](#proposed-contract-and-projection-separation--959)
+Design disposition, 2026-10-28: the [contract/projection separation](#proposed-contract-and-projection-separation--959)
 and its [staged plan](../implementation/issue-959-input-projection-architecture.md) distinguish current guarantees from
-unaccepted extension choices. They authorize no implementation; Size stays paused.
+accepted P1/P2 architecture and unaccepted P3/P4/P5 proposals. Implementation remains unassigned; Size stays paused.
 
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
 [AsBuilder composition](0004-asbuilder-composition-protocol.md),
@@ -910,8 +910,8 @@ activation boundaries.
 
 ## Proposed contract and projection separation — #959
 
-Date: 2026-10-28. Status: **Proposal for maintainer decision; design/documentation only.**
-Authority: the INPUT-PROJECTION-ARCH design assignment, informed by
+Date: 2026-10-28. Status: **P1/P2 accepted by the maintainer; P3/P4/P5 remain unaccepted proposals; design/documentation only.**
+Authority: the INPUT-PROJECTION-ARCH design assignment and subsequent maintainer acceptance of P1/P2, informed by
 [#959](https://github.com/klum-dsl/klum-ast/issues/959), the completed Size probe and
 [#971](https://github.com/klum-dsl/klum-ast/issues/971). The
 [plan and evidence inventory](../implementation/issue-959-input-projection-architecture.md) pin the inspected revisions.
@@ -930,8 +930,9 @@ documentary string examples, always-on numeric mappings and bounded Pattern mapp
 class-valued custom association, a narrow parameter-fact corridor, IDE assistance and import responsibilities. This
 accepts the questions and the design-only scope, not an implementation or a public extension interface.
 
-**Proposed decisions P1–P5 below** require explicit acceptance and separate assignments. **Open decisions** are listed in
-the plan. **Deferred:** Size implementation, generic validation, custom execution, parameter enforcement, new converter/
+**Accepted decisions:** P1 and P2 below. Their acceptance does not assign S1/S2 or authorize production changes.
+**Unaccepted proposals:** P3, P4 and P5, including custom projectors, the #971 corridor and import preference/sunset choices.
+**Open decisions** are listed in the plan. **Deferred:** Size implementation, generic validation, custom execution, parameter enforcement, new converter/
 Factory admission, IDE tooling implementation and Jackson deprecation/removal. No release placement changes.
 
 ### P1 — Extract behavior before choosing a record
@@ -1059,5 +1060,5 @@ recompilation and compatibility decisions, respecting the current development pr
 Reject a record-first cosmetic rewrite, a generic public contract/validation SPI, a growing mapping switch in the
 reader, parsing rendered annotations, executing constraint validators for schema generation, automatic custom discovery,
 and Jackson removal by preference. They either retain mixed responsibilities, lose metadata authority, cross the trust
-boundary silently or break an independently supported contract. The staged plan is conditional; no production work,
-issue update or publication is authorized by this proposal.
+boundary silently or break an independently supported contract. Implementation remains separately assignable; no production
+work or issue update is authorized here. The maintainer separately authorized publication of this documentation as a draft PR.
