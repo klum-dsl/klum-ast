@@ -1,13 +1,14 @@
 # #959: input-contract and constraint-projection architecture plan
 
-Date: 2026-10-28. Status: **P1/P2 accepted; S1 implemented and locally qualified; S2 unassigned; P3 unaccepted.**
+Date: 2026-10-28. Status: **P1/P2 accepted; S1 qualified; S2 implemented under a separate assignment; P3 unaccepted.**
 Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
 Decision source: [ADR 0031 P1/P2 decision and P3 proposal](../adr/0031-structured-schema-input-artifacts.md#proposed-contract-and-projection-separation--959).
 The maintainer accepted P1/P2 and authorized recording that disposition and publishing a draft documentation PR.
 P3 remains in scope because custom projection can affect this architecture; it is not an accepted extension interface.
 Former P4 and P5 are separate investigations in [#981](https://github.com/klum-dsl/klum-ast/issues/981) and
 [#982](https://github.com/klum-dsl/klum-ast/issues/982). The subsequent [S1 extraction](issue-959-schema-s1-contract.md)
-is implemented and locally qualified under its own assignment. S2 remains unassigned; Size stays paused.
+is implemented and locally qualified under its own assignment. The separately assigned
+[S2 catalog extraction](issue-959-schema-s2-catalog.md) is now implemented; Size stays paused.
 The design-checkpoint inventory and prospective scopes below retain their original planning context.
 
 ## Evidence and behavior at the design checkpoint
@@ -32,7 +33,8 @@ No executable probe or Groovy suite was rerun for this documentation task.
 ## Recommended first implementation slice: contract extraction only
 
 P1/P2 are accepted. This section records the S1 plan, subsequently assigned and implemented in
-[the S1 evidence](issue-959-schema-s1-contract.md); S2 still requires its own assignment. Extract the exact-byte reader and immutable
+[the S1 evidence](issue-959-schema-s1-contract.md); the later S2 assignment is recorded in
+[the catalog evidence](issue-959-schema-s2-catalog.md). Extract the exact-byte reader and immutable
 validated declaration facts first; route **both** existing consumers through it, preserving the current facade until the
 resolver/result extraction is complete. Do not make consumers learn decoder details or add pass-through public interfaces.
 The normalized contract is an internal result, not a serialized descriptor, new published protocol or extension surface.
@@ -138,8 +140,8 @@ unacceptable, stop with built-ins and descriptions; do not disguise execution as
 
 ## Conditional slice and acceptance map
 
-This table records the original sequencing. S1 is now implemented under its separate assignment; every remaining row
-requires a fresh assignment. No later slice is admitted by S1 completion.
+This table records the original sequencing. S1 and S2 are implemented under separate assignments; C0 still
+requires its own decisions and assignment. Neither extraction admits a later slice.
 
 | Slice / scope | Reasoned commit boundary and acceptance | Stop condition |
 | --- | --- | --- |
@@ -160,7 +162,7 @@ No current user page, changelog or tracker is changed to imply these proposals a
 
 ## Maintainer choices and completion boundary
 
-1. **Accepted:** the internal P1/P2 separation. S1 is implemented; S2 remains unassigned. The S1 evidence records its
+1. **Accepted:** the internal P1/P2 separation. S1 and the separately assigned S2 are implemented. The S1 evidence records its
    final-class decision; for later contracts, decide record versus final class
    from the extracted interface, not before it. Size does not resume as a side effect.
 2. **Recommended default:** built-ins only. Decide whether trusted, explicitly selected custom build code warrants C0;
