@@ -382,7 +382,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
-    @Issue(["391", "658", "954"])
+    @Issue(["391", "658", "954", "959"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -655,6 +655,7 @@ class JpmsPackageBoundaryTest extends Specification {
         Files.writeString(probeSource, '''
             package com.blackbuild.klum.ast.runtime;
 
+            import java.lang.reflect.Constructor;
             import java.lang.reflect.Method;
             import java.util.Map;
 
@@ -662,13 +663,16 @@ class JpmsPackageBoundaryTest extends Specification {
                 public static String read() throws Exception {
                     Module schema = ModuleLayer.boot().findModule("fixture.schema").orElseThrow();
                     Class<?> model = Class.forName(schema, "fixture.schema.Station");
-                    Class<?> reader = Class.forName(CompiledInputProbe.class.getModule(),
+                    Class<?> resolver = Class.forName(CompiledInputProbe.class.getModule(),
+                            "com.blackbuild.klum.ast.runtime.internal.InputContractResolver");
+                    Class<?> contract = Class.forName(CompiledInputProbe.class.getModule(),
                             "com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema");
-                    Method read = reader.getDeclaredMethod("read", Class.class);
-                    Method entries = reader.getDeclaredMethod("entries");
-                    if (!read.trySetAccessible() || !entries.trySetAccessible())
-                        throw new IllegalStateException("Cannot call the private reader from its own runtime module");
-                    Object plan = read.invoke(null, model);
+                    Constructor<?> constructor = resolver.getDeclaredConstructor();
+                    Method read = resolver.getDeclaredMethod("read", Class.class);
+                    Method entries = contract.getDeclaredMethod("entries");
+                    if (!constructor.trySetAccessible() || !read.trySetAccessible() || !entries.trySetAccessible())
+                        throw new IllegalStateException("Cannot call the private resolver from its own runtime module");
+                    Object plan = read.invoke(constructor.newInstance(), model);
                     Map<?, ?> facts = (Map<?, ?>) entries.invoke(plan);
                     Object slot = facts.get("slot");
                     Method fixedKey = slot.getClass().getDeclaredMethod("fixedChildKey");

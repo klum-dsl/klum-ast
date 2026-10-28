@@ -78,6 +78,19 @@ that fixture hook required no production workaround, admission change or suppres
 | Plugin/loader/Gradle behavior | KlumJsonSchemaGenerationTest, including G3/G4/G5 binary producers, packaged G5 plugin, platform-parent isolation, task/output/configuration/build-cache behavior |
 | Generated linkage/JPMS | Root check's generated/public contract and package-boundary suites plus the explicit G3/G4/G5 annotation-propagation artifact tasks |
 
+## Initial full-check correction
+
+The first root check reached the full G4 suite and failed one existing JPMS fixture with
+`NoSuchMethodException: CompiledBuilderSchema.read(Class)`. Its test-only reflective probe still expected the old
+static method, unlike the already updated ordinary bridges. The additive correction constructs the new package-private
+resolver inside the same runtime module and reads the immutable result separately. Module declarations, accessibility
+assertions, fixture outputs and the prohibition on portability workarounds remain unchanged. The existing feature gains
+#959 traceability; no production change, compatibility bypass or test suppression is needed.
+
+The corrected probe passes in all three Groovy generations. That qualification also executes the full core G3/G4
+suites: 2,506 / 2,508 cases with zero failures/errors and 16 / 15 existing skips; G5's focused JPMS suite passes all
+five cases without skips. The final full root check below still qualifies every required lane and module together.
+
 ## Qualification and delivery
 
 Qualification is in progress; the final handoff records the exact source/final commits, full lane totals, byte comparisons,
