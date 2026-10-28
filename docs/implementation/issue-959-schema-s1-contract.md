@@ -151,6 +151,13 @@ there is no coverage-free upload. The exact final revision, analysis outcome and
 [Branch analysis](https://sonarcloud.io/dashboard?id=klum-dsl_klum-ast&branch=codex%2F959-schema-s1-contract).
 Subsequent PR CI/Sonar remains the separate authoritative PR gate; local results do not imply a passing PR check.
 
+The requested final-head scan is not executed: automatic approval review denies the source/analysis-data upload to
+SonarCloud because the available authorization does not explicitly approve that external payload. No workaround,
+coverage-free scan, source upload, analysis result or quality gate is claimed. The delivery boundary is ready for PR,
+with explicit approval of that source/analysis/coverage upload required before the final scan and draft creation.
+The task handoff presents the exact branch/revision and configured project for that approval.
+
+
 Git SSH feature-branch delivery preflight and GitHub CLI repository capability are **authorized**. No credentials,
 credential scopes or raw authentication errors are inspected or recorded. Draft publication is explicitly assigned;
 tracker impact is **Related: #959**, with no closure candidate, state/milestone/label change, release placement or merge.
