@@ -57,7 +57,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         Class.forName('naming.' + root, false, artifacts)
     }
 
-    private static CompiledBuilderSchema contract(Class type) { CompiledBuilderSchema.read(type) }
+    private static CompiledBuilderSchema contract(Class type) { new InputContractResolver().read(type) }
 
     def cleanup() { artifacts?.close(); System.clearProperty('naming.executed') }
 

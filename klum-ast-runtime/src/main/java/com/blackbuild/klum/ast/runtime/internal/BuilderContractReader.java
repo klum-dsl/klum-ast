@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,42 +59,39 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
  * Model types may identify self bounds but their bytes, defaults, lifecycle and validators are never inspected.
  * Required protocol facts are checked even for excluded/suppressed members; failures retain the declaring
  * Schema, public contract and artifact identity. Unrelated annotations are never instantiated as proxies.
+ * Each instance caches validated declarations by exact Class identity for one consumer session only.
  * Mutable ASM state stays private; callers receive defensively copied, ordered, inert declaration facts.
  */
 final class BuilderContractReader {
-    private BuilderContractReader() { }
-    static final String VALUE = "value";
-    static final String EXAMPLES = "examples";
+    private static final String VALUE = "value";
+    private static final String EXAMPLES = "examples";
     static final String IDENTITY_NAME = "IDENTITY";
     static final String KEBAB_NAME = "KEBAB_CASE";
-    static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
+    private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
     static final String BUILDER_SUFFIX = "_DSL$Builder";
-    static final String INPUT_IGNORED = "excluded by @InputIgnore";
-    static final String JSON_PROPERTY_ORIGIN = "JSON_PROPERTY";
-    static final String IGNORE_ORIGIN = "IGNORE";
-    static final String INPUT_IGNORE_ORIGIN = "INPUT_IGNORE";
-    static final Set<String> NAME_ORIGINS = Set.of(IDENTITY_NAME, JSON_PROPERTY_ORIGIN, "INPUT_NAME", IGNORE_ORIGIN, INPUT_IGNORE_ORIGIN);
-    static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
+    private static final String INPUT_IGNORED = "excluded by @InputIgnore";
+    private static final String JSON_PROPERTY_ORIGIN = "JSON_PROPERTY";
+    private static final String IGNORE_ORIGIN = "IGNORE";
+    private static final String INPUT_IGNORE_ORIGIN = "INPUT_IGNORE";
+    private static final Set<String> NAME_ORIGINS = Set.of(IDENTITY_NAME, JSON_PROPERTY_ORIGIN, "INPUT_NAME", IGNORE_ORIGIN, INPUT_IGNORE_ORIGIN);
+    private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     static final String NUMERIC = "NUMERIC";
     static final String CONTAINER = "CONTAINER";
-    static final String PREFIX = "Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$";
-    static final String SCHEMA = PREFIX + "Schema;";
-    static final String KEY_ANNOTATION = PREFIX + "Key;";
-    static final String FIELD = PREFIX + "Field;";
-    static final String OPERATION_FACT = PREFIX + "Operation;";
-    static final String SOURCE_DEPRECATED = "sourceDeprecated";
-    static final String CONSTRAINT = PREFIX + "Constraint;";
-    static final String SELECTION = PREFIX + "Selection;";
-    static final String EXCLUSION = PREFIX + "Exclusion;";
-    static final String OPERATION = "Lcom/blackbuild/klum/ast/Builder$Method;";
-    static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
-    static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
-    static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC);
-    static final Set<String> NUMBERS = Set.of("byte", "short", "int", "long", "float", "double",
-            "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float",
-            "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
-    static final Set<String> COLLECTIONS = Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet", "java.util.EnumSet");
-    static final Set<String> MAPS = Set.of("java.util.Map", "java.util.SortedMap", "java.util.NavigableMap");
+    private static final String PREFIX = "Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$";
+    private static final String SCHEMA = PREFIX + "Schema;";
+    private static final String KEY_ANNOTATION = PREFIX + "Key;";
+    private static final String FIELD = PREFIX + "Field;";
+    private static final String OPERATION_FACT = PREFIX + "Operation;";
+    private static final String SOURCE_DEPRECATED = "sourceDeprecated";
+    private static final String CONSTRAINT = PREFIX + "Constraint;";
+    private static final String SELECTION = PREFIX + "Selection;";
+    private static final String EXCLUSION = PREFIX + "Exclusion;";
+    private static final String OPERATION = "Lcom/blackbuild/klum/ast/Builder$Method;";
+    private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
+    private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC);
+
+    private final Map<Class<?>, Metadata> declarations = new IdentityHashMap<>();
 
     /** Validated declaration facts; names and source roles are still unresolved. */
     record Metadata(boolean schema, int version, Boolean namingExplicit, String namingProfile,
@@ -218,7 +216,7 @@ final class BuilderContractReader {
             throw invalid("Expected exact public contract identity " + contract.getName());
     }
 
-    static List<Declaration> scope(Class<?> contract) throws IOException, ClassNotFoundException {
+    List<Declaration> scope(Class<?> contract) throws IOException, ClassNotFoundException {
         requirePublic(contract);
         Map<Class<?>, Metadata> owners = new LinkedHashMap<>();
         List<Declaration> result = new ArrayList<>();
@@ -277,7 +275,9 @@ final class BuilderContractReader {
     }
 
     /** Exact public declaration resources only. Avoids annotation proxies parsing unrelated user enum annotations. */
-    static Metadata metadata(Class<?> owner) throws IOException, ClassNotFoundException {
+    Metadata metadata(Class<?> owner) throws IOException, ClassNotFoundException {
+        Metadata known = declarations.get(owner);
+        if (known != null) return known;
         verifyAnnotationProtocol(owner);
         String name = owner.getName().replace('.', '/') + ".class";
         verifyResourceOrigin(owner, name);
@@ -293,7 +293,9 @@ final class BuilderContractReader {
             }
             if (owner.getName().endsWith(BUILDER_SUFFIX) && !result.schema)
                 throw invalid("Missing generated input enrichment on " + namingOrigin(owner));
-            return freeze(result);
+            Metadata frozen = freeze(result);
+            declarations.put(owner, frozen);
+            return frozen;
         }
     }
 

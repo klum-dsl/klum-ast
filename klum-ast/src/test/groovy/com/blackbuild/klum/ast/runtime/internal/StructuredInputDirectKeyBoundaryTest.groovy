@@ -89,7 +89,7 @@ class StructuredInputDirectKeyBoundaryTest extends AbstractDSLSpec {
         def declaringType = Class.forName('fixedkeyboundary.' + (separateParent ? 'Home' : 'FloorPlan'), false, artifactLoader)
 
         when:
-        def plan = CompiledBuilderSchema.read(floorPlan)
+        def plan = new InputContractResolver().read(floorPlan)
         def entry = plan.entries().get('kitchen')
         def ordinary = floorPlan.Create.With { kitchen(purpose: 'ordinary') }
         def callback = FactoryHelper.createWithConfiguration(floorPlan, null, { root ->

@@ -83,7 +83,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         catch (KlumModelException caught) { failure = caught }
         def external = KlumStructuredInput.readRoot(root,
                 [fixed: [:], children: [outer: [:]]], 'external.yaml')
-        def plan = CompiledBuilderSchema.read(child)
+        def plan = new InputContractResolver().read(child)
 
         then:
         plan.key().source() == 'binarykey.Base#' + nativeName

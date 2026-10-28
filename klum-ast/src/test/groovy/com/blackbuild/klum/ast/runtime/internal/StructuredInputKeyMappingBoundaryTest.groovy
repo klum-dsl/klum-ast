@@ -50,7 +50,7 @@ class StructuredInputKeyMappingBoundaryTest extends AbstractDSLSpec {
         def configuration = Class.forName('mappedboundary.Configuration', false, binaryLoader)
 
         when:
-        def plan = CompiledBuilderSchema.read(configuration)
+        def plan = new InputContractResolver().read(configuration)
 
         then:
         !plan.entries().containsKey('entries')

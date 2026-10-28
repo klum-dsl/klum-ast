@@ -597,7 +597,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
         then:
         model.key == 'production'
-        CompiledBuilderSchema.read(deployment).key().source() == 'keyinput.Base#key'
+        new InputContractResolver().read(deployment).key().source() == 'keyinput.Base#key'
         !Class.forName('keyinput.Base_DSL$Builder', false, artifactLoader).declaredMethods.any { it.name == 'getKey' }
     }
 

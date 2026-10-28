@@ -24,34 +24,28 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.ConstraintProjection.Policy;
-import com.blackbuild.klum.ast.InputNaming.Profile;
-import com.blackbuild.klum.ast.runtime.KlumModelException;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import static com.blackbuild.klum.ast.runtime.internal.BuilderContractReader.*;
-
-/** Internal compiled-contract seam. Never inspects Model implementations or reads the retired carrier. */
+/**
+ * Immutable, normalized result of source-free public Builder/input resolution.
+ * Instances have loader-local identity; they do not load, resolve, render, execute or lazily cache anything.
+ * Ordered maps and every nested list/map are defensively copied. Method/Class handles remain local to the
+ * consumer session, are never serialized, and are invoked only by normal interpreter execution after preflight.
+ * Source declarations, operation payloads, construction keys and relationship-use facts remain independent.
+ * Consumers validate referenced ownership contracts separately, registering identities before following cycles.
+ */
 final class CompiledBuilderSchema {
     static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
     private final Class<?> contract;
     private final Class<?> model;
     private final Key key;
+    private final List<String> keyCollisions;
+    private final Map<Class<?>, ConstraintProfile> constraintProfiles;
     private final String keyName;
     private final Map<String, Entry> entries;
     private final List<Rejection> rejections;
@@ -59,42 +53,51 @@ final class CompiledBuilderSchema {
 
     enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION }
     enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
+
+    /** Owned types use stable Class references; data-container items are finite, recursively immutable shapes. */
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
+
+    /** A selected input use; source identity stays distinct from its effective external name and dispatch handle. */
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) { }
-    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive, String regexp, Boolean patternFlagsEmpty) { }
-    record FieldConstraints(Policy policy, List<ConstraintRule> rules) { }
-    record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) { }
-
-    /** Exposes numeric projection facts after the shared protocol/completeness validation. */
-    static ConstraintProfile constraintProfile(Class<?> builder) {
-        try {
-            Metadata metadata = metadata(builder);
-            Map<String, FieldConstraints> fields = new LinkedHashMap<>();
-            for (Literals literal : metadata.methods().values()) {
-                if (literal.field() == null) continue;
-                FieldConstraints constraints = new FieldConstraints(Policy.valueOf(literal.constraintProjection()), List.copyOf(literal.constraints()));
-                if (fields.putIfAbsent(literal.field(), constraints) != null)
-                    throw invalid("duplicate constraint source field #" + literal.field());
-            }
-            return new ConstraintProfile(metadata.groupRedefined(), Collections.unmodifiableMap(fields));
-        } catch (IOException | ClassNotFoundException failure) {
-            throw invalid("JSON Schema constraints require complete public Builder metadata on '" + builder.getName()
-                    + "' (artifact " + builder.getProtectionDomain().getCodeSource() + "): " + failure.getMessage()
-                    + "; recompile and package this Schema and its inherited/owned Schema dependencies with matching KlumAST compiler/runtime versions");
+                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) {
+        Entry {
+            methods = List.copyOf(methods);
+            examples = List.copyOf(examples);
         }
     }
 
+    /**
+     * Compiler-frozen constraint facts, not executable annotations. {@code plain} states direct-origin/context
+     * eligibility, never validity or representability. Declaration text is a canonical description, not source text.
+     * Numeric/Pattern mapping and PROJECT/TEXT_ONLY/OMIT interpretation belong to the existing renderer.
+     */
+    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive, String regexp, Boolean patternFlagsEmpty) { }
+    record FieldConstraints(Policy policy, List<ConstraintRule> rules) {
+        FieldConstraints { rules = List.copyOf(rules); }
+    }
+
+    /** All captured field facts on one declaring Builder, including excluded and output-suppressed declarations. */
+    record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) {
+        ConstraintProfile { fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields)); }
+    }
+
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract,
-               boolean sourceDeprecated, String ignoreReason, List<String> examples) { }
+               boolean sourceDeprecated, String ignoreReason, List<String> examples) {
+        Key { examples = List.copyOf(examples); }
+    }
     record Rejection(String source, String reason, String collisionName) {
         Rejection(String source, String reason) { this(source, reason, null); }
     }
-    record Declaration(String owner, String name, List<String> parameters, String returns, String documentation) { }
+    record Declaration(String owner, String name, List<String> parameters, String returns, String documentation) {
+        Declaration { parameters = List.copyOf(parameters); }
+    }
 
-    private CompiledBuilderSchema(Class<?> contract, Class<?> model, Map<String, Entry> entries,
-                                  List<Rejection> rejections, List<Declaration> declarations, Key key, String keyName) {
+    CompiledBuilderSchema(Class<?> contract, Class<?> model, Map<String, Entry> entries,
+                          List<Rejection> rejections, List<Declaration> declarations, Key key, String keyName,
+                          List<String> keyCollisions, Map<Class<?>, ConstraintProfile> constraintProfiles) {
+        this.keyCollisions = List.copyOf(keyCollisions);
+        this.constraintProfiles = Collections.unmodifiableMap(new LinkedHashMap<>(constraintProfiles));
         this.key = key;
         this.keyName = keyName;
         this.contract = contract;
@@ -104,85 +107,8 @@ final class CompiledBuilderSchema {
         this.declarations = List.copyOf(declarations);
     }
 
-    static CompiledBuilderSchema read(Class<?> model) {
-        try {
-            ClassLoader loader = model.getClassLoader();
-            CompiledBuilderSchema schema = read(Class.forName(model.getName() + BUILDER_SUFFIX, false, loader),
-                    Class.forName(model.getName() + "_DSL$Factory", false, loader));
-            if (schema.model != model) throw invalid("Root Model identity disagrees with Builder self bound");
-            return schema;
-        } catch (ClassNotFoundException | LinkageError failure) { throw failure(model.getName(), failure); }
-    }
-
-    static CompiledBuilderSchema read(Class<?> builder, Class<?> factory) {
-        try {
-            requirePublic(builder);
-            requirePublic(factory);
-            Class<?> model = modelOf(builder);
-            if (model == null || Arrays.stream(factory.getMethods()).noneMatch(method -> method.getName().equals("One") && method.getReturnType() == model))
-                throw invalid("Builder self bound and Factory result disagree");
-            Profile naming = resolveNaming(builder);
-            Facts facts = collect(builder, new LinkedHashMap<>(), naming == Profile.KEBAB_CASE);
-            List<Rejection> rejected = new ArrayList<>(facts.rejections());
-            List<Declaration> declarations = new ArrayList<>(facts.declarations());
-            declarations.addAll(scope(factory));
-            Map<String, Entry> entries = new LinkedHashMap<>();
-            Key key = facts.key();
-            if (naming == Profile.KEBAB_CASE) {
-                List<Entry> candidates = facts.entries().stream().map(CompiledBuilderSchema::profileEntry).toList();
-                entries.putAll(admitted(candidates, rejected, true));
-                if (key != null) {
-                    key = profileKey(key);
-                }
-            } else {
-                facts.entries().forEach(entry -> entries.put(entry.externalName(), entry));
-            }
-            return new CompiledBuilderSchema(builder, model, entries, rejected.stream().distinct()
-                    .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(), declarations, key, metadata(builder).key());
-        } catch (ReflectiveOperationException | LinkageError | IOException | RuntimeException failure) {
-            throw failure(builder.getName(), failure);
-        }
-    }
-
-    /** Resolve each declaring hierarchy before its descendants, preserving previously rejected parent sources. */
-    private static Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected, boolean strict) {
-        Map<String, Entry> sources = new LinkedHashMap<>();
-        for (Entry entry : candidates) {
-            Entry previous = sources.putIfAbsent(entry.source(), entry);
-            if (previous != null && !previous.equals(entry)) throw invalid("Conflicting input source " + entry.source());
-        }
-        Set<String> exclusions = rejected.stream().map(Rejection::source).collect(Collectors.toSet());
-        Map<String, List<Entry>> names = new LinkedHashMap<>();
-        sources.values().stream().filter(entry -> !exclusions.contains(entry.source()))
-                .sorted(Comparator.comparing(Entry::externalName).thenComparing(Entry::source))
-                .forEach(entry -> names.computeIfAbsent(entry.externalName(), ignored -> new ArrayList<>()).add(entry));
-        Map<String, Entry> entries = new LinkedHashMap<>();
-        names.forEach((name, group) -> {
-            if (group.size() == 1) entries.put(name, group.get(0));
-            else {
-                String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
-                if (strict) {
-                    throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
-                }
-                group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
-            }
-        });
-        return entries;
-    }
-
-    private record Facts(List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations, Key key) { }
-    private record BuilderContext(Class<?> builder, Class<?> model, Metadata metadata) { }
-
     Key key() { return key; }
-    List<String> keyCollisions() {
-        if (key == null || key.ignored()) return List.of();
-        List<String> collisions = new ArrayList<>();
-        Entry entry = entries.get(key.externalName());
-        if (entry != null) collisions.add(entry.source());
-        rejections.stream().filter(rejection -> key.externalName().equals(rejection.collisionName()))
-                .map(Rejection::source).forEach(collisions::add);
-        return collisions.stream().distinct().sorted().toList();
-    }
+    List<String> keyCollisions() { return keyCollisions; }
     String keyName() { return keyName; }
     Class<?> contract() { return contract; }
     Class<?> model() { return model; }
@@ -190,369 +116,5 @@ final class CompiledBuilderSchema {
     List<Rejection> rejections() { return rejections; }
     List<Declaration> declarations() { return declarations; }
 
-    private static Facts collect(Class<?> builder, Map<Class<?>, Facts> known, boolean nativeCandidates) throws IOException, ClassNotFoundException {
-        Facts existing = known.get(builder);
-        if (existing != null) return existing;
-        List<Entry> entries = new ArrayList<>();
-        List<Rejection> rejections = new ArrayList<>();
-        List<Declaration> declarations = new ArrayList<>();
-        requirePublic(builder);
-        Class<?> model = modelOf(builder);
-        if (model == null) throw invalid("Missing Builder self bound: " + builder.getName());
-        Metadata metadata = metadata(builder);
-        if (!metadata.schema()) throw invalid("Missing generated input enrichment on " + builder.getName());
-        for (Invisible exclusion : metadata.invisible())
-            rejections.add(new Rejection(model.getName() + "#" + exclusion.member(), exclusion.reason()));
-        Map<String, Method> accessors = new LinkedHashMap<>();
-        Map<String, List<Method>> selections = new LinkedHashMap<>();
-        BuilderContext context = new BuilderContext(builder, model, metadata);
-        collectDeclarations(context, accessors, selections, entries, rejections, declarations);
-        Key key = declaredKey(context);
-        for (Map.Entry<String, Method> field : accessors.entrySet()) {
-            List<Method> methods = selections.remove(field.getKey());
-            collectField(context, field.getKey(), field.getValue(),
-                    methods == null ? List.of() : methods, entries, rejections);
-        }
-        if (!selections.isEmpty()) throw invalid("Selections lack field declarations: " + selections.keySet());
-        for (Class<?> parent : builder.getInterfaces()) {
-            Class<?> parentModel = modelOf(parent);
-            if (parentModel == null || parentModel == Object.class || !parent.getName().endsWith(BUILDER_SUFFIX)) continue;
-            if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
-            Facts inherited = collect(parent, known, nativeCandidates);
-            key = inheritKey(key, inherited.key());
-            entries.addAll(inherited.entries());
-            rejections.addAll(inherited.rejections());
-            declarations.addAll(inherited.declarations());
-        }
-        validateKeyMetadata(metadata, key, builder);
-        List<Entry> resolved = List.copyOf(nativeCandidates ? entries : admitted(entries, rejections, false).values());
-        Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
-        known.put(builder, facts);
-        return facts;
-    }
-
-    /** Declaring public contracts are the sole authority, including explicit absence and source/artifact identity. */
-    private static Profile resolveNaming(Class<?> builder) throws IOException, ClassNotFoundException {
-        Map<Class<?>, Metadata> hierarchy = new LinkedHashMap<>();
-        namingHierarchy(builder, hierarchy);
-        List<Map.Entry<Class<?>, Metadata>> explicit = hierarchy.entrySet().stream()
-                .filter(entry -> Boolean.TRUE.equals(entry.getValue().namingExplicit())).toList();
-        if (explicit.isEmpty()) return Profile.IDENTITY;
-        String selected = explicit.get(0).getValue().namingProfile();
-        if (explicit.stream().anyMatch(entry -> !entry.getValue().namingProfile().equals(selected))) {
-            String declarations = explicit.stream().map(entry -> namingOrigin(entry.getKey()) + " @InputNaming("
-                    + entry.getValue().namingProfile() + ")").sorted().collect(Collectors.joining(", "));
-            throw invalid("Conflicting explicit input profiles: " + declarations);
-        }
-        return Profile.valueOf(selected);
-    }
-
-    private static void namingHierarchy(Class<?> builder, Map<Class<?>, Metadata> hierarchy)
-            throws IOException, ClassNotFoundException {
-        if (hierarchy.containsKey(builder)) return;
-        requirePublic(builder);
-        Metadata declared = metadata(builder);
-        hierarchy.put(builder, declared);
-        for (Class<?> parent : Arrays.stream(builder.getInterfaces()).sorted(Comparator.comparing(Class::getName)).toList()) {
-            if (parent.getName().endsWith(BUILDER_SUFFIX)) {
-                namingHierarchy(parent, hierarchy);
-            }
-        }
-    }
-
-    private static Entry profileEntry(Entry entry) {
-        if (!entry.nameOrigin().equals(IDENTITY_NAME)) return entry;
-        String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
-        return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(),
-                entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples());
-    }
-
-    private static Key profileKey(Key key) throws IOException, ClassNotFoundException {
-        Metadata declaring = metadata(key.contract());
-        Literals literal = declaring.keyMember();
-        if (literal == null) {
-            literal = declaring.methods().values().stream().filter(value -> key.nativeName().equals(value.key())).findFirst().orElseThrow();
-        }
-        if (!literal.names().rename().isEmpty() || key.ignored()) return key;
-        return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
-                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason(), key.examples());
-    }
-
-    private static Key inheritKey(Key key, Key inherited) {
-        if (inherited == null) return key;
-        if (key != null && !key.equals(inherited)) throw invalid("Conflicting construction key declarations");
-        return inherited;
-    }
-
-    private static void validateKeyMetadata(Metadata metadata, Key key, Class<?> builder) {
-        if (metadata.keyInput() != (key != null) || !metadata.key().equals(key == null ? "" : key.nativeName())) {
-            throw invalid("Construction key enrichment disagrees with selected Schema key on " + namingOrigin(builder));
-        }
-    }
-
-    private static Key declaredKey(BuilderContext context) {
-        Literals fallback = context.metadata().keyMember();
-        Key key = fallback == null ? null : constructionKey(context, fallback);
-        if (fallback != null && Arrays.stream(context.builder().getDeclaredMethods()).anyMatch(method ->
-                method.getParameterCount() == 0 && method.getName().equals(keyGetterName(fallback.key()))))
-            throw invalid("Type-level construction key fact has a surviving public getter on " + context.builder().getName());
-        for (Method method : context.builder().getDeclaredMethods()) {
-            Literals literal = context.metadata().methods().get(signature(method));
-            if (literal.key() == null) continue;
-            if (key != null || method.getParameterCount() != 0 || method.getReturnType() != String.class
-                    || !method.getName().equals(keyGetterName(literal.key()))
-                    || literal.field() != null || literal.selection() != null || literal.operation())
-                throw invalid("Invalid construction key getter " + method);
-            key = constructionKey(context, literal);
-        }
-        return key;
-    }
-
-    private static String keyGetterName(String name) {
-        return "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    private static Key constructionKey(BuilderContext context, Literals literal) {
-        return new Key(literal.key(), literal.names().rename().isEmpty() ? literal.key() : literal.names().rename(),
-                literal.names().ignored(), context.model().getName() + "#" + literal.key(), context.builder(), literal.sourceDeprecated(), ignoreReason(literal.names()), literal.examples());
-    }
-
-    private static void collectDeclarations(BuilderContext context,
-                                            Map<String, Method> accessors, Map<String, List<Method>> selections,
-                                            List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) {
-        Class<?> builder = context.builder();
-        Metadata metadata = context.metadata();
-        for (Method method : Arrays.stream(builder.getDeclaredMethods()).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
-            Literals literal = metadata.methods().get(signature(method));
-            if (literal == null) throw invalid("Missing exact public declaration " + method);
-            declarations.add(declaration(method, literal));
-            if (literal.field() != null && (!fieldAccessor(method, literal.field())
-                    || accessors.putIfAbsent(literal.field(), method) != null))
-                throw invalid("Duplicate or invalid field accessor association " + literal.field());
-            if (literal.selection() != null) selections.computeIfAbsent(literal.selection(), ignored -> new ArrayList<>()).add(method);
-            if (literal.operation() && !literal.query()) operation(method, literal, context.model(), entries, rejections);
-        }
-    }
-
-    private static boolean fieldAccessor(Method method, String field) {
-        return method.getParameterCount() == 0 || method.getParameterCount() == 1
-                && method.getName().equals("set" + Character.toUpperCase(field.charAt(0)) + field.substring(1));
-    }
-
-    private static void collectField(BuilderContext context, String field, Method accessor,
-                                     List<Method> methods, List<Entry> entries, List<Rejection> rejections)
-            throws IOException, ClassNotFoundException {
-        Metadata metadata = context.metadata();
-        Literals literal = metadata.methods().get(signature(accessor));
-        String source = context.model().getName() + "#" + field;
-        Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
-        String reason = fieldReason(fieldType, literal);
-        if (reason != null) {
-            rejections.add(new Rejection(source, reason));
-            return;
-        }
-        Role role = selectedRole(metadata, methods, source);
-        if (role == Role.OWNED_OBJECT && literal.schemaKey() == null)
-            throw invalid("Missing direct relationship key-authority metadata on " + source);
-        if (literal.schemaKey() != null && (role != Role.OWNED_OBJECT || literal.fixed() && !literal.schemaKey()))
-            throw invalid("Schema child-key authority requires OWNED_OBJECT and agrees with fixed key: " + source);
-        Payload payload = fieldPayload(fieldType, role, source);
-        String key = childKey(payload, role, literal, source);
-        validateSelection(role, payload, methods, source);
-        String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
-                role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
-                literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
-    }
-
-    private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
-        if (methods.isEmpty()) throw invalid("Missing compiler input/population selection for " + source);
-        Set<String> roles = methods.stream().map(method -> metadata.methods().get(signature(method)).role()).collect(Collectors.toSet());
-        if (roles.size() != 1 || methods.stream().map(Method::getName).distinct().count() != 1)
-            throw invalid("Conflicting field selection for " + source);
-        Role role = Role.valueOf(roles.iterator().next());
-        if (role == Role.OPERATION) throw invalid("Field cannot select authored-operation role");
-        return role;
-    }
-
-    private static Payload fieldPayload(Type fieldType, Role role, String source) {
-        Payload payload = payload(fieldType, true);
-        if (role == Role.KEYED_OWNED_MAP) {
-            if (payload == null || payload.kind() != Kind.MAP || payload.item().kind() != Kind.NESTED_OBJECT)
-                throw invalid("Keyed relationship getter mismatch: " + source);
-            payload = payload.item();
-        }
-        if (payload == null || ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT)))
-            throw invalid("Field role/payload mismatch: " + source);
-        return payload;
-    }
-
-    private static String childKey(Payload payload, Role role, Literals literal, String source)
-            throws IOException, ClassNotFoundException {
-        if (literal.fixed() && (role != Role.OWNED_OBJECT || metadata(payload.builder()).key().isEmpty()))
-            throw invalid("Fixed direct-child key requires keyed OWNED_OBJECT: " + source);
-        String key = role == Role.KEYED_OWNED_MAP ? metadata(payload.builder()).key() : null;
-        if (role == Role.KEYED_OWNED_MAP && key.isEmpty()) throw invalid("Keyed relationship has no Key member: " + source);
-        return key;
-    }
-
-    private static void validateSelection(Role role, Payload payload, List<Method> methods, String source) {
-        if (methods.stream().anyMatch(method -> !Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())))
-            throw invalid("Non-public input selection: " + source);
-        if (role != Role.PROPERTY) return;
-        if (payload.item() != null && containsNested(payload.item())) throw invalid("Owned input requires a relationship role: " + source);
-        Class<?>[] parameters = switch (payload.kind()) {
-            case LIST -> new Class<?>[]{payload.item().type()};
-            case MAP -> new Class<?>[]{String.class, payload.item().type()};
-            default -> new Class<?>[]{payload.type()};
-        };
-        if (methods.stream().filter(method -> Arrays.equals(method.getParameterTypes(), parameters)).count() != 1)
-            throw invalid("Missing exact field payload/population signature: " + source);
-    }
-
-    private static boolean containsNested(Payload payload) {
-        return payload.kind() == Kind.NESTED_OBJECT || payload.item() != null && containsNested(payload.item());
-    }
-
-    private static void operation(Method method, Literals literal, Class<?> model, List<Entry> entries, List<Rejection> rejections) {
-        String source = model.getName() + "#" + sourceDescriptor(method);
-        NameFacts names = literal.operationNames();
-        String reason = null;
-        if (names.ignored()) reason = ignoreReason(names);
-        else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare exactly one payload";
-        Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
-        if (reason == null && payload == null) reason = unsupportedReason(method.getGenericParameterTypes()[0]);
-        if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
-        String name = names.rename().isEmpty() ? method.getName() : names.rename();
-        entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
-                null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
-    }
-
-    private static String fieldReason(Type type, Literals literal) {
-        if (literal.names().ignored()) return ignoreReason(literal.names());
-        if (!literal.exclusion().isEmpty()) {
-            String detail = literal.detail();
-            if (literal.exclusion().equals("POPULATION")) {
-                Class<?> raw = rawType(type);
-                Type item = containerValue(type);
-                detail += "(" + (raw != null && Map.class.isAssignableFrom(raw) ? "java.lang.String, " : "") + rawType(item).getName() + ")";
-            }
-            return exclusionReason(literal.exclusion(), detail);
-        }
-        String numeric = unsupportedNumericType(type);
-        if (numeric != null) return exclusionReason(NUMERIC, numeric);
-        Type item = containerValue(type);
-        String container = unsupportedContainerType(item == null ? type : item);
-        if (container != null) return exclusionReason(CONTAINER, container);
-        return payload(type, true) == null ? "has no admitted scalar, enum, List, or Map payload" : null;
-    }
-
-    private static Payload payload(Type type, boolean field) {
-        if (type instanceof Class<?> leaf) {
-            // Binary relationships may erase only the generated SELF argument. Do not infer user type arguments.
-            if (field && leaf.getTypeParameters().length == 1) {
-                Payload nested = ownedPayload(leaf);
-                if (nested != null) return nested;
-            }
-            return leafPayload(leaf);
-        }
-        if (!(type instanceof ParameterizedType parameterized) || !(parameterized.getRawType() instanceof Class<?> raw)) return null;
-        if (field) {
-            Payload nested = ownedPayload(raw);
-            if (nested != null) return nested;
-        }
-        return containerPayload(parameterized, raw, field);
-    }
-
-    private static Payload ownedPayload(Class<?> builder) {
-        Class<?> model = modelOf(builder);
-        return builder.isInterface() && builder.getName().endsWith(BUILDER_SUFFIX)
-                && model != null && !Modifier.isAbstract(model.getModifiers())
-                ? new Payload(Kind.NESTED_OBJECT, model, builder, null, null) : null;
-    }
-
-    private static Payload leafPayload(Class<?> leaf) {
-        if (leaf.isEnum()) return new Payload(Kind.ENUM, leaf, null, null, null);
-        if (leaf == String.class || leaf == Boolean.class || leaf == boolean.class || NUMBERS.contains(leaf.getName()))
-            return new Payload(Kind.SCALAR, leaf, null, null, null);
-        return null;
-    }
-
-    private static Payload containerPayload(ParameterizedType parameterized, Class<?> raw, boolean field) {
-        Type[] args = parameterized.getActualTypeArguments();
-        boolean list = field ? COLLECTIONS.contains(raw.getName()) : raw == List.class;
-        boolean map = field ? MAPS.contains(raw.getName()) : raw == Map.class;
-        if ((!list && !map) || args.length != (map ? 2 : 1) || (map && args[0] != String.class)) return null;
-        Type itemType = args[map ? 1 : 0];
-        Payload item = payload(itemType, false);
-        // Owned-map eligibility comes only from compiler selection; no generic Builder collection admission.
-        if (item == null && field && map) item = payload(itemType, true);
-        if (item == null) return null;
-        return new Payload(map ? Kind.MAP : Kind.LIST, raw, null, map ? String.class.getName() : null, item);
-    }
-
-    private static Class<?> modelOf(Class<?> builder) {
-        Type[] variables = builder.getTypeParameters();
-        if (variables.length == 0) return null;
-        // The generated self parameter is trailing; source type parameters may have unrelated Class bounds.
-        Type variable = variables[variables.length - 1];
-        if (!(variable instanceof TypeVariable<?> self)) return null;
-        Type bound = self.getBounds()[0];
-        return rawType(bound) == Object.class ? null : rawType(bound);
-    }
-
-    /** Source diagnostics historically use JVM array names; this spelling is available directly from Class. */
-    private static String sourceDescriptor(Method method) {
-        return method.getName() + "(" + Arrays.stream(method.getParameterTypes()).map(Class::getName).collect(Collectors.joining(", "))
-                + "):" + method.getReturnType().getName();
-    }
-
-    private static KlumModelException failure(String root, Throwable cause) {
-        return new KlumModelException("Cannot read compiled Builder input contract for " + root
-                + "; recompile and package the Schema with generated input enrichment and supply its complete API/runtime classpath: "
-                + cause.getMessage(), cause);
-    }
-
-    private static String unsupportedReason(Type type) {
-        String numeric = unsupportedNumericType(type);
-        if (numeric != null)
-            return exclusionReason(NUMERIC, numeric);
-        String container = unsupportedContainerType(type);
-        if (container != null)
-            return exclusionReason(CONTAINER, container);
-        return "@Builder.Method payload is outside the admitted grammar";
-    }
-
-    private static String unsupportedNumericType(Type type) {
-        Class<?> raw = rawType(type);
-        if (raw != null && Number.class.isAssignableFrom(raw) && !NUMBERS.contains(raw.getName())) return raw.getName();
-        Type nested = containerValue(type);
-        return nested == null ? null : unsupportedNumericType(nested);
-    }
-
-    private static String unsupportedContainerType(Type type) {
-        Class<?> raw = rawType(type);
-        if (raw != null && ((Collection.class.isAssignableFrom(raw) && raw != List.class)
-                || (Map.class.isAssignableFrom(raw) && raw != Map.class))) return raw.getName();
-        Type nested = containerValue(type);
-        return nested == null ? null : unsupportedContainerType(nested);
-    }
-
-    private static Class<?> rawType(Type type) {
-        if (type instanceof Class<?> raw) return raw;
-        if (type instanceof ParameterizedType parameterized && parameterized.getRawType() instanceof Class<?> raw) return raw;
-        return null;
-    }
-
-    /** The compiler checks nested numeric/container exclusions before ordinary map-key grammar eligibility. */
-    private static Type containerValue(Type type) {
-        if (!(type instanceof ParameterizedType parameterized)) return null;
-        Class<?> raw = rawType(type);
-        Type[] arguments = parameterized.getActualTypeArguments();
-        if (raw != null && Collection.class.isAssignableFrom(raw) && arguments.length == 1) return arguments[0];
-        if (raw != null && Map.class.isAssignableFrom(raw) && arguments.length == 2) return arguments[1];
-        return null;
-    }
-
+    Map<Class<?>, ConstraintProfile> constraintProfiles() { return constraintProfiles; }
 }

@@ -219,6 +219,7 @@ public final class StructuredInputSupport {
         private static final Set<Class<?>> NUMBERS = Set.of(Byte.class, Short.class, Integer.class, Long.class,
                 Float.class, Double.class, BigInteger.class, BigDecimal.class);
         private final String source;
+        private final InputContractResolver resolver = new InputContractResolver();
         private final Map<Class<?>, CompiledBuilderSchema> plans = new HashMap<>();
         private final Map<Object, Boolean> visiting = new IdentityHashMap<>();
         private Preparation(String source) { this.source = source; }
@@ -253,7 +254,7 @@ public final class StructuredInputSupport {
             CompiledBuilderSchema known = plans.get(model);
             if (known != null) return known;
             try {
-                CompiledBuilderSchema decoded = CompiledBuilderSchema.read(model);
+                CompiledBuilderSchema decoded = resolver.read(model);
                 plans.put(model, decoded); // Register before following ownership so recursive contracts terminate.
                 for (Entry entry : decoded.entries().values()) {
                     if (entry.payload().kind() == Kind.NESTED_OBJECT) {
