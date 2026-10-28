@@ -91,6 +91,21 @@ The corrected probe passes in all three Groovy generations. That qualification a
 suites: 2,506 / 2,508 cases with zero failures/errors and 16 / 15 existing skips; G5's focused JPMS suite passes all
 five cases without skips. The final full root check below still qualifies every required lane and module together.
 
+## Loader diagnostic preservation
+
+A standalone missing-runtime audit exposed a genuine extraction gap: allocating the new resolver outside the
+projector's existing root-error handler bypassed its root-specific diagnostic. Allocation now follows root-name/type
+loading inside that handler, preserving both lookup order and the existing message. An independent JDK 17 program
+compiles the baseline and corrected projector and compares their complete missing-runtime diagnostic bytes: identical.
+The existing packaged missing-runtime feature gains #959 and a root-message assertion; its focused G3 run passes.
+No new test class, production mapping or loader-access workaround is added.
+
+The intermediate root attempt was invalidated by editing these files during the build: the outer plugin marker used a
+clean version while the nested source-mirror fixture published an `.uncommitted` version. The observed BOM lookup failure
+matches those exact different version strings. That run was stopped and is not passing qualification evidence.
+No source-mirror implementation, fixture or build configuration is changed. The correction is committed before the
+next complete root check, with both HEAD and the working tree then held fixed until the build finishes.
+
 ## Qualification and delivery
 
 Qualification is in progress; the final handoff records the exact source/final commits, full lane totals, byte comparisons,

@@ -58,12 +58,12 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     public Map<String, String> apply(List<String> roots) {
         Map<String, String> result = new LinkedHashMap<>();
         for (String root : roots.stream().sorted().toList()) {
-            resolver = new InputContractResolver();
             definitions.clear();
             constraintProfiles.clear();
             diagnostics.clear();
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
+                resolver = new InputContractResolver();
                 String rootDefinition = definition(builder, KeyPosition.MEMBER, root, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
