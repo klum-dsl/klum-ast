@@ -165,25 +165,17 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         contributeConstraints(entry, value, groupRedefined, constraints);
     }
 
-    private enum PatternStatus { UNRELATED, PROJECTED, UNSUPPORTED }
-    private record PatternProjection(PatternStatus status, String reason) { }
-
     private void contributeConstraints(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined,
                                        CompiledBuilderSchema.FieldConstraints constraints) {
-        boolean ordinaryScalar = entry.role() == CompiledBuilderSchema.Role.PROPERTY
-                && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR;
-        boolean integralProperty = ordinaryScalar && "integer".equals(value.get("type"));
-        boolean decimalProperty = ordinaryScalar && entry.payload().type() == BigDecimal.class;
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
-            // Validate supported facts even when policy suppresses their output; unknown data must fail closed.
-            PatternProjection pattern = projectPattern(entry, rule, groupRedefined, patterns);
-            boolean projected = pattern.status() == PatternStatus.PROJECTED
-                    || !groupRedefined && projectBound(entry, rule, bounds, integralProperty, decimalProperty);
-            if (suppressConstraintDescription(constraints.policy(), projected)) continue;
-            String reason = constraints.policy() == Policy.PROJECT && pattern.status() == PatternStatus.UNSUPPORTED
-                    ? pattern.reason() : constraintReason(constraints.policy(), groupRedefined);
+            BuiltinConstraintCatalog.Result contribution = BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
+            bounds.addAll(contribution.bounds());
+            patterns.addAll(contribution.patterns());
+            if (suppressConstraintDescription(constraints.policy(), contribution.projected())) continue;
+            String reason = constraints.policy() == Policy.TEXT_ONLY
+                    ? "field projection policy TEXT_ONLY" : contribution.reason();
             appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
         }
         if (constraints.policy() == Policy.PROJECT) {
@@ -197,31 +189,12 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         return policy == Policy.OMIT || policy == Policy.PROJECT && projected;
     }
 
-    private static PatternProjection projectPattern(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
-                                        boolean groupRedefined, List<Map<String, Object>> patterns) {
-        if (!rule.annotation().equals("jakarta.validation.constraints.Pattern")) return new PatternProjection(PatternStatus.UNRELATED, null);
-        if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
-                || entry.payload().type() != String.class || entry.schemaKey()) return new PatternProjection(PatternStatus.UNSUPPORTED, "unsupported Pattern site/type");
-        if (!rule.plain() || groupRedefined) return new PatternProjection(PatternStatus.UNSUPPORTED, "Pattern not a direct singleton, nonempty groups/payload or group redefinition/sequence");
-        if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return new PatternProjection(PatternStatus.UNSUPPORTED, "nonempty Pattern flags");
-        BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
-        if (result.reason() != null) return new PatternProjection(PatternStatus.UNSUPPORTED, result.reason());
-        patterns.add(Map.of("pattern", result.assertion()));
-        patterns.add(Map.of("not", Map.of("type", STRING_TYPE, "pattern", "[^ -~]")));
-        return new PatternProjection(PatternStatus.PROJECTED, null);
-    }
-
     @SuppressWarnings("unchecked") // allOf is created here exclusively as a list of assertion maps.
     private static void appendConjunction(Map<String, Object> value, List<Map<String, Object>> additions) {
         if (additions.isEmpty()) return;
         List<Map<String, Object>> conjunction = new ArrayList<>((List<Map<String, Object>>) value.getOrDefault("allOf", List.of()));
         conjunction.addAll(additions);
         value.put("allOf", conjunction);
-    }
-
-    private static String constraintReason(Policy policy, boolean groupRedefined) {
-        if (policy == Policy.TEXT_ONLY) return "field projection policy TEXT_ONLY";
-        return groupRedefined ? "group redefinition/sequence" : "outside the supported direct numeric, empty groups/payload subset";
     }
 
     private static void conjoinBounds(Map<String, Object> value, List<Map<String, Object>> bounds) {
@@ -233,29 +206,6 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             });
         }
         appendConjunction(value, conjunction);
-    }
-
-    private boolean projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
-                                 List<Map<String, Object>> bounds, boolean integral, boolean decimal) {
-        if (!rule.plain()) return false;
-        if (integral && (rule.annotation().equals("jakarta.validation.constraints.Min")
-                || rule.annotation().equals("jakarta.validation.constraints.Max"))) {
-            bounds.add(Map.of(rule.annotation().endsWith(".Min") ? MINIMUM : MAXIMUM, new BigDecimal(rule.value())));
-            return true;
-        }
-        if (!(integral || decimal) || !(rule.annotation().equals("jakarta.validation.constraints.DecimalMin")
-                || rule.annotation().equals("jakarta.validation.constraints.DecimalMax"))) return false;
-        try {
-            String keyword = rule.annotation().endsWith(".DecimalMin") ? MINIMUM : MAXIMUM;
-            if (!Boolean.TRUE.equals(rule.inclusive())) keyword = rule.annotation().endsWith(".DecimalMin") ? "exclusiveMinimum" : "exclusiveMaximum";
-            bounds.add(Map.of(keyword, new BigDecimal(rule.decimalValue())));
-            return true;
-        } catch (NumberFormatException failure) {
-            throw new IllegalArgumentException("Invalid decimal bound for '" + entry.source() + "', external input '"
-                    + entry.externalName() + "', public Builder '" + entry.contract().getName() + "' (artifact "
-                    + entry.contract().getProtectionDomain().getCodeSource() + "): " + rule.decimalValue()
-                    + "; recompile and package the Schema with matching KlumAST versions", failure);
-        }
     }
 
     private static void appendDescription(Map<String, Object> value, String description) {
