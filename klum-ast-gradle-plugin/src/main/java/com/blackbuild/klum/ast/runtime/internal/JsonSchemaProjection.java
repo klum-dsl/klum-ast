@@ -170,13 +170,16 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
+            if (constraints.policy() != Policy.OMIT && !rule.description().isEmpty())
+                appendDescription(value, rule.description());
+            if (rule.origin().equals("DOCUMENTARY")) continue;
             BuiltinConstraintCatalog.Result contribution = BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
             bounds.addAll(contribution.bounds());
             patterns.addAll(contribution.patterns());
             if (suppressConstraintDescription(constraints.policy(), contribution.projected())) continue;
             String reason = constraints.policy() == Policy.TEXT_ONLY
                     ? "field projection policy TEXT_ONLY" : contribution.reason();
-            appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + rule.declaration());
+            appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + (rule.owner().isEmpty() ? "" : rule.owner() + " composing ") + rule.declaration());
         }
         if (constraints.policy() == Policy.PROJECT) {
             conjoinBounds(value, bounds);

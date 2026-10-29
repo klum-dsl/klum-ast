@@ -81,6 +81,8 @@ public final class GeneratedInput {
         String[] examples() default {};
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};
+        /** Explicit cardinality detects stripped declaration or composing rows, including documentary-only rows. */
+        int constraintCount() default -1;
         /** Explicit compiler-folded field policy, independent of structural admission. */
         ConstraintProjection.Policy constraintProjection() default ConstraintProjection.Policy.PROJECT;
         boolean fixedKey() default false;
@@ -106,6 +108,12 @@ public final class GeneratedInput {
     @Target({})
     public @interface Constraint {
         String annotation();
+        /** Explicit origin: DIRECT, DOCUMENTARY, COMPOSING_AND or COMPOSING_UNSUPPORTED. */
+        String origin() default "";
+        /** Canonical outer declaration for a first-level composing constraint, empty for DIRECT. */
+        String owner() default "";
+        /** Literal InputConstraintDescription on the directly used annotation type. */
+        String description() default "";
         long value() default 0L;
         String decimalValue() default "";
         boolean inclusive() default true;

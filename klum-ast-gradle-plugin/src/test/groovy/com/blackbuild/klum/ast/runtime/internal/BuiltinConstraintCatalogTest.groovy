@@ -100,7 +100,7 @@ class BuiltinConstraintCatalogTest extends Specification {
     private static Object rule(String annotation, Map facts = [:]) {
         def values = [value: '1', plain: true, decimalValue: '1.0', inclusive: true, regexp: 'a', patternFlagsEmpty: true] + facts
         fact('ConstraintRule', ['jakarta.validation.constraints.' + annotation, values.value, values.plain,
-                                '@' + annotation, values.decimalValue, values.inclusive, values.regexp, values.patternFlagsEmpty])
+                                '@' + annotation, values.decimalValue, values.inclusive, values.regexp, values.patternFlagsEmpty, 'DIRECT', '', ''])
     }
 
     private static Object choice(String name, String value) {
