@@ -257,9 +257,11 @@ Klum's one-hop propagation limit does not redefine the provider's composition se
 the same validation requirement through both a direct annotation and a composed constraint unless both
 checks are intended: propagation's duplicate-type checks do not deduplicate Bean Validation's composition graph.
 
-Runtime composition does not imply [JSON Schema projection](Json-Schema.md#conservative-pattern-projection).
-The current Pattern projection supports direct eligible field declarations; composed or aliased Patterns
-remain descriptive. This advanced use case changes neither that projection boundary nor raw-input validation.
+Runtime composition and [constraint projection](Json-Schema.md#composed-constraints-and-documentary-meta-annotations)
+use separate paths. Supported first-level AND composing constraints reuse the existing numeric and qualified Pattern
+mappings; the configured Pattern in this example can therefore contribute an assertion under the same Pattern safeguards.
+Non-AND, overridden, nested, repeated or uncertain composition and unsupported constituents remain descriptive.
+Field projection policy controls artifact content while runtime validation and raw-input admission retain their behavior.
 
 ## Boundaries and diagnostics
 
@@ -327,3 +329,14 @@ explicit-annotation cleanup.
 KlumAST supplies generic propagation. A consumer such as ScHelm owns its domain annotation meanings,
 provider selection and the decision to create or only bind when present. Compiler qualification does
 not establish acceptance of a particular consumer integration.
+
+## Bean composition and documentary meta-annotations
+
+A meta-annotation is an annotation placed on an annotation type. Jakarta Bean Validation calls the outer annotation a
+composed constraint and its hosted constraints composing constraints. This differs from a KlumAST propagated annotation:
+`@PropagateAnnotation` requests the existing one-hop propagation behavior; Bean composition retains the outer constraint.
+
+`@InputConstraintDescription('literal text')` may coexist on either kind of domain annotation. It adds prose to input
+artifacts under PROJECT/TEXT_ONLY and is suppressed under OMIT, without adding enforcement or examples. Qualified
+first-level Bean composing constraints reuse the existing built-in JSON Schema mappings independently of propagation.
+See [the supported composition boundary](Json-Schema.md#composed-constraints-and-documentary-meta-annotations).

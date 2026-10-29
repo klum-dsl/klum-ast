@@ -21,6 +21,20 @@ missing/corrupt required facts fail with Schema/Builder, artifact and recompile 
 replacement. Neither identity-only compatibility nor authored-operation reconstruction from old annotations remains.
 No version negotiation or mixed-version mode is supported. Authoring annotations and valid-Schema behavior are unchanged.
 
+### Composed constraints and documentary meta-annotations
+
+First-level AND Bean composed constraints can now contribute the existing numeric and bounded Pattern assertions to
+JSON Schema. OR/ALL_FALSE, overrides, nested/repeatable or uncertain composition and unsupported mappings remain
+runtime descriptions. Independent assertions are preserved without reduction, including contradictory numeric bounds.
+Review generated schemas when adopting the change: supplied values can now be restricted by supported composing rules.
+
+`@InputConstraintDescription` is literal annotation-type prose. `PROJECT`/`TEXT_ONLY` retain it; `OMIT` suppresses it while
+keeping ordinary Javadoc, structural bounds, explicit examples and deprecation. Runtime enforcement and direct calls are
+unchanged. Recompile all participating declaring/inherited/owned Schema artifacts with matching compiler/runtime/plugin
+versions for complete composition/description facts. There is no Model/source fallback, and suppression cannot hide
+corrupt metadata. The development protocol marker remains 1; this is not a mixed-toolchain compatibility promise.
+See [the supported boundary and example](Json-Schema.md#composed-constraints-and-documentary-meta-annotations).
+
 ### Advisory input examples
 
 `@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or

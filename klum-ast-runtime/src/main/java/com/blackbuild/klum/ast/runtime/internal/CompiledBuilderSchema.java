@@ -69,10 +69,15 @@ final class CompiledBuilderSchema {
 
     /**
      * Compiler-frozen constraint facts, not executable annotations. {@code plain} states direct-origin/context
-     * eligibility, never validity or representability. Declaration text is a canonical description, not source text.
+     * eligibility, never validity or representability. Composing eligibility has a separate explicit origin.
+     * Declaration text is a canonical description, not source text.
      * Numeric/Pattern mapping belongs to the plugin catalog; PROJECT/TEXT_ONLY/OMIT belongs to its renderer.
      */
-    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue, Boolean inclusive, String regexp, Boolean patternFlagsEmpty) { }
+    record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue,
+                          Boolean inclusive, String regexp, Boolean patternFlagsEmpty,
+                          String origin, String owner, String description) {
+        boolean eligible() { return plain || origin.equals("COMPOSING_AND"); }
+    }
     record FieldConstraints(Policy policy, List<ConstraintRule> rules) {
         FieldConstraints { rules = List.copyOf(rules); }
     }

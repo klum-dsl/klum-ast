@@ -68,7 +68,7 @@ final class BuiltinConstraintCatalog {
 
     private static Result projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
                                        boolean groupRedefined) {
-        if (!rule.plain() || groupRedefined) return unsupported(numericReason(groupRedefined));
+        if (!rule.eligible() || groupRedefined) return unsupported(numericReason(groupRedefined));
         boolean ordinaryScalar = entry.role() == CompiledBuilderSchema.Role.PROPERTY
                 && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR;
         boolean integral = ordinaryScalar && INTEGRAL_TYPES.contains(entry.payload().type());
@@ -96,7 +96,7 @@ final class BuiltinConstraintCatalog {
                                          boolean groupRedefined) {
         if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
                 || entry.payload().type() != String.class || entry.schemaKey()) return unsupported("unsupported Pattern site/type");
-        if (!rule.plain() || groupRedefined) return unsupported("Pattern not a direct singleton, nonempty groups/payload or group redefinition/sequence");
+        if (!rule.eligible() || groupRedefined) return unsupported("Pattern not a direct singleton, nonempty groups/payload or group redefinition/sequence");
         if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return unsupported("nonempty Pattern flags");
         BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
         if (result.reason() != null) return unsupported(result.reason());

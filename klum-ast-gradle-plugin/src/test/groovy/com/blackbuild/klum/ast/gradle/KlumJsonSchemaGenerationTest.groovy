@@ -54,6 +54,129 @@ class KlumJsonSchemaGenerationTest extends Specification {
     boolean packagedPlugin
 
     @Issue('959')
+    def 'project independent first-level composing constraints without domain classes with Groovy #generation'() {
+        given:
+        compositionFixture(generation)
+        String compositionApi = new File(repository, 'fixture/api/1.0/api-1.0.jar').absolutePath
+        new File(producer, 'build.gradle').append("""
+project(':api') {
+    tasks.register('compositionInitializationControl', JavaExec) {
+        classpath = files('${compositionApi}') + configurations.runtimeClasspath
+        mainClass = 'example.CompositionInitializationControl'
+        args 'example.CompositionValidator'
+    }
+}
+""")
+        def validatorControl = runner(producer, ':api:compositionInitializationControl').buildAndFail()
+        assert validatorControl.output.contains('validator initialized')
+        removeCompositionTypes()
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.CompositionService'])\n")
+
+        when:
+        run('generateKlumJsonSchema')
+        def schema = document('example.CompositionService')
+        def properties = schema.'$defs'.'example.CompositionService_DSL$Builder'.properties
+        File validation = new File(System.getProperty('schemaValidationDirectory'), generation)
+        validation.mkdirs()
+        new File(validation, 'composition.schema.json').bytes = output('example.CompositionService').bytes
+
+        then:
+        properties.range.allOf == [[maximum: 100], [minimum: 1]]
+        properties.multiple.allOf == [[minimum: 5], [minimum: 10], [maximum: 100], [minimum: 1]]
+        properties.contradiction.allOf == [[maximum: 5], [minimum: 10]]
+        properties.decimal.exclusiveMinimum == 1.25
+        properties.decimal.maximum == 9.75
+        properties.code.allOf == [[pattern: '^[A-Z]{2}$'], [not: [type: 'string', pattern: '[^ -~]']]]
+        properties.code.description.contains('Email')
+        properties.'intersecting-patterns'.allOf == [[pattern: '^A[A-Z]$'], [not: [type: 'string', pattern: '[^ -~]']],
+            [pattern: '^[A-Z]{2}$'], [not: [type: 'string', pattern: '[^ -~]']]]
+        properties.'direct-with-email'.allOf[0].pattern == '^[A-Z]{2}$'
+        properties.'direct-with-email'.description.contains('Email')
+        !properties.'flagged-code'.containsKey('allOf')
+        !properties.'repeated-code'.containsKey('allOf')
+        !properties.code.containsKey('format')
+        properties.'Inherited/Range'.'x-klum-constraint-source' == 'example.CompositionBase#inheritedRange'
+        properties.'Inherited/Range'.description.contains('Inherited prose.')
+        properties.'Inherited/Range'.description.contains('Percentage of traffic sent to this service.')
+        properties.'Inherited/Range'.deprecated
+        properties.'text-only'.description.contains('Percentage of traffic sent to this service.')
+        !properties.'text-only'.containsKey('allOf')
+        properties.omitted == [type: 'integer', minimum: -2147483648, maximum: 2147483647, description: 'Retained prose.', examples: ['explicit field example']]
+        properties.'description-only'.description.contains('Must be valid Groovy code.')
+        properties.'propagation-only'.description.contains('Must be present.')
+        properties.'explicit-and'.allOf == [[maximum: 10], [minimum: 1]]
+        ['or', 'all-false', 'overridden', 'nested', 'grouped', 'payload', 'repeated', 'size-only'].every {
+            !properties[it].containsKey('allOf') && properties[it].description.contains('Runtime constraint')
+        }
+        properties.'independent-pattern'.allOf[0].pattern == '^[A-Z]{2}$'
+        properties.'independent-pattern'.description.contains('Either')
+        !properties.'unsupported-pattern'.containsKey('allOf')
+        !properties.'wrong-type'.containsKey('allOf')
+        !properties.container.items.containsKey('pattern')
+        !schema.'$defs'.'example.CompositionService_DSL$Builder'.containsKey('required')
+        !trap.exists()
+        ['api', 'schema', 'owned'].every { !new File(producer, "$it/src").exists() && !new File(producer, "$it/build/classes").exists() }
+
+        when:
+        new File(consumer, 'build.gradle').append('''
+tasks.register('compositionInitializationControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.CompositionInitializationControl'
+    args 'example.CompositionService'
+}
+''')
+        def initialized = runner(consumer, 'compositionInitializationControl').buildAndFail()
+        then:
+        initialized.output.contains('composition initialized')
+        trap.text == 'initialized'
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('959')
+    def 'reject corrupt composition and documentary facts before suppression: #kind #selectedField'() {
+        given:
+        compositionFixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.CompositionService'])\n")
+        run('generateKlumJsonSchema')
+        File outputDirectory = output('example.CompositionService').parentFile
+        def previous = outputDirectory.listFiles().collectEntries { [(it.name): it.bytes.toList()] }
+        stripConstraintFacts('CompositionService', kind, selectedField)
+        new File(consumer, 'build.gradle').append('''
+tasks.register('compositionReadControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.CompositionReadControl'
+}
+''')
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+        then:
+        failed.output.contains(reason)
+        failed.output.contains('CompositionService')
+        failed.output.contains('artifact')
+        outputDirectory.listFiles().collectEntries { [(it.name): it.bytes.toList()] } == previous
+        !trap.exists()
+        when:
+        def rejected = run('compositionReadControl', '--refresh-dependencies')
+        then:
+        rejected.output.contains('Rejected composition metadata before execution')
+        !trap.exists()
+        where:
+        kind          | selectedField | reason
+        'count'       | 'omitted'     | 'Missing constraint count'
+        'stripped-rules' | 'omitted'   | 'Constraint count mismatch'
+        'origin'      | 'range'       | 'Missing composition/description facts'
+        'owner'       | 'range'       | 'Missing composition/description facts'
+        'description' | 'omitted'     | 'Missing composition/description facts'
+        'origin'      | 'textOnly'    | 'Missing composition/description facts'
+        'bad-origin'  | 'omitted'     | 'Inconsistent composition origin'
+        'bad-owner'   | 'omitted'     | 'Missing composing constraint owner'
+        'bad-description' | 'omitted' | 'Composition/description fact must be a String'
+    }
+
+    @Issue('959')
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#advisory-input-examples')
     def 'project advisory examples at exact source-free input positions with Groovy #generation'() {
@@ -203,7 +326,7 @@ tasks.register('exampleControl', JavaExec) {
         properties.'constant-fallback'.description.contains('regexp="[a-z][a-z0-9-]{0,62}"')
         properties.payload.description.contains('groups/payload')
         properties.composed.description.contains('@example.ComposedPattern()')
-        !properties.composed.containsKey('allOf')
+        properties.composed.allOf[0].pattern == '^a$'
         properties.alias.description.contains('@example.AliasedPattern()')
         !properties.alias.containsKey('allOf')
         properties.controls.description.contains('regexp="a\\u000a"')
@@ -1149,7 +1272,8 @@ tasks.register('rejectedNamingControl', JavaExec) {
         properties.tie.exclusiveMinimum == 2G && properties.tie.minimum == 2G
         properties.child.'$ref'
         schema.get('$defs').get('example.DecimalChild_DSL$Builder').properties.amount.minimum == 0G
-        ['text', 'floating', 'doubleValue', 'grouped', 'payloadBound', 'repeated', 'composed'].every {
+        properties.composed.minimum == 1G
+        ['text', 'floating', 'doubleValue', 'grouped', 'payloadBound', 'repeated'].every {
             !properties[it].containsKey('exclusiveMinimum') && !properties[it].containsKey('minimum')
                     && properties[it].description.contains('Runtime constraint (not enforced by this schema')
         }
@@ -1299,6 +1423,7 @@ klumSchema.jsonSchema {
         root.properties.explicitDefault.minimum == -2147483648
         root.properties.warning.minimum == -2147483648
         root.properties.composed.minimum == -2147483648
+        root.properties.composed.allOf == [[maximum: 100], [minimum: 0]]
         root.properties.repeated.minimum == -2147483648
         root.properties.customRepeated.minimum == -2147483648
         root.properties.decimal.type == 'number'
@@ -1664,7 +1789,7 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false) {
         packagedPlugin = generation == '5'
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
@@ -2005,6 +2130,9 @@ import java.lang.annotation.*
         if (patterns) {
             new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
             patternSources()
+            if (compositions) {
+                compositionSources()
+            }
         }
         if (projection) projectionSources()
         if (naming || patterns) {
@@ -2321,6 +2449,184 @@ import com.blackbuild.klum.ast.InputNaming.Profile
 """)
     }
 
+    private void compositionFixture(String generation) {
+        fixture(generation, false, false, false, false, false, false, false, false, true, true)
+    }
+
+    private void compositionSources() {
+        writeSource('api/src/main/groovy/org/hibernate/validator/constraints/ConstraintComposition.groovy', '''
+package org.hibernate.validator.constraints
+import java.lang.annotation.*
+enum CompositionType { AND, OR, ALL_FALSE }
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+@interface ConstraintComposition { CompositionType value() }
+''')
+        writeSource('api/src/main/groovy/example/CompositionRules.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.*
+import jakarta.validation.constraints.*
+import java.lang.annotation.*
+import org.hibernate.validator.constraints.*
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+import com.blackbuild.klum.ast.runtime.KlumModelException
+
+@Constraint(validatedBy=CompositionValidator) @Min(1L) @Max(100L)
+@InputConstraintDescription(CompositionTexts.DESCRIPTION)
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+@interface TrafficPercentage {
+    String message() default 'traffic'
+    Class[] groups() default []
+    Class[] payload() default []
+}
+@Constraint(validatedBy=[]) @Min(10L)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface AtLeastTen { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Min(10L) @Max(5L)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Contradiction { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @DecimalMin(value='1.25', inclusive=false) @DecimalMax('9.75')
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface PriceRange { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Pattern(regexp='[A-Z]{2}') @Email
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Code { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Email
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface EmailOnly { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Pattern(regexp='a', flags=Pattern.Flag.CASE_INSENSITIVE)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface FlaggedCode { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Pattern(regexp='a') @Pattern.List([@Pattern(regexp='b')])
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface RepeatedCode { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Pattern(regexp='a+')
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Unbounded { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@ConstraintComposition(CompositionType.OR) @Constraint(validatedBy=[]) @Min(1L) @Max(10L)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Either { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@ConstraintComposition(CompositionType.ALL_FALSE) @Constraint(validatedBy=[]) @Min(1L) @Max(10L)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Neither { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@ConstraintComposition(CompositionType.AND) @Constraint(validatedBy=[]) @Min(1L) @Max(10L)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Both { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Min(1L)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface OverrideRange {
+    @OverridesAttribute(constraint=Min, name='value') long value() default 5L
+    String message() default ''; Class[] groups() default []; Class[] payload() default []
+}
+@Constraint(validatedBy=[]) @TrafficPercentage
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Nested { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Min.List([@Min(1L), @Min(2L)])
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface Repeated { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Constraint(validatedBy=[]) @Size(min=1)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface SizeOnly { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@InputConstraintDescription('Must be valid Groovy code.')
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface ScriptText {}
+@PropagateAnnotation(Required) @InputConstraintDescription('Must be present.')
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface PresentText {}
+interface Later {}
+interface Warning extends Payload {}
+class CompositionTexts {
+    static { throw new AssertionError('description constant initialized') }
+    public static final String DESCRIPTION = 'Percentage of traffic sent to this service.'
+}
+class CompositionReadControl {
+    static void main(String[] args) {
+        Class type = Class.forName('example.CompositionService', false, CompositionReadControl.classLoader)
+        try {
+            KlumStructuredInput.readRoot(type, [:], 'composition.yaml')
+            throw new AssertionError('corrupt composition metadata accepted')
+        } catch (KlumModelException expected) {
+            assert expected.message.contains('CompositionService')
+            assert expected.message.contains('recompile and package')
+            println 'Rejected composition metadata before execution'
+        }
+    }
+}
+class CompositionInitializationControl {
+    static void main(String[] args) { Class.forName(args[0], true, CompositionInitializationControl.classLoader) }
+}
+class CompositionValidator implements ConstraintValidator<TrafficPercentage, Integer> {
+    static { throw new AssertionError('validator initialized') }
+    boolean isValid(Integer value, ConstraintValidatorContext context) { throw new AssertionError('validator executed') }
+}
+@DSL class CompositionBase {
+    /** Inherited prose. */
+    @Deprecated @InputName('Inherited/Range') @TrafficPercentage Integer inheritedRange
+}
+''')
+        writeSource('schema/src/main/groovy/example/CompositionService.groovy', """
+package example
+import com.blackbuild.klum.ast.*
+import jakarta.validation.constraints.*
+@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class CompositionService extends CompositionBase {
+    static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('composition initialized') }
+    @TrafficPercentage Integer range
+    @Min(5L) @TrafficPercentage @AtLeastTen Integer multiple
+    @Contradiction Integer contradiction
+    @PriceRange BigDecimal decimal
+    @Code String code
+    @Pattern(regexp='A[A-Z]') @Code String intersectingPatterns
+    @Pattern(regexp='[A-Z]{2}') @EmailOnly String directWithEmail
+    @FlaggedCode String flaggedCode
+    @RepeatedCode String repeatedCode
+    @TrafficPercentage @ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY) Integer textOnly
+    /** Retained prose. */
+    @InputExamples(['explicit field example']) @TrafficPercentage @ConstraintProjection(ConstraintProjection.Policy.OMIT) Integer omitted
+    @ScriptText String descriptionOnly
+    @PresentText String propagationOnly
+    @Both Integer explicitAnd
+    @Either Integer or
+    @Neither Integer allFalse
+    @OverrideRange Integer overridden
+    @Nested Integer nested
+    @TrafficPercentage(groups=Later) Integer grouped
+    @TrafficPercentage(payload=Warning) Integer payload
+    @Repeated Integer repeated
+    @SizeOnly String sizeOnly
+    @Pattern(regexp='[A-Z]{2}') @Either String independentPattern
+    @Unbounded String unsupportedPattern
+    @Code Integer wrongType
+    @Code List<String> container
+}
+""")
+    }
+
+    private void removeCompositionTypes() {
+        File jar = new File(repository, 'fixture/api/1.0/api-1.0.jar')
+        File replacement = new File(directory, 'without-composition-types.jar')
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
+                input.entries().each { entry ->
+                    copyNonCompositionEntry(input, output, entry)
+                }
+            }
+        }
+        jar.bytes = replacement.bytes
+    }
+
+    private static void copyNonCompositionEntry(JarFile input, JarOutputStream output, JarEntry entry) {
+        String simple = entry.name.tokenize('/').last().tokenize('$').first().replace('.class', '')
+        boolean domain = ['TrafficPercentage', 'AtLeastTen', 'Contradiction', 'PriceRange', 'Code', 'Unbounded',
+            'EmailOnly', 'FlaggedCode', 'RepeatedCode', 'Either', 'Neither', 'Both', 'OverrideRange', 'Nested', 'Repeated', 'SizeOnly', 'ScriptText',
+            'PresentText', 'CompositionValidator', 'CompositionTexts', 'Later', 'Warning'].contains(simple)
+        if (domain || entry.name.startsWith('org/hibernate/')) {
+            return
+        }
+        output.putNextEntry(new JarEntry(entry.name))
+        output.write(input.getInputStream(entry).withCloseable { it.bytes })
+        output.closeEntry()
+    }
+
     private void patternSources() {
         List<String> acceptedPatterns = ['[A-Z]{2}[0-9]{4}', '^[A-Z]{2}[0-9]{4}$', '[a-z][a-z0-9-]{0,62}',
                 'a?', 'a{0}', '[0-9]{0,3}', '[A-Za-z0-9_.-]{1,8}', 'release-[0-9]{1,3}', '[a]{2}[a]{0,2}',
@@ -2599,6 +2905,12 @@ class InitializationControl {
                                         AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
+                                            @Override void visit(String member, Object value) {
+                                                if (kind == 'count' && member == 'constraintCount') {
+                                                    return
+                                                }
+                                                super.visit(member, value)
+                                            }
                                             @Override void visitEnum(String member, String enumDescriptor, String value) {
                                                 if (member == 'constraintProjection' && kind == 'policy') return
                                                 super.visitEnum(member, enumDescriptor, member == 'constraintProjection' && kind == 'unknown-policy' ? 'FUTURE' : value)
@@ -2620,6 +2932,9 @@ class InitializationControl {
                                                             AnnotationVisitor duplicate = array.visitAnnotation(null, 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Constraint;')
                                                             duplicate.visit('annotation', 'jakarta.validation.constraints.Pattern')
                                                             duplicate.visit('declaration', '@jakarta.validation.constraints.Pattern(regexp="a")')
+                                                            duplicate.visit('origin', 'DIRECT')
+                                                            duplicate.visit('owner', '')
+                                                            duplicate.visit('description', '')
                                                             duplicate.visit('plain', true)
                                                             duplicate.visit('regexp', 'a')
                                                             duplicate.visit('patternFlagsEmpty', true)
@@ -2628,9 +2943,18 @@ class InitializationControl {
                                                         super.visitEnd()
                                                     }
                                                     @Override AnnotationVisitor visitAnnotation(String elementName, String elementDescriptor) {
+                                                        if (kind == 'stripped-rules') {
+                                                            return null
+                                                        }
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
+                                                                if (kind in ['origin', 'owner', 'description'] && attribute == kind) {
+                                                                    return
+                                                                }
+                                                                if (kind == 'bad-origin' && attribute == 'origin') { super.visit(attribute, 'FUTURE'); return }
+                                                                if (kind == 'bad-owner' && attribute == 'owner' && value != '') { super.visit(attribute, '@missing.Rule()'); return }
+                                                                if (kind == 'bad-description' && attribute == 'description') { super.visit(attribute, 17); return }
                                                                 if (kind == 'duplicate-regexp' && attribute == 'regexp') { super.visit(attribute, value) }
                                                                 if (kind == 'unknown-pattern' && attribute == 'regexp') { super.visit('futurePatternFact', value) }
                                                                 if (kind in ['regexp', 'patternFlagsEmpty'] && attribute == kind) { return }

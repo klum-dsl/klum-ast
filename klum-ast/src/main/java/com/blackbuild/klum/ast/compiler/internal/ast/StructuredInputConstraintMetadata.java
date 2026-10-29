@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.ConstraintProjection;
+import com.blackbuild.klum.ast.InputConstraintDescription;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -44,14 +45,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Freezes direct field facts at their original source; never copies Bean constraints onto executable sites. */
+/** Freezes direct and first-level composing field facts at their original source; never copies Bean constraints onto executable sites. */
 final class StructuredInputConstraintMetadata {
+    private static final String ICD = InputConstraintDescription.class.getName();
+    private static final String JAKARTA_CONSTRAINT = "jakarta.validation.Constraint";
+    private static final String JAKARTA_CONSTRAINTS = "jakarta.validation.constraints.";
     private static final String VALUE = "value";
     private static final String PLAIN = "plain";
     private static final String PATTERN = "jakarta.validation.constraints.Pattern";
     private static final String MIN = "jakarta.validation.constraints.Min";
     private static final String MAX = "jakarta.validation.constraints.Max";
-    private static final Set<String> MARKERS = Set.of("jakarta.validation.Constraint", "javax.validation.Constraint",
+    private static final Set<String> MARKERS = Set.of(JAKARTA_CONSTRAINT, "javax.validation.Constraint",
             "com.blackbuild.klum.ast.RelationshipConstraint");
 
     private StructuredInputConstraintMetadata() { }
@@ -71,9 +75,12 @@ final class StructuredInputConstraintMetadata {
         List<AnnotationNode> declarations = field.getAnnotations().stream().filter(StructuredInputConstraintMetadata::constraint).toList();
         declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
                 .map(annotation -> rule(field, annotation, declarations))
-                .map(AnnotationConstantExpression::new).forEach(constraints::addExpression);
+                .forEach(rule -> constraints.addExpression(new AnnotationConstantExpression(rule)));
+        declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
+                .forEach(annotation -> composingRules(field, annotation, declarations, constraints));
         // Explicit empty arrays distinguish complete absence of rules from stripped/old field metadata.
         fact.setMember("constraints", constraints);
+        fact.setMember("constraintCount", new ConstantExpression(constraints.getExpressions().size()));
     }
 
     private static AnnotationNode rule(FieldNode field, AnnotationNode annotation, List<AnnotationNode> declarations) {
@@ -87,6 +94,9 @@ final class StructuredInputConstraintMetadata {
         rule.setMember("annotation", new ConstantExpression(name));
         rule.setMember("declaration", new ConstantExpression(declaration(name.equals(PATTERN)
                 ? StructuredInputSourceOrigins.original(field, annotation) : annotation)));
+        rule.setMember("origin", new ConstantExpression(documentaryOnly(annotation) ? "DOCUMENTARY" : "DIRECT"));
+        rule.setMember("owner", new ConstantExpression(""));
+        rule.setMember("description", description(annotation));
         rule.setMember(PLAIN, ConstantExpression.FALSE);
         boolean decimal = name.equals("jakarta.validation.constraints.DecimalMin") || name.equals("jakarta.validation.constraints.DecimalMax");
         if (name.equals(MIN) || name.equals(MAX) || decimal) captureBound(annotation, declarations, rule, decimal);
@@ -97,6 +107,66 @@ final class StructuredInputConstraintMetadata {
                     && declarations.stream().noneMatch(other -> other.getClassNode().getName().equals("jakarta.validation.constraints.Pattern$List"))));
         }
         return rule;
+    }
+
+    private static boolean documentaryOnly(AnnotationNode annotation) {
+        return !runtimeConstraint(annotation);
+    }
+
+    private static Expression description(AnnotationNode annotation) {
+        return annotation.getClassNode().getAnnotations().stream()
+                .filter(meta -> meta.getClassNode().getName().equals(ICD))
+                .map(meta -> ExpressionUtils.transformInlineConstants(meta.getMember(VALUE)))
+                .findFirst().orElse(new ConstantExpression(""));
+    }
+
+    private static void composingRules(FieldNode field, AnnotationNode outer, List<AnnotationNode> declarations,
+                                       ListExpression facts) {
+        ClassNode type = outer.getClassNode();
+        if (!jakartaConstraint(type)) return;
+        List<AnnotationNode> children = type.getAnnotations().stream()
+                .filter(meta -> beanConstraint(meta.getClassNode())).toList();
+        boolean and = StructuredInputSourceOrigins.direct(field, outer) && plainComposition(outer, declarations)
+                && standardAnd(type) && !overrides(type)
+                && children.stream().noneMatch(child -> !child.getClassNode().getName().startsWith(JAKARTA_CONSTRAINTS)
+                        && jakartaConstraint(child.getClassNode()));
+        children.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right))).forEach(child -> {
+            AnnotationNode fact = rule(field, child, children);
+            boolean eligible = and && plainComposition(child, children);
+            fact.setMember("origin", new ConstantExpression(eligible ? "COMPOSING_AND" : "COMPOSING_UNSUPPORTED"));
+            fact.setMember("owner", new ConstantExpression(declaration(outer)));
+            fact.setMember("description", new ConstantExpression(""));
+            fact.setMember(PLAIN, ConstantExpression.FALSE);
+            facts.addExpression(new AnnotationConstantExpression(fact));
+        });
+    }
+
+    private static boolean plainComposition(AnnotationNode annotation, List<AnnotationNode> declarations) {
+        return plain(annotation, declarations) && declarations.stream().noneMatch(other ->
+                other.getClassNode().getName().equals(annotation.getClassNode().getName() + "$List"));
+    }
+
+    private static boolean beanConstraint(ClassNode type) {
+        return type.getName().startsWith(JAKARTA_CONSTRAINTS)
+                || type.getName().startsWith("javax.validation.constraints.")
+                || type.getAnnotations().stream().anyMatch(meta -> Set.of(JAKARTA_CONSTRAINT, "javax.validation.Constraint")
+                .contains(meta.getClassNode().getName()));
+    }
+
+    private static boolean jakartaConstraint(ClassNode type) {
+        return type.getAnnotations().stream().anyMatch(meta -> meta.getClassNode().getName().equals(JAKARTA_CONSTRAINT));
+    }
+
+    private static boolean standardAnd(ClassNode type) {
+        return type.getAnnotations().stream()
+                .filter(meta -> meta.getClassNode().getName().equals("org.hibernate.validator.constraints.ConstraintComposition"))
+                .allMatch(meta -> meta.getMember(VALUE) instanceof PropertyExpression property
+                        && "AND".equals(property.getPropertyAsString()));
+    }
+
+    private static boolean overrides(ClassNode type) {
+        return type.getMethods().stream().flatMap(method -> method.getAnnotations().stream())
+                .anyMatch(meta -> meta.getClassNode().getName().startsWith("jakarta.validation.OverridesAttribute"));
     }
 
     private static void captureBound(AnnotationNode annotation, List<AnnotationNode> declarations, AnnotationNode rule, boolean decimal) {
@@ -122,8 +192,13 @@ final class StructuredInputConstraintMetadata {
     }
 
     private static boolean constraint(AnnotationNode annotation) {
+        return runtimeConstraint(annotation) || annotation.getClassNode().getAnnotations().stream()
+                .anyMatch(meta -> meta.getClassNode().getName().equals(ICD));
+    }
+
+    private static boolean runtimeConstraint(AnnotationNode annotation) {
         String name = annotation.getClassNode().getName();
-        return name.startsWith("jakarta.validation.constraints.") || name.startsWith("javax.validation.constraints.")
+        return name.startsWith(JAKARTA_CONSTRAINTS) || name.startsWith("javax.validation.constraints.")
                 || name.equals("com.blackbuild.klum.ast.Required") || name.equals("com.blackbuild.klum.ast.Validate")
                 || constraintType(annotation.getClassNode())
                 || annotation.getClassNode().getMethods(VALUE).stream().anyMatch(method -> method.getReturnType().isArray()

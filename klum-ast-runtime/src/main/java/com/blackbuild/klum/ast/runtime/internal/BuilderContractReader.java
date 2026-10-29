@@ -63,6 +63,10 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
  * Mutable ASM state stays private; callers receive defensively copied, ordered, inert declaration facts.
  */
 final class BuilderContractReader {
+    private static final String DIRECT_CONSTRAINT = "DIRECT";
+    private static final String DOCUMENTARY_CONSTRAINT = "DOCUMENTARY";
+    private static final Set<String> DECLARATION_ORIGINS = Set.of(DIRECT_CONSTRAINT, DOCUMENTARY_CONSTRAINT);
+    private static final Set<String> CONSTRAINT_ORIGINS = Set.of(DIRECT_CONSTRAINT, DOCUMENTARY_CONSTRAINT, "COMPOSING_AND", "COMPOSING_UNSUPPORTED");
     private static final String VALUE = "value";
     private static final String EXAMPLES = "examples";
     static final String IDENTITY_NAME = "IDENTITY";
@@ -256,6 +260,7 @@ final class BuilderContractReader {
         boolean operation;
         boolean query;
         List<ConstraintRule> constraints;
+        Integer constraintCount;
         String constraintProjection;
         List<String> examples;
         List<String> operationExamples;
@@ -340,12 +345,32 @@ final class BuilderContractReader {
             throw invalidConstraint(literal, "Unknown constraint projection policy " + literal.constraintProjection + " on " + source);
         }
         validateDecimalFacts(literal, source);
+        validateComposingFacts(literal, source);
         List<ConstraintRule> patterns = literal.constraints.stream()
-                .filter(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
+                .filter(rule -> rule.origin().equals(DIRECT_CONSTRAINT) && rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
         boolean repeatedPattern = patterns.size() > 1 || literal.constraints.stream()
-                .anyMatch(rule -> rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
+                .anyMatch(rule -> rule.origin().equals(DIRECT_CONSTRAINT) && rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
         if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
             throw invalidConstraint(literal, "Inconsistent singleton Pattern eligibility on " + source);
+        }
+        if (literal.constraintCount == null) throw invalidConstraint(literal, "Missing constraint count on " + source);
+        if (literal.constraintCount != literal.constraints.size()) {
+            throw invalidConstraint(literal, "Constraint count mismatch on " + source);
+        }
+    }
+
+    private static void validateComposingFacts(MutableLiterals literal, String source) {
+        for (ConstraintRule rule : literal.constraints) {
+            if (DECLARATION_ORIGINS.contains(rule.origin())) continue;
+            if (literal.constraints.stream().noneMatch(outer -> outer.origin().equals(DIRECT_CONSTRAINT)
+                    && outer.declaration().equals(rule.owner()) && !outer.plain())) {
+                throw invalidConstraint(literal, "Missing composing constraint owner on " + source);
+            }
+            long occurrences = literal.constraints.stream().filter(other -> other.owner().equals(rule.owner())
+                    && other.annotation().equals(rule.annotation())).count();
+            if (rule.origin().equals("COMPOSING_AND") && occurrences != 1) {
+                throw invalidConstraint(literal, "Inconsistent singleton composing eligibility on " + source);
+            }
         }
     }
 
@@ -549,6 +574,9 @@ final class BuilderContractReader {
         private Boolean inclusive;
         private String regexp;
         private Boolean patternFlagsEmpty;
+        private String origin;
+        private String owner;
+        private String description;
 
         ConstraintAnnotationVisitor(MutableLiterals field) {
             super(Opcodes.ASM9);
@@ -558,6 +586,9 @@ final class BuilderContractReader {
         @Override public void visit(String member, Object literal) {
             if (!seen.add(member)) throw invalid("Duplicate constraint member " + member);
             switch (member) {
+                case "origin" -> origin = compositionText(literal);
+                case "owner" -> owner = compositionText(literal);
+                case "description" -> description = compositionText(literal);
                 case "annotation" -> annotation = (String) literal;
                 case VALUE -> {
                     if (!(literal instanceof Long)) throw invalid("Integral constraint value must be a Java long");
@@ -579,6 +610,23 @@ final class BuilderContractReader {
             }
         }
 
+        private String compositionText(Object literal) {
+            if (!(literal instanceof String text)) throw invalidConstraint(field, "Composition/description fact must be a String");
+            return text;
+        }
+
+        private void validateOrigin() {
+            if (origin == null || owner == null || description == null) {
+                throw invalidConstraint(field, "Missing composition/description facts");
+            }
+            if (!CONSTRAINT_ORIGINS.contains(origin)
+                    || DECLARATION_ORIGINS.contains(origin) != owner.isEmpty()
+                    || !DECLARATION_ORIGINS.contains(origin) && (plain || !description.isEmpty())
+                    || origin.equals(DOCUMENTARY_CONSTRAINT) && plain) {
+                throw invalidConstraint(field, "Inconsistent composition origin");
+            }
+        }
+
         @Override public AnnotationVisitor visitArray(String member) { throw invalid("Unexpected constraint array " + member); }
         @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) { throw invalid("Unexpected nested constraint " + member); }
         @Override public void visitEnum(String member, String descriptor, String literal) { throw invalid("Unexpected constraint enum " + member); }
@@ -596,7 +644,9 @@ final class BuilderContractReader {
                 throw invalidConstraint(field, "Pattern facts on a non-Pattern declaration");
             if (plain && !pattern && !decimalRule(annotation) && (!integral
                     || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
-            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty));
+            validateOrigin();
+            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty,
+                    origin, owner, description));
         }
     }
 
@@ -639,6 +689,12 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case "constraintCount" -> {
+                    if (!(value instanceof Integer count) || count < 0 || literal.constraintCount != null) {
+                        throw invalidConstraint(literal, "Invalid constraint count");
+                    }
+                    literal.constraintCount = count;
+                }
                 case "constraints" -> throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);
                 case "fixedKey" -> literal.fixed = (Boolean) value;
                 case "schemaKey" -> literal.schemaKey = (Boolean) value;

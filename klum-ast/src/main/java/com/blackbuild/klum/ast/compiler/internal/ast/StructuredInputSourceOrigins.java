@@ -47,7 +47,14 @@ final class StructuredInputSourceOrigins {
 
     static boolean needed(List<AnnotationNode> annotations) {
         return annotations.stream().anyMatch(annotation -> annotation.getClassNode().getName().equals("jakarta.validation.constraints.Pattern")
-                || !annotation.getClassNode().getAnnotations(ClassHelper.make(AnnotationCollector.class)).isEmpty());
+                || !annotation.getClassNode().getAnnotations(ClassHelper.make(AnnotationCollector.class)).isEmpty()
+                || composedConstraint(annotation));
+    }
+
+    private static boolean composedConstraint(AnnotationNode annotation) {
+        return !annotation.getClassNode().getName().startsWith("jakarta.validation.constraints.")
+                && annotation.getClassNode().getAnnotations().stream()
+                .anyMatch(meta -> meta.getClassNode().getName().equals("jakarta.validation.Constraint"));
     }
 
     static AnnotationNode capture(List<AnnotationNode> annotations) {
