@@ -1,5 +1,12 @@
 # Unreleased
 
+- Project first-level AND Bean composing constraints through the existing numeric and bounded Pattern mappings, keeping
+  independent assertions and contradictions. Add literal annotation-type `@InputConstraintDescription` prose under
+  `PROJECT`/`TEXT_ONLY`, suppressed under `OMIT`. Unsupported composition remains descriptive; runtime validation and
+  explicit examples stay independent. Align tools and recompile Schema artifacts. See
+  [composition and documentary meta-annotations](docs/user/Json-Schema.md#composed-constraints-and-documentary-meta-annotations)
+  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
+
 - Added `@InputExamples` for documentary strings on exact field/key/operation payloads and parent relationship uses.
   Values are emitted as JSON Schema strings without parsing or validation against property types or runtime constraints.
   Defaults, requiredness, runtime input and lifecycle are unchanged; the unified metadata version stays 1.

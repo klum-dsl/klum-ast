@@ -188,7 +188,7 @@ per-annotation selector. Future supported contributions will follow the same fie
 Approved one-hop `@PropagateAnnotation` contributions are captured after propagation and obey the same rules as direct
 annotations. For example, propagated and direct `@NotNull` produce the same constraint description under `TEXT_ONLY`,
 and neither produces one under `OMIT`. Propagation uses defaults only, so it cannot supply Min/Max or DecimalMin/Max's
-required values. This adds no hard mappings for arbitrary composed, repeatable, getter, type-use or container-element
+required values. The bounded first-level composed subset below is supported; arbitrary nested, repeatable, getter, type-use or container-element
 constraints. Unsupported captured forms remain descriptive under `PROJECT` and `TEXT_ONLY`.
 
 Recompile and package every declaring/inherited/owned Schema with matching compiler/runtime/plugin versions. The
@@ -233,20 +233,73 @@ and other types. Optional omission stays allowed. No `required`, `minLength`, de
 Every complete unsupported form becomes deterministic runtime-constraint description text with a stable reason: flags,
 nonempty groups/payload, group context, unsupported syntax or an admission ceiling. Escapes, arbitrary ranges, wildcard
 dot, negation, intersections, groups, alternation, Unicode, unbounded/lazy/possessive repetitions, repeated containers and
-custom composition receive no hard Pattern assertion. Even malformed runtime regex source is retained as text; generation
+unsupported composition receive no hard Pattern assertion. The first-level AND subset below reuses this same Pattern proof. Even malformed runtime regex source is retained as text; generation
 does not repair it. Declaration text retains the whole captured annotation and escapes control characters. Messages are
 uninterpreted data, with no bundle or EL evaluation.
 
 `TEXT_ONLY` describes every captured declaration without assertions; `OMIT` removes constraint-derived output. Ordinary
 prose/deprecation, structural types, naming/exclusion, original inherited source identity and owned-definition locality
-remain independent. Keys, operation payloads, container elements, non-String values and non-direct origins are outside
-this hard subset. Existing capture sites are unchanged. No regex engine/transpiler, provider, custom flag or SPI is added.
+remain independent. Keys, operation payloads, container elements, non-String values and uncertain origins are outside
+this hard subset. Qualified first-level composing constraints use the same grammar and guard. Existing capture sites are unchanged. No regex engine/transpiler, provider, custom flag or SPI is added.
 
 The compiler emits explicit decoded `regexp` and `patternFlagsEmpty` facts even for unsupported direct Patterns. Both
 consumers require complete facts before applying any field policy, including omitted owned relationships. Corrupt/missing
 facts fail atomically with public Builder/artifact/source and recompile/package guidance. Use matching compiler/runtime/
 plugin versions and recompile participating artifacts; see [migration](Migration.md#conservative-pattern-projection).
 The current shared metadata marker remains unchanged during 4.2 development; release-protocol preparation is separate.
+
+## Composed constraints and documentary meta-annotations
+
+A **meta-annotation** is an annotation placed on an annotation type. Jakarta Bean Validation calls the outer domain
+annotation a **composed constraint** and its hosted constraints **composing constraints**. **Constraint projection**
+converts supported facts into JSON Schema output. **Propagated annotation** refers specifically to
+[`@PropagateAnnotation`](Annotation-Propagation.md); Bean Validation composition does not copy annotations onto Schema fields.
+
+On ordinary supported Schema fields, first-level composing Jakarta `Min`, `Max`, `DecimalMin`, `DecimalMax` and bounded
+`Pattern` use the existing built-in mappings and all their type, numeric precision, group, regex and structural safeguards.
+Default Bean Validation AND composition and explicit Hibernate `ConstraintComposition(AND)` are supported. Each supported
+constituent is independent: two minima remain two assertions, and `Min(10)` plus `Max(5)` remains a valid schema rejecting
+every supplied value. Generation does not reduce constraints or solve satisfiability. An independent direct constraint
+keeps its assertion even beside an unsupported composed branch. Unsupported constituents such as Email and Size retain
+runtime descriptions; Pattern-plus-Email has no inferred `format` assertion.
+
+OR, ALL_FALSE, attribute overrides, deeper/nested composition, repeats, uncertain origins, nonempty groups/payload and
+unknown composition semantics remain descriptive. No recursive flattening, attribute substitution, validator execution,
+custom handler, contributor SPI or new validation engine is provided. An outer custom validator remains descriptive even
+when some composing constraints project. Keys, authored operations and container elements gain no composing assertions.
+
+`@InputConstraintDescription(String)` is a literal documentary meta-annotation targeted only at annotation types. It may
+be hosted on a plain domain annotation, a Bean composed constraint, or an annotation that requests propagation. Its text
+is appended to ordinary field documentation under `PROJECT` and `TEXT_ONLY`, and omitted under `OMIT`. It never supplies
+assertions, defaults, examples or runtime enforcement. There is no interpolation or member substitution. Existing explicit
+field examples retain their placement and values independently.
+
+(See: `ComposedConstraintTest#'document a domain rule without adding enforcement'`.)
+
+```groovy
+@InputConstraintDescription('Percentage of traffic sent to this service.')
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface TrafficPercentage {}
+
+@DSL
+class Service {
+    @TrafficPercentage Integer traffic
+}
+```
+
+This plain annotation adds only prose. Add `@Constraint(validatedBy = [])`, `@Min(1L)` and `@Max(100L)` to its declaration
+and declare the standard Bean constraint members (`message`, `groups`, `payload`) to make it a composed constraint whose
+first-level bounds also project. A real validator can coexist independently;
+generation never initializes or invokes it. The packaged `KlumJsonSchemaGenerationTest` feature
+`project independent first-level composing constraints without domain classes with Groovy #generation` qualifies that
+variant, policies, inheritance/renaming, independent contributors and descriptive fallbacks on Groovy 3/4/5.
+
+The compiler freezes each outer declaration, composing origin and literal description into public Builder facts. Generation
+needs neither domain annotations nor Bean Validation on its classpath. Both consumers validate complete facts before
+policy suppression, including `OMIT`; malformed or stripped facts fail before replacing output. Recompile participating
+Schema hierarchies with matching compiler/runtime/plugin versions. The shared development protocol marker remains 1;
+release protocol preparation is separate. See [migration](Migration.md#composed-constraints-and-documentary-meta-annotations).
 
 ## Integral constraints
 
@@ -302,7 +355,7 @@ Root selection, binary inputs and output ownership retain the existing tracked G
 Complete unsupported direct field declarations retain labelled `Runtime constraint (not enforced by this schema)`
 descriptions appended to existing prose. Descriptions identify the annotation and its explicitly authored attributes;
 they do not evaluate annotation defaults or interpret constraint code. Explicit groups/payload (including explicit
-Default groups), composed/repeatable declarations, Size and unsupported Pattern forms, quantity grammars and relationship closures
+Default groups), unsupported composed/repeatable declarations, Size and unsupported Pattern forms, quantity grammars and relationship closures
 receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
 relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
 Issue [#959](https://github.com/klum-dsl/klum-ast/issues/959) remains open for these broader decisions.
@@ -344,7 +397,7 @@ exponent/scale still fail before replacing previous output, with source, externa
 Neither bounds nor contradictions infer raw requiredness.
 
 Only one effective direct declaration of each bound, empty groups/payload and no relevant hierarchy group redefinition
-are supported. String, float/double/Number, composed/repeatable, type-use, getter/parameter and authored-operation
+are supported. String, float/double/Number, unsupported composed/repeatable, type-use, getter/parameter and authored-operation
 arguments receive no decimal assertions. All original requiredness, null admission, interpreter, Jackson, defaults,
 Templates and lifecycle behavior remains unchanged. This is a supplied-input authoring policy, with no Bean Validation
 equivalence or final construction-success promise.

@@ -410,3 +410,11 @@ Documentation strings do not supply values or change input admission, naming/exc
 The shared byte reader checks required string-array metadata without interpreting its contents. Compiler constant capture
 never reads a static field reflectively to obtain a value. Owned/inherited public Builder declarations remain the authority;
 no Model-byte fallback, Javadoc transport, provider or callback participates.
+
+## Documentary constraint meta-annotations
+
+`@InputConstraintDescription('literal text')` belongs on an annotation type. It adds documentary text for Schema fields
+using that annotation; it supplies no validation, default, example or input-admission rule. Bean composed constraints may
+host first-level composing constraints for the built-in JSON Schema mappings. These facts do not enforce constraints at
+Java/Groovy call boundaries or change structured-input interpretation. Projection policies and the exact composition
+boundary are described in [JSON Schema](Json-Schema.md#composed-constraints-and-documentary-meta-annotations).

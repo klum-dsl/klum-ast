@@ -89,6 +89,14 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
   Completed DSL Objects preserve cyclic relationships, including `LINK` relationships. Their object graph may therefore require internal-only assignment during materialization after the Builders have completed their lifecycle.
 
+- Annotation placement and constraint projection
+
+  A meta-annotation is an annotation placed on an annotation type. In Jakarta Bean Validation, the outer annotation
+  is a composed constraint and the constraints hosted on it are composing constraints. Constraint projection converts
+  supported inert constraint facts into structured-input / JSON Schema output; it does not name annotation placement.
+  Reserve propagated annotation for KlumAST `@PropagateAnnotation` behavior. First-level Bean Validation composition
+  and literal `@InputConstraintDescription` use compiler-frozen facts, independently of annotation propagation.
+
 - Builder annotation vocabulary
 
   `com.blackbuild.klum.ast.Builder` is the namespace for explicit Builder-specific schema annotations; it is not an

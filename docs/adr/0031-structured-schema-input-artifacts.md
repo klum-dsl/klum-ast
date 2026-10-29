@@ -913,7 +913,7 @@ activation boundaries.
 
 ## Proposed contract and projection separation — #959
 
-Date: 2026-10-28. Status: **P1/P2 accepted; P1/S1 and P2/S2 implemented under separate assignments below; P3 unaccepted.**
+Date: 2026-10-28. Status: **P1/P2 accepted; P1/S1 and P2/S2 implemented under separate assignments below; P3 custom-handler proposal superseded by the bounded built-in composition decision below.**
 Authority: the INPUT-PROJECTION-ARCH design assignment and subsequent maintainer acceptance of P1/P2, informed by
 [#959](https://github.com/klum-dsl/klum-ast/issues/959) and the completed Size probe. The
 [plan and evidence inventory](../implementation/issue-959-input-projection-architecture.md) pin the inspected revisions.
@@ -988,6 +988,9 @@ No satisfiability engine, new default evaluation or mapping is part of the extra
 own raw-cardinality, malformed/contradictory-declaration and metadata decisions.
 
 ### P3 — Custom projection is a separate trust decision
+
+Historical unaccepted proposal: the 2026-10-29 decision below replaces this direction for the assigned slice.
+Executable handlers, discovery and a public contributor SPI remain excluded.
 
 Recommend **built-ins only for initial delivery**. If later commissioned, use a distinct Klum meta-annotation on a custom
 constraint annotation, provisionally `@InputConstraintProjector(SemVerProjection)`. Its association is class-valued;
@@ -1077,3 +1080,34 @@ contract reader do not call or depend on it. No metadata/protocol/ABI, public ty
 admission changes. Size remains paused; custom projectors/discovery, parameter facts/#971 and P3 remain outside this slice.
 [Implementation and qualification](../implementation/issue-959-schema-s2-catalog.md) record the exact base, baseline and
 final evidence. Related: #959; issue state, milestone and release placement are unchanged.
+
+## Accepted first-level composition and documentary meta-annotations — #959 / COMPOSE-PROJ
+
+Date: 2026-10-29. The maintainer accepts the P3-GRILL direction after merged S1/S2 and assigns a single bounded
+compiler-fact/catalog slice for first-level Bean composition and `InputConstraintDescription`. This supersedes P3's
+unaccepted custom-handler proposal; it does not authorize executable extensions.
+
+Use the standard vocabulary: meta-annotation (annotation on an annotation type), composed constraint (outer Bean
+constraint), composing constraint (hosted constraint). Reserve propagated annotation for `PropagateAnnotation` and
+constraint projection for conversion into structured-input/JSON Schema facts.
+
+Capture first-level Jakarta composition from original ordinary Schema fields without user-code execution. Clearly
+independent default/explicit AND constituents reuse the five existing Min/Max/DecimalMin/DecimalMax/qualified Pattern
+mappings. Retain source association, machine fences, Pattern proof, inherited naming, field policy, renderer placement,
+keys/null/omission, descriptions, explicit examples, deprecation and exact-number semantics. Keep independent and
+contradictory assertions without a reducer. Unsupported constituents remain descriptive alongside supported ones.
+
+OR/ALL_FALSE, overrides, nested/uncertain composition, repeats/type-use/uncertain origin, groups/payload, Email/Size and
+unrepresentable forms remain descriptive. No new mapping, parameter facts/#971, Java/Groovy-call enforcement,
+validation engine, handler/SPI/discovery, generic mutation, source fallback, module or dependency is introduced.
+
+`InputConstraintDescription(String)` targets ANNOTATION_TYPE only and carries literal text on domain annotations,
+including propagation-only and Bean-composed annotations. PROJECT/TEXT_ONLY append it; OMIT suppresses constraint-derived
+content while ordinary prose remains. It adds no assertions, runtime enforcement, defaults or examples. Explicit field
+examples remain independent. There is no custom example mechanism or interpolation.
+
+Public Builder facts explicitly distinguish direct, documentary-only, eligible composing-AND and unsupported composing
+origins and retain each composing rule's outer declaration. Consumers reject missing/unknown/inconsistent facts before
+suppression or execution/output replacement. The shared development marker remains 1; matching tools and recompilation
+are required. [Implementation and qualification](../implementation/issue-959-composed-constraints.md) record the evidence.
+Related: #959; no closure, milestone change or new release gate.
