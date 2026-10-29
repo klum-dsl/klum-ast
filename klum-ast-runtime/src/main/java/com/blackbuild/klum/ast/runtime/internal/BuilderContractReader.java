@@ -64,8 +64,9 @@ import static groovyjarjarasm.asm.Type.getMethodDescriptor;
  */
 final class BuilderContractReader {
     private static final String DIRECT_CONSTRAINT = "DIRECT";
-    private static final Set<String> DECLARATION_ORIGINS = Set.of(DIRECT_CONSTRAINT, "DOCUMENTARY");
-    private static final Set<String> CONSTRAINT_ORIGINS = Set.of(DIRECT_CONSTRAINT, "DOCUMENTARY", "COMPOSING_AND", "COMPOSING_UNSUPPORTED");
+    private static final String DOCUMENTARY_CONSTRAINT = "DOCUMENTARY";
+    private static final Set<String> DECLARATION_ORIGINS = Set.of(DIRECT_CONSTRAINT, DOCUMENTARY_CONSTRAINT);
+    private static final Set<String> CONSTRAINT_ORIGINS = Set.of(DIRECT_CONSTRAINT, DOCUMENTARY_CONSTRAINT, "COMPOSING_AND", "COMPOSING_UNSUPPORTED");
     private static final String VALUE = "value";
     private static final String EXAMPLES = "examples";
     static final String IDENTITY_NAME = "IDENTITY";
@@ -621,7 +622,7 @@ final class BuilderContractReader {
             if (!CONSTRAINT_ORIGINS.contains(origin)
                     || DECLARATION_ORIGINS.contains(origin) != owner.isEmpty()
                     || !DECLARATION_ORIGINS.contains(origin) && (plain || !description.isEmpty())
-                    || origin.equals("DOCUMENTARY") && plain) {
+                    || origin.equals(DOCUMENTARY_CONSTRAINT) && plain) {
                 throw invalidConstraint(field, "Inconsistent composition origin");
             }
         }

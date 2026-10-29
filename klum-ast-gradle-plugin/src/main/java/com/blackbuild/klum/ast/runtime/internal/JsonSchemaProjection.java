@@ -177,16 +177,22 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             BuiltinConstraintCatalog.Result contribution = BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
             bounds.addAll(contribution.bounds());
             patterns.addAll(contribution.patterns());
-            if (suppressConstraintDescription(constraints.policy(), contribution.projected())) continue;
-            String reason = constraints.policy() == Policy.TEXT_ONLY
-                    ? "field projection policy TEXT_ONLY" : contribution.reason();
-            appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + (rule.owner().isEmpty() ? "" : rule.owner() + " composing ") + rule.declaration());
+            appendRuntimeConstraintDescription(value, constraints.policy(), rule, contribution);
         }
         if (constraints.policy() == Policy.PROJECT) {
             conjoinBounds(value, bounds);
             appendConjunction(value, patterns);
         }
         if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
+    }
+
+    private static void appendRuntimeConstraintDescription(Map<String, Object> value, Policy policy,
+                                                           CompiledBuilderSchema.ConstraintRule rule,
+                                                           BuiltinConstraintCatalog.Result contribution) {
+        if (suppressConstraintDescription(policy, contribution.projected())) return;
+        String reason = policy == Policy.TEXT_ONLY ? "field projection policy TEXT_ONLY" : contribution.reason();
+        String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.owner() + " composing " + rule.declaration();
+        appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + declaration);
     }
 
     private static boolean suppressConstraintDescription(Policy policy, boolean projected) {

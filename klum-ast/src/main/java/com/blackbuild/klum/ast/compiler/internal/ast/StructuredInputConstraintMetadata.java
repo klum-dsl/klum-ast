@@ -49,12 +49,13 @@ import java.util.stream.Collectors;
 final class StructuredInputConstraintMetadata {
     private static final String ICD = InputConstraintDescription.class.getName();
     private static final String JAKARTA_CONSTRAINT = "jakarta.validation.Constraint";
+    private static final String JAKARTA_CONSTRAINTS = "jakarta.validation.constraints.";
     private static final String VALUE = "value";
     private static final String PLAIN = "plain";
     private static final String PATTERN = "jakarta.validation.constraints.Pattern";
     private static final String MIN = "jakarta.validation.constraints.Min";
     private static final String MAX = "jakarta.validation.constraints.Max";
-    private static final Set<String> MARKERS = Set.of("jakarta.validation.Constraint", "javax.validation.Constraint",
+    private static final Set<String> MARKERS = Set.of(JAKARTA_CONSTRAINT, "javax.validation.Constraint",
             "com.blackbuild.klum.ast.RelationshipConstraint");
 
     private StructuredInputConstraintMetadata() { }
@@ -127,7 +128,7 @@ final class StructuredInputConstraintMetadata {
                 .filter(meta -> beanConstraint(meta.getClassNode())).toList();
         boolean and = StructuredInputSourceOrigins.direct(field, outer) && plainComposition(outer, declarations)
                 && standardAnd(type) && !overrides(type)
-                && children.stream().noneMatch(child -> !child.getClassNode().getName().startsWith("jakarta.validation.constraints.")
+                && children.stream().noneMatch(child -> !child.getClassNode().getName().startsWith(JAKARTA_CONSTRAINTS)
                         && jakartaConstraint(child.getClassNode()));
         children.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right))).forEach(child -> {
             AnnotationNode fact = rule(field, child, children);
@@ -146,7 +147,7 @@ final class StructuredInputConstraintMetadata {
     }
 
     private static boolean beanConstraint(ClassNode type) {
-        return type.getName().startsWith("jakarta.validation.constraints.")
+        return type.getName().startsWith(JAKARTA_CONSTRAINTS)
                 || type.getName().startsWith("javax.validation.constraints.")
                 || type.getAnnotations().stream().anyMatch(meta -> Set.of(JAKARTA_CONSTRAINT, "javax.validation.Constraint")
                 .contains(meta.getClassNode().getName()));
@@ -197,7 +198,7 @@ final class StructuredInputConstraintMetadata {
 
     private static boolean runtimeConstraint(AnnotationNode annotation) {
         String name = annotation.getClassNode().getName();
-        return name.startsWith("jakarta.validation.constraints.") || name.startsWith("javax.validation.constraints.")
+        return name.startsWith(JAKARTA_CONSTRAINTS) || name.startsWith("javax.validation.constraints.")
                 || name.equals("com.blackbuild.klum.ast.Required") || name.equals("com.blackbuild.klum.ast.Validate")
                 || constraintType(annotation.getClassNode())
                 || annotation.getClassNode().getMethods(VALUE).stream().anyMatch(method -> method.getReturnType().isArray()

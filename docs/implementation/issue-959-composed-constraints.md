@@ -126,3 +126,18 @@ the source-free composing-constraint matrix, Bean Validation licenses and the do
 zero failures/errors). No production behavior changes in this integration. Final review uses the actual current PR base
 `7879935bb8050549b8f475fb328a634896315f55`; the original execution base remains `09eb73ca0a3e2a2dc1bf8ab26560da9f8711d91c`.
 Final tip/review and CI state are reported in the PR/task callback.
+
+## SonarCloud review follow-up
+
+Published Sonar analysis of `d64034e4ea1ab86e705d43d035e7d457fbcaf801` reports nine maintainability findings,
+a passing quality gate and no security hotspots. The follow-up addresses all nine without suppressions:
+
+- Reuse the Jakarta constraint marker and add stable constants for its namespace prefix and documentary origin.
+- Extract runtime-description routing so the renderer loop has only its documentary-rule continuation.
+- Add braces to the four new nested Groovy guards, and extract one JAR-entry copy operation from the deeply nested fixture.
+
+These are behavior-preserving cleanups. Typed metadata values, projection eligibility, field policies, descriptions,
+independent conjunction and unsupported fallbacks retain their contracts. Existing focused compiler/reader/policy/ICD
+checks pass on G3/G4/G5; source-free composition/corruption/catalog checks and affected licenses pass. No test suppression,
+expectation relaxation, public API/protocol change, local Sonar analysis/upload or manual workflow dispatch is introduced.
+Broader regression results and the current-head Sonar disposition are recorded in the consolidated PR follow-up comment.

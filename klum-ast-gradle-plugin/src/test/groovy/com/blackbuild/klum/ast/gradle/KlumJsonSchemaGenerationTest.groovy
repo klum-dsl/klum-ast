@@ -2130,7 +2130,9 @@ import java.lang.annotation.*
         if (patterns) {
             new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
             patternSources()
-            if (compositions) compositionSources()
+            if (compositions) {
+                compositionSources()
+            }
         }
         if (projection) projectionSources()
         if (naming || patterns) {
@@ -2605,19 +2607,24 @@ import jakarta.validation.constraints.*
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
                 input.entries().each { entry ->
-                    String simple = entry.name.tokenize('/').last().tokenize('$').first().replace('.class', '')
-                    boolean domain = ['TrafficPercentage', 'AtLeastTen', 'Contradiction', 'PriceRange', 'Code', 'Unbounded',
-                        'EmailOnly', 'FlaggedCode', 'RepeatedCode', 'Either', 'Neither', 'Both', 'OverrideRange', 'Nested', 'Repeated', 'SizeOnly', 'ScriptText',
-                        'PresentText', 'CompositionValidator', 'CompositionTexts', 'Later', 'Warning'].contains(simple)
-                    if (!domain && !entry.name.startsWith('org/hibernate/')) {
-                        output.putNextEntry(new JarEntry(entry.name))
-                        output.write(input.getInputStream(entry).withCloseable { it.bytes })
-                        output.closeEntry()
-                    }
+                    copyNonCompositionEntry(input, output, entry)
                 }
             }
         }
         jar.bytes = replacement.bytes
+    }
+
+    private static void copyNonCompositionEntry(JarFile input, JarOutputStream output, JarEntry entry) {
+        String simple = entry.name.tokenize('/').last().tokenize('$').first().replace('.class', '')
+        boolean domain = ['TrafficPercentage', 'AtLeastTen', 'Contradiction', 'PriceRange', 'Code', 'Unbounded',
+            'EmailOnly', 'FlaggedCode', 'RepeatedCode', 'Either', 'Neither', 'Both', 'OverrideRange', 'Nested', 'Repeated', 'SizeOnly', 'ScriptText',
+            'PresentText', 'CompositionValidator', 'CompositionTexts', 'Later', 'Warning'].contains(simple)
+        if (domain || entry.name.startsWith('org/hibernate/')) {
+            return
+        }
+        output.putNextEntry(new JarEntry(entry.name))
+        output.write(input.getInputStream(entry).withCloseable { it.bytes })
+        output.closeEntry()
     }
 
     private void patternSources() {
@@ -2899,7 +2906,9 @@ class InitializationControl {
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                                             @Override void visit(String member, Object value) {
-                                                if (kind == 'count' && member == 'constraintCount') return
+                                                if (kind == 'count' && member == 'constraintCount') {
+                                                    return
+                                                }
                                                 super.visit(member, value)
                                             }
                                             @Override void visitEnum(String member, String enumDescriptor, String value) {
@@ -2934,11 +2943,15 @@ class InitializationControl {
                                                         super.visitEnd()
                                                     }
                                                     @Override AnnotationVisitor visitAnnotation(String elementName, String elementDescriptor) {
-                                                        if (kind == 'stripped-rules') return null
+                                                        if (kind == 'stripped-rules') {
+                                                            return null
+                                                        }
                                                         AnnotationVisitor rule = super.visitAnnotation(elementName, elementDescriptor)
                                                         new AnnotationVisitor(Opcodes.ASM9, rule) {
                                                             @Override void visit(String attribute, Object value) {
-                                                                if (kind in ['origin', 'owner', 'description'] && attribute == kind) return
+                                                                if (kind in ['origin', 'owner', 'description'] && attribute == kind) {
+                                                                    return
+                                                                }
                                                                 if (kind == 'bad-origin' && attribute == 'origin') { super.visit(attribute, 'FUTURE'); return }
                                                                 if (kind == 'bad-owner' && attribute == 'owner' && value != '') { super.visit(attribute, '@missing.Rule()'); return }
                                                                 if (kind == 'bad-description' && attribute == 'description') { super.visit(attribute, 17); return }
