@@ -677,6 +677,12 @@ The optional `klum-ast-bean-validation` module adds Jakarta Bean Validation supp
 
 With the module on the classpath, Jakarta constraint annotations are evaluated during the validation phase in addition to standard Klum validation.
 
+Domain annotations can compose configured Jakarta constraints and independently request Klum annotation propagation.
+For example, one domain annotation can carry a configured `@Pattern` and use `@PropagateAnnotation(Required)` for
+presence. The provider evaluates the Pattern on the retained domain annotation; Klum adds the bare Required annotation
+to the field. See [combining propagation with Bean Validation composition](Annotation-Propagation.md#combining-propagation-with-bean-validation-composition)
+for the documentary example and the distinction from copying a configured annotation.
+
 (See: `BeanValidationDocumentaryTest#'accepts a release with a satisfied Jakarta validation constraint'`.)
 
 ```groovy
