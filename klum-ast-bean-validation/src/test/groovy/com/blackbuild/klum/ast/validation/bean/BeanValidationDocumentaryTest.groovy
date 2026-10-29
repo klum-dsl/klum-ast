@@ -26,12 +26,74 @@ package com.blackbuild.klum.ast.validation.bean
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.Validate
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
+import jakarta.validation.constraints.Pattern
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
 @Tag("documentary")
 class BeanValidationDocumentaryTest extends AbstractDSLSpec {
+
+    @Issue('959')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Annotation-Propagation.md#combining-propagation-with-bean-validation-composition')
+    def 'combines propagated presence with a composed Pattern constraint'() {
+        given: 'a separately compiled domain annotation with two independent responsibilities'
+        createSecondaryClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.PropagateAnnotation
+            import com.blackbuild.klum.ast.Required
+            import jakarta.validation.Constraint
+            import jakarta.validation.Payload
+            import jakarta.validation.constraints.Pattern
+            import java.lang.annotation.ElementType
+            import java.lang.annotation.Retention
+            import java.lang.annotation.RetentionPolicy
+            import java.lang.annotation.Target
+
+            @PropagateAnnotation(Required)
+            @Constraint(validatedBy = [])
+            @Pattern(regexp = '[A-Z]{2}', message = 'Use two uppercase letters')
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target(ElementType.FIELD)
+            @interface ReleaseCode {
+                String message() default 'Invalid release code'
+                Class<?>[] groups() default []
+                Class<? extends Payload>[] payload() default []
+            }
+        '''
+        createClass '''
+            package pk
+
+            @DSL class Release {
+                @ReleaseCode String code
+            }
+        '''
+
+        when:
+        def release = clazz.Create.With { code 'GA' }
+
+        then:
+        release.code == 'GA'
+        clazz.getDeclaredField('code').getAnnotation(Pattern) == null
+        clazz.getDeclaredField('code').getAnnotation(getClass('pk.ReleaseCode')) != null
+        getClass('pk.ReleaseCode').getAnnotation(Pattern).regexp() == '[A-Z]{2}'
+
+        when: 'a supplied value satisfies presence but fails the composed Pattern'
+        clazz.Create.With { code 'bad' }
+
+        then:
+        def malformed = thrown(KlumValidationException)
+        malformed.message.contains('Use two uppercase letters')
+
+        when: 'null is accepted by Pattern but rejected by the propagated Required rule'
+        clazz.Create.One()
+
+        then:
+        def missing = thrown(KlumValidationException)
+        missing.message.contains("Field 'code' must be set")
+    }
 
     @Issue("491")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#jsr380-validation")
