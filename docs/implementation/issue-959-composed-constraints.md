@@ -113,3 +113,16 @@ reconciliation; it does not self-archive.
 Delivery preflight verifies Git SSH feature-branch delivery and GitHub CLI repository delivery separately as
 **authorized**. Remote master still equals the pinned base at preflight; no refresh/rebase is needed. No credentials or
 scopes are recorded. Exact final commit, draft PR and current-head CI/Sonar state are reported in the task callback.
+
+## Publication-time master integration
+
+While draft PR #986 opened, master advanced to `7879935bb8050549b8f475fb328a634896315f55` through merged #985.
+That change adds a runtime Bean composition documentary test and advanced documentation. The branch integrates it in
+merge commit `1fa5cc095` without rewriting the reviewed prefix. The advanced paragraph is synchronized with the newly
+supported first-level AND projection boundary; the runtime propagation/validation example remains unchanged.
+
+Qualification after integration passes all Bean Validation module tests on G3/G4/G5, ICD controls on all three lanes,
+the source-free composing-constraint matrix, Bean Validation licenses and the documentation renderer (58 seconds,
+zero failures/errors). No production behavior changes in this integration. Final review uses the actual current PR base
+`7879935bb8050549b8f475fb328a634896315f55`; the original execution base remains `09eb73ca0a3e2a2dc1bf8ab26560da9f8711d91c`.
+Final tip/review and CI state are reported in the PR/task callback.
