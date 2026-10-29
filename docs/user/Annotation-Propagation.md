@@ -204,6 +204,63 @@ Cluster fallback does not replay skipped field mutations, and children created i
 not catch up earlier AutoCreate callbacks. Bare AutoCreate retains keyed/abstract creation failures
 and same-phase Creator conflicts.
 
+## Combining propagation with Bean Validation composition
+
+A domain annotation can carry a configured Bean Validation constraint and also request annotation propagation.
+The two mechanisms have different responsibilities: KlumAST adds the selected bare annotation during Schema
+compilation, while the Bean Validation provider interprets the constraints on the retained domain annotation
+during completed-Model validation. Install the optional
+[Bean Validation module](Validation.md#jsr380-validation) for the latter behavior.
+
+(See: `BeanValidationDocumentaryTest#'combines propagated presence with a composed Pattern constraint'`.)
+
+```groovy
+// Compile this domain annotation in the annotation library first.
+@PropagateAnnotation(Required)
+@Constraint(validatedBy = [])
+@Pattern(regexp = '[A-Z]{2}', message = 'Use two uppercase letters')
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface ReleaseCode {
+    String message() default 'Invalid release code'
+    Class<?>[] groups() default []
+    Class<? extends Payload>[] payload() default []
+}
+
+@DSL class Release {
+    @ReleaseCode String code
+}
+
+def release = Release.Create.With { code 'GA' }
+assert release.code == 'GA'
+// code 'bad' fails the composed Pattern; omitting code fails the propagated Required rule.
+```
+
+Here `Constraint`, `Payload` and `Pattern` are Jakarta Validation types; `Required` and
+`PropagateAnnotation` are Klum annotations. `@Constraint(validatedBy = [])` makes `ReleaseCode` a composed
+Bean constraint without an additional custom validator. The configured Pattern stays on `ReleaseCode`;
+it is not copied onto `Release.code`. The domain annotation remains on that field. The provider follows
+the composition and checks its Pattern, while the propagated `Required` uses ordinary Klum validation.
+Pattern accepts null, so the separate presence rule is meaningful. Neither mechanism requires a custom
+lifecycle participant.
+
+`@PropagateAnnotation(Pattern)` has a different meaning: it requests a new **bare** `@Pattern`, whose
+required `regexp` member has no default, and is therefore rejected. Putting a configured Pattern beside
+that propagation request does not supply its members. Propagation selects an annotation type, not a
+configured annotation occurrence; it neither copies meta-annotation values nor forwards domain members.
+For the example above, propagate `Required` and let Bean Validation consume the configured Pattern in place.
+
+More generally, propagation can select a composed Bean constraint whose own members all have defaults,
+whose target permits the Schema declaration, and which does not itself request further propagation.
+Its composing constraints remain owned by the provider.
+Klum's one-hop propagation limit does not redefine the provider's composition semantics. Avoid expressing
+the same validation requirement through both a direct annotation and a composed constraint unless both
+checks are intended: propagation's duplicate-type checks do not deduplicate Bean Validation's composition graph.
+
+Runtime composition does not imply [JSON Schema projection](Json-Schema.md#conservative-pattern-projection).
+The current Pattern projection supports direct eligible field declarations; composed or aliased Patterns
+remain descriptive. This advanced use case changes neither that projection boundary nor raw-input validation.
+
 ## Boundaries and diagnostics
 
 Propagation executes only on original declarations of explicitly annotated DSL Schemas, including
@@ -259,7 +316,9 @@ explicit-annotation cleanup.
 | Need | Mechanism |
 | --- | --- |
 | A domain use implies bare AutoCreate (or another legal default-valued annotation) | Propagation on that domain annotation |
-| Configure a selected annotation's members | A direct annotation; no member forwarding or configured annotation instances |
+| Configure a selected annotation's members | A direct annotation; propagation does not copy configured instances or forward members |
+| Package configured Bean constraints in a domain annotation | Bean Validation composition; the optional Bean Validation module evaluates it |
+| Combine a configured Bean constraint with a bare Klum annotation | A domain annotation carrying both Bean composition and a propagation request, as above |
 | Defaults on fields that have no domain annotation | Separate class-level policy work under [#888](https://github.com/klum-dsl/klum-ast/issues/888) |
 | Reuse Schema source declarations | Separate source composition work under [#548](https://github.com/klum-dsl/klum-ast/issues/548) |
 | Execute arbitrary or recursively nested meta-annotations | Outside propagation's one-hop contract |
