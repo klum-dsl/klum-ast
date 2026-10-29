@@ -45,8 +45,8 @@ accepted = [{}, {"amount": Decimal("0.10000000000000000001")},
             {"child": {}}, {"child": {"amount": Decimal("0.0")}},
             {"text": "-1"}, {"floating": -1}, {"doubleValue": -1},
             {"grouped": -1}, {"payloadBound": -1}, {"repeated": -1},
-            {"composed": -1}, {"operation": -1}]
-rejected = [{"amount": Decimal("0.10")}, {"amount": Decimal("0.09999999999999999999")},
+            {"composed": Decimal("1")}, {"composed": Decimal("2")}, {"operation": -1}]
+rejected = [{"composed": -1}, {"composed": Decimal("0.99999999999999999999")}, {"amount": Decimal("0.10")}, {"amount": Decimal("0.09999999999999999999")},
             {"amount": Decimal("9007199254740993.0000000002")},
             {"equal": Decimal("1.00000000000000000001")},
             {"equal": Decimal("0.99999999999999999999")},
@@ -57,7 +57,7 @@ rejected = [{"amount": Decimal("0.10")}, {"amount": Decimal("0.09999999999999999
             {"machine": -1}, {"machine": 128}, {"tight": 1}, {"tie": 2},
             {"inherited-price": -123}, {"inherited": 0},
             {"child": {"amount": Decimal("-1E-1000")}}]
-for field in ["amount", "equal", "zero", "exponent", "tiny", "units", "machine", "tight", "tie", "inherited-price"]:
+for field in ["amount", "equal", "zero", "exponent", "tiny", "units", "machine", "tight", "tie", "inherited-price", "composed"]:
     rejected.extend({field: value} for value in [None, True, "1", ""])
 for field in ["boundedByte", "boundedShort", "boundedPrimitiveShort", "boundedInt", "boundedPrimitiveInt",
               "boundedLong", "boundedPrimitiveLong", "boundedBigInteger"]:

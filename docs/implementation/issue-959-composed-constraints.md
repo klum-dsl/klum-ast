@@ -48,7 +48,7 @@ CONTEXT, ADR, user/migration pages and comments use meta-annotation, composed co
 Propagated annotation is reserved for `PropagateAnnotation`; constraint projection names conversion into artifact facts.
 The previous P3 custom-handler proposal is explicitly historical and superseded for this slice.
 
-Documentary traceability: `ComposedConstraintTest#'document a domain rule without adding enforcement'`, with class-level
+Documentary traceability: `InputConstraintDescriptionTest#'document a domain rule without adding enforcement'`, with class-level
 `@Issue('959')`, feature `@Tag('documentary')` and `@See` to the user JSON Schema section. The user page references the
 same feature. Packaged coverage uses `KlumJsonSchemaGenerationTest` and source-free G3/G4/G5 producers.
 
@@ -63,7 +63,45 @@ provenance diagnostics. Capture was narrowed to Bean composed constraints plus t
 The full core G3 suite (2,509 cases, zero failures/errors, 16 existing skips), focused G4 diagnostics and source-free
 G3/G4/G5 composition matrix then passed. None required weakening production diagnostics.
 
-Final test, independent validation, review and delivery results are recorded after qualification below.
+Full root `check annotationPropagationArtifactsGroovy3 annotationPropagationArtifactsGroovy4
+annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2` passes on the clean qualified head
+`9d0c09bdce5371f9cae177d3ebdb59a802c2aa6a` in **26m 37s**, with JDK 17. The root/plugin, compiler/public Builder,
+JPMS, license, lane-isolation and documentation-renderer checks pass. Top-level module JUnit reports record:
+
+| Lane / task | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| test (G3) | 3,425 | 0 / 0 | 17 |
+| groovy4Tests | 2,759 | 0 / 0 | 16 |
+| groovy5Tests | 2,759 | 0 / 0 | 16 |
+| annotationPropagationArtifactsGroovy3 | 1 | 0 / 0 | 0 |
+| annotationPropagationArtifactsGroovy4 | 2 | 0 / 0 | 0 |
+| annotationPropagationArtifactsGroovy5 | 2 | 0 / 0 | 0 |
+
+All **644** plugin cases pass, including **139** packaged schema cases. The Pattern recognizer and its proof are unchanged.
+Source-free producers remove domain annotation, validator, constant-supplier and provider-marker classes before generation;
+separate positive controls initialize the live validator and Model traps. Mixed direct/composing Patterns, duplicate numeric
+contributors, inheritance/rename/deprecation/examples, policy routing, unsupported branches and both consumers' malformed
+facts (including whole stripped rows under OMIT) have focused coverage.
+
+The local Standards review identified missing braces and unclear positional fixture calls. A follow-up adds braces and a
+composition-specific fixture helper, without changing production behavior. It also gives the ICD-only compiler test its
+accurate `InputConstraintDescriptionTest` name and strengthens the retained integral/decimal external controls: their former
+accepted composed out-of-range values now reject. The old controls first fail specifically on those newly supported bounds.
+No failure is weakened. After this follow-up, ICD cases pass on G3/G4/G5 (3 per lane), and all 33 focused source-free
+composition/corruption/catalog plugin cases pass. No new ignored test or suppression is introduced.
+
+Independent jsonschema 4.23.0 Draft 2020-12 validation passes **234** new composition input controls and three metaschemas,
+with byte-identical G3/G4/G5 outputs. The retained exact-number validators pass **456** integral and **447** decimal inputs
+with three metaschemas each. All **10** retained contradictory schemas remain valid, allow omission and reject their
+supplied-value corpus. The final composition oracle is
+`klum-ast-gradle-plugin/src/test/resources/validate_composed_constraint_schema.py`; the existing integral/decimal scripts
+retain their independent expected-value controls.
+
+The initial Specification review reports no missing, incorrect or unrequested behavior. Both independent review axes must
+be refreshed at the exact final tip before publication; their final disposition and exact published head are reported in
+the draft PR and task callback. The two original commits remain preserved; local review fixes are an additive follow-up.
+Markdown fences, relative-file links and `git diff --check` are verified again before publication. No local SonarCloud
+analysis/upload or manual workflow dispatch occurs.
 
 ## Delivery and reconciliation
 
@@ -71,3 +109,7 @@ Tracker relationship: Related: #959. Curation impact: none. No issue closure, mi
 local SonarCloud analysis or upload. The assigned branch may be pushed and published as a draft; ordinary PR CI owns
 SonarCloud. Review/merge and Hive reconciliation remain external. The worker retains the worktree and requests Hive
 reconciliation; it does not self-archive.
+
+Delivery preflight verifies Git SSH feature-branch delivery and GitHub CLI repository delivery separately as
+**authorized**. Remote master still equals the pinned base at preflight; no refresh/rebase is needed. No credentials or
+scopes are recorded. Exact final commit, draft PR and current-head CI/Sonar state are reported in the task callback.

@@ -353,20 +353,23 @@ final class BuilderContractReader {
             throw invalidConstraint(literal, "Inconsistent singleton Pattern eligibility on " + source);
         }
         if (literal.constraintCount == null) throw invalidConstraint(literal, "Missing constraint count on " + source);
-        if (literal.constraintCount != literal.constraints.size())
+        if (literal.constraintCount != literal.constraints.size()) {
             throw invalidConstraint(literal, "Constraint count mismatch on " + source);
+        }
     }
 
     private static void validateComposingFacts(MutableLiterals literal, String source) {
         for (ConstraintRule rule : literal.constraints) {
             if (DECLARATION_ORIGINS.contains(rule.origin())) continue;
             if (literal.constraints.stream().noneMatch(outer -> outer.origin().equals(DIRECT_CONSTRAINT)
-                    && outer.declaration().equals(rule.owner()) && !outer.plain()))
+                    && outer.declaration().equals(rule.owner()) && !outer.plain())) {
                 throw invalidConstraint(literal, "Missing composing constraint owner on " + source);
+            }
             long occurrences = literal.constraints.stream().filter(other -> other.owner().equals(rule.owner())
                     && other.annotation().equals(rule.annotation())).count();
-            if (rule.origin().equals("COMPOSING_AND") && occurrences != 1)
+            if (rule.origin().equals("COMPOSING_AND") && occurrences != 1) {
                 throw invalidConstraint(literal, "Inconsistent singleton composing eligibility on " + source);
+            }
         }
     }
 
@@ -612,13 +615,15 @@ final class BuilderContractReader {
         }
 
         private void validateOrigin() {
-            if (origin == null || owner == null || description == null)
+            if (origin == null || owner == null || description == null) {
                 throw invalidConstraint(field, "Missing composition/description facts");
+            }
             if (!CONSTRAINT_ORIGINS.contains(origin)
                     || DECLARATION_ORIGINS.contains(origin) != owner.isEmpty()
                     || !DECLARATION_ORIGINS.contains(origin) && (plain || !description.isEmpty())
-                    || origin.equals("DOCUMENTARY") && plain)
+                    || origin.equals("DOCUMENTARY") && plain) {
                 throw invalidConstraint(field, "Inconsistent composition origin");
+            }
         }
 
         @Override public AnnotationVisitor visitArray(String member) { throw invalid("Unexpected constraint array " + member); }
@@ -684,8 +689,9 @@ final class BuilderContractReader {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
                 case "constraintCount" -> {
-                    if (!(value instanceof Integer count) || count < 0 || literal.constraintCount != null)
+                    if (!(value instanceof Integer count) || count < 0 || literal.constraintCount != null) {
                         throw invalidConstraint(literal, "Invalid constraint count");
+                    }
                     literal.constraintCount = count;
                 }
                 case "constraints" -> throw invalidConstraint(literal, INVALID_CONSTRAINT_ARRAY_ITEM);

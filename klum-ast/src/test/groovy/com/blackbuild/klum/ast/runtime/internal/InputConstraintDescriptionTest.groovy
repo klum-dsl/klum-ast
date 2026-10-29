@@ -31,7 +31,7 @@ import spock.lang.See
 import spock.lang.Tag
 
 @Issue('959')
-class ComposedConstraintTest extends AbstractDSLSpec {
+class InputConstraintDescriptionTest extends AbstractDSLSpec {
     private URLClassLoader artifacts
     def cleanup() { artifacts?.close() }
 

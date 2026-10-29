@@ -36,7 +36,7 @@ root = Path(sys.argv[1])
 paths = sorted(root.glob("integral-*/capacity.schema.json"))
 assert len(paths) == 3, "Run the integral documentary test with all three producer Groovy generations"
 integral = ["byteValue", "boxedByte", "shortValue", "boxedShort", "intValue", "percentage",
-            "longValue", "boxedLong", "large"]
+            "longValue", "boxedLong", "large", "composed"]
 accepted = [{}, {"enabled": False, "label": ""}, {"percentage": 0, "label": "", "enabled": False},
             {"fromText": "101"}, {"numericText": ""}, {"decimal": 0.5}, {"computed": "literal"},
             {"child": {}}, {"child": {"percentage": 0}}, {"child": {"percentage": 100}},
@@ -52,7 +52,7 @@ for field in integral:
     accepted.extend({field: value} for value in [0, 100, 100.0])
     rejected.extend({field: value} for value in [-1, 101, None, False, "", "50", 0.5, 2147483648])
 # Complete but unsupported contexts are text, with their original structural type admission.
-for field in ["grouped", "explicitDefault", "warning", "composed", "repeated", "customRepeated"]:
+for field in ["grouped", "explicitDefault", "warning", "repeated", "customRepeated"]:
     accepted.extend({field: value} for value in [-1, 101])
 for path in paths:
     schema = json.loads(path.read_text(), parse_float=Decimal)

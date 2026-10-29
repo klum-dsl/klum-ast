@@ -170,8 +170,9 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
-            if (constraints.policy() != Policy.OMIT && !rule.description().isEmpty())
+            if (constraints.policy() != Policy.OMIT && !rule.description().isEmpty()) {
                 appendDescription(value, rule.description());
+            }
             if (rule.origin().equals("DOCUMENTARY")) continue;
             BuiltinConstraintCatalog.Result contribution = BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
             bounds.addAll(contribution.bounds());

@@ -56,7 +56,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
     @Issue('959')
     def 'project independent first-level composing constraints without domain classes with Groovy #generation'() {
         given:
-        fixture(generation, false, false, false, false, false, false, false, false, true, true)
+        compositionFixture(generation)
         String compositionApi = new File(repository, 'fixture/api/1.0/api-1.0.jar').absolutePath
         new File(producer, 'build.gradle').append("""
 project(':api') {
@@ -137,7 +137,7 @@ tasks.register('compositionInitializationControl', JavaExec) {
     @Issue('959')
     def 'reject corrupt composition and documentary facts before suppression: #kind #selectedField'() {
         given:
-        fixture('3', false, false, false, false, false, false, false, false, true, true)
+        compositionFixture('3')
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.CompositionService'])\n")
         run('generateKlumJsonSchema')
         File outputDirectory = output('example.CompositionService').parentFile
@@ -2445,6 +2445,10 @@ import com.blackbuild.klum.ast.InputNaming.Profile
     String urlValue
 }
 """)
+    }
+
+    private void compositionFixture(String generation) {
+        fixture(generation, false, false, false, false, false, false, false, false, true, true)
     }
 
     private void compositionSources() {

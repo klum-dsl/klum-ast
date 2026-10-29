@@ -274,7 +274,7 @@ is appended to ordinary field documentation under `PROJECT` and `TEXT_ONLY`, and
 assertions, defaults, examples or runtime enforcement. There is no interpolation or member substitution. Existing explicit
 field examples retain their placement and values independently.
 
-(See: `ComposedConstraintTest#'document a domain rule without adding enforcement'`.)
+(See: `InputConstraintDescriptionTest#'document a domain rule without adding enforcement'`.)
 
 ```groovy
 @InputConstraintDescription('Percentage of traffic sent to this service.')
