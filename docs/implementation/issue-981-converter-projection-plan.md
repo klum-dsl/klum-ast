@@ -3,6 +3,9 @@
 Date: 2026-10-30. **Review-only proposal; no production behavior implemented.**
 Related: [#981](https://github.com/klum-dsl/klum-ast/issues/981). No tracker, milestone or release-placement change.
 
+C1 implementation and validation are tracked in [the C1 evidence record](issue-981-c1-evidence.md).
+The following review history remains the design authority; C2 is deferred.
+
 ## Authority and evidence
 
 Base: current master `a88a97f6b2012949b18b520b927d73b011def155`; dedicated branch

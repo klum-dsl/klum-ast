@@ -332,7 +332,17 @@ API/Schema dependencies. Interpretation needs no Schema sources, IDE source mirr
 Supported field containers are List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap.
 Normal Builder mechanics manage the declared container, including set deduplication and sorted storage. Operation
 arguments and nested ordinary data containers use List/Map; there is no construction of concrete/custom container
-arguments or broad Collection/Iterable arguments. Custom converters and factories are outside this input grammar.
+arguments or broad Collection/Iterable arguments. An ordinary non-DSL scalar field additionally admits the narrow
+[compiled String converter route](Converters.md#structured-string-input): exactly one compiler-selected declared public
+String constructor (enabled explicitly) or static String-to-exact-domain factory on a separately compiled public,
+non-generic domain class. Broader custom converter/factory routes remain outside this input grammar.
+
+Converter input is a String scalar at the field's effective external name. Quote numeric YAML values; neither numeric
+coercion nor null admission is added. An absent optional field remains allowed. The public Builder selects the exact
+overload, while its matched domain artifact supplies the selected parameter facts. Missing/malformed associations or
+parameter facts fail during preparation, even behind naming exclusion or OMIT. Recompile participating Schemas after
+domain contract changes. Pattern projection is an authoring aid; structured import does not enforce parameter constraints
+or automatically validate input against JSON Schema (#971).
 
 Numeric targets are primitive/boxed byte, short, int, long, float and double, plus BigInteger and BigDecimal.
 Floating targets reject non-finite/overflow values. Standard numeric input values are Byte, Short, Integer, Long,

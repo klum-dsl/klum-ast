@@ -165,3 +165,57 @@ def service = RemoteService.Create.With {
 
 assert service.endpoint == new URI('https', 'config.example.test', '/v1', 'stable')
 ```
+
+
+## Structured String input
+
+An ordinary non-key, non-DSL field can accept a String from structured input when its separately compiled public,
+non-generic domain class has exactly one supported String route already discovered by KlumAST. The route is a declared
+public constructor with `@Converters(includeConstructors=true)`, or a declared public static factory returning exactly
+the domain class. Existing factory discovery rules apply; a public method alone does not establish selection.
+The ordinary domain-value setter remains available in Groovy configuration.
+
+(See: `CompiledConverterInputTest#'reads a separately compiled port converter without coercion or runtime Pattern enforcement'`.)
+
+```groovy
+// Compile and package this non-DSL domain before compiling Service.
+import jakarta.validation.constraints.Pattern
+
+class PortNumber {
+    final String raw
+    PortNumber(@Pattern(regexp = '[0-9]{1,8}') String raw) { this.raw = raw }
+}
+
+// In the separately compiled Schema:
+@DSL class Service {
+    @InputName('port-number')
+    @Converters(includeConstructors = true)
+    PortNumber port
+}
+
+// The Model Writer supplies a String scalar, not a nested parameter object.
+def service = KlumStructuredInput.readRoot(Service, ['port-number': '1234'], 'ports.yaml')
+assert service.port.raw == '1234'
+```
+
+Quote numeric YAML values: `port-number: "1234"`. Numbers, null and other non-String values reject structurally; an
+absent optional field is allowed. The selected generated public Builder overload performs conversion during ordinary
+construction. Reading contracts and generating JSON Schema never execute the converter or initialize the domain.
+
+The selected compiled parameter owns its Jakarta Pattern facts and optional `@ConstraintProjection` policy. PROJECT
+is the default; TEXT_ONLY describes complete constraints; OMIT suppresses their constraint-derived output. Field policy
+cannot suppress or override parameter facts. The field retains names, exclusion, prose, examples, deprecation and its
+own domain-value constraints. See [converter Pattern projection](Json-Schema.md#compiled-converter-parameters).
+
+Overloaded/default-generated, bridge/synthetic, generic and varargs routes, inherited domain factories, external factory
+classes, closure converters, competing String routes and authored Builder inputs are outside this bounded route. Collection,
+map and DSL-object conversions remain outside this structured-input feature. Non-overridden binary Schema inheritance
+preserves the original declaring Builder and converter association; replacement fields are classified afresh.
+
+Keep compiler/runtime/plugin, domain and Schema artifacts matched. Recompile the Schema hierarchy after changing a
+participating domain contract. Missing or corrupt selection/parameter facts or incomplete API classpaths fail before
+interpretation or replacing generated output, including suppressed or excluded members. Artifact locations identify the
+paired declarations; they are not integrity checks or stale-JAR detection.
+
+Parameter annotations do **not** add runtime validation. For example, `'not digits'` still reaches this constructor:
+automatic parameter enforcement remains separate in [#971](https://github.com/klum-dsl/klum-ast/issues/971).
