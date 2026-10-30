@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, master, release/* ]
   pull_request:
-    branches: [ main, master, release/* ]
+    branches: [ main, master, release/*, codex/issue-895-perf-examples ]
   workflow_dispatch:
 
 permissions:
@@ -64,6 +64,14 @@ jobs:
             code-coverage-report/build/reports/jacoco/groovy4CodeCoverageReport/**
             code-coverage-report/build/reports/jacoco/groovy5CodeCoverageReport/**
           if-no-files-found: error
+      # Disposable one-run #895 profile; never merge this workflow change.
+      - name: Archive schema profile
+        uses: actions/upload-artifact@v7
+        if: success() || failure()
+        with:
+          name: schema-test-profile
+          path: klum-ast-gradle-plugin/build/reports/schema-profile/*.jsonl
+          if-no-files-found: warn
       - name: Archive test classes
         uses: actions/upload-artifact@v7
         if: failure()
