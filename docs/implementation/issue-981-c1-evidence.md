@@ -122,3 +122,26 @@ There are zero failures/errors. The independent actual-output oracle again passe
 The earlier whole-repository check above remains evidence for its stated revision; this follow-up reran the affected
 module suites and packaged integration controls rather than claiming a new whole-repository run. Remote CI/SonarCloud
 remain authoritative for the published follow-up head. No merge or issue-state change is authorized by this follow-up.
+
+## PR #991 readability and SonarCloud follow-up
+
+The review of `f9ae4f76` found 37 open maintainability findings despite successful SonarCloud gates: four cognitive
+complexity findings, 20 Groovy branch-format findings, eight duplicated contract literals, one nested test mutation,
+one nested ternary, one restricted identifier and two findings for the same unused local variable.
+
+Code revision `38d80fb395531d5960201cd74fe83737b9c70a7e` addresses their source causes without suppressions. The selected
+parameter reader separates API preflight, executable verification and annotation-kind decoding. Field metadata enrichment
+and converter-fact validation have cohesive helpers. Stable annotation member names have constants; class-resource paths
+share a helper. The internal route-recording method has an explicit name, and the unused local/nested ternary are removed.
+The fixture JAR rewrite is linear: copying entries, corrupting a selected class and mutating its annotations are distinct
+steps. Named visitors separate class markers, Builder associations and parameter members, preserving every negative
+control. Long conditions and non-exit bodies are expanded; concise Java return guards remain. No runtime contract,
+converter admission, dispatch, projection syntax or validation policy changes are intended.
+
+Independent Standards and Specification reviews have zero remaining findings after the readability correction.
+The full unchanged-revision `check` passed on JDK 17 in 26m 19s (140 tasks; 76 executed, 64 up-to-date). JUnit totals:
+baseline 3,527 tests with 17 unchanged skips; G4/G5 each 2,856 with 16 unchanged skips; zero failures/errors. All 649
+plugin tests pass with no skips. The independent oracle passed 28 JDK and 270 ECMA/Draft checks, and its schema hashes
+were unchanged at full-check completion. `git diff --check` passes. This subsequent evidence-only update does not change
+qualified code. The next ordinary CI/SonarCloud analysis must verify the finding list on the published follow-up head;
+a green quality gate alone is not evidence that all findings are closed.
