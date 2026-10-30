@@ -333,6 +333,35 @@ public @interface HelmOverwrite {
 
 Note that only one level of nesting is supported, i.e. you cannot nest annotations inside nested annotations.
 
+## Builder input
+
+Map donors configure state held by the recipient Builder, including construction-only `FieldType.BUILDER` fields.
+A later Builder or lifecycle callback can use that staging input to configure ordinary Model state. Builder-only fields
+remain absent from the completed DSL Object. Supplied Model-only properties, such as a computed getter or static Schema
+field with no Builder storage, are ignored. Genuinely unknown names follow the [missing-field strategy](#missing-field-handling).
+
+(See: `CopyBuilderInputTest#'copied staging input drives a later Builder lifecycle callback'`.)
+
+```groovy
+@DSL
+class Service {
+    String name
+    String endpoint
+    @Field(FieldType.BUILDER) String host
+
+    @PostTree
+    void configureEndpoint() {
+        endpoint = "https://$host"
+    }
+}
+
+def service = Service.Create.With {
+    copyFrom([host: 'catalog.example', name: 'catalog'])
+}
+assert service.name == 'catalog'
+assert service.endpoint == 'https://catalog.example'
+```
+
 ## Missing field handling
 
 The `@Overwrite` annotation as well as nested annotations can configure the `missing` member with
