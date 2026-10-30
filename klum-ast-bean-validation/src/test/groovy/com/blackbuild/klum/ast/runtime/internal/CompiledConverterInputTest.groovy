@@ -570,10 +570,14 @@ class CompiledConverterInputTest extends Specification {
         loader?.close()
     }
 
-    def 'selected domain cannot fall back from missing or shadow resources: #damage'() {
+    def 'selected domain cannot fall back from missing or shadow resources: #damage profile=#profile'() {
         given:
         File domain = domainJar('Java', 'fromString', '', true)
-        File schema = schemaJar(domain, 'fromString')
+        File schema = profile ? groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class Service { PortNumber portNumber }
+        ''', [domain]) : schemaJar(domain, 'fromString')
         File shadow = new File(temporary, 'shadow.class')
         shadow.bytes = [0, 0, 0, 0] as byte[]
         String selectedDamage = damage
@@ -594,13 +598,19 @@ class CompiledConverterInputTest extends Specification {
         then:
         def failure = thrown(KlumModelException)
         failure.message.contains(damage == 'shadow' ? 'resource origin disagrees' : 'PortNumber')
+        failure.message.contains(profile ? 'portNumber' : 'port')
+        failure.message.contains("external input 'port-number'")
+        failure.message.contains('Service_DSL$Builder')
+        failure.message.contains('artifact')
+        failure.message.contains('converterinput.PortNumber#fromString(Ljava/lang/String;)Lconverterinput/PortNumber;')
+        failure.message.contains('parameter[0]')
         System.getProperty(TRAP) == null
 
         cleanup:
         loader?.close()
 
         where:
-        damage << ['missing', 'shadow']
+        [damage, profile] << [['missing', 'shadow'], [false, true]].combinations()
     }
 
     def 'an existing discovered annotation factory needs no preferred method name'() {

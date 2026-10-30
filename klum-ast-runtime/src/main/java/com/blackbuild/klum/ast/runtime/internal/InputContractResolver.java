@@ -134,7 +134,7 @@ final class InputContractResolver {
     }
 
     private record Facts(List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations, Key key) { }
-    private record BuilderContext(Class<?> builder, Class<?> model, Metadata metadata) { }
+    private record BuilderContext(Class<?> builder, Class<?> model, Metadata metadata, boolean kebab) { }
 
     private Facts collect(Class<?> builder, Map<Class<?>, Facts> known, boolean nativeCandidates) throws IOException, ClassNotFoundException {
         Facts existing = known.get(builder);
@@ -151,7 +151,7 @@ final class InputContractResolver {
             rejections.add(new Rejection(model.getName() + "#" + exclusion.member(), exclusion.reason()));
         Map<String, Method> accessors = new LinkedHashMap<>();
         Map<String, List<Method>> selections = new LinkedHashMap<>();
-        BuilderContext context = new BuilderContext(builder, model, metadata);
+        BuilderContext context = new BuilderContext(builder, model, metadata, nativeCandidates);
         collectDeclarations(context, accessors, selections, entries, rejections, declarations);
         Key key = declaredKey(context);
         for (Map.Entry<String, Method> field : accessors.entrySet()) {
@@ -269,7 +269,7 @@ final class InputContractResolver {
                                             List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) {
         Class<?> builder = context.builder();
         Metadata metadata = context.metadata();
-        for (Method method : Arrays.stream(builder.getDeclaredMethods()).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
+        for (Method method : Arrays.stream(declaredMethods(context)).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
             Literals literal = metadata.methods().get(signature(method));
             if (literal == null) throw invalid("Missing exact public declaration " + method);
             declarations.add(declaration(method, literal));
@@ -279,6 +279,35 @@ final class InputContractResolver {
             if (literal.selection() != null) selections.computeIfAbsent(literal.selection(), ignored -> new ArrayList<>()).add(method);
             if (literal.operation() && !literal.query()) operation(method, literal, context.model(), entries, rejections);
         }
+    }
+
+    private static Method[] declaredMethods(BuilderContext context) {
+        try {
+            return context.builder().getDeclaredMethods();
+        } catch (LinkageError failure) {
+            List<String> candidates = context.metadata().methods().values().stream()
+                    .filter(literal -> literal.converter() != null)
+                    .map(literal -> converterCandidate(context, literal)).toList();
+            throw new KlumModelException("Cannot resolve public signatures on " + namingOrigin(context.builder())
+                    + "; compiler-recorded converter candidates: " + candidates
+                    + "; supply the complete API classpath and recompile matched domain/Schema artifacts: "
+                    + failure.getMessage(), failure);
+        }
+    }
+
+    private static String converterCandidate(BuilderContext context, Literals selected) {
+        Literals field = context.metadata().methods().values().stream()
+                .filter(literal -> selected.selection().equals(literal.field())).findFirst().orElse(null);
+        ConverterSelection converter = selected.converter();
+        String external = field == null ? "<unavailable>" : externalFieldName(context, selected.selection(), field);
+        return "field '" + selected.selection() + "', external input '" + external + "', selected "
+                + converter.owner() + "#" + converter.name() + converter.descriptor()
+                + " parameter[" + converter.parameter() + "]";
+    }
+
+    private static String externalFieldName(BuilderContext context, String field, Literals literal) {
+        if (!literal.names().rename().isEmpty()) return literal.names().rename();
+        return context.kebab() ? InputNamingProfiles.kebab(field, context.model().getName() + "#" + field) : field;
     }
 
     private static boolean fieldAccessor(Method method, String field) {
@@ -325,7 +354,7 @@ final class InputContractResolver {
         Method method = converters.get(0);
         ConverterSelection selected = context.metadata().methods().get(signature(method)).converter();
         String location = namingOrigin(context.builder()) + "#" + field + ", external input '"
-                + (literal.names().rename().isEmpty() ? field : literal.names().rename()) + "', selected "
+                + externalFieldName(context, field, literal) + "', selected "
                 + selected.owner() + "#" + selected.name() + selected.descriptor() + " parameter[" + selected.parameter() + "]";
         try {
             if (!(fieldType instanceof Class<?> domain) || methods.size() != 1

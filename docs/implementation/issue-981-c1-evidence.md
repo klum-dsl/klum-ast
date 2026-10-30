@@ -60,3 +60,9 @@ to the conservative exclusion: Jakarta GroupSequence, legacy javax GroupSequence
 The reader checks only those identities on the selected domain declaration, without loading providers or traversing
 annotation hierarchies. New binary marker controls and emitted-schema coverage pass. The pre-correction full-check run
 was stopped; final qualification follows this correction on an unchanged commit.
+
+A final diagnostic review identified the early Builder signature-resolution boundary: a missing domain could throw before
+the selected-parameter wrapper supplied field/external-name/artifact/signature context. The resolver now reports already
+validated compiler-recorded converter candidates, preserves the original cause, and handles explicit and profile-derived
+names. It never guesses which candidate caused linkage failure. Both missing and shadow-domain controls assert the full
+context. Interrupted pre-correction full checks are not used as final qualification evidence.
