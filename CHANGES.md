@@ -1,4 +1,4 @@
-# 4.1.1 (unreleased)
+# 4.1.1 (2026-10-30)
 
 - `copyFrom(Map)` now configures construction-only `FieldType.BUILDER` input for later Builder/lifecycle work, including
   inherited fields. Model-only members without Builder storage are ignored, while genuinely unknown names retain the
