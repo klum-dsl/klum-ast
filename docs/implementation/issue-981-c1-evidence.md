@@ -40,8 +40,19 @@ the existing finite Pattern recognizer and field projection behavior are unchang
   actual-output checks across G3/G4/G5 pass. Corpus includes line terminators, Unicode digits, supplementary/lone surrogates,
   empty/long inputs, literal escaping and structural null/non-String rejection. This reuses the existing finite language;
   it is not qualification for C2. Runtime: JDK 17, Node v26.12.0, jsonschema 4.23.0.
-- Focused G3 converter and existing compiled-Builder reader checks pass. Full repository `check` and independent review
-  results will be appended at the final validated revision; they are not yet claimed by this checkpoint.
+- Qualified code revision: `72caabd0d588a937f6fcb84a65b65279acbd12aa`. On JDK 17, the unchanged-revision full
+  `./gradlew check --no-parallel --max-workers=2` passed in 29m 18s: 140 actionable tasks, 80 executed and 60 up-to-date.
+  This includes packaged-plugin tests, test-lane isolation, plugin validation, license checks and the versioned
+  documentation renderer. Existing generated-contract and JPMS controls are included in the module test suites.
+- JUnit report totals: baseline `test` 3,505 tests (17 skipped); `groovy4Tests` 2,835 (16 skipped); `groovy5Tests`
+  2,835 (16 skipped). Every lane has zero failures and errors. The plugin suite has 648 tests with no skips;
+  the new converter runtime suite has 75 cases per lane and the packaged converter matrix has four cases, all passing.
+  Existing skips remain unchanged. Focused converter and existing compiled-Builder reader checks also pass.
+- The independent oracle passed against the final generated schemas; their SHA-256 values remained unchanged at
+  full-check completion. Markdown fences, 169 relative file links, seven introduced heading anchors and
+  `git diff --check` pass.
+- Independent Standards and Specification reviews report zero remaining findings at the qualified code revision.
+  The final evidence-only commit does not change source, fixtures or build configuration.
 
 No local SonarCloud upload or manual workflow dispatch is used. Ordinary PR CI remains authoritative. Artifact locations
 are diagnostic associations, not integrity or stale-JAR proof. Matching producer/Schema recompilation is required.
@@ -70,3 +81,15 @@ context. Interrupted pre-correction full checks are not used as final qualificat
 Deprecated converter controls retain otherwise valid constructor/factory routes: ASM's attribute-derived ACC_DEPRECATED
 pseudo flag is masked before comparing true method access bits with reflection. Bridge/synthetic exclusions remain
 unchanged. Actual-output coverage verifies converter deprecation does not become field deprecation.
+
+## Delivery boundary
+
+The dedicated branch contains only C1. Reviewed commits are preserved, with additive review corrections. The combined
+initial compiler/resolver/projection commit is one green end-to-end slice; it avoids introducing an unused temporary
+abstraction between the first two planned steps. Later documentation and review corrections remain separate commits.
+
+Delivery-channel audit: GitHub CLI repository delivery **authorized**; SSH dedicated-branch push **authorized**.
+Draft publication uses `Related: #981`. This record establishes local qualification, not remote CI/SonarCloud or merge
+success. Ordinary PR checks must be inspected at the published head. C2, #971 runtime enforcement, issue disposition,
+release placement and final Hive reconciliation remain outside this implementation slice. The worktree is retained;
+this worker does not self-archive.
