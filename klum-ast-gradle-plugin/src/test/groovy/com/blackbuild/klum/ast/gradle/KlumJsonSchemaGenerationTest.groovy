@@ -39,6 +39,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.See
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Tag
 import spock.lang.TempDir
@@ -47,6 +48,8 @@ import spock.lang.TempDir
 class KlumJsonSchemaGenerationTest extends Specification {
     private static final String DOCUMENTARY_TEXT = 'a "quoted" \\path\nMünchen 😀'
     @TempDir File directory
+    @Shared @TempDir File examplesCache
+    @Shared String examplesTrapPath
     File consumer
     File producer
     File repository
@@ -258,10 +261,59 @@ tasks.register('exampleControl', JavaExec) {
         generation << ['3', '4', '5']
     }
 
-    @Issue('959')
+    @Issue('895')
+    def 'reused carried examples retain a private initialization trap for each consumer'() {
+        given:
+        File root = directory
+
+        when:
+        directory = new File(root, 'first')
+        directory.mkdirs()
+        carriedExamplesFixture()
+        File firstTrap = trap
+        addExampleInitializationControl()
+        def first = runner(consumer, 'initializeControl').buildAndFail()
+
+        then:
+        first.output.contains('Schema initialization control')
+        firstTrap.text == 'initialized'
+
+        when:
+        firstTrap.delete()
+        def firstExample = runner(consumer, 'initializeExampleControl').buildAndFail()
+
+        then:
+        firstExample.output.contains('Schema initialization control')
+        firstTrap.text == 'initialized'
+
+        when:
+        directory = new File(root, 'second')
+        directory.mkdirs()
+        carriedExamplesFixture()
+        File secondTrap = trap
+        addExampleInitializationControl()
+        firstTrap.delete()
+        def second = runner(consumer, 'initializeControl').buildAndFail()
+
+        then:
+        second.output.contains('Schema initialization control')
+        secondTrap.text == 'initialized'
+        !firstTrap.exists()
+
+        when:
+        secondTrap.delete()
+        def secondExample = runner(consumer, 'initializeExampleControl').buildAndFail()
+
+        then:
+        secondExample.output.contains('Schema initialization control')
+        secondTrap.text == 'initialized'
+        !firstTrap.exists()
+    }
+
+    @Issue(['959', '895'])
     def 'invalid carried examples fail before replacing any output: #target #kind'() {
         given:
-        fixture('3', false, false, false, false, false, true, false, true)
+        carriedExamplesFixture()
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Deployment', 'example.ExampleService'])\n")
         run('generateKlumJsonSchema')
         File outputDirectory = output('example.ExampleService').parentFile
@@ -1789,17 +1841,105 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false) {
-        packagedPlugin = generation == '5'
+    private void addExampleInitializationControl() {
+        new File(consumer, 'build.gradle').append("""
+tasks.register('initializeExampleControl', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.ExampleInitializationControl'
+}
+""")
+    }
+
+    // Cache pristine producer outputs; each consumer receives physical copies and its own absolute trap.
+    private void carriedExamplesFixture() {
+        synchronized (examplesCache) {
+            if (examplesTrapPath == null) {
+                fixture('3', false, false, false, false, false, true, false, true)
+                examplesTrapPath = trap.absolutePath
+                copyTree(repository, examplesCache)
+                return
+            }
+            packagedPlugin = false
+            initializeFixtureDirectories()
+            copyTree(examplesCache, repository)
+            Set<String> rewritten = [] as Set
+            ['api', 'owned', 'schema'].each { artifact ->
+                specializeExamplesTrap(artifact, rewritten)
+            }
+            assert rewritten.containsAll(['example/Deployment.class', 'example/ExampleService.class',
+                                          'example/NamingService.class', 'example/NamingConflict.class',
+                                          'example/NamingIdentityConflict.class', 'example/NamingCollision.class']):
+                    'Every trap-bearing fixture class must contain the scenario initialization trap'
+            writeConsumer('3', false, false)
+        }
+    }
+
+    private void specializeExamplesTrap(String artifact, Set<String> rewritten) {
+        File jar = new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")
+        File replacement = new File(directory, "$artifact-trap.jar")
+        int[] replacements = [0] as int[]
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
+                input.entries().each { entry ->
+                    byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+                    if (entry.name.endsWith('.class')) {
+                        int before = replacements[0]
+                        bytes = specializeExamplesClass(bytes, replacements)
+                        if (replacements[0] > before) rewritten.add(entry.name)
+                    }
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        jar.bytes = replacement.bytes
+    }
+
+    private byte[] specializeExamplesClass(byte[] bytes, int[] replacements) {
+        ClassWriter writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                    @Override void visitLdcInsn(Object value) {
+                        if (value == examplesTrapPath) {
+                            replacements[0]++
+                            value = trap.absolutePath
+                        }
+                        super.visitLdcInsn(value)
+                    }
+                }
+            }
+        }, 0)
+        writer.toByteArray()
+    }
+
+    private static void copyTree(File source, File destination) {
+        source.eachFileRecurse { file ->
+            File target = new File(destination, source.toPath().relativize(file.toPath()).toString())
+            if (file.isDirectory()) {
+                target.mkdirs()
+            } else {
+                target.parentFile.mkdirs()
+                Files.copy(file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+    }
+
+    private void initializeFixtureDirectories() {
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
         repository = new File(directory, 'repository')
         trap = new File(directory, 'schema-executed')
         producer.mkdirs()
         consumer.mkdirs()
+    }
+
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false) {
+        packagedPlugin = generation == '5'
+        initializeFixtureDirectories()
         String groovy = notation(System.getProperty("gdslGroovy$generation"))
         String compiler = classpath(System.getProperty('gdslCompilerClasspath'))
-        String runtime = classpath(System.getProperty('gdslRuntimeClasspath'))
         new File(producer, 'settings.gradle').text = "include 'api', 'schema'" + (naming || patterns ? ", 'owned'" : '')
         new File(producer, 'build.gradle').text = """
 subprojects {
@@ -2155,6 +2295,12 @@ import java.lang.annotation.*
             new File(producer, 'owned/src').deleteDir()
             new File(producer, 'owned/build/classes').deleteDir()
         }
+        writeConsumer(generation, defaults, patterns)
+    }
+
+    private void writeConsumer(String generation, boolean defaults, boolean patterns) {
+        String groovy = notation(System.getProperty("gdslGroovy$generation"))
+        String runtime = classpath(System.getProperty('gdslRuntimeClasspath'))
         new File(consumer, 'settings.gradle').text = "rootProject.name = 'schema-consumer'"
         new File(consumer, 'build.gradle').text = """
 plugins { id 'com.blackbuild.klum-ast-schema' }
@@ -2220,6 +2366,9 @@ import com.fasterxml.jackson.annotation.*
 }
 @DSL class ExampleExcluded { @InputExamples(['SECRET_PAYLOAD']) String value }
 @DSL class ExampleUnrelated { @InputExamples(['SECRET_PAYLOAD']) String value }
+class ExampleInitializationControl {
+    static void main(String[] args) { Class.forName('example.ExampleService', true, ExampleInitializationControl.classLoader) }
+}
 @DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class ExampleService extends ExampleOwnedBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
     @InputExamples([ExampleTexts.VALUE]) String binaryConstant
