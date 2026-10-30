@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Templates — KlumAST 4.1.1</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.1.1 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="./">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="./">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="templates">Templates</h1>
+<p>Templates are completed DSL Objects marked as reusable construction recipes. Applying a Template copies its non-null and
+non-empty values into a fresh Builder graph. Nested DSL Objects are rehydrated recursively, Collections are copied, and
+Simple Values are retained. A Template is never adopted directly as owned composition.</p>
+<p>Template identity is persistent and graph-wide. Every owned node created by <code>Create.Template.With</code> is marked as a Template and
+keeps its breadcrumb and model path; a completed object supplied to a <code>FieldType.LINK</code> field remains the same ordinary
+model. Templates cannot be assigned directly to any relationship, including <code>LINK</code>: apply them through <code>Template.With</code>,
+<code>copyFrom</code>, or another Template/copy API so KlumAST can build a fresh owned graph.</p>
+<p>When <code>copyFrom</code> applies a Template to an already populated scalar <code>LINK</code> with default or explicit <code>MERGE</code>, an ordinary
+completed LINK value in the Template replaces the recipient's completed target by identity. A null LINK value preserves
+the recipient's target. Neither referent replays lifecycle or validation; the containing Template's recipe still replays
+on the recipient. See <a rel="nofollow" href="../Copy-Strategies/#merge">scalar copy strategies</a>.</p>
+<p>Deferred <code>applyLater</code> actions live only in immutable Template recipe state, never in ordinary completed models. Recipe
+closures are detached and their captured graph is checked when the Template materializes. Captured Builders and
+non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
+Construction sessions, active Template scopes, and mutable recipe collections are not serialized.</p>
+<p>Accepted Template-definition relationship declarations are retained internally. Applying a Template or copying a single
+child captures the recipient's owning field afresh; public <code>KlumObjectSupport</code> still rejects the Template and its owned
+nodes. See <a rel="nofollow" href="../Completed-Object-Support/#templates-copies-and-imports">owning declarations for Templates/copies</a>, including
+the authoritative-claim versus absent copied-container metadata policy. Java-serialized Template identity, recipes and
+accepted declarations are qualified within the same KlumAST version with compatible available Schema definitions. Historical
+serialized forms are not promised; regenerate serialized Templates from source recipes when upgrading.</p>
+<h2 id="creating-templates">Creating Templates</h2>
+<p>Ignorable fields of the template (key, owner, role, transient, or marked as <code>FieldType.IGNORED</code>) are never copied over.
+Map donors can supply <a rel="nofollow" href="../Copy-Strategies/#builder-input">Builder-only construction input</a> to <code>copyFrom</code>. Root
+creation lives below <code>Create</code>: use <code>Create.Template.With</code> for a map and/or configuration closure, and
+<code>Create.Template.From</code> for a DelegatingScript file or URL. Classpath loading through <code>Create.Template.FromClasspath</code>
+accepts both delegating and ordinary scripts, as described <a rel="nofollow" href="#loading-templates-from-the-classpath">below</a>. Direct Template
+definition behaves like a normal factory result with these
+differences:</p>
+<ul>
+<li>the result is always unkeyed (setting the key to null in case of a keyed class)</li>
+<li>Lifecycle methods (<code>@PostApply</code>, <code>@PostCreate</code>) are not called</li>
+<li>The template does not participate in KlumPhases (especially: no validation is performed)</li>
+<li>provides a non-abstract implementation for abstract classes, implementing all possible methods empty or returning null</li>
+</ul>
+<p>(See: <code>TemplatesDocumentaryTest#'creates an unkeyed reusable template without lifecycle callbacks'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class ServiceConfiguration {
+    @Key String name
+    String region
+}
+
+def template = ServiceConfiguration.Create.Template.With {
+    region 'eu-central'
+}
+
+assert template.name == null
+</code></pre>
+<p>Templates are also correctly applied when using inheritance: a template defined for a parent class is applied when
+creating child-class instances, and child template values can override parent templates. The focused regression coverage
+is in <code>BoundTemplatesSpec.groovy</code>.</p>
+<p>Template-specific methods are pooled in the static <code>Template</code> field of each DSL class. Its public generated contract is
+<code>Foo_DSL.TemplateScope</code>. <code>Template</code> is the scoped-application handler: <code>Template.With</code> and <code>Template.WithAll</code> apply one or
+more recipes while the supplied body creates ordinary models. The deprecated 4.x compatibility aliases <code>Template.Create</code>
+and <code>Template.CreateFrom</code> still forward to the canonical creation operations, but new code must use
+<code>Create.Template.With</code> and <code>Create.Template.From</code>.</p>
+<p>For final 4.0 RC users that explicitly declared the generated handler type, rename <code>Foo_DSL.Template</code> to
+<code>Foo_DSL.TemplateScope</code> and recompile. There is intentionally no compatibility alias; <code>Foo_DSL.Factory.Template</code> remains
+the separate type of the <code>Foo.Create.Template</code> root-creation field.</p>
+<p>When a Spock test needs existing materialized Templates through <code>setup</code>, a feature, and <code>cleanup</code>, use the separately
+published <code>TemplateScope</code> test-support API rather than a callback wrapper. The Schema or Model plugin provides it automatically on
+the test classpath; only direct Java/Groovy consumers that apply neither plugin declare its coordinate explicitly. The
+concise lifecycle pattern and both dependency paths are in
+<a rel="nofollow" href="../Testing-Models-and-Schemas/#reuse-templates-across-a-spock-feature">Testing Models and Schemas</a>.</p>
+<p>(See: <code>TemplatesDocumentaryTest#'creates a template from a DelegatingScript file'</code>.)</p>
+<pre><code class="language-groovy">def template = ServiceConfiguration.Create.Template.From(new File('service-template.groovy'))
+</code></pre>
+<h2 id="templates-in-a-class-hierarchy">Templates in a class hierarchy</h2>
+<p>Ordinary Groovy property syntax selects the receiver's generated <code>Create</code> factory and <code>Template</code> scope, including
+when an abstract DSL superclass also has a Template implementation. Use the same syntax for dynamic Groovy, static
+Groovy, and Java callers. Unrelated user-defined static properties keep their ordinary inheritance behavior.</p>
+<p>(See: <code>StaticEntryPointInheritanceTest#'applies child Templates below an abstract application'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+abstract class Application {
+    String name
+}
+
+@DSL
+class OrderApplication extends Application {
+    String orderQueue
+}
+
+def parentTemplate = Application.Create.Template.With { name 'shared' }
+def childTemplate = OrderApplication.Create.Template.With { orderQueue 'orders' }
+
+def application = Application.Template.With(parentTemplate) {
+    OrderApplication.Template.With(childTemplate) {
+        OrderApplication.Create.One()
+    }
+}
+
+assert application.name == 'shared'
+assert application.orderQueue == 'orders'
+</code></pre>
+<h2 id="loading-templates-from-the-classpath">Loading Templates from the classpath</h2>
+<p><code>Create.Template.FromClasspath()</code> loads the same conventional configuration as <code>Create.FromClasspath()</code>:
+<code>META-INF/klum-model/&lt;fully-qualified-model-type&gt;.properties</code> must contain a <code>model-class</code> entry naming the compiled
+Groovy script class. For example, <code>META-INF/klum-model/recipes.Environment.properties</code> contains:</p>
+<pre><code class="language-properties">model-class=recipes.DefaultEnvironment
+</code></pre>
+<p>The no-argument overload uses the current thread context class loader. The <code>ClassLoader</code> overload uses the supplied
+loader for both the marker and script class. Missing markers, missing <code>model-class</code> entries, unavailable script classes,
+and script failures retain the ordinary classpath factory's diagnostics and causes.</p>
+<p>Java clients can name the generated public Template factory contract:</p>
+<pre><code class="language-java">Environment_DSL.Factory.Template factory = Environment.Create.Template;
+Environment defaults = factory.FromClasspath();
+Environment loadedWith = factory.FromClasspath(loader);
+</code></pre>
+<p>Groovy uses the same operations, including under <code>@CompileStatic</code>:</p>
+<pre><code class="language-groovy">def defaults = Environment.Create.Template.FromClasspath()
+def loadedWith = Environment.Create.Template.FromClasspath(loader)
+</code></pre>
+<p>The script form determines how the Template is created:</p>
+<table>
+<thead>
+<tr>
+<th>Script result/form</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DelegatingScript</code></td>
+<td>Configures a Template directly, without ordinary lifecycle callbacks, graph phases, or validation. Deferred actions remain recipes for replay.</td>
+</tr>
+<tr>
+<td>Ordinary script returning a marked Template</td>
+<td>Executes the script and returns that Template unchanged, including its recipe state.</td>
+</tr>
+<tr>
+<td>Ordinary script returning an ordinary Model</td>
+<td>Executes the script normally, then copies its completed Model into a fresh value-only Template snapshot.</td>
+</tr>
+</tbody>
+</table>
+<p>For a delegating script, the following abbreviated example defines <code>recipes.DefaultEnvironment</code>. The Schema's
+<code>Environment</code> has a keyed <code>name</code>, <code>region</code>, and <code>identifier</code>.</p>
+<p>(See: <code>ClasspathTemplateTest#'loads a classpath recipe and replays it into fresh environments'</code>.)</p>
+<pre><code class="language-groovy">// Compiled classpath script: recipes.DefaultEnvironment
+package recipes
+
+import groovy.transform.BaseScript
+@BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+region 'eu-central'
+applyLater { identifier name.toUpperCase() }
+</code></pre>
+<p>Consumer code:</p>
+<pre><code class="language-groovy">def defaults = Environment.Create.Template.FromClasspath()
+def catalog = Environment.Template.With(defaults) {
+    Environment.Create.With('catalog') { }
+}
+assert catalog.identifier == 'CATALOG'
+</code></pre>
+<h3 id="ordinary-scripts-produce-value-snapshots">Ordinary scripts produce value snapshots</h3>
+<p>An ordinary script can return a Model created with <code>Create.With</code>, <code>Create.One</code>, or another ordinary factory. Its normal
+lifecycle, phases, deferred actions, and validation run before snapshot conversion. If the script or validation fails,
+loading fails with the existing classpath factory diagnostic; conversion does not bypass that failure.</p>
+<p>The snapshot uses the existing <code>copyFrom</code> rules: it copies eligible values and owned composition into fresh graph-wide
+Template nodes, ignores the original root key and other excluded fields, preserves the concrete Model subtype, and
+retains ordinary <code>LINK</code> targets by identity. Copy strategies, Schema field initializers, and active Template defaults
+still apply, as with <code>Create.Template.With { copyFrom model }</code>. Value-only describes the ordinary source: an active
+Template scope can independently contribute its own deferred recipes to the new Template. The original Model remains
+an ordinary Model.</p>
+<p>Completed deferred actions cannot be recovered as recipes. Their resulting values may be copied, but those actions do
+not replay for recipients. Lifecycle-derived values may also be copied; each recipient then runs its own normal lifecycle.
+For example, the identifier computed from <code>seed</code> stays <code>SEED</code> when a recipient is named <code>catalog</code>:</p>
+<p>(See: <code>ClasspathTemplateTest#'snapshots an ordinary script after its lifecycle without retaining deferred actions'</code>.)</p>
+<pre><code class="language-groovy">// Ordinary compiled classpath script: recipes.DefaultEnvironment
+package recipes
+
+Environment.Create.With('seed') {
+    region 'eu-central'
+    applyLater { identifier name.toUpperCase() }
+}
+</code></pre>
+<p>Consumer code:</p>
+<pre><code class="language-groovy">def defaults = Environment.Create.Template.FromClasspath(loader)
+def catalog = Environment.Template.With(defaults) {
+    Environment.Create.With('catalog') { }
+}
+assert defaults.name == null
+assert catalog.identifier == 'SEED'
+</code></pre>
+<p>When the ordinary script should retain deferred recipes, explicitly return <code>Environment.Create.Template.With { ... }</code>
+instead. That returned Template is preserved unchanged. Classpath loading does not change <code>Template.With</code>/<code>WithAll</code>
+application scope or the behavior of <code>Create.Template.From(File|URL)</code>.</p>
+<h2 id="nested-builder-composition">Nested Builder composition</h2>
+<p>Defining a Template is its own nested composition scope. A source-visible converter may therefore use a normal
+<code>Child.Create.With(...)</code> implementation while the generated Builder converter twin creates a Template-owned child.
+Those children carry Template identity and run no lifecycle or validation until the Template is rehydrated into an
+ordinary root creation. This scope takes precedence when a Template is defined inside an active Construction session;
+after it exits, ordinary <code>Create.AsBuilder</code> calls continue in that original session. <code>Template.With</code> and
+<code>Template.WithAll</code> only apply recipes and do not open Template-definition composition.</p>
+<p>(See: <code>TemplatesDocumentaryTest#'defines a Template through a fluent child converter'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Parent {
+    Child child
+}
+
+@DSL
+class Child {
+    String value
+
+    static Child fromString(String value) {
+        Child.Create.With(value: value)
+    }
+}
+
+def template = Parent.Create.Template.With {
+    child 'template-child'
+}
+
+Parent.Template.With(template) {
+    def registry = Parent.Create.One()
+    assert registry.child.value == 'template-child'
+}
+</code></pre>
+<p>There are currently four options to apply templates; all examples use the following class and template:</p>
+<pre><code class="language-groovy">@DSL
+class Config {
+    String url
+    List&lt;String&gt; roles
+}
+
+def template = Config.Create.Template.With {
+    url &quot;http://x.y&quot;
+    roles &quot;developer&quot;, &quot;guest&quot;
+}
+</code></pre>
+<h2 id="copyfrom"><code>copyFrom()</code></h2>
+<p>Using <code>copyFrom</code>, one can explicitly apply a template to a single Object to be created:</p>
+<p>(See: <code>TemplatesDocumentaryTest#'copies a template into one completed service configuration'</code>.)</p>
+<pre><code class="language-groovy">def c = Config.Create.With {
+    copyFrom template
+    url &quot;z&quot;
+}
+
+// more convenient using the named parameters syntax
+def c2 = Config.Create.With(copyFrom: template) {
+    url &quot;z&quot;
+}
+</code></pre>
+<p>In both notations, the <code>copyFrom</code> entry should be the first, otherwise it might override values set before it. A marked
+Template contributes both values and recipe actions. An ordinary completed model contributes values only. See
+<a rel="nofollow" href="../Copy-Strategies/#copy-source-protocol">Copy Strategies#copy-source-protocol</a> for the complete copy-source rules.</p>
+<h2 id="templatewith">Template.With()</h2>
+<p><code>Template.With()</code> provides scoped templates. It takes a template and a closure, and the template is automatically
+applied to all instance creations within that closure.</p>
+<p>Usage:</p>
+<p>(See: <code>TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'</code>.)</p>
+<pre><code class="language-groovy">def template = Config.Create.Template.With {
+    url &quot;http://x.y&quot;
+    roles &quot;developer&quot;, &quot;guest&quot;
+}
+
+def c, d
+Config.Template.With(template) {
+    c = Config.Create.With {
+        roles &quot;productowner&quot;
+    }
+    d = Config.Create.With {
+        roles &quot;scrummaster&quot;
+    }
+}
+
+assert c.url == &quot;http://x.y&quot;
+assert c.roles == [ &quot;developer&quot;, &quot;guest&quot;, &quot;productowner&quot; ]
+assert d.roles == [ &quot;developer&quot;, &quot;guest&quot;, &quot;scrummaster&quot; ]
+</code></pre>
+<h2 id="with-an-anonymous-template">With an Anonymous Template</h2>
+<p><code>Template.With</code> can also be called using only named parameters, creating a temporary, anonymous template:</p>
+<pre><code class="language-groovy">Config.Template.With(Config.Create.Template.With(url: &quot;http://x.y&quot;)) {
+    c = Config.Create.With {
+        roles &quot;productowner&quot;
+    }
+}
+</code></pre>
+<p>could be written as:</p>
+<p>(See: <code>TemplatesDocumentaryTest#'applies named values through an anonymous scoped template'</code>.)</p>
+<pre><code class="language-groovy">Config.Template.With(url: &quot;http://x.y&quot;) {
+    c = Config.Create.With {
+        roles &quot;productowner&quot;
+    }
+}
+</code></pre>
+<h2 id="templates-for-collection-factories">Templates for Collection Factories</h2>
+<p>When using the optional collection factory (see <a rel="nofollow" href="../Basics/#collections-of-dsl-objects">Basics#collections-of-dsl-objects</a>), a template can directly be
+specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
+that are created inside this collection factory:</p>
+<p>(See: <code>TemplatesDocumentaryTest#'applies one collection-factory template to every created server'</code>.)</p>
+<pre><code class="language-groovy">Config.Create.With {
+    servers(isCluster: true) { // factory with template
+        server(&quot;x&quot;) {}
+        server(&quot;y&quot;) {}
+    }
+}
+</code></pre>
+<p>Since the collection factory can be called multiple times, this allows a very concise syntax:</p>
+<pre><code class="language-groovy">Config.Create.With {
+    servers(isCluster: true) { // template is only valid in this block
+        server(&quot;x&quot;) {}
+        server(&quot;y&quot;) {}
+    }
+    servers(isCluster: false) { // use different template
+        server(&quot;a&quot;) {}
+        server(&quot;b&quot;) {}
+    }
+    servers(myServerTemplate) { // use yet another template
+        server(&quot;i&quot;) {}
+        server(&quot;j&quot;) {}
+    }
+}
+</code></pre>
+<h2 id="expanding-template-lists-into-one-relationship">Expanding Template lists into one relationship</h2>
+<p>Use <code>withTemplates</code> inside a collection factory when several existing Templates should become separate values of that
+one relationship. It accepts an <code>Iterable</code> and a required trailing configuration closure. Each Template is rehydrated
+immediately as exactly one fresh owned child in the current Construction session; the closure configures that child once,
+and the Template object itself is never inserted into the relationship. Use an empty closure for pure expansion.</p>
+<p>(See: <code>TemplatesDocumentaryTest#'expands reusable member Templates into one relationship'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Team {
+    List&lt;Member&gt; members
+}
+
+@DSL
+class Member {
+    String name
+    String role
+    boolean active
+}
+
+def admin = Member.Create.Template.With(name: 'admin', role: 'administrator')
+def reader = Member.Create.Template.With(name: 'reader', role: 'reader')
+
+def team = Team.Create.With {
+    members {
+        withTemplates([admin, reader]) {
+            active true
+        }
+    }
+}
+
+assert team.members*.name == ['admin', 'reader']
+assert team.members*.active == [true, true]
+</code></pre>
+<p><code>withTemplates</code> accepts only an <code>Iterable</code> of marked Templates plus the trailing child-Builder closure. Repeated calls
+append fresh children in invocation and iteration order. The complete input is checked before any closure invocation or
+child attachment, so an ordinary completed DSL Object in the batch fails without partially changing the relationship.
+The same closure runs once for every fresh child after its recipe has been replayed and before its normal <code>@PostApply</code>
+lifecycle callback. It receives no Template argument; its <code>DELEGATE_ONLY</code> delegate is the fresh child Builder.</p>
+<p>This is direct, field-local recipe expansion: it installs no temporary Template default, and a later child creator in the
+same collection factory is unaffected. Use <code>Template.WithAll</code> instead when the goal is to establish type-wide defaults
+while a body creates objects. <code>withTemplates</code> is not generated for <code>LINK</code> collections because Templates cannot be link
+targets; <code>OPTIONAL_LINK</code> collections may own the freshly rehydrated children.</p>
+<p>For map relationships, normal key derivation and duplicate handling remain in effect. A keyed Template remains unkeyed by
+definition, so a map of keyed elements still needs a key source available during creation; an existing <code>keyMapping</code> on
+the relationship can derive it from another copied Template value. If two expanded children derive the same map key, the
+later child replaces the earlier value just as with the existing collection-factory operations.</p>
+<h2 id="templatewithall">Template.WithAll()</h2>
+<p><code>Template.WithAll</code> is a convenient way of applying multiple templates at one. It takes one of the following arguments:</p>
+<ul>
+<li>a List of template objects, which are applied to their respective classes (templates for abstract classes are applied
+to the real class)</li>
+<li>a Map of classes to a Map. Uses the convenience syntax to create anonymous templates on the fly</li>
+</ul>
+<p>Instead of writing something like this:</p>
+<pre><code class="language-groovy">Environment.Template.With(defaultEnvironment) {
+    Server.Template.With(defaultServer) {
+        Host.Template.With(defaultHost) {
+            Config.Create.With {
+                // ...                    
+            }
+        }
+    }
+}
+</code></pre>
+<p>One can also write:</p>
+<p>(See: <code>TemplatesDocumentaryTest#'applies templates for multiple configuration types in one scope'</code>.)</p>
+<pre><code class="language-groovy">Config.Template.WithAll([defaultEnvironment, defaultServer, defaultHost]) {
+    Config.Create.With {
+        // ...                    
+    }
+}
+</code></pre>
+<p>or, using anonymous templates:</p>
+<pre><code class="language-groovy">Config.Template.WithAll((Environment) : [status: 'valid'], (Server) : [os: 'linux', arch: 'x64'], (Host) : [user: 'deploy']) {
+    Config.Create.With {
+        // ...                    
+    }
+}
+</code></pre>
+<p>Note that Groovy requires the key object to be in parentheses if it is not a String.</p>
+<h2 id="templates-for-abstract-classes">Templates for Abstract Classes</h2>
+<p>For abstract classes, the compiler generates an internal concrete Template Model and a separate concrete
+Template-only Builder. Abstract completed-Model methods retain placeholder implementations; validation does not run
+during Template definition. Ordinary construction of an abstract Model remains unavailable.</p>
+<p>Parent field recipes work through map/closure creation, scoped application, and <code>copyFrom</code>. Abstract
+<a rel="nofollow" href="../Inheritance/#abstract-builder-operations"><code>@Builder.Method</code> operations</a> remain Builder-only and never appear on the
+Template Model. Invoking one during Template definition throws a precise error asking you to define the Template on a
+concrete subtype which implements the operation. Concrete-subtype Templates execute their actual Builder behavior.</p>
+<p>(See: <code>AbstractBuilderTemplateTest#'abstract parent field recipes support creation scope and copyFrom with abstract operation #operation'</code>
+and <code>AbstractBuilderTemplateTest#'unrealized Template operations throw precisely for direct and inherited concrete calls: #indirect'</code>.)</p>
+<p>(See: <code>TemplatesDocumentaryTest#'creates a template implementation for an abstract configuration type'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+abstract class RetryPolicy {
+    String name
+    abstract int retries()
+}
+
+def template = RetryPolicy.Create.Template.With {
+    name 'resilient'
+}
+</code></pre>
+<h2 id="order-of-precedence">Order of precedence</h2>
+<p>The order of precedence is</p>
+<ul>
+<li>initialization / constructor values</li>
+<li>values in a custom create method</li>
+<li>templates of parent classes</li>
+<li>own templates</li>
+<li>explicit setter methods</li>
+</ul>
+<p>The following example shows a child template overriding parent defaults, with an explicit configuration value taking
+highest precedence.</p>
+<p>(See: <code>TemplatesDocumentaryTest#'lets child templates and explicit configuration override parent defaults'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Parent {
+    String name = &quot;default&quot;
+}
+
+@DSL
+class Child extends Parent {
+}
+
+def parentTemplate = Parent.Create.Template.With {
+    name &quot;parent-template&quot; // overrides default value
+}
+
+def childTemplate = Child.Create.Template.With {
+    name &quot;child-template&quot; // overrides parent template value
+}
+
+Child.Template.WithAll([parentTemplate, childTemplate]) {
+  def c = Child.Create.One()
+
+  assert c.name == &quot;child-template&quot;
+ 
+  def d = Child.Create.With {
+     name &quot;explicit&quot; // overrides template value
+  }
+ 
+  assert d.name == &quot;explicit&quot;
+
+}
+
+</code></pre>
+<p>Collection values from Templates and DSL adder methods are added in declaration order. To replace inherited collection
+values, assign the collection directly; <code>Copy Strategies</code> can also alter the behavior.</p>
+<p>(See: <code>TemplatesDocumentaryTest#'lets explicit collection assignment replace inherited template values'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Parent {
+    List&lt;String&gt; names = [&quot;default&quot;]
+}
+
+@DSL
+class Child extends Parent {
+}
+
+def parentTemplate = Parent.Create.Template.With {
+    names &quot;parent&quot; // replaces default value
+}
+
+def childTemplate = Child.Create.Template.With {
+    names = [&quot;child&quot;] // replaces parent template values
+}
+
+Child.Template.WithAll([parentTemplate, childTemplate]) {
+  def c = Child.Create.With {
+    names = [&quot;explicit&quot;] // replaces template values
+  }
+
+  assert c.names == [&quot;explicit&quot;]
+}
+</code></pre>
+<h2 id="applylater-and-templates"><code>applyLater</code> and Templates</h2>
+<p>As stated in <a rel="nofollow" href="../Model-Phases/">Model Phases</a>, Templates can contain <code>applyLater</code> closures. These actions are not executed on the Template;
+they are detached as recipe state and cloned into every fresh recipient Builder. The closure must address that fresh
+Builder through its delegate. Capturing any Builder, even through a serializable holder, is rejected. Other captured values
+must be serializable so the Template recipe remains serializable with its companion state.</p>
+<p>(See: <code>TemplatesDocumentaryTest#'replays a template applyLater recipe for each completed configuration'</code>.)</p>
+<pre><code class="language-groovy">def template = ServiceConfiguration.Create.Template.With {
+    applyLater {
+        identifier name.toUpperCase()
+    }
+}
+
+def catalog, billing
+ServiceConfiguration.Template.With(template) {
+    catalog = ServiceConfiguration.Create.With { name 'catalog' }
+    billing = ServiceConfiguration.Create.With { name 'billing' }
+}
+
+assert catalog.identifier == 'CATALOG'
+assert billing.identifier == 'BILLING'
+</code></pre>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
