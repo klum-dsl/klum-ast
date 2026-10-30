@@ -157,7 +157,7 @@ class CompiledConverterInputTest extends Specification {
         String annotation = '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')'
         File direct = domainJar('Groovy', route, annotation, true)
         File collected = domainJar('Groovy', route, '@Digits @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')', true,
-                '@Pattern(regexp="[0-9]{1,8}") @groovy.transform.AnnotationCollector @interface Digits {}')
+                '@Pattern(regexp="[0-9]{1,8}") @AnnotationCollector @interface Digits {}')
 
         when:
         def first = readFacts(direct, route)
@@ -343,6 +343,8 @@ class CompiledConverterInputTest extends Specification {
         'domain-missing-group'    | 'converterinput.MissingGroup'
         'domain-invalid-flag'     | 'Invalid Pattern flag'
         'domain-policy'           | 'No enum constant'
+        'domain-pattern-duplicate' | 'Duplicate or non-runtime Pattern declaration'
+        'domain-container-invisible' | 'Duplicate or non-runtime Pattern container'
         'domain-corrupt'          | 'compiled Builder input contract'
     }
 
@@ -396,6 +398,133 @@ class CompiledConverterInputTest extends Specification {
         'factory undiscovered' | ''   | 'private PortNumber() {}'                          | 'public static PortNumber decode(String v) { return null; }'                                                                                | 'discovery-defaults'  | ''
         'varargs'           | ''      | 'private PortNumber() {}'                          | 'public static PortNumber fromString(String... v) { return null; }'                                                                         | 'fromString'  | ''
         'closure collision' | ''      | 'public PortNumber(String v) {}'                   | ''                                                                                                                                         | 'constructor' | '@Field(converters=[{ String v -> new PortNumber(v) }])'
+    }
+
+    def 'Pattern container API denial fails before #policy suppression'() {
+        given:
+        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @Pattern(regexp="[A-Z]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')', true)
+        File schema = schemaJar(domain, 'fromString')
+        def loader = new URLClassLoader([schema, domain]*.toURI()*.toURL() as URL[], getClass().classLoader) {
+            @Override protected Class<?> loadClass(String name, boolean resolve) {
+                if (name == 'jakarta.validation.constraints.Pattern$List') throw new ClassNotFoundException('container API denied')
+                super.loadClass(name, resolve)
+            }
+        }
+
+        when:
+        new InputContractResolver().read(Class.forName(MODEL, false, loader))
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('container API denied')
+        System.getProperty(TRAP) == null
+
+        cleanup:
+        loader?.close()
+
+        where:
+        policy << ['PROJECT', 'TEXT_ONLY', 'OMIT']
+    }
+
+    def 'inherited and external domain factory ownership is not an eligible exact route: #external'() {
+        given:
+        File domain = groovyJar('''
+            package converterinput
+            class Parent {
+                static PortNumber fromString(String raw) { throw new AssertionError('inherited converter') }
+            }
+            class PortNumber extends Parent { }
+            class ExternalFactory {
+                static PortNumber fromString(String raw) { throw new AssertionError('external converter') }
+            }
+        ''', [])
+        File schema = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                ${external ? '@Converters([ExternalFactory])' : ''}
+                PortNumber port
+            }
+        """, [domain])
+        def loader = binaryLoader([schema, domain])
+
+        when:
+        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+
+        then:
+        !contract.entries().containsKey('port')
+        contract.rejections().any { it.source().endsWith('#port') }
+
+        cleanup:
+        loader?.close()
+
+        where:
+        external << [false, true]
+    }
+
+    def 'default-generated binary overloads are rejected'() {
+        given:
+        File domain = groovyJar('''
+            package converterinput
+            class PortNumber {
+                static PortNumber fromString(String raw, int count = 1) { throw new AssertionError('converter') }
+            }
+        ''', [])
+        File schema = schemaJar(domain, 'fromString')
+        def loader = binaryLoader([schema, domain])
+
+        when:
+        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+
+        then:
+        !contract.entries().containsKey('port-number')
+        contract.rejections().any { it.source().endsWith('#port') }
+
+        cleanup:
+        loader?.close()
+    }
+
+    def 'synthetic or bridge binary routes are rejected: #mutation'() {
+        given:
+        File original = domainJar('Java', 'fromString', '', true)
+        File domain = rewrite(original, 'converterinput/PortNumber.class', mutation)
+        File schema = schemaJar(domain, 'fromString')
+        def loader = binaryLoader([schema, domain])
+
+        when:
+        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+
+        then:
+        !contract.entries().containsKey('port-number')
+        contract.rejections().any { it.source().endsWith('#port') }
+        System.getProperty(TRAP) == null
+
+        cleanup:
+        loader?.close()
+
+        where:
+        mutation << ['domain-synthetic', 'domain-bridge']
+    }
+
+    def 'same-compilation domain source remains outside the compiled route'() {
+        given:
+        File schema = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            class PortNumber { PortNumber(String raw) {} }
+            @DSL class Service { @Converters(includeConstructors=true) PortNumber port }
+        ''', [])
+        def loader = binaryLoader([schema])
+
+        when:
+        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+
+        then:
+        !contract.entries().containsKey('port')
+        contract.rejections().any { it.source().endsWith('#port') }
+
+        cleanup:
+        loader?.close()
     }
 
     def 'authored Builder input competing with the field rejects converter admission'() {
@@ -494,6 +623,8 @@ class CompiledConverterInputTest extends Specification {
         def writer = new ClassWriter(0)
         new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                if (name == 'fromString' && mutation == 'domain-synthetic') access |= Opcodes.ACC_SYNTHETIC
+                if (name == 'fromString' && mutation == 'domain-bridge') access |= Opcodes.ACC_BRIDGE
                 def method = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, method) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
@@ -521,6 +652,18 @@ class CompiledConverterInputTest extends Specification {
                     }
                     @Override AnnotationVisitor visitParameterAnnotation(int index, String annotation, boolean visible) {
                         if (annotation == 'Ljakarta/validation/constraints/Pattern;' && mutation == 'domain-pattern-strip') return null
+                        if (annotation == 'Ljakarta/validation/constraints/Pattern;') {
+                            if (mutation == 'domain-pattern-duplicate') {
+                                def duplicate = super.visitParameterAnnotation(index, annotation, visible)
+                                duplicate.visit('regexp', '[0-9]{1,8}')
+                                duplicate.visitEnd()
+                            }
+                            if (mutation == 'domain-container-invisible') {
+                                def container = super.visitParameterAnnotation(index, 'Ljakarta/validation/constraints/Pattern$List;', false)
+                                container.visitArray('value').visitEnd()
+                                container.visitEnd()
+                            }
+                        }
                         def delegate = super.visitParameterAnnotation(index, annotation, visible)
                         new AnnotationVisitor(Opcodes.ASM9, delegate) {
                             @Override void visit(String key, Object value) {
@@ -579,6 +722,7 @@ class CompiledConverterInputTest extends Specification {
             import jakarta.validation.constraints.Pattern;
             import jakarta.validation.Payload;
             import com.blackbuild.klum.ast.ConstraintProjection;
+            ${language == 'Groovy' ? 'import groovy.transform.AnnotationCollector;' : ''}
             $extra
             public class PortNumber implements Payload {
                 public final String raw;

@@ -27,13 +27,15 @@ the existing finite Pattern recognizer and field projection behavior are unchang
 - `CompiledConverterInputTest`: separately compiled Java/Groovy constructor/fromString/parse JARs, source/class removal,
   inherited Schema JARs, descriptor/index/artifact identity, collector equivalence, policies, excluded malformed facts,
   absence/stripping, unsupported groups/payload/flags/repeats, API/member/linkage/corrupt/shadow failures, ambiguity,
-  overloaded/generic/varargs/disabled routes, authored collisions, annotation discovery, named-module access without opens,
+  overloaded/generic/varargs/disabled/default-generated/bridge/synthetic routes, inherited/external factory ownership,
+  same-compilation exclusion, authored collisions, annotation discovery, named-module access without opens,
   dynamic-Groovy negative control, explicit initialization controls and real structured-input/no-coercion behavior.
 - `CompiledConverterJsonSchemaTest`: actual packaged plugin with G3/G4/G5 producer artifacts; effective member placement,
   unchanged finite assertion/guard, parameter/field policy separation, field-domain constraint separation, inheritance,
   names/exclusion, docs/examples/deprecation, absent/unsupported Pattern descriptions and zero initialization/default/
   lifecycle/validator execution. Changed domain plus Schema recompilation is checked against unchanged output/manifest
-  on failure; successful unchanged inputs retain Gradle up-to-date behavior.
+  on failure, using a corrupt domain reachable only through an omitted child; successful unchanged inputs retain Gradle
+  up-to-date behavior.
 - Independent `validate_converter_schema.py`: 28 JDK full-match checks plus 270 ECMA plain/Unicode and Draft 2020-12
   actual-output checks across G3/G4/G5 pass. Corpus includes line terminators, Unicode digits, supplementary/lone surrogates,
   empty/long inputs, literal escaping and structural null/non-String rejection. This reuses the existing finite language;
@@ -43,3 +45,12 @@ the existing finite Pattern recognizer and field projection behavior are unchang
 
 No local SonarCloud upload or manual workflow dispatch is used. Ordinary PR CI remains authoritative. Artifact locations
 are diagnostic associations, not integrity or stale-JAR proof. Matching producer/Schema recompilation is required.
+
+## Independent review corrections
+
+The initial Standards review of `1d80a0c10` found one fixture-import violation; the source fragment now imports
+AnnotationCollector. Specification review found three gaps: malformed duplicate/invisible closed annotations, missing
+Pattern.List API preflight, and incomplete negative/omitted-child coverage. Each has an explicit regression. A synthetic
+binary method control additionally exposed Groovy's separate AST synthetic flag; eligibility now checks JVM access bits.
+The first root-check attempt crossed the local commit/version boundary and was deliberately stopped; it supplies no
+full-check success claim. The final full check uses the stable post-review code revision.

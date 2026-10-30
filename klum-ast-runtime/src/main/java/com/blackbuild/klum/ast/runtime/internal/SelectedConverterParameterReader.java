@@ -73,8 +73,9 @@ final class SelectedConverterParameterReader {
         Class<?> api = Class.forName(PATTERN_NAME, false, domain.getClassLoader());
         if (!api.isAnnotation()) throw invalid("Pattern API is not an annotation");
         Map<String, Object> defaults = defaults(api);
-        Class.forName(PATTERN_NAME + "$Flag", false, domain.getClassLoader());
-        Class.forName("jakarta.validation.Payload", false, domain.getClassLoader());
+        if (!Class.forName(PATTERN_NAME + "$Flag", false, domain.getClassLoader()).isEnum()
+                || !Class.forName("jakarta.validation.Payload", false, domain.getClassLoader()).isInterface())
+            throw invalid("Unsupported Pattern member API contract");
         ParameterFacts facts = new ParameterFacts();
         readBytes(domain, new ClassVisitor(Opcodes.ASM9) {
             private int matches;
@@ -96,6 +97,7 @@ final class SelectedConverterParameterReader {
                 if (matches != 1) throw invalid("Missing exact selected domain declaration");
             }
         });
+        if (facts.containerSeen) verifyContainerApi(domain);
         ConverterConstraints result = normalize(domain, selected, defaults, facts);
         cache.put(executable, result);
         return result;
@@ -127,6 +129,14 @@ final class SelectedConverterParameterReader {
                 || executable.getGenericParameterTypes()[0] != String.class)
             throw invalid("Selected converter descriptor/access/type mismatch");
         return executable;
+    }
+
+    private static void verifyContainerApi(Class<?> domain) throws ReflectiveOperationException, IOException {
+        Class<?> container = Class.forName(PATTERN_NAME + "$List", false, domain.getClassLoader());
+        if (!container.isAnnotation() || container.getDeclaredMethods().length != 1
+                || !Type.getMethodDescriptor(container.getDeclaredMethod("value")).equals("()[Ljakarta/validation/constraints/Pattern;"))
+            throw invalid("Unsupported Pattern container API contract");
+        verifyResourceOrigin(container, container.getName().replace('.', '/') + ".class");
     }
 
     private static Map<String, Object> defaults(Class<?> api) throws IOException {
@@ -240,6 +250,8 @@ final class SelectedConverterParameterReader {
         private final List<String> opaque = new ArrayList<>();
         private Policy policy = Policy.PROJECT;
         private boolean policySeen;
+        private boolean patternSeen;
+        private boolean containerSeen;
         private boolean groupRedefined;
         private boolean unsupportedPattern;
 
@@ -252,10 +264,13 @@ final class SelectedConverterParameterReader {
                     if (parameter != 0) throw invalid("Wrong selected parameter annotation index");
                     if (descriptor.equals(POLICY)) return policyVisitor(visible);
                     if (descriptor.equals(PATTERN)) {
-                        if (!visible) throw invalid("Pattern declaration requires runtime retention");
+                        if (!visible || patternSeen) throw invalid("Duplicate or non-runtime Pattern declaration");
+                        patternSeen = true;
                         return patternVisitor();
                     }
                     if (descriptor.equals(PATTERNS)) {
+                        if (!visible || containerSeen) throw invalid("Duplicate or non-runtime Pattern container");
+                        containerSeen = true;
                         unsupportedPattern = true;
                         return new InertMembers(values -> {
                             if (!values.keySet().equals(Set.of("value"))) throw invalid("Malformed Pattern container");

@@ -104,7 +104,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         runner(producer, ':schema:jar').build()
         runner(consumer, 'generateKlumJsonSchema').build()
         def previous = output().parentFile.listFiles().collectEntries { [(it.name): it.bytes.toList()] }
-        File domain = new File(producer, 'domain/src/main/java/converterjson/Omitted.java')
+        File domain = new File(producer, 'domain/src/main/java/converterjson/ChildOnly.java')
         domain.text = domain.text.replace('[0-9]{1,8}', '[')
 
         when:
@@ -114,7 +114,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         then:
         failed.output.contains('Unclosed character class')
         failed.output.contains('parameter[0]')
-        failed.output.contains('Omitted')
+        failed.output.contains('ChildOnly')
         output().parentFile.listFiles().collectEntries { [(it.name): it.bytes.toList()] } == previous
         !new File(directory, 'executed').exists()
     }
@@ -145,6 +145,7 @@ project(':schema') { dependencies { implementation project(':domain'); implement
         domain('PortNumber', '@Pattern(regexp="[0-9]{1,8}")')
         domain('TextOnly', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY)')
         domain('Omitted', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)')
+        domain('ChildOnly', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)')
         domain('Absent', '')
         domain('Memory', '@Pattern(regexp="[0-9]+(?:\\\\.[0-9]+)?(?:[kMGTPE]|[KMGTPE]i)?")')
         domain('Flagged', '@Pattern(regexp="[0-9]{1,8}", flags=Pattern.Flag.CASE_INSENSITIVE)')
@@ -191,7 +192,7 @@ import jakarta.validation.constraints.Pattern
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
     @Validate void validate() { throw new AssertionError('validator executed') }
 }
-@DSL class Child { @Converters(includeConstructors=true) Omitted childValue }
+@DSL class Child { @Converters(includeConstructors=true) ChildOnly childValue }
 class InitializationControl {
     static void main(String[] args) { Class.forName('converterjson.PortNumber', true, InitializationControl.classLoader) }
 }

@@ -41,6 +41,9 @@ import java.util.List;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static groovyjarjarasm.asm.Opcodes.ACC_BRIDGE;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_VARARGS;
 
 /** Keeps compiler discovery and the exact generated overload together before parameter rebuilding loses provenance. */
 final class StructuredInputConverter {
@@ -82,7 +85,7 @@ final class StructuredInputConverter {
         if (!owner.isResolved() || !Modifier.isPublic(owner.getModifiers()) || owner.isInterface() || owner.isEnum()
                 || owner.getGenericsTypes() != null || domain.isGenericsPlaceHolder()
                 || !source.getDeclaringClass().redirect().equals(owner)
-                || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (0x40 | 0x80)) != 0
+                || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC | ACC_VARARGS)) != 0
                 || source.getGenericsTypes() != null || source.hasDefaultValue()) return false;
         if (source instanceof ConstructorNode)
             return !Modifier.isAbstract(owner.getModifiers()) && owner.getDeclaredConstructors().size() == 1;
