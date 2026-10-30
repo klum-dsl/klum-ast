@@ -255,7 +255,8 @@ class ConverterBuilder {
                 docBuilder.see(AstDocumentation.referenceTo(sourceMethod));
             }
         });
-        method.addTo(builderClass);
+        MethodNode generated = method.addTo(builderClass);
+        StructuredInputConverter.recordRoute(fieldNode, sourceMethod, generated);
     }
 
     private ProxyMethodBuilder createRuntimeProxyMethod() {

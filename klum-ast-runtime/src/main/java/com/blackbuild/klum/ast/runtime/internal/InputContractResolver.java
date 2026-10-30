@@ -63,6 +63,8 @@ final class InputContractResolver {
     private static final Set<String> COLLECTIONS = Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet", "java.util.EnumSet");
     private static final Set<String> MAPS = Set.of("java.util.Map", "java.util.SortedMap", "java.util.NavigableMap");
     private final BuilderContractReader reader = new BuilderContractReader();
+    private final SelectedConverterParameterReader converterReader = new SelectedConverterParameterReader();
+    private final Map<Class<?>, Map<String, ConverterConstraints>> converterConstraints = new LinkedHashMap<>();
 
     CompiledBuilderSchema read(Class<?> model) {
         try {
@@ -132,7 +134,7 @@ final class InputContractResolver {
     }
 
     private record Facts(List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations, Key key) { }
-    private record BuilderContext(Class<?> builder, Class<?> model, Metadata metadata) { }
+    private record BuilderContext(Class<?> builder, Class<?> model, Metadata metadata, boolean kebab) { }
 
     private Facts collect(Class<?> builder, Map<Class<?>, Facts> known, boolean nativeCandidates) throws IOException, ClassNotFoundException {
         Facts existing = known.get(builder);
@@ -149,7 +151,7 @@ final class InputContractResolver {
             rejections.add(new Rejection(model.getName() + "#" + exclusion.member(), exclusion.reason()));
         Map<String, Method> accessors = new LinkedHashMap<>();
         Map<String, List<Method>> selections = new LinkedHashMap<>();
-        BuilderContext context = new BuilderContext(builder, model, metadata);
+        BuilderContext context = new BuilderContext(builder, model, metadata, nativeCandidates);
         collectDeclarations(context, accessors, selections, entries, rejections, declarations);
         Key key = declaredKey(context);
         for (Map.Entry<String, Method> field : accessors.entrySet()) {
@@ -164,6 +166,7 @@ final class InputContractResolver {
             if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
             Facts inherited = collect(parent, known, nativeCandidates);
             key = inheritKey(key, inherited.key());
+            rejectOverriddenConverters(context, inherited.entries(), rejections);
             entries.addAll(inherited.entries());
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
@@ -173,6 +176,25 @@ final class InputContractResolver {
         Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
         return facts;
+    }
+
+    private void rejectOverriddenConverters(BuilderContext context, List<Entry> inherited, List<Rejection> rejections)
+            throws IOException, ClassNotFoundException {
+        Method[] declared = declaredMethods(context);
+        for (Entry entry : inherited) {
+            Metadata origin = reader.metadata(entry.contract());
+            for (Method selected : entry.methods()) {
+                if (origin.methods().get(signature(selected)).converter() == null) continue;
+                boolean overridden = Arrays.stream(declared).anyMatch(method -> !Modifier.isStatic(method.getModifiers())
+                        && method.getName().equals(selected.getName())
+                        && Arrays.equals(method.getParameterTypes(), selected.getParameterTypes()));
+                if (overridden) {
+                    rejections.add(new Rejection(entry.source(), "inherited converter overload " + selected.getName()
+                            + "(String) is overridden by " + namingOrigin(context.builder())
+                            + "; expose one supported non-overridden String route"));
+                }
+            }
+        }
     }
 
     /** Declaring public contracts are the sole authority, including explicit absence and source/artifact identity. */
@@ -265,9 +287,8 @@ final class InputContractResolver {
     private static void collectDeclarations(BuilderContext context,
                                             Map<String, Method> accessors, Map<String, List<Method>> selections,
                                             List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) {
-        Class<?> builder = context.builder();
         Metadata metadata = context.metadata();
-        for (Method method : Arrays.stream(builder.getDeclaredMethods()).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
+        for (Method method : Arrays.stream(declaredMethods(context)).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
             Literals literal = metadata.methods().get(signature(method));
             if (literal == null) throw invalid("Missing exact public declaration " + method);
             declarations.add(declaration(method, literal));
@@ -277,6 +298,35 @@ final class InputContractResolver {
             if (literal.selection() != null) selections.computeIfAbsent(literal.selection(), ignored -> new ArrayList<>()).add(method);
             if (literal.operation() && !literal.query()) operation(method, literal, context.model(), entries, rejections);
         }
+    }
+
+    private static Method[] declaredMethods(BuilderContext context) {
+        try {
+            return context.builder().getDeclaredMethods();
+        } catch (LinkageError failure) {
+            List<String> candidates = context.metadata().methods().values().stream()
+                    .filter(literal -> literal.converter() != null)
+                    .map(literal -> converterCandidate(context, literal)).toList();
+            throw new KlumModelException("Cannot resolve public signatures on " + namingOrigin(context.builder())
+                    + "; compiler-recorded converter candidates: " + candidates
+                    + "; supply the complete API classpath and recompile matched domain/Schema artifacts: "
+                    + failure.getMessage(), failure);
+        }
+    }
+
+    private static String converterCandidate(BuilderContext context, Literals selected) {
+        Literals field = context.metadata().methods().values().stream()
+                .filter(literal -> selected.selection().equals(literal.field())).findFirst().orElse(null);
+        ConverterSelection converter = selected.converter();
+        String external = field == null ? "<unavailable>" : externalFieldName(context, selected.selection(), field);
+        return "field '" + selected.selection() + "', external input '" + external + "', selected "
+                + converter.owner() + "#" + converter.name() + converter.descriptor()
+                + " parameter[" + converter.parameter() + "]";
+    }
+
+    private static String externalFieldName(BuilderContext context, String field, Literals literal) {
+        if (!literal.names().rename().isEmpty()) return literal.names().rename();
+        return context.kebab() ? InputNamingProfiles.kebab(field, context.model().getName() + "#" + field) : field;
     }
 
     private static boolean fieldAccessor(Method method, String field) {
@@ -291,7 +341,13 @@ final class InputContractResolver {
         Literals literal = metadata.methods().get(signature(accessor));
         String source = context.model().getName() + "#" + field;
         Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
-        String reason = fieldReason(fieldType, literal);
+        ConverterConstraints converter = converter(context, field, fieldType, literal, methods);
+        String reason;
+        if (converter == null) {
+            reason = fieldReason(fieldType, literal);
+        } else {
+            reason = literal.names().ignored() ? ignoreReason(literal.names()) : null;
+        }
         if (reason != null) {
             rejections.add(new Rejection(source, reason));
             return;
@@ -301,13 +357,43 @@ final class InputContractResolver {
             throw invalid("Missing direct relationship key-authority metadata on " + source);
         if (literal.schemaKey() != null && (role != Role.OWNED_OBJECT || literal.fixed() && !literal.schemaKey()))
             throw invalid("Schema child-key authority requires OWNED_OBJECT and agrees with fixed key: " + source);
-        Payload payload = fieldPayload(fieldType, role, source);
+        Payload payload = converter == null ? fieldPayload(fieldType, role, source)
+                : new Payload(Kind.SCALAR, String.class, null, null, null);
         String key = childKey(payload, role, literal, source);
         validateSelection(role, payload, methods, source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
+    }
+
+    private ConverterConstraints converter(BuilderContext context, String field, Type fieldType, Literals literal,
+                                             List<Method> methods) {
+        List<Method> converters = methods.stream()
+                .filter(method -> context.metadata().methods().get(signature(method)).converter() != null).toList();
+        if (converters.size() != literal.converterCount())
+            throw invalid("Converter selection completeness mismatch for " + namingOrigin(context.builder()) + "#" + field);
+        if (converters.isEmpty()) return null;
+        Method method = converters.get(0);
+        ConverterSelection selected = context.metadata().methods().get(signature(method)).converter();
+        String location = namingOrigin(context.builder()) + "#" + field + ", external input '"
+                + externalFieldName(context, field, literal) + "', selected "
+                + selected.owner() + "#" + selected.name() + selected.descriptor() + " parameter[" + selected.parameter() + "]";
+        try {
+            if (!(fieldType instanceof Class<?> domain) || methods.size() != 1
+                    || !method.getName().equals(field) || method.getReturnType() != domain
+                    || !Arrays.equals(method.getParameterTypes(), new Class<?>[]{String.class})
+                    || method.isSynthetic() || method.isBridge() || !literal.exclusion().isEmpty()
+                    || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
+                throw invalid("Converter selection disagrees with field/overload");
+            validateSelection(Role.PROPERTY, new Payload(Kind.SCALAR, String.class, null, null, null), methods, location);
+            ConverterConstraints constraints = converterReader.read(domain, selected);
+            converterConstraints.computeIfAbsent(context.builder(), ignored -> new LinkedHashMap<>()).put(field, constraints);
+            return constraints;
+        } catch (ReflectiveOperationException | IOException | LinkageError | RuntimeException failure) {
+            throw invalid("Cannot resolve converter for " + location + ": " + failure.getMessage()
+                    + "; expose one supported route and recompile matched domain/Schema artifacts with the complete API classpath");
+        }
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -527,7 +613,7 @@ final class InputContractResolver {
             if (fields.putIfAbsent(literal.field(), constraints) != null)
                 throw invalid("duplicate constraint source field #" + literal.field());
         }
-        profiles.put(builder, new ConstraintProfile(metadata.groupRedefined(), fields));
+        profiles.put(builder, new ConstraintProfile(metadata.groupRedefined(), fields, converterConstraints.getOrDefault(builder, Map.of())));
         for (Class<?> parent : builder.getInterfaces()) {
             if (parent.getName().endsWith(BUILDER_SUFFIX)) collectConstraintProfiles(parent, profiles);
         }

@@ -1,5 +1,12 @@
 # Unreleased
 
+- Admit one exact compiled String converter for ordinary non-DSL structured-input fields and project its singleton Jakarta
+  Pattern through the existing bounded ASCII mapping. Add parameter `@ConstraintProjection`, independently of field
+  policy, with paired-artifact validation before execution/output replacement. No numeric coercion or runtime parameter
+  enforcement is added. Reject inherited converter inputs overridden by descendant Builder methods. Recompile matched
+  domain/Schema artifacts; the memory-regex extension remains deferred.
+  See [converters](docs/user/Converters.md#structured-string-input) ([#981](https://github.com/klum-dsl/klum-ast/issues/981), C1).
+
 - Project first-level AND Bean composing constraints through the existing numeric and bounded Pattern mappings, keeping
   independent assertions and contradictions. Add literal annotation-type `@InputConstraintDescription` prose under
   `PROJECT`/`TEXT_ONLY`, suppressed under `OMIT`. Unsupported composition remains descriptive; runtime validation and

@@ -9,6 +9,19 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Compiled converter String input
+
+Ordinary non-DSL fields with one eligible separately compiled String converter can now participate in structured input
+and JSON Schema. The selected parameter owns its Pattern facts and `@ConstraintProjection` policy; field policy and
+field domain-value constraints retain separate meaning. The finite Pattern recognizer is unchanged, and no runtime
+parameter enforcement is added. See [converter authoring](Converters.md#structured-string-input) and
+[projection rules](Json-Schema.md#compiled-converter-parameters).
+
+Recompile participating Schema hierarchies with matched compiler/runtime/plugin and domain artifacts, including after
+converter contract changes. Required explicit converter association/completeness facts retain development protocol marker
+1; old incomplete artifacts receive recompile guidance. Supply the domain, Jakarta API and referenced member types on
+the inspection classpath. There is no compatibility decoder or changed-JAR-without-recompilation guarantee.
+
 ### Structured-input metadata protocol
 
 Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.

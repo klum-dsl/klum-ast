@@ -70,6 +70,8 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Field {
+        /** Explicit completeness of the selected converter association (zero or one). */
+        int converterCount() default -1;
         String value();
         /** Compiler-folded origin; explicitly emitted by current producers. */
         String nameOrigin() default "";
@@ -131,6 +133,16 @@ public final class GeneratedInput {
     public @interface Selection {
         String field();
         String role();
+    }
+
+    /** Exact compiler-selected domain executable; never an invitation to discover converters. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface Converter {
+        String owner();
+        String name();
+        String descriptor();
+        int parameter();
     }
 
     /** Only sources without a surviving public declaration need a declaring-type target. */

@@ -434,6 +434,48 @@ annotation closures execute, including while diagnosing unsupported declarations
 
 An ordinary unannotated property named `key` is a normal generated property. Actual `@Key` members follow their construction position, as described below.
 
+## Compiled converter parameters
+
+For the [bounded compiled String converter route](Converters.md#structured-string-input), the field's effective external
+member has `type: string`. A qualified Pattern appears at that same property, without a parameter object or domain
+`$defs` entry. For `@Pattern(regexp='[0-9]{1,8}')`, the existing finite recognizer emits:
+
+```json
+{
+  "type": "string",
+  "allOf": [
+    { "pattern": "^[0-9]{1,8}$" },
+    { "not": { "type": "string", "pattern": "[^ -~]" } }
+  ]
+}
+```
+
+Only one effective declaration-parameter Jakarta Pattern with empty flags, groups and payload is eligible. An equivalent
+Groovy annotation-collector result has the same compiled meaning. The current [bounded ASCII subset](#conservative-pattern-projection)
+is unchanged: `+`, groups, alternation and escaped-dot memory grammars are not newly admitted. Complete unsupported
+Pattern facts remain descriptions; custom/composed/repeated/type-use parameter constraints receive no hard assertions.
+No custom annotation hierarchy is inspected.
+
+`@ConstraintProjection` also targets the selected parameter. PROJECT (default) contributes qualified assertions and
+unsupported descriptions; TEXT_ONLY retains descriptions; OMIT suppresses parameter constraint output and attribution.
+All policies validate required facts first. An invalid regexp or missing API/member type is an error even under OMIT.
+A genuinely absent and a producer-stripped Pattern are indistinguishable compiled contracts and emit no Pattern assertion;
+rebuild the producer and Schema if a constraint was expected.
+
+Parameter policy is independent of field policy. The field keeps its external naming/exclusion, ordinary documentation,
+explicit examples and deprecation. Its own constraints still describe the domain value and never become raw String
+assertions. `x-klum-converter-constraint-source` identifies the exact domain executable descriptor and parameter index;
+field constraint attribution remains separate. Converter-method Javadoc is not field documentation.
+
+Generation reads paired public Builder/domain artifacts with non-initializing, statically bound inspection of the selected
+signature and closed annotation facts. It executes no domain initializer, constructor, converter, default, lifecycle or
+validator code. Keep all participating artifacts and compiler/runtime/plugin matched, and recompile Schema hierarchies
+after domain contract changes. Missing or corrupt facts fail before output/manifest replacement, including omitted owned
+children and excluded members. No stale-JAR or artifact-integrity guarantee is introduced.
+
+Actual Pattern enforcement at converter invocation remains absent (#971); JSON Schema validation is not run automatically.
+An optional absent property remains allowed; supplied null and non-String values reject structurally.
+
 ## Construction-key definitions
 
 The default root artifact describes self-contained input for the three-argument `KlumStructuredInput.readRoot` overload.

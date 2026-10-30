@@ -1117,7 +1117,7 @@ Related: #959; no closure, milestone change or new release gate.
 
 ## Compiled converter parameter extension — #981
 
-Date: 2026-10-30. Status: **Confirmed authority boundary; implementation plan proposed for review, not implemented**.
+Date: 2026-10-30. Status: **Confirmed authority boundary; C1 approved and implemented; C2 deferred**.
 Authority: [#981](https://github.com/klum-dsl/klum-ast/issues/981) and the completed effective-contract probe at
 `58fbbc4697eb97a8b037080ea90e1ea252f17a11`, on `codex/issue-981-effective-probe`.
 The [two-slice plan](../implementation/issue-981-converter-projection-plan.md) pins its report/tests and acceptance gates.
@@ -1136,7 +1136,7 @@ annotation hierarchy, validator, constructor/converter body, default, lifecycle 
 executed. This is a narrow extension of S1's Builder-only fact boundary, not a fallback for missing Builder metadata.
 Missing types/linkage, malformed facts and ambiguous selection fail closed before suppression or output replacement.
 
-The proposed first route is one unambiguous declared public String constructor (already opted in) or declared public
+The C1 route is one unambiguous declared public String constructor (already opted in) or declared public
 static String-to-exact-domain converter already exposed by the compiler. The ordinary non-DSL field's effective external
 member accepts a String scalar, with no Number-to-String coercion and no nested parameter/domain definition. The field
 retains naming, exclusion, ordinary documentation, examples and deprecation. The selected parameter owns constraint
@@ -1158,5 +1158,5 @@ No new public descriptor API, module, dependency, SPI, task flag or release plac
 
 General converters/factories, overloaded/default/bridge/generic/varargs routes, inherited domain factories, collection/map
 and DSL conversions, custom/composed/repeated parameter constraints, Size, operation-parameter expansion and editor work
-(#987) remain outside these slices. Non-overridden binary Schema inheritance is included. Review acceptance and a separate
-implementation assignment remain necessary; this documentation does not claim feature completion or ScHelm acceptance.
+(#987) remain outside these slices. Non-overridden binary Schema inheritance is included. C1 qualification is recorded in
+[its implementation evidence](../implementation/issue-981-c1-evidence.md); C2 and ScHelm acceptance remain separate.

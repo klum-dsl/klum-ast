@@ -76,15 +76,24 @@ final class CompiledBuilderSchema {
     record ConstraintRule(String annotation, String value, boolean plain, String declaration, String decimalValue,
                           Boolean inclusive, String regexp, Boolean patternFlagsEmpty,
                           String origin, String owner, String description) {
-        boolean eligible() { return plain || origin.equals("COMPOSING_AND"); }
+        boolean eligible() { return plain || origin.equals("COMPOSING_AND") || origin.equals("PARAMETER"); }
     }
+    /** Effective compiled parameter facts; field constraints remain a separate domain-value source. */
+    record ConverterConstraints(String source, String artifact, Policy policy, List<ConstraintRule> rules) {
+        ConverterConstraints { rules = List.copyOf(rules); }
+    }
+
     record FieldConstraints(Policy policy, List<ConstraintRule> rules) {
         FieldConstraints { rules = List.copyOf(rules); }
     }
 
     /** All captured field facts on one declaring Builder, including excluded and output-suppressed declarations. */
-    record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields) {
-        ConstraintProfile { fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields)); }
+    record ConstraintProfile(boolean groupRedefined, Map<String, FieldConstraints> fields,
+                             Map<String, ConverterConstraints> converters) {
+        ConstraintProfile {
+            fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
+            converters = Collections.unmodifiableMap(new LinkedHashMap<>(converters));
+        }
     }
 
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract,

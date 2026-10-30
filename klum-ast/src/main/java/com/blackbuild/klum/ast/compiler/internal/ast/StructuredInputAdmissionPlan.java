@@ -84,6 +84,7 @@ final class StructuredInputAdmissionPlan {
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
     private static final String KEYED_OWNERSHIP_REASON = "requires Map<String, concrete keyed DSL Object> ownership";
     private static final String POPULATION = "POPULATION";
+    private static final String CONVERTER_REASON = "unsupported converter selection; expose one supported public String route and recompile matched domain/Schema artifacts";
     private static final String ABSENT_FIELD_REASON = "field is absent from the final public Builder contract";
     private static final String NUMERIC_REASON_PREFIX = "unsupported numeric type ";
     private static final String CONTAINER_REASON_PREFIX = "unsupported whole-container payload target ";
@@ -203,18 +204,45 @@ final class StructuredInputAdmissionPlan {
         Name name = externalName(field);
         enrichName(name, fact);
         Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
-        if (entry != null && entry.fixedChildKey() != null) fact.setMember("fixedKey", ConstantExpression.TRUE);
-        if (entry != null && entry.role() == Role.OWNED_OBJECT) {
-            AnnotationNode options = annotation(field, Field.class.getName());
-            Expression provider = options == null ? null : options.getMember("key");
-            boolean schemaKey = entry.fixedChildKey() != null || provider != null
-                    && (!(provider instanceof ClassExpression type) || !type.getType().getName().equals(Undefined.class.getName()));
-            fact.setMember("schemaKey", new ConstantExpression(schemaKey));
+        enrichChildKey(field, entry, fact);
+        if (rejection != null && !name.ignored()) {
+            enrichFieldExclusion(field, rejection, fact);
         }
-        if (rejection != null && !name.ignored()) enrichFieldExclusion(field, rejection, fact);
         StructuredInputConstraintMetadata.enrichField(field, fact);
+        enrichConverter(field, entry, name, fact);
         accessor.addAnnotation(fact);
-        if (entry != null) enrichSelection(builder, field, entry);
+        if (entry != null) {
+            enrichSelection(builder, field, entry);
+        }
+    }
+
+    private static void enrichChildKey(FieldNode field, Entry entry, AnnotationNode fact) {
+        if (entry == null) return;
+        if (entry.fixedChildKey() != null) {
+            fact.setMember("fixedKey", ConstantExpression.TRUE);
+        }
+        if (entry.role() != Role.OWNED_OBJECT) return;
+
+        AnnotationNode options = annotation(field, Field.class.getName());
+        Expression provider = options == null ? null : options.getMember("key");
+        boolean schemaKey = entry.fixedChildKey() != null || provider != null
+                && (!(provider instanceof ClassExpression type) || !type.getType().getName().equals(Undefined.class.getName()));
+        fact.setMember("schemaKey", new ConstantExpression(schemaKey));
+    }
+
+    private static void enrichConverter(FieldNode field, Entry entry, Name name, AnnotationNode fact) {
+        MethodNode converter = StructuredInputConverter.selected(field);
+        fact.setMember("converterCount", new ConstantExpression(converter == null ? 0 : 1));
+        if (converter == null) return;
+
+        StructuredInputConverter.enrich(field, converter);
+        if (entry == null && name.ignored()) {
+            // Exclusion cannot hide malformed paired-domain facts from consumers.
+            AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
+            selected.setMember("field", new ConstantExpression(field.getName()));
+            selected.setMember("role", new ConstantExpression(Role.PROPERTY.name()));
+            converter.addAnnotation(selected);
+        }
     }
 
     /**
@@ -253,6 +281,7 @@ final class StructuredInputAdmissionPlan {
         if (reason.contains("@Field.keyMapping")) return "KEY_MAPPING";
         if (reason.startsWith("has no unambiguous compiler-generated")) return POPULATION;
         if (reason.equals(ABSENT_FIELD_REASON)) return "ABSENT_FIELD";
+        if (reason.equals(CONVERTER_REASON)) return "CONVERTER";
         return null;
     }
 
@@ -303,6 +332,7 @@ final class StructuredInputAdmissionPlan {
         if (reason.startsWith(POPULATION_REASON_PREFIX))
             return new String[]{POPULATION, reason.substring(POPULATION_REASON_PREFIX.length(), reason.indexOf(';'))};
         if (reason.equals(ABSENT_FIELD_REASON)) return new String[]{"ABSENT_FIELD", ""};
+        if (reason.equals(CONVERTER_REASON)) return new String[]{"CONVERTER", ""};
         throw new IllegalStateException("Unclassified invisible input exclusion: " + reason);
     }
 
@@ -402,8 +432,16 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         Payload payload = payloadForField(type);
+        MethodNode converter = payload == null ? StructuredInputConverter.selected(field) : null;
+        if (converter != null) {
+            entries.add(new Entry(name.value(), Role.PROPERTY, source,
+                    new PublicOperation(converter.getDeclaringClass().getName(), converter.getName(), List.of(descriptor(converter))),
+                    payloadForValue(ClassHelper.STRING_TYPE), name.origin(), null, null, null));
+            return;
+        }
         if (payload == null) {
-            rejections.add(new Rejection(source, "has no admitted scalar, enum, List, or Map payload"));
+            rejections.add(new Rejection(source, StructuredInputConverter.attempted(field) ? CONVERTER_REASON
+                    : "has no admitted scalar, enum, List, or Map payload"));
             return;
         }
         PublicOperation operation = isCollection(type) || isMap(type)

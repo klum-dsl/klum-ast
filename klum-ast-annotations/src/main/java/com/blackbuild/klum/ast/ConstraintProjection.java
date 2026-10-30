@@ -30,13 +30,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Selects generated JSON Schema output for the field's supported effective runtime constraints.
+ * Selects generated JSON Schema output for a field's constraints or an admitted compiled converter parameter's constraints.
  * Does not change runtime validation, input admission, ordinary documentation, deprecation or structural bounds.
  * An inherited field keeps its declaring policy; a replacement declaration selects its own policy.
+ * A selected converter parameter owns its policy independently of the containing field. Parameter placement
+ * neither enables converter discovery nor enforces constraints at runtime.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.PARAMETER})
 public @interface ConstraintProjection {
     /** Artifact policy; absence and an annotation without a value both select {@link Policy#PROJECT}. */
     Policy value() default Policy.PROJECT;
