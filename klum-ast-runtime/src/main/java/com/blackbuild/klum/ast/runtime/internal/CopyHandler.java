@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.PostApply;
 import com.blackbuild.klum.ast.PostCreate;
 import com.blackbuild.klum.ast.Role;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.copy.Overwrite;
 import com.blackbuild.klum.ast.copy.OverwriteStrategy;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -40,11 +41,14 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import static com.blackbuild.klum.ast.runtime.internal.DslHelper.isDslType;
 import static groovyjarjarasm.asm.Opcodes.*;
@@ -123,15 +127,17 @@ public class CopyHandler {
         if (name.startsWith("$")) return;
         if (name.startsWith("@")) return;
 
-        Optional<Field> optionalField = DslHelper.getField(target.getModelType(), name);
+        Optional<Field> modelField = DslHelper.getField(target.getModelType(), name);
+        Optional<Field> builderField = DslHelper.getField(target.getClass(), name)
+                .filter(field -> modelField.isPresent() || DslHelper.getKlumFieldType(field) == FieldType.BUILDER);
 
-        if (optionalField.isEmpty())
-            handleMissingFieldInTarget(name);
-        else {
-            Field targetField = optionalField.get();
+        if (builderField.isPresent()) {
+            // Keep Model relationship types and overwrite metadata; Builder-only inputs retain their own declaration.
+            Field targetField = modelField.orElseGet(builderField::get);
             if (isNotIgnored(targetField))
                 copyFromField(targetField);
-        }
+        } else if (modelField.isEmpty() && InvokerHelper.getMetaClass(target.getModelType()).getMetaProperty(name) == null)
+            handleMissingFieldInTarget(name);
     }
 
     private void handleMissingFieldInTarget(String name) {
@@ -153,6 +159,25 @@ public class CopyHandler {
         return !isIgnored(field);
     }
 
+    private static Type getCopyType(Type type) {
+        // Generated public Builder projections retain their represented Model as the last type argument.
+        if (type instanceof ParameterizedType projectedType
+                && KlumBuilder.class.isAssignableFrom((Class<?>) projectedType.getRawType()))
+            return DslHelper.getElementType(type);
+        return type;
+    }
+
+    private static Class<?> getCopyFieldType(Field field) {
+        if (DslHelper.getKlumFieldType(field) == FieldType.BUILDER && field.getGenericType() instanceof ParameterizedType)
+            return DslHelper.getClassFromType(getCopyType(field.getGenericType()));
+        return field.getType();
+    }
+
+    private static Type getCopyElementType(Field field) {
+        Type elementType = DslHelper.getElementType(field);
+        return DslHelper.getKlumFieldType(field) == FieldType.BUILDER ? getCopyType(elementType) : elementType;
+    }
+
     private void copyFromField(Field field) {
         Class<?> fieldType = field.getType();
         if (Collection.class.isAssignableFrom(fieldType))
@@ -165,8 +190,9 @@ public class CopyHandler {
 
     private void copyFromSingleField(Field field) {
         String fieldName = field.getName();
+        Class<?> fieldType = getCopyFieldType(field);
         Object currentValue = target.getInstanceAttribute(fieldName);
-        Object templateValue = getTemplateValue(fieldName, field.getType());
+        Object templateValue = getTemplateValue(fieldName, fieldType);
 
         OverwriteStrategy.Single strategy = getSingleStrategy(field);
 
@@ -184,7 +210,7 @@ public class CopyHandler {
                 break;
             case MERGE:
                 if (templateValue != null) {
-                    if (currentValue == null || !isDslType(field.getType())
+                    if (currentValue == null || !isDslType(fieldType)
                             || isCompletedLinkMerge(field, currentValue, templateValue))
                         replaceValue(field, templateValue);
                     else
@@ -269,8 +295,9 @@ public class CopyHandler {
     private Object copyValueForField(Field field, Object templateValue) {
         if (templateValue == null)
             return null;
-        if (DslHelper.isRelationship(field))
-            return copyFieldValue(field, field.getType(), templateValue, null);
+        Class<?> fieldType = getCopyFieldType(field);
+        if (DslHelper.isRelationship(field) || isDslType(fieldType))
+            return copyFieldValue(field, fieldType, templateValue, null);
         return copyValue(templateValue);
     }
 
@@ -287,11 +314,21 @@ public class CopyHandler {
         return (T) templateValue;
     }
 
+    private static Optional<Overwrite> getOverwriteAnnotation(Field field, Predicate<Overwrite> filter) {
+        Overwrite annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.class);
+        if (annotation != null && filter.test(annotation))
+            return Optional.of(annotation);
+        Class<?> declaringType = field.getDeclaringClass();
+        if (DslHelper.getKlumFieldType(field) == FieldType.BUILDER)
+            declaringType = GeneratedBuilderSupport.modelTypeFor(declaringType);
+        return AnnotationHelper.getMostSpecificAnnotation(declaringType, Overwrite.class, filter);
+    }
+
     private OverwriteStrategy.Single getSingleStrategy(Field field) {
         Overwrite.Single annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.Single.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Single.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.singles().value() != OverwriteStrategy.Single.INHERIT)
+        return getOverwriteAnnotation(field, o -> o.singles().value() != OverwriteStrategy.Single.INHERIT)
                 .map(Overwrite::singles)
                 .map(Overwrite.Single::value)
                 .orElse(OverwriteStrategy.Single.MERGE);
@@ -326,7 +363,7 @@ public class CopyHandler {
                 addMapValues(field, currentValues, templateValues);
                 break;
             case MERGE_VALUES:
-                if (isDslType(DslHelper.getElementType(field)) && !DslHelper.isLink(field))
+                if (isDslType(getCopyElementType(field)) && !DslHelper.isLink(field))
                     mergeMapValues(field, currentValues, templateValues);
                 else
                     addMapValues(field, currentValues, templateValues);
@@ -346,7 +383,7 @@ public class CopyHandler {
 
     private void addMissingMapValues(Field field, Map<Object, Object> currentValues, Map<Object, Object> templateValues) {
         if (templateValues == null || templateValues.isEmpty()) return;
-        Class<?> valueType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        Class<?> valueType = DslHelper.getClassFromType(getCopyElementType(field));
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
@@ -357,7 +394,7 @@ public class CopyHandler {
 
     private void mergeMapValues(Field field, Map<Object, Object> currentValues, Map<Object, Object> templateValues) {
         if (templateValues == null || templateValues.isEmpty()) return;
-        Class<?> valueType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        Class<?> valueType = DslHelper.getClassFromType(getCopyElementType(field));
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
@@ -371,7 +408,7 @@ public class CopyHandler {
     }
 
     private void addMapValues(Field field, Map<Object,Object> currentValues, Map<Object,Object> templateValues) {
-        Class<?> valueType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        Class<?> valueType = DslHelper.getClassFromType(getCopyElementType(field));
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
@@ -403,7 +440,7 @@ public class CopyHandler {
         Overwrite.Map annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.Map.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Map.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.maps().value() != OverwriteStrategy.Map.INHERIT)
+        return getOverwriteAnnotation(field, o -> o.maps().value() != OverwriteStrategy.Map.INHERIT)
                 .map(Overwrite::maps)
                 .map(Overwrite.Map::value)
                 .orElse(OverwriteStrategy.Map.FULL_REPLACE);
@@ -443,7 +480,7 @@ public class CopyHandler {
     }
 
     private void addCollectionValues(Field field, Collection<Object> currentValue, Collection<Object> templateValue) {
-        Class<?> elementType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        Class<?> elementType = DslHelper.getClassFromType(getCopyElementType(field));
         for (Object value : templateValue) {
             assertCorrectType(field, value, elementType);
             currentValue.add(copyFieldValue(field, elementType, value, null));
@@ -527,7 +564,7 @@ public class CopyHandler {
         Overwrite.Collection annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.Collection.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Collection.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.collections().value() != OverwriteStrategy.Collection.INHERIT)
+        return getOverwriteAnnotation(field, o -> o.collections().value() != OverwriteStrategy.Collection.INHERIT)
                 .map(Overwrite::collections)
                 .map(Overwrite.Collection::value)
                 .orElse(OverwriteStrategy.Collection.REPLACE);

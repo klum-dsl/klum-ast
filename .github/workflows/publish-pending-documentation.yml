@@ -171,6 +171,7 @@ jobs:
           RELEASE_STAGE: ${{ inputs.stage }}
           RELEASE_VERSION: ${{ inputs.version }}
           EXPECTED_COMMIT: ${{ inputs.commit }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
@@ -178,6 +179,7 @@ jobs:
             "-PdocumentationReleaseStage=$RELEASE_STAGE"
             "-PdocumentationExpectedVersion=$RELEASE_VERSION"
             "-PdocumentationExpectedRevision=$EXPECTED_COMMIT"
+            "-PdocumentationSourceBranch=$SOURCE_BRANCH"
             "-PdocumentationRevision=$EXPECTED_COMMIT"
             "-PdocumentationRendererRevision=$EXPECTED_COMMIT"
             "-PdocumentationVersion=$RELEASE_VERSION"

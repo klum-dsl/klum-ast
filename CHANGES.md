@@ -1,5 +1,11 @@
 # Unreleased
 
+- `copyFrom(Map)` now configures construction-only `FieldType.BUILDER` input for later Builder/lifecycle work, including
+  inherited fields. Model-only members without Builder storage are ignored, while genuinely unknown names retain the
+  configured missing-field policy. Builder-only state remains absent from completed Models. See
+  [copy strategies](docs/user/Copy-Strategies.md#builder-input)
+  ([#989](https://github.com/klum-dsl/klum-ast/issues/989)).
+
 - Admit one exact compiled String converter for ordinary non-DSL structured-input fields and project its singleton Jakarta
   Pattern through the existing bounded ASCII mapping. Add parameter `@ConstraintProjection`, independently of field
   policy, with paired-artifact validation before execution/output replacement. No numeric coercion or runtime parameter

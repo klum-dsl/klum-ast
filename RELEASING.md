@@ -393,6 +393,11 @@ new release channel.
 
 ## Failure and recovery
 
+The maintainer-approved [4.1.1 recovery exception](docs/implementation/release-4.1.1-recovery.md) permits one fresh
+final attempt from the corrected maintenance-branch source after the first attempt stopped before artifact publication.
+It preserves the rejected identity and requires new exact-SHA CI, trusted SonarCloud, and protected approvals; it does
+not change the general next-version recovery rule below.
+
 | Failure point | Safe action | Retry rule |
 | --- | --- | --- |
 | Input, clean-checkout, version, tests, or environment approval fails | Fix before publication and obtain authorization again. | The unused version may be reused only if no tag or public artifact exists. |
