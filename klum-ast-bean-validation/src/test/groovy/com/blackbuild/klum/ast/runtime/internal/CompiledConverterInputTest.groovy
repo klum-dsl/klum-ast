@@ -613,6 +613,28 @@ class CompiledConverterInputTest extends Specification {
         [damage, profile] << [['missing', 'shadow'], [false, true]].combinations()
     }
 
+    def 'deprecated public #route remains eligible without confusing its attribute with access flags'() {
+        given:
+        String executable = route == 'constructor'
+                ? '@Deprecated public PortNumber(@Pattern(regexp="[0-9]{1,8}") String value) { throw new AssertionError("constructor"); }'
+                : 'private PortNumber() {} @Deprecated public static PortNumber fromString(@Pattern(regexp="[0-9]{1,8}") String value) { throw new AssertionError("converter"); }'
+        File domain = javaJar("""
+            package converterinput;
+            import jakarta.validation.constraints.Pattern;
+            public class PortNumber { $executable }
+        """)
+
+        when:
+        def facts = readFacts(domain, route)
+
+        then:
+        facts.rules()[0].eligible()
+        facts.rules()[0].regexp() == '[0-9]{1,8}'
+
+        where:
+        route << ['constructor', 'fromString']
+    }
+
     def 'an existing discovered annotation factory needs no preferred method name'() {
         given:
         File domain = javaJar("""

@@ -92,7 +92,8 @@ final class SelectedConverterParameterReader {
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 if (!name.equals(selected.name())) return null;
                 if (!descriptor.equals(selected.descriptor())) throw invalid("Overloaded selected executable family");
-                if (++matches != 1 || access != executable.getModifiers()) throw invalid("Selected domain byte/reflection signature mismatch");
+                // ASM represents the Deprecated attribute with a pseudo flag outside JVM method access bits.
+                if (++matches != 1 || (access & ~Opcodes.ACC_DEPRECATED) != executable.getModifiers()) throw invalid("Selected domain byte/reflection signature mismatch");
                 return facts.visitor();
             }
             @Override public void visitEnd() {

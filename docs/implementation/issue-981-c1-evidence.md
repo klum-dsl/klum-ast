@@ -66,3 +66,7 @@ the selected-parameter wrapper supplied field/external-name/artifact/signature c
 validated compiler-recorded converter candidates, preserves the original cause, and handles explicit and profile-derived
 names. It never guesses which candidate caused linkage failure. Both missing and shadow-domain controls assert the full
 context. Interrupted pre-correction full checks are not used as final qualification evidence.
+
+Deprecated converter controls retain otherwise valid constructor/factory routes: ASM's attribute-derived ACC_DEPRECATED
+pseudo flag is masked before comparing true method access bits with reflection. Bridge/synthetic exclusions remain
+unchanged. Actual-output coverage verifies converter deprecation does not become field deprecation.

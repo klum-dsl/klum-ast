@@ -62,6 +62,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         fields.'port-number'.examples == ['1234']
         fields.'port-number'.deprecated
         fields.factory.allOf == fields.'port-number'.allOf
+        !fields.factory.containsKey('deprecated')
         fields.factory.'x-klum-converter-constraint-source'.contains('#parse(')
         fields.'field-omit'.allOf == fields.factory.allOf
         fields.'field-text'.allOf == fields.factory.allOf
@@ -158,6 +159,7 @@ import jakarta.validation.constraints.Pattern
 class FactoryPort {
     private FactoryPort() {}
     /** Factory prose must not become field prose. */
+    @Deprecated
     static FactoryPort parse(@Pattern(regexp='[0-9]{1,8}') String raw) { throw new AssertionError('converter body') }
 }
 ''')
