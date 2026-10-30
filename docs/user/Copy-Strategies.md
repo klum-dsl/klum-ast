@@ -337,7 +337,8 @@ Note that only one level of nesting is supported, i.e. you cannot nest annotatio
 
 Map donors configure state held by the recipient Builder, including construction-only `FieldType.BUILDER` fields.
 A later Builder or lifecycle callback can use that staging input to configure ordinary Model state. Builder-only fields
-remain absent from the completed DSL Object. Supplied Model-only properties, such as a computed getter or static Schema
+remain absent from the completed DSL Object. Existing overwrite strategies also apply to staging fields. Supplied
+Model-only properties, such as a computed getter or static Schema
 field with no Builder storage, are ignored. Genuinely unknown names follow the [missing-field strategy](#missing-field-handling).
 
 (See: `CopyBuilderInputTest#'copied staging input drives a later Builder lifecycle callback'`.)

@@ -37,6 +37,13 @@ final class GeneratedBuilderSupport {
     private GeneratedBuilderSupport() {
     }
 
+    static Class<?> modelTypeFor(Class<?> builderType) {
+        Class<?> modelType = builderType.getEnclosingClass();
+        if (DslHelper.isDslType(modelType) && builderTypeFor(modelType).isAssignableFrom(builderType))
+            return modelType;
+        throw new KlumModelException("No declaring Model found for Builder " + builderType.getName());
+    }
+
     static Class<? extends InternalKlumBuilder<?>> builderTypeFor(Class<?> modelType) {
         try {
             return (Class<? extends InternalKlumBuilder<?>>) modelType.getClassLoader().loadClass(modelType.getName() + CURRENT_SUFFIX);

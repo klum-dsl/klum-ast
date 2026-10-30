@@ -171,6 +171,73 @@ class CopyBuilderInputTest extends AbstractDSLSpec {
         !result.hasProperty('host')
     }
 
+    def 'DSL-valued #shape staging input remains available to later Builder work'() {
+        given:
+        createClass """
+            @DSL
+            class Staging {
+                @Key String id
+                String host
+            }
+            @DSL
+            class Service {
+                String endpoint
+                @Field(FieldType.BUILDER) $declaration
+                @PostTree
+                void configureEndpoint() {
+                    def selected = $readStaging
+                    assert Staging.Create.isBuilder(selected)
+                    endpoint = 'https://' + selected.host
+                }
+            }
+        """
+        def serviceType = getClass('Service')
+
+        when:
+        def result = serviceType.Create.With { copyFrom([staging: values]) }
+
+        then:
+        result.endpoint == 'https://catalog.example'
+        !result.hasProperty('staging')
+
+        where:
+        shape        | declaration                    | values                                     | readStaging
+        'scalar'     | 'Staging staging'              | [id: 'catalog', host: 'catalog.example']   | 'staging'
+        'collection' | 'List<Staging> staging'        | [[id: 'catalog', host: 'catalog.example']] | 'staging.first()'
+        'map'        | 'Map<String, Staging> staging' | [catalog: [host: 'catalog.example']]       | 'staging.catalog'
+    }
+
+    def 'Builder-only #shape staging input retains class-level overwrite policy'() {
+        given:
+        createClass """
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
+
+            @DSL
+            @Overwrite($policy)
+            class Service {
+                String endpoint
+                @Field(FieldType.BUILDER) $declaration
+                @PostTree
+                void configureEndpoint() { endpoint = $readValue }
+            }
+        """
+        def serviceType = clazz
+
+        when:
+        def result = serviceType.Create.With { copyFrom([staging: values]) }
+
+        then:
+        result.endpoint == 'receiver'
+        !result.hasProperty('staging')
+
+        where:
+        shape        | policy                                                                           | declaration                                         | values           | readValue
+        'scalar'     | 'singles = @Overwrite.Single(OverwriteStrategy.Single.SET_IF_NULL)'              | "String staging = 'receiver'"                       | 'donor'          | 'staging'
+        'collection' | 'collections = @Overwrite.Collection(OverwriteStrategy.Collection.SET_IF_EMPTY)' | "List<String> staging = ['receiver']"               | ['donor']        | 'staging.first()'
+        'map'        | 'maps = @Overwrite.Map(OverwriteStrategy.Map.SET_IF_EMPTY)'                      | "Map<String, String> staging = [value: 'receiver']" | [value: 'donor'] | 'staging.value'
+    }
+
     private void createServiceSchema(String annotation) {
         createClass """
             import com.blackbuild.klum.ast.copy.Overwrite
