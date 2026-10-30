@@ -88,12 +88,13 @@ final class BuilderContractReader {
     private static final String OPERATION_FACT = PREFIX + "Operation;";
     private static final String SOURCE_DEPRECATED = "sourceDeprecated";
     private static final String CONSTRAINT = PREFIX + "Constraint;";
+    private static final String CONVERTER = PREFIX + "Converter;";
     private static final String SELECTION = PREFIX + "Selection;";
     private static final String EXCLUSION = PREFIX + "Exclusion;";
     private static final String OPERATION = "Lcom/blackbuild/klum/ast/Builder$Method;";
     private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC);
 
     private final Map<Class<?>, Metadata> declarations = new IdentityHashMap<>();
 
@@ -113,13 +114,15 @@ final class BuilderContractReader {
                     Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
-                    List<String> examples, List<String> operationExamples) {
+                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter) {
         Literals {
             constraints = constraints == null ? null : List.copyOf(constraints);
             examples = examples == null ? null : List.copyOf(examples);
             operationExamples = operationExamples == null ? null : List.copyOf(operationExamples);
         }
     }
+
+    record ConverterSelection(String owner, String name, String descriptor, int parameter) { }
 
     record NameFacts(String rename, String origin, boolean ignored) { }
 
@@ -135,7 +138,7 @@ final class BuilderContractReader {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.exclusion, value.detail,
-                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples);
+                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter);
     }
 
     private static NameFacts freeze(MutableNameFacts value) {
@@ -192,6 +195,7 @@ final class BuilderContractReader {
         return switch (category) {
             case IGNORE_ORIGIN -> IGNORED_INPUT;
             case INPUT_IGNORE_ORIGIN -> INPUT_IGNORED;
+            case "CONVERTER" -> "unsupported converter selection; expose one supported public String route and recompile matched domain/Schema artifacts";
             case "NO_PAYLOAD" -> "has no admitted scalar, enum, List, or Map payload";
             case "OWNERSHIP" -> "requires one concrete owned relationship";
             case "KEYED_OWNERSHIP" -> "requires Map<String, concrete keyed DSL Object> ownership";
@@ -261,6 +265,8 @@ final class BuilderContractReader {
         boolean query;
         List<ConstraintRule> constraints;
         Integer constraintCount;
+        Integer converterCount;
+        ConverterSelection converter;
         String constraintProjection;
         List<String> examples;
         List<String> operationExamples;
@@ -333,6 +339,10 @@ final class BuilderContractReader {
             if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
+        if (literal.converter != null && (literal.selection == null || !"PROPERTY".equals(literal.role)))
+            throw invalid("Converter association lacks exact PROPERTY selection on " + source);
+        if (literal.field != null && (literal.converterCount == null || literal.converterCount < 0 || literal.converterCount > 1))
+            throw invalid("Missing or invalid converter selection completeness on " + source);
         if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
     }
 
@@ -392,7 +402,7 @@ final class BuilderContractReader {
                 throw invalid("Missing annotation protocol " + protocol.getName());
     }
 
-    private static void verifyResourceOrigin(Class<?> owner, String name) throws IOException {
+    static void verifyResourceOrigin(Class<?> owner, String name) throws IOException {
         URL resource = owner.getResource("/" + name);
         if (resource == null) throw new IOException("Missing exact public contract resource " + name);
         if (owner.getModule().isNamed()) return;
@@ -549,7 +559,34 @@ final class BuilderContractReader {
             if (annotation.equals(OPERATION)) literal.operation = true;
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
+            if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
             return new MethodAnnotationVisitor(annotation, literal);
+        }
+    }
+
+    private static final class ConverterAnnotationVisitor extends AnnotationVisitor {
+        private final MutableLiterals literal;
+        private final Map<String, Object> facts = new LinkedHashMap<>();
+
+        ConverterAnnotationVisitor(MutableLiterals literal) {
+            super(Opcodes.ASM9);
+            this.literal = literal;
+        }
+
+        @Override public void visit(String name, Object value) {
+            if (!Set.of("owner", "name", "descriptor", "parameter").contains(name) || facts.putIfAbsent(name, value) != null)
+                throw invalid("Unknown or duplicate converter fact " + name);
+        }
+        @Override public AnnotationVisitor visitArray(String name) { throw invalid("Unexpected converter array " + name); }
+        @Override public AnnotationVisitor visitAnnotation(String name, String type) { throw invalid("Unexpected converter annotation " + name); }
+        @Override public void visitEnum(String name, String type, String value) { throw invalid("Unexpected converter enum " + name); }
+        @Override public void visitEnd() {
+            if (facts.size() != 4 || !(facts.get("owner") instanceof String owner) || owner.isEmpty()
+                    || !(facts.get("name") instanceof String name) || name.isEmpty()
+                    || !(facts.get("descriptor") instanceof String descriptor) || descriptor.isEmpty()
+                    || !(facts.get("parameter") instanceof Integer parameter) || parameter != 0)
+                throw invalid("Incomplete or malformed converter association on " + literal.location);
+            literal.converter = new ConverterSelection(owner, name, descriptor, parameter);
         }
     }
 
@@ -689,6 +726,11 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case "converterCount" -> {
+                    if (!(value instanceof Integer) || literal.converterCount != null)
+                        throw invalid("Invalid converter selection count");
+                    literal.converterCount = (Integer) value;
+                }
                 case "constraintCount" -> {
                     if (!(value instanceof Integer count) || count < 0 || literal.constraintCount != null) {
                         throw invalidConstraint(literal, "Invalid constraint count");

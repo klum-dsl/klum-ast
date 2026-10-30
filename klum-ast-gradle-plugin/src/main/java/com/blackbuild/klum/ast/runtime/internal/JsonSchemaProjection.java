@@ -162,11 +162,13 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         if (constraints == null) throw new IllegalArgumentException("Missing constraint source facts for '" + entry.source()
                 + "', external input '" + entry.externalName() + "', public Builder '" + entry.contract().getName()
                 + "'; recompile and package the Schema with matching KlumAST versions");
-        contributeConstraints(entry, value, groupRedefined, constraints);
+        CompiledBuilderSchema.ConverterConstraints converter = profile.converters().get(field);
+        contributeConstraints(entry, value, groupRedefined, constraints, converter != null);
+        if (converter != null) contributeConverter(entry, value, converter);
     }
 
     private void contributeConstraints(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined,
-                                       CompiledBuilderSchema.FieldConstraints constraints) {
+                                       CompiledBuilderSchema.FieldConstraints constraints, boolean domainValue) {
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
@@ -174,7 +176,9 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                 appendDescription(value, rule.description());
             }
             if (rule.origin().equals("DOCUMENTARY")) continue;
-            BuiltinConstraintCatalog.Result contribution = BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
+            BuiltinConstraintCatalog.Result contribution = domainValue
+                    ? new BuiltinConstraintCatalog.Result(List.of(), List.of(), "constraint belongs to the converted domain value")
+                    : BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
             bounds.addAll(contribution.bounds());
             patterns.addAll(contribution.patterns());
             appendRuntimeConstraintDescription(value, constraints.policy(), rule, contribution);
@@ -184,6 +188,22 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             appendConjunction(value, patterns);
         }
         if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
+    }
+
+    private void contributeConverter(CompiledBuilderSchema.Entry entry, Map<String, Object> value,
+                                     CompiledBuilderSchema.ConverterConstraints converter) {
+        if (converter.policy() == Policy.OMIT) return; // Complete facts were already validated by the resolver.
+        List<Map<String, Object>> patterns = new ArrayList<>();
+        for (CompiledBuilderSchema.ConstraintRule rule : converter.rules()) {
+            BuiltinConstraintCatalog.Result contribution = BuiltinConstraintCatalog.project(entry, rule, false);
+            if (converter.policy() == Policy.PROJECT) patterns.addAll(contribution.patterns());
+            if (converter.policy() == Policy.TEXT_ONLY || !contribution.projected()) {
+                String reason = converter.policy() == Policy.TEXT_ONLY ? "parameter projection policy TEXT_ONLY" : contribution.reason();
+                appendDescription(value, "Converter parameter constraint (no runtime parameter enforcement; " + reason + "): " + rule.declaration());
+            }
+        }
+        appendConjunction(value, patterns);
+        if (!converter.rules().isEmpty()) value.put("x-klum-converter-constraint-source", converter.source());
     }
 
     private static void appendRuntimeConstraintDescription(Map<String, Object> value, Policy policy,
