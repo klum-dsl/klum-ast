@@ -115,6 +115,167 @@ class CompiledConverterInputTest extends Specification {
         [language, route] << [['Java', 'Groovy'], ['constructor', 'fromString', 'parse']].combinations()
     }
 
+    def 'normal and structured dispatch execute the recorded #language #route route inherited=#inherited'() {
+        given:
+        String source = """
+            package converterinput;
+            import jakarta.validation.constraints.Pattern;
+            public class PortNumber {
+                public final String raw;
+                public PortNumber(@Pattern(regexp="[0-9]{1,8}") String raw) {
+                    this.raw = raw;
+                    System.setProperty("$TRAP", "constructor:" + raw);
+                }
+                public static PortNumber fromString(@Pattern(regexp="[0-9]{1,8}") String raw) {
+                    return new PortNumber("fromString:" + raw);
+                }
+                public static PortNumber parse(@Pattern(regexp="[0-9]{1,8}") String raw) {
+                    return new PortNumber("parse:" + raw);
+                }
+            }
+        """
+        File domain = language == 'Java' ? javaJar(source) : groovyJar(source, [])
+        File schema = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @InputName('port-number')
+                @Converters(includeConstructors=${route == 'constructor'},
+                        includeMethods=['${route == 'constructor' ? 'noFactories' : route}'])
+                PortNumber port
+            }
+        """, [domain])
+        File descendant = inherited ? groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Child extends Service { String label }
+        ''', [schema, domain]) : null
+        def loader = binaryLoader([descendant, schema, domain].findAll { it != null })
+        Class<?> model = Class.forName(inherited ? 'converterinput.Child' : MODEL, false, loader)
+        String expected = route == 'constructor' ? '1234' : route + ':1234'
+
+        when:
+        def entry = new InputContractResolver().read(model).entries()['port-number']
+        def selected = entry.methods()[0].getDeclaredAnnotation(GeneratedInput.Converter)
+
+        then:
+        selected.owner() == DOMAIN
+        selected.name() == (route == 'constructor' ? '<init>' : route)
+        selected.descriptor() == (route == 'constructor' ? '(Ljava/lang/String;)V' : '(Ljava/lang/String;)Lconverterinput/PortNumber;')
+        selected.parameter() == 0
+        System.getProperty(TRAP) == null
+
+        when: 'ordinary Builder dispatch uses the same String argument'
+        def ordinary = model.Create.With { port '1234' }
+
+        then:
+        ordinary.port.raw == expected
+        System.getProperty(TRAP) == 'constructor:' + expected
+
+        when: 'structured construction must execute that same route, not a disabled peer or direct constructor'
+        System.clearProperty(TRAP)
+        def structured = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'ports.yaml')
+
+        then:
+        structured.port.raw == expected
+        System.getProperty(TRAP) == 'constructor:' + expected
+
+        cleanup:
+        loader?.close()
+
+        where:
+        [language, route, inherited] << [['Java', 'Groovy'], ['constructor', 'fromString', 'parse'], [false, true]].combinations()
+    }
+
+    def 'an authored binary descendant override rejects inherited converter input: kebab=#kebab ignored=#ignored grandchild=#grandchild'() {
+        given:
+        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}")', false)
+        File schema = schemaJar(domain, 'fromString', false)
+        File descendant = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL ${kebab ? '@InputNaming(InputNaming.Profile.KEBAB_CASE)' : ''} class Child extends Service {
+                @Builder.Method @InputName('other') ${ignored ? '@InputIgnore' : ''}
+                PortNumber port(String raw) {
+                    System.setProperty("$TRAP", "authored:" + raw)
+                    return null
+                }
+            }
+        """, [schema, domain])
+        File leaf = grandchild ? groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Leaf extends Child { String label }
+        ''', [descendant, schema, domain]) : null
+        def loader = binaryLoader([leaf, descendant, schema, domain].findAll { it != null })
+        Class<?> model = Class.forName(grandchild ? 'converterinput.Leaf' : 'converterinput.Child', false, loader)
+
+        when:
+        def contract = new InputContractResolver().read(model)
+
+        then:
+        !contract.entries().containsKey('port-number')
+        contract.rejections().any { it.source().endsWith('Service#port') && it.reason().contains('overridden') }
+        System.getProperty(TRAP) == null
+
+        when:
+        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'ports.yaml')
+
+        then:
+        def rejection = thrown(KlumModelException)
+        rejection.message.contains('overridden')
+        System.getProperty(TRAP) == null
+
+        when: 'ordinary Builder override dispatch remains unchanged'
+        model.Create.With { port '1234' }
+
+        then:
+        System.getProperty(TRAP) == 'authored:1234'
+
+        cleanup:
+        loader?.close()
+
+        where:
+        [kebab, ignored, grandchild] << [[false, true], [false, true], [false, true]].combinations()
+    }
+
+    def 'an excluded overridden converter does not collide with an inherited construction key'() {
+        given:
+        File domain = domainJar('Java', 'fromString', '', true)
+        File schema = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Key @InputName('port-number') String id
+                @InputName('port-number') PortNumber port
+            }
+        ''', [domain])
+        File descendant = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Child extends Service {
+                @Builder.Method @InputIgnore
+                PortNumber port(String raw) { throw new AssertionError('authored override executed') }
+            }
+        ''', [schema, domain])
+        def loader = binaryLoader([descendant, schema, domain])
+        Class<?> model = Class.forName('converterinput.Child', false, loader)
+
+        when:
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, ['port-number': 'service-id'], 'ports.yaml')
+
+        then:
+        !contract.entries().containsKey('port-number')
+        contract.keyCollisions().empty
+        result.id == 'service-id'
+        result.port == null
+        System.getProperty(TRAP) == null
+
+        cleanup:
+        loader?.close()
+    }
+
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Converters.md#structured-string-input')
     def 'reads a separately compiled port converter without coercion or runtime Pattern enforcement'() {

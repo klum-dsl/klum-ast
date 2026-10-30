@@ -211,6 +211,8 @@ Overloaded/default-generated, bridge/synthetic, generic and varargs routes, inhe
 classes, closure converters, competing String routes and authored Builder inputs are outside this bounded route. Collection,
 map and DSL-object conversions remain outside this structured-input feature. Non-overridden binary Schema inheritance
 preserves the original declaring Builder and converter association; replacement fields are classified afresh.
+A descendant declaration of the same Builder method signature excludes the inherited converter input, even when the
+override is renamed or ignored for structured input. Ordinary Builder override dispatch remains unchanged.
 
 Keep compiler/runtime/plugin, domain and Schema artifacts matched. Recompile the Schema hierarchy after changing a
 participating domain contract. Missing or corrupt selection/parameter facts or incomplete API classpaths fail before

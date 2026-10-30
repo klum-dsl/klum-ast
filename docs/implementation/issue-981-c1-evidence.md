@@ -52,7 +52,7 @@ the existing finite Pattern recognizer and field projection behavior are unchang
   full-check completion. Markdown fences, 169 relative file links, seven introduced heading anchors and
   `git diff --check` pass.
 - Independent Standards and Specification reviews report zero remaining findings at the qualified code revision.
-  The final evidence-only commit does not change source, fixtures or build configuration.
+  The subsequent evidence-only commit `de30eadda` did not change source, fixtures or build configuration.
 
 No local SonarCloud upload or manual workflow dispatch is used. Ordinary PR CI remains authoritative. Artifact locations
 are diagnostic associations, not integrity or stale-JAR proof. Matching producer/Schema recompilation is required.
@@ -93,3 +93,32 @@ Draft publication uses `Related: #981`. This record establishes local qualificat
 success. Ordinary PR checks must be inspected at the published head. C2, #971 runtime enforcement, issue disposition,
 release placement and final Hive reconciliation remain outside this implementation slice. The worktree is retained;
 this worker does not self-archive.
+
+## PR #991 dispatch-equivalence follow-up
+
+The bounded review at `de30eadda` reproduced a binary descendant overriding the selected public Builder `port(String)`
+method under a different external input name. The inherited entry still described the parent converter while structured
+construction executed the authored override (`authored:1234` on Groovy 3, 4 and 5). The original metadata/initialization
+matrix did not positively exercise factory construction, so its earlier success did not establish this invariant.
+
+The resolver now rejects an inherited converter entry when a descendant public Builder declaration has the same name
+and parameter types. It preserves validation of the parent facts before exclusion, ignores external renaming/suppression
+when detecting the override, and propagates the exclusion through further descendants and naming profiles. This is an
+ordinary rejection, not a name-collision record; an inherited construction key can reuse the excluded spelling. Normal
+Builder dispatch, converter admission and C2 remain unchanged. User documentation and CHANGES describe the boundary.
+
+New positive controls cover Java/Groovy binaries, constructor/fromString/parse, and direct/non-overridden inherited
+Schemas. They compare normal Builder and structured construction using route-specific values, distinguishing the selected
+factory from a disabled peer and direct construction. Eight override controls cover identity/kebab profiles, renamed/
+ignored methods and children/grandchildren; they prove rejection before execution and unchanged ordinary override calls.
+An inherited-key control prevents false collision handling. The packaged plugin verifies that an ignored binary override
+removes the inherited converter property from the closed generated schema without executing user code.
+
+Final follow-up validation on JDK 17 passed: runtime `check` and bean-validation `check` (G3/G4/G5), the five-case packaged
+converter plugin suite, plugin license/validation tasks and the versioned documentation renderer. Runtime reports 73 tests
+per lane with one unchanged skip; bean-validation reports 147 per lane, including all 96 converter cases, with no skips.
+There are zero failures/errors. The independent actual-output oracle again passed 28 JDK and 270 ECMA/Draft checks.
+`git diff --check` passes. Both independent review axes report zero remaining findings after their corrections.
+The earlier whole-repository check above remains evidence for its stated revision; this follow-up reran the affected
+module suites and packaged integration controls rather than claiming a new whole-repository run. Remote CI/SonarCloud
+remain authoritative for the published follow-up head. No merge or issue-state change is authorized by this follow-up.

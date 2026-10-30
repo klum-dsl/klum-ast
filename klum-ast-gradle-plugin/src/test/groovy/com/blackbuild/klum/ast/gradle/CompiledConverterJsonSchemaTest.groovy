@@ -101,6 +101,33 @@ class CompiledConverterJsonSchemaTest extends Specification {
         lane << ['3', '4', '5']
     }
 
+    def 'packaged projection excludes a converter overridden by an ignored binary descendant method'() {
+        given:
+        fixture('3')
+        write(producer, 'schema/src/main/groovy/converterjson/Overriding.groovy', '''
+package converterjson
+import com.blackbuild.klum.ast.*
+@DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class Overriding extends Base {
+    @Builder.Method @InputName('other') @InputIgnore
+    PortNumber port(String raw) { throw new AssertionError('authored override executed') }
+}
+''')
+        runner(producer, ':schema:jar').build()
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['converterjson.Overriding'])\n")
+
+        when:
+        runner(consumer, 'generateKlumJsonSchema').build()
+        def schema = new JsonSlurper().parse(new File(consumer,
+                'build/generated/klum-json-schema/converterjson.Overriding.schema.json'))
+        def root = schema.'$defs'.'converterjson.Overriding_DSL$Builder'
+
+        then:
+        !root.properties.containsKey('port-number')
+        !root.properties.containsKey('other')
+        root.additionalProperties == false
+        !new File(directory, 'executed').exists()
+    }
+
     def 'changed domain followed by Schema recompilation fails atomically even through omitted owned input'() {
         given:
         fixture('3')

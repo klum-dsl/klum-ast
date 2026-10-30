@@ -166,6 +166,7 @@ final class InputContractResolver {
             if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
             Facts inherited = collect(parent, known, nativeCandidates);
             key = inheritKey(key, inherited.key());
+            rejectOverriddenConverters(context, inherited.entries(), rejections);
             entries.addAll(inherited.entries());
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
@@ -175,6 +176,25 @@ final class InputContractResolver {
         Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
         return facts;
+    }
+
+    private void rejectOverriddenConverters(BuilderContext context, List<Entry> inherited, List<Rejection> rejections)
+            throws IOException, ClassNotFoundException {
+        Method[] declared = declaredMethods(context);
+        for (Entry entry : inherited) {
+            Metadata origin = reader.metadata(entry.contract());
+            for (Method selected : entry.methods()) {
+                if (origin.methods().get(signature(selected)).converter() == null) continue;
+                boolean overridden = Arrays.stream(declared).anyMatch(method -> !Modifier.isStatic(method.getModifiers())
+                        && method.getName().equals(selected.getName())
+                        && Arrays.equals(method.getParameterTypes(), selected.getParameterTypes()));
+                if (overridden) {
+                    rejections.add(new Rejection(entry.source(), "inherited converter overload " + selected.getName()
+                            + "(String) is overridden by " + namingOrigin(context.builder())
+                            + "; expose one supported non-overridden String route"));
+                }
+            }
+        }
     }
 
     /** Declaring public contracts are the sole authority, including explicit absence and source/artifact identity. */
