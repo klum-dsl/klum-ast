@@ -1,3 +1,11 @@
+# 4.1.1 (unreleased)
+
+- `copyFrom(Map)` now configures construction-only `FieldType.BUILDER` input for later Builder/lifecycle work, including
+  inherited fields. Model-only members without Builder storage are ignored, while genuinely unknown names retain the
+  configured missing-field policy. Builder-only state remains absent from completed Models. See
+  [copy strategies](docs/user/Copy-Strategies.md#builder-input)
+  ([#989](https://github.com/klum-dsl/klum-ast/issues/989)).
+
 # 4.1.0 (2026-10-20)
 
 - Support general abstract `@Builder.Method` operations with compiler-enforced concrete subtype implementations,

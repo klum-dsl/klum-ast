@@ -239,6 +239,10 @@ or `FieldType.IGNORED`. Copying is further governed by `@Overwrite` / the config
 recursively: nested Template composition is rehydrated into fresh Builders. Completed ordinary models are not adopted as
 owned composition. [Copy Strategies](Copy-Strategies.md) describes the available merge behavior.
 
+Map donors can also configure construction-only `FieldType.BUILDER` fields for later Builder/lifecycle work. Model-only
+properties with no Builder storage are ignored; genuinely unknown names follow the configured missing-field strategy.
+See the [Builder input example](Copy-Strategies.md#builder-input).
+
 ## `equals()` Method
 
 If not yet present, the `equals()` method is generated using the default `@EqualsAndHashCode` ASTTransformations. You

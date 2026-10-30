@@ -28,7 +28,8 @@ serialized forms are not promised; regenerate serialized Templates from source r
 
 ## Creating Templates
 
-Ignorable fields of the template (key, owner, transient, or marked as `FieldType.Ignore`) are never copied over. Root
+Ignorable fields of the template (key, owner, role, transient, or marked as `FieldType.IGNORED`) are never copied over.
+Map donors can supply [Builder-only construction input](Copy-Strategies.md#builder-input) to `copyFrom`. Root
 creation lives below `Create`: use `Create.Template.With` for a map and/or configuration closure, and
 `Create.Template.From` for a DelegatingScript file or URL. Classpath loading through `Create.Template.FromClasspath`
 accepts both delegating and ordinary scripts, as described [below](#loading-templates-from-the-classpath). Direct Template
