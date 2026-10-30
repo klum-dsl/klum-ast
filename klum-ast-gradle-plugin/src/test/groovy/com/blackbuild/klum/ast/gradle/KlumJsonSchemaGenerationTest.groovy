@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.gradle
 
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -3155,7 +3156,7 @@ class InitializationControl {
     private static String notation(String path) { "'" + path.replace('\\', '\\\\').replace("'", "\\'") + "'" }
     private static String classpath(String value) { value.split(File.pathSeparator).collect { notation(it) }.join(', ') }
     private def run(String... arguments) { runner(consumer, arguments).build() }
-    private GradleRunner runner(File project, String... arguments) {
+    private ProfiledRunner runner(File project, String... arguments) {
         GradleRunner result = GradleRunner.create().withProjectDir(project)
         if (packagedPlugin) {
             Properties metadata = new Properties()
@@ -3168,5 +3169,47 @@ class InitializationControl {
         }
         result.withDebug(!arguments.toList().contains('--configuration-cache'))
                 .withArguments(arguments.toList() + ['--stacktrace', '--console=plain', '--max-workers=2'])
+        return new ProfiledRunner(result, project.name, arguments.join(' '))
+    }
+
+    // Disposable #895 hosted profile: time the nested build without changing its arguments or outcome.
+    private static class ProfiledRunner {
+        private final GradleRunner runnerDelegate
+        private final String projectName
+        private final String arguments
+
+        ProfiledRunner(GradleRunner runnerDelegate, String projectName, String arguments) {
+            this.runnerDelegate = runnerDelegate
+            this.projectName = projectName
+            this.arguments = arguments
+        }
+
+        def build() { measure('build', { this.runnerDelegate.build() }) }
+        def buildAndFail() { measure('buildAndFail', { this.runnerDelegate.buildAndFail() }) }
+
+        private def measure(String operation, Closure action) {
+            long startedAt = System.currentTimeMillis()
+            long startNanos = System.nanoTime()
+            String status = 'returned'
+            try {
+                return action.call()
+            } catch (Throwable failure) {
+                status = 'threw'
+                throw failure
+            } finally {
+                long elapsedNanos = System.nanoTime() - startNanos
+                try {
+                    Map record = [startedAtMillis: startedAt, durationNanos: elapsedNanos,
+                                  project: projectName, arguments: arguments, operation: operation, status: status]
+                    File report = new File(System.getProperty('schemaProfileBuilds'))
+                    synchronized (KlumJsonSchemaGenerationTest) {
+                        report.parentFile.mkdirs()
+                        report.append(JsonOutput.toJson(record) + '\n', 'UTF-8')
+                    }
+                } catch (Exception ignored) {
+                    System.err.println('Schema profile could not record nested build: ' + ignored.message)
+                }
+            }
+        }
     }
 }

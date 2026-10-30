@@ -1,3 +1,5 @@
+import groovy.json.JsonOutput
+
 plugins {
     id "klum-ast.base-conventions"
     id "klum-ast.jacoco-conventions"
@@ -74,6 +76,27 @@ test {
     inputs.file(tasks.named('jar', Jar).flatMap { it.archiveFile })
     systemProperty 'schemaPluginJar', tasks.named('jar', Jar).flatMap { it.archiveFile }.get().asFile.absolutePath
     systemProperty 'schemaValidationDirectory', layout.buildDirectory.dir('schema-validation').get().asFile.absolutePath
+
+    // Disposable #895 hosted profile; the normal test task and its test selection are unchanged.
+    def schemaProfileDirectory = layout.buildDirectory.dir('reports/schema-profile').get().asFile
+    systemProperty 'schemaProfileBuilds', new File(schemaProfileDirectory, 'builds.jsonl').absolutePath
+    doFirst {
+        schemaProfileDirectory.mkdirs()
+        new File(schemaProfileDirectory, 'methods.jsonl').delete()
+        new File(schemaProfileDirectory, 'builds.jsonl').delete()
+    }
+    afterTest { descriptor, result ->
+        if (descriptor.className == 'com.blackbuild.klum.ast.gradle.KlumJsonSchemaGenerationTest') {
+            try {
+                Map record = [name: descriptor.name, result: result.resultType.toString(),
+                              startedAtMillis: result.startTime, endedAtMillis: result.endTime,
+                              durationMillis: result.endTime - result.startTime]
+                new File(schemaProfileDirectory, 'methods.jsonl').append(JsonOutput.toJson(record) + '\n', 'UTF-8')
+            } catch (Exception ignored) {
+                logger.warn('Schema profile could not record test method: ' + ignored.message)
+            }
+        }
+    }
 
     def releaseBuild = rootProject.layout.projectDirectory.file('build.gradle')
     def baseConventions = rootProject.layout.projectDirectory.file('buildSrc/src/main/groovy/klum-ast.base-conventions.gradle')
