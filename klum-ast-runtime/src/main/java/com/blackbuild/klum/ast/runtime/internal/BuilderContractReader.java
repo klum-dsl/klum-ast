@@ -339,11 +339,19 @@ final class BuilderContractReader {
             if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
-        if (literal.converter != null && (literal.selection == null || !"PROPERTY".equals(literal.role)))
+        validateConverterFacts(literal, source);
+        if (literal.field != null) {
+            validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
+        }
+    }
+
+    private static void validateConverterFacts(MutableLiterals literal, String source) {
+        if (literal.converter != null && (literal.selection == null || !"PROPERTY".equals(literal.role))) {
             throw invalid("Converter association lacks exact PROPERTY selection on " + source);
-        if (literal.field != null && (literal.converterCount == null || literal.converterCount < 0 || literal.converterCount > 1))
+        }
+        if (literal.field != null && (literal.converterCount == null || literal.converterCount < 0 || literal.converterCount > 1)) {
             throw invalid("Missing or invalid converter selection completeness on " + source);
-        if (literal.field != null) validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
+        }
     }
 
     private static void validateFieldFacts(MutableLiterals literal, String source) {
@@ -565,6 +573,7 @@ final class BuilderContractReader {
     }
 
     private static final class ConverterAnnotationVisitor extends AnnotationVisitor {
+        private static final String OWNER_MEMBER = "owner";
         private final MutableLiterals literal;
         private final Map<String, Object> facts = new LinkedHashMap<>();
 
@@ -574,18 +583,20 @@ final class BuilderContractReader {
         }
 
         @Override public void visit(String name, Object value) {
-            if (!Set.of("owner", "name", "descriptor", "parameter").contains(name) || facts.putIfAbsent(name, value) != null)
+            if (!Set.of(OWNER_MEMBER, "name", "descriptor", "parameter").contains(name) || facts.putIfAbsent(name, value) != null) {
                 throw invalid("Unknown or duplicate converter fact " + name);
+            }
         }
         @Override public AnnotationVisitor visitArray(String name) { throw invalid("Unexpected converter array " + name); }
         @Override public AnnotationVisitor visitAnnotation(String name, String type) { throw invalid("Unexpected converter annotation " + name); }
         @Override public void visitEnum(String name, String type, String value) { throw invalid("Unexpected converter enum " + name); }
         @Override public void visitEnd() {
-            if (facts.size() != 4 || !(facts.get("owner") instanceof String owner) || owner.isEmpty()
+            if (facts.size() != 4 || !(facts.get(OWNER_MEMBER) instanceof String owner) || owner.isEmpty()
                     || !(facts.get("name") instanceof String name) || name.isEmpty()
                     || !(facts.get("descriptor") instanceof String descriptor) || descriptor.isEmpty()
-                    || !(facts.get("parameter") instanceof Integer parameter) || parameter != 0)
+                    || !(facts.get("parameter") instanceof Integer parameter) || parameter != 0) {
                 throw invalid("Incomplete or malformed converter association on " + literal.location);
+            }
             literal.converter = new ConverterSelection(owner, name, descriptor, parameter);
         }
     }

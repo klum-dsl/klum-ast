@@ -343,7 +343,9 @@ class CompiledConverterInputTest extends Specification {
 
         then:
         facts.rules().size() == count
-        if (count) assert facts.rules()[0].origin() == origin
+        if (count) {
+            assert facts.rules()[0].origin() == origin
+        }
         System.getProperty(TRAP) == null
 
         where:
@@ -386,7 +388,9 @@ class CompiledConverterInputTest extends Specification {
         File schema = schemaJar(domain, 'fromString')
         def loader = new URLClassLoader([schema, domain]*.toURI()*.toURL() as URL[], getClass().classLoader) {
             @Override protected Class<?> loadClass(String name, boolean resolve) {
-                if (name == 'jakarta.validation.constraints.Pattern') throw new ClassNotFoundException('Pattern API denied')
+                if (name == 'jakarta.validation.constraints.Pattern') {
+                    throw new ClassNotFoundException('Pattern API denied')
+                }
                 super.loadClass(name, resolve)
             }
         }
@@ -473,8 +477,11 @@ class CompiledConverterInputTest extends Specification {
         given:
         File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)', true)
         File schema = schemaJar(domain, 'fromString')
-        if (mutation.startsWith('domain-')) domain = rewrite(domain, 'converterinput/PortNumber.class', mutation)
-        else schema = rewrite(schema, 'converterinput/Service_DSL$Builder.class', mutation)
+        if (mutation.startsWith('domain-')) {
+            domain = rewrite(domain, 'converterinput/PortNumber.class', mutation)
+        } else {
+            schema = rewrite(schema, 'converterinput/Service_DSL$Builder.class', mutation)
+        }
         def loader = binaryLoader([schema, domain])
 
         when:
@@ -585,7 +592,9 @@ class CompiledConverterInputTest extends Specification {
         File schema = schemaJar(domain, 'fromString')
         def loader = new URLClassLoader([schema, domain]*.toURI()*.toURL() as URL[], getClass().classLoader) {
             @Override protected Class<?> loadClass(String name, boolean resolve) {
-                if (name == 'jakarta.validation.constraints.Pattern$List') throw new ClassNotFoundException('container API denied')
+                if (name == 'jakarta.validation.constraints.Pattern$List') {
+                    throw new ClassNotFoundException('container API denied')
+                }
                 super.loadClass(name, resolve)
             }
         }
@@ -744,11 +753,15 @@ class CompiledConverterInputTest extends Specification {
         String selectedDamage = damage
         def loader = new URLClassLoader([schema, domain]*.toURI()*.toURL() as URL[], getClass().classLoader) {
             @Override protected Class<?> loadClass(String name, boolean resolve) {
-                if (selectedDamage == 'missing' && name == DOMAIN) throw new ClassNotFoundException('domain denied')
+                if (selectedDamage == 'missing' && name == DOMAIN) {
+                    throw new ClassNotFoundException('domain denied')
+                }
                 super.loadClass(name, resolve)
             }
             @Override URL getResource(String name) {
-                if (selectedDamage == 'shadow' && name == 'converterinput/PortNumber.class') return shadow.toURI().toURL()
+                if (selectedDamage == 'shadow' && name == 'converterinput/PortNumber.class') {
+                    return shadow.toURI().toURL()
+                }
                 super.getResource(name)
             }
         }
@@ -819,110 +832,219 @@ class CompiledConverterInputTest extends Specification {
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(target)).withCloseable { output ->
                 input.entries().each { entry ->
-                    byte[] bytes = input.getInputStream(entry).bytes
-                    if (entry.name == resource) bytes = mutation == 'domain-corrupt' ? [0, 0, 0, 0] as byte[] : mutate(bytes, mutation)
-                    output.putNextEntry(new JarEntry(entry.name))
-                    output.write(bytes)
-                    output.closeEntry()
+                    copyEntry(input, output, entry, resource, mutation)
                 }
             }
         }
         target
     }
 
-    private static byte[] mutate(byte[] bytes, String mutation) {
+    private static void copyEntry(JarFile input, JarOutputStream output, JarEntry entry, String resource, String mutation) {
+        byte[] bytes = input.getInputStream(entry).bytes
+        if (entry.name == resource) {
+            bytes = mutatedClass(bytes, mutation)
+        }
+        output.putNextEntry(new JarEntry(entry.name))
+        output.write(bytes)
+        output.closeEntry()
+    }
+
+    private static byte[] mutatedClass(byte[] bytes, String mutation) {
+        if (mutation == 'domain-corrupt') {
+            return [0, 0, 0, 0] as byte[]
+        }
         def writer = new ClassWriter(0)
-        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
-            @Override void visitEnd() {
-                def markers = ['group-jakarta': 'Ljakarta/validation/GroupSequence;',
-                               'group-javax': 'Ljavax/validation/GroupSequence;',
-                               'group-provider': 'Lorg/hibernate/validator/group/GroupSequenceProvider;']
-                if (markers.containsKey(mutation)) {
-                    def annotation = super.visitAnnotation(markers[mutation], true)
-                    if (mutation == 'group-provider') {
-                        // Deliberately unavailable: the opaque marker must not resolve or execute a provider.
-                        annotation.visit('value', Type.getType('Lconverterinput/UnavailableProvider;'))
-                    } else {
-                        def values = annotation.visitArray('value')
-                        values.visit(null, Type.getType('Lconverterinput/PortNumber;'))
-                        values.visitEnd()
-                    }
-                    annotation.visitEnd()
-                }
-                super.visitEnd()
-            }
-            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (name == 'fromString' && mutation == 'domain-synthetic') access |= Opcodes.ACC_SYNTHETIC
-                if (name == 'fromString' && mutation == 'domain-bridge') access |= Opcodes.ACC_BRIDGE
-                def method = super.visitMethod(access, name, descriptor, signature, exceptions)
-                new MethodVisitor(Opcodes.ASM9, method) {
-                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (annotation.endsWith('GeneratedInput$Converter;') && mutation == 'association-strip') return null
-                        if (annotation.endsWith('GeneratedInput$Selection;') && mutation == 'selection-strip') return null
-                        def delegate = super.visitAnnotation(annotation, visible)
-                        if (annotation.endsWith('GeneratedInput$Converter;')) {
-                            return new AnnotationVisitor(Opcodes.ASM9, delegate) {
-                                @Override void visit(String key, Object value) {
-                                    if (mutation == 'association-missing' && key == 'owner') return
-                                    if (mutation == 'association-owner' && key == 'owner') value = 'converterinput.Wrong'
-                                    if (mutation == 'association-descriptor' && key == 'descriptor') value = '(Ljava/lang/String;)V'
-                                    if (mutation == 'association-index' && key == 'parameter') value = 1
-                                    super.visit(key, value)
-                                    if (mutation == 'association-duplicate' && key == 'owner') super.visit(key, value)
-                                }
-                            }
-                        }
-                        if (annotation.endsWith('GeneratedInput$Field;') && mutation == 'completeness-strip') {
-                            return new AnnotationVisitor(Opcodes.ASM9, delegate) {
-                                @Override void visit(String key, Object value) { if (key != 'converterCount') super.visit(key, value) }
-                            }
-                        }
-                        delegate
-                    }
-                    @Override AnnotationVisitor visitParameterAnnotation(int index, String annotation, boolean visible) {
-                        if (annotation == 'Ljakarta/validation/constraints/Pattern;' && mutation == 'domain-pattern-strip') return null
-                        if (annotation == 'Ljakarta/validation/constraints/Pattern;') {
-                            if (mutation == 'domain-pattern-duplicate') {
-                                def duplicate = super.visitParameterAnnotation(index, annotation, visible)
-                                duplicate.visit('regexp', '[0-9]{1,8}')
-                                duplicate.visitEnd()
-                            }
-                            if (mutation == 'domain-container-invisible') {
-                                def container = super.visitParameterAnnotation(index, 'Ljakarta/validation/constraints/Pattern$List;', false)
-                                container.visitArray('value').visitEnd()
-                                container.visitEnd()
-                            }
-                        }
-                        def delegate = super.visitParameterAnnotation(index, annotation, visible)
-                        new AnnotationVisitor(Opcodes.ASM9, delegate) {
-                            @Override void visit(String key, Object value) {
-                                if (mutation == 'domain-regexp-strip' && key == 'regexp') return
-                                super.visit(key, mutation == 'domain-regexp-type' && key == 'regexp' ? 42 : value)
-                            }
-                            @Override void visitEnum(String key, String type, String value) {
-                                super.visitEnum(key, type, mutation == 'domain-policy' ? 'INVALID' : value)
-                            }
-                            @Override void visitEnd() {
-                                if (annotation == 'Ljakarta/validation/constraints/Pattern;') {
-                                    if (mutation == 'domain-missing-group') {
-                                        def groups = super.visitArray('groups')
-                                        groups.visit(null, Type.getType('Lconverterinput/MissingGroup;'))
-                                        groups.visitEnd()
-                                    }
-                                    if (mutation == 'domain-invalid-flag') {
-                                        def flags = super.visitArray('flags')
-                                        flags.visitEnum(null, 'Ljakarta/validation/constraints/Pattern$Flag;', 'INVALID')
-                                        flags.visitEnd()
-                                    }
-                                }
-                                super.visitEnd()
-                            }
-                        }
-                    }
-                }
-            }
-        }, 0)
+        new ClassReader(bytes).accept(new FixtureClassMutation(writer, mutation), 0)
         writer.toByteArray()
+    }
+
+    /** Class-level markers and executable access flags are independent of annotation member damage. */
+    private static class FixtureClassMutation extends ClassVisitor {
+        private final String mutation
+
+        FixtureClassMutation(ClassVisitor delegate, String mutation) {
+            super(Opcodes.ASM9, delegate)
+            this.mutation = mutation
+        }
+
+        @Override void visitEnd() {
+            addGroupMarker()
+            super.visitEnd()
+        }
+
+        private void addGroupMarker() {
+            def markers = ['group-jakarta': 'Ljakarta/validation/GroupSequence;',
+                           'group-javax': 'Ljavax/validation/GroupSequence;',
+                           'group-provider': 'Lorg/hibernate/validator/group/GroupSequenceProvider;']
+            String descriptor = markers[mutation]
+            if (descriptor == null) {
+                return
+            }
+            def annotation = super.visitAnnotation(descriptor, true)
+            if (mutation == 'group-provider') {
+                // Deliberately unavailable: the opaque marker must not resolve or execute a provider.
+                annotation.visit('value', Type.getType('Lconverterinput/UnavailableProvider;'))
+            } else {
+                def values = annotation.visitArray('value')
+                values.visit(null, Type.getType('Lconverterinput/PortNumber;'))
+                values.visitEnd()
+            }
+            annotation.visitEnd()
+        }
+
+        @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+            if (name == 'fromString') {
+                access = mutatedAccess(access)
+            }
+            def method = super.visitMethod(access, name, descriptor, signature, exceptions)
+            new FixtureMethodMutation(method, mutation)
+        }
+
+        private int mutatedAccess(int access) {
+            switch (mutation) {
+                case 'domain-synthetic': return access | Opcodes.ACC_SYNTHETIC
+                case 'domain-bridge': return access | Opcodes.ACC_BRIDGE
+                default: return access
+            }
+        }
+    }
+
+    /** Method annotations carry Builder associations; parameter annotations carry the domain constraints. */
+    private static class FixtureMethodMutation extends MethodVisitor {
+        private static final String PATTERN_DESCRIPTOR = 'Ljakarta/validation/constraints/Pattern;'
+        private final String mutation
+
+        FixtureMethodMutation(MethodVisitor delegate, String mutation) {
+            super(Opcodes.ASM9, delegate)
+            this.mutation = mutation
+        }
+
+        @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+            boolean converter = annotation.endsWith('GeneratedInput$Converter;')
+            boolean selection = annotation.endsWith('GeneratedInput$Selection;')
+            if (converter && mutation == 'association-strip' || selection && mutation == 'selection-strip') {
+                return null
+            }
+            def original = super.visitAnnotation(annotation, visible)
+            if (converter) {
+                return new ConverterAssociationMutation(original, mutation)
+            }
+            if (annotation.endsWith('GeneratedInput$Field;') && mutation == 'completeness-strip') {
+                return withoutConverterCount(original)
+            }
+            original
+        }
+
+        private static AnnotationVisitor withoutConverterCount(AnnotationVisitor original) {
+            new AnnotationVisitor(Opcodes.ASM9, original) {
+                @Override void visit(String key, Object value) {
+                    if (key != 'converterCount') {
+                        super.visit(key, value)
+                    }
+                }
+            }
+        }
+
+        @Override AnnotationVisitor visitParameterAnnotation(int index, String annotation, boolean visible) {
+            if (annotation == PATTERN_DESCRIPTOR) {
+                if (mutation == 'domain-pattern-strip') {
+                    return null
+                }
+                addExtraPatternAnnotations(index, visible)
+            }
+            def original = super.visitParameterAnnotation(index, annotation, visible)
+            new ParameterMemberMutation(original, mutation, annotation == PATTERN_DESCRIPTOR)
+        }
+
+        private void addExtraPatternAnnotations(int index, boolean visible) {
+            if (mutation == 'domain-pattern-duplicate') {
+                def duplicate = super.visitParameterAnnotation(index, PATTERN_DESCRIPTOR, visible)
+                duplicate.visit('regexp', '[0-9]{1,8}')
+                duplicate.visitEnd()
+            }
+            if (mutation == 'domain-container-invisible') {
+                def container = super.visitParameterAnnotation(index, 'Ljakarta/validation/constraints/Pattern$List;', false)
+                container.visitArray('value').visitEnd()
+                container.visitEnd()
+            }
+        }
+    }
+
+    private static class ConverterAssociationMutation extends AnnotationVisitor {
+        private final String mutation
+
+        ConverterAssociationMutation(AnnotationVisitor delegate, String mutation) {
+            super(Opcodes.ASM9, delegate)
+            this.mutation = mutation
+        }
+
+        @Override void visit(String key, Object value) {
+            if (mutation == 'association-missing' && key == 'owner') {
+                return
+            }
+            Object changed = mutatedValue(key, value)
+            super.visit(key, changed)
+            if (mutation == 'association-duplicate' && key == 'owner') {
+                super.visit(key, changed)
+            }
+        }
+
+        private Object mutatedValue(String key, Object value) {
+            switch (mutation) {
+                case 'association-owner': return key == 'owner' ? 'converterinput.Wrong' : value
+                case 'association-descriptor': return key == 'descriptor' ? '(Ljava/lang/String;)V' : value
+                case 'association-index': return key == 'parameter' ? 1 : value
+                default: return value
+            }
+        }
+    }
+
+    private static class ParameterMemberMutation extends AnnotationVisitor {
+        private final String mutation
+        private final boolean pattern
+
+        ParameterMemberMutation(AnnotationVisitor delegate, String mutation, boolean pattern) {
+            super(Opcodes.ASM9, delegate)
+            this.mutation = mutation
+            this.pattern = pattern
+        }
+
+        @Override void visit(String key, Object value) {
+            if (mutation == 'domain-regexp-strip' && key == 'regexp') {
+                return
+            }
+            if (mutation == 'domain-regexp-type' && key == 'regexp') {
+                value = 42
+            }
+            super.visit(key, value)
+        }
+
+        @Override void visitEnum(String key, String type, String value) {
+            if (mutation == 'domain-policy') {
+                value = 'INVALID'
+            }
+            super.visitEnum(key, type, value)
+        }
+
+        @Override void visitEnd() {
+            if (pattern) {
+                addInvalidPatternMembers()
+            }
+            super.visitEnd()
+        }
+
+        private void addInvalidPatternMembers() {
+            if (mutation == 'domain-missing-group') {
+                def groups = super.visitArray('groups')
+                groups.visit(null, Type.getType('Lconverterinput/MissingGroup;'))
+                groups.visitEnd()
+            }
+            if (mutation == 'domain-invalid-flag') {
+                def flags = super.visitArray('flags')
+                flags.visitEnum(null, 'Ljakarta/validation/constraints/Pattern$Flag;', 'INVALID')
+                flags.visitEnd()
+            }
+        }
     }
 
     private CompiledBuilderSchema.ConverterConstraints readFacts(File domain, String route) {
@@ -946,6 +1068,17 @@ class CompiledConverterInputTest extends Specification {
                 ? "public PortNumber($annotation String raw) { this.raw = raw; }"
                 : "public static PortNumber $route($annotation String raw) { return new PortNumber(raw); }"
         String constructor = route == 'constructor' ? '' : 'private PortNumber(String raw) { this.raw = raw; }'
+        String initialization = ''
+        if (trap) {
+            initialization = """
+                static {
+                    System.setProperty("$TRAP", "initialized");
+                    if (Boolean.parseBoolean("true")) {
+                        throw new IllegalStateException("domain initialized");
+                    }
+                }
+            """
+        }
         String source = """
             package converterinput;
             import jakarta.validation.constraints.Pattern;
@@ -955,7 +1088,7 @@ class CompiledConverterInputTest extends Specification {
             $extra
             public class PortNumber implements Payload {
                 public final String raw;
-                ${trap ? 'static { System.setProperty("' + TRAP + '", "initialized"); if (Boolean.parseBoolean("true")) throw new IllegalStateException("domain initialized"); }' : ''}
+                $initialization
                 $constructor
                 $executable
             }

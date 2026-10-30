@@ -53,7 +53,7 @@ final class StructuredInputConverter {
 
     private record Route(MethodNode source, MethodNode generated) { }
 
-    static void record(FieldNode field, MethodNode source, MethodNode generated) {
+    static void recordRoute(FieldNode field, MethodNode source, MethodNode generated) {
         Parameter[] parameters = source.getParameters();
         if (parameters.length != 1 || !ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType())) return;
         List<Route> routes = field.getNodeMetaData(ROUTES);

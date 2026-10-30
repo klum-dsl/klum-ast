@@ -256,7 +256,7 @@ class ConverterBuilder {
             }
         });
         MethodNode generated = method.addTo(builderClass);
-        StructuredInputConverter.record(fieldNode, sourceMethod, generated);
+        StructuredInputConverter.recordRoute(fieldNode, sourceMethod, generated);
     }
 
     private ProxyMethodBuilder createRuntimeProxyMethod() {

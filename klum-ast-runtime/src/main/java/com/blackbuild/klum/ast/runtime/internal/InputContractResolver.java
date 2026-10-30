@@ -287,7 +287,6 @@ final class InputContractResolver {
     private static void collectDeclarations(BuilderContext context,
                                             Map<String, Method> accessors, Map<String, List<Method>> selections,
                                             List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) {
-        Class<?> builder = context.builder();
         Metadata metadata = context.metadata();
         for (Method method : Arrays.stream(declaredMethods(context)).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
             Literals literal = metadata.methods().get(signature(method));
@@ -343,8 +342,12 @@ final class InputContractResolver {
         String source = context.model().getName() + "#" + field;
         Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
         ConverterConstraints converter = converter(context, field, fieldType, literal, methods);
-        String reason = converter == null ? fieldReason(fieldType, literal)
-                : literal.names().ignored() ? ignoreReason(literal.names()) : null;
+        String reason;
+        if (converter == null) {
+            reason = fieldReason(fieldType, literal);
+        } else {
+            reason = literal.names().ignored() ? ignoreReason(literal.names()) : null;
+        }
         if (reason != null) {
             rejections.add(new Rejection(source, reason));
             return;

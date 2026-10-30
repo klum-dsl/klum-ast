@@ -204,30 +204,45 @@ final class StructuredInputAdmissionPlan {
         Name name = externalName(field);
         enrichName(name, fact);
         Entry entry = entries.stream().filter(value -> value.source().equals(source(field))).findFirst().orElse(null);
-        if (entry != null && entry.fixedChildKey() != null) fact.setMember("fixedKey", ConstantExpression.TRUE);
-        if (entry != null && entry.role() == Role.OWNED_OBJECT) {
-            AnnotationNode options = annotation(field, Field.class.getName());
-            Expression provider = options == null ? null : options.getMember("key");
-            boolean schemaKey = entry.fixedChildKey() != null || provider != null
-                    && (!(provider instanceof ClassExpression type) || !type.getType().getName().equals(Undefined.class.getName()));
-            fact.setMember("schemaKey", new ConstantExpression(schemaKey));
+        enrichChildKey(field, entry, fact);
+        if (rejection != null && !name.ignored()) {
+            enrichFieldExclusion(field, rejection, fact);
         }
-        if (rejection != null && !name.ignored()) enrichFieldExclusion(field, rejection, fact);
         StructuredInputConstraintMetadata.enrichField(field, fact);
+        enrichConverter(field, entry, name, fact);
+        accessor.addAnnotation(fact);
+        if (entry != null) {
+            enrichSelection(builder, field, entry);
+        }
+    }
+
+    private static void enrichChildKey(FieldNode field, Entry entry, AnnotationNode fact) {
+        if (entry == null) return;
+        if (entry.fixedChildKey() != null) {
+            fact.setMember("fixedKey", ConstantExpression.TRUE);
+        }
+        if (entry.role() != Role.OWNED_OBJECT) return;
+
+        AnnotationNode options = annotation(field, Field.class.getName());
+        Expression provider = options == null ? null : options.getMember("key");
+        boolean schemaKey = entry.fixedChildKey() != null || provider != null
+                && (!(provider instanceof ClassExpression type) || !type.getType().getName().equals(Undefined.class.getName()));
+        fact.setMember("schemaKey", new ConstantExpression(schemaKey));
+    }
+
+    private static void enrichConverter(FieldNode field, Entry entry, Name name, AnnotationNode fact) {
         MethodNode converter = StructuredInputConverter.selected(field);
         fact.setMember("converterCount", new ConstantExpression(converter == null ? 0 : 1));
-        if (converter != null) {
-            StructuredInputConverter.enrich(field, converter);
-            if (entry == null && name.ignored()) {
-                // Exclusion cannot hide malformed paired-domain facts from consumers.
-                AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-                selected.setMember("field", new ConstantExpression(field.getName()));
-                selected.setMember("role", new ConstantExpression(Role.PROPERTY.name()));
-                converter.addAnnotation(selected);
-            }
+        if (converter == null) return;
+
+        StructuredInputConverter.enrich(field, converter);
+        if (entry == null && name.ignored()) {
+            // Exclusion cannot hide malformed paired-domain facts from consumers.
+            AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
+            selected.setMember("field", new ConstantExpression(field.getName()));
+            selected.setMember("role", new ConstantExpression(Role.PROPERTY.name()));
+            converter.addAnnotation(selected);
         }
-        accessor.addAnnotation(fact);
-        if (entry != null) enrichSelection(builder, field, entry);
     }
 
     /**
