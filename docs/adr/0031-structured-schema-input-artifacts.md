@@ -31,6 +31,9 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
+Review-only extension, 2026-10-30: [#981 compiled converter parameters](#compiled-converter-parameter-extension--981)
+records the confirmed authority boundary and a proposed two-slice implementation. It changes no current admission or output.
+
 
 ## SCHEMA-GRADLE delivery — 2026-10-23
 
@@ -1111,3 +1114,49 @@ origins and retain each composing rule's outer declaration. Consumers reject mis
 suppression or execution/output replacement. The shared development marker remains 1; matching tools and recompilation
 are required. [Implementation and qualification](../implementation/issue-959-composed-constraints.md) record the evidence.
 Related: #959; no closure, milestone change or new release gate.
+
+## Compiled converter parameter extension — #981
+
+Date: 2026-10-30. Status: **Confirmed authority boundary; implementation plan proposed for review, not implemented**.
+Authority: [#981](https://github.com/klum-dsl/klum-ast/issues/981) and the completed effective-contract probe at
+`58fbbc4697eb97a8b037080ea90e1ea252f17a11`, on `codex/issue-981-effective-probe`.
+The [two-slice plan](../implementation/issue-981-converter-projection-plan.md) pins its report/tests and acceptance gates.
+This extends this ADR's admission and irreducible-enrichment seams; a separate architecture or metadata protocol is unnecessary.
+
+For this bounded route, the exact selected **compiled non-DSL converter parameter** owns supported effective constraint
+facts and `ConstraintProjection`. Direct source spelling versus an equivalent compiler-collected form is intentionally
+not recovered. This supersedes the earlier #981 direct-origin feasibility stop only; #959 ordinary-field direct/composing
+origin rules and existing output remain unchanged. The public Builder owns field association and compiler selection;
+the paired domain artifact owns the selected parameter. Neither artifact alone establishes the whole input contract.
+
+Source-free means no user-code execution. Controlled, statically bound, non-initializing resolution may identify the exact
+public constructor/static method and its closed annotation vocabulary. Dynamic Groovy Class dispatch is forbidden on
+this inspection path. Selected declaration bytes may supply inert facts; no hidden Schema implementation, arbitrary
+annotation hierarchy, validator, constructor/converter body, default, lifecycle or static initialization is inspected or
+executed. This is a narrow extension of S1's Builder-only fact boundary, not a fallback for missing Builder metadata.
+Missing types/linkage, malformed facts and ambiguous selection fail closed before suppression or output replacement.
+
+The proposed first route is one unambiguous declared public String constructor (already opted in) or declared public
+static String-to-exact-domain converter already exposed by the compiler. The ordinary non-DSL field's effective external
+member accepts a String scalar, with no Number-to-String coercion and no nested parameter/domain definition. The field
+retains naming, exclusion, ordinary documentation, examples and deprecation. The selected parameter owns constraint
+output policy: default PROJECT, TEXT_ONLY or OMIT; field policy does not override that parameter's rules. No parameter
+Jakarta annotations are copied to Builder methods and no runtime enforcement follows (#971).
+
+First hard eligibility is one effective singleton Jakarta Pattern with empty flags/groups/payload and a qualified exact
+regexp mapping. The current finite recognizer is reused first. A second slice proposes a small syntax extension for the
+qualified memory fixture, with a structural equivalence argument and independent Java-full-match/ECMA/Draft-2020-12
+checks of actual emitted output. The probe qualifies that fixture, not every expression using its operators. New syntax
+cannot ship before those checks; no approximation, reduced memory language or Kubernetes-specific mapping is accepted.
+The extension initially applies only to this converter route, preserving #959 field projection behavior.
+
+Match compiler/runtime/plugin and participating domain/Schema artifacts; recompile Schema hierarchies after converter
+contract changes. Keep the existing development protocol marker, with explicit required facts and recompilation errors;
+add no historical/mixed-toolchain decoder, stale-JAR detector or artifact-integrity promise. Generated linkage changes
+must preserve existing callable signatures, lifecycle, ownership, completed-model serialization and JPMS boundaries.
+No new public descriptor API, module, dependency, SPI, task flag or release placement is proposed.
+
+General converters/factories, overloaded/default/bridge/generic/varargs routes, inherited domain factories, collection/map
+and DSL conversions, custom/composed/repeated parameter constraints, Size, operation-parameter expansion and editor work
+(#987) remain outside these slices. Non-overridden binary Schema inheritance is included. Review acceptance and a separate
+implementation assignment remain necessary; this documentation does not claim feature completion or ScHelm acceptance.
