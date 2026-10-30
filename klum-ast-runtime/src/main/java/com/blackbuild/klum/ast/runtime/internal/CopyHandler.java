@@ -123,15 +123,17 @@ public class CopyHandler {
         if (name.startsWith("$")) return;
         if (name.startsWith("@")) return;
 
-        Optional<Field> optionalField = DslHelper.getField(target.getModelType(), name);
+        Optional<Field> modelField = DslHelper.getField(target.getModelType(), name);
+        Optional<Field> builderField = DslHelper.getField(target.getClass(), name)
+                .filter(field -> modelField.isPresent() || DslHelper.getKlumFieldType(field) == FieldType.BUILDER);
 
-        if (optionalField.isEmpty())
-            handleMissingFieldInTarget(name);
-        else {
-            Field targetField = optionalField.get();
+        if (builderField.isPresent()) {
+            // Keep Model relationship types and overwrite metadata; Builder-only inputs retain their own declaration.
+            Field targetField = modelField.orElseGet(builderField::get);
             if (isNotIgnored(targetField))
                 copyFromField(targetField);
-        }
+        } else if (modelField.isEmpty() && InvokerHelper.getMetaClass(target.getModelType()).getMetaProperty(name) == null)
+            handleMissingFieldInTarget(name);
     }
 
     private void handleMissingFieldInTarget(String name) {
