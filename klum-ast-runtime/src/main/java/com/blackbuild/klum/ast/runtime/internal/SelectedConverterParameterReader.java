@@ -60,6 +60,8 @@ final class SelectedConverterParameterReader {
     private static final String FLAG = "Ljakarta/validation/constraints/Pattern$Flag;";
     private static final String POLICY = "Lcom/blackbuild/klum/ast/ConstraintProjection;";
     private static final String POLICY_VALUE = "Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;";
+    private static final Set<String> GROUP_REDEFINITIONS = Set.of("Ljakarta/validation/GroupSequence;",
+            "Ljavax/validation/GroupSequence;", "Lorg/hibernate/validator/group/GroupSequenceProvider;");
     private static final Set<String> FLAGS = Set.of("UNIX_LINES", "CASE_INSENSITIVE", "COMMENTS", "MULTILINE",
             "DOTALL", "UNICODE_CASE", "CANON_EQ", "UNICODE_CHARACTER_CLASS");
     private final Map<Executable, ConverterConstraints> cache = new LinkedHashMap<>();
@@ -84,7 +86,7 @@ final class SelectedConverterParameterReader {
                     throw invalid("Selected domain resource identity/access mismatch");
             }
             @Override public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                if (descriptor.equals("Ljakarta/validation/GroupSequence;")) facts.groupRedefined = true;
+                if (GROUP_REDEFINITIONS.contains(descriptor)) facts.groupRedefined = true;
                 return null;
             }
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {

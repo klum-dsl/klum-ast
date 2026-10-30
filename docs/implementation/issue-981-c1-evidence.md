@@ -54,3 +54,9 @@ Pattern.List API preflight, and incomplete negative/omitted-child coverage. Each
 binary method control additionally exposed Groovy's separate AST synthetic flag; eligibility now checks JVM access bits.
 The first root-check attempt crossed the local commit/version boundary and was deliberately stopped; it supplies no
 full-check success claim. The final full check uses the stable post-review code revision.
+
+A bounded follow-up specification check confirmed that all three existing group-redefinition marker identities belong
+to the conservative exclusion: Jakarta GroupSequence, legacy javax GroupSequence and Hibernate GroupSequenceProvider.
+The reader checks only those identities on the selected domain declaration, without loading providers or traversing
+annotation hierarchies. New binary marker controls and emitted-schema coverage pass. The pre-correction full-check run
+was stopped; final qualification follows this correction on an unchanged commit.

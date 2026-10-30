@@ -400,6 +400,24 @@ class CompiledConverterInputTest extends Specification {
         'closure collision' | ''      | 'public PortNumber(String v) {}'                   | ''                                                                                                                                         | 'constructor' | '@Field(converters=[{ String v -> new PortNumber(v) }])'
     }
 
+    def 'known domain group-redefinition identity disables hard eligibility without resolving providers: #marker'() {
+        given:
+        File original = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}")', true)
+        File domain = rewrite(original, 'converterinput/PortNumber.class', marker)
+
+        when:
+        def facts = readFacts(domain, 'fromString')
+
+        then:
+        facts.rules().size() == 1
+        facts.rules()[0].origin() == 'PARAMETER_UNSUPPORTED'
+        !facts.rules()[0].eligible()
+        System.getProperty(TRAP) == null
+
+        where:
+        marker << ['group-jakarta', 'group-javax', 'group-provider']
+    }
+
     def 'Pattern container API denial fails before #policy suppression'() {
         given:
         File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @Pattern(regexp="[A-Z]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')', true)
@@ -622,6 +640,24 @@ class CompiledConverterInputTest extends Specification {
     private static byte[] mutate(byte[] bytes, String mutation) {
         def writer = new ClassWriter(0)
         new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override void visitEnd() {
+                def markers = ['group-jakarta': 'Ljakarta/validation/GroupSequence;',
+                               'group-javax': 'Ljavax/validation/GroupSequence;',
+                               'group-provider': 'Lorg/hibernate/validator/group/GroupSequenceProvider;']
+                if (markers.containsKey(mutation)) {
+                    def annotation = super.visitAnnotation(markers[mutation], true)
+                    if (mutation == 'group-provider') {
+                        // Deliberately unavailable: the opaque marker must not resolve or execute a provider.
+                        annotation.visit('value', Type.getType('Lconverterinput/UnavailableProvider;'))
+                    } else {
+                        def values = annotation.visitArray('value')
+                        values.visit(null, Type.getType('Lconverterinput/PortNumber;'))
+                        values.visitEnd()
+                    }
+                    annotation.visitEnd()
+                }
+                super.visitEnd()
+            }
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 if (name == 'fromString' && mutation == 'domain-synthetic') access |= Opcodes.ACC_SYNTHETIC
                 if (name == 'fromString' && mutation == 'domain-bridge') access |= Opcodes.ACC_BRIDGE

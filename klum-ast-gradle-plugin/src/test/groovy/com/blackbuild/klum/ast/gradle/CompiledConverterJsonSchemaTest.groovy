@@ -76,6 +76,8 @@ class CompiledConverterJsonSchemaTest extends Specification {
         !fields.memory.containsKey('allOf')
         fields.flagged.description.contains('nonempty Pattern flags')
         !fields.flagged.containsKey('allOf')
+        !fields.'group-redefined'.containsKey('allOf')
+        fields.'group-redefined'.description.contains('group redefinition/sequence')
         !fields.containsKey('hidden')
         !schema.'$defs'.keySet().any { it.contains('PortNumber') || it.contains('FactoryPort') }
         !schema.'$defs'.'converterjson.Service_DSL$Builder'.containsKey('required')
@@ -146,6 +148,7 @@ project(':schema') { dependencies { implementation project(':domain'); implement
         domain('TextOnly', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY)')
         domain('Omitted', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)')
         domain('ChildOnly', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)')
+        domain('GroupRedefined', '@Pattern(regexp="[0-9]{1,8}")', '@GroupSequence({GroupRedefined.class})')
         domain('Absent', '')
         domain('Memory', '@Pattern(regexp="[0-9]+(?:\\\\.[0-9]+)?(?:[kMGTPE]|[KMGTPE]i)?")')
         domain('Flagged', '@Pattern(regexp="[0-9]{1,8}", flags=Pattern.Flag.CASE_INSENSITIVE)')
@@ -185,6 +188,7 @@ import jakarta.validation.constraints.Pattern
     @Converters(includeConstructors=true) Absent absent
     @Converters(includeConstructors=true) Memory memory
     @Converters(includeConstructors=true) Flagged flagged
+    @Converters(includeConstructors=true) GroupRedefined groupRedefined
     @InputIgnore @Converters(includeConstructors=true) PortNumber hidden
     Child child
     String calculated = { throw new AssertionError('initializer executed') }()
@@ -213,14 +217,16 @@ tasks.register('initializationControl', JavaExec) {
 """)
     }
 
-    private void domain(String name, String annotations) {
+    private void domain(String name, String annotations, String classAnnotation = '') {
         write(producer, "domain/src/main/java/converterjson/${name}.java", """
 package converterjson;
 import com.blackbuild.klum.ast.ConstraintProjection;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.GroupSequence;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.IOException;
+$classAnnotation
 public class $name {
     static {
         try { Files.writeString(Path.of(${quote(new File(directory, 'executed').path).replace("'", '"')}), "domain"); }
