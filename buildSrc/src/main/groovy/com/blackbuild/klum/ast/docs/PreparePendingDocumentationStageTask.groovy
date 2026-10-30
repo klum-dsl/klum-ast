@@ -48,6 +48,7 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
     @Input abstract Property<String> getStage()
     @Input abstract Property<String> getExpectedVersion()
     @Input abstract Property<String> getExpectedRevision()
+    @Input abstract Property<String> getSourceBranch()
     @Input abstract Property<String> getNebulaVersion()
     @InputDirectory abstract DirectoryProperty getObjectDirectory()
     @InputDirectory abstract DirectoryProperty getRenderedDocumentationDirectory()
@@ -59,7 +60,7 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
         String version = expectedVersion.get()
         String revision = expectedRevision.get()
         File repository = objectDirectory.get().asFile
-        validateIdentity(repository, releaseStage, version, revision, nebulaVersion.get())
+        validateIdentity(repository, releaseStage, version, revision, nebulaVersion.get(), sourceBranch.get())
 
         Map<String, Object> handoff = validateRenderedManifest(renderedDocumentationDirectory.get().asFile, releaseStage, version, revision)
         File output = handoffFile.get().asFile
@@ -92,7 +93,7 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
         handoff
     }
 
-    static void validateIdentity(File repository, String stage, String version, String revision, String nebulaVersion) {
+    static void validateIdentity(File repository, String stage, String version, String revision, String nebulaVersion, String sourceBranch) {
         if (!(stage in ['candidate', 'final']))
             fail("Pending documentation stage must be candidate or final: $stage")
         if (!(revision ==~ /[0-9a-f]{40}/))
@@ -101,6 +102,9 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
             fail("Candidate pending documentation requires X.Y.Z-rc.N: $version")
         if (stage == 'final' && !(version ==~ /\d+\.\d+\.\d+/))
             fail("Final pending documentation requires X.Y.Z: $version")
+        String maintenanceBranch = "release/${version.tokenize('.')[0..1].join('.')}.x"
+        if (!(sourceBranch in ['master', maintenanceBranch]))
+            fail("Pending documentation source branch must be master or $maintenanceBranch: $sourceBranch")
         if (nebulaVersion != version)
             fail("Nebula version $nebulaVersion does not match pending documentation version $version")
         if (git(repository, ['status', '--porcelain']).trim())
@@ -109,7 +113,7 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
             fail("Pending documentation revision must resolve to its supplied full SHA: $revision")
         if (git(repository, ['rev-parse', 'HEAD']).trim() != revision)
             fail('Pending documentation must render the checked-out requested revision')
-        git(repository, ['merge-base', '--is-ancestor', revision, 'origin/master'])
+        git(repository, ['merge-base', '--is-ancestor', revision, "origin/$sourceBranch"])
     }
 
     private static String git(File directory, List<String> arguments) {
