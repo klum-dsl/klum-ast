@@ -80,6 +80,7 @@ def pendingDocumentationHandoff = tasks.register('preparePendingDocumentationSta
     stage.set(documentationReleaseStage)
     expectedVersion.set(documentationExpectedVersion)
     expectedRevision.set(documentationExpectedRevision)
+    sourceBranch.set(providers.gradleProperty('documentationSourceBranch'))
     nebulaVersion.set(providers.provider { version.toString() })
     objectDirectory.set(layout.projectDirectory)
     renderedDocumentationDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))

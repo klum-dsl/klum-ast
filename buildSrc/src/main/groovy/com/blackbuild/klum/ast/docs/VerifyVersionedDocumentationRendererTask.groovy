@@ -257,24 +257,24 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         }
         git(fixture, ['checkout', '--detach', revision])
         git(fixture, ['update-ref', 'refs/remotes/origin/master', revision])
-        PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+        PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1', 'master')
         assertTrue(PreparePendingDocumentationStageTask.validateRenderedManifest(pending, 'candidate', '4.0.0-rc.1', revision).exactPath ==
                 "pending/4.0.0-rc.1/$revision/", 'pending handoff must bind stage, version, and SHA to its immutable path')
         expectFailure('missing pending site manifest') {
             PreparePendingDocumentationStageTask.validateRenderedManifest(new File(outputs, 'missing-pending-manifest'), 'candidate', '4.0.0-rc.1', revision)
         }
         expectFailure('malformed pending stage') {
-            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'preview', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'preview', '4.0.0-rc.1', revision, '4.0.0-rc.1', 'master')
         }
         expectFailure('malformed pending SHA') {
-            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', 'A' * 40, '4.0.0-rc.1')
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', 'A' * 40, '4.0.0-rc.1', 'master')
         }
         expectFailure('pending stage/version mismatch') {
-            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0', revision, '4.0.0')
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0', revision, '4.0.0', 'master')
         }
         expectFailure('pending off-master revision') {
             VerifyVersionedDocumentationRendererTask.git(fixture, ['update-ref', '-d', 'refs/remotes/origin/master'])
-            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1', 'master')
         }
         git(fixture, ['update-ref', 'refs/remotes/origin/master', revision])
 
@@ -513,6 +513,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'pending Pages must derive the only allowed maintenance line from the exact release version')
         assertContains(pagesWorkflow, 'git merge-base --is-ancestor "$EXPECTED_COMMIT" "origin/$SOURCE_BRANCH"',
                 'pending Pages must bind the exact source SHA to its allowed source line')
+        assertContains(pagesWorkflow, '"-PdocumentationSourceBranch=$SOURCE_BRANCH"',
+                'pending documentation must pass the selected source branch into the Gradle identity gate')
+        String pendingRenderStep = pagesWorkflow.substring(pagesWorkflow.indexOf('      - name: Render and validate the immutable pending snapshot'),
+                pagesWorkflow.indexOf('      - id: handoff'))
+        assertContains(pendingRenderStep, 'SOURCE_BRANCH: ${{ github.ref_name }}',
+                'the pending render must bind its source branch to the protected dispatch ref')
         String releaseWorkflow = new File(repositoryDirectory.get().asFile, '.github/workflows/release.yml').text
         assertContains(releaseWorkflow, 'name: "REL-1: Publish protected release"',
                 'protected publication must retain the manually dispatched REL-1 display name')
