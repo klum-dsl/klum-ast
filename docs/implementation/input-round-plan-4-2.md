@@ -226,6 +226,9 @@ not an alternative for early callbacks. No generic reference, merge, naming or Y
   only; no hidden implementation inspection, generic discovery, source/mirror fallback or new runtime dependencies.
 - Runtime: ordinary Groovy versus structured traces for lifecycle, key/owner attachment, exceptions, Template recipes,
   active-session/thread/sealed restrictions and partial failure. Do not use only “did not throw” assertions.
+- Serialization: preserve completed-Model and Template/recipe serialization and existing identity behavior. S6 retains
+  the applicable existing serialization regressions; it adds no serialized Builder, importer or execution-plan state,
+  persistence format or import/export round-trip promise.
 - Tooling: validate actual emitted Draft 2020-12 output and accepted/rejected instances independently. Preserve explicit
   roots/classpath, isolated closeable loaders, cache/configuration-cache/relocation and stale-output controls where affected.
 - Every future new test has driving `@Issue` (normally #952 or #953 by slice), `Test` class suffix; each user-visible

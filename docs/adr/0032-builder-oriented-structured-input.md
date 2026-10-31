@@ -204,6 +204,9 @@ the same language, automatic JSON Schema validation, a round trip, or Jackson de
 - Generated metadata remains ABI: preserve callable signatures, require complete selection facts, retain binary
   inheritance and exact dispatch checks, and qualify matched compiler/runtime/plugin/domain/Schema artifacts on
   Groovy 3/4/5 and applicable JPMS lanes. No old carrier decoder or mixed-toolchain promise is introduced.
+- Preserve completed-Model and Template serialization, including existing recipe state and identity semantics. No
+  Builder, input execution plan or importer state becomes serialized; no new persistence or import/export round trip
+  follows. Retain applicable serialization regression coverage when adding structured Template construction.
 - The reader, resolver, immutable compiled schema and closed projection catalog keep their existing responsibilities.
   No public descriptor API, registry, plugin SPI, parser dependency or new module is justified by this plan.
 - Template construction and conditional DSL conversion reuse existing ownership/lifecycle machinery. Synthetic closures,
