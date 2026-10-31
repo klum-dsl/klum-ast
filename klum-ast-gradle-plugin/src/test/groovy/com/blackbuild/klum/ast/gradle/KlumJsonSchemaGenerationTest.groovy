@@ -39,6 +39,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.See
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Tag
 import spock.lang.TempDir
@@ -47,6 +48,9 @@ import spock.lang.TempDir
 class KlumJsonSchemaGenerationTest extends Specification {
     private static final String DOCUMENTARY_TEXT = 'a "quoted" \\path\nMünchen 😀'
     @TempDir File directory
+    @Shared @TempDir File patternCache
+    @Shared String patternTrapPath
+    int producerRunnerCalls
     File consumer
     File producer
     File repository
@@ -369,10 +373,46 @@ tasks.register('exampleControl', JavaExec) {
         generation << ['3', '4', '5']
     }
 
-    @Issue('959')
+    @Issue('895')
+    def 'Pattern producer fixture is shared while destructive copies and traps remain private'() {
+        given:
+        File root = directory
+        directory = new File(root, 'first')
+        patternCorruptionFixture()
+        File firstRepository = repository
+        File firstTrap = trap
+        File firstJar = new File(firstRepository, 'fixture/schema/1.0/schema-1.0.jar')
+        byte[] firstBytes = firstJar.bytes
+        File cachedJar = new File(patternCache, 'fixture/schema/1.0/schema-1.0.jar')
+        byte[] cachedBytes = cachedJar.bytes
+        int callsAfterFirst = producerRunnerCalls
+
+        when:
+        directory = new File(root, 'second')
+        patternCorruptionFixture()
+        File secondJar = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
+        firstJar.bytes = [1, 2, 3] as byte[]
+        def control = runner(consumer, 'patternInitializeControl').buildAndFail()
+        directory = new File(root, 'third')
+        patternCorruptionFixture()
+        File thirdJar = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
+
+        then:
+        producerRunnerCalls == callsAfterFirst
+        secondJar.bytes != firstJar.bytes
+        new JarFile(thirdJar).withCloseable { it.getEntry('example/Release.class') != null }
+        cachedJar.bytes == cachedBytes
+        firstBytes.length > 3
+        control.output.contains('Pattern Schema initialized')
+        new File(root, 'second/schema-executed').text == 'initialized'
+        !firstTrap.exists()
+        !trap.exists()
+    }
+
+    @Issue(['959', '895'])
     def 'corrupt Pattern facts fail both consumers atomically: #target #selectedField #kind'() {
         given:
-        fixture('3', false, false, false, false, false, false, false, false, true)
+        patternCorruptionFixture()
         new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.Release'])\n")
         run('generateKlumJsonSchema')
         byte[] previous = output('example.Release').bytes
@@ -1789,17 +1829,101 @@ import com.blackbuild.klum.ast.DSL
         !trap.exists()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false) {
-        packagedPlugin = generation == '5'
+    private void patternCorruptionFixture() {
+        synchronized (patternCache) {
+            if (patternTrapPath == null) {
+                fixture('3', false, false, false, false, false, false, false, false, true)
+                patternTrapPath = trap.absolutePath
+                copyTree(repository, patternCache)
+                return
+            }
+            packagedPlugin = false
+            initializeFixtureDirectories()
+            copyTree(patternCache, repository)
+            Set<String> rewritten = [] as Set
+            ['api', 'owned', 'schema'].each { artifact ->
+                specializeTrap(artifact, patternTrapPath, rewritten)
+            }
+            assert rewritten.containsAll(['example/Deployment.class', 'example/Release.class']):
+                    'Every Pattern fixture initialization trap must be private to the scenario'
+            writeConsumer('3', false, true)
+        }
+    }
+
+    private void specializeTrap(String artifact, String originalTrapPath, Set<String> rewritten) {
+        File jar = new File(repository, "fixture/$artifact/1.0/$artifact-1.0.jar")
+        File replacement = new File(directory, "$artifact-trap.jar")
+        int[] replacements = [0] as int[]
+        new JarFile(jar).withCloseable { input ->
+            new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
+                input.entries().each { entry ->
+                    byte[] bytes = specializeTrapEntry(input, entry, originalTrapPath, replacements, rewritten)
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        jar.bytes = replacement.bytes
+    }
+
+    private byte[] specializeTrapEntry(JarFile input, JarEntry entry, String originalTrapPath, int[] replacements, Set<String> rewritten) {
+        byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+        if (!entry.name.endsWith('.class')) {
+            return bytes
+        }
+        int before = replacements[0]
+        bytes = specializeTrapClass(bytes, originalTrapPath, replacements)
+        if (replacements[0] > before) {
+            rewritten.add(entry.name)
+        }
+        bytes
+    }
+
+    private byte[] specializeTrapClass(byte[] bytes, String originalTrapPath, int[] replacements) {
+        ClassWriter writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                    @Override void visitLdcInsn(Object value) {
+                        if (value == originalTrapPath) {
+                            replacements[0]++
+                            value = trap.absolutePath
+                        }
+                        super.visitLdcInsn(value)
+                    }
+                }
+            }
+        }, 0)
+        writer.toByteArray()
+    }
+
+    private static void copyTree(File source, File destination) {
+        source.eachFileRecurse { file ->
+            File target = new File(destination, source.toPath().relativize(file.toPath()).toString())
+            if (file.isDirectory()) {
+                target.mkdirs()
+            } else {
+                target.parentFile.mkdirs()
+                Files.copy(file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+    }
+
+    private void initializeFixtureDirectories() {
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
         repository = new File(directory, 'repository')
         trap = new File(directory, 'schema-executed')
         producer.mkdirs()
         consumer.mkdirs()
+    }
+
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false) {
+        packagedPlugin = generation == '5'
+        initializeFixtureDirectories()
         String groovy = notation(System.getProperty("gdslGroovy$generation"))
         String compiler = classpath(System.getProperty('gdslCompilerClasspath'))
-        String runtime = classpath(System.getProperty('gdslRuntimeClasspath'))
         new File(producer, 'settings.gradle').text = "include 'api', 'schema'" + (naming || patterns ? ", 'owned'" : '')
         new File(producer, 'build.gradle').text = """
 subprojects {
@@ -2155,6 +2279,12 @@ import java.lang.annotation.*
             new File(producer, 'owned/src').deleteDir()
             new File(producer, 'owned/build/classes').deleteDir()
         }
+        writeConsumer(generation, defaults, patterns)
+    }
+
+    private void writeConsumer(String generation, boolean defaults, boolean patterns) {
+        String groovy = notation(System.getProperty("gdslGroovy$generation"))
+        String runtime = classpath(System.getProperty('gdslRuntimeClasspath'))
         new File(consumer, 'settings.gradle').text = "rootProject.name = 'schema-consumer'"
         new File(consumer, 'build.gradle').text = """
 plugins { id 'com.blackbuild.klum-ast-schema' }
@@ -3007,6 +3137,9 @@ class InitializationControl {
     private static String classpath(String value) { value.split(File.pathSeparator).collect { notation(it) }.join(', ') }
     private def run(String... arguments) { runner(consumer, arguments).build() }
     private GradleRunner runner(File project, String... arguments) {
+        if (project == producer) {
+            producerRunnerCalls++
+        }
         GradleRunner result = GradleRunner.create().withProjectDir(project)
         if (packagedPlugin) {
             Properties metadata = new Properties()
