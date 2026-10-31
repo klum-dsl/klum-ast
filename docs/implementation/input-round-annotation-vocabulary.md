@@ -4,13 +4,12 @@ Date: 2026-10-31. Status: **Accepted `Struct.*` vocabulary; V0 implements the di
 Addition to [INPUT-ROUND-PLAN](input-round-plan-4-2.md) and
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md). Source baseline remains
 `0c6f401b2a561a7767eca369f5aacab33dad0962`; preceding planning head was
-`3ac43c82e54e2a054aa96a28249d8ff13f73113a`. This audit changes no runtime, compiler, annotations or release placement.
+`3ac43c82e54e2a054aa96a28249d8ff13f73113a`. The original audit was planning only; V0 implements the accepted rename without changing release placement.
 
-## Actual vocabulary and release exposure
+## Pre-V0 vocabulary and release exposure
 
-All six author-facing annotations below are top-level types in `com.blackbuild.klum.ast`, declared in
-[`klum-ast-annotations`](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast). Each is `@Documented` and has
-RUNTIME retention. None of the six is marked deprecated. The source inventory is distinct from the accepted, not-yet-implemented names.
+At the audited baseline, all six author-facing annotations below were top-level types in `com.blackbuild.klum.ast`, declared in
+[`klum-ast-annotations`](../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast). Each was `@Documented` with RUNTIME retention and none was deprecated. The table records the historical source inventory; V0 replaces these names with the accepted nested types.
 
 | Actual annotation | Actual targets and values | Meaning retained by any consolidation | Introduction commit |
 | --- | --- | --- | --- |
@@ -116,10 +115,10 @@ semantics. Do not retain the old names as deprecated aliases or add dual-spellin
 machinery. The maintainer's usage confirmation removes the earlier migration-policy and exposure-inventory gates.
 
 The mechanical implementation still changes type identities: `InputName` becomes `Struct$Name`, and the policy/profile
-enums acquire nested binary names. Update recognition and references consistently. `BuilderContractReader` currently
-accepts the exact `ConstraintProjection$Policy` descriptor in generated field facts; `SelectedConverterParameterReader`
-names the old annotation and enum descriptors; `GeneratedInput.Field.constraintProjection()` returns the old enum type.
-Update those references and regenerate/recompile the internal qualification fixtures with the matching tools. This is
+enums acquire nested binary names. V0 updates recognition and references consistently: `BuilderContractReader` accepts
+the `Struct$ConstraintProjection$Policy` descriptor, `SelectedConverterParameterReader` uses the nested annotation and
+enum descriptors, and `GeneratedInput.Field.constraintProjection()` returns the nested enum. Internal qualification
+fixtures must be recompiled with matching tools. This is
 ordinary verification of the direct rename, not an old/new binary compatibility promise or a migration project. Other
 normalized literal facts need not be redesigned merely because author spellings change.
 

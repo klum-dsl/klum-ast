@@ -171,7 +171,7 @@ inspection/generation; structural validity never guarantees materialization or r
 projection is later work. Retain the already qualified #959 mappings and #981 C1 parameter facts without transferring
 them to a different selected operation or making parameter enforcement (#971) a prerequisite for admission.
 
-`InputExamples` remains documentary strings, not parsed/typed examples. Unsupported structure must not be published as
+`Struct.Examples` remains documentary strings, not parsed/typed examples. Unsupported structure must not be published as
 an unrestricted object: omit compiler-excluded operations with diagnostics; fail generation for admitted shapes without
 a truthful representation. Preserve all-or-nothing output replacement and warn consumers through documentation that
 retained previous output is not evidence of fresh successful generation.

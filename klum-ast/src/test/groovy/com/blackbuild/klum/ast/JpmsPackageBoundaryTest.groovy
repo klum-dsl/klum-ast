@@ -678,8 +678,26 @@ class JpmsPackageBoundaryTest extends Specification {
                     Method fixedKey = slot.getClass().getDeclaredMethod("fixedChildKey");
                     if (!fixedKey.trySetAccessible())
                         throw new IllegalStateException("Cannot read the private fixed child key fact");
+                    Method profiles = contract.getDeclaredMethod("constraintProfiles");
+                    if (!profiles.trySetAccessible())
+                        throw new IllegalStateException("Cannot read constraint profiles");
+                    Map<?, ?> profileMap = (Map<?, ?>) profiles.invoke(plan);
+                    Object policy = null;
+                    for (Object profile : profileMap.values()) {
+                        Method fields = profile.getClass().getDeclaredMethod("fields");
+                        if (!fields.trySetAccessible())
+                            throw new IllegalStateException("Cannot read field constraints");
+                        Object capacity = ((Map<?, ?>) fields.invoke(profile)).get("capacity");
+                        if (capacity != null) {
+                            Method policyMethod = capacity.getClass().getDeclaredMethod("policy");
+                            if (!policyMethod.trySetAccessible())
+                                throw new IllegalStateException("Cannot read constraint policy");
+                            policy = policyMethod.invoke(capacity);
+                        }
+                    }
                     return "RUNTIME_READER:" + facts.keySet()
-                            + "\\nFIXED_CHILD_KEY:" + fixedKey.invoke(slot);
+                            + "\\nFIXED_CHILD_KEY:" + fixedKey.invoke(slot)
+                            + "\\nCONSTRAINT_POLICY:" + policy;
                 }
             }
         '''.stripIndent())
@@ -739,6 +757,7 @@ class JpmsPackageBoundaryTest extends Specification {
         assert extraction.exitCode == 0 : extraction.output
         assert extraction.output.contains('RUNTIME_READER:')
         assert extraction.output.contains('FIXED_CHILD_KEY:slot')
+        assert extraction.output.contains('CONSTRAINT_POLICY:TEXT_ONLY')
     }
 
     private static ProcessResult execute(List<String> command, Path output) {
@@ -761,6 +780,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.schema
 
             import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.Struct
             import com.blackbuild.klum.ast.runtime.KlumModelException
             import com.blackbuild.klum.ast.DSL
             import com.blackbuild.klum.ast.layer3.Cluster
@@ -798,11 +818,12 @@ class JpmsPackageBoundaryTest extends Specification {
             class Station {
                 static final List<String> EVENTS = []
 
-                String name = 'North'
+                @Struct.Name('station-name') String name = 'North'
                 StationSlot slot
                 @Cluster(fixedKeys = true) Map<String, StationSlot> getSlots() {}
 
                 @Min(1L)
+                @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY)
                 int capacity = 4
 
                 @PostCreate
@@ -1041,7 +1062,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (KlumSchemaSupport.klumValidationForObject(station).getFailLevel() != Validate.Level.ERROR)
                         throw new AssertionError("Named Java consumer could not access the validation reporter");
                     Station structured = KlumStructuredInput.readRoot(Station.class, null,
-                            Map.of("name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
+                            Map.of("station-name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
                     if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
                             || !"slot".equals(structured.getSlot().getName()))
                         throw new AssertionError("Named Java structured-input consumer did not link or populate");
@@ -1158,7 +1179,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
                     assert station.capacity == 4
-                    Station structured = KlumStructuredInput.readRoot(Station, null, [name: 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
+                    Station structured = KlumStructuredInput.readRoot(Station, null, ['station-name': 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
                     assert structured.name == 'Structured static'
                     assert structured.capacity == 6
                     assert structured.slot.name == 'slot'
@@ -1169,7 +1190,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     assert keyed.slots.get('outer').name == 'outer'
                     Station applied = Station.Create.With {
                         Station_DSL.Builder<Station> builder = (Station_DSL.Builder<Station>) delegate
-                        Station_DSL.Builder<Station> same = KlumStructuredInput.applyToBuilder(builder, [name: 'Active static', slot: [description: 'active']], 'station.json')
+                        Station_DSL.Builder<Station> same = KlumStructuredInput.applyToBuilder(builder, ['station-name': 'Active static', slot: [description: 'active']], 'station.json')
                         assert same.is(builder)
                     }
                     assert applied.name == 'Active static'

@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
-import com.blackbuild.klum.ast.Struct;
+import com.blackbuild.klum.ast.Struct.Examples;
 import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -43,7 +43,7 @@ final class StructuredInputExamples {
     private StructuredInputExamples() { }
 
     static void enrich(AnnotatedNode source, ClassNode owner, AnnotationNode fact, String identity) {
-        List<AnnotationNode> annotations = source.getAnnotations(ClassHelper.make(Struct.Examples.class));
+        List<AnnotationNode> annotations = source.getAnnotations(ClassHelper.make(Examples.class));
         ListExpression values = new ListExpression();
         if (!annotations.isEmpty()) {
             Expression value = annotations.get(0).getMember("value");

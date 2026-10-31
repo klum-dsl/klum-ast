@@ -1,7 +1,7 @@
 # INPUT-ROUND-PLAN — 4.2 structured-input implementation plan
 
 Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
-No production implementation or new execution qualification is claimed. See
+This plan records the accepted design; V0 has since implemented the vocabulary rename. No further execution qualification is claimed. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
@@ -91,7 +91,7 @@ This is the proposed documentation content model. “Accepted” means planned i
 | CollectionFactory scope | No | Bounded 4.2 F2 feasibility only; existing closed alternatives and key contracts, not generic subtype selection. |
 | One-Map NamedParams/NamedParam shape | Ordinary typed Map only | Later contained L2: declared keys and proven required/type facts only. |
 | Owned DSL List/Set, custom key mapping | No | Deferred/conditional R1 revisit after higher-tier acceptance. |
-| Descriptions and documentary InputExamples strings | Yes | Retain; do not parse examples or infer enforceable defaults. |
+| Descriptions and documentary Struct.Examples strings | Yes | Retain; do not parse examples or infer enforceable defaults. |
 | Managed Jackson | Independent supported path | ADR 0009 mapper/property semantics; generated input schema does not describe Jackson/export. |
 
 ## Ordered slices and owners
@@ -208,7 +208,7 @@ rather than treating that count as a permanent product contract.
 | Duration uses CharSequence | S3b proves an existing Builder route; a library method alone is insufficient evidence of projection. |
 | Relationship-specific partition defaults differ (8, 2, 4) | Keep truthful prose; no default execution or generalized contextual-default engine. |
 | Filename-keyed bodies differ from self-contained roots | S7 is explicit; consumer supplies identity. Current three roots are unkeyed, so no present modeline defect is asserted. |
-| InputExamples are documentary strings | Check emitted strings and documentation; do not promise typed object/number examples or validate them as input. |
+| Struct.Examples are documentary strings | Check emitted strings and documentation; do not promise typed object/number examples or validate them as input. |
 
 Q1 adds bounded negative cases for unknown/excluded names, strict scalar/null/enum shape, all key authorities, nested
 first-failure order, and source/path attribution. Schema validation and runtime results are reported separately. Retain
