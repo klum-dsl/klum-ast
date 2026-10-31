@@ -54,7 +54,7 @@ previous successful output; it must not be mistaken for a successful fresh gener
 
 ## Type naming profiles
 
-Schema `@InputNaming(InputNaming.Profile.KEBAB_CASE)` selects the same resolved member names used by
+Schema `@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)` selects the same resolved member names used by
 [`KlumStructuredInput`](Structured-Input.md#type-naming-profiles). No task option or runtime overload selects naming.
 `IDENTITY` preserves native spelling and explicitly binds descendants too. First-child introduction, compatible repetition,
 conflicting choices, exact Jackson literals/exclusions and independently resolved owned types follow that shared contract.
@@ -63,7 +63,7 @@ conflicting choices, exact Jackson literals/exclusions and independently resolve
 
 ```groovy
 @DSL class ServiceBase { String displayName }
-@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
 @DSL class Service extends ServiceBase { String serviceName }
 // Generated closed properties: display-name, service-name.
 // Standalone ServiceBase still has displayName.
@@ -71,7 +71,7 @@ conflicting choices, exact Jackson literals/exclusions and independently resolve
 
 Properties include eligible authored-operation tokens and self-contained construction-key tokens. Data and instance keys
 stay literal; owned definitions use the owned type's hierarchy rather than the owner's profile. Literal nonempty
-`@InputName` or compatible `@JsonProperty` names override the profile; `@InputIgnore`/`@JsonIgnore` exclusions remain effective. The generator and interpreter share one resolver over public Builder facts;
+`@Struct.Name` or compatible `@JsonProperty` names override the profile; `@Struct.Ignore`/`@JsonIgnore` exclusions remain effective. The generator and interpreter share one resolver over public Builder facts;
 Model bytes, mapper strategies and annotation proxies do not provide naming facts.
 
 Conflicting explicit profiles, nonidentity member collisions and malformed/incomplete required metadata fail before
@@ -82,7 +82,7 @@ retain their native output. Recompile participating hierarchies and owned artifa
 
 ## Literal names and exclusion
 
-`@InputName` and `@InputIgnore` share the interpreter's [literal contract](Structured-Input.md#literal-names-and-exclusion).
+`@Struct.Name` and `@Struct.Ignore` share the interpreter's [literal contract](Structured-Input.md#literal-names-and-exclusion).
 Exact literals name eligible fields, construction-key members and admitted authored operations; ignored entries are absent
 from closed object properties. Equal Jackson literals coalesce, while contradictory names fail even on ignored sources.
 Neither annotation widens admission or changes runtime validation. Owned values resolve their own names; data Map keys
@@ -92,12 +92,12 @@ and keyed-instance identities remain literal.
 
 ```groovy
 @DSL class ServiceBase {
-    @Key @InputName('Service/ID') String serviceId
-    @InputName('URL/exact') String URLValue
+    @Key @Struct.Name('Service/ID') String serviceId
+    @Struct.Name('URL/exact') String URLValue
     String urlValue
-    @InputIgnore String hiddenValue
+    @Struct.Ignore String hiddenValue
 }
-@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
 @DSL class Service extends ServiceBase {}
 // Closed properties: Service/ID (required), URL/exact, url-value.
 ```
@@ -146,8 +146,8 @@ toolchain; numeric assertions and deprecation output retain their independent fu
 
 ## Field constraint projection
 
-`@ConstraintProjection` selects the artifact policy for one Schema field's captured effective runtime constraints.
-Its nested `ConstraintProjection.Policy` enum has three values:
+`@Struct.ConstraintProjection` selects the artifact policy for one Schema field's captured effective runtime constraints.
+Its nested `Struct.ConstraintProjection.Policy` enum has three values:
 
 | Policy | Supported hard assertions | Constraint descriptions and source attribution |
 | --- | --- | --- |
@@ -159,18 +159,18 @@ Its nested `ConstraintProjection.Policy` enum has three values:
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
-import com.blackbuild.klum.ast.ConstraintProjection
-import com.blackbuild.klum.ast.ConstraintProjection.Policy
+import com.blackbuild.klum.ast.Struct
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy
 import jakarta.validation.constraints.Min
 
 @DSL class Capacity {
     /** Desired replica count. */
     @Deprecated @Min(1L)
-    @ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
+    @Struct.ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
 
     /** Private capacity rule. */
     @Deprecated @Min(1L)
-    @ConstraintProjection(Policy.OMIT) Integer omitted
+    @Struct.ConstraintProjection(Policy.OMIT) Integer omitted
 }
 ```
 
@@ -200,7 +200,7 @@ Schema execution, required Jackson/Bean Validation adapter or global projection 
 ## Conservative Pattern projection
 
 A direct singleton `jakarta.validation.constraints.Pattern` on an admitted ordinary `String` field projects automatically
-under `ConstraintProjection.Policy.PROJECT` when it belongs to the finite `ASCII-BOUNDED-1` subset. This supports bounded
+under `Struct.ConstraintProjection.Policy.PROJECT` when it belongs to the finite `ASCII-BOUNDED-1` subset. This supports bounded
 identifiers and codes. It requires empty groups, payload and flags and no hierarchy group sequence/redefinition/provider.
 
 (See: `KlumJsonSchemaGenerationTest#'project bounded release identifiers from source-free artifacts with Groovy #generation'`.)
@@ -268,7 +268,7 @@ unknown composition semantics remain descriptive. No recursive flattening, attri
 custom handler, contributor SPI or new validation engine is provided. An outer custom validator remains descriptive even
 when some composing constraints project. Keys, authored operations and container elements gain no composing assertions.
 
-`@InputConstraintDescription(String)` is a literal documentary meta-annotation targeted only at annotation types. It may
+`@Struct.ConstraintDescription(String)` is a literal documentary meta-annotation targeted only at annotation types. It may
 be hosted on a plain domain annotation, a Bean composed constraint, or an annotation that requests propagation. Its text
 is appended to ordinary field documentation under `PROJECT` and `TEXT_ONLY`, and omitted under `OMIT`. It never supplies
 assertions, defaults, examples or runtime enforcement. There is no interpolation or member substitution. Existing explicit
@@ -277,7 +277,7 @@ field examples retain their placement and values independently.
 (See: `InputConstraintDescriptionTest#'document a domain rule without adding enforcement'`.)
 
 ```groovy
-@InputConstraintDescription('Percentage of traffic sent to this service.')
+@Struct.ConstraintDescription('Percentage of traffic sent to this service.')
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 @interface TrafficPercentage {}
@@ -456,7 +456,7 @@ is unchanged: `+`, groups, alternation and escaped-dot memory grammars are not n
 Pattern facts remain descriptions; custom/composed/repeated/type-use parameter constraints receive no hard assertions.
 No custom annotation hierarchy is inspected.
 
-`@ConstraintProjection` also targets the selected parameter. PROJECT (default) contributes qualified assertions and
+`@Struct.ConstraintProjection` also targets the selected parameter. PROJECT (default) contributes qualified assertions and
 unsupported descriptions; TEXT_ONLY retains descriptions; OMIT suppresses parameter constraint output and attribution.
 All policies validate required facts first. An invalid regexp or missing API/member type is an error even under OMIT.
 A genuinely absent and a producer-stripped Pattern are indistinguishable compiled contracts and emit no Pattern assertion;
@@ -520,16 +520,16 @@ Real ScHelm root/output qualification remains a consumer-owned acceptance gate f
 
 ## Advisory input examples
 
-`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+`@Struct.Examples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
 validation against the property type or runtime constraints.
 
 (See: `KlumJsonSchemaGenerationTest#'project advisory examples at exact source-free input positions with Groovy #generation'`.)
 
 ```groovy
 @DSL class Service {
-    @InputExamples(['localhost', 'database.internal']) String host
-    @InputExamples(['42', 'many replicas']) int replicas
-    @InputExamples(['API endpoint settings'])
+    @Struct.Examples(['localhost', 'database.internal']) String host
+    @Struct.Examples(['42', 'many replicas']) int replicas
+    @Struct.Examples(['API endpoint settings'])
     @Builder.Method void endpoint(Map<String, String> input) { /* configure Builder state */ }
 }
 ```
@@ -549,7 +549,7 @@ supplies no examples. Values must be compile-time constant strings, and no autho
 
 Inherited examples retain their effective source declaration. Naming profiles, literal names and exclusions select the
 same input member as before. Parent relationship notes stay local to that use; they never enter shared child definitions
-or sibling uses. An owned type retains documentation on its own members. `ConstraintProjection`, ordinary prose and
+or sibling uses. An owned type retains documentation on its own members. `Struct.ConstraintProjection`, ordinary prose and
 `deprecated` remain independent. Unsupported members gain no admission.
 
 Examples supply no defaults, change no requiredness or runtime input types, and do not participate in validation,

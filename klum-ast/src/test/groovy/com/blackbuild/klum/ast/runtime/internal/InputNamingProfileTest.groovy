@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.klum.ast.InputNaming
+import com.blackbuild.klum.ast.Struct
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
 import groovyjarjarasm.asm.ClassVisitor
@@ -49,8 +49,8 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         createClass("""
             package naming
             import com.blackbuild.klum.ast.*
-            import com.blackbuild.klum.ast.InputNaming.Profile
-            import static com.blackbuild.klum.ast.InputNaming.Profile.KEBAB_CASE
+            import com.blackbuild.klum.ast.Struct.Naming.Profile
+            import static com.blackbuild.klum.ast.Struct.Naming.Profile.KEBAB_CASE
             $declarations
         """)
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
@@ -67,7 +67,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class ServiceBase { String displayName }
-            @InputNaming(Profile.KEBAB_CASE)
+            @Struct.Naming(Profile.KEBAB_CASE)
             @DSL class Service extends ServiceBase {
                 String serviceName
                 String URLValue
@@ -81,7 +81,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
                 @Builder.Method void configureEndpoint(String value) { serviceName = value }
             }
             @DSL class Details { String nativeName }
-            @InputNaming(Profile.KEBAB_CASE)
+            @Struct.Naming(Profile.KEBAB_CASE)
             @DSL class Worker { @Key String workerId; String imageName }
         ''')
 
@@ -111,16 +111,16 @@ class InputNamingProfileTest extends AbstractDSLSpec {
 
     def 'annotation requires an explicit finite runtime-retained type profile'() {
         when:
-        def value = InputNaming.getDeclaredMethod('value')
+        def value = Struct.Naming.getDeclaredMethod('value')
 
         then:
         value.defaultValue == null
-        InputNaming.Profile.values()*.name() == ['IDENTITY', 'KEBAB_CASE']
-        InputNaming.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME
-        InputNaming.getAnnotation(Target).value() == [ElementType.TYPE] as ElementType[]
+        Struct.Naming.Profile.values()*.name() == ['IDENTITY', 'KEBAB_CASE']
+        Struct.Naming.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME
+        Struct.Naming.getAnnotation(Target).value() == [ElementType.TYPE] as ElementType[]
 
         when:
-        schema('@InputNaming @DSL class Service { String serviceName }')
+        schema('@Struct.Naming @DSL class Service { String serviceName }')
 
         then:
         thrown(MultipleCompilationErrorsException)
@@ -128,7 +128,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
 
     def 'static enum imports retain the explicit compiler-folded choice'() {
         given:
-        def type = schema('@InputNaming(KEBAB_CASE) @DSL class Service { String serviceName }')
+        def type = schema('@Struct.Naming(KEBAB_CASE) @DSL class Service { String serviceName }')
 
         when:
         def names = contract(type).entries().keySet()
@@ -170,14 +170,14 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         where:
         choice       | annotation                            | expected
         'absent'     | ''                                    | ['serviceName']
-        'IDENTITY'   | '@InputNaming(Profile.IDENTITY)'       | ['serviceName']
-        'KEBAB_CASE' | '@InputNaming(Profile.KEBAB_CASE)'     | ['service-name']
+        'IDENTITY'   | '@Struct.Naming(Profile.IDENTITY)'       | ['serviceName']
+        'KEBAB_CASE' | '@Struct.Naming(Profile.KEBAB_CASE)'     | ['service-name']
     }
 
     def 'explicit profiles bind descendants including explicit identity: #ancestor #descendant'() {
         given:
         def type = schema("""
-            @InputNaming(Profile.$ancestor) @DSL class Base { String inheritedName }
+            @Struct.Naming(Profile.$ancestor) @DSL class Base { String inheritedName }
             $childAnnotation @DSL class Service extends Base { String localName }
         """)
 
@@ -190,16 +190,16 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         where:
         ancestor    | descendant   | childAnnotation                         | expected
         'KEBAB_CASE' | 'absent'     | ''                                      | ['inherited-name', 'local-name']
-        'KEBAB_CASE' | 'KEBAB_CASE' | '@InputNaming(Profile.KEBAB_CASE)'       | ['inherited-name', 'local-name']
+        'KEBAB_CASE' | 'KEBAB_CASE' | '@Struct.Naming(Profile.KEBAB_CASE)'       | ['inherited-name', 'local-name']
         'IDENTITY'   | 'absent'     | ''                                      | ['inheritedName', 'localName']
-        'IDENTITY'   | 'IDENTITY'   | '@InputNaming(Profile.IDENTITY)'         | ['inheritedName', 'localName']
+        'IDENTITY'   | 'IDENTITY'   | '@Struct.Naming(Profile.IDENTITY)'         | ['inheritedName', 'localName']
     }
 
     def 'conflicting explicit #ancestor and #descendant choices reject before input execution'() {
         given:
         def type = schema("""
-            @InputNaming(Profile.$ancestor) @DSL class Base { String inheritedName }
-            @InputNaming(Profile.$descendant) @DSL class Service extends Base {
+            @Struct.Naming(Profile.$ancestor) @DSL class Base { String inheritedName }
+            @Struct.Naming(Profile.$descendant) @DSL class Service extends Base {
                 String localName = executed()
                 static String executed() { System.setProperty('naming.executed', 'yes'); 'executed' }
             }
@@ -227,7 +227,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
     def 'native spelling has no alias under a selected profile'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service { String serviceName }
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service { String serviceName }
         ''')
 
         when:
@@ -240,7 +240,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
     def 'nonidentity collisions reject fields and authored operations with both sources: #members'() {
         given:
         def type = schema("""
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
                 static { System.setProperty('naming.executed', 'initialized'); throw new AssertionError('must not initialize') }
                 $members
             }
@@ -267,7 +267,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
     def 'profile construction key spelling follows the member position only'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service { @Key String serviceId; String displayName }
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service { @Key String serviceId; String displayName }
         ''')
 
         when:
@@ -283,7 +283,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
     def 'key collision remains position sensitive under a nonidentity profile'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service { @Key String URLValue; String urlValue }
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service { @Key String URLValue; String urlValue }
         ''')
 
         when:
@@ -303,7 +303,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
     def 'rejected profile leaves an active Builder unchanged'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
                 String serviceName
                 String URLValue
                 String urlValue

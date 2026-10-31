@@ -240,7 +240,7 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
             package frozenfacts
             import com.blackbuild.klum.ast.*
             @DSL class Document {
-                @InputExamples(['first', 'second']) String title
+                @Struct.Examples(['first', 'second']) String title
             }
         '''
         def binaries = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
@@ -285,10 +285,10 @@ class CompiledBuilderSchemaReaderTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             @DSL abstract class Base {
                 static { System.setProperty('input.session.initialized', 'yes'); throw new AssertionError('initialization control') }
-                @Key @InputExamples(['catalog']) String documentId
-                @InputExamples(['first', 'second']) String displayName
+                @Key @Struct.Examples(['catalog']) String documentId
+                @Struct.Examples(['first', 'second']) String displayName
             }
-            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
             @DSL class Document extends Base { String title }
         '''
         def binaries = new CountingContractLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)

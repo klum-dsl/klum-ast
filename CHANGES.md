@@ -7,20 +7,20 @@
   ([#989](https://github.com/klum-dsl/klum-ast/issues/989)).
 
 - Admit one exact compiled String converter for ordinary non-DSL structured-input fields and project its singleton Jakarta
-  Pattern through the existing bounded ASCII mapping. Add parameter `@ConstraintProjection`, independently of field
+  Pattern through the existing bounded ASCII mapping. Add parameter `@Struct.ConstraintProjection`, independently of field
   policy, with paired-artifact validation before execution/output replacement. No numeric coercion or runtime parameter
   enforcement is added. Reject inherited converter inputs overridden by descendant Builder methods. Recompile matched
   domain/Schema artifacts; the memory-regex extension remains deferred.
   See [converters](docs/user/Converters.md#structured-string-input) ([#981](https://github.com/klum-dsl/klum-ast/issues/981), C1).
 
 - Project first-level AND Bean composing constraints through the existing numeric and bounded Pattern mappings, keeping
-  independent assertions and contradictions. Add literal annotation-type `@InputConstraintDescription` prose under
+  independent assertions and contradictions. Add literal annotation-type `@Struct.ConstraintDescription` prose under
   `PROJECT`/`TEXT_ONLY`, suppressed under `OMIT`. Unsupported composition remains descriptive; runtime validation and
   explicit examples stay independent. Align tools and recompile Schema artifacts. See
   [composition and documentary meta-annotations](docs/user/Json-Schema.md#composed-constraints-and-documentary-meta-annotations)
   ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
 
-- Added `@InputExamples` for documentary strings on exact field/key/operation payloads and parent relationship uses.
+- Added `@Struct.Examples` for documentary strings on exact field/key/operation payloads and parent relationship uses.
   Values are emitted as JSON Schema strings without parsing or validation against property types or runtime constraints.
   Defaults, requiredness, runtime input and lifecycle are unchanged; the unified metadata version stays 1.
   See [examples](docs/user/Json-Schema.md#advisory-input-examples) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
@@ -37,21 +37,21 @@
   Removed legacy identity/operation reconstruction and feature-specific version markers; valid-Schema behavior is
   unchanged. See [migration](docs/user/Migration.md#structured-input-metadata-protocol) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
 
-- Added `@InputName('literal')` and marker `@InputIgnore` for shared structured-input and JSON Schema member shaping.
+- Added `@Struct.Name('literal')` and marker `@Struct.Ignore` for shared structured-input and JSON Schema member shaping.
   Exact literals override type profiles; exclusion removes eligible fields and authored Builder operations from both
   consumers. Equal Jackson equivalents coalesce; contradictory names fail even when excluded. Construction identity,
   ordinary Groovy configuration and runtime validation retain their semantics. Align tools and recompile Schemas.
   See [literals](docs/user/Structured-Input.md#literal-names-and-exclusion) and
   [migration](docs/user/Migration.md#literal-names-and-exclusion) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
 
-- Added type-level `@InputNaming(InputNaming.Profile.IDENTITY/KEBAB_CASE)` for shared structured-input and JSON Schema
+- Added type-level `@Struct.Naming(Struct.Naming.Profile.IDENTITY/KEBAB_CASE)` for shared structured-input and JSON Schema
   member names. Explicit profiles bind descendants; a first profiled child also names inherited entries. Owned types,
   literal Jackson overrides/exclusions and data/instance keys keep their own semantics. Nonidentity collisions and
   conflicting profiles reject before execution/publication. Align tools and recompile selected Schema hierarchies.
   See [profiles](docs/user/Structured-Input.md#type-naming-profiles)
   and [migration](docs/user/Migration.md#type-naming-profiles) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
 
-- Added field-level `@ConstraintProjection` with nested `Policy.PROJECT` (default), `TEXT_ONLY` and `OMIT` for
+- Added field-level `@Struct.ConstraintProjection` with nested `Policy.PROJECT` (default), `TEXT_ONLY` and `OMIT` for
   generated JSON Schema constraint output. Direct and approved propagated facts share the policy; ordinary prose,
   deprecation, structural bounds, admission and runtime validation stay independent. Recompile declaring/inherited/owned
   Schemas with matching versions for required public Builder policy facts. See [field policy](docs/user/Json-Schema.md#field-constraint-projection)

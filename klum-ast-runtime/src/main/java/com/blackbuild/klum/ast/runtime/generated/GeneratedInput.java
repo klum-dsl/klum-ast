@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.generated;
 
-import com.blackbuild.klum.ast.ConstraintProjection;
+import com.blackbuild.klum.ast.Struct;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -86,7 +86,7 @@ public final class GeneratedInput {
         /** Explicit cardinality detects stripped declaration or composing rows, including documentary-only rows. */
         int constraintCount() default -1;
         /** Explicit compiler-folded field policy, independent of structural admission. */
-        ConstraintProjection.Policy constraintProjection() default ConstraintProjection.Policy.PROJECT;
+        Struct.ConstraintProjection.Policy constraintProjection() default Struct.ConstraintProjection.Policy.PROJECT;
         boolean fixedKey() default false;
         boolean schemaKey() default false;
         String exclusion() default "";
@@ -114,7 +114,7 @@ public final class GeneratedInput {
         String origin() default "";
         /** Canonical outer declaration for a first-level composing constraint, empty for DIRECT. */
         String owner() default "";
-        /** Literal InputConstraintDescription on the directly used annotation type. */
+        /** Literal Struct.ConstraintDescription on the directly used annotation type. */
         String description() default "";
         long value() default 0L;
         String decimalValue() default "";

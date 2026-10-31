@@ -27,9 +27,7 @@ import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
-import com.blackbuild.klum.ast.InputNaming;
-import com.blackbuild.klum.ast.InputName;
-import com.blackbuild.klum.ast.InputIgnore;
+import com.blackbuild.klum.ast.Struct;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
@@ -79,7 +77,7 @@ final class StructuredInputAdmissionPlan {
     private static final String JSON_IGNORE = "com.fasterxml.jackson.annotation.JsonIgnore";
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
     private static final String VALUE = "value";
-    private static final String INPUT_IGNORED = "excluded by @InputIgnore";
+    private static final String INPUT_IGNORED = "excluded by @Struct.Ignore";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
     private static final String KEYED_OWNERSHIP_REASON = "requires Map<String, concrete keyed DSL Object> ownership";
@@ -158,13 +156,13 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void enrichNaming(ClassNode model, AnnotationNode schema) {
-        AnnotationNode naming = annotation(model, InputNaming.class.getName());
-        String profile = InputNaming.Profile.IDENTITY.name();
+        AnnotationNode naming = annotation(model, Struct.Naming.class.getName());
+        String profile = Struct.Naming.Profile.IDENTITY.name();
         if (naming != null) {
             Expression value = naming.getMember(VALUE);
             if (!(value instanceof PropertyExpression property)
-                    || !Set.of(InputNaming.Profile.IDENTITY.name(), InputNaming.Profile.KEBAB_CASE.name()).contains(property.getPropertyAsString())) {
-                throw new IllegalArgumentException("@InputNaming requires an explicit supported Profile on " + model.getName());
+                    || !Set.of(Struct.Naming.Profile.IDENTITY.name(), Struct.Naming.Profile.KEBAB_CASE.name()).contains(property.getPropertyAsString())) {
+                throw new IllegalArgumentException("@Struct.Naming requires an explicit supported Profile on " + model.getName());
             }
             profile = property.getPropertyAsString();
         }
@@ -298,7 +296,7 @@ final class StructuredInputAdmissionPlan {
     private static void restoreAuthoredFacts(DSLASTTransformation transformation) {
         // A generated projection can occupy an authored signature before annotation copying occurs.
         // Restore the original admission/naming annotations together; a marker alone can change rejection precedence.
-        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY, InputName.class.getName(), InputIgnore.class.getName());
+        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY, Struct.Name.class.getName(), Struct.Ignore.class.getName());
         transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
@@ -640,7 +638,7 @@ final class StructuredInputAdmissionPlan {
         AnnotationNode property = annotation(node, JSON_PROPERTY);
         Object jackson = property == null ? null : literal(property.getMember(VALUE));
         requireCompatibleNames(node, explicit, jackson);
-        if (annotation(node, InputIgnore.class.getName()) != null) {
+        if (annotation(node, Struct.Ignore.class.getName()) != null) {
             return new Name(null, NameOrigin.INPUT_IGNORE, true);
         }
         AnnotationNode ignore = annotation(node, JSON_IGNORE);
@@ -653,11 +651,11 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static String inputName(AnnotatedNode node) {
-        AnnotationNode input = annotation(node, InputName.class.getName());
+        AnnotationNode input = annotation(node, Struct.Name.class.getName());
         if (input == null) return null;
         Object value = literal(input.getMember(VALUE));
         if (!(value instanceof String spelling) || spelling.isEmpty()) {
-            throw new IllegalArgumentException("@InputName requires a nonempty exact String on " + source(node));
+            throw new IllegalArgumentException("@Struct.Name requires a nonempty exact String on " + source(node));
         }
         return spelling;
     }
@@ -665,7 +663,7 @@ final class StructuredInputAdmissionPlan {
     private static void requireCompatibleNames(AnnotatedNode node, String explicit, Object jackson) {
         if (explicit != null && jackson instanceof String spelling && !spelling.isEmpty() && !explicit.equals(jackson)) {
             throw new IllegalArgumentException("Conflicting literal input names on " + source(node)
-                    + ": @InputName('" + explicit + "') and @JsonProperty('" + jackson + "')");
+                    + ": @Struct.Name('" + explicit + "') and @JsonProperty('" + jackson + "')");
         }
     }
 

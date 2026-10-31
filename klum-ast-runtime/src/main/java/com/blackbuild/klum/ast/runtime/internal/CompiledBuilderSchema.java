@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
-import com.blackbuild.klum.ast.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 
 import java.lang.reflect.Method;
 import java.util.Collections;

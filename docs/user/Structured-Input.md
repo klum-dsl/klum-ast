@@ -72,19 +72,19 @@ and unrelated classpath classes are not scanned.
 
 ## Type naming profiles
 
-Select `@InputNaming` on a Schema type to use the same exact member tokens in structured input and generated
-[JSON Schema](Json-Schema.md#type-naming-profiles). Its required value is `InputNaming.Profile.IDENTITY` or
-`InputNaming.Profile.KEBAB_CASE`; there is no default value or caller/plugin selector.
+Select `@Struct.Naming` on a Schema type to use the same exact member tokens in structured input and generated
+[JSON Schema](Json-Schema.md#type-naming-profiles). Its required value is `Struct.Naming.Profile.IDENTITY` or
+`Struct.Naming.Profile.KEBAB_CASE`; there is no default value or caller/plugin selector.
 
 (See: `InputNamingProfileTest#'choose kebab member names while keeping owned values and data keys independent'`.)
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
-import com.blackbuild.klum.ast.InputNaming
+import com.blackbuild.klum.ast.Struct
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
 @DSL class ServiceBase { String displayName }
-@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
 @DSL class Service extends ServiceBase {
     String serviceName
     Map<String, String> labels
@@ -127,9 +127,9 @@ missing, unknown or malformed required naming facts fail with recompile/package 
 
 ## Literal names and exclusion
 
-Use `com.blackbuild.klum.ast.InputName` and `InputIgnore` on source fields (including construction keys) or already
-admitted authored `@Builder.Method` operations. `@InputName` requires a nonempty exact String; spaces, punctuation and
-case are preserved. `@InputIgnore` is a marker. Both have runtime retention and FIELD/METHOD targets.
+Use `com.blackbuild.klum.ast.Struct.Name` and `Struct.Ignore` on source fields (including construction keys) or already
+admitted authored `@Builder.Method` operations. `@Struct.Name` requires a nonempty exact String; spaces, punctuation and
+case are preserved. `@Struct.Ignore` is a marker. Both have runtime retention and FIELD/METHOD targets.
 
 (See: `InputLiteralTest#'choose exact external names and exclude internal configuration'`.)
 
@@ -137,13 +137,13 @@ case are preserved. `@InputIgnore` is a marker. Both have runtime retention and 
 import com.blackbuild.klum.ast.*
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
-@InputNaming(InputNaming.Profile.KEBAB_CASE)
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
 @DSL class Service {
-    @InputName('service.id') String serviceName
-    @InputIgnore String internalNote
-    @Builder.Method @InputName('configure/URL')
+    @Struct.Name('service.id') String serviceName
+    @Struct.Ignore String internalNote
+    @Builder.Method @Struct.Name('configure/URL')
     void configureEndpoint(String value) { serviceName = value }
-    @Builder.Method @InputIgnore
+    @Builder.Method @Struct.Ignore
     void configureInternally(String value) { internalNote = value }
 }
 
@@ -159,9 +159,9 @@ identity. Naming cannot admit unsupported types or operations. A literal adds no
 entries that would collide under a nonidentity profile. Unresolved nonidentity collisions fail with both source declarations;
 existing identity collision rejection is unchanged.
 
-Supported `@JsonProperty`/`@JsonIgnore` bridging remains available. Equal nonempty `InputName` and `JsonProperty` names
+Supported `@JsonProperty`/`@JsonIgnore` bridging remains available. Equal nonempty `Struct.Name` and `JsonProperty` names
 coalesce; different names fail deterministically with both annotation origins, **even when excluded**. Empty `JsonProperty`
-falls back; empty `InputName` is invalid. `InputIgnore` or true/absent-value `JsonIgnore` excludes; false `JsonIgnore` cannot
+falls back; empty `Struct.Name` is invalid. `Struct.Ignore` or true/absent-value `JsonIgnore` excludes; false `JsonIgnore` cannot
 undo exclusion. Exclusion and a compatible rename can coexist.
 
 Both consumers use compiler-folded facts on the exact public Builder declarations. Exclusion removes members from
@@ -245,8 +245,8 @@ services:
 
 Thus `services.worker` must omit `service-id`: `worker` already supplies its identity. A nested direct child inside
 that body still requires its own key when its relationship has no provider. Key names are resolved on the actual
-compiler-selected declaration, including binary inherited keys: `@InputIgnore` or `@JsonIgnore(true)` excludes it, a compatible nonempty literal
-`@InputName` or `@JsonProperty` renames it, then the effective type profile/native name applies. Empty `@JsonProperty` uses that fallback;
+compiler-selected declaration, including binary inherited keys: `@Struct.Ignore` or `@JsonIgnore(true)` excludes it, a compatible nonempty literal
+`@Struct.Name` or `@JsonProperty` renames it, then the effective type profile/native name applies. Empty `@JsonProperty` uses that fallback;
 `@JsonIgnore(false)` leaves the declaration admitted under its otherwise resolved name. Renames add no alias.
 An ordinary unannotated `key` property remains normal input; an independently
 admitted operation with an old/native spelling keeps its meaning.
@@ -356,7 +356,7 @@ collections, polymorphic selection and CollectionFactory scopes are outside v1. 
 arbitrary caller objects, helper/query/lifecycle names and zero/multi-payload authored operations reject.
 An ordinary unannotated property named `key` is normal domain input; actual `@Key` members follow the position-specific rules above.
 
-Names follow compiler decisions: exclusion, compatible `@InputName`/`@JsonProperty` literal, effective type profile,
+Names follow compiler decisions: exclusion, compatible `@Struct.Name`/`@JsonProperty` literal, effective type profile,
 then identity. See [literal names and exclusion](#literal-names-and-exclusion). Inherited or overload-name collisions reject without choosing a winner.
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
@@ -400,14 +400,14 @@ remains [#529](https://github.com/klum-dsl/klum-ast/issues/529).
 
 ## Advisory input examples
 
-`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+`@Struct.Examples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
 validation against the property type or runtime constraints. See [generated JSON Schema](Json-Schema.md#advisory-input-examples).
 
 (See: `InputExamplesTest#'document example values without supplying defaults or changing input admission'`.)
 
 ```groovy
 @DSL class Service {
-    @InputExamples(['Catalog', 'catalog.internal']) String displayName
+    @Struct.Examples(['Catalog', 'catalog.internal']) String displayName
 }
 
 def configured = KlumStructuredInput.readRoot(Service, [displayName: 'Configured'], 'service.yaml')
@@ -423,7 +423,7 @@ no Model-byte fallback, Javadoc transport, provider or callback participates.
 
 ## Documentary constraint meta-annotations
 
-`@InputConstraintDescription('literal text')` belongs on an annotation type. It adds documentary text for Schema fields
+`@Struct.ConstraintDescription('literal text')` belongs on an annotation type. It adds documentary text for Schema fields
 using that annotation; it supplies no validation, default, example or input-admission rule. Bean composed constraints may
 host first-level composing constraints for the built-in JSON Schema mappings. These facts do not enforce constraints at
 Java/Groovy call boundaries or change structured-input interpretation. Projection policies and the exact composition

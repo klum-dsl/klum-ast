@@ -1,6 +1,6 @@
 # Structured-input annotation namespace audit
 
-Date: 2026-10-31. Status: **Accepted `Struct.*` vocabulary and direct internal rename; planning only, not implemented.**
+Date: 2026-10-31. Status: **Accepted `Struct.*` vocabulary; V0 implements the direct internal rename.**
 Addition to [INPUT-ROUND-PLAN](input-round-plan-4-2.md) and
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md). Source baseline remains
 `0c6f401b2a561a7767eca369f5aacab33dad0962`; preceding planning head was
@@ -89,7 +89,7 @@ but is less direct at an annotated method. Keep `.ConstraintProjection` rather t
 not appear to control all structural schema output. A second nested `Constraints` framework or a family of constraint
 annotations is not justified. The nested enums keep their present relationship to their annotations.
 
-Illustrative future Schema syntax; these nested annotations **do not exist** today:
+Illustrative Schema syntax; `Struct.Operation` remains planned for S2:
 
 ```groovy
 import com.blackbuild.klum.ast.Builder
@@ -130,7 +130,7 @@ parameter annotations to Builders. No new runtime module, registry or generic an
 
 ## Plan integration and evidence gates
 
-V0 is an **accepted direct vocabulary rename** preceding S2. S1's execution change and present-behavior documentation
+V0 is the **direct vocabulary rename** preceding S2. S1's execution change and present-behavior documentation
 can proceed independently. Prefer one cohesive vocabulary, recognition and test commit so no intermediate artifact has
 inconsistent type descriptors. Update current user guidance, Javadoc and CHANGES with the final names; no annotation
 migration guide or cutover procedure is needed. Keep the new Operation semantics in S2's separate commit.
@@ -140,8 +140,7 @@ Schema/domain fixtures, inherited and overridden members, converter PARAMETER an
 public generated annotation/enum references and applicable JPMS. Compare runtime admission and generated schema before
 and after using equivalent fixtures; no-user-code inspection, initialization traps, policy and diagnostics remain.
 Update and rerun affected internal tests and Schelm qualification using the final names. No old-name compatibility
-matrix, dual-declaration rules or stale-byte migration tests are required. No production implementation is performed by
-this planning assignment.
+matrix, dual-declaration rules or stale-byte migration tests are required. The historical audit above records the pre-V0 baseline.
 
 The namespace and direct-rename decision are settled. They replace the earlier `InputOperation` and `StructuredInput.*`
 proposals and conditional cutover/bridge discussion without reopening the sixteen semantic decisions. The assignment's

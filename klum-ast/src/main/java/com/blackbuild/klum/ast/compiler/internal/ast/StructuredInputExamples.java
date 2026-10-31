@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
-import com.blackbuild.klum.ast.InputExamples;
+import com.blackbuild.klum.ast.Struct;
 import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -43,11 +43,11 @@ final class StructuredInputExamples {
     private StructuredInputExamples() { }
 
     static void enrich(AnnotatedNode source, ClassNode owner, AnnotationNode fact, String identity) {
-        List<AnnotationNode> annotations = source.getAnnotations(ClassHelper.make(InputExamples.class));
+        List<AnnotationNode> annotations = source.getAnnotations(ClassHelper.make(Struct.Examples.class));
         ListExpression values = new ListExpression();
         if (!annotations.isEmpty()) {
             Expression value = annotations.get(0).getMember("value");
-            if (value == null) throw new IllegalArgumentException("@InputExamples requires constant strings on " + identity);
+            if (value == null) throw new IllegalArgumentException("@Struct.Examples requires constant strings on " + identity);
             List<Expression> expressions = value instanceof ListExpression list ? list.getExpressions() : List.of(value);
             for (Expression expression : expressions) {
                 // Local constants have not yet acquired an accessed FieldNode at this compiler phase.
@@ -56,7 +56,7 @@ final class StructuredInputExamples {
                 // This overload uses AST constants only; the overload accepting an owner may read static fields reflectively.
                 Expression folded = ExpressionUtils.transformInlineConstants(expression);
                 if (!(folded instanceof ConstantExpression constant) || !(constant.getValue() instanceof String))
-                    throw new IllegalArgumentException("@InputExamples on " + identity + " requires compile-time constant strings");
+                    throw new IllegalArgumentException("@Struct.Examples on " + identity + " requires compile-time constant strings");
                 values.addExpression(folded);
             }
             annotations.get(0).setMember("value", values);

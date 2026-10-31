@@ -107,8 +107,8 @@ class CompiledConverterJsonSchemaTest extends Specification {
         write(producer, 'schema/src/main/groovy/converterjson/Overriding.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
-@DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class Overriding extends Base {
-    @Builder.Method @InputName('other') @InputIgnore
+@DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Overriding extends Base {
+    @Builder.Method @Struct.Name('other') @Struct.Ignore
     PortNumber port(String raw) { throw new AssertionError('authored override executed') }
 }
 ''')
@@ -173,9 +173,9 @@ project(':parent') { dependencies { implementation project(':domain') } }
 project(':schema') { dependencies { implementation project(':domain'); implementation project(':parent') } }
 """)
         domain('PortNumber', '@Pattern(regexp="[0-9]{1,8}")')
-        domain('TextOnly', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY)')
-        domain('Omitted', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)')
-        domain('ChildOnly', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)')
+        domain('TextOnly', '@Pattern(regexp="[0-9]{1,8}") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY)')
+        domain('Omitted', '@Pattern(regexp="[0-9]{1,8}") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)')
+        domain('ChildOnly', '@Pattern(regexp="[0-9]{1,8}") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)')
         domain('GroupRedefined', '@Pattern(regexp="[0-9]{1,8}")', '@GroupSequence({GroupRedefined.class})')
         domain('Absent', '')
         domain('Memory', '@Pattern(regexp="[0-9]+(?:\\\\.[0-9]+)?(?:[kMGTPE]|[KMGTPE]i)?")')
@@ -195,7 +195,7 @@ package converterjson
 import com.blackbuild.klum.ast.*
 @DSL class Base {
     /** Inherited port prose. */
-    @InputName('port-number') @InputExamples(['1234']) @Deprecated
+    @Struct.Name('port-number') @Struct.Examples(['1234']) @Deprecated
     @Converters(includeConstructors=true) PortNumber port
 }
 ''')
@@ -203,22 +203,22 @@ import com.blackbuild.klum.ast.*
 package converterjson
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.Pattern
-@DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class Service extends Base {
+@DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Service extends Base {
     static { throw new AssertionError('Schema initialized') }
     FactoryPort factory
-    @ConstraintProjection(ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit
-    @ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY) FactoryPort fieldText
+    @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit
+    @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) FactoryPort fieldText
     @Pattern(regexp='[A-Z]{2}') FactoryPort domainPattern
     @Converters(includeConstructors=true) TextOnly textOnly
     /** Retained prose. */
-    @InputExamples(['retained example']) @Deprecated
+    @Struct.Examples(['retained example']) @Deprecated
     @Converters(includeConstructors=true) Omitted omitted
     /** Absent constraint. */
     @Converters(includeConstructors=true) Absent absent
     @Converters(includeConstructors=true) Memory memory
     @Converters(includeConstructors=true) Flagged flagged
     @Converters(includeConstructors=true) GroupRedefined groupRedefined
-    @InputIgnore @Converters(includeConstructors=true) PortNumber hidden
+    @Struct.Ignore @Converters(includeConstructors=true) PortNumber hidden
     Child child
     String calculated = { throw new AssertionError('initializer executed') }()
     @Default(code={ throw new AssertionError('default executed') }) String computed
@@ -249,7 +249,7 @@ tasks.register('initializationControl', JavaExec) {
     private void domain(String name, String annotations, String classAnnotation = '') {
         write(producer, "domain/src/main/java/converterjson/${name}.java", """
 package converterjson;
-import com.blackbuild.klum.ast.ConstraintProjection;
+import com.blackbuild.klum.ast.Struct;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.GroupSequence;
 import java.nio.file.Files;

@@ -682,7 +682,7 @@ tasks.register('rejectedLiteralControl', JavaExec) {
         '3'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
         '4'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
         '5'        | 'LiteralCollision'     | 'KEBAB_CASE external-name collision'         | 'example.LiteralCollision#URLValue' | 'example.LiteralCollision#urlValue'
-        '3'        | 'LiteralWorker'        | '@InputIgnore'                              | 'example.LiteralWorker#workerId' | 'required construction key'
+        '3'        | 'LiteralWorker'        | '@Struct.Ignore'                              | 'example.LiteralWorker#workerId' | 'required construction key'
         '3'        | 'LiteralKeyCollision'  | 'construction key external-name collision'  | 'example.LiteralKeyCollision#key' | 'example.LiteralKeyCollision#value'
     }
 
@@ -2327,16 +2327,16 @@ class ExampleTexts {
     public static final String VALUE = 'binary constant'
 }
 @DSL abstract class ExampleBase {
-    @InputExamples(['inherited']) String displayName
-    @Builder.Method @InputExamples(['base']) void configureBase(String value) { displayName = value }
+    @Struct.Examples(['inherited']) String displayName
+    @Builder.Method @Struct.Examples(['base']) void configureBase(String value) { displayName = value }
 }
 ''')
         writeSource('owned/src/main/groovy/example/ExampleChild.groovy', '''
 package example
 import com.blackbuild.klum.ast.*
-@DSL abstract class ExampleKeyBase { @Key @InputExamples(['catalog']) String key }
+@DSL abstract class ExampleKeyBase { @Key @Struct.Examples(['catalog']) String key }
 @DSL class ExampleChild extends ExampleKeyBase {
-    @InputName('child.name') @InputExamples(['child']) String childName
+    @Struct.Name('child.name') @Struct.Examples(['child']) String childName
     ExampleChild nested
 }
 ''')
@@ -2346,34 +2346,34 @@ import com.blackbuild.klum.ast.*
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.fasterxml.jackson.annotation.*
 @DSL class ExampleOwnedBase extends ExampleBase {
-    @InputExamples(['inherited database']) ExampleChild inheritedChild
+    @Struct.Examples(['inherited database']) ExampleChild inheritedChild
 }
-@DSL class ExampleExcluded { @InputExamples(['SECRET_PAYLOAD']) String value }
-@DSL class ExampleUnrelated { @InputExamples(['SECRET_PAYLOAD']) String value }
-@DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class ExampleService extends ExampleOwnedBase {
+@DSL class ExampleExcluded { @Struct.Examples(['SECRET_PAYLOAD']) String value }
+@DSL class ExampleUnrelated { @Struct.Examples(['SECRET_PAYLOAD']) String value }
+@DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class ExampleService extends ExampleOwnedBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
-    @InputExamples([ExampleTexts.VALUE]) String binaryConstant
-    @Deprecated @InputName('service.name') @JsonProperty('service.name')
-    @ConstraintProjection(ConstraintProjection.Policy.OMIT)
-    @InputExamples(['Catalog', 'catalog.internal', 'Catalog']) String serviceName
-    @InputExamples(['null', '{not JSON', '01', '[unclosed']) String varied
-    @InputExamples([${DOCUMENTARY_TEXT.inspect()}]) String escaped
-    @InputExamples(['42', 'many replicas']) int replicas
-    @InputExamples(['true', 'enabled']) boolean enabled
-    @InputExamples(['blue, green']) List<String> tags
-    @InputExamples(['team: ops']) Map<String, String> labels
-    @InputExamples(['primary database']) ExampleChild primary
+    @Struct.Examples([ExampleTexts.VALUE]) String binaryConstant
+    @Deprecated @Struct.Name('service.name') @JsonProperty('service.name')
+    @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)
+    @Struct.Examples(['Catalog', 'catalog.internal', 'Catalog']) String serviceName
+    @Struct.Examples(['null', '{not JSON', '01', '[unclosed']) String varied
+    @Struct.Examples([${DOCUMENTARY_TEXT.inspect()}]) String escaped
+    @Struct.Examples(['42', 'many replicas']) int replicas
+    @Struct.Examples(['true', 'enabled']) boolean enabled
+    @Struct.Examples(['blue, green']) List<String> tags
+    @Struct.Examples(['team: ops']) Map<String, String> labels
+    @Struct.Examples(['primary database']) ExampleChild primary
     ExampleChild sibling
-    @Field(key=Field.FieldName) @InputExamples(['fixed database']) ExampleChild fixed
-    @InputExamples(['worker databases']) Map<String, ExampleChild> children
-    @InputIgnore ExampleExcluded excludedTarget
-    @InputIgnore @InputExamples(['hidden']) String secret
-    @JsonIgnore @InputExamples(['jackson hidden']) String hidden
-    @Field(FieldType.LINK) @InputExamples(['{}']) ExampleChild link
-    @Builder.Method @InputName('endpoint') @InputExamples(['API endpoint settings'])
+    @Field(key=Field.FieldName) @Struct.Examples(['fixed database']) ExampleChild fixed
+    @Struct.Examples(['worker databases']) Map<String, ExampleChild> children
+    @Struct.Ignore ExampleExcluded excludedTarget
+    @Struct.Ignore @Struct.Examples(['hidden']) String secret
+    @JsonIgnore @Struct.Examples(['jackson hidden']) String hidden
+    @Field(FieldType.LINK) @Struct.Examples(['{}']) ExampleChild link
+    @Builder.Method @Struct.Name('endpoint') @Struct.Examples(['API endpoint settings'])
     void endpoint(Map<String, String> input) { throw new AssertionError('operation executed') }
-    @Builder.Method @InputExamples(['override']) void configure(String input) { throw new AssertionError('operation executed') }
-    @Builder.Method @InputExamples(['true']) void unsupported(Object input) { throw new AssertionError('unsupported executed') }
+    @Builder.Method @Struct.Examples(['override']) void configure(String input) { throw new AssertionError('operation executed') }
+    @Builder.Method @Struct.Examples(['true']) void unsupported(Object input) { throw new AssertionError('unsupported executed') }
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
 }
 class ExampleControl {
@@ -2387,10 +2387,10 @@ class ExampleControl {
         writeSource('owned/src/main/groovy/example/LiteralDetails.groovy', '''
 package example
 import com.blackbuild.klum.ast.*
-@InputNaming(InputNaming.Profile.IDENTITY) @DSL class LiteralDetails { @InputName('child/Name') String nativeName }
+@Struct.Naming(Struct.Naming.Profile.IDENTITY) @DSL class LiteralDetails { @Struct.Name('child/Name') String nativeName }
 @DSL class LiteralWorker {
-    @Key @InputName('Worker/ID') @InputIgnore String workerId
-    @InputName('Image/Name') String imageName
+    @Key @Struct.Name('Worker/ID') @Struct.Ignore String workerId
+    @Struct.Name('Image/Name') String imageName
 }
 ''')
         writeSource('api/src/main/groovy/example/LiteralBase.groovy', '''
@@ -2400,18 +2400,18 @@ import com.fasterxml.jackson.annotation.*
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
 @DSL class LiteralBase {
-    @Key @InputName('Service/ID') @JsonProperty('Service/ID') String serviceId
-    @InputName('URL/exact') @JsonProperty('URL/exact') String URLValue
+    @Key @Struct.Name('Service/ID') @JsonProperty('Service/ID') String serviceId
+    @Struct.Name('URL/exact') @JsonProperty('URL/exact') String URLValue
     String urlValue
-    @InputName('displayName') String literalName
+    @Struct.Name('displayName') String literalName
     String displayName
-    @InputIgnore @JsonIgnore(false) String hiddenValue
-    @InputName('ignored-renamed') @JsonIgnore String alsoHidden
-    @Builder.Method @JsonProperty('set/Endpoint') @InputName('set/Endpoint')
+    @Struct.Ignore @JsonIgnore(false) String hiddenValue
+    @Struct.Name('ignored-renamed') @JsonIgnore String alsoHidden
+    @Builder.Method @JsonProperty('set/Endpoint') @Struct.Name('set/Endpoint')
     void configureEndpoint(String value) { urlValue = value }
-    @Builder.Method @InputIgnore void hiddenOperation(String value) { throw new AssertionError('ignored operation') }
+    @Builder.Method @Struct.Ignore void hiddenOperation(String value) { throw new AssertionError('ignored operation') }
 }
-@DSL class LiteralKeyFallback { @Key @InputName('Fallback/ID') String key }
+@DSL class LiteralKeyFallback { @Key @Struct.Name('Fallback/ID') String key }
 class LiteralControl {
     static void main(String[] args) {
         if (args.length) {
@@ -2420,7 +2420,7 @@ class LiteralControl {
                 KlumStructuredInput.readRoot(type, [:], 'rejected.yaml')
                 throw new AssertionError('invalid contract accepted')
             } catch (KlumModelException expected) {
-                assert expected.message.contains('collision') || expected.message.contains('literal metadata') || expected.message.contains('@InputIgnore')
+                assert expected.message.contains('collision') || expected.message.contains('literal metadata') || expected.message.contains('@Struct.Ignore')
                 println 'Rejected literal contract before execution'
             }
             return
@@ -2450,20 +2450,20 @@ class LiteralControl {
         writeSource('schema/src/main/groovy/example/LiteralService.groovy', """
 package example
 import com.blackbuild.klum.ast.*
-@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class LiteralService extends LiteralBase {
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class LiteralService extends LiteralBase {
     static { new File('${trap.absolutePath}').text = 'initialized' }
     LiteralDetails details
     Map<String, LiteralWorker> workers
     Map<String, String> labels
-    @InputName('items/exact') List<String> items
+    @Struct.Name('items/exact') List<String> items
 }
-@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class LiteralCollision {
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class LiteralCollision {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('collision executed') }
-    @InputName('same') String URLValue
-    @InputName('same') String urlValue
-    @InputIgnore @InputName('same') String hidden
+    @Struct.Name('same') String URLValue
+    @Struct.Name('same') String urlValue
+    @Struct.Ignore @Struct.Name('same') String hidden
 }
-@DSL class LiteralKeyCollision { @Key @InputName('Key/exact') String key; @InputName('Key/exact') String value }
+@DSL class LiteralKeyCollision { @Key @Struct.Name('Key/exact') String key; @Struct.Name('Key/exact') String value }
 @DSL class LiteralKeyOwner { Map<String, LiteralKeyCollision> services }
 """)
     }
@@ -2472,14 +2472,14 @@ import com.blackbuild.klum.ast.*
         writeSource('owned/src/main/groovy/example/NamingDetails.groovy', '''
 package example
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.InputNaming.Profile
+import com.blackbuild.klum.ast.Struct.Naming.Profile
 @DSL class NamingDetails { String nativeName }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingWorker { @Key String workerId; String imageName }
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingWorker { @Key String workerId; String imageName }
 ''')
         writeSource('api/src/main/groovy/example/NamingBase.groovy', """
 package example
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.InputNaming.Profile
+import com.blackbuild.klum.ast.Struct.Naming.Profile
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.fasterxml.jackson.annotation.*
@@ -2493,9 +2493,9 @@ import com.fasterxml.jackson.annotation.*
     @Builder.Method @JsonProperty('literal-operation') void literalOperation(String value) { neutralIgnore = value }
     @Builder.Method @JsonIgnore void ignoredOperation(String value) { throw new AssertionError('ignored operation') }
 }
-@InputNaming(Profile.IDENTITY) @DSL class NamingIdentity { String nativeName; String URLValue }
+@Struct.Naming(Profile.IDENTITY) @DSL class NamingIdentity { String nativeName; String URLValue }
 @DSL class NamingKeyBase { @Key String serviceId }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingLiteralKey { @Key @JsonProperty('Service/ID') String serviceId }
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingLiteralKey { @Key @JsonProperty('Service/ID') String serviceId }
 class NamingControl {
     static void main(String[] args) {
         if (args.length) {
@@ -2545,8 +2545,8 @@ class NamingControl {
         writeSource('schema/src/main/groovy/example/NamingService.groovy', """
 package example
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.InputNaming.Profile
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingService extends NamingBase {
+import com.blackbuild.klum.ast.Struct.Naming.Profile
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingService extends NamingBase {
     static { new File('${trap.absolutePath}').text = 'executed' }
     String serviceName
     String URLValue
@@ -2560,18 +2560,18 @@ import com.blackbuild.klum.ast.InputNaming.Profile
     Map<String, String> labels
     @Builder.Method void configureEndpoint(String value) { serviceName = value }
 }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingKey extends NamingKeyBase { String displayName }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingKeyCollision { @Key String URLValue; String urlValue }
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingKey extends NamingKeyBase { String displayName }
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingKeyCollision { @Key String URLValue; String urlValue }
 @DSL class NamingKeyCollisionOwner { Map<String, NamingKeyCollision> services }
 @DSL class NamingGrandchild extends NamingService { String finalName }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingRepeated extends NamingService { String equalName }
-@InputNaming(Profile.IDENTITY) @DSL class NamingConflict extends NamingService {
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingRepeated extends NamingService { String equalName }
+@Struct.Naming(Profile.IDENTITY) @DSL class NamingConflict extends NamingService {
     static { new File('${trap.absolutePath}').text = 'executed'; throw new AssertionError('invalid profile initialized') }
 }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingIdentityConflict extends NamingIdentity {
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingIdentityConflict extends NamingIdentity {
     static { new File('${trap.absolutePath}').text = 'executed'; throw new AssertionError('invalid profile initialized') }
 }
-@InputNaming(Profile.KEBAB_CASE) @DSL class NamingCollision {
+@Struct.Naming(Profile.KEBAB_CASE) @DSL class NamingCollision {
     static { new File('${trap.absolutePath}').text = 'executed'; throw new AssertionError('collision initialized') }
     String URLValue
     String urlValue
@@ -2602,7 +2602,7 @@ import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
 
 @Constraint(validatedBy=CompositionValidator) @Min(1L) @Max(100L)
-@InputConstraintDescription(CompositionTexts.DESCRIPTION)
+@Struct.ConstraintDescription(CompositionTexts.DESCRIPTION)
 @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
 @interface TrafficPercentage {
     String message() default 'traffic'
@@ -2657,10 +2657,10 @@ import com.blackbuild.klum.ast.runtime.KlumModelException
 @Constraint(validatedBy=[]) @Size(min=1)
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 @interface SizeOnly { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
-@InputConstraintDescription('Must be valid Groovy code.')
+@Struct.ConstraintDescription('Must be valid Groovy code.')
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 @interface ScriptText {}
-@PropagateAnnotation(Required) @InputConstraintDescription('Must be present.')
+@PropagateAnnotation(Required) @Struct.ConstraintDescription('Must be present.')
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 @interface PresentText {}
 interface Later {}
@@ -2691,14 +2691,14 @@ class CompositionValidator implements ConstraintValidator<TrafficPercentage, Int
 }
 @DSL class CompositionBase {
     /** Inherited prose. */
-    @Deprecated @InputName('Inherited/Range') @TrafficPercentage Integer inheritedRange
+    @Deprecated @Struct.Name('Inherited/Range') @TrafficPercentage Integer inheritedRange
 }
 ''')
         writeSource('schema/src/main/groovy/example/CompositionService.groovy', """
 package example
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.*
-@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class CompositionService extends CompositionBase {
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class CompositionService extends CompositionBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('composition initialized') }
     @TrafficPercentage Integer range
     @Min(5L) @TrafficPercentage @AtLeastTen Integer multiple
@@ -2709,9 +2709,9 @@ import jakarta.validation.constraints.*
     @Pattern(regexp='[A-Z]{2}') @EmailOnly String directWithEmail
     @FlaggedCode String flaggedCode
     @RepeatedCode String repeatedCode
-    @TrafficPercentage @ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY) Integer textOnly
+    @TrafficPercentage @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) Integer textOnly
     /** Retained prose. */
-    @InputExamples(['explicit field example']) @TrafficPercentage @ConstraintProjection(ConstraintProjection.Policy.OMIT) Integer omitted
+    @Struct.Examples(['explicit field example']) @TrafficPercentage @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) Integer omitted
     @ScriptText String descriptionOnly
     @PresentText String propagationOnly
     @Both Integer explicitAnd
@@ -2768,14 +2768,14 @@ import jakarta.validation.constraints.*
 package example
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.Pattern
-@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class PatternChild { @Pattern(regexp='[A-Z]{2}') String childCode }
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class PatternChild { @Pattern(regexp='[A-Z]{2}') String childCode }
 ''')
         writeSource('api/src/main/groovy/example/PatternBase.groovy', """
 package example
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.Pattern
 @DSL class PatternBase {
-    @InputName('Inherited/Code') @Pattern(regexp='[A-Z]{2}') String inheritedCode
+    @Struct.Name('Inherited/Code') @Pattern(regexp='[A-Z]{2}') String inheritedCode
 }
 class PatternConstants { public static final String TOKEN = '[a-z][a-z0-9-]{0,62}' }
 """)
@@ -2819,7 +2819,7 @@ class PatternInitializeControl {
         writeSource('schema/src/main/groovy/example/Release.groovy', """
 package example
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.ConstraintProjection.Policy
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy
 import jakarta.validation.constraints.*
 import jakarta.validation.groups.Default
 import jakarta.validation.GroupSequence
@@ -2828,11 +2828,11 @@ import groovy.transform.AnnotationCollector
 import jakarta.validation.Constraint
 import java.lang.annotation.*
 import static example.PatternConstants.TOKEN
-@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class Release extends PatternBase {
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class Release extends PatternBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Pattern Schema initialized') }
     $corpusFields
     /** Release slug. */
-    @InputExamples(['release-1', 'NOT VALID']) @Pattern(regexp=TOKEN) String slug
+    @Struct.Examples(['release-1', 'NOT VALID']) @Pattern(regexp=TOKEN) String slug
     @Pattern(regexp=TOKEN, flags=Pattern.Flag.COMMENTS) String constantFallback
     @Pattern(regexp='a', flags=Pattern.Flag.UNIX_LINES) String unix
     @Pattern(regexp='a', flags=Pattern.Flag.MULTILINE) String multiline
@@ -2851,13 +2851,13 @@ import static example.PatternConstants.TOKEN
     @Pattern.List([@Pattern(regexp='a'), @Pattern(regexp='b')]) String repeated
     @Pattern.List([@Pattern(regexp='a')]) String singletonList
     @Pattern(regexp='a') @Pattern.List([@Pattern(regexp='b')]) String mixedList
-    @InputExamples(['outside']) @Pattern(regexp='a') @ConstraintProjection(Policy.TEXT_ONLY) String textOnly
+    @Struct.Examples(['outside']) @Pattern(regexp='a') @Struct.ConstraintProjection(Policy.TEXT_ONLY) String textOnly
     /** Retained prose. */
-    @InputExamples(['outside']) @Deprecated @Pattern(regexp='a') @ConstraintProjection(Policy.OMIT) String omitted
-    @InputIgnore @Pattern(regexp='a') String excluded
+    @Struct.Examples(['outside']) @Deprecated @Pattern(regexp='a') @Struct.ConstraintProjection(Policy.OMIT) String omitted
+    @Struct.Ignore @Pattern(regexp='a') String excluded
     @Pattern(regexp='a') Integer wrongType
     @Pattern(regexp='a') List<String> container
-    @ConstraintProjection(Policy.OMIT) PatternChild first
+    @Struct.ConstraintProjection(Policy.OMIT) PatternChild first
     PatternChild second
     @Builder.Method void configure(String value) { throw new AssertionError('operation executed') }
 }
@@ -2880,47 +2880,47 @@ interface Warning extends Payload {}
     private void projectionSources() {
         File base = new File(producer, 'api/src/main/groovy/example/CapacityBase.groovy')
         base.text = base.text.replace('import com.blackbuild.klum.ast.DSL', 'import com.blackbuild.klum.ast.*')
-                .replace("@JsonProperty('inherited-percent')", "@ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY) @JsonProperty('inherited-percent')")
+                .replace("@JsonProperty('inherited-percent')", "@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) @JsonProperty('inherited-percent')")
         writeSource('api/src/main/groovy/example/ProjectionChild.groovy', '''
 package example
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.*
 @DSL class ProjectionChild {
     /** Amount. */
-    @ConstraintProjection(ConstraintProjection.Policy.OMIT) @DecimalMin('0.1') BigDecimal amount
+    @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @DecimalMin('0.1') BigDecimal amount
     @Min(2L) Integer quantity
 }
 ''')
         writeSource('schema/src/main/groovy/example/Projection.groovy', """
 package example
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.ConstraintProjection.Policy
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy
 import com.fasterxml.jackson.annotation.*
 import jakarta.validation.constraints.*
 import java.lang.annotation.*
 @DSL class Projection extends CapacityBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
     /** Projected replicas. */
-    @ConstraintProjection @Min(1L) Integer projected
+    @Struct.ConstraintProjection @Min(1L) Integer projected
     /** Projected replicas. */
     @Min(1L) Integer implicit
     /** Desired replica count. */
     @Deprecated @JsonProperty('replica-count') @Min(1L)
-    @ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
+    @Struct.ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
     /** Private capacity rule. */
-    @Deprecated @Min(1L) @ConstraintProjection(Policy.OMIT) Integer omitted
-    @DecimalMin(value='0.10', inclusive=false) @ConstraintProjection(Policy.TEXT_ONLY) BigDecimal decimalText
+    @Deprecated @Min(1L) @Struct.ConstraintProjection(Policy.OMIT) Integer omitted
+    @DecimalMin(value='0.10', inclusive=false) @Struct.ConstraintProjection(Policy.TEXT_ONLY) BigDecimal decimalText
     /** Required label. */
-    @Needed @ConstraintProjection(Policy.TEXT_ONLY) String propagatedText
+    @Needed @Struct.ConstraintProjection(Policy.TEXT_ONLY) String propagatedText
     /** Required label. */
-    @Needed @ConstraintProjection(Policy.OMIT) String propagatedOmit
+    @Needed @Struct.ConstraintProjection(Policy.OMIT) String propagatedOmit
     /** Required label. */
-    @NotNull @ConstraintProjection(Policy.TEXT_ONLY) String directText
+    @NotNull @Struct.ConstraintProjection(Policy.TEXT_ONLY) String directText
     /** Required label. */
-    @NotNull @ConstraintProjection(Policy.OMIT) String directOmit
-    @JsonIgnore @ConstraintProjection(Policy.OMIT) @Min(1L) Integer hidden
-    @Size(min=1) @ConstraintProjection(Policy.OMIT) ProjectionChild child
-    @JsonProperty('collision') @ConstraintProjection(Policy.OMIT) String first
+    @NotNull @Struct.ConstraintProjection(Policy.OMIT) String directOmit
+    @JsonIgnore @Struct.ConstraintProjection(Policy.OMIT) @Min(1L) Integer hidden
+    @Size(min=1) @Struct.ConstraintProjection(Policy.OMIT) ProjectionChild child
+    @JsonProperty('collision') @Struct.ConstraintProjection(Policy.OMIT) String first
     @JsonProperty('collision') String second
 }
 @PropagateAnnotation(NotNull)

@@ -23,8 +23,8 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
-import com.blackbuild.klum.ast.ConstraintProjection.Policy;
-import com.blackbuild.klum.ast.InputNaming.Profile;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 
 import java.io.IOException;
@@ -206,7 +206,7 @@ final class InputContractResolver {
         if (explicit.isEmpty()) return Profile.IDENTITY;
         String selected = explicit.get(0).getValue().namingProfile();
         if (explicit.stream().anyMatch(entry -> !entry.getValue().namingProfile().equals(selected))) {
-            String declarations = explicit.stream().map(entry -> namingOrigin(entry.getKey()) + " @InputNaming("
+            String declarations = explicit.stream().map(entry -> namingOrigin(entry.getKey()) + " @Struct.Naming("
                     + entry.getValue().namingProfile() + ")").sorted().collect(Collectors.joining(", "));
             throw invalid("Conflicting explicit input profiles: " + declarations);
         }
