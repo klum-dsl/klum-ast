@@ -1,8 +1,8 @@
 # INPUT-ROUND-PLAN — 4.2 structured-input implementation plan
 
-Date: 2026-10-31. Status: **Planning complete; annotation namespace/migration and documentation publication await maintainer review.**
+Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
 No production implementation or new execution qualification is claimed. See
-[ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and proposed annotation.
+[ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
 
@@ -80,7 +80,7 @@ This is the proposed documentation content model. “Accepted” means planned i
 | One typed List/Map argument; ordinary scalar field collections/maps | Yes, bounded | Retain one argument versus generated element population; literal String Map keys. |
 | Concrete direct child / Map of keyed concrete children | Yes | Preserve direct scope entry, normal callbacks, attachment/reuse and all #954 key positions. |
 | Unambiguous String / CharSequence scalar operation | C1/existing authored subset only | Accepted S2/S3: one fixed public operation; String payload, origin-independent after projection. |
-| Authoritative mark for competing candidates | No | Accepted selection semantics; S2 waits for annotation name. Zero marks requires uniqueness, one wins, multiple fail. |
+| Authoritative mark for competing candidates | No | Accepted `Struct.Operation` selection semantics; S2 follows V0. Zero marks requires uniqueness, one wins, multiple fail. |
 | Field-declared String converter / same-compilation or adapter route | No general admission | Accepted S3 when an exact ordinary Builder projection exists. No separate constraint proof required. |
 | Converter-backed scalar List/Map values | No general admission | Follow-on L1 after single scalar routes; no automatic blanket recursion. |
 | String to concrete owned DSL target | No | Conditional F1 proof, then a separately admitted implementation slice. |
@@ -103,10 +103,10 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 
 | ID / category | Depends on | Outcome, affected modules and reasoned commit boundary | Acceptance evidence / owner |
 | --- | --- | --- | --- |
-| V0 — conditional vocabulary proposal | Maintainer namespace/migration decision | [Annotation audit](input-round-annotation-vocabulary.md) recommends StructuredInput.*. Inventory development exposure; choose explicit cutover or bounded bridge. No rename is authorized here. | Source/binary/enum compatibility matrix, exact reader/compiler recognition, no behavioral drift; G3/G4/G5 and binary/JPMS gates. Maintainer decision; later KlumAST implementation. |
+| V0 — accepted implementation | Maintainer `Struct.*` decision | [Annotation decision](input-round-annotation-vocabulary.md): directly rename existing author vocabulary and update internal tests/Schelm qualification. No migration, cutover, aliases or compatibility bridge. | Consistent compiler/reader/generated type references, equivalent behavior; G3/G4/G5 and binary fixture/JPMS gates. Later KlumAST implementation; Schelm qualification owner. |
 | D0 — docs-only | This plan | Reconcile present-tense delivery wording and publish the positive matrix/import-path guide. One commit for current capability/status reconciliation, another only if future-syntax guidance is separately labelled. | Links, current-source checks, no prospective API advertised as shipped. KlumAST docs; Hive owns issue updates. |
 | S1 — accepted implementation | ADR 0032 | Replace whole-input `Preparation` with per-operation traversal in runtime; retain contract verification, root/child identity prerequisites and existing Consumer dispatch. One cohesive behavior/test commit, then migration/docs. No new grammar in this slice. | Earlier operation persists before bad later member/type/child; later operation never runs; root returns no Model; active Builder may be partial. Key order/cycles/diagnostics/session cleanup controls. KlumAST runtime. |
-| S2 — accepted implementation | Annotation name; V0 if approved; S1 | Normalize one scalar candidate selection on public Builder contracts. Add author marker and minimal generated selection/completeness facts across annotations/compiler/runtime/plugin. One vertical String-selection commit with tests; second compatibility/docs commit only when independently useful. | Unique unmarked, one marked, multiple marked, zero eligible, exclusion, renamed/inherited candidates, competing String/CharSequence, actual dispatch equality, shadowing and stripped facts. Selected String schema agrees. KlumAST compiler/runtime/plugin. |
+| S2 — accepted implementation | V0; S1 | Normalize one scalar candidate selection on public Builder contracts. Add author marker and minimal generated selection/completeness facts across annotations/compiler/runtime/plugin. One vertical String-selection commit with tests; second compatibility/docs commit only when independently useful. | Unique unmarked, one marked, multiple marked, zero eligible, exclusion, renamed/inherited candidates, competing String/CharSequence, actual dispatch equality, shadowing and stripped facts. Selected String schema agrees. KlumAST compiler/runtime/plugin. |
 | S3a — accepted implementation | S2 | Admit exact String scalar routes from field closures, same-compilation values and existing external adapters without C1-origin restrictions. Keep current C1 constraint authority when still applicable. One origin-parity behavior/test commit plus docs. | Same effective Builder shape works across origins; typed failure and thrown converter cause preserved; converter not invoked by generation. Collision with missing generated method fails; no duplicate factory scan. KlumAST compiler/runtime/plugin. |
 | S3b — accepted implementation | S3a | Admit deterministic CharSequence scalar routes (e.g. existing projected `Duration.parse`). One narrow behavior/schema/test commit plus docs. | A supplied String reaches the exact recorded CharSequence signature; String/CharSequence competition needs authority; numeric/null/GString/custom mutable CharSequence input rejects; no StringBuilder construction. KlumAST compiler/runtime/plugin. |
 | S4 — accepted implementation | S2 | Zero-argument command role, empty-mapping runtime dispatch and empty-object schema. One vertical commit plus documentary example/docs. | Empty Map invokes once; null/blank YAML result, nonempty Map, List/scalar reject; no later call after failure; unknown name remains rejected. KlumAST compiler/runtime/plugin. |
@@ -170,7 +170,7 @@ The numbering matches the accepted assignment. Every row names an acceptance own
 | --- | --- | --- |
 | 1. Builder-contract authority regardless of origin | S2/S3 same public operation across authored/generated/converter origins; exact source attribution retained. | KlumAST compiler/runtime |
 | 2. One scalar String/CharSequence route, no coercion | S2/S3b positive String calls, competing-route negatives, exact argument/dispatch traces. | KlumAST |
-| 3. Exactly one authoritative mark | S2 zero/one/multiple marks, excluded and inherited candidates; name approval remains explicit. | Maintainer vocabulary; KlumAST proof |
+| 3. Exactly one authoritative mark | S2 zero/one/multiple `Struct.Operation` marks, excluded and inherited candidates. | KlumAST proof |
 | 4. Field converters; containers follow; DSL conditional | S3a fixture, L1 separate element tests, F1 ownership/lifecycle equivalence gate. | KlumAST; Hive admits follow-ons |
 | 5. Known mapping scopes, direct entry | S5/F2 Consumer path and concrete delegate evidence; synthetic/dynamic closure controls reject. | KlumAST |
 | 6. Zero-arg empty mapping | S4 empty object schema/runtime; null/nonempty/scalar controls; parser supplies null for blank YAML. | KlumAST; Schelm parser control |
@@ -251,21 +251,20 @@ Each behavioral slice updates its relevant current user pages, [Builder migratio
 [migration navigation](../user/Migration.md), sidebar if a page changes, and `CHANGES.md`. S1 must replace the current
 preflight guarantee when implemented, not beforehand. S3 updates Converters; S6 updates Templates; S7 explains explicit
 self-contained versus body editor selection. Hive owns later linked-issue/Sonar/delivery reconciliation. Do not advertise
-proposed annotation/API spelling as current or edit historical `wiki/` authoring trees.
+accepted but unimplemented annotation/API spelling as current or edit historical `wiki/` authoring trees.
 
-Remaining maintainer decisions: the [namespace audit](input-round-annotation-vocabulary.md) recommends
-`StructuredInput.*`, including `StructuredInput.Operation`, replacing the earlier standalone `InputOperation` proposal.
-Choose the outer/member vocabulary and a cutover or explicitly bounded compatibility bridge after development-exposure
-inventory. Stable 4.1.1 absence is verified; development consumer absence is not. No annotation is renamed by this plan.
+The [annotation decision](input-round-annotation-vocabulary.md) accepts `Struct.*`, including `Struct.Operation`.
+The maintainer confirms usage was limited to internal tests and Schelm qualification; no annotation migration or cutover
+is needed. V0 directly updates those uses and type references. No vocabulary or compatibility-policy decision remains.
 Scope-entry availability, DSL-target equivalence and CollectionFactory feasibility are
 bounded evidence gates with stop outcomes, not unresolved product choices to reopen now. New requirement or absent
 equivalence returns to the maintainer; it does not authorize redesign. Factory convenience, runtime parameter validation,
 new constraint families, typed examples and composition remain separate decisions.
 
-Publication boundary: retain local, reviewed documentation commits while annotation vocabulary/migration remains unresolved.
-The assignment permits a documentation PR only when no unresolved decision makes publication premature; no push/PR is
-performed by this plan merely because its semantic ledger is complete. No issue creation/closure, milestone changes,
-implementation worker, production code, Gradle configuration or runtime behavior belongs to this assignment.
+Publication boundary: the assignment permits a reviewed documentation PR when the plan is complete and no unresolved
+maintainer decision makes publication premature. The annotation blocker is settled. Conditional feasibility slices are
+explicit future evidence gates, not publication blockers. No issue creation/closure, milestone changes, implementation
+worker, production code, Gradle configuration or runtime behavior belongs to this assignment.
 
 R1 is a single explicit revisit checkpoint after higher-tier implementation and matched Schelm qualification. For each
 deferred candidate, record needed/useful/nice-to-have/unnecessary/not feasible, the smallest concrete example, viable

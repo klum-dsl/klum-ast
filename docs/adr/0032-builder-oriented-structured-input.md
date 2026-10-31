@@ -2,7 +2,7 @@
 
 Date: 2026-10-31.
 
-Status: **Accepted semantic direction; planning only. Annotation namespace, admission name and migration policy proposed, not accepted.**
+Status: **Accepted semantic direction and `Struct.*` vocabulary; planning only, not implemented.**
 Implementation status: none from this decision. Current behavior remains the delivered ADR 0031 implementation.
 
 Authority: the maintainer's INPUT-ROUND-PLAN decisions, reconciled in the
@@ -62,25 +62,25 @@ operation retains only its effective name. Inherited candidates and overrides mu
 implementation; a descendant may not silently execute different code while retaining the parent's converter assertions.
 Conflicting literal names, ignored construction keys and other malformed metadata still fail under existing rules.
 
-**Revised vocabulary proposal: `@StructuredInput.Operation`.** The maintainer requested a namespace audit before PR
-delivery. The [annotation inventory, six-name comparison and migration analysis](../implementation/input-round-annotation-vocabulary.md)
-recommend a `StructuredInput` outer namespace for the shared external-document contract, with Name, Ignore, Naming,
-Examples, Operation and constraint projection/description members. This replaces the earlier standalone `InputOperation`
-recommendation, not an existing API. No rename is accepted. Do not reuse `@Builder.Input`: it already projects a
-Model-typed parameter to a Builder. `@Converter` is ordinary conversion capability, not input-selection authority.
-The maintainer must choose the vocabulary and migration promise before publication. The spelling below is illustrative:
+**Accepted vocabulary: `@Struct.Operation`.** The maintainer selected `Struct` as the outer namespace for the shared
+external-document contract. The [annotation inventory and naming decision](../implementation/input-round-annotation-vocabulary.md)
+record Name, Ignore, Naming, Examples, Operation and constraint projection/description members. The maintainer also
+confirmed that existing names were used only by internal tests and Schelm qualification: use a direct internal rename,
+with no migration, cutover, aliases, deprecation window or compatibility bridge. This supersedes the earlier standalone
+`InputOperation` and `StructuredInput.*` proposals. `Builder.Input` and ordinary converter vocabulary retain their meanings.
+The following accepted future syntax is not yet implemented:
 
 ```groovy
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
-// Proposed, not an available annotation:
-import com.blackbuild.klum.ast.StructuredInput
+// Accepted vocabulary, not yet available:
+import com.blackbuild.klum.ast.Struct
 
 @DSL
 class Service {
     String host
 
-    @StructuredInput.Operation
+    @Struct.Operation
     @Builder.Method void endpoint(String value) { host = value }
     @Builder.Method void endpoint(CharSequence value) { host = value.toString() }
 }
@@ -213,8 +213,6 @@ the same language, automatic JSON Schema validation, a round trip, or Jackson de
   No public descriptor API, registry, plugin SPI, parser dependency or new module is justified by this plan.
 - Template construction and conditional DSL conversion reuse existing ownership/lifecycle machinery. Synthetic closures,
   completed-Model attachment and transactional rollback are rejected as different semantics.
-- Annotation namespace/member spelling and its migration promise remain maintainer decisions. The audited stable 4.1.1
-  artifact lacks the six current author annotations, but development consumers are not proven absent; consolidation
-  changes source names and binary/enum descriptors. No compatibility or automatic rename is implied.
-  Conditional feasibility results are engineering
-  evidence gates, not permission to silently broaden scope when a proof fails.
+- `Struct.*` and the direct internal rename are accepted. Update compiler/runtime/generated type references and internal
+  tests/Schelm qualification consistently. No old-name compatibility or migration mechanism is required. Conditional
+  feasibility results remain engineering evidence gates, not permission to silently broaden scope when a proof fails.
