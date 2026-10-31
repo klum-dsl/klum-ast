@@ -1,5 +1,13 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
+Current reconciliation, 2026-10-31: #529, #932 and #954 are closed delivered work; C1/#991 and the S1/S2 separation
+are present on master. Dated checkpoints below retain their original delivery wording and evidence. Historical Schelm
+Dev.114 acceptance does not qualify a newer matched build. [ADR 0032](0032-builder-oriented-structured-input.md) and its
+[implementation plan](../implementation/input-round-plan-4-2.md) record the accepted 4.2 successor direction, including
+per-operation execution instead of whole-input preflight. That direction is not implemented by these documentation
+changes; current runtime/user guidance still describes the delivered preflight behavior. Annotation vocabulary remains
+proposed. ADR 0031's generated-contract, no-execution, key, naming and qualified projection principles remain in force.
+
 Date: 2026-10-20. Architecture revised: 2026-10-23 (reflective generator decision). Delivery status reconciled: 2026-10-23.
 
 Status: **Accepted direction; compiler admission seam and restricted WIRE-1 runtime merged; opt-in reflective Gradle projection implemented; real ScHelm acceptance pending**.
