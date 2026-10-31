@@ -1857,12 +1857,7 @@ import com.blackbuild.klum.ast.DSL
         new JarFile(jar).withCloseable { input ->
             new JarOutputStream(new FileOutputStream(replacement)).withCloseable { output ->
                 input.entries().each { entry ->
-                    byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
-                    if (entry.name.endsWith('.class')) {
-                        int before = replacements[0]
-                        bytes = specializeTrapClass(bytes, originalTrapPath, replacements)
-                        if (replacements[0] > before) rewritten.add(entry.name)
-                    }
+                    byte[] bytes = specializeTrapEntry(input, entry, originalTrapPath, replacements, rewritten)
                     output.putNextEntry(new JarEntry(entry.name))
                     output.write(bytes)
                     output.closeEntry()
@@ -1870,6 +1865,19 @@ import com.blackbuild.klum.ast.DSL
             }
         }
         jar.bytes = replacement.bytes
+    }
+
+    private byte[] specializeTrapEntry(JarFile input, JarEntry entry, String originalTrapPath, int[] replacements, Set<String> rewritten) {
+        byte[] bytes = input.getInputStream(entry).withCloseable { it.bytes }
+        if (!entry.name.endsWith('.class')) {
+            return bytes
+        }
+        int before = replacements[0]
+        bytes = specializeTrapClass(bytes, originalTrapPath, replacements)
+        if (replacements[0] > before) {
+            rewritten.add(entry.name)
+        }
+        bytes
     }
 
     private byte[] specializeTrapClass(byte[] bytes, String originalTrapPath, int[] replacements) {
@@ -3129,7 +3137,9 @@ class InitializationControl {
     private static String classpath(String value) { value.split(File.pathSeparator).collect { notation(it) }.join(', ') }
     private def run(String... arguments) { runner(consumer, arguments).build() }
     private GradleRunner runner(File project, String... arguments) {
-        if (project == producer) producerRunnerCalls++
+        if (project == producer) {
+            producerRunnerCalls++
+        }
         GradleRunner result = GradleRunner.create().withProjectDir(project)
         if (packagedPlugin) {
             Properties metadata = new Properties()
