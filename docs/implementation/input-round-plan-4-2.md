@@ -1,6 +1,6 @@
 # INPUT-ROUND-PLAN — 4.2 structured-input implementation plan
 
-Date: 2026-10-31. Status: **Planning complete; annotation vocabulary and documentation publication await maintainer review.**
+Date: 2026-10-31. Status: **Planning complete; annotation namespace/migration and documentation publication await maintainer review.**
 No production implementation or new execution qualification is claimed. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and proposed annotation.
 
@@ -103,9 +103,10 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 
 | ID / category | Depends on | Outcome, affected modules and reasoned commit boundary | Acceptance evidence / owner |
 | --- | --- | --- | --- |
+| V0 — conditional vocabulary proposal | Maintainer namespace/migration decision | [Annotation audit](input-round-annotation-vocabulary.md) recommends StructuredInput.*. Inventory development exposure; choose explicit cutover or bounded bridge. No rename is authorized here. | Source/binary/enum compatibility matrix, exact reader/compiler recognition, no behavioral drift; G3/G4/G5 and binary/JPMS gates. Maintainer decision; later KlumAST implementation. |
 | D0 — docs-only | This plan | Reconcile present-tense delivery wording and publish the positive matrix/import-path guide. One commit for current capability/status reconciliation, another only if future-syntax guidance is separately labelled. | Links, current-source checks, no prospective API advertised as shipped. KlumAST docs; Hive owns issue updates. |
 | S1 — accepted implementation | ADR 0032 | Replace whole-input `Preparation` with per-operation traversal in runtime; retain contract verification, root/child identity prerequisites and existing Consumer dispatch. One cohesive behavior/test commit, then migration/docs. No new grammar in this slice. | Earlier operation persists before bad later member/type/child; later operation never runs; root returns no Model; active Builder may be partial. Key order/cycles/diagnostics/session cleanup controls. KlumAST runtime. |
-| S2 — accepted implementation | Annotation name; S1 | Normalize one scalar candidate selection on public Builder contracts. Add author marker and minimal generated selection/completeness facts across annotations/compiler/runtime/plugin. One vertical String-selection commit with tests; second compatibility/docs commit only when independently useful. | Unique unmarked, one marked, multiple marked, zero eligible, exclusion, renamed/inherited candidates, competing String/CharSequence, actual dispatch equality, shadowing and stripped facts. Selected String schema agrees. KlumAST compiler/runtime/plugin. |
+| S2 — accepted implementation | Annotation name; V0 if approved; S1 | Normalize one scalar candidate selection on public Builder contracts. Add author marker and minimal generated selection/completeness facts across annotations/compiler/runtime/plugin. One vertical String-selection commit with tests; second compatibility/docs commit only when independently useful. | Unique unmarked, one marked, multiple marked, zero eligible, exclusion, renamed/inherited candidates, competing String/CharSequence, actual dispatch equality, shadowing and stripped facts. Selected String schema agrees. KlumAST compiler/runtime/plugin. |
 | S3a — accepted implementation | S2 | Admit exact String scalar routes from field closures, same-compilation values and existing external adapters without C1-origin restrictions. Keep current C1 constraint authority when still applicable. One origin-parity behavior/test commit plus docs. | Same effective Builder shape works across origins; typed failure and thrown converter cause preserved; converter not invoked by generation. Collision with missing generated method fails; no duplicate factory scan. KlumAST compiler/runtime/plugin. |
 | S3b — accepted implementation | S3a | Admit deterministic CharSequence scalar routes (e.g. existing projected `Duration.parse`). One narrow behavior/schema/test commit plus docs. | A supplied String reaches the exact recorded CharSequence signature; String/CharSequence competition needs authority; numeric/null/GString/custom mutable CharSequence input rejects; no StringBuilder construction. KlumAST compiler/runtime/plugin. |
 | S4 — accepted implementation | S2 | Zero-argument command role, empty-mapping runtime dispatch and empty-object schema. One vertical commit plus documentary example/docs. | Empty Map invokes once; null/blank YAML result, nonempty Map, List/scalar reject; no later call after failure; unknown name remains rejected. KlumAST compiler/runtime/plugin. |
@@ -252,13 +253,16 @@ preflight guarantee when implemented, not beforehand. S3 updates Converters; S6 
 self-contained versus body editor selection. Hive owns later linked-issue/Sonar/delivery reconciliation. Do not advertise
 proposed annotation/API spelling as current or edit historical `wiki/` authoring trees.
 
-Remaining maintainer decision: choose the authoritative-admission annotation name (`InputOperation` recommended,
-`InputPrimary` alternative). Scope-entry availability, DSL-target equivalence and CollectionFactory feasibility are
+Remaining maintainer decisions: the [namespace audit](input-round-annotation-vocabulary.md) recommends
+`StructuredInput.*`, including `StructuredInput.Operation`, replacing the earlier standalone `InputOperation` proposal.
+Choose the outer/member vocabulary and a cutover or explicitly bounded compatibility bridge after development-exposure
+inventory. Stable 4.1.1 absence is verified; development consumer absence is not. No annotation is renamed by this plan.
+Scope-entry availability, DSL-target equivalence and CollectionFactory feasibility are
 bounded evidence gates with stop outcomes, not unresolved product choices to reopen now. New requirement or absent
 equivalence returns to the maintainer; it does not authorize redesign. Factory convenience, runtime parameter validation,
 new constraint families, typed examples and composition remain separate decisions.
 
-Publication boundary: retain a local, reviewed documentation commit while annotation vocabulary remains unresolved.
+Publication boundary: retain local, reviewed documentation commits while annotation vocabulary/migration remains unresolved.
 The assignment permits a documentation PR only when no unresolved decision makes publication premature; no push/PR is
 performed by this plan merely because its semantic ledger is complete. No issue creation/closure, milestone changes,
 implementation worker, production code, Gradle configuration or runtime behavior belongs to this assignment.
