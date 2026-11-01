@@ -96,13 +96,15 @@ for generation in ("3", "4", "5"):
     assert (directory / "deployment.self-contained.schema.json").read_bytes() == (directory / "deployment.builder-body.schema.json").read_bytes()
 command_cases = {
     "command.builder-body": (
-        [{}, {"resetTimeout": {}}, {"current-command": {}}, {"external-endpoint": "api"}],
+        [{}, {"resetTimeout": {}}, {"current-command": {}}, {"external-endpoint": "api"},
+         {"naturalDuration": "PT30S"}],
         [{"name": "root"}, {"resetTimeout": None}, {"resetTimeout": {"value": "bad"}},
          {"resetTimeout": []}, {"current-command": False}, {"old-command": {}},
-         {"FromStruct": {}}, {"Template": {}}]),
+         {"FromStruct": {}}, {"Template": {}}, {"naturalDuration": 30}, {"naturalDuration": None}]),
     "command.self-contained": (
-        [{"name": "root"}, {"name": "root", "resetTimeout": {}}],
-        [{}, {"resetTimeout": {}}, {"name": "root", "resetTimeout": {"value": "bad"}}]),
+        [{"name": "root"}, {"name": "root", "resetTimeout": {}}, {"name": "root", "naturalDuration": "PT30S"}],
+        [{}, {"resetTimeout": {}}, {"name": "root", "resetTimeout": {"value": "bad"}},
+         {"name": "root", "naturalDuration": 30}, {"name": "root", "naturalDuration": None}]),
 }
 command_accepted, command_rejected, command_emitted = validate_cases(
     command_cases, "body-command-*", normalise_artifact_locations=True)

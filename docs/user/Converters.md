@@ -201,9 +201,8 @@ import java.time.Duration
 @DSL class Service { Duration timeout }
 
 def direct = Service.Create.With { timeout 'PT30S' }
-def structured = KlumStructuredInput.readRoot(Service, [timeout: 'PT30S'], 'service.yaml')
-assert structured.timeout == direct.timeout
-assert structured.timeout == Duration.ofSeconds(30)
+assert direct.timeout == Duration.ofSeconds(30)
+def parsed = [timeout: 'PT30S'] // The admitted CharSequence projection receives this exact String.
 ```
 
 The original String reaches the exact recorded signature; no mutable CharSequence is constructed. Numeric, boolean,

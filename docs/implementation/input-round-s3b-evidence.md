@@ -4,7 +4,27 @@ Related: #952. Authority: [ADR 0032](../adr/0032-builder-oriented-structured-inp
 [S3b acceptance](input-round-plan-4-2.md#acceptance-details-that-must-not-disappear-inside-a-slice),
 [S2 selection](input-round-s2-evidence.md) and [S3a origins](input-round-s3a-evidence.md).
 
-## Integration and delivery boundary
+## Current integration after S7 PR #1008
+
+Current base: `4b93ffa6037f06e55f39073ce9ccc8ea1477b39b`, verified merged PR #1008 and fetched origin/master on
+2026-11-01. Existing PR: [#1010](https://github.com/klum-dsl/klum-ast/pull/1010).
+The requested rebase replaces published head `c53c73cd37555c2f6c98aebef141d09fbc63583a`; its running CI is stale for
+this refreshed integration. The PR remains open, with no merge or issue-state mutation authorized.
+
+Conflict resolution retains S7 body/default parity, keyed-body identity assertions and S3b CharSequence properties.
+ADR, plan and changelog keep both slices. The S3b example follows master's Schema/parsed-payload public guidance,
+without restoring a development-reader call. The S7 output oracle now checks CharSequence String grammar in both
+keyed self-contained and keyless body artifacts, including numeric/null rejection.
+
+The compiler, runtime, annotations, Jackson, bean-validation, test-support and build-topology trees are byte-identical
+to the previously qualified `c53c73cd3` tree. Under #1006's post-rebase risk policy, fresh qualification targets the full
+affected Gradle plugin suite and its source-free G3/G4/G5 producer matrix, plugin validation/licenses, documentation
+renderer, all seven retained emitted-output oracle families and documentation/diff checks. The prior root result is
+retained for the unchanged compiler/runtime/JPMS inputs; it is not a fresh complete-build result for the new head.
+Hosted CI and SonarCloud must qualify the final published head before Hive may merge. Fresh local results and renewed
+independent reviews are pending. Earlier integration records below are historical.
+
+## Previous integration and delivery boundary
 
 Integrated base: `97a6775e580f3164a5ec18019312bf871512ac65`, fetched from origin/master on 2026-11-01.
 S3a PR #1004 is verified merged at `f71d0cea1ddd100d24b8106b7f64dc37e819c988`, an ancestor of that base.
