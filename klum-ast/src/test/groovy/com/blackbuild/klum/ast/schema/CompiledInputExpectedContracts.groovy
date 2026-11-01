@@ -307,7 +307,10 @@ final class CompiledInputExpectedContracts {
                     ]],
             'rejection': [model: 'rejection.Parent', builder: 'rejection.Parent_DSL$Builder',
                     entries: [
-
+                            [externalName: 'reset', role: 'COMMAND', source: 'rejection.Parent#reset():void',
+                             owner: 'rejection.Parent_DSL$Builder', operation: 'reset', descriptors: ['reset():void'],
+                             nameOrigin: 'IDENTITY', mapKeyType: null, excludedChildKeyMember: null,
+                             payload: [kind: 'EMPTY_OBJECT', type: 'java.util.Map', builder: null, keyType: null, item: null], fixedChildKey: null]
                     ], rejections: [
                             [source: 'rejection.Parent#abstractChild', reason: 'requires one concrete owned relationship'],
                             [source: 'rejection.Parent#first', reason: 'external-name collision for \'duplicate\': rejection.Parent#first, rejection.Parent#second'],
@@ -315,8 +318,7 @@ final class CompiledInputExpectedContracts {
                             [source: 'rejection.Parent#marker', reason: 'has no admitted scalar, enum, List, or Map payload'],
                             [source: 'rejection.Parent#numberedChildren', reason: 'requires Map<String, concrete keyed DSL Object> ownership'],
                             [source: 'rejection.Parent#raw(java.util.Map):void', reason: '@Builder.Method payload is outside the admitted grammar'],
-                            [source: 'rejection.Parent#replace(java.lang.String, java.lang.String):void', reason: '@Builder.Method must declare exactly one payload'],
-                            [source: 'rejection.Parent#reset():void', reason: '@Builder.Method must declare exactly one payload'],
+                            [source: 'rejection.Parent#replace(java.lang.String, java.lang.String):void', reason: '@Builder.Method must declare zero arguments or exactly one payload'],
                             [source: 'rejection.Parent#second', reason: 'external-name collision for \'duplicate\': rejection.Parent#first, rejection.Parent#second'],
                             [source: 'rejection.Parent#secondOperation(java.lang.String):void', reason: 'external-name collision for \'operation\': rejection.Parent#firstOperation(java.lang.String):void, rejection.Parent#secondOperation(java.lang.String):void'],
                             [source: 'rejection.Parent#unkeyedChildren', reason: 'has no admitted scalar, enum, List, or Map payload']

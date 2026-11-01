@@ -821,6 +821,7 @@ class JpmsPackageBoundaryTest extends Specification {
                 @Struct.Name('station-name') String name = 'North'
                 @Struct.Operation @Builder.Method
                 void endpoint(String value) { name = 'selected:' + value }
+                @Builder.Method void resetTimeout() { capacity = 30 }
                 @Struct.Name('endpoint') @Builder.Method
                 void backupEndpoint(String value) { throw new AssertionError('unselected operation') }
                 StationSlot slot
@@ -1074,6 +1075,15 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
                         throw new AssertionError("Selected public String operation differs from direct Java dispatch");
+                    Station commanded = KlumStructuredInput.readRoot(Station.class, Map.of("resetTimeout", Map.of()), "command.json");
+                    Station directCommand = factory.With(new Closure<Object>(null) {
+                        @Override public Object call() {
+                            ((Station_DSL.Builder<Station>) getDelegate()).resetTimeout();
+                            return null;
+                        }
+                    });
+                    if (commanded.getCapacity() != 30 || commanded.getCapacity() != directCommand.getCapacity())
+                        throw new AssertionError("Command differs from direct Builder dispatch");
                     Station structured = KlumStructuredInput.readRoot(Station.class, null,
                             Map.of("station-name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
                     if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
@@ -1196,6 +1206,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'
                     assert selected.name == directSelected.name
+                    Station commanded = KlumStructuredInput.readRoot(Station, [resetTimeout: [:]], 'command.json')
+                    Station directCommand = Station.Create.With { resetTimeout() }
+                    assert commanded.capacity == 30
+                    assert commanded.capacity == directCommand.capacity
                     Station structured = KlumStructuredInput.readRoot(Station, null, ['station-name': 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
                     assert structured.name == 'Structured static'
                     assert structured.capacity == 6

@@ -99,6 +99,8 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Operation {
+        /** Compiler-owned OPERATION or COMMAND role; must agree with the exact public signature. */
+        String role();
         /** Explicit author selection intent on this exact public projection, including false. */
         boolean authoritative();
         boolean sourceDeprecated();

@@ -191,7 +191,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         }
     }
 
-    def "rejects unsupported authored operations relationships and colliding external names deterministically"() {
+    @Issue("952")
+    def "rejects unsupported operations and relationships while admitting a zero-argument command"() {
         given:
         def unit = compilationUnit(StructuredInputContractFixtures.REJECTIONS)
 
@@ -200,7 +201,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'rejection.Parent' })
 
         then:
-        plan.entries().empty
+        plan.entries()*.externalName() == ['reset']
+        plan.entries()[0].role().name() == 'COMMAND'
         plan.rejections()*.source() == plan.rejections()*.source().sort()
         plan.rejections().collectEntries { [it.source(), it.reason()] }.with {
             get('rejection.Parent#abstractChild') == 'requires one concrete owned relationship'
@@ -209,9 +211,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
             get('rejection.Parent#marker') == 'has no admitted scalar, enum, List, or Map payload'
             get('rejection.Parent#firstOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#secondOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
-            get('rejection.Parent#replace(java.lang.String, java.lang.String):void') == '@Builder.Method must declare exactly one payload'
+            get('rejection.Parent#replace(java.lang.String, java.lang.String):void') == '@Builder.Method must declare zero arguments or exactly one payload'
             get('rejection.Parent#raw(java.util.Map):void') == '@Builder.Method payload is outside the admitted grammar'
-            get('rejection.Parent#reset():void') == '@Builder.Method must declare exactly one payload'
         }
     }
 

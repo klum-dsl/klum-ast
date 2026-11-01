@@ -319,6 +319,11 @@ public final class StructuredInputSupport {
                             child.key() == null ? entry.fixedChildKey() : child.key(), child::execute);
                 }
                 case KEYED_OWNED_MAP -> executeChildren(entry, input, path, builder);
+                case COMMAND -> {
+                    if (!(input instanceof Map<?, ?> map) || !map.isEmpty())
+                        throw bad(entry, path, "empty Map for a zero-argument command", input, null);
+                    new Invocation(source, path, entry, method(entry, path)).invoke(builder, new Object[0], path);
+                }
                 case PROPERTY, OPERATION -> {
                     Invocation invocation = new Invocation(source, path, entry, method(entry, path));
                     if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST) {
@@ -389,6 +394,7 @@ public final class StructuredInputSupport {
                 signature = new Class<?>[]{entry.payload().item().type()};
             else if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.MAP)
                 signature = new Class<?>[]{String.class, entry.payload().item().type()};
+            else if (entry.role() == Role.COMMAND) signature = new Class<?>[0];
             else signature = new Class<?>[]{entry.payload().type()};
             List<Method> candidates = entry.methods().stream()
                     .filter(method -> Arrays.equals(method.getParameterTypes(), signature)).toList();
@@ -430,7 +436,7 @@ public final class StructuredInputSupport {
                         yield new DataMap(List.copyOf(items));
                     } finally { visiting.remove(input); }
                 }
-                case NESTED_OBJECT -> throw bad(entry, path, "a compiler-recorded owned relationship", input, null);
+                case NESTED_OBJECT, EMPTY_OBJECT -> throw bad(entry, path, "a compiler-recorded owned relationship", input, null);
             };
         }
 

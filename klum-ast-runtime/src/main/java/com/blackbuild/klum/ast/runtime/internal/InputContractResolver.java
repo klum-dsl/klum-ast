@@ -227,8 +227,8 @@ final class InputContractResolver {
 
     /** An override owns its own names, exclusion and selection intent; parent annotations cannot select different code. */
     private static boolean overriddenOperation(BuilderContext context, Entry entry) {
-        if (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
-                || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class) return false;
+        if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
+                || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class)) return false;
         return entry.methods().stream().anyMatch(inherited -> overridden(inherited, declaredMethods(context)));
     }
 
@@ -463,7 +463,7 @@ final class InputContractResolver {
         if (roles.size() != 1 || methods.stream().map(Method::getName).distinct().count() != 1)
             throw invalid("Conflicting field selection for " + source);
         Role role = Role.valueOf(roles.iterator().next());
-        if (role == Role.OPERATION) throw invalid("Field cannot select authored-operation role");
+        if (role == Role.OPERATION || role == Role.COMMAND) throw invalid("Field cannot select authored-operation role");
         return role;
     }
 
@@ -511,7 +511,13 @@ final class InputContractResolver {
         NameFacts names = literal.operationNames();
         String reason = null;
         if (names.ignored()) reason = ignoreReason(names);
-        else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare exactly one payload";
+        else if (method.getParameterCount() == 0) {
+            String name = names.rename().isEmpty() ? method.getName() : names.rename();
+            entries.add(new Entry(name, Role.COMMAND, source, method.getDeclaringClass(), method.getName(), List.of(method),
+                    new Payload(Kind.EMPTY_OBJECT, Map.class, null, null, null), null, null, null, names.origin(),
+                    literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
+            return;
+        } else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare zero arguments or exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
         // Preserve String/CharSequence competition without admitting CharSequence dispatch before S3b.
         if (reason == null && method.getParameterTypes()[0] == CharSequence.class) {

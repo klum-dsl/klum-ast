@@ -185,7 +185,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         System.clearProperty('wire.schema.executed')
     }
 
-    @Issue('959')
+    @Issue(['959', '952'])
     def 'first descendant profile preserves non-naming ancestor exclusions: #profile'() {
         given:
         def api = compileJar([trapped('''
@@ -223,16 +223,16 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def exclusions = ancestor.rejections.findAll { !it.reason.contains('collision') }
 
         then: 'only naming-collision sources can recover; structural, unsupported and ignored sources stay rejected'
-        ancestor.entries*.externalName == ['validName']
+        ancestor.entries*.externalName == ['reset', 'validName']
         ancestor.rejections.count { it.reason.contains('collision') } == 2
         exclusions*.source as Set == [
                 'namingexclusions.Base#abstractChild', 'namingexclusions.Base#hiddenValue',
                 'namingexclusions.Base#internalValue', 'namingexclusions.Base#unsupportedValue',
-                'namingexclusions.Base#raw(java.util.Map):void', 'namingexclusions.Base#reset():void'
+                'namingexclusions.Base#raw(java.util.Map):void'
         ] as Set
         descendant.rejections.findAll { !it.reason.contains('collision') } == exclusions
         descendant.rejections.count { it.reason.contains('collision') } == (profile == 'KEBAB_CASE' ? 0 : 2)
-        descendant.entries.collectEntries { [(it.externalName): it.source] } == expected.collectEntries { name, member ->
+        descendant.entries.collectEntries { [(it.externalName): it.source] } == (expected + [reset: 'reset():void']).collectEntries { name, member ->
             [(name): "namingexclusions.Base#$member".toString()]
         }
         System.getProperty('wire.schema.executed') == null
@@ -431,6 +431,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         result
     }
 
+    @Issue(['529', '952'])
     def 'compiled public contract matches every expected fact: #fixture'() {
         given:
         def jar = compileJar([trapped(source)] + NAMING)
@@ -1151,9 +1152,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         actual.entries.each { entry ->
             def scope = CompiledBuilderSchemaReplacementProbe.scope(Class.forName(entry.owner, false, binaries))
             String field = entry.source.substring(entry.source.indexOf('#') + 1)
-            String name = entry.role == 'OPERATION' ? entry.operation : 'get' + field.substring(0, 1).toUpperCase(Locale.ROOT) + field.substring(1)
+            String name = entry.role in ['OPERATION', 'COMMAND'] ? entry.operation : 'get' + field.substring(0, 1).toUpperCase(Locale.ROOT) + field.substring(1)
             def declaration = scope.find { it.owner == entry.owner && it.name == name &&
-                    (entry.role == 'OPERATION' ? entry.descriptors.contains(it.name + '(' + it.parameters.collect { type -> type.replaceAll(/<.*>/, '') }.join(', ') + '):' + it.returns) : it.parameters.empty) }
+                    (entry.role in ['OPERATION', 'COMMAND'] ? entry.descriptors.contains(it.name + '(' + it.parameters.collect { type -> type.replaceAll(/<.*>/, '') }.join(', ') + '):' + it.returns) : it.parameters.empty) }
             assert declaration != null
             assert actual.documentation[entry.source] == (declaration.documentation ?: null)
         }

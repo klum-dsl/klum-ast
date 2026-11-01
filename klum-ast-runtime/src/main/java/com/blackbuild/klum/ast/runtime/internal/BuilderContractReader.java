@@ -113,7 +113,7 @@ final class BuilderContractReader {
     /** Field/key and authored-operation names remain separate even on a shared accessor. */
     record Literals(String location, String key, String field, String selection, String role, String doc,
                     NameFacts names, NameFacts operationNames, boolean operationFact, boolean fixed,
-                    Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative,
+                    Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
                     List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter) {
@@ -139,7 +139,7 @@ final class BuilderContractReader {
     private static Literals freeze(MutableLiterals value) {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
-                value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.exclusion, value.detail,
+                value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
                 value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter);
     }
 
@@ -262,6 +262,7 @@ final class BuilderContractReader {
         Boolean sourceDeprecated;
         Boolean operationDeprecated;
         Boolean authoritative;
+        String operationRole;
         boolean authorOperation;
         String exclusion = "";
         String detail = "";
@@ -341,14 +342,14 @@ final class BuilderContractReader {
             if (literal.examples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
-        validateOperationFacts(literal, source);
+        validateOperationFacts(literal, source, signature);
         validateConverterFacts(literal, source);
         if (literal.field != null) {
             validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
         }
     }
 
-    private static void validateOperationFacts(MutableLiterals literal, String source) {
+    private static void validateOperationFacts(MutableLiterals literal, String source, String signature) {
         if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
         if (!literal.operationFact) return;
         if (!literal.operation || literal.authoritative == null) {
@@ -357,6 +358,9 @@ final class BuilderContractReader {
         if (literal.authoritative.booleanValue() != literal.authorOperation) {
             throw invalid("Author marker disagrees with authoritative selection fact on " + source);
         }
+        String expectedRole = signature.contains("()") ? "COMMAND" : "OPERATION";
+        if (!expectedRole.equals(literal.operationRole))
+            throw invalid("Missing or inconsistent operation role on " + source);
         validateNameFacts(literal.operationNames, source);
         if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
         if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
@@ -732,7 +736,11 @@ final class BuilderContractReader {
             if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> {
-                    if (member.equals("authoritative")) {
+                    if (member.equals("role")) {
+                        if (literal.operationRole != null || !(value instanceof String))
+                            throw invalid("Duplicate or invalid operation role fact");
+                        literal.operationRole = (String) value;
+                    } else if (member.equals("authoritative")) {
                         if (literal.authoritative != null || !(value instanceof Boolean))
                             throw invalid("Duplicate or invalid authoritative selection fact");
                         literal.authoritative = (Boolean) value;

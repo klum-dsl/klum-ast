@@ -240,7 +240,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
 
         where:
         declaration << [
-            '@Struct.Operation @Builder.Method void endpoint() {}',
+            '@Struct.Operation @Builder.Method void endpoint(String first, String second) {}',
             '@Struct.Operation @Builder.Method void endpoint(CharSequence value) {}',
             '@Struct.Operation @Builder.Method void endpoint(Object value) {}',
             '@Struct.Operation @Builder.Query String endpoint(String value) { value }',

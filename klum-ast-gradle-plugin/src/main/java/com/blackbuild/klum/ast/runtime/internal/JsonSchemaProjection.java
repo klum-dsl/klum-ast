@@ -155,7 +155,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     }
 
     private void constrain(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined) {
-        if (entry.role() == CompiledBuilderSchema.Role.OPERATION) return;
+        if (entry.role() == CompiledBuilderSchema.Role.OPERATION || entry.role() == CompiledBuilderSchema.Role.COMMAND) return;
         CompiledBuilderSchema.ConstraintProfile profile = constraintProfiles.get(entry.contract());
         String field = entry.source().substring(entry.source().lastIndexOf('#') + 1);
         CompiledBuilderSchema.FieldConstraints constraints = profile.fields().get(field);
@@ -270,6 +270,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
 
     private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, KeyPosition position, String source) throws ClassNotFoundException {
         return switch (payload.kind()) {
+            case EMPTY_OBJECT -> new LinkedHashMap<>(Map.of("type", "object", "properties", Map.of(), "additionalProperties", false));
             case SCALAR -> scalar(payload.type());
             case ENUM -> enumeration(payload.type());
             case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), KeyPosition.MEMBER, source)));
