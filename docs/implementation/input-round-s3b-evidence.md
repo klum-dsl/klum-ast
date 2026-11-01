@@ -36,9 +36,47 @@ suites, the G4 named-module consumer case, and all 8 packaged-schema cases, with
 ./gradlew :klum-ast:test --tests '*StructuredCharSequenceTest' --tests '*StructuredConverterOriginTest' --tests '*StructuredOperationSelectionTest' --tests '*StructuredCommandTest' --tests '*StructuredInputTemplateDocumentaryTest' :klum-ast:groovy4Tests --tests '*JpmsPackageBoundaryTest.a real schema and consumer*' :klum-ast-gradle-plugin:test --tests '*CompiledConverterJsonSchemaTest' --no-parallel --max-workers=2 --console=plain
 ```
 
-Final integrated root qualification and independent Standards/Specification reviews are pending. Earlier local results
-below remain historical, not proof of the integrated head. The shared compiler/runtime hook and overlapping master
-changes require the full-check tier under the merged PR #1006 policy.
+The first focused integration run exposed the newer long-descriptor fixture's implicit `Duration.parse` competition.
+Its explicit exclusion above corrected the fixture; the successful focused and root runs include that correction.
+
+Clean integrated implementation/test head `efe6c0d083dc33892c87d98f227fe70b811c6e27` passed root `check` on
+2026-11-01 in **25m 15s**: 140 tasks, 73 executed and 67 up to date. All final JUnit XML reports were inspected:
+
+| Lane | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline | 3,728 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 3,053 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 3,053 | 0 / 0 | 16 |
+
+The compiler contributes 2,699 / 2,701 / 2,701 cases, and the Gradle plugin contributes 653 baseline cases. The run
+includes binary and named-module consumers, packaged G3/G4/G5 schema producers, lane isolation, license checks,
+plugin validation and the documentation renderer. S3b adds no suppressed test.
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew check --continue --no-parallel --max-workers=2 --console=plain
+```
+
+After root success, `validate_converter_schema.py` passed **28 JDK checks, 270 ECMA/Draft C1 checks and 270 structural
+String checks** against the actual emitted G3/G4/G5 schemas, using jsonschema 4.23.0, Node v24.19.0 and Java 17.
+All three schemas have SHA-256 `5b0e6804fd4bb63f0ced84becd8cdad587795a1a22a6fa573defb1a12a59805d`.
+Markdown fences, 200 relative file links, documentary anchors and `git diff --check` passed on the integrated diff.
+
+The same two independent read-only reviewers renewed their full reviews against integrated base
+`97a6775e580f3164a5ec18019312bf871512ac65` at `efe6c0d083dc33892c87d98f227fe70b811c6e27`:
+**Standards: zero remaining required findings. Specification: zero remaining findings.** They confirmed the rebase
+preserves upstream command, Template, descriptor and schema behavior. The earlier optional ASM-helper extraction
+remains deferred for the reasons recorded below. This final evidence update changes no production, test, fixture or
+build input; the implementation's qualification remains bound to the clean head above.
+
+The shared compiler/runtime hook and overlapping master changes require the full-check tier under merged PR #1006
+(`52b9e0d97d181e8f2ad2222c50ae3a176ea4bfb4`). No local SonarCloud upload occurred. Hosted CI and SonarCloud still
+require inspection on the published PR head; local success is not hosted qualification.
+
+The reviewed local history contains the five rebased S3b commits (`9b714d705`, `01d38a4b2`, `af3cfef68`, `fb1eff772`,
+`1c3b1edc0`) followed by the additive integration correction `efe6c0d08` and this evidence-only handoff update.
+Delivery preflight outcomes: **Git branch push: authorized** (dry run); **GitHub CLI repository write: authorized**.
+No existing PR was found for this branch. The next authorized delivery is a draft PR with **Related: #952**; no merge,
+issue mutation or archive action is part of this handoff. The pre-integration results below are retained as history.
 
 ## Implementation and review focus
 
