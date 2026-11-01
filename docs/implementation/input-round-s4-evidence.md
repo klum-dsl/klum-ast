@@ -23,8 +23,25 @@ annotation-only tracker churn. S2's inherited-candidate correction and S1 traver
 No S3a code or dependency is introduced.
 
 Rebased implementation commits: `9142a88ee`, `306ffd9b4`, `48c494d0f`, `5b8769673`.
-Focused and aggregate integration validation and the repeated Standards/Specification review are pending below; the dated
-stacked results are retained as historical evidence and do not substitute for the integration gate.
+The dated stacked results below are historical. Fresh integration validation was run on
+`a3c71e7226f16aaedba5a4c2050ad899b1608018`; the final publication audit changes documentation only.
+
+- Focused Groovy 3 command, operation-selection, literal, compiler-admission, compiled-contract and ordered-runtime
+  controls: **passed**, 45s.
+- `./gradlew check --continue --no-parallel --max-workers=2 --console=plain`: **passed**, 140 tasks (70 executed,
+  70 up-to-date), 25m 17s. Compiler cases: 2,617 G3 / 2,619 G4 / 2,619 G5, zero failures. Runtime, Jackson, Bean Validation,
+  test-support, binary Java/static Groovy and applicable JPMS consumers, documentation renderer, licenses and lane
+  isolation all passed. Full plugin/schema suite: **653 cases, zero failures**.
+- Added/changed local Markdown links/anchors: **10 checked, zero failures**; `git diff --check` passed.
+- The same two local review children repeated Standards and Specification review against merged-S2 base
+  `325cfda9d373b235caaa7590475ecde01c33fdb7` through `a3c71e7226f16aaedba5a4c2050ad899b1608018`.
+  Both passed with zero remaining findings. They also verify the final documentation-only publication audit head.
+- History review retained the rebased reasoning steps and the explicit integration reconciliation; no unrequested feature
+  changes or S3a implementation were introduced. The final worktree is clean after the audit commit.
+
+Publication preflight: the GitHub connector channel is **authorized** for the repository. Git transport fetched the pinned
+master successfully; the push outcome and exact draft PR/head/hosted-check state are recorded in the delivery callback.
+No local SonarCloud upload was performed.
 
 ## Implementation boundary
 
