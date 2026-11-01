@@ -28,6 +28,7 @@ import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.Struct;
+import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.Struct.Ignore;
 import com.blackbuild.klum.ast.Struct.Naming;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
@@ -330,7 +331,7 @@ final class StructuredInputAdmissionPlan {
                     if (api == null) return;
                     // Read the authored implementation, never a generated/compatibility projection's annotations.
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
-                    operation.setMember("role", new ConstantExpression(method.getParameters().length == 0 ? Role.COMMAND.name() : Role.OPERATION.name()));
+                    operation.setMember("role", new ConstantExpression(operationRole(method)));
                     operation.setMember("authoritative", new ConstantExpression(annotation(method, Struct.Operation.class.getName()) != null));
                     enrichDeprecation(method, operation);
                     StructuredInputExamples.enrich(method, transformation.annotatedClass, operation, source(method));
@@ -489,6 +490,10 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         Parameter[] parameters = method.getParameters();
+        if (parameters.length == 0 && lifecycleCommand(method)) {
+            rejections.add(new Rejection(source, "lifecycle methods are not structured commands"));
+            return;
+        }
         if (parameters.length == 0) {
             PublicOperation operation = publicOperation(method, rejections);
             if (operation != null) {
@@ -525,6 +530,16 @@ final class StructuredInputAdmissionPlan {
         if (operation == null) return;
         entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null,
                 ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
+    }
+
+    private static String operationRole(MethodNode method) {
+        if (method.getParameters().length != 0) return Role.OPERATION.name();
+        return lifecycleCommand(method) ? "LIFECYCLE" : Role.COMMAND.name();
+    }
+
+    private static boolean lifecycleCommand(MethodNode method) {
+        return WriteAccessHelper.isLifecycleMethod(method)
+                || annotation(method, Validate.class.getName()) != null;
     }
 
     private static Payload payloadForModel(ClassNode model) {

@@ -156,6 +156,61 @@ class StructuredCommandTest extends AbstractDSLSpec {
         name << ['unknown', 'resetTimeout!', 'created', 'applied', 'tree', 'currentTimeout', 'modelMethod', 'apply', 'copyFrom', 'getClass']
     }
 
+    def 'lifecycle annotations cannot become commands through a manual marker: #markers'() {
+        given:
+        def type = schema("""
+            @DSL class Service {
+                static int calls
+                $markers void callback() { calls++ }
+            }
+        """)
+
+        when:
+        def ordinary = KlumStructuredInput.readRoot(type, [:], 'ordinary.yaml')
+        def entries = new InputContractResolver().read(type).entries()
+
+        then:
+        ordinary != null
+        type.calls == 1
+        !entries.containsKey('callback')
+
+        when:
+        KlumStructuredInput.readRoot(type, [callback: [:]], 'lifecycle.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('/callback')
+        type.calls == (markers.contains('PostCreate') ? 2 : 1)
+
+        where:
+        markers << ['@Builder.Method @PostCreate', '@PostCreate @Builder.Method',
+                    '@Builder.Method @PostApply', '@PostApply @Builder.Method',
+                    '@Builder.Method @PostTree', '@PostTree @Builder.Method']
+    }
+
+    def 'a lifecycle override removes an inherited command alias'() {
+        given:
+        def type = schema('''
+            @DSL class Parent {
+                static int calls
+                @Builder.Method @Struct.Name('old-command') void callback() { calls += 10 }
+            }
+            @DSL class Child extends Parent {
+                @Builder.Method @PostCreate void callback() { calls++ }
+            }
+        ''', 'Child')
+
+        when:
+        def result = KlumStructuredInput.readRoot(type, [:], 'ordinary.yaml')
+        def entries = new InputContractResolver().read(type).entries()
+
+        then:
+        result != null
+        type.calls == 1
+        !entries.containsKey('old-command')
+        !entries.containsKey('callback')
+    }
+
     def 'command failure retains its escaped pointer original cause and root cleanup'() {
         given:
         def type = schema()

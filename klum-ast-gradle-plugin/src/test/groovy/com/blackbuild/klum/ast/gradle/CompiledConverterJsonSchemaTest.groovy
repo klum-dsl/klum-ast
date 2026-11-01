@@ -157,6 +157,8 @@ import com.blackbuild.klum.ast.*
 package converterjson
 import com.blackbuild.klum.ast.*
 @DSL class SelectedBase extends Base {
+    @Builder.Method @PostCreate void created() { throw new AssertionError('lifecycle helper executed') }
+    @PostApply @Builder.Method void applied() { throw new AssertionError('lifecycle helper executed') }
     /** Restore the domain timeout. */
     @Builder.Method void resetTimeout() { throw new AssertionError('command executed during generation') }
     @Builder.Method @Struct.Name('old-command') void refresh() { throw new AssertionError('parent command executed') }

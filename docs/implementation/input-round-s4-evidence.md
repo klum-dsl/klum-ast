@@ -11,7 +11,8 @@ Branch: `codex/952-zero-argument-commands`.
 
 Compiler admission adds COMMAND / EMPTY_OBJECT for exact public zero-argument `@Builder.Method` projections.
 Every authored operation emits a required role in `GeneratedInput.Operation`, including excluded methods, retaining
-S2's operation count and author-selection facts. The byte reader checks explicit presence, type and role/signature
+S2's operation count and author-selection facts. A dual-annotated lifecycle declaration carries an explicit excluded
+LIFECYCLE role; all lifecycle markers are checked regardless of their source order. The byte reader checks explicit presence, type and role/signature
 agreement before use. Matching compiler/runtime/plugin and recompiled Schema hierarchies are required; development
 protocol 1 remains, with no legacy decoder or mixed-toolchain promise.
 
@@ -50,8 +51,13 @@ artifacts and no-execution commands. Command: `./gradlew :klum-ast:test --tests 
 --tests '*CompiledBuilderSchemaTest' --tests '*JpmsPackageBoundaryTest' :klum-ast-gradle-plugin:test
 --tests '*CompiledConverterJsonSchemaTest' --console=plain --no-parallel --max-workers=2`.
 
-Full repository `check --continue --no-parallel --max-workers=2 --console=plain` and exactly two local review axes are in
-progress. Their final results will be recorded before handoff; focused results do not yet claim complete qualification.
+Exactly two read-only local children reviewed `761bc51589a6bac957fc0053ac33f29a41e85809`: Standards reported no findings;
+Specification found that a method combining `@Builder.Method` and `@PostCreate` could be called both as a callback and
+as structured input. The additive correction records compiler-owned LIFECYCLE exclusion, examines every marker rather
+than the first, and adds both annotation orders across PostCreate/PostApply/PostTree plus inherited-alias and packaged
+schema controls. Focused command and G3/G4/G5 packaged schema controls passed after the correction. The initial full
+check was stopped during the Groovy 4 AST suite to incorporate that valid finding; it does not count as a passing gate.
+The same two children will review the correction, and a fresh full check will qualify the corrected head before handoff.
 
 ## Delivery boundary
 

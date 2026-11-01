@@ -511,6 +511,7 @@ final class InputContractResolver {
         NameFacts names = literal.operationNames();
         String reason = null;
         if (names.ignored()) reason = ignoreReason(names);
+        else if (literal.operationRole().equals("LIFECYCLE")) reason = "lifecycle methods are not structured commands";
         else if (method.getParameterCount() == 0) {
             String name = names.rename().isEmpty() ? method.getName() : names.rename();
             entries.add(new Entry(name, Role.COMMAND, source, method.getDeclaringClass(), method.getName(), List.of(method),

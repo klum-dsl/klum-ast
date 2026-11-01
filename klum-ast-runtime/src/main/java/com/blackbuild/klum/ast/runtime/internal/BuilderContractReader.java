@@ -358,8 +358,8 @@ final class BuilderContractReader {
         if (literal.authoritative.booleanValue() != literal.authorOperation) {
             throw invalid("Author marker disagrees with authoritative selection fact on " + source);
         }
-        String expectedRole = signature.contains("()") ? "COMMAND" : "OPERATION";
-        if (!expectedRole.equals(literal.operationRole))
+        Set<String> expectedRoles = signature.contains("()") ? Set.of("COMMAND", "LIFECYCLE") : Set.of("OPERATION");
+        if (literal.operationRole == null || !expectedRoles.contains(literal.operationRole))
             throw invalid("Missing or inconsistent operation role on " + source);
         validateNameFacts(literal.operationNames, source);
         if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
