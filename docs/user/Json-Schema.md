@@ -454,9 +454,9 @@ An ordinary unannotated property named `key` is a normal generated property. Act
 
 ## Compiled converter parameters
 
-For an [admitted generated String converter route](Converters.md#structured-string-input), the field's effective external
+For an [admitted generated String or CharSequence converter route](Converters.md#structured-string-input), the field's effective external
 member has `type: string`. Field closures, same-compilation values and external adapters retain field prose/examples;
-they do not gain C1 parameter assertions. Their destination-field constraints describe the converted domain value and
+they do not gain C1 parameter assertions. CharSequence routes likewise emit String structure without parameter assertions. Their destination-field constraints describe the converted domain value and
 never constrain the raw String. No converter or user initialization runs during generation.
 
 For C1-qualified separately compiled declared domain routes, selected-parameter projection remains exact. A qualified Pattern appears at that same property, without a parameter object or domain

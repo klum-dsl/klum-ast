@@ -64,6 +64,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }])
                 Duration timeout
             }
@@ -82,10 +83,11 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         !entry.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
     }
 
-    def 'a field String closure remains distinct from the implicit CharSequence factory'() {
+    def 'a field String closure remains distinct from an explicitly excluded CharSequence factory'() {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value).plusSeconds(7) }])
                 Duration timeout
             }
@@ -236,6 +238,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> throw new AssertionError('must not execute') }])
                 Duration timeout
             }
@@ -258,6 +261,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
             }
         ''')
@@ -295,6 +299,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> throw new AssertionError('converter executed') }])
                 Duration timeout
             }
@@ -313,6 +318,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
             }
         ''')

@@ -60,7 +60,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
 
         then:
         body == schema
-        ['duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
+        ['duration', 'natural-duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype', 'sequence'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
         fields.duration.description.contains('ISO-8601 duration.')
         fields.local.description.contains('converted domain value')
@@ -90,6 +90,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         !fields.'group-redefined'.containsKey('allOf')
         fields.'group-redefined'.description.contains('group redefinition/sequence')
         !fields.containsKey('hidden')
+        !fields.containsKey('generic-endpoint')
         !schema.'$defs'.keySet().any { it.contains('PortNumber') || it.contains('FactoryPort') }
         !schema.'$defs'.'converterjson.Service_DSL$Builder'.containsKey('required')
         !new File(directory, 'executed').exists()
@@ -225,7 +226,10 @@ import com.blackbuild.klum.ast.*
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.required == ['name']
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties.findAll { key, value -> key != 'name' } == properties
         !body.'$defs'.'converterjson.SelectedService_DSL$Builder::keyless'.containsKey('required')
-        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'resetTimeout', 'current-command'] as Set
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'naturalDuration', 'resetTimeout', 'current-command'] as Set
+        properties.naturalDuration.type == 'string'
+        !properties.naturalDuration.containsKey('allOf')
+        !properties.naturalDuration.containsKey('x-klum-converter-constraint-source')
         properties.configureName == [type: 'string']
         properties.'renamed-name' == [type: 'string']
         properties.resetTimeout == [type: 'object', properties: [:], additionalProperties: false, description: 'Restore the domain timeout.']
@@ -307,7 +311,9 @@ class GenericValue<T> {
         write(producer, 'parent/src/main/groovy/converterjson/Base.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
+import java.time.Duration
 @DSL class Base {
+    Duration naturalDuration
     /** Inherited port prose. */
     @Struct.Name('port-number') @Struct.Examples(['1234']) @Deprecated
     @Converters(includeConstructors=true) PortNumber port
@@ -322,10 +328,15 @@ import java.nio.file.Path
 @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Service extends Base {
     static { throw new AssertionError('Schema initialized') }
     /** ISO-8601 duration. */
+    @Converters(excludeMethods=['parse'])
     @Field(converters = [{ String value -> throw new AssertionError('closure executed') }]) Duration duration
+    @Struct.Operation @Builder.Method void sequence(CharSequence value) { throw new AssertionError('CharSequence operation executed') }
+    @Builder.Method void sequence(String value) { throw new AssertionError('String peer executed') }
+    @Struct.Operation @Builder.Method
+    <T extends CharSequence & Cloneable> void genericEndpoint(T value) { throw new AssertionError('generic operation executed') }
     @Pattern(regexp='[A-Z]{2}') LocalValue local
     /** External adapter prose. */
-    @Converters([DurationAdapter]) Duration adapted
+    @Converters(value=[DurationAdapter], excludeMethods=['parse']) Duration adapted
     @Converters(includeConstructors=true) OverloadedValue overloaded
     @Field(converters = [{ String value -> throw new AssertionError('Path closure executed') }]) Path path
     @Converters(includeConstructors=true) GenericValue<String> generic

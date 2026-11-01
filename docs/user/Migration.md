@@ -19,7 +19,7 @@ Existing root and active Builder entry points retain their contracts.
 
 Use `@Struct.Operation` on one eligible Schema-authored String Builder method when several public operations share an
 external input name. Unmarked selection requires uniqueness; String and CharSequence overloads have no implicit
-specificity preference. CharSequence invocation is still unsupported. Renamed/ignored overrides now replace inherited
+specificity preference. Either exact signature can receive a String payload. Renamed/ignored overrides now replace inherited
 authored operation names and selection intent; inherited C1 converter override rejection remains unchanged.
 
 Recompile participating Schema hierarchies with matching compiler/runtime/plugin artifacts for the new explicit operation
@@ -32,8 +32,17 @@ Exact public String Builder projections now admit field closures, same-compilati
 external adapters. Missing or colliding generated projections still reject. Recompile matched compiler/runtime/plugin and
 Schema artifacts: every converter association now explicitly records whether C1 parameter facts apply. C1 assertions and
 policies remain unchanged on qualified routes; other origins emit String structure and field prose without inferring
-constraints. CharSequence, converter-backed containers and DSL-object conversion remain outside this slice.
+constraints. Converter-backed containers and DSL-object conversion remain outside this slice.
 See [converter authoring](Converters.md#structured-string-input) and [schema output](Json-Schema.md#compiled-converter-parameters).
+
+### CharSequence scalar routes
+
+An existing exact public CharSequence Builder projection now accepts a String scalar. Recompile matched Schema,
+compiler/runtime and plugin artifacts. All other payload kinds, including mutable CharSequence objects, still reject.
+Where a String closure and an implicit CharSequence factory now compete, exclude the unwanted factory with
+`@Converters(excludeMethods = ['parse'])` or expose one `@Struct.Operation` wrapper. No specificity preference selects
+one for you. C1 String parameter policies remain unchanged; CharSequence routes emit structural String grammar only.
+See [the executable Duration example](Converters.md#structured-string-input).
 
 ### Compiled converter String input
 

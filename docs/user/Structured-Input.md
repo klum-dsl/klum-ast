@@ -349,7 +349,7 @@ def parsed = [endpoint: 'api.internal'] // Selects endpoint; host becomes 'prima
 
 Only `endpoint` is an external input name here. Ordinary Groovy/Java calls keep their normal callable methods. Exclusion,
 unsupported roles and missing public projections cannot be repaired with a mark. Place the marker on a method, never a
-field: it cannot choose among several generated converters. An authored marked wrapper can expose an exact String route.
+field: it cannot choose among several generated converters. An authored marked wrapper can expose an exact String or CharSequence route.
 
 Inherited String operations retain their declaring contract. A String override replaces the parent operation's name and selection
 intent, including when the override is renamed or ignored. Overriding an inherited String field's String input signature
@@ -358,8 +358,9 @@ Existing C1 converter routes remain excluded when a descendant
 overrides their signature; the parent's converter constraints cannot describe different code.
 
 A selected String route rejects numeric, null, GString and mutable CharSequence payloads without trying another overload.
-Competing String/CharSequence projections have no implicit specificity preference: mark the String operation.
-CharSequence invocation remains deferred; exact String converter origins follow the field rules above. The generated JSON Schema describes only the
+Competing String/CharSequence projections have no implicit specificity preference: mark one eligible operation.
+An exact selected CharSequence signature receives the original String; caller-supplied CharSequence objects are not input
+Strings. Generated String and CharSequence converter origins follow the field rules above. The generated JSON Schema describes only the
 selected operation's String grammar, prose and examples; constraints from a superseded field/converter do not transfer.
 
 Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts
