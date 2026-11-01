@@ -263,10 +263,9 @@ configuration. Preserve Template key, ownership and recipe behavior rather than 
 routing through ordinary root creation. Its root is keyless, with recipient identity supplied on application; nested
 Template key rules remain, including keyed-Map identity.
 
-S6 / [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007) is on an explicit merge hold. Its internal Template machinery
-and tests are reusable, but its new public `KlumStructuredInput.readTemplate` facade must not merge under the superseded
-premise. After this clarification merges, the Hive assigns the worker to rebase and retarget S6 to the generated Template
-Factory contract, including both source-name forms. This document does not release that hold or authorize implementation.
+S6 / [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007) was held while this boundary was clarified. The Hive
+subsequently lifted that hold and assigned retargeting to the generated Template Factory contract, including both
+source-name forms. The former public `KlumStructuredInput.readTemplate` proposal is superseded.
 
 A separately selected keyless Builder-body schema variant is useful for caller-pre-keyed roots. It forbids the root key
 while retaining the normal positional child rules. Default generated root schemas stay self-contained. Select the variant

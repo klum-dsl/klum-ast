@@ -627,7 +627,8 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     InternalKlumBuilder<M> applyConfiguration(Consumer<InternalKlumBuilder<M>> configuration) {
         assertMutable();
         configuration.accept(this);
-        LifecycleHelper.executeLifecycleMethods(this, PostApply.class);
+        if (!template)
+            LifecycleHelper.executeLifecycleMethods(this, PostApply.class);
         return this;
     }
 

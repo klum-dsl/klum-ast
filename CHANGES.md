@@ -11,6 +11,10 @@
   See [commands](docs/user/Structured-Input.md#zero-argument-commands)
   ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S4).
 
+- Add parser-free `Create.Template.FromStruct` for keyless Template bodies, preserving ordinary Template recipe
+  and lifecycle behavior. See [Templates](docs/user/Templates.md#structured-input-templates)
+  ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S6).
+
 - Add `@Struct.Operation` to select one exact public String Builder operation for structured input and JSON Schema.
   Unmarked candidates require uniqueness; multiple eligible marks reject. Inherited authored overrides own their names
   and selection intent; C1 converter override safeguards remain. Recompile matched Schema artifacts for required

@@ -9,6 +9,12 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Structured input Template bodies
+
+The additive `Create.Template.FromStruct` entry point accepts a parsed keyless root body and returns a reusable Template. Supply
+identity when constructing each recipient; see [structured input Templates](Templates.md#structured-input-templates).
+Existing root and active Builder entry points retain their contracts.
+
 ### Structured String operation selection
 
 Use `@Struct.Operation` on one eligible Schema-authored String Builder method when several public operations share an

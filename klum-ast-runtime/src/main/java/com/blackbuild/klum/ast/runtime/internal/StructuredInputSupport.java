@@ -69,6 +69,14 @@ public final class StructuredInputSupport {
         return FactoryHelper.createWithConfiguration(type, domain.key(), domain::execute);
     }
 
+    public static <T> T readTemplate(Class<T> type, Object parsed, String sourceName) {
+        requireSource(sourceName);
+        if (type == null || type.isInterface())
+            throw new KlumModelException(sourceName + ": structured Template input requires a Schema class");
+        Domain domain = new Traversal(sourceName, true).domain(type, parsed, "", Position.TEMPLATE_ROOT);
+        return FactoryHelper.doCreateTemplate(type, domain::execute);
+    }
+
     private static void requireConcrete(Class<?> type, String sourceName) {
         if (type == null || type.isInterface() || Modifier.isAbstract(type.getModifiers()))
             throw new KlumModelException(sourceName + ": structured input requires an exact concrete Schema type");
@@ -115,12 +123,13 @@ public final class StructuredInputSupport {
     }
 
     private enum Position {
-        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, SCHEMA_CHILD, MAP_VALUE;
+        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, TEMPLATE_ROOT, SCHEMA_CHILD, MAP_VALUE;
         boolean memberKey() { return this == ROOT || this == DIRECT; }
         String authority() {
             return switch (this) {
                 case EXPLICIT_ROOT -> "explicit rootKey argument";
                 case ACTIVE_BUILDER -> "already allocated active Builder";
+                case TEMPLATE_ROOT -> "recipient of the Template";
                 case SCHEMA_CHILD -> "Schema key provider";
                 case MAP_VALUE -> "outer Map entry key";
                 default -> throw new IllegalStateException("Position has no external key authority: " + this);
@@ -193,7 +202,9 @@ public final class StructuredInputSupport {
         private final InputContractResolver resolver = new InputContractResolver();
         private final Map<Class<?>, CompiledBuilderSchema> plans = new HashMap<>();
         private final Map<Object, Boolean> visiting = new IdentityHashMap<>();
-        private Traversal(String source) { this.source = source; }
+        private final boolean templateRoot;
+        private Traversal(String source) { this(source, false); }
+        private Traversal(String source, boolean templateRoot) { this.source = source; this.templateRoot = templateRoot; }
 
         private static String pointer(String parent, String token) {
             return parent + "/" + token.replace("~", "~0").replace("/", "~1");
@@ -239,7 +250,8 @@ public final class StructuredInputSupport {
             CompiledBuilderSchema known = plans.get(model);
             if (known != null) return known;
             try {
-                CompiledBuilderSchema decoded = resolver.read(model);
+                CompiledBuilderSchema decoded = templateRoot && path.isEmpty()
+                        ? resolver.readTemplate(model) : resolver.read(model);
                 plans.put(model, decoded); // Register before following ownership so recursive contracts terminate.
                 for (Entry entry : decoded.entries().values()) {
                     if (entry.payload().kind() == Kind.NESTED_OBJECT) {
