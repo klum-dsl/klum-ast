@@ -623,11 +623,15 @@ A caller that has already parsed a document can define a Template from its keyle
 identity for diagnostics; KlumAST does not open it. For a keyed root, omit its key: each recipient supplies its own.
 Nested direct children retain their own key rules, and the outer entry supplies the identity of a keyed Map child.
 
+(See: `StructuredInputTemplateDocumentaryTest#'parsed keyless bodies define ordinary reusable Template recipes'`.)
+
 ```java
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput;
 
 Deployment template = KlumStructuredInput.readTemplate(Deployment.class, parsed, "deployment.yaml");
 ```
+
+(See: `StructuredInputTemplateDocumentaryTest#'parsed keyless bodies define ordinary reusable Template recipes'`.)
 
 ```groovy
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput

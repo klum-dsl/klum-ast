@@ -53,6 +53,10 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
                     region = value
                     applyLater { identifier name.toUpperCase() }
                 }
+                @Builder.Method void seed(String value) {
+                    primary('api') { image value }
+                    service('worker') { image value }
+                }
                 @PostCreate void created() { events << 'root:create' }
                 @PostApply void applied() { events << 'root:apply' }
                 @PostTree void tree() { events << 'root:tree' }
@@ -128,6 +132,28 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         !first.primary.is(second.primary)
         !first.services.worker.is(second.services.worker)
         !first.primary.is(template.primary)
+    }
+
+    def 'reconfiguring existing Template children does not run lifecycle callbacks'() {
+        when:
+        def template = KlumStructuredInput.readTemplate(deployment,
+                [seed: 'initial', primary: [name: 'api', image: 'updated'],
+                 services: [worker: [image: 'updated']]], 'input')
+
+        then:
+        deployment.events.empty
+        template.primary.image == 'updated'
+        template.services.worker.image == 'updated'
+
+        when:
+        def recipient
+        deployment.Template.With(template) { recipient = deployment.Create.With('target') }
+
+        then:
+        recipient.primary.image == 'updated'
+        recipient.services.worker.image == 'updated'
+        deployment.events.contains('child:create')
+        deployment.events.contains('child:apply')
     }
 
     def 'root and map identities are not accepted inside bodies and failures return no Template'() {
