@@ -1,5 +1,11 @@
 # Unreleased
 
+- Admit zero-argument domain Builder commands in structured input using an empty mapping (`resetTimeout: {}`) only.
+  Null, nonempty mappings, Lists and scalars reject; ordered partial-failure behavior remains. JSON Schema emits a closed
+  empty object without executing the command. Recompile matched Schema artifacts for required command-role facts.
+  See [commands](docs/user/Structured-Input.md#zero-argument-commands)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S4).
+
 - Add `@Struct.Operation` to select one exact public String Builder operation for structured input and JSON Schema.
   Unmarked candidates require uniqueness; multiple eligible marks reject. Inherited authored overrides own their names
   and selection intent; C1 converter override safeguards remain. Recompile matched Schema artifacts for required
