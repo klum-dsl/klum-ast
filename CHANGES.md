@@ -6,6 +6,12 @@
   [schema selection](docs/user/Json-Schema.md#caller-pre-keyed-builder-bodies)
   ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S7).
 
+- Admit deterministic public CharSequence scalar Builder routes for String input, including projected `Duration.parse`.
+  Preserve exact signatures, strict payloads and C1 String parameter facts; JSON Schema emits String grammar.
+  Competing String/CharSequence routes need explicit selection or converter exclusion. Recompile matched artifacts.
+  See [migration](docs/user/Migration.md#charsequence-scalar-routes)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S3b).
+
 - Admit exact generated String Builder routes for field converter closures, same-compilation non-DSL values and external
   adapters. Preserve C1 parameter constraints on qualified routes; other origins emit String structure and field prose.
   Conversion remains invocation-only, with no coercion or new discovery. Recompile matched artifacts. See

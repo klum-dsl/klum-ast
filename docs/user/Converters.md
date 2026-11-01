@@ -180,6 +180,7 @@ and competing converters that collide during generation reject. The ordinary dom
 import java.time.Duration
 
 @DSL class Service {
+    @Converters(excludeMethods = ['parse'])
     @Field(converters = [{ String value -> Duration.parse(value) }])
     Duration timeout
 }
@@ -188,6 +189,28 @@ def direct = Service.Create.With { timeout 'PT30S' }
 assert direct.timeout == Duration.ofSeconds(30)
 def parsed = [timeout: 'PT30S'] // The admitted converter receives this exact String.
 ```
+
+An exact public `CharSequence` projection accepts the same String payload. For example, the generated
+`timeout(CharSequence)` operation can invoke `Duration.parse` directly:
+
+(See: `StructuredCharSequenceTest#'a projected Duration parser accepts a String through its exact CharSequence signature'`.)
+
+```groovy
+import java.time.Duration
+
+@DSL class Service { Duration timeout }
+
+def direct = Service.Create.With { timeout 'PT30S' }
+def structured = KlumStructuredInput.readRoot(Service, [timeout: 'PT30S'], 'service.yaml')
+assert structured.timeout == direct.timeout
+assert structured.timeout == Duration.ofSeconds(30)
+```
+
+The original String reaches the exact recorded signature; no mutable CharSequence is constructed. Numeric, boolean,
+null, GString, arbitrary Object and caller-supplied mutable CharSequence payloads reject. A String converter and a
+CharSequence converter for one field are competing routes: exclude the unwanted factory as in the closure example above,
+or expose a Schema-authored wrapper selected with `@Struct.Operation`. There is no implicit String preference.
+CharSequence routes supply structural String grammar, without gaining C1 parameter-constraint authority.
 
 These routes produce `type: string` and the field's prose/examples in JSON Schema. Conversion runs only during ordinary
 Builder invocation; its failures retain the structured input source/path and original cause. Schema generation never
@@ -235,8 +258,8 @@ remain outside C1 parameter inspection. An existing exact String projection can 
 parameterized domain, or call a factory returning a subtype. Already-generated generic/default/bridge/synthetic source
 routes do not gain C1 authority. No new default/varargs expansion or generic inference is performed; a source with a
 String-array varargs parameter is not an exact String route.
-Collection, map and DSL-object conversions remain outside this structured-input feature. CharSequence invocation is
-separate. An unrelated authored overload does not suppress the generated String route; competing external String names
+Collection, map and DSL-object conversions remain outside this structured-input feature. An unrelated authored overload
+does not suppress a generated scalar route; competing external String/CharSequence names
 use the [shared selection rules](Structured-Input.md#select-a-string-operation).
 Non-overridden binary Schema inheritance preserves the original declaring Builder and converter association;
 replacement fields are classified afresh.
