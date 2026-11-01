@@ -1,6 +1,6 @@
 # Builder-oriented structured input for 4.2
 
-Date: 2026-10-31.
+Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
 Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a and zero-argument commands S4 implemented. Other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
@@ -10,14 +10,15 @@ see [S2 evidence](../implementation/input-round-s2-evidence.md). S3a admits exac
 [S3a evidence](../implementation/input-round-s3a-evidence.md). S4 admits zero-argument Builder commands with empty mappings;
 see [S4 evidence](../implementation/input-round-s4-evidence.md). CharSequence invocation remains planned.
 
-Authority: the maintainer's INPUT-ROUND-PLAN decisions, reconciled in the
+Authority: the maintainer's INPUT-ROUND-PLAN decisions and accepted #953 Factory/Builder clarification, reconciled in the
 [implementation and issue plan](../implementation/input-round-plan-4-2.md). The 4.2 horizon records that direction;
 it does not change GitHub milestones or establish release qualification.
 
 Partially supersedes [ADR 0031](0031-structured-schema-input-artifacts.md): whole-document preflight, the narrow
 origin-dependent scalar-admission boundary, and deferral of the specific operations accepted below. Its reflection-first
 architecture, generated-contract authority, naming, key authority, no-user-code inspection and delivered projections
-remain. [ADR 0009](0009-jackson-interoperability.md) remains independent and unchanged.
+remain. The clarification below supersedes the development reader-facade public boundary, including this ADR's
+earlier proposed `readTemplate` facade; it does not change the admitted structured language. [ADR 0009](0009-jackson-interoperability.md) remains independent and unchanged.
 
 Parent decisions: [Builder-first construction](0003-builder-first-materialization.md),
 [AsBuilder](0004-asbuilder-composition-protocol.md), [public generated contracts](0005-generated-dsl-support-api.md),
@@ -42,6 +43,108 @@ core capability. Subsequent maintainer direction nevertheless accepts broader Bu
 These are different claims. Neither the older adopter pass nor this plan proves the new language implemented.
 
 ## Decision
+
+### Public Factory creation and Builder application — #953
+
+The supported 4.2 surface is generated Factory creation plus public Builder application. `KlumStructuredInput` and
+`StructuredInputSupport` are development-only APIs, absent from the released 4.1.0/4.1.1 artifacts. The reader/interpreter
+belongs behind these capabilities, internal like `FactoryHelper`; there is no new public reader facade. Existing
+source visibility in development builds does not establish a released compatibility commitment. Migrate development
+callers directly, with no deprecated reader alias or compatibility bridge. The
+[development-call migration table](../implementation/input-round-plan-4-2.md#development-api-migration--953) maps them.
+
+The following signatures are **accepted for implementation, not yet available**. `T` is the Factory's Model type;
+`body` and `document` are caller-parsed Maps. Wildcards avoid requiring callers to retype their parsed Maps; domain
+member names and payloads still undergo the existing strict runtime checks.
+
+| Public receiver | Ordinary signature | Optional diagnostic overload |
+| --- | --- | --- |
+| Common generated Factory (`Service.Create`) | `T FromStruct(Map<?, ?> document)` | `T FromStruct(Map<?, ?> document, String sourceName)` |
+| Keyed generated Factory, additionally | `T FromStruct(String rootKey, Map<?, ?> body)` | `T FromStruct(String rootKey, Map<?, ?> body, String sourceName)` |
+| Generated Template Factory (`Service.Create.Template`) | `T FromStruct(Map<?, ?> body)` | `T FromStruct(Map<?, ?> body, String sourceName)` |
+| `KlumBuilder<T>`, inherited by generated Builder contracts | `void applyStruct(Map<?, ?> body)` | `void applyStruct(Map<?, ?> body, String sourceName)` |
+
+Implement `applyStruct` on the runtime Builder base (`InternalKlumBuilder`); generated contracts inherit the common
+capability rather than redeclaring a self-returning fluent method. Clients still must not implement or subclass generated
+contracts. A generic helper may return the original typed `B` after calling the void method; it does not narrow, replace
+or complete the receiver. Root creation stays on the selected Factory, without a Class-to-Factory registry.
+
+Java API sketch, assuming a keyed `Service` Schema whose external key member is `name` and ordinary input member is `host`:
+
+```java
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
+import java.util.Map;
+
+Service root = Service.Create.FromStruct(Map.of("name", "catalog", "host", "api"));
+Service explicit = Service.Create.FromStruct("catalog", Map.of("host", "api"), "deployment.yaml");
+Service template = Service.Create.Template.FromStruct(Map.of("host", "api"));
+
+// A caller-owned helper; target is already prepared in its active Construction session.
+static <B extends KlumBuilder<?>> B configure(B target, Map<?, ?> body, String sourceName) {
+    target.applyStruct(body, sourceName);
+    return target;
+}
+```
+
+The same calls in Groovy (design examples, not executable delivery evidence):
+
+```groovy
+def root = Service.Create.FromStruct([name: 'catalog', host: 'api'])
+def explicit = Service.Create.FromStruct('catalog', [host: 'api'], 'deployment.yaml')
+def template = Service.Create.Template.FromStruct([host: 'api'])
+// Inside an existing session, after caller-specific context and identity have been prepared:
+builder.applyStruct([host: 'api'], 'deployment.yaml')
+```
+
+#### Source diagnostics and key authority
+
+All four forms have the optional trailing `String sourceName` overload shown above. An explicitly supplied source name
+must be non-null and nonempty. It is opaque diagnostic text only: never parse or open it as a file, URL or resource,
+never derive identity from it, and never normalize it into a locator. Ordinary overloads supply generated diagnostic
+labels. The implementation must cover both label paths without turning the label's spelling into a source-loading API.
+Preserve input pointers, external names, declaring-contract attribution and original causes; normal lifecycle failures
+retain their own attribution. A source label is neither provenance nor a model key.
+
+A self-contained keyed Factory root obtains identity from its actual Schema key member, with established external naming
+and #954 validation. An unkeyed root has no construction-key requirement. The explicit-key overload is keyed-Factory-only:
+its `rootKey` supplies identity and its body forbids an inner root key, even an equal one. A prepared Builder keeps its
+existing identity and accepts a keyless body. The Template root body is also keyless: recipient construction supplies
+identity. These restrictions concern the Schema construction key, not an arbitrary property literally named `key`.
+Preserve all nested positional rules, including direct-child keys and outer keyed-Map identity. No filename/URL inference
+or automatic choice between self-contained and body schema modes is admitted.
+
+#### Lifecycle and implementation boundary
+
+Both root Factory routes reuse the internal reader and normal root lifecycle. In particular, the explicit-key overload
+must preserve the old explicit-key reader's **one `PostApply`** behavior. Implement it through the same single root
+configuration callback, not by calling public `applyStruct` inside a normal `With` callback and thereby adding another
+`PostApply`. Preserve key availability before `PostCreate`, ownership, materialization, validation and nested-root guards.
+
+`applyStruct` retains the ordinary active, same-thread, unsealed generated Builder restriction. It adds one ordinary
+`PostApply` on success, does not replay `PostCreate` or complete the session, and can leave partial state on failure under
+ordered traversal. It does not become an ordinary-Builder escape into Template definition. The generated Template
+Factory uses the dedicated internal Template configuration seam described below.
+
+No `AsBuilder.FromStruct`, root-method projection into relationship factories, factory registry, parser/file/URL
+convenience, public descriptor API or new public reader facade follows. Relationships continue to use their existing
+construction seams; a prepared child Builder can receive `applyStruct` within its owning session. Inspection remains
+non-executing and generated-contract based. Implementation must qualify actual generated signatures, inherited Builder
+capabilities, Java/static/dynamic Groovy 3/4/5 consumers, and applicable binary/JPMS linkage without exposing internals.
+
+#### Compatibility with FromMap and managed Jackson
+
+`Create.FromMap` remains unchanged and is not deprecated. It is a distinct copy-oriented route with type hints (`@type`),
+String conversion and custom-Factory behavior, including nested delegation to the respective `FromMap` methods.
+`Create.AsBuilder().FromMap` also retains its existing contract. `FromStruct` interprets admitted Schema operations and
+strict payloads; it must not silently reroute `FromMap`, borrow its type-hint/coercion rules or bypass its custom overrides.
+There is no evidence that released `FromMap` was an equivalent API replaced by structured input. Any future deprecation
+would require its own evidence and compatibility decision.
+
+Structured input is the preferred route for Schema-owned configuration. Managed Jackson has a durable, distinct role
+for caller-owned foreign-format mapping/interoperability, while ordinary Jackson serialization supplies export of
+completed Models. [ADR 0009](0009-jackson-interoperability.md) is unchanged: retain `KlumJacksonImporter` signatures,
+four modes, mapper ownership/customization, lifecycle and diagnostics. This preference does not deprecate Jackson,
+make structured schema describe foreign formats or export, or add an import/export round-trip promise.
 
 ### One admitted operation after compiler projection
 
@@ -144,23 +247,26 @@ malformed metadata before construction, including omitted referenced contracts; 
 payloads. Preserve that integrity fence while removing the prepared whole-input execution tree. Generation still checks
 the entire emitted contract before replacing files. Neither integrity rule provides input transactionality.
 
-On failure `readRoot` returns no Model, but earlier initializers, callbacks, operations or external effects may have run.
-`applyToBuilder` may leave the caller's Builder partially configured. Do not auto-complete or roll it back; existing
-session/exception cleanup remains authoritative. Preserve source identity, escaped input pointer, external operation,
+On failure root `FromStruct` returns no Model, but earlier initializers, callbacks, operations or external effects may have run.
+`applyStruct` may leave the caller's Builder partially configured. Do not auto-complete or roll it back; existing
+session/exception cleanup remains authoritative. Preserve the source diagnostic label, escaped input pointer, external operation,
 declaring contract and original cause. Lifecycle failures retain normal lifecycle attribution, not an invented last leaf.
 Keep cycle rejection and support for repeated acyclic data; no whole-document immutable snapshot is promised.
 
 ### Construction modes and schema fidelity
 
-Structured `readTemplate()` is needed in 4.2. Use the existing Template definition, materialization and recipe-copy
-semantics: the explicit result is a marked Template, definition runs no lifecycle phases/callbacks, and later application
-uses fresh recipient Builders and their normal lifecycle. Admitted configuration/converter bodies can execute while
-defining values; no-user-code inspection is not a prohibition on actual configuration. Preserve existing Template key,
-ownership and recipe behavior rather than inferring Template mode from ambient state or routing through `readRoot`.
-The smallest proposed facade is `readTemplate(Class<T>, Object parsed, String sourceName)`; existing facade methods stay.
-Its root is a keyless Template body, with recipient identity supplied on application; ordinary nested Template key rules
-remain, including keyed-Map identity. It does not require a self-contained root key that would later be discarded.
-No structured `readBuilder`, Factory convenience or change to `Create.FromMap` is needed for this slice.
+Structured Template construction uses `Create.Template.FromStruct(body[, sourceName])` in 4.2. Use the existing Template
+definition, materialization and recipe-copy semantics: the explicit result is a marked Template, definition runs no
+lifecycle phases/callbacks, and later application uses fresh recipient Builders and their normal lifecycle. Admitted
+configuration/converter bodies can execute while defining values; no-user-code inspection does not prohibit actual
+configuration. Preserve Template key, ownership and recipe behavior rather than inferring mode from ambient state or
+routing through ordinary root creation. Its root is keyless, with recipient identity supplied on application; nested
+Template key rules remain, including keyed-Map identity.
+
+S6 / [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007) is on an explicit merge hold. Its internal Template machinery
+and tests are reusable, but its new public `KlumStructuredInput.readTemplate` facade must not merge under the superseded
+premise. After this clarification merges, the Hive assigns the worker to rebase and retarget S6 to the generated Template
+Factory contract, including both source-name forms. This document does not release that hold or authorize implementation.
 
 A separately selected keyless Builder-body schema variant is useful for caller-pre-keyed roots. It forbids the root key
 while retaining the normal positional child rules. Default generated root schemas stay self-contained. Select the variant
@@ -207,13 +313,14 @@ the same language, automatic JSON Schema validation, a round trip, or Jackson de
   Keeping preflight as an unadvertised compatibility mode would contradict the accepted semantics and duplicate engines.
 - Scalar admission becomes independent from optional constraint extraction. More input routes can be useful while
   preserving strict payloads. General coercion, reflection-based converter search and retrying overloads are rejected.
-- Generated metadata remains ABI: preserve callable signatures, require complete selection facts, retain binary
+- Generated metadata remains ABI: preserve released callable signatures, require complete selection facts, retain binary
   inheritance and exact dispatch checks, and qualify matched compiler/runtime/plugin/domain/Schema artifacts on
   Groovy 3/4/5 and applicable JPMS lanes. No old carrier decoder or mixed-toolchain promise is introduced.
 - Preserve completed-Model and Template serialization, including existing recipe state and identity semantics. No
   Builder, input execution plan or importer state becomes serialized; no new persistence or import/export round trip
   follows. Retain applicable serialization regression coverage when adding structured Template construction.
-- The reader, resolver, immutable compiled schema and closed projection catalog keep their existing responsibilities.
+- The reader, resolver, immutable compiled schema and closed projection catalog keep their internal responsibilities.
+  Development-only reader calls migrate to Factory/Builder capabilities; no public reader facade is retained.
   No public descriptor API, registry, plugin SPI, parser dependency or new module is justified by this plan.
 - Template construction and conditional DSL conversion reuse existing ownership/lifecycle machinery. Synthetic closures,
   completed-Model attachment and transactional rollback are rejected as different semantics.

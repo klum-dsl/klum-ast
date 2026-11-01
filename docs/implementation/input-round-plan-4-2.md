@@ -1,11 +1,12 @@
 # INPUT-ROUND-PLAN — 4.2 structured-input implementation plan
 
-Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
+Date: 2026-10-31. #953 public API clarification: 2026-11-01. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
 This plan records the accepted design; V0 implemented the vocabulary rename and S1 implemented ordered traversal.
 [S1 evidence](input-round-s1-evidence.md), [S2 evidence](input-round-s2-evidence.md) and
 [S4 evidence](input-round-s4-evidence.md) record the merged traversal, String-selection and zero-argument command slices.
-[S3a evidence](input-round-s3a-evidence.md) records converter-origin parity integrated onto that master; PR #1004 is open, pending merge.
-Remaining slices are unimplemented. See
+[S3a evidence](input-round-s3a-evidence.md) records converter-origin parity, merged through
+[PR #1004](https://github.com/klum-dsl/klum-ast/pull/1004) at `f71d0cea1ddd100d24b8106b7f64dc37e819c988`.
+Remaining slices are not qualified as merged here; S6 has an open implementation on merge hold. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
@@ -14,20 +15,32 @@ The maintainer's sixteen accepted INPUT-ROUND-PLAN decisions govern this plan. E
 and SCHEMA-ROUNDNESS recommendations are evidence, not authority to undo those decisions. This is category B: a
 successor partially supersedes ADR 0031 because ordered per-operation failure changes its explicit preflight guarantee.
 ADR 0031 remains the authority for retained generated-contract, key, naming and projection architecture; ADR 0009 stays.
+The 2026-11-01 accepted #953 clarification supersedes ADR 0032's earlier public reader/Template-facade premise and
+its deferral of generated Factory entry points. The exact Factory/Builder API is now decided; implementation remains a
+separate assignment. Older #953 issue-body investigation questions do not reopen this accepted boundary.
 
 Inspected base: `0c6f401b2a561a7767eca369f5aacab33dad0962`, verified against fetched `origin/master` on 2026-10-31.
 Worktree: `/Users/stephan/.codex/worktrees/2696/klum-ast`; branch: `codex/input-round-plan-4-2`.
 Source and executable specifications were inspected, not rerun. All test requirements below are future slice gates.
 The planning change is restricted to ADR/implementation documents; current user docs remain descriptions of current code.
 
-Read-only issue snapshot on that date:
+For this clarification, source and test seams were reinspected at `5e06b1545` on 2026-11-01. The local `v4.1.0` and
+`v4.1.1` source trees contain neither `KlumStructuredInput` nor `StructuredInputSupport`, consistent with the maintainer's
+release-artifact finding that these APIs are development-only; this task did not independently download release JARs.
+[#953](https://github.com/klum-dsl/klum-ast/issues/953) was open without a milestone when read. S6
+[PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007), inspected at `b1a1905504e0e56a8b65de1581a8dcb6d10b1afe`, was open;
+its public `readTemplate` addition implements the superseded premise. The maintainer's explicit merge hold remains in force.
+Its internal `FactoryHelper.doCreateTemplate` access, Template-position traversal and lifecycle suppression for reused
+Template children, plus `StructuredInputTemplateDocumentaryTest`, are reusable work requiring retargeting and revalidation.
+
+Read-only original issue snapshot (2026-10-31), with the #953 mapping clarified on 2026-11-01:
 
 | Canonical issue | Live state | Reconciliation for this plan; no GitHub write |
 | --- | --- | --- |
 | [#529](https://github.com/klum-dsl/klum-ast/issues/529) | Closed | Delivered JSON Schema foundation. New grammar projection must accompany the corresponding #952 slice; do not reopen the delivered parent. |
 | [#932](https://github.com/klum-dsl/klum-ast/issues/932) | Closed | Delivered v1 interpreter. Preserve its dated preflight evidence and migrate its behavior explicitly under #952. |
 | [#952](https://github.com/klum-dsl/klum-ast/issues/952) | Open | Grammar coordination: scalar selection, zero-argument commands, known scopes, conditional relationships and CollectionFactory proof. Its broad deferred list is not blanket authorization. |
-| [#953](https://github.com/klum-dsl/klum-ast/issues/953) | Open | Construction-entry/body-schema coordination. Structured Template is accepted here; generated Factory convenience remains separate. Preserve `FromMap`; `FromStruct` is a recorded future direction, not implemented by this plan. File/URL loading stays deferred. |
+| [#953](https://github.com/klum-dsl/klum-ast/issues/953) | Open | Construction-entry/body-schema coordination. Accepted common/keyed/Template Factory `FromStruct` and inherited void Builder `applyStruct`, each with optional trailing `sourceName`; see A0–A3/S6 and the migration table below. Preserve `FromMap` and ADR 0009. S6/#1007 must be retargeted after this clarification merges. File/URL loading stays deferred. |
 | [#954](https://github.com/klum-dsl/klum-ast/issues/954) | Closed | Retain positional key authority and merged Stage A/B evidence. The body schema is additive; no reopening or changed key derivation. Its stale body still mentions pending delivery. |
 | [#959](https://github.com/klum-dsl/klum-ast/issues/959) | Open | Retain delivered naming, exclusion, descriptions, numeric/Pattern/composed projections and documentary strings. Defaults, Size, typed examples and broader constraints do not block admission. Historical issue text understates delivered work. |
 | [#971](https://github.com/klum-dsl/klum-ast/issues/971) | Open | Explicitly Future/untargeted. No executable parameter validation or new 4.2 placement. Provider inheritance and Groovy 4/5 annotation failures remain future proof gates. |
@@ -47,7 +60,7 @@ no closing syntax or issue creation is proposed. Hive chooses final PR relations
 | `klum-ast-runtime`: `BuilderContractReader`, `InputContractResolver` | Exact public declaration bytes/completeness are separate from inherited naming, role/selection and key resolution. Preserve this split and the descendant converter-shadow rejection. |
 | `CompiledBuilderSchema` | Immutable internal result shared by runtime and generator. Extend only proven missing role/selection facts; no public descriptor or second serialized plan. |
 | `StructuredInputSupport.Preparation`, `Domain`, `Step` | Builds a full ordered payload snapshot, recursively checks ownership contracts, then executes. Direct/Map children use Consumer construction seams. S1 removes whole-input payload preparation, retaining contract integrity and local key prerequisites. |
-| `KlumStructuredInput` | Two `readRoot` overloads and `applyToBuilder`; no structured Template entry point. Public apply requires a same-thread, unsealed ordinary Builder and returns its identity. |
+| `KlumStructuredInput` | Development-only: two `readRoot` overloads and identity-returning `applyToBuilder`; no merged structured Template entry point. Apply requires a same-thread, unsealed ordinary Builder. A0–A3 migrate callers to the accepted capabilities and remove the public reader surface. |
 | `FactoryHelper`, `InternalKlumBuilder`, `TemplateManager` | Existing root/nested Consumer allocation, child reuse/key checks and Template definition/materialization own lifecycle and ownership. Template creation omits lifecycle; its root key is not copied to recipients. |
 | `klum-ast-gradle-plugin`: `JsonSchemaProjection`, `BuiltinConstraintCatalog`, `GenerateKlumJsonSchema` | Private structural projection and closed constraint catalog, explicit roots/classpath, isolated no-execution inspection, deterministic files and retained previous output on failure. Default root schemas are self-contained. |
 
@@ -74,6 +87,43 @@ Important regression seams are `StructuredInputAdmissionPlanTest`, `CompiledBuil
 The former runtime test `complete preflight leaves an active Builder unchanged: #input` has been replaced by
 partial-state and first-failure coverage under S1. Static malformed-contract controls remain separate.
 
+## Development API migration — #953
+
+The [ADR 0032 API table](../adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953)
+is the exact signature authority: `Map<?, ?>` input, optional trailing `String sourceName` for all four forms, and void
+Builder application. These are planned replacements for development callers, not deprecated aliases or a released 4.x
+migration bridge. `StructuredInputSupport` stays internal like `FactoryHelper`; no public reader replacement is introduced.
+In this table `Service` denotes the selected Schema and `source` is nonempty opaque diagnostic text.
+
+| Development-only call | Accepted public replacement | Invariant / acceptance owner |
+| --- | --- | --- |
+| `KlumStructuredInput.readRoot(Service.class, document, source)` | `Service.Create.FromStruct(document, source)` | A0: self-contained keyed roots require the actual externally named Schema key; unkeyed roots need no key. |
+| `KlumStructuredInput.readRoot(Service.class, rootKey, body, source)` for a keyed root | `Service.Create.FromStruct(rootKey, body, source)` | A1: explicit key is authoritative; reject an inner root key even if equal; one root `PostApply`. |
+| `KlumStructuredInput.readRoot(Service.class, null, body, source)` for an unkeyed root | `Service.Create.FromStruct(body, source)` | A0: do not add a null-key overload to unkeyed Factories. |
+| `KlumStructuredInput.applyToBuilder(builder, body, source)` | `builder.applyStruct(body, source)` | A2: void common capability; same receiver/session, keyless body, ordinary target restriction, one `PostApply`, partial failure retained. |
+| Caller uses the returned generic `B` from `applyToBuilder` | Call `applyStruct`, then return the original `B` in a caller helper | A2: retain exact typed receiver identity without a fluent public return or cast. See ADR 0032 Java example. |
+| Proposed `KlumStructuredInput.readTemplate(Service.class, body, source)` in #1007 | `Service.Create.Template.FromStruct(body, source)` | S6: marked keyless Template recipe, no definition lifecycle, fresh recipient graph with recipient identity. |
+| Direct development use of `StructuredInputSupport` | Select the corresponding generated Factory or public Builder operation above | A3: no client dependency on the internal reader/helper; no Class-to-Factory registry. |
+
+Each replacement also has an overload omitting `source`; it supplies a generated diagnostic label. Explicit null/empty
+labels reject. Path-like, URL-like and punctuation-bearing labels remain text: no I/O, normalization or identity inference.
+The public root type is Map even though nested values can be Lists/scalars under the admitted grammar. A caller holding
+`Object parsed` must establish it is a Map before calling; this does not admit coercion or change strict member validation.
+Generic root callers receive the intended Factory from their caller rather than looking it up in a framework registry.
+
+`FromMap` is deliberately absent from this migration: preserve its copy/type-hint (`@type`)/String-conversion/custom-Factory
+semantics and nested `FromMap` delegation, including `AsBuilder().FromMap`. No deprecation or automatic redirection is
+accepted. Structured input is preferred for Schema-owned configuration; caller-owned foreign-format mapping remains
+managed Jackson's durable role, with ordinary Jackson serialization for export. ADR 0009 signatures, modes, mapper
+customization, input ownership and diagnostics are unchanged. Neither path promises import/export round trips.
+
+Additional owning seams are `KlumFactory` and `DSLASTTransformation`/`GeneratedDslSupport` for common/keyed Factory
+projection; `KlumBuilder` and `InternalKlumBuilder` for inherited application; `TemplateMethods` and
+`GeneratedTemplateFactorySupport` for Template Factory projection. Root creation uses
+`FactoryHelper.createWithConfiguration` with one interpreter configuration callback; wrapping public `applyStruct` inside
+`With` would add a second `PostApply` and is not an equivalent implementation. Retain existing direct-child/keyed-Map
+Consumer seams. Factory roots must not be projected into relationships, and `AsBuilder.FromStruct` is excluded.
+
 ## Positive support matrix
 
 This is the proposed documentation content model at the inspected planning base. “Accepted” means planned implementation
@@ -91,7 +141,8 @@ at that base; the ordered slice rows and linked evidence below track subsequent 
 | String to concrete owned DSL target | No | Conditional F1 proof, then a separately admitted implementation slice. |
 | Known nested Builder scope | Concrete relationships only | Accepted S5 where a fixed scope contract and direct entry exist; no dynamic/untyped delegation or synthetic closures. |
 | Zero-argument command | S4 implemented; integrated onto merged S2 | S4: `operation: {}` only. |
-| Structured Template definition | No | Accepted S6: existing Template semantics; no root lifecycle or implicit mode. |
+| Factory creation / Builder application | Development reader calls only | Accepted A0–A3: common/keyed `FromStruct`, inherited void `applyStruct`, diagnostic overloads; no parser or registry. |
+| Structured Template definition | No merged implementation | Accepted S6 through generated Template Factory `FromStruct`; #1007 on hold pending retargeting. Existing Template semantics; no root lifecycle or implicit mode. |
 | Explicit keyless root-body schema | Private positional definitions only | Accepted useful additive S7; caller supplies identity, editor association and source parsing. |
 | CollectionFactory scope | No | Bounded 4.2 F2 feasibility only; existing closed alternatives and key contracts, not generic subtype selection. |
 | One-Map NamedParams/NamedParam shape | Ordinary typed Map only | Later contained L2: declared keys and proven required/type facts only. |
@@ -103,7 +154,8 @@ at that base; the ordered slice rows and linked evidence below track subsequent 
 
 Owners below are responsibilities for future assignment, not workers started by this plan. “KlumAST” means the assigned
 compiler/runtime/plugin implementer; “Schelm” means the adopter owner; “maintainer/Hive” owns decisions and delivery.
-Every implementation slice includes matching structural schema output and its focused docs. No temporary runtime-only
+Every grammar-changing slice includes matching structural schema output; API-only slices preserve the grammar and
+include focused docs. No temporary runtime-only
 grammar should ship while generation still misdescribes it. Cross-cutting changes stop at local review before publication.
 
 | ID / category | Depends on | Outcome, affected modules and reasoned commit boundary | Acceptance evidence / owner |
@@ -116,9 +168,13 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 | S3b — accepted implementation | S3a | Admit deterministic CharSequence scalar routes (e.g. existing projected `Duration.parse`). One narrow behavior/schema/test commit plus docs. | A supplied String reaches the exact recorded CharSequence signature; String/CharSequence competition needs authority; numeric/null/GString/custom mutable CharSequence input rejects; no StringBuilder construction. KlumAST compiler/runtime/plugin. |
 | S4 — implemented; integrated onto merged S2 | S2 | Zero-argument command role, empty-mapping runtime dispatch and empty-object schema. One vertical commit plus documentary example/docs. | Empty Map invokes once; null/blank YAML result, nonempty Map, List/scalar reject; no later call after failure; unknown name remains rejected. KlumAST compiler/runtime/plugin. |
 | S5 — accepted implementation | S2; retain S1 order | Admit known nested Builder scopes with mapping payloads and direct scope entry. One proven scope family per vertical commit; do not bundle CollectionFactory. | Concrete contract, direct Consumer entry, same session/key/ownership, callback counts, nested failure after earlier sibling, accurate closed schema. Untyped/dynamic delegate and closure-only method without direct entry rejected. KlumAST compiler/runtime/plugin. |
-| S6 — accepted implementation | S1; S3/S5 for newly admitted forms | Add explicit parser-free `readTemplate(Class<T>, Object, String)` over existing Template machinery. One facade/runtime/test commit plus Template docs. It can start on the retained grammar independently of later extensions. | Marked recipe, no definition lifecycle, same recipient values/actions as ordinary Template, fresh application graph, root key omitted and not copied; owned child/Map identity behavior and no ordinary apply-to-Template escape. Failure returns no Template. KlumAST runtime. |
+| A0 — accepted Factory contract | This clarification merged; S1 | Add common generated `FromStruct(Map<?, ?>)` and trailing `String sourceName` overload using the internal self-contained root path. One runtime/compiler/generated-contract/test commit, then docs when scope is assigned. | Java/static/dynamic Groovy and binary callers; unkeyed/keyed root, named/inherited key before allocation, strict Map payload, ordinary/generated labels, source/path/cause failures, normal lifecycle. KlumAST compiler/runtime. |
+| A1 — accepted explicit-key Factory | A0 | Add keyed-only `FromStruct(String rootKey, Map<?, ?> body)` and trailing `String sourceName` overload through the single root configuration seam. One behavior/contract/test commit plus docs. | One `PostApply`, key visible at `PostCreate`, same ownership/materialization as old explicit-key reader; inner equal/different/null key rejected; absent from unkeyed/relationship/AsBuilder contracts. KlumAST compiler/runtime. |
+| A2 — accepted Builder capability | This clarification merged; S1 | Add both void `applyStruct(Map<?, ?> body[, String sourceName])` methods to `KlumBuilder`, implemented by runtime Builder base and inherited by generated contracts. One capability/dispatch/test commit plus docs. | Exact void descriptors, inherited Java/static/dynamic Groovy calls, helper returns identical typed B; prepared context before early callbacks; same-thread active unsealed ordinary targets only, one apply callback/no completion, key/body and ordered partial-failure controls. KlumAST runtime/compiler qualification. |
+| S6 — retarget required; #1007 merge hold | This clarification merged; A0 diagnostic/Factory pattern; S1; S3/S5 for newly admitted forms | Rebase and expose both generated Template Factory `FromStruct(Map<?, ?> body[, String sourceName])` forms. Reuse internal Template mechanics/tests from #1007; replace its public `readTemplate` facade and reader-based documentation. One coherent runtime/generated-contract/test commit, then docs. | Marked recipe, no definition lifecycle including reused children, same values/actions as ordinary Template, fresh recipients, root key forbidden/not copied, nested key/ownership/serialization controls; no ordinary apply-to-Template escape. Failure returns no Template. Java/Groovy and generated Template signatures. KlumAST compiler/runtime; Hive controls hold. |
+| A3 — development caller migration | A0; A1; A2; retargeted S6 | Migrate development tests/fixtures, generic caller helpers and current user examples, then remove the development public reader surface. One repository migration/removal commit plus final API/docs consistency check. Schelm adaptation/qualification is consumer-owned. | No production/user-facing dependency on a public reader; all four modes tested through supported capabilities; no deprecated alias/registry, `FromMap` and ADR 0009 unchanged; matched compiler/runtime/Schema artifacts. KlumAST; Schelm; Hive delivery. |
 | S7 — accepted implementation | #954 retained; S1 | Explicit Builder-body schema root variant, with distinct output and unchanged default root artifact. One plugin configuration/projection/packaged-test commit plus docs. No runtime Factory/File/URL API. | Body forbids root key; self-contained root requires it; same child key positions; roots of same type in both modes coexist; recursive definitions, names, cache/manifest/root-removal/failure-preservation controls. KlumAST plugin. |
-| Q0/Q1 — consumer qualification | Q0 baseline now; Q1 S1–S7 higher-tier result | Qualify one explicitly matched artifact graph against the three real Schelm YAML documents and active-Builder context. Consumer evidence commit records coordinates/hashes/commands/results; parser/numeric adoption are separate Schelm changes. | Fresh generated/packaged/editor schema provenance, three inputs, four renders and current harness, negative corpus below; no stale-output acceptance. Schelm; Hive reconciles outcome. |
+| Q0/Q1 — consumer qualification | Q0 baseline now; Q1 S1–S7 and A0–A3 higher-tier result | Qualify one explicitly matched artifact graph against the three real Schelm YAML documents and active-Builder context. Consumer evidence commit records coordinates/hashes/commands/results; parser/numeric adoption are separate Schelm changes. | Fresh generated/packaged/editor schema provenance, three inputs, four renders and current harness, negative corpus below; no stale-output acceptance. Schelm; Hive reconciles outcome. |
 | F1 — bounded feasibility | S3b; ordinary DSL producer contracts | Compare one String-to-concrete-DSL Builder route with ordinary Groovy, including one direct child. Test-only probe/evidence in a later assignment, no production admission in this probe. | Same-session unsealed producer, key/attachment/reuse, callbacks/owner visibility and diagnostics equivalent; completed-Model/nested-root control rejected. Failure records smallest missing fact and retains rejection. KlumAST; maintainer admits any next slice. |
 | F2 — bounded 4.2 feasibility | S5; after higher-tier priority | One generated CollectionFactory with an existing literal alternative/key route. Probe public nested contracts and direct entry; record representable mapping and negative controls. No implementation promise. | Alias/element/key facts are compiler-owned, no subtype scan, no generic Class/Factory selector, no synthetic closure; binary/no-execution parity and direct Groovy trace. Missing seam ends probe. KlumAST; maintainer decides follow-up. |
 | L1 — accepted follow-on direction | S3b and Q1; R1 triage | Converter-backed scalar List elements/Map values, preserving normal element population and String keys. Separate List then Map vertical changes if feasible; no owned-DSL collection claim. | Each raw String uses selected element route, element order and indexed/keyed causes, no whole-container replacement/coercion; schema items/values reflect same String grammar. KlumAST; scope readmitted by Hive. |
@@ -126,7 +182,10 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 | R1 — deferred quick-win checkpoint | Q1 and higher-tier review | Revisit owned DSL List/Set, custom key mapping, L1 and F1/F2 results individually. Documentation-only disposition unless new work is explicitly assigned. | Concrete Groovy/input example, need/workaround, bounded effort, existing seam, evidence and migration impact per item. Maintainer/Hive with Schelm. |
 
 D0 and Q0 can proceed independently. S1 → S2 → S3a → S3b is the primary implementation chain. S4 and S5 branch after S2;
-S6 and S7 can use the retained grammar after S1 and must be rechecked against any new admitted forms before Q1. F1/F2
+S7 can use the retained grammar after S1. A0 → A1 and A0 → retargeted S6 establish Factory creation; A2 can proceed
+independently after this clarification merges. A3 follows all four public forms. S6/#1007 must first be rebased and
+retargeted by its worker on Hive assignment after this documentation merge; the hold is not lifted here. Recheck all
+entry modes against newly admitted S3/S5 forms before Q1. F1/F2
 are probes, not dependencies forcing a broader engine into S1–S7. Do not start follow-ons just because a probe finishes.
 
 ### Acceptance details that must not disappear inside a slice
@@ -160,8 +219,19 @@ the supported matrix dishonest. F2 owns the separate CollectionFactory question.
 S6 treats the root as a Template body: no serialized root identity; recipients supply their own keys. Preserve ordinary
 Template nested key and recipe rules, including keyed-Map identity. Compare existing `Create.Template.With` behavior,
 not Jackson's separate value-only import mode. Definition may invoke admitted operations/converters to configure the
-recipe; the no-lifecycle promise must not be misstated as no execution. Public `applyToBuilder` keeps its ordinary target
-restriction. Use the internal Template configuration seam, not a temporary completed Model copied back to Builders.
+recipe; the no-lifecycle promise must not be misstated as no execution. Public `applyStruct` keeps its ordinary target
+restriction; the internal Template seam is separate. Use the internal Template configuration seam, not a temporary completed Model copied back to Builders.
+
+A0–A3 must exercise all eight exact overload descriptors and default/explicit diagnostic labels; null/empty labels,
+non-String domain keys, invalid payloads and URL/file-looking diagnostic text are negative/opacity controls. Preserve
+normal lifecycle exception attribution and original causes. Assert exact concrete Model/Template results, not just
+successful invocation. Compare explicit-key root traces with the old reader and detect accidental double `PostApply`.
+Retain `StructuredInputConstructionTest`, `StructuredInputKeyTest`, binary generated-Factory and inherited-Builder tests;
+add Java and static/dynamic Groovy 3/4/5 consumers, mirror truthfulness and applicable JPMS coverage. Verify new root APIs
+are absent from `AsBuilder` and relationship projections, while inherited `applyStruct` remains a framework capability
+excluded from admitted input operations. Preserve `FromMap` custom overrides, nested delegation, type hints and conversion
+regressions, and existing managed Jackson tests. Reader removal must not strand tests or examples between slices; A3 is a
+release gate. No mixed development-toolchain or serialized Builder/input-plan compatibility promise is introduced.
 
 S7's configuration/output spelling is an additive implementation proposal to review with its tests, not a new product
 question about whether filenames should supply keys. They must not. Retain a distinct explicit purpose in Gradle inputs
@@ -170,7 +240,7 @@ Template schema mode or validate every kind of independently keyed consumer inpu
 
 ## Decision-to-evidence ledger
 
-The numbering matches the accepted assignment. Every row names an acceptance owner; no row is qualified by this plan.
+Rows 1–16 match the original accepted assignment; the #953 row records the later public API clarification. Every row names an acceptance owner; no row is qualified by this plan.
 
 | Decision | Slice / evidence obligation | Owner |
 | --- | --- | --- |
@@ -189,6 +259,7 @@ The numbering matches the accepted assignment. Every row names an acceptance own
 | 13. Owned List/Set and keyMapping conditional | R1 per-shape disposition after Q1; no current support claim. | Maintainer/Hive |
 | 14. CollectionFactory bounded probe | F2 generated alternatives/key/direct-entry evidence and stop conditions; no composition prerequisite. | KlumAST probe; maintainer |
 | 15. Jackson separate | D0 reciprocal import-path table, unchanged ADR 0009 modes, language versus export examples. | KlumAST docs |
+| #953. Factory/Builder public boundary | A0 common root, A1 explicit key/one PostApply, A2 void inherited capability, S6 Template Factory, A3 development migration; eight signatures/labels, unchanged FromMap/Jackson and explicit #1007 hold. | KlumAST; Hive retarget/delivery; Schelm qualification |
 | 16. Composition deferred | R1 records separate 4.3-oriented track; no composition production dependency or redesign. | Maintainer/Hive |
 
 ## Schelm evidence and consumer acceptance
@@ -223,8 +294,9 @@ not an alternative for early callbacks. No generic reference, merge, naming or Y
 
 ## Compatibility and validation gates
 
-- Public/generated contract: preserve existing Builder/Factory callable descriptors, facade overloads and `FromMap`
-  semantics; add only justified author metadata and the explicit Template facade. No edits to IDE mirrors as authority.
+- Public/generated contract: preserve released Builder/Factory callable descriptors and `FromMap` semantics. Add the
+  eight accepted Factory/Template/Builder overloads and remove development-only reader calls through A3; no reader
+  compatibility bridge. Preserve ADR 0009. No edits to IDE mirrors as authority.
 - Binary facts: exact declaration/resource identity, inherited/overridden operation selection, missing/stripped/corrupt
   facts, counterpart completeness and classpath failures. Match compiler/runtime/plugin and participating Schema/domain
   artifacts; recompile affected hierarchies. Development protocol marker 1 alone proves no mixed-artifact compatibility.
@@ -255,7 +327,8 @@ validation, and neither input path defines completed-object export. Preserve sep
 
 Each behavioral slice updates its relevant current user pages, [Builder migration](../user/Builder-First-Migration.md),
 [migration navigation](../user/Migration.md), sidebar if a page changes, and `CHANGES.md`. S1 must replace the current
-preflight guarantee when implemented, not beforehand. S3 updates Converters; S6 updates Templates; S7 explains explicit
+preflight guarantee when implemented, not beforehand. S3 updates Converters; A0–A3 update Structured Input, Convenience
+Factories and development migration examples; retargeted S6 updates Templates; S7 explains explicit
 self-contained versus body editor selection. Hive owns later linked-issue/Sonar/delivery reconciliation. Do not advertise
 accepted but unimplemented annotation/API spelling as current or edit historical `wiki/` authoring trees.
 
@@ -264,10 +337,15 @@ The maintainer confirms usage was limited to internal tests and Schelm qualifica
 is needed. V0 directly updates those uses and type references. No vocabulary or compatibility-policy decision remains.
 Scope-entry availability, DSL-target equivalence and CollectionFactory feasibility are
 bounded evidence gates with stop outcomes, not unresolved product choices to reopen now. New requirement or absent
-equivalence returns to the maintainer; it does not authorize redesign. Factory convenience, runtime parameter validation,
+equivalence returns to the maintainer; it does not authorize redesign. Factory/Builder Map entry points are now settled;
+file/URL/parser convenience, runtime parameter validation,
 new constraint families, typed examples and composition remain separate decisions.
 
-Publication boundary: the assignment permits a reviewed documentation PR when the plan is complete and no unresolved
+This #953 clarification changes ADR/plan guidance only. User pages and `CHANGES.md` wait for accepted implementation
+scope and delivery; the API sketches here must not be advertised as currently shipped. Issue #953 status/milestone stays
+unchanged. No issue comment or #1007 mutation is part of this documentation handoff.
+
+Publication boundary: the assignment permits a reviewed draft documentation PR when the plan is complete and no unresolved
 maintainer decision makes publication premature. The annotation blocker is settled. Conditional feasibility slices are
 explicit future evidence gates, not publication blockers. No issue creation/closure, milestone changes, implementation
 worker, production code, Gradle configuration or runtime behavior belongs to this assignment.
