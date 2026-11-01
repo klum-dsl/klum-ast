@@ -1,7 +1,7 @@
 # INPUT-ROUND-PLAN — 4.2 structured-input implementation plan
 
 Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
-No production implementation or new execution qualification is claimed. See
+This plan records the accepted design; V0 has since implemented the vocabulary rename. No further execution qualification is claimed. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
@@ -91,7 +91,7 @@ This is the proposed documentation content model. “Accepted” means planned i
 | CollectionFactory scope | No | Bounded 4.2 F2 feasibility only; existing closed alternatives and key contracts, not generic subtype selection. |
 | One-Map NamedParams/NamedParam shape | Ordinary typed Map only | Later contained L2: declared keys and proven required/type facts only. |
 | Owned DSL List/Set, custom key mapping | No | Deferred/conditional R1 revisit after higher-tier acceptance. |
-| Descriptions and documentary InputExamples strings | Yes | Retain; do not parse examples or infer enforceable defaults. |
+| Descriptions and documentary Struct.Examples strings | Yes | Retain; do not parse examples or infer enforceable defaults. |
 | Managed Jackson | Independent supported path | ADR 0009 mapper/property semantics; generated input schema does not describe Jackson/export. |
 
 ## Ordered slices and owners
@@ -103,7 +103,7 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 
 | ID / category | Depends on | Outcome, affected modules and reasoned commit boundary | Acceptance evidence / owner |
 | --- | --- | --- | --- |
-| V0 — accepted implementation | Maintainer `Struct.*` decision | [Annotation decision](input-round-annotation-vocabulary.md): directly rename existing author vocabulary and update internal tests/Schelm qualification. No migration, cutover, aliases or compatibility bridge. | Consistent compiler/reader/generated type references, equivalent behavior; G3/G4/G5 and binary fixture/JPMS gates. Later KlumAST implementation; Schelm qualification owner. |
+| V0 — implemented | Maintainer `Struct.*` decision | [Annotation decision](input-round-annotation-vocabulary.md): directly rename existing author vocabulary and update internal tests/Schelm qualification. No migration, cutover, aliases or compatibility bridge. | Consistent compiler/reader/generated type references, equivalent behavior; G3/G4/G5 and binary fixture/JPMS gates. Later KlumAST implementation; Schelm qualification owner. |
 | D0 — docs-only | This plan | Reconcile present-tense delivery wording and publish the positive matrix/import-path guide. One commit for current capability/status reconciliation, another only if future-syntax guidance is separately labelled. | Links, current-source checks, no prospective API advertised as shipped. KlumAST docs; Hive owns issue updates. |
 | S1 — accepted implementation | ADR 0032 | Replace whole-input `Preparation` with per-operation traversal in runtime; retain contract verification, root/child identity prerequisites and existing Consumer dispatch. One cohesive behavior/test commit, then migration/docs. No new grammar in this slice. | Earlier operation persists before bad later member/type/child; later operation never runs; root returns no Model; active Builder may be partial. Key order/cycles/diagnostics/session cleanup controls. KlumAST runtime. |
 | S2 — accepted implementation | V0; S1 | Normalize one scalar candidate selection on public Builder contracts. Add author marker and minimal generated selection/completeness facts across annotations/compiler/runtime/plugin. One vertical String-selection commit with tests; second compatibility/docs commit only when independently useful. | Unique unmarked, one marked, multiple marked, zero eligible, exclusion, renamed/inherited candidates, competing String/CharSequence, actual dispatch equality, shadowing and stripped facts. Selected String schema agrees. KlumAST compiler/runtime/plugin. |
@@ -208,7 +208,7 @@ rather than treating that count as a permanent product contract.
 | Duration uses CharSequence | S3b proves an existing Builder route; a library method alone is insufficient evidence of projection. |
 | Relationship-specific partition defaults differ (8, 2, 4) | Keep truthful prose; no default execution or generalized contextual-default engine. |
 | Filename-keyed bodies differ from self-contained roots | S7 is explicit; consumer supplies identity. Current three roots are unkeyed, so no present modeline defect is asserted. |
-| InputExamples are documentary strings | Check emitted strings and documentation; do not promise typed object/number examples or validate them as input. |
+| Struct.Examples are documentary strings | Check emitted strings and documentation; do not promise typed object/number examples or validate them as input. |
 
 Q1 adds bounded negative cases for unknown/excluded names, strict scalar/null/enum shape, all key authorities, nested
 first-failure order, and source/path attribution. Schema validation and runtime results are reported separately. Retain

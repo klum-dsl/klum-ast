@@ -188,7 +188,7 @@ class PortNumber {
 
 // In the separately compiled Schema:
 @DSL class Service {
-    @InputName('port-number')
+    @Struct.Name('port-number')
     @Converters(includeConstructors = true)
     PortNumber port
 }
@@ -202,7 +202,7 @@ Quote numeric YAML values: `port-number: "1234"`. Numbers, null and other non-St
 absent optional field is allowed. The selected generated public Builder overload performs conversion during ordinary
 construction. Reading contracts and generating JSON Schema never execute the converter or initialize the domain.
 
-The selected compiled parameter owns its Jakarta Pattern facts and optional `@ConstraintProjection` policy. PROJECT
+The selected compiled parameter owns its Jakarta Pattern facts and optional `@Struct.ConstraintProjection` policy. PROJECT
 is the default; TEXT_ONLY describes complete constraints; OMIT suppresses their constraint-derived output. Field policy
 cannot suppress or override parameter facts. The field retains names, exclusion, prose, examples, deprecation and its
 own domain-value constraints. See [converter Pattern projection](Json-Schema.md#compiled-converter-parameters).

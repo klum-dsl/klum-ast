@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.klum.ast.ConstraintProjection
+import com.blackbuild.klum.ast.Struct
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
@@ -93,7 +93,7 @@ class CompiledConverterInputTest extends Specification {
         facts.rules()[0].regexp() == '[0-9]{1,8}'
         facts.rules()[0].origin() == 'PARAMETER'
         !facts.rules()[0].plain()
-        facts.policy() == ConstraintProjection.Policy.PROJECT
+        facts.policy() == Struct.ConstraintProjection.Policy.PROJECT
         entry.documentation().contains('Port prose.')
         entry.examples() == ['1234']
         entry.sourceDeprecated()
@@ -139,7 +139,7 @@ class CompiledConverterInputTest extends Specification {
             package converterinput
             import com.blackbuild.klum.ast.*
             @DSL class Service {
-                @InputName('port-number')
+                @Struct.Name('port-number')
                 @Converters(includeConstructors=${route == 'constructor'},
                         includeMethods=['${route == 'constructor' ? 'noFactories' : route}'])
                 PortNumber port
@@ -194,8 +194,8 @@ class CompiledConverterInputTest extends Specification {
         File descendant = groovyJar("""
             package converterinput
             import com.blackbuild.klum.ast.*
-            @DSL ${kebab ? '@InputNaming(InputNaming.Profile.KEBAB_CASE)' : ''} class Child extends Service {
-                @Builder.Method @InputName('other') ${ignored ? '@InputIgnore' : ''}
+            @DSL ${kebab ? '@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)' : ''} class Child extends Service {
+                @Builder.Method @Struct.Name('other') ${ignored ? '@Struct.Ignore' : ''}
                 PortNumber port(String raw) {
                     System.setProperty("$TRAP", "authored:" + raw)
                     return null
@@ -246,15 +246,15 @@ class CompiledConverterInputTest extends Specification {
             package converterinput
             import com.blackbuild.klum.ast.*
             @DSL class Service {
-                @Key @InputName('port-number') String id
-                @InputName('port-number') PortNumber port
+                @Key @Struct.Name('port-number') String id
+                @Struct.Name('port-number') PortNumber port
             }
         ''', [domain])
         File descendant = groovyJar('''
             package converterinput
             import com.blackbuild.klum.ast.*
             @DSL class Child extends Service {
-                @Builder.Method @InputIgnore
+                @Builder.Method @Struct.Ignore
                 PortNumber port(String raw) { throw new AssertionError('authored override executed') }
             }
         ''', [schema, domain])
@@ -315,9 +315,9 @@ class CompiledConverterInputTest extends Specification {
 
     def 'effective collected parameter facts equal direct facts for #route and policy #policy'() {
         given:
-        String annotation = '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')'
+        String annotation = '@Pattern(regexp="[0-9]{1,8}") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.' + policy + ')'
         File direct = domainJar('Groovy', route, annotation, true)
-        File collected = domainJar('Groovy', route, '@Digits @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')', true,
+        File collected = domainJar('Groovy', route, '@Digits @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.' + policy + ')', true,
                 '@Pattern(regexp="[0-9]{1,8}") @AnnotationCollector @interface Digits {}')
 
         when:
@@ -360,8 +360,8 @@ class CompiledConverterInputTest extends Specification {
 
     def 'invalid regexp fails before #policy suppression and naming exclusion #ignored'() {
         given:
-        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[") @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')', true)
-        File schema = schemaJar(domain, 'fromString', true, ignored ? '@InputIgnore' : '')
+        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.' + policy + ')', true)
+        File schema = schemaJar(domain, 'fromString', true, ignored ? '@Struct.Ignore' : '')
         def loader = binaryLoader([schema, domain])
 
         when:
@@ -475,7 +475,7 @@ class CompiledConverterInputTest extends Specification {
 
     def 'malformed paired facts fail closed before OMIT: #mutation'() {
         given:
-        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.OMIT)', true)
+        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)', true)
         File schema = schemaJar(domain, 'fromString')
         if (mutation.startsWith('domain-')) {
             domain = rewrite(domain, 'converterinput/PortNumber.class', mutation)
@@ -588,7 +588,7 @@ class CompiledConverterInputTest extends Specification {
 
     def 'Pattern container API denial fails before #policy suppression'() {
         given:
-        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @Pattern(regexp="[A-Z]{1,8}") @ConstraintProjection(ConstraintProjection.Policy.' + policy + ')', true)
+        File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}") @Pattern(regexp="[A-Z]{1,8}") @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.' + policy + ')', true)
         File schema = schemaJar(domain, 'fromString')
         def loader = new URLClassLoader([schema, domain]*.toURI()*.toURL() as URL[], getClass().classLoader) {
             @Override protected Class<?> loadClass(String name, boolean resolve) {
@@ -722,7 +722,7 @@ class CompiledConverterInputTest extends Specification {
             package converterinput
             import com.blackbuild.klum.ast.*
             @DSL class Service {
-                @InputName('port-number') PortNumber port
+                @Struct.Name('port-number') PortNumber port
                 @Builder.Method void port(int raw) { throw new AssertionError('authored') }
             }
         ''', [domain])
@@ -746,7 +746,7 @@ class CompiledConverterInputTest extends Specification {
         File schema = profile ? groovyJar('''
             package converterinput
             import com.blackbuild.klum.ast.*
-            @DSL @InputNaming(InputNaming.Profile.KEBAB_CASE) class Service { PortNumber portNumber }
+            @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Service { PortNumber portNumber }
         ''', [domain]) : schemaJar(domain, 'fromString')
         File shadow = new File(temporary, 'shadow.class')
         shadow.bytes = [0, 0, 0, 0] as byte[]
@@ -1083,7 +1083,7 @@ class CompiledConverterInputTest extends Specification {
             package converterinput;
             import jakarta.validation.constraints.Pattern;
             import jakarta.validation.Payload;
-            import com.blackbuild.klum.ast.ConstraintProjection;
+            import com.blackbuild.klum.ast.Struct;
             ${language == 'Groovy' ? 'import groovy.transform.AnnotationCollector;' : ''}
             $extra
             public class PortNumber implements Payload {
@@ -1105,9 +1105,9 @@ class CompiledConverterInputTest extends Specification {
                 /** Port prose.
                  * @example 1234
                  */
-                @InputExamples(['1234'])
+                @Struct.Examples(['1234'])
                 @Deprecated
-                @InputName('port-number')
+                @Struct.Name('port-number')
                 ${route == 'discovery-defaults' ? '' : '@Converters(includeConstructors=' + (route == 'constructor') + ')'}
                 $fieldAnnotation
                 PortNumber port
@@ -1121,7 +1121,7 @@ class CompiledConverterInputTest extends Specification {
         assert classes.mkdirs()
         File input = new File(directory, 'PortNumber.java')
         input.text = source
-        String classpath = [Pattern, ConstraintProjection].collect { new File(artifact(it).toURI()).path }.join(File.pathSeparator)
+        String classpath = [Pattern, Struct.ConstraintProjection].collect { new File(artifact(it).toURI()).path }.join(File.pathSeparator)
         assert ToolProvider.systemJavaCompiler.run(null, null, null, '--release', '17', '-classpath', classpath,
                 '-d', classes.path, input.path) == 0
         assert input.delete()

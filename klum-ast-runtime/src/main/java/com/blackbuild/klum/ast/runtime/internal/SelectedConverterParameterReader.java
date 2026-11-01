@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
-import com.blackbuild.klum.ast.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.runtime.internal.BuilderContractReader.ConverterSelection;
 import groovyjarjarasm.asm.AnnotationVisitor;
 import groovyjarjarasm.asm.ClassReader;
@@ -59,8 +59,8 @@ final class SelectedConverterParameterReader {
     private static final String PATTERN = "Ljakarta/validation/constraints/Pattern;";
     private static final String PATTERNS = "Ljakarta/validation/constraints/Pattern$List;";
     private static final String FLAG = "Ljakarta/validation/constraints/Pattern$Flag;";
-    private static final String POLICY = "Lcom/blackbuild/klum/ast/ConstraintProjection;";
-    private static final String POLICY_VALUE = "Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;";
+    private static final String POLICY = "Lcom/blackbuild/klum/ast/Struct$ConstraintProjection;";
+    private static final String POLICY_VALUE = "Lcom/blackbuild/klum/ast/Struct$ConstraintProjection$Policy;";
     private static final String VALUE_MEMBER = "value";
     private static final String REGEXP_MEMBER = "regexp";
     private static final String FLAGS_MEMBER = "flags";

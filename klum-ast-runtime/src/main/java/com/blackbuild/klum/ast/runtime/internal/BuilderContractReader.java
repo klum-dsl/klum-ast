@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
-import com.blackbuild.klum.ast.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import groovyjarjarasm.asm.AnnotationVisitor;
 import groovyjarjarasm.asm.ClassReader;
@@ -73,7 +73,7 @@ final class BuilderContractReader {
     static final String KEBAB_NAME = "KEBAB_CASE";
     private static final String INVALID_CONSTRAINT_ARRAY_ITEM = "Unexpected constraint array item";
     static final String BUILDER_SUFFIX = "_DSL$Builder";
-    private static final String INPUT_IGNORED = "excluded by @InputIgnore";
+    private static final String INPUT_IGNORED = "excluded by @Struct.Ignore";
     private static final String JSON_PROPERTY_ORIGIN = "JSON_PROPERTY";
     private static final String IGNORE_ORIGIN = "IGNORE";
     private static final String INPUT_IGNORE_ORIGIN = "INPUT_IGNORE";
@@ -783,7 +783,7 @@ final class BuilderContractReader {
         @Override public void visitEnum(String member, String descriptor, String value) {
             if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected enum");
             if (annotation.equals(FIELD) && member.equals("constraintProjection")
-                    && descriptor.equals("Lcom/blackbuild/klum/ast/ConstraintProjection$Policy;")) {
+                    && descriptor.equals("Lcom/blackbuild/klum/ast/Struct$ConstraintProjection$Policy;")) {
                 if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
                 literal.constraintProjection = value;
                 return;

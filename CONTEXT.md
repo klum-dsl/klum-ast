@@ -95,7 +95,7 @@ These terms are sourced from the user documentation and consolidated here. Use t
   is a composed constraint and the constraints hosted on it are composing constraints. Constraint projection converts
   supported inert constraint facts into structured-input / JSON Schema output; it does not name annotation placement.
   Reserve propagated annotation for KlumAST `@PropagateAnnotation` behavior. First-level Bean Validation composition
-  and literal `@InputConstraintDescription` use compiler-frozen facts, independently of annotation propagation.
+  and literal `@Struct.ConstraintDescription` use compiler-frozen facts, independently of annotation propagation.
 
 - Builder annotation vocabulary
 

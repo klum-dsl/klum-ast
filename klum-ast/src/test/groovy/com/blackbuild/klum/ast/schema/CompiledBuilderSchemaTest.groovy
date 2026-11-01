@@ -251,8 +251,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         where:
         profile      | annotation                                    | expected
         'absent'     | ''                                            | [validName: 'validName']
-        'IDENTITY'   | '@InputNaming(InputNaming.Profile.IDENTITY)'   | [validName: 'validName']
-        'KEBAB_CASE' | '@InputNaming(InputNaming.Profile.KEBAB_CASE)' | ['valid-name': 'validName', 'display-name': 'displayName', displayName: 'literalName']
+        'IDENTITY'   | '@Struct.Naming(Struct.Naming.Profile.IDENTITY)'   | [validName: 'validName']
+        'KEBAB_CASE' | '@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)' | ['valid-name': 'validName', 'display-name': 'displayName', displayName: 'literalName']
     }
 
     @Issue('959')
@@ -264,21 +264,21 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             import com.fasterxml.jackson.annotation.*
             @DSL class Base {
                 static { System.setProperty('wire.schema.executed', 'initialized'); throw new AssertionError('literal trap') }
-                @Key @InputName('Service/ID') @JsonProperty('Service/ID') String serviceId
+                @Key @Struct.Name('Service/ID') @JsonProperty('Service/ID') String serviceId
                 String displayName
-                @InputName('displayName') String literalName
-                @InputIgnore @JsonIgnore(false) String hiddenValue
-                @Builder.Method @JsonProperty('Configure/URL') @InputName('Configure/URL')
+                @Struct.Name('displayName') String literalName
+                @Struct.Ignore @JsonIgnore(false) String hiddenValue
+                @Builder.Method @JsonProperty('Configure/URL') @Struct.Name('Configure/URL')
                 void configureEndpoint(String value) { throw new AssertionError('operation executed') }
-                @Builder.Method @InputIgnore void hiddenOperation(String value) { throw new AssertionError('ignored executed') }
-                @InputName('unsupported') Thread unsupported
+                @Builder.Method @Struct.Ignore void hiddenOperation(String value) { throw new AssertionError('ignored executed') }
+                @Struct.Name('unsupported') Thread unsupported
             }
         '''] + NAMING)
         def child = compileJar(['''
             package literalbinary
             import com.blackbuild.klum.ast.*
-            @InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class Child extends Base {
-                @InputName('URL/exact') String URLValue
+            @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class Child extends Base {
+                @Struct.Name('URL/exact') String URLValue
                 String urlValue
             }
         '''], [api])
@@ -292,8 +292,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         plan.entries*.externalName as Set == ['display-name', 'displayName', 'URL/exact', 'url-value', 'Configure/URL'] as Set
         plan.entries.find { it.externalName == 'displayName' }.source == 'literalbinary.Base#literalName'
         plan.entries.find { it.externalName == 'Configure/URL' }.source.startsWith('literalbinary.Base#configureEndpoint(')
-        plan.rejections.find { it.source == 'literalbinary.Base#hiddenValue' }.reason == 'excluded by @InputIgnore'
-        plan.rejections.find { it.source.contains('#hiddenOperation(') }.reason == 'excluded by @InputIgnore'
+        plan.rejections.find { it.source == 'literalbinary.Base#hiddenValue' }.reason == 'excluded by @Struct.Ignore'
+        plan.rejections.find { it.source.contains('#hiddenOperation(') }.reason == 'excluded by @Struct.Ignore'
         plan.rejections.any { it.source == 'literalbinary.Base#unsupported' }
         rawNamingFacts(api, 'literalbinary/Base_DSL$Builder.class').key.rename == 'Service/ID'
         !binaries.resolved.any { it.startsWith('com.blackbuild.klum.ast.compiler.') || it.startsWith('com.fasterxml.jackson.') }
@@ -319,9 +319,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             @DSL class Configuration {
                 String value
-                @Builder.Method @InputIgnore String getValue() { value }
-                @InputName('field/exact') String key
-                @Builder.Method @InputName('setter/exact') void setKey(String value) { key = value }
+                @Builder.Method @Struct.Ignore String getValue() { value }
+                @Struct.Name('field/exact') String key
+                @Builder.Method @Struct.Name('setter/exact') void setKey(String value) { key = value }
             }
         ''')])
         def binaries = isolated([jar])
@@ -332,7 +332,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
 
         then:
         plan.entries*.externalName as Set == ['value', 'field/exact', 'setter/exact'] as Set
-        plan.rejections.find { it.source.contains('#getValue(') }.reason == 'excluded by @InputIgnore'
+        plan.rejections.find { it.source.contains('#getValue(') }.reason == 'excluded by @Struct.Ignore'
         System.getProperty('wire.schema.executed') == null
 
         cleanup:
@@ -347,9 +347,9 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
             package damagedliteral
             import com.blackbuild.klum.ast.*
             @DSL class Configuration {
-                @Key @InputName('Key/ID') String serviceId
-                @InputName('exact/URL') String value
-                @Builder.Method @InputIgnore void configure(String value) {}
+                @Key @Struct.Name('Key/ID') String serviceId
+                @Struct.Name('exact/URL') String value
+                @Builder.Method @Struct.Ignore void configure(String value) {}
             }
         ''')])
         def damaged = rewriteContract(jar, 'damagedliteral/Configuration_DSL$Builder.class', damage)
@@ -765,8 +765,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def jar = compileJar([trapped('''
             package damagednaming
             import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.InputNaming
-            @InputNaming(InputNaming.Profile.KEBAB_CASE)
+            import com.blackbuild.klum.ast.Struct
+            @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
             @DSL class Configuration { String value }
         ''')])
         def damaged = rewriteContract(jar, 'damagednaming/Configuration_DSL$Builder.class', damage)
@@ -820,7 +820,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def child = compileJar([trapped('''
             package legacyprofile
             import com.blackbuild.klum.ast.DSL
-            import com.blackbuild.klum.ast.InputNaming
+            import com.blackbuild.klum.ast.Struct
             @DSL class Configuration extends Base { String localName }
         ''')], [api])
         def legacy = rewriteContract(api, 'legacyprofile/Base_DSL$Builder.class', 'literal schema missing')
@@ -904,8 +904,8 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
     def 'profile resolution deduplicates native candidates through a source-free diamond'() {
         given:
         def source = StructuredInputContractFixtures.ADMISSION.replace('import com.blackbuild.klum.ast.DSL',
-                'import com.blackbuild.klum.ast.DSL\nimport com.blackbuild.klum.ast.InputNaming').replace('@DSL class Parent extends Base',
-                '@InputNaming(InputNaming.Profile.KEBAB_CASE) @DSL class Parent extends Base')
+                'import com.blackbuild.klum.ast.DSL\nimport com.blackbuild.klum.ast.Struct').replace('@DSL class Parent extends Base',
+                '@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class Parent extends Base')
         def jar = compileJar([trapped(source)] + NAMING)
         def diamond = rewriteContract(jar, 'admission/Parent_DSL$Builder.class', 'profile diamond')
         def binaries = isolated([diamond])

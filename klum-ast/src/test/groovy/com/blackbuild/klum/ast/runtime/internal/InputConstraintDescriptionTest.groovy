@@ -53,7 +53,7 @@ class InputConstraintDescriptionTest extends AbstractDSLSpec {
         when:
         def fields = facts('''
             @DSL class Service { @TrafficPercentage Integer traffic }
-            @InputConstraintDescription('Percentage of traffic sent to this service.')
+            @Struct.ConstraintDescription('Percentage of traffic sent to this service.')
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
             @interface TrafficPercentage {
                 String message() default 'traffic'
@@ -83,8 +83,8 @@ class InputConstraintDescriptionTest extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
         where:
         declaration << [
-            "@DSL class Service { @InputConstraintDescription('field') String value }",
-            '@InputConstraintDescription("value ${1}") @interface Rule {}'
+            "@DSL class Service { @Struct.ConstraintDescription('field') String value }",
+            '@Struct.ConstraintDescription("value ${1}") @interface Rule {}'
         ]
     }
 }

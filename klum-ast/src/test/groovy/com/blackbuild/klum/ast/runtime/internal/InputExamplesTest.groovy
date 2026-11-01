@@ -60,8 +60,8 @@ class InputExamplesTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
-                @InputExamples(['Catalog', 'catalog.internal']) String displayName
-                @InputExamples(['ordinary documentation']) String note
+                @Struct.Examples(['Catalog', 'catalog.internal']) String displayName
+                @Struct.Examples(['ordinary documentation']) String note
             }
         ''')
 
@@ -81,11 +81,11 @@ class InputExamplesTest extends AbstractDSLSpec {
         def type = schema('''
             @DSL class Service {
                 static final String SAMPLE = 'sample'
-                @Key @InputExamples(['id']) String key
-                @InputExamples([SAMPLE]) String value
-                @Builder.Method @InputName('operation') @InputExamples(['operation'])
+                @Key @Struct.Examples(['id']) String key
+                @Struct.Examples([SAMPLE]) String value
+                @Builder.Method @Struct.Name('operation') @Struct.Examples(['operation'])
                 void setValue(String input) { value = input }
-                @Builder.Method @InputExamples([SAMPLE])
+                @Builder.Method @Struct.Examples([SAMPLE])
                 void configure(String input) { value = input }
             }
         ''')
@@ -154,7 +154,7 @@ class InputExamplesTest extends AbstractDSLSpec {
             class Values {
                 static final String SAMPLE = { throw new AssertionError('constant execution trap') }()
             }
-            @DSL class Service { @InputExamples([Values.SAMPLE]) String value }
+            @DSL class Service { @Struct.Examples([Values.SAMPLE]) String value }
         ''')
 
         then:
@@ -165,7 +165,7 @@ class InputExamplesTest extends AbstractDSLSpec {
 
     def 'repeated authored examples annotations are rejected'() {
         when:
-        schema('''@DSL class Service { @InputExamples(['null']) @InputExamples(['true']) String value }''')
+        schema('''@DSL class Service { @Struct.Examples(['null']) @Struct.Examples(['true']) String value }''')
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)
@@ -174,11 +174,11 @@ class InputExamplesTest extends AbstractDSLSpec {
 
     def 'reject non-string or executable annotation values: #kind'() {
         when:
-        schema("@DSL class Service { @InputExamples($annotation) String value }")
+        schema("@DSL class Service { @Struct.Examples($annotation) String value }")
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)
-        failure.message.contains('InputExamples')
+        failure.message.contains('Struct.Examples')
 
         where:
         kind      | annotation
@@ -194,8 +194,8 @@ class InputExamplesTest extends AbstractDSLSpec {
         String values = '[' + (1..17).collect { "'example'" }.join(',') + ']'
 
         when:
-        def type = schema("@DSL class Service { @InputExamples([${text.inspect()}]) String value; " +
-                "@InputExamples($values) int many; @InputExamples([]) boolean empty }")
+        def type = schema("@DSL class Service { @Struct.Examples([${text.inspect()}]) String value; " +
+                "@Struct.Examples($values) int many; @Struct.Examples([]) boolean empty }")
         def entries = new InputContractResolver().read(type).entries()
 
         then:
@@ -215,7 +215,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         ''')
 
         when:
-        schema('@DSL class Service { @InputExamples([Values.SAMPLE]) String value }')
+        schema('@DSL class Service { @Struct.Examples([Values.SAMPLE]) String value }')
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)

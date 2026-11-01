@@ -24,8 +24,7 @@
 package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import com.blackbuild.klum.ast.InputName
-import com.blackbuild.klum.ast.InputIgnore
+import com.blackbuild.klum.ast.Struct
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import groovyjarjarasm.asm.AnnotationVisitor
@@ -51,7 +50,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         createClass("""
             package literals
             import com.blackbuild.klum.ast.*
-            import com.blackbuild.klum.ast.InputNaming.Profile
+            import com.blackbuild.klum.ast.Struct.Naming.Profile
             import com.fasterxml.jackson.annotation.*
             $declarations
         """)
@@ -79,12 +78,12 @@ class InputLiteralTest extends AbstractDSLSpec {
     def 'choose exact external names and exclude internal configuration'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
-                @InputName('service.id') String serviceName
-                @InputIgnore String internalNote
-                @Builder.Method @InputName('configure/URL')
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
+                @Struct.Name('service.id') String serviceName
+                @Struct.Ignore String internalNote
+                @Builder.Method @Struct.Name('configure/URL')
                 void configureEndpoint(String value) { serviceName = value }
-                @Builder.Method @InputIgnore
+                @Builder.Method @Struct.Ignore
                 void configureInternally(String value) { internalNote = value }
             }
         ''')
@@ -124,15 +123,15 @@ class InputLiteralTest extends AbstractDSLSpec {
         where:
         fieldAnnotation             | methodAnnotation                         | external      | reason
         ''                          | ''                                       | 'value'       | '@Builder.Method must declare exactly one payload'
-        "@InputName('field/exact')" | "@InputName('getter/exact') @InputIgnore" | 'field/exact' | 'excluded by @InputIgnore'
-        "@InputName('field/exact')" | "@JsonProperty('getter/exact') @JsonIgnore" | 'field/exact' | 'excluded by @JsonIgnore(true)'
+        "@Struct.Name('field/exact')" | "@Struct.Name('getter/exact') @Struct.Ignore" | 'field/exact' | 'excluded by @Struct.Ignore'
+        "@Struct.Name('field/exact')" | "@JsonProperty('getter/exact') @JsonIgnore" | 'field/exact' | 'excluded by @JsonIgnore(true)'
     }
 
     def 'field exclusion does not replace the authored getter rejection on a shared accessor'() {
         given:
         def type = schema('''
             @DSL class Service {
-                @InputIgnore String value
+                @Struct.Ignore String value
                 @Builder.Method String getValue() { value }
             }
         ''')
@@ -142,7 +141,7 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         then:
         plan.entries().isEmpty()
-        plan.rejections().find { it.source == 'literals.Service#value' }.reason == 'excluded by @InputIgnore'
+        plan.rejections().find { it.source == 'literals.Service#value' }.reason == 'excluded by @Struct.Ignore'
         plan.rejections().find { it.source.contains('#getValue(') }.reason == '@Builder.Method must declare exactly one payload'
     }
 
@@ -150,8 +149,8 @@ class InputLiteralTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
-                @InputName('field/exact') String key
-                @Builder.Method @InputName('setter/exact') void setKey(String value) { key = value }
+                @Struct.Name('field/exact') String key
+                @Builder.Method @Struct.Name('setter/exact') void setKey(String value) { key = value }
             }
         ''')
 
@@ -182,12 +181,12 @@ class InputLiteralTest extends AbstractDSLSpec {
         then:
         plan.entries().keySet() == [external] as Set
         result.key == 'catalog'
-        plan.rejections().find { it.source.contains(ignoredSource) }.reason == 'excluded by @InputIgnore'
+        plan.rejections().find { it.source.contains(ignoredSource) }.reason == 'excluded by @Struct.Ignore'
 
         where:
         fieldAnnotation             | methodAnnotation                            | external       | ignoredSource
-        '@InputIgnore'              | "@InputName('setter/exact')"                 | 'setter/exact' | '#key'
-        "@InputName('field/exact')" | '@InputIgnore'                              | 'field/exact'  | '#setKey('
+        '@Struct.Ignore'              | "@Struct.Name('setter/exact')"                 | 'setter/exact' | '#key'
+        "@Struct.Name('field/exact')" | '@Struct.Ignore'                              | 'field/exact'  | '#setKey('
     }
 
     def 'omitted owned contracts reject incompatible protocol before root execution: #target #version'() {
@@ -262,7 +261,7 @@ class InputLiteralTest extends AbstractDSLSpec {
     def 'owned contract cycles terminate without inspecting excluded targets'() {
         given:
         def type = schema('''
-            @DSL class Service { Middle middle; @InputIgnore Excluded excluded }
+            @DSL class Service { Middle middle; @Struct.Ignore Excluded excluded }
             @DSL class Middle { Service recursive; Child child }
             @DSL class Child { String value }
             @DSL class Excluded { String hidden }
@@ -296,20 +295,20 @@ class InputLiteralTest extends AbstractDSLSpec {
 
     def 'canonical literals have required exact values and field or method runtime targets'() {
         when:
-        def value = InputName.getDeclaredMethod('value')
+        def value = Struct.Name.getDeclaredMethod('value')
 
         then:
         value.returnType == String
         value.defaultValue == null
-        InputIgnore.declaredMethods.length == 0
-        [InputName, InputIgnore].every { it.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME }
-        [InputName, InputIgnore].every { it.getAnnotation(Target).value() == [ElementType.FIELD, ElementType.METHOD] as ElementType[] }
+        Struct.Ignore.declaredMethods.length == 0
+        [Struct.Name, Struct.Ignore].every { it.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME }
+        [Struct.Name, Struct.Ignore].every { it.getAnnotation(Target).value() == [ElementType.FIELD, ElementType.METHOD] as ElementType[] }
     }
 
     def 'literal bridge coalesces names and exclusion wins while false ignore is neutral: #annotations'() {
         given:
         def type = schema("""
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
                 $annotations String serviceName
                 @Builder.Method ${annotations.replace('exact/URL', 'operation/URL')} void configureEndpoint(String value) { serviceName = value }
             }
@@ -324,19 +323,19 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         where:
         annotations                                                             | names                       | excluded
-        "@InputName(' exact/URL ')"                                             | [' exact/URL ', ' operation/URL '] | 0
-        "@InputName('exact/URL') @JsonProperty('exact/URL')"                     | ['exact/URL', 'operation/URL'] | 0
-        "@InputName('exact/URL') @JsonProperty('') @JsonIgnore(false)"            | ['exact/URL', 'operation/URL'] | 0
-        "@InputName('exact/URL') @InputIgnore @JsonIgnore(false)"                 | []                          | 2
-        "@InputName('exact/URL') @JsonIgnore"                                    | []                          | 2
-        '@InputIgnore @JsonIgnore(false)'                                        | []                          | 2
+        "@Struct.Name(' exact/URL ')"                                             | [' exact/URL ', ' operation/URL '] | 0
+        "@Struct.Name('exact/URL') @JsonProperty('exact/URL')"                     | ['exact/URL', 'operation/URL'] | 0
+        "@Struct.Name('exact/URL') @JsonProperty('') @JsonIgnore(false)"            | ['exact/URL', 'operation/URL'] | 0
+        "@Struct.Name('exact/URL') @Struct.Ignore @JsonIgnore(false)"                 | []                          | 2
+        "@Struct.Name('exact/URL') @JsonIgnore"                                    | []                          | 2
+        '@Struct.Ignore @JsonIgnore(false)'                                        | []                          | 2
         '@JsonIgnore(false)'                                                     | ['service-name', 'configure-endpoint'] | 0
     }
 
     def 'literal names remain exact under any profile and equal Jackson facts are annotation-order independent: #annotations'() {
         given:
         def type = schema("""
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
                 $annotations String serviceName
             }
         """)
@@ -349,9 +348,9 @@ class InputLiteralTest extends AbstractDSLSpec {
         new InputContractResolver().read(type).entries().keySet() == [' exact/URL '] as Set
 
         where:
-        annotations << ["@InputName(' exact/URL ')", "@InputName(' exact/URL ') @JsonProperty(' exact/URL ')",
-                        "@JsonProperty(' exact/URL ') @InputName(' exact/URL ')",
-                        "@InputName(' exact/URL ') @JsonIgnore(false)"]
+        annotations << ["@Struct.Name(' exact/URL ')", "@Struct.Name(' exact/URL ') @JsonProperty(' exact/URL ')",
+                        "@JsonProperty(' exact/URL ') @Struct.Name(' exact/URL ')",
+                        "@Struct.Name(' exact/URL ') @JsonIgnore(false)"]
     }
 
     def 'different explicit names fail even with exclusion on #member'() {
@@ -361,24 +360,24 @@ class InputLiteralTest extends AbstractDSLSpec {
         then:
         def failure = thrown(MultipleCompilationErrorsException)
         failure.message.contains('Conflicting literal input names on literals.Service#')
-        failure.message.contains("@InputName('canonical')")
+        failure.message.contains("@Struct.Name('canonical')")
         failure.message.contains("@JsonProperty('jackson')")
 
         where:
         annotations                                                           | member
-        "@InputName('canonical') @JsonProperty('jackson')"                     | 'String serviceName'
-        "@JsonProperty('jackson') @InputName('canonical') @InputIgnore"        | 'String serviceName'
-        "@InputName('canonical') @JsonProperty('jackson') @JsonIgnore"         | '@Key String serviceId'
-        "@InputName('canonical') @JsonProperty('jackson') @JsonIgnore"         | '@Builder.Method void configure(String value) {}'
+        "@Struct.Name('canonical') @JsonProperty('jackson')"                     | 'String serviceName'
+        "@JsonProperty('jackson') @Struct.Name('canonical') @Struct.Ignore"        | 'String serviceName'
+        "@Struct.Name('canonical') @JsonProperty('jackson') @JsonIgnore"         | '@Key String serviceId'
+        "@Struct.Name('canonical') @JsonProperty('jackson') @JsonIgnore"         | '@Builder.Method void configure(String value) {}'
     }
 
     def 'empty canonical name is invalid even when excluded: #member'() {
         when:
-        schema("@DSL class Service { @InputName('') @InputIgnore $member }")
+        schema("@DSL class Service { @Struct.Name('') @Struct.Ignore $member }")
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)
-        failure.message.contains('@InputName requires a nonempty exact String on literals.Service#')
+        failure.message.contains('@Struct.Name requires a nonempty exact String on literals.Service#')
 
         where:
         member << ['String serviceName', '@Key String serviceId', '@Builder.Method void configure(String value) {}']
@@ -387,11 +386,11 @@ class InputLiteralTest extends AbstractDSLSpec {
     def 'literal overrides resolve profile collisions without changing native Groovy configuration'() {
         given:
         def type = schema('''
-            @DSL class Base { @InputName('literalURL') String URLValue }
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service extends Base {
+            @DSL class Base { @Struct.Name('literalURL') String URLValue }
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service extends Base {
                 String urlValue
-                @Builder.Method @InputName('stringURL') void configureURL(String value) { URLValue = value }
-                @Builder.Method @InputName('numericURL') void configureURL(int value) { urlValue = value.toString() }
+                @Builder.Method @Struct.Name('stringURL') void configureURL(String value) { URLValue = value }
+                @Builder.Method @Struct.Name('numericURL') void configureURL(int value) { urlValue = value.toString() }
             }
         ''')
 
@@ -407,8 +406,8 @@ class InputLiteralTest extends AbstractDSLSpec {
     def 'ignored key keeps member obligation and permits externally supplied root or map identity'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
-                @Key @InputName('service/id') @InputIgnore String serviceId
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
+                @Key @Struct.Name('service/id') @Struct.Ignore String serviceId
                 String displayName
             }
             @DSL class Owner { Map<String, Service> services }
@@ -419,7 +418,7 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('@InputIgnore')
+        failure.message.contains('@Struct.Ignore')
 
         when:
         def root = KlumStructuredInput.readRoot(type, 'Root/Blue', ['display-name': 'blue'], 'key.yaml')
@@ -434,11 +433,11 @@ class InputLiteralTest extends AbstractDSLSpec {
     def 'ignored members and native aliases reject before any earlier operation can execute: #input'() {
         given:
         def type = schema('''
-            @InputNaming(Profile.KEBAB_CASE) @DSL class Service {
-                @InputName('service/id') String serviceName
-                @InputIgnore String hiddenValue
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
+                @Struct.Name('service/id') String serviceName
+                @Struct.Ignore String hiddenValue
                 @Builder.Method void execute(String value) { System.setProperty('literal.executed', 'yes') }
-                @Builder.Method @InputIgnore void hiddenOperation(String value) { throw new AssertionError('excluded') }
+                @Builder.Method @Struct.Ignore void hiddenOperation(String value) { throw new AssertionError('excluded') }
             }
         ''')
         Throwable rejected

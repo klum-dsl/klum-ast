@@ -36,11 +36,11 @@ class ConstraintProjectionTest extends AbstractDSLSpec {
         createClass("""
             package projectionruntime
             import com.blackbuild.klum.ast.*
-            import static com.blackbuild.klum.ast.ConstraintProjection.Policy.$policy
+            import static com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy.$policy
             @DSL class Capacity {
                 @Key String name
-                @ConstraintProjection($policy) @Validate({ it > 0 }) Integer replicas
-                @ConstraintProjection($policy) String label
+                @Struct.ConstraintProjection($policy) @Validate({ it > 0 }) Integer replicas
+                @Struct.ConstraintProjection($policy) String label
             }
         """)
         artifactLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)

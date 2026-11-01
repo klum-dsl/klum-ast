@@ -23,8 +23,9 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
-import com.blackbuild.klum.ast.ConstraintProjection;
-import com.blackbuild.klum.ast.InputConstraintDescription;
+import com.blackbuild.klum.ast.Struct.ConstraintDescription;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -47,7 +48,7 @@ import java.util.stream.Collectors;
 
 /** Freezes direct and first-level composing field facts at their original source; never copies Bean constraints onto executable sites. */
 final class StructuredInputConstraintMetadata {
-    private static final String ICD = InputConstraintDescription.class.getName();
+    private static final String ICD = ConstraintDescription.class.getName();
     private static final String JAKARTA_CONSTRAINT = "jakarta.validation.Constraint";
     private static final String JAKARTA_CONSTRAINTS = "jakarta.validation.constraints.";
     private static final String VALUE = "value";
@@ -69,7 +70,7 @@ final class StructuredInputConstraintMetadata {
         Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
         // Let the ordinary annotation compiler fold enum constants, including static imports.
         fact.setMember("constraintProjection", selected == null
-                ? new PropertyExpression(new ClassExpression(ClassHelper.make(ConstraintProjection.Policy.class)), "PROJECT")
+                ? new PropertyExpression(new ClassExpression(ClassHelper.make(Policy.class)), "PROJECT")
                 : selected);
         ListExpression constraints = new ListExpression();
         List<AnnotationNode> declarations = field.getAnnotations().stream().filter(StructuredInputConstraintMetadata::constraint).toList();

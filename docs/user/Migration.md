@@ -12,7 +12,7 @@ See [JSON Schema generation](Json-Schema.md).
 ### Compiled converter String input
 
 Ordinary non-DSL fields with one eligible separately compiled String converter can now participate in structured input
-and JSON Schema. The selected parameter owns its Pattern facts and `@ConstraintProjection` policy; field policy and
+and JSON Schema. The selected parameter owns its Pattern facts and `@Struct.ConstraintProjection` policy; field policy and
 field domain-value constraints retain separate meaning. The finite Pattern recognizer is unchanged, and no runtime
 parameter enforcement is added. See [converter authoring](Converters.md#structured-string-input) and
 [projection rules](Json-Schema.md#compiled-converter-parameters).
@@ -41,7 +41,7 @@ JSON Schema. OR/ALL_FALSE, overrides, nested/repeatable or uncertain composition
 runtime descriptions. Independent assertions are preserved without reduction, including contradictory numeric bounds.
 Review generated schemas when adopting the change: supplied values can now be restricted by supported composing rules.
 
-`@InputConstraintDescription` is literal annotation-type prose. `PROJECT`/`TEXT_ONLY` retain it; `OMIT` suppresses it while
+`@Struct.ConstraintDescription` is literal annotation-type prose. `PROJECT`/`TEXT_ONLY` retain it; `OMIT` suppresses it while
 keeping ordinary Javadoc, structural bounds, explicit examples and deprecation. Runtime enforcement and direct calls are
 unchanged. Recompile all participating declaring/inherited/owned Schema artifacts with matching compiler/runtime/plugin
 versions for complete composition/description facts. There is no Model/source fallback, and suppression cannot hide
@@ -50,8 +50,8 @@ See [the supported boundary and example](Json-Schema.md#composed-constraints-and
 
 ### Advisory input examples
 
-`@InputExamples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
-validation against the property type or runtime constraints. Write `@InputExamples(['localhost'])`, without JSON quoting.
+`@Struct.Examples` provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. Write `@Struct.Examples(['localhost'])`, without JSON quoting.
 A note on a numeric, boolean or object property is still a string and is not promised to be a valid instance value.
 
 Current development Builder facts retain source-specific string arrays, including empty absence arrays. The unified
@@ -76,9 +76,9 @@ no historical or mixed-toolchain compatibility promise.
 
 ### Literal names and exclusion
 
-Use `@InputName('literal')` and marker `@InputIgnore` for dependency-free structured-input/JSON Schema shaping on eligible
+Use `@Struct.Name('literal')` and marker `@Struct.Ignore` for dependency-free structured-input/JSON Schema shaping on eligible
 fields, selected construction keys and admitted Builder methods. Exact names add no alias. Compatible Jackson names
-coalesce; conflicting explicit names now fail with both origins, including excluded entries. Empty `InputName` is invalid;
+coalesce; conflicting explicit names now fail with both origins, including excluded entries. Empty `Struct.Name` is invalid;
 empty Jackson names retain fallback. False Jackson ignore cannot undo Klum exclusion. Ordinary Groovy names and validation
 remain unchanged; Jackson import needs its own matching annotations when the same spelling is desired.
 
@@ -90,7 +90,7 @@ An ignored key does not remove construction identity obligations. See
 
 ### Type naming profiles
 
-`@InputNaming` now selects type-owned `IDENTITY` or bounded ASCII `KEBAB_CASE` for structured input and JSON Schema.
+`@Struct.Naming` now selects type-owned `IDENTITY` or bounded ASCII `KEBAB_CASE` for structured input and JSON Schema.
 Its profile is required. An explicit choice binds descendants, including explicit identity; an unannotated hierarchy
 leaves room for its first profiled child. Profiles cover inherited eligible members without changing standalone ancestors.
 Owned types resolve their own hierarchy. Existing Jackson literal overrides/exclusions stay supported alongside
@@ -745,8 +745,8 @@ and the [decimal contract](Json-Schema.md#decimal-constraints).
 ## Field constraint projection
 
 Supported numeric projection remains automatic. To change the generated artifact for one field, use
-`@ConstraintProjection(ConstraintProjection.Policy.TEXT_ONLY)` for runtime-constraint prose or
-`@ConstraintProjection(ConstraintProjection.Policy.OMIT)` to omit constraint-derived output. The default `PROJECT`
+`@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY)` for runtime-constraint prose or
+`@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)` to omit constraint-derived output. The default `PROJECT`
 retains the always-on faithful numeric baseline. Ordinary prose, deprecation, structural machine limits, input
 admission and runtime validation remain independent; no global switch is restored.
 
