@@ -25,7 +25,8 @@ declared domain routes retain exact parameter policies, constraints and missing/
 retain source association but do not inspect converter implementations or infer parameter constraints. They populate a
 constraint-free converter profile so destination-field constraints remain domain-value descriptions, never raw String
 assertions. Matched compiler/runtime/plugin and Schema recompilation is required; protocol marker 1 alone does not promise
-mixed-artifact compatibility. S1 traversal and runtime invocation mechanics are unchanged.
+mixed-artifact compatibility. S1 traversal is unchanged. Exact scalar String converter methods directly link a protected
+generated-code hook that delegates to the same runtime conversion/assignment path.
 
 ## Acceptance evidence
 
@@ -59,7 +60,14 @@ regression. Existing native scalar input remains unchanged. The follow-up specif
 now uses the exact public projection plus ordinary scalar exclusions; the original source predicate is retained solely for
 C1 authority. New interface/subtype/generic and existing binary source controls prove direct/structured dispatch, while
 packaged schemas confirm absent C1 assertions. Raw Object, arrays and converter-backed containers remain excluded.
-The same two children will review the corrected head.
+The same two children accepted the corrected code at `c7aeffc24` with zero remaining findings.
+
+The full-check Groovy 4 JPMS fixture then exposed dynamic lookup of the existing scalar converter hook on a non-exported
+runtime implementation class. The compiler now links exact scalar String converter calls through the protected
+`GeneratedKlumBuilder` hook, following the existing setter/relationship pattern. No module opens, converter discovery,
+container linkage or public Builder signature changes are needed. Focused ordinary Groovy 3 converter regressions and
+G4/G5 classpath/named-module fixtures pass, including bytecode linkage assertions. The interrupted full run is not a
+qualification result. The same two reviewers will inspect this correction before final full-check qualification.
 
 ## Delivery and resume condition
 

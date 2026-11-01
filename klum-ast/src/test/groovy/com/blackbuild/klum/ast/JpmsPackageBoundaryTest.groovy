@@ -265,7 +265,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         @Override
                         void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
                                                     Object... bootstrapMethodArguments) {
-                            if (bootstrapMethodArguments.contains('$setSingleField'))
+                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter'] })
                                 unresolvedSetters << "$name$descriptor"
                         }
 
@@ -273,7 +273,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
                                              boolean isInterface) {
                             if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
-                                    methodName == '$setSingleField')
+                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter'])
                                 directlyLinkedSetters << "$name$descriptor"
                         }
                     }
@@ -281,6 +281,8 @@ class JpmsPackageBoundaryTest extends Specification {
             }, 0)
         }
 
+        assert directlyLinkedSetters.any { it.toString() == 'timeout(Ljava/lang/String;)Ljava/time/Duration;' }:
+                "Generated String converter must directly link its runtime hook: $directlyLinkedSetters"
         assert unresolvedSetters.empty: "Generated setters must not use invokedynamic for \$setSingleField: $unresolvedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'name(Ljava/lang/String;)Ljava/lang/String;' }:
                 "Generated setter must directly link \$setSingleField: $directlyLinkedSetters"
