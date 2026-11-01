@@ -181,8 +181,18 @@ parent/descendant artifacts for G3/G4/G5 producers.
 Before correction, the requested existing matrix passed: 219 compiler/naming cases and 97 C1 cases per Groovy lane,
 plus 26 packaged schema cases. The new single regression then failed with the stale collision diagnostic. After
 correction, the full selection/public-contract focused suite and all three affected packaged producer cases passed.
-Both local review axes accepted the code/tests; their documentation follow-up is reflected above. Broader aggregate
-qualification is pending because the correction changes inherited runtime admission.
+Both local review axes accepted the code/tests and confirmed the documentation correction at `629329462`.
+
+Clean commit `629329462a6f54673ec5c19d09da6f2504337a2f` then passed the full JDK 17 aggregate command recorded above:
+**BUILD SUCCESSFUL in 23m 57s**, 140 actionable tasks (70 executed, 70 up-to-date). Final XML totals are 3606 baseline
+cases, 2931 Groovy 4 cases and 2931 Groovy 5 cases, with zero failures/errors and the unchanged 17/16/16 existing skips.
+This includes all 43 selection cases per compiler lane, all 97 C1 converter cases per bean-validation lane and all 653
+plugin cases. The 171 local Markdown targets/anchors and diff checks passed. The final evidence-only update does not
+alter the qualified code, tests, fixtures or build inputs. Logs/results: `/tmp/s2-candidate-fix-check.log` and
+`/tmp/s2-candidate-fix-results.json`.
+
+The earlier hosted run on `499b09f13` does not qualify this correction. Publication requires a new hosted result for the
+updated PR head; the PR and its consolidated review follow-up carry that external state.
 
 ## Delivery boundary
 
