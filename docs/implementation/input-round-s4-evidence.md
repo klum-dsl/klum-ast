@@ -128,6 +128,35 @@ The following original stack was reviewed and preserved until the maintainer exp
 The documentary feature, current user page and issue links are prepared locally. No GitHub issue body or state mutation is
 part of S4 delivery; the draft PR will link the documentary test, user contract and evidence under Related: #952.
 
+## PR #1005 SonarCloud maintenance follow-up
+
+SonarCloud check `124882195150` on published head `b00ccd457e0fb647ad9ba0e5a7de2b8aa6493afe` passed its quality gate
+but reported six new maintainability issues. This is not treated as a clean final result.
+
+- `AaGXlcQcS_nD4WvEoy7O`: extract operation-fact member reading from `MethodAnnotationVisitor.visit` into the existing
+  key/field/selection-style private helper pattern. Keep every duplicate/type/name validation and exception unchanged.
+- `AaGXlcSsS_nD4WvEoy7Q` / `AaGXlcSsS_nD4WvEoy7P`: name the stable JSON Schema `object` and `additionalProperties`
+  literals once; emitted schema values are unchanged.
+- `AaGXlcIpS_nD4WvEoy7L` / `AaGXlcIpS_nD4WvEoy7M` / `AaGXlcIpS_nD4WvEoy7N`: add braces to the three bytecode-fixture
+  early-return guards. Test scenarios and assertions are unchanged.
+
+Focused validation passed in 1m 1s (48 actionable tasks):
+
+```shell
+./gradlew :klum-ast:test --tests '*StructuredCommandTest' --tests '*StructuredOperationSelectionTest' \
+  --tests '*CompiledBuilderSchemaTest' --tests '*InputLiteralTest' \
+  :klum-ast-gradle-plugin:test --tests '*CompiledConverterJsonSchemaTest*packaged binary selection*' \
+  --tests '*KlumJsonSchemaGenerationTest*generate structural input schemas*' \
+  --no-parallel --max-workers=2 --console=plain
+```
+
+This includes production/test compilation, exact command invocation and rejection, corrupt/missing operation metadata,
+inherited contracts, packaged producer G3/G4/G5 command/String projection and structural schema controls. The full local
+repository check was deliberately not repeated for this localized Sonar-only repair, following the maintainer's refined
+validation policy. Diff checks passed. The same two local review children check the follow-up commit before publication.
+No suppressions, rule changes, runtime admission expansion or local SonarCloud upload are introduced. The full hosted
+CI/SonarCloud result on the new final head remains the required clean gate; earlier-head results cannot qualify it.
+
 ## Current delivery boundary
 
 The original pause condition has been satisfied and explicitly revoked by the resume instruction. After integration checks

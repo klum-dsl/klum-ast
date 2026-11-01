@@ -304,14 +304,20 @@ class StructuredCommandTest extends AbstractDSLSpec {
         new ClassReader(contract.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
-                if (name != 'resetTimeout') return next
+                if (name != 'resetTimeout') {
+                    return next
+                }
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (!annotation.endsWith('GeneratedInput$Operation;')) return downstream
+                        if (!annotation.endsWith('GeneratedInput$Operation;')) {
+                            return downstream
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
                             @Override void visit(String member, Object value) {
-                                if (member == 'role' && mutation == 'missing') return
+                                if (member == 'role' && mutation == 'missing') {
+                                    return
+                                }
                                 super.visit(member, member == 'role' ? mutation : value)
                             }
                         }

@@ -735,25 +735,34 @@ final class BuilderContractReader {
         @Override public void visit(String member, Object value) {
             if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
             switch (annotation) {
-                case OPERATION_FACT -> {
-                    if (member.equals("role")) {
-                        if (literal.operationRole != null || !(value instanceof String))
-                            throw invalid("Duplicate or invalid operation role fact");
-                        literal.operationRole = (String) value;
-                    } else if (member.equals("authoritative")) {
-                        if (literal.authoritative != null || !(value instanceof Boolean))
-                            throw invalid("Duplicate or invalid authoritative selection fact");
-                        literal.authoritative = (Boolean) value;
-                    } else if (member.equals(SOURCE_DEPRECATED)) {
-                        literal.operationDeprecated = (Boolean) value;
-                    } else if (!nameFact(literal.operationNames, member, value)) {
-                        throw invalid("Unknown operation fact " + member);
-                    }
-                }
+                case OPERATION_FACT -> operationFact(member, value);
                 case KEY_ANNOTATION -> keyFact(member, value);
                 case FIELD -> fieldFact(member, value);
                 case SELECTION -> selectionFact(member, value);
                 default -> { if (annotation.equals(DOC) && member.equals(VALUE)) literal.doc = (String) value; }
+            }
+        }
+
+        private void operationFact(String member, Object value) {
+            switch (member) {
+                case "role" -> {
+                    if (literal.operationRole != null || !(value instanceof String)) {
+                        throw invalid("Duplicate or invalid operation role fact");
+                    }
+                    literal.operationRole = (String) value;
+                }
+                case "authoritative" -> {
+                    if (literal.authoritative != null || !(value instanceof Boolean)) {
+                        throw invalid("Duplicate or invalid authoritative selection fact");
+                    }
+                    literal.authoritative = (Boolean) value;
+                }
+                case SOURCE_DEPRECATED -> literal.operationDeprecated = (Boolean) value;
+                default -> {
+                    if (!nameFact(literal.operationNames, member, value)) {
+                        throw invalid("Unknown operation fact " + member);
+                    }
+                }
             }
         }
 
