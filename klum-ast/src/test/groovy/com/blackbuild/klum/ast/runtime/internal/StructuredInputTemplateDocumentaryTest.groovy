@@ -249,7 +249,8 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         then:
         result == 0
         mirrorResult == 0
-        mirror.text.contains('FromStruct(')
+        mirror.text.contains('Deployment FromStruct(Map<?, ?> body)')
+        mirror.text.contains('Deployment FromStruct(Map<?, ?> body, String sourceName)')
         factory.getMethod('FromStruct', Map).returnType == deployment
         factory.getMethod('FromStruct', Map).genericParameterTypes[0].typeName == 'java.util.Map<?, ?>'
         factory.getMethod('FromStruct', Map, String).returnType == deployment
