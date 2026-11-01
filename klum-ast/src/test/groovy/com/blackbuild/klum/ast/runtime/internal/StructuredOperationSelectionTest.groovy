@@ -547,10 +547,14 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                 def next = super.visitAnnotation(descriptor, visible)
-                if (!descriptor.endsWith('GeneratedInput$Schema;')) return next
+                if (!descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return next
+                }
                 new AnnotationVisitor(Opcodes.ASM9, next) {
                     @Override void visit(String member, Object value) {
-                        if (member == 'operationCount' && mutation == 'missing count') return
+                        if (member == 'operationCount' && mutation == 'missing count') {
+                            return
+                        }
                         super.visit(member, member == 'operationCount' && mutation == 'wrong count' ? 99 : value)
                     }
                 }
@@ -559,15 +563,27 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (annotation.endsWith('Struct$Operation;') && mutation == 'missing author marker') return null
-                        if (annotation.endsWith('GeneratedInput$Operation;') && mutation in ['missing operation', 'missing both']) return null
-                        if (annotation.endsWith('Builder$Method;') && mutation == 'missing both') return null
+                        if (annotation.endsWith('Struct$Operation;') && mutation == 'missing author marker') {
+                            return null
+                        }
+                        if (annotation.endsWith('GeneratedInput$Operation;') && mutation in ['missing operation', 'missing both']) {
+                            return null
+                        }
+                        if (annotation.endsWith('Builder$Method;') && mutation == 'missing both') {
+                            return null
+                        }
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (!annotation.endsWith('GeneratedInput$Operation;')) return downstream
+                        if (!annotation.endsWith('GeneratedInput$Operation;')) {
+                            return downstream
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
                             @Override void visit(String member, Object value) {
-                                if (member == 'authoritative' && mutation == 'missing intent') return
-                                if (member == 'authoritative' && mutation == 'flipped intent') value = false
+                                if (member == 'authoritative' && mutation == 'missing intent') {
+                                    return
+                                }
+                                if (member == 'authoritative' && mutation == 'flipped intent') {
+                                    value = false
+                                }
                                 super.visit(member, member == 'authoritative' && mutation == 'wrong intent' ? 'invalid' : value)
                             }
                         }

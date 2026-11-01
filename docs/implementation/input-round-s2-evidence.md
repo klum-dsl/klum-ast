@@ -194,6 +194,20 @@ alter the qualified code, tests, fixtures or build inputs. Logs/results: `/tmp/s
 The earlier hosted run on `499b09f13` does not qualify this correction. Publication requires a new hosted result for the
 updated PR head; the PR and its consolidated review follow-up carry that external state.
 
+## SonarCloud review follow-up
+
+The hosted analysis of PR #1003 head `3b2b22e93c2467dfccb39a56ab9a5aefa8c97eba` passed its quality gate but reported
+ten open maintainability findings: one `java:S3776`, one `java:S5411` and eight `groovydre:S8306` findings. The follow-up
+extracts operation-fact validation from `BuilderContractReader.validateLiteral`, explicitly unboxes the authoritative
+Boolean after its existing null guard, and adds braces to the selection test's bytecode-mutation helper. Validation
+order, diagnostics, candidate selection and dispatch are unchanged. No finding is suppressed or intentionally retained.
+
+At the user's request, pre-push validation is focused only: all 43 `StructuredOperationSelectionTest` cases pass in
+each of the Groovy 3/4/5 lanes, including the eight corrupt-metadata controls. The three packaged binary selection
+cases in `CompiledConverterJsonSchemaTest` also pass, one for each producer lane. All 132 cases have zero failures,
+errors or skips. `git diff --check` passes. These focused results do not replace the earlier aggregate evidence;
+fresh coverage-bearing CI and SonarCloud analysis must qualify the follow-up revision after publication.
+
 ## Delivery boundary
 
 Tracker impact: **Related: #952**; the parent remains open. Curation impact: none.

@@ -341,20 +341,25 @@ final class BuilderContractReader {
             if (literal.examples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
-        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
-        if (literal.operationFact) {
-            if (!literal.operation || literal.authoritative == null)
-                throw invalid("Missing operation role or authoritative selection fact on " + source);
-            if (literal.authoritative != literal.authorOperation)
-                throw invalid("Author marker disagrees with authoritative selection fact on " + source);
-            validateNameFacts(literal.operationNames, source);
-            if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
-            if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
-        }
+        validateOperationFacts(literal, source);
         validateConverterFacts(literal, source);
         if (literal.field != null) {
             validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
         }
+    }
+
+    private static void validateOperationFacts(MutableLiterals literal, String source) {
+        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
+        if (!literal.operationFact) return;
+        if (!literal.operation || literal.authoritative == null) {
+            throw invalid("Missing operation role or authoritative selection fact on " + source);
+        }
+        if (literal.authoritative.booleanValue() != literal.authorOperation) {
+            throw invalid("Author marker disagrees with authoritative selection fact on " + source);
+        }
+        validateNameFacts(literal.operationNames, source);
+        if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
+        if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
     }
 
     private static void validateConverterFacts(MutableLiterals literal, String source) {
