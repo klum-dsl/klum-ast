@@ -75,13 +75,71 @@ override. The correction examines only the actual String signature, preserves un
 adds runtime/binary/schema controls. Both review axes accepted that correction at `d87049fce`. The aggregate run then
 exposed the existing `rejectedparent` fixture: previously excluded unmarked parent collisions must remain excluded. That
 behavior is restored without pruning a marked group's surviving competitors; the original expected contract is unchanged.
-The complete compiled-contract, naming, selection and C1 focused suites passed. Reviews of this final compatibility
-correction and full repository `check` are in progress. This record will be completed before
-handoff; these focused results do not yet claim complete qualification.
+The complete compiled-contract, naming, selection and C1 focused suites passed. Both review axes accepted the
+compatibility correction at `4f68e1ec9`, with no remaining findings.
+
+The next full `check` completed with one failure among 653 plugin cases: a handwritten wrong-Model fixture lacked the
+new required `operationCount=0`, so it failed before reaching its intended Model-identity assertion. Commit `4c9075096`
+adds that metadata without weakening the original assertion; its focused rerun passed. Both review axes accepted this
+mechanical correction with no remaining findings.
+
+A subsequent aggregate attempt was invalidated by editing documentation during execution: the outer build requested the
+clean commit version while a nested fixture publication used the `.uncommitted` version. The missing fixture BOM was
+confirmed directly. Draft documents were moved outside the checkout, the tree was restored clean, and validation was
+restarted without changing source or assertions. Git state must remain stable during this build's nested fixture runs.
+The final clean-tree aggregate rerun passed on 2026-11-01 at
+`4c9075096b605f79ac55ca24cd1a31360fdbba71`, using JDK 17:
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew check --continue --no-parallel --max-workers=2 --console=plain
+```
+
+Result: **BUILD SUCCESSFUL**, 13m 25s; 140 actionable tasks (29 executed, 111 up-to-date). The completed aggregate reused
+unchanged passing lane results and reran the complete plugin suite. All JUnit XML reports were inspected: zero failures
+and zero errors. Counts below include the existing skipped cases; S2 adds no ignored or pending test.
+
+| Module | Groovy 3 baseline: cases / skipped | Groovy 4: cases / skipped | Groovy 5: cases / skipped |
+| --- | ---: | ---: | ---: |
+| Compiler | 2580 / 16 | 2582 / 15 | 2582 / 15 |
+| Runtime | 73 / 1 | 73 / 1 | 73 / 1 |
+| Jackson | 121 / 0 | 119 / 0 | 119 / 0 |
+| Bean validation | 148 / 0 | 148 / 0 | 148 / 0 |
+| Test support | 8 / 0 | 6 / 0 | 6 / 0 |
+| Annotations | 20 / 0 | — | — |
+| Gradle plugin | 653 / 0 | — | — |
+| **Total** | **3603 / 17** | **2928 / 16** | **2928 / 16** |
+
+Coverage includes all 40 String-selection cases per compiler lane, all 97 C1 converter cases per bean-validation lane,
+packaged Java/static Groovy consumers (G3 classpath and G4/G5 JPMS), and the separate G3/G4/G5 producer matrix in the
+plugin's selected-schema controls. Root `check` also passed license, test-lane isolation, plugin validation, coverage-report
+and versioned-documentation-renderer checks. Local Markdown checks resolved 171 targets/anchors; `git diff --check`
+passed. The final evidence/plan wording change does not alter the qualified production code, tests, fixtures or build inputs.
+
+Local diagnostic logs were retained as `/tmp/s2-check-stable.log` and `/tmp/s2-final-results.json`; this committed record
+contains the durable qualification summary. This is local evidence, not hosted CI or SonarCloud qualification.
+
+## Local commit sequence
+
+Reviewed commits are preserved; corrections are additive. Every implementation commit uses the neutral relationship
+`Related: #952`.
+
+| Commit | Purpose |
+| --- | --- |
+| `f2c8f8922` | Select exact structured String operations from public Builder contracts. |
+| `576338ee8` | Qualify packaged consumers and selected schema projection; document S2. |
+| `d87049fce` | Remove stale inherited String-field routes after exact overrides; address initial local review. |
+| `4f68e1ec9` | Preserve rejected unmarked parent sources without discarding marked-group competitors early. |
+| `4c9075096` | Keep the wrong-Model negative fixture complete under the new metadata requirement. |
+
+The final documentation-only commit completes this evidence and distinguishes the plan's dated baseline matrix from
+its subsequent local S2 implementation. It changes no production code, test, fixture or build input.
 
 ## Delivery boundary
 
 Local commits only. No push, PR, issue mutation, local SonarCloud upload or Schelm dispatch is authorized in this stacked
 implementation. Tracker impact: **Related: #952**; the parent remains open. Curation impact: none.
-The sole resume condition is **S1 PR #1002 merged, then rebase this branch onto master**. Hive owns resumption, later
+On 2026-11-01, the final dependency-state read found S1 PR #1002 still open at
+`29c2dca4089c1f86c985df05b60c93f61038a68a`, advanced beyond this branch's agreed `038702ef6` base. This local qualification
+does not include those subsequent S1 changes.
+The sole resume condition is **S1 PR #1002 merged, then rebase this branch onto master** and validate the integrated result. Hive owns resumption, later
 publication and archive reconciliation. This worker does not self-archive.

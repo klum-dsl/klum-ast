@@ -2,7 +2,8 @@
 
 Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
 This plan records the accepted design; V0 implemented the vocabulary rename and S1 implemented ordered traversal.
-[S1 evidence](input-round-s1-evidence.md) records its bounded validation; other slices remain unimplemented. See
+[S1 evidence](input-round-s1-evidence.md) records its bounded validation. S2 implements exact String selection locally,
+pending S1 integration; see [S2 evidence](input-round-s2-evidence.md). The remaining slices are unimplemented. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
@@ -73,9 +74,10 @@ partial-state and first-failure coverage under S1. Static malformed-contract con
 
 ## Positive support matrix
 
-This is the proposed documentation content model. “Accepted” means planned implementation, not available at this base.
+This is the proposed documentation content model at the inspected planning base. “Accepted” means planned implementation
+at that base; the ordered slice rows and linked evidence below track subsequent implementation.
 
-| Shape / use | Current support | Target and admission boundary |
+| Shape / use | Support at inspected planning base | Target and admission boundary |
 | --- | --- | --- |
 | String, boolean, supported numeric, exact enum | Yes | Retain strict payloads and existing numeric limits; no general coercion. |
 | One typed List/Map argument; ordinary scalar field collections/maps | Yes, bounded | Retain one argument versus generated element population; literal String Map keys. |
