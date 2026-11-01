@@ -9,28 +9,46 @@ test or resource output on source-set/Groovy compile/runtime classpaths, non-lan
 directories. CI keeps the Groovy-4/5 JUnit and JaCoCo reports as compatibility-lane evidence; Sonar consumes only the
 Groovy-3 baseline report so production classes are not counted once per lane.
 
+## Local validation before push
+
+Choose checks by the highest applicable risk below, not by the number of files. Start test-first where behavior changes:
+run the narrowest relevant Groovy 3 test, then broaden to the affected module suite and other affected seams. Select
+checks that exercise the actual change and its consumers; if their scope cannot establish safety, use the full-check tier.
+Run applicable compilation, static, documentation and `git diff --check` checks in every tier. Record the commands,
+results, scope, and any omissions or failures in the handoff and PR; focused success is not a full-build or Sonar result.
+
+| Change and risk | Minimum local evidence before push |
+|---|---|
+| Documentation only, unable to affect compilation, tests, generated output or runtime | `git diff --check` and applicable Markdown, link, rendering or documentation-generation checks. Groovy lanes are unnecessary; state their omission in the PR. Build configuration, executable or compiled examples, generated-source inputs and test fixtures are code changes. |
+| Localized runtime, test or documentation repair | Focused Groovy 3 tests for the changed seam, the affected module's Groovy 3 suite, and applicable checks above. Include affected consumer or regression tests where needed. Run Groovy 4/5 when the change touches a version-sensitive seam; a localized SonarCloud finding alone does not require root `check`. |
+| Compiler, AST, generated public contract or compatibility surface | Focused compiler and consumer regressions, affected module suites and both `groovy4Tests` and `groovy5Tests` for affected multi-Groovy modules. Add binary compatibility and JPMS descriptor/module-path tests when the binary or module contract can change; run Gradle plugin/TestKit tests when generated contracts or plugin behavior can affect plugin consumers. Escalate to root `check` for shared or cross-module contracts, or when focused evidence is insufficient. |
+| Gradle/build/CI topology, publication or release, cross-module/shared contract, or uncertain safety | Run full local root `./gradlew check`, plus any targeted integration, plugin, binary/JPMS, publication or release checks needed for the change. `check` is not by itself proof of an external publication or release. |
+
+For example, a localized SonarCloud repair in `klum-ast-runtime` runs its relevant focused tests and
+`:klum-ast-runtime:test`, plus applicable compilation, static and documentation checks; it does not repeat root `check`
+solely because Sonar reported the finding. A change to a generated Builder contract in `klum-ast` runs compiler and
+consumer regressions, affected module suites and Groovy 4/5 lanes, with binary/JPMS and plugin consumer tests where
+those surfaces are affected. A shared contract spanning modules also requires root `check`.
+
+After a final rebase, rerun the checks invalidated by integration and any targeted regressions needed for the combined
+change; retain earlier results only where their inputs and assumptions remain valid. Follow the reviewed-history rules in
+[commits.md](commits.md) before rebasing. GitHub PR CI is the authoritative complete-build qualification: inspect all
+required checks, including SonarCloud, on the final PR revision. Local evidence never substitutes for pending or failed CI.
+
 ## Test lanes
 
 | Gradle task | Groovy generation | Use |
 |---|---:|---|
-| `test` | 3 | Baseline for focused tests and normal development iterations |
-| `groovy4Tests` | 4 | Compatibility check when Groovy-version behavior may differ and at the end of a change |
-| `groovy5Tests` | 5 | Compatibility check when Groovy-version behavior may differ and at the end of a change |
+| `test` | 3 | Baseline for focused tests and affected module suites |
+| `groovy4Tests` | 4 | Compatibility lane when required by the risk matrix |
+| `groovy5Tests` | 5 | Compatibility lane when required by the risk matrix |
 
-Start with the narrowest relevant Groovy 3 test, then run the affected module's Groovy 3 suite. Run Groovy 4 and 5 sparingly during development unless the change touches compiler APIs, AST behavior, Groovy syntax, dependency compatibility, or another known version seam. Before handing off a completed change, run both compatibility lanes; the root `check` task includes them for projects using the multi-Groovy convention.
-
-A documentation-only pull request does not require the Groovy 3, 4, or 5 test lanes when its changes cannot affect
-compilation, test execution, generated output, or runtime behavior. Run `git diff --check` plus any applicable Markdown,
-link, rendering, or documentation-generation checks instead, and state the omission in the pull request. Treat changes to
-build configuration, executable or compiled examples, generated-source inputs, and test fixtures as code changes rather
-than documentation-only changes.
-
-Typical commands are:
+Root `check` includes both compatibility lanes for projects using the multi-Groovy convention. Typical commands are:
 
 ```shell
 ./gradlew :klum-ast:test --tests com.blackbuild.groovy.configdsl.transform.SomeTest
-./gradlew test
-./gradlew groovy4Tests groovy5Tests
+./gradlew :klum-ast:test
+./gradlew :klum-ast:groovy4Tests :klum-ast:groovy5Tests
 ./gradlew check
 ```
 
