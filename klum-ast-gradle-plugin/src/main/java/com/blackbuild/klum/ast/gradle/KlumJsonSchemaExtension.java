@@ -31,6 +31,8 @@ import org.gradle.api.provider.SetProperty;
 public abstract class KlumJsonSchemaExtension {
     /** Fully qualified DSL Model binary names; generated Builder names are not accepted. */
     public abstract SetProperty<String> getRootTypes();
+    /** DSL Model binary names whose caller-pre-keyed Builder bodies omit root identity. */
+    public abstract SetProperty<String> getBodyRootTypes();
     /** Complete Schema/API/runtime/annotation classpath, isolated from the Gradle daemon. */
     public abstract ConfigurableFileCollection getClasspath();
     /** Dedicated directory for ordinary generated files; consumers own their use. */

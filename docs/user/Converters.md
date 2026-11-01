@@ -185,9 +185,8 @@ import java.time.Duration
 }
 
 def direct = Service.Create.With { timeout 'PT30S' }
-def structured = KlumStructuredInput.readRoot(Service, [timeout: 'PT30S'], 'service.yaml')
-assert structured.timeout == direct.timeout
-assert structured.timeout == Duration.ofSeconds(30)
+assert direct.timeout == Duration.ofSeconds(30)
+def parsed = [timeout: 'PT30S'] // The admitted converter receives this exact String.
 ```
 
 These routes produce `type: string` and the field's prose/examples in JSON Schema. Conversion runs only during ordinary
@@ -218,8 +217,8 @@ class PortNumber {
 }
 
 // The Model Writer supplies a String scalar, not a nested parameter object.
-def service = KlumStructuredInput.readRoot(Service, ['port-number': '1234'], 'ports.yaml')
-assert service.port.raw == '1234'
+def parsed = ['port-number': '1234'] // Structured input selects the compiled String converter.
+// The converter receives '1234'; root/Builder entry-point delivery is separate.
 ```
 
 Quote numeric YAML values: `port-number: "1234"`. Numbers, null and other non-String values reject structurally; an

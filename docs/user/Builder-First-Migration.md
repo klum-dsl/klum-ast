@@ -363,12 +363,15 @@ For caller-parsed Map/List/scalar data that should invoke admitted domain Builde
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
 callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
 
-For keyed structured documents, the three-argument root overload requires the actual external key member. Supplied
+Self-contained keyed structured documents require the actual external key member. Supplied
 caller-key direct children now require their key before allocation; optional absent children remain legal. Explicit
 rootKey, active Builders, fixed/derived/Cluster keys and outer keyed Map entries retain authority and forbid inner
 identity. Default keyed-root JSON Schema now requires its key and describes self-contained documents rather than
 external-key payloads. Align compiler/runtime/plugin versions and recompile Schemas, including binary parents.
 See [explicit structured construction keys](Migration.md#explicit-structured-construction-keys) for migration details.
+Caller-pre-keyed bodies can explicitly select `klumSchema.jsonSchema.bodyRootTypes`; the separately named body artifact
+omits root identity and preserves child positions. See
+[Builder-body schema selection](Migration.md#caller-pre-keyed-builder-body-schemas).
 
 ## Templates, Serialization, and Jackson
 

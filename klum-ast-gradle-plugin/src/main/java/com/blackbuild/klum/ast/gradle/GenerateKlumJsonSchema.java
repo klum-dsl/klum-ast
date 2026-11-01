@@ -51,7 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /** Opt-in task; no contract classes or classloaders survive execution. */
 @CacheableTask
@@ -61,6 +61,10 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
 
     @Input
     public abstract SetProperty<String> getRootTypes();
+
+    /** Explicit body purpose; independent of the self-contained root selection and cache input. */
+    @Input
+    public abstract SetProperty<String> getBodyRootTypes();
 
     @Classpath
     public abstract ConfigurableFileCollection getClasspath();
@@ -78,6 +82,7 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
     // Gradle task decoration requires an accessible constructor.
     @SuppressWarnings("java:S5993")
     public GenerateKlumJsonSchema() {
+        getBodyRootTypes().convention(Set.of());
         try {
             getToolClasspath().from(new File(GenerateKlumJsonSchema.class.getProtectionDomain().getCodeSource().getLocation().toURI()));
         } catch (URISyntaxException failure) {
@@ -88,8 +93,10 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
     @TaskAction
     public void generate() throws IOException {
         List<String> roots = getRootTypes().get().stream().sorted().toList();
-        if (roots.isEmpty()) throw new GradleException("Configure klumSchema.jsonSchema.rootTypes with at least one fully qualified DSL Model binary name");
-        Map<String, String> documents = project(roots);
+        List<String> bodyRoots = getBodyRootTypes().get().stream().sorted().toList();
+        if (roots.isEmpty() && bodyRoots.isEmpty())
+            throw new GradleException("Configure klumSchema.jsonSchema.rootTypes or bodyRootTypes with at least one fully qualified DSL Model binary name");
+        Map<String, String> documents = project(roots, bodyRoots);
         Path output = getOutputDirectory().get().getAsFile().toPath();
         Set<String> previous = previousOutputs(output);
         Files.createDirectories(output);
@@ -112,7 +119,7 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
     // Only our private plugin constructor is opened (S3011); keeping it private avoids a public generator API.
     // Consumer Schema contracts retain public-only access. Only JDK Strings/collections cross the loader boundary.
     @SuppressWarnings({"unchecked", "java:S3011"})
-    private Map<String, String> project(List<String> roots) throws IOException {
+    private Map<String, String> project(List<String> roots, List<String> bodyRoots) throws IOException {
         Set<File> files = new LinkedHashSet<>(getToolClasspath().getFiles());
         files.addAll(getClasspath().getFiles());
         List<URL> urls = new ArrayList<>();
@@ -122,11 +129,12 @@ public abstract class GenerateKlumJsonSchema extends DefaultTask {
             Constructor<?> constructor = implementation.getDeclaredConstructor();
             // Access only our own private plugin class; Schema contracts always use public reflection through the facade.
             constructor.setAccessible(true);
-            Function<List<String>, Map<String, String>> projection =
-                    (Function<List<String>, Map<String, String>>) constructor.newInstance();
-            return projection.apply(roots);
+            BiFunction<List<String>, List<String>, Map<String, String>> projection =
+                    (BiFunction<List<String>, List<String>, Map<String, String>>) constructor.newInstance();
+            return projection.apply(roots, bodyRoots);
         } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
             throw new GradleException("JSON Schema generation failed for explicit roots " + roots
+                    + " and Builder-body roots " + bodyRoots
                     + "; check the configured Schema/API/runtime/annotation classpath: " + failure.getMessage(), failure);
         }
     }

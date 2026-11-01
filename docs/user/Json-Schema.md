@@ -22,7 +22,7 @@ klumSchema.jsonSchema {
 }
 ```
 
-Run `./gradlew generateKlumJsonSchema` explicitly. The task compiles local classes as needed and writes one file per root
+Run `./gradlew generateKlumJsonSchema` explicitly. The task compiles local classes as needed and writes one file per selected root purpose
 below `build/generated/klum-json-schema`, for example `example.Deployment.schema.json`. The ordinary
 `assemble`, `check` and publication lifecycles do not select generation. Filenames retain the fully qualified Model
 name, so Models with identical simple names in different packages produce distinct files; no package directories are
@@ -45,12 +45,12 @@ klumSchema.jsonSchema {
 
 The isolated loader uses only the tool implementation and configured classpath. Missing roots, runtime dependencies or
 generated enrichment fail with root/classpath and recompile guidance; the Gradle daemon supplies no fallback classes.
-Use a dedicated output directory. Gradle fingerprints roots, full classpath bytes (including annotation/documentation
+Use a dedicated output directory. Gradle fingerprints roots by purpose, full classpath bytes (including annotation/documentation
 changes), tool bytes/version and output location. Up-to-date, build-cache and configuration-cache reuse are supported.
 Successful regeneration removes files for deleted roots using its `.klum-json-schema-outputs` manifest, preserving
 unrelated files. It also removes earlier Builder-named files recorded in that manifest when Model-named files replace them;
 untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
-previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
+previous successful output; it must not be mistaken for a successful fresh generation. An empty selection across both root sets fails explicitly.
 
 ## Zero-argument commands
 
@@ -69,7 +69,7 @@ produced with Groovy 3, 4 and 5, including throwing command-body and Schema-init
 ## Type naming profiles
 
 Schema `@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)` selects the same resolved member names used by
-[`KlumStructuredInput`](Structured-Input.md#type-naming-profiles). No task option or runtime overload selects naming.
+[structured input](Structured-Input.md#type-naming-profiles). No task option or runtime overload selects naming.
 `IDENTITY` preserves native spelling and explicitly binds descendants too. First-child introduction, compatible repetition,
 conflicting choices, exact Jackson literals/exclusions and independently resolved owned types follow that shared contract.
 
@@ -500,7 +500,7 @@ An optional absent property remains allowed; supplied null and non-String values
 
 ## Construction-key definitions
 
-The default root artifact describes self-contained input for the three-argument `KlumStructuredInput.readRoot` overload.
+The default root artifact describes a self-contained structured document, independently of runtime entry-point delivery.
 A keyed root and each supplied direct caller-key child require their actual external key member with `type: string`.
 This `required` comes from construction identity, independently of completed `@Required`. Optional relationship
 properties remain optional; a supplied child must provide its own identity.
@@ -524,9 +524,9 @@ type can still generate keyless bodies; a key collision does not globally suppre
 Compiler-rejected operations continue to be absent with `x-klum-unsupported` diagnostics. There is no new categorical
 positional exclusion or arbitrary-input fallback for a projector limitation. Failure retains previous successful output.
 
-This default artifact does **not** describe the payload of the four-argument explicit-rootKey overload or the existing
-`applyToBuilder` target: those payloads must omit their already supplied root/target key. There is no additional Gradle
-mode for those entry points. See the [migration guidance](Migration.md#explicit-structured-construction-keys).
+This default artifact describes self-contained input. For a caller-pre-keyed root, explicitly select the
+[Builder-body artifact](#caller-pre-keyed-builder-bodies). See the
+[migration guidance](Migration.md#caller-pre-keyed-builder-body-schemas).
 
 Generated JSON Schema preserves structural restrictions and projects the supported authoring bounds described above. It does not guarantee Java numeric conversion, input interpretation, binding,
 lifecycle, materialization or completed validation. Integral primitives/wrappers retain exact bounds; float/double use
@@ -539,6 +539,46 @@ optional [structured-input feature](Structured-Input.md), tracked under #932.
 Real ScHelm root/output qualification remains a consumer-owned acceptance gate for overall
 [#529](https://github.com/klum-dsl/klum-ast/issues/529). This Gradle slice selects no ScHelm roots, packaging or publication policy.
 
+
+## Caller-pre-keyed Builder bodies
+
+A caller that supplies root identity before configuring its Builder needs a body schema that omits that identity.
+Select `bodyRootTypes` explicitly, using the same fully qualified DSL Model binary names as `rootTypes`
+([#953](https://github.com/klum-dsl/klum-ast/issues/953), S7).
+
+(See: `KlumJsonSchemaGenerationTest#'select self-contained and Builder-body schemas for the same binary roots with Groovy #generation'`.)
+
+```groovy
+klumSchema.jsonSchema {
+    rootTypes.add('example.Service')
+    bodyRootTypes.add('example.Service')
+}
+```
+
+Running `generateKlumJsonSchema` emits both `example.Service.schema.json` (self-contained) and
+`example.Service.builder-body.schema.json` (caller-pre-keyed body). Either set may be empty if the other selects a root;
+`bodyRootTypes` defaults to empty. The selections are independent Gradle task inputs. An unkeyed Model has identical
+schema contents in the two separately named artifacts. Output names identify generation purpose; they never supply an
+instance key. Consumers explicitly choose the matching artifact for their editor/validator and own packaging/use.
+
+For the externally renamed `Service#name` key in the
+[construction-key example](Structured-Input.md#construction-keys), the self-contained artifact requires `service-id`.
+The body artifact rejects that member through its closed root definition. Direct caller-key children still require
+their keys; fixed/derived/Cluster children and keyed Map values still omit theirs. Recursive relationships reuse the
+appropriate member or keyless definition independently of the selected root purpose. Private definition suffixes are
+implementation details and are not root-selection values or a public body-schema API. Ordinary body properties retain
+admission, including a property whose external spelling overlaps a suppressed construction key.
+
+The body variant describes the admitted structural grammar for caller-pre-keyed roots. Public construction belongs on
+the accepted Factory/Builder capabilities; the interpreter is internal. Common/keyed Factory and Builder application
+delivery remains separate under [#953](../adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953). It adds no runtime entry point, Factory/file/URL loading, key derivation or Template
+mode. It does not qualify every independently keyed consumer format or prescribe editor/file discovery. Schema validity
+still does not guarantee construction, lifecycle or completed validation success.
+
+Both purposes use the same isolated compiled-contract inspection and no-user-code boundary. Build/configuration caches,
+manifest ownership, root removal and failure preservation cover both selections: a failed root in either set leaves all
+last-successful artifacts and the manifest intact. A successful selection change removes only previously tracked files.
+Use a dedicated output directory, as for default generation; unrelated files are not generation inputs or identity.
 
 ## Advisory input examples
 
