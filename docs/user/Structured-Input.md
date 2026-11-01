@@ -333,17 +333,18 @@ API/Schema dependencies. Interpretation needs no Schema sources, IDE source mirr
 Supported field containers are List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap.
 Normal Builder mechanics manage the declared container, including set deduplication and sorted storage. Operation
 arguments and nested ordinary data containers use List/Map; there is no construction of concrete/custom container
-arguments or broad Collection/Iterable arguments. An ordinary non-DSL scalar field additionally admits the narrow
-[compiled String converter route](Converters.md#structured-string-input): exactly one compiler-selected declared public
-String constructor (enabled explicitly) or static String-to-exact-domain factory on a separately compiled public,
-non-generic domain class. Broader custom converter/factory routes remain outside this input grammar.
+arguments or broad Collection/Iterable arguments. An ordinary non-DSL scalar field also admits an exact, unambiguous
+[generated String converter route](Converters.md#structured-string-input), including field closures, same-compilation
+values and separately compiled external adapters. This uses an already-generated public Builder projection; it does not
+add converter discovery or make omitted/colliding projections callable.
 
 Converter input is a String scalar at the field's effective external name. Quote numeric YAML values; neither numeric
-coercion nor null admission is added. An absent optional field remains allowed. The public Builder selects the exact
-overload, while its matched domain artifact supplies the selected parameter facts. Missing/malformed associations or
-parameter facts fail during static contract verification, even behind naming exclusion or OMIT. Recompile participating Schemas after
-domain contract changes. Pattern projection is an authoring aid; structured import does not enforce parameter constraints
-or automatically validate input against JSON Schema (#971).
+coercion nor null admission is added. An absent optional field remains allowed. C1-qualified separately compiled domain
+routes retain their selected-parameter facts and policies. Other origins describe a String plus field prose/examples,
+without inferring a grammar by executing conversion or copying destination-field assertions onto the raw String.
+Missing/malformed required associations or C1 facts fail during static contract verification, even behind naming exclusion
+or OMIT. Recompile participating Schemas after domain contract changes. Pattern projection is an authoring aid;
+structured import does not enforce parameter constraints or automatically validate input against JSON Schema (#971).
 
 Numeric targets are primitive/boxed byte, short, int, long, float and double, plus BigInteger and BigDecimal.
 Floating targets reject non-finite/overflow values. Standard numeric input values are Byte, Short, Integer, Long,
@@ -405,7 +406,7 @@ overrides their signature; the parent's converter constraints cannot describe di
 
 A selected String route rejects numeric, null, GString and mutable CharSequence payloads without trying another overload.
 Competing String/CharSequence projections have no implicit specificity preference: mark the String operation.
-CharSequence invocation and broader converter origins remain deferred. The generated JSON Schema describes only the
+CharSequence invocation remains deferred; exact String converter origins follow the field rules above. The generated JSON Schema describes only the
 selected operation's String grammar, prose and examples; constraints from a superseded field/converter do not transfer.
 
 Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts

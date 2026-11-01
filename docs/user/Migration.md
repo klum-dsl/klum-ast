@@ -20,6 +20,15 @@ Recompile participating Schema hierarchies with matching compiler/runtime/plugin
 completeness and selection facts (development protocol 1). Old or stripped facts reject before execution/generation.
 See [String selection](Structured-Input.md#select-a-string-operation) and [ADR 0032](../adr/0032-builder-oriented-structured-input.md).
 
+### String converter origins
+
+Exact public String Builder projections now admit field closures, same-compilation non-DSL values and separately compiled
+external adapters. Missing or colliding generated projections still reject. Recompile matched compiler/runtime/plugin and
+Schema artifacts: every converter association now explicitly records whether C1 parameter facts apply. C1 assertions and
+policies remain unchanged on qualified routes; other origins emit String structure and field prose without inferring
+constraints. CharSequence, converter-backed containers and DSL-object conversion remain outside this slice.
+See [converter authoring](Converters.md#structured-string-input) and [schema output](Json-Schema.md#compiled-converter-parameters).
+
 ### Compiled converter String input
 
 Ordinary non-DSL fields with one eligible separately compiled String converter can now participate in structured input

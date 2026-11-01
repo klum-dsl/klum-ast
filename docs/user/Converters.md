@@ -169,11 +169,35 @@ assert service.endpoint == new URI('https', 'config.example.test', '/v1', 'stabl
 
 ## Structured String input
 
-An ordinary non-key, non-DSL field can accept a String from structured input when its separately compiled public,
-non-generic domain class has exactly one supported String route already discovered by KlumAST. The route is a declared
-public constructor with `@Converters(includeConstructors=true)`, or a declared public static factory returning exactly
-the domain class. Existing factory discovery rules apply; a public method alone does not establish selection.
-The ordinary domain-value setter remains available in Groovy configuration.
+An ordinary non-key, non-DSL scalar field can accept a String through its exact, unambiguous public Builder projection.
+This includes field converter closures, same-compilation domain values and separately compiled external adapters.
+Existing converter discovery and generation rules still apply: a factory without a generated projection is not callable,
+and competing converters that collide during generation reject. The ordinary domain-value setter remains available.
+
+(See: `StructuredConverterOriginTest#'a field converter accepts the same duration String through ordinary and structured construction'`.)
+
+```groovy
+import java.time.Duration
+
+@DSL class Service {
+    @Field(converters = [{ String value -> Duration.parse(value) }])
+    Duration timeout
+}
+
+def direct = Service.Create.With { timeout 'PT30S' }
+def structured = KlumStructuredInput.readRoot(Service, [timeout: 'PT30S'], 'service.yaml')
+assert structured.timeout == direct.timeout
+assert structured.timeout == Duration.ofSeconds(30)
+```
+
+These routes produce `type: string` and the field's prose/examples in JSON Schema. Conversion runs only during ordinary
+Builder invocation; its failures retain the structured input source/path and original cause. Schema generation never
+executes converters to infer constraints. Domain-value field constraints remain descriptive and do not become assertions
+on the raw String.
+
+C1's existing parameter-constraint authority remains narrower: a separately compiled public, non-generic domain with
+one supported declared public String constructor (enabled by `@Converters(includeConstructors=true)`) or static factory
+returning exactly that domain. Only those qualified routes inspect the selected compiled parameter's facts.
 
 (See: `CompiledConverterInputTest#'reads a separately compiled port converter without coercion or runtime Pattern enforcement'`.)
 
@@ -207,10 +231,12 @@ is the default; TEXT_ONLY describes complete constraints; OMIT suppresses their 
 cannot suppress or override parameter facts. The field retains names, exclusion, prose, examples, deprecation and its
 own domain-value constraints. See [converter Pattern projection](Json-Schema.md#compiled-converter-parameters).
 
-Overloaded/default-generated, bridge/synthetic, generic and varargs routes, inherited domain factories, external factory
-classes, closure converters, competing String routes and authored Builder inputs are outside this bounded route. Collection,
-map and DSL-object conversions remain outside this structured-input feature. Non-overridden binary Schema inheritance
-preserves the original declaring Builder and converter association; replacement fields are classified afresh.
+Overloaded/default-generated, bridge/synthetic, generic and varargs converter sources remain outside this bounded route.
+Collection, map and DSL-object conversions remain outside this structured-input feature. CharSequence invocation is
+separate. An unrelated authored overload does not suppress the generated String route; competing external String names
+use the [shared selection rules](Structured-Input.md#select-a-string-operation).
+Non-overridden binary Schema inheritance preserves the original declaring Builder and converter association;
+replacement fields are classified afresh.
 A descendant declaration of the same Builder method signature excludes the inherited converter input, even when the
 override is renamed or ignored for structured input. Ordinary Builder override dispatch remains unchanged.
 
