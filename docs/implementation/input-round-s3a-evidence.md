@@ -6,10 +6,12 @@ Related: #952. Authority: [ADR 0032](../adr/0032-builder-oriented-structured-inp
 
 ## Local implementation boundary
 
-Base: `4f68e1ec97b6a9e78e9e7eccb300dad7b55ce6d0`, the assigned S2 branch tip.
+Integrated base: `325cfda9d373b235caaa7590475ecde01c33fdb7`, the verified S2 PR #1003 merge on master.
+Original stack base: `4f68e1ec97b6a9e78e9e7eccb300dad7b55ce6d0`, the assigned S2 branch tip.
 Branch: `codex/952-string-origin-parity`.
 Worktree: `/Users/stephan/.codex/worktrees/2bc6/klum-ast`.
-This is a speculative local stack; implementation does not establish upstream delivery or qualification of its base.
+The S1/S2 merge prerequisite is satisfied. Only S3a commits were replayed onto the integrated base; the old S1/S2 stack
+was not replayed. S3a delivery remains a draft pull request, without merge authorization.
 
 The compiler admits an existing exact String projection for field converter closures, same-compilation non-DSL values,
 and separately compiled external adapters. It keeps the recorded converter source paired with the actual public Builder
@@ -45,9 +47,31 @@ generated-code hook that delegates to the same runtime conversion/assignment pat
 No CharSequence invocation, converter containers, String-to-DSL routes, commands, scopes, Templates, body schemas,
 CollectionFactories, coercion, parameter validation, discovery widening or source-mirror authority is added.
 
-## Validation and review
+## Master integration and current validation
 
-The final implementation head `b75482a5c060100b690f5074b993ed5cc9ff0304` passed the full repository
+On 2026-11-01, the S2 merge was verified at the exact requested master above. Rebase preserved the production changes
+without conflicts. The plan's slice-status paragraph was reconciled with merged S1/S2, and the model-identity fixture
+correction was already present upstream. Range-diff confirmed those were the only integration differences.
+
+Rebased head `7d81b9e0784a2302d2f78648bcd464f6a31436e2` passed
+`./gradlew check --no-parallel --max-workers=2` with Java 17 in **26m 29s**: 140 tasks, 73 executed and 67 up to date.
+
+| Lane | Tests | Failures / errors | Skipped |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline (`test`) | 3,633 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 2,958 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 2,958 | 0 / 0 | 16 |
+
+The full run covers the merged S2 inherited-candidate corrections, converter origin parity, C1, binary/JPMS,
+source-free packaged producers, plugin integration, lane isolation, license and documentation-renderer checks.
+The independent oracle then passed **28 JDK, 270 ECMA/Draft C1 and 210 structural String checks**. The three schema files
+remain byte-identical with the SHA-256 recorded below. Both existing review children repeated their review against the
+integrated base and reported zero findings at `7d81b9e07`; no new implementation correction was needed.
+This final integration evidence update is documentation-only. Markdown/link/diff checks apply to it.
+
+## Pre-integration validation and review (historical)
+
+The pre-integration implementation head `b75482a5c060100b690f5074b993ed5cc9ff0304` passed the full repository
 `./gradlew check --no-parallel --max-workers=2` with Java 17 in 24m 25s: 140 actionable tasks, 58 executed and 82 up to date.
 The final JUnit reports, including test-support, contain:
 
@@ -86,26 +110,30 @@ Earlier interrupted or failed runs are diagnostic history, not qualification. Th
 all corrections. The final compatibility totals include six test-support tests per lane beyond the earlier intermediate
 2,949-test reports.
 
-## Local commit sequence
+## Rebase audit
 
-| Commit | Purpose |
-| --- | --- |
-| `429e032e9` | Exact String converter origin parity and initial controls |
-| `4fd30fc79` | User documentation and local stack boundary |
-| `06490fdd5` | Separate C1 source-family authority from structural routes |
-| `c7aeffc24` | Make the actual public projection authoritative for structural String input |
-| `82432c6fb` | Direct scalar String converter linkage across named modules |
-| `b75482a5c` | Complete the inherited model-identity fixture under S2 metadata |
+| Original commit | Rebased commit | Purpose |
+| --- | --- | --- |
+| `429e032e9` | `3b2871615` | Exact String converter origin parity and initial controls |
+| `4fd30fc79` | `0c8dca000` | User documentation and local stack boundary; plan status reconciled |
+| `06490fdd5` | `9b7a20813` | Separate C1 source-family authority from structural routes |
+| `c7aeffc24` | `2f2f64956` | Make the actual public projection authoritative for structural String input |
+| `82432c6fb` | `125a28a8a` | Direct scalar String converter linkage across named modules |
+| `b75482a5c` | `22f32a31a` | Retained diagnostic evidence; fixture correction is already in master |
+| `9ad811e46` | `7d81b9e07` | Prior local qualification and paused-stack evidence |
 
-This evidence record is finalized in a subsequent documentation-only commit. The reviewed implementation sequence is
-preserved rather than rewritten.
+The reviewed sequence is preserved through the authorized rebase. The current integration record is a subsequent
+documentation-only commit.
 
-## Delivery and resume condition
+## Delivery boundary
 
-Local commits only: no push, PR, GitHub issue edits or merge. Tracker impact: **Related: #952**; no closure and no curation
-mutation. The documentary test/user-documentation links above are ready for later Hive tracker reconciliation.
+The resumed assignment authorizes pushing this dedicated branch and opening a draft pull request against master.
+Tracker impact: **Related: #952**; no issue closure or curation mutation. The documentary test/user-documentation links
+above remain available for Hive tracker reconciliation. No merge or self-archive is authorized.
 
-Retain a clean worktree with a `(paused)` title. Resume only after **S1 PR #1002 merges, S2 rebases onto merged S1 and
-itself merges, then this S3a branch rebases onto master**. Replay only the S3a commits after the pinned S2 base above; do
-not replay the old S1/S2 stack. Revalidate the rebased result before any subsequent delivery.
-Hive owns resumption, publication and archive reconciliation. This worker does not self-archive.
+Delivery-channel audit: Git transport push **authorized** (dry run); GitHub CLI pull-request channel **authorized**.
+No alternative connector authority is inferred. CI and coverage-bearing SonarCloud results belong to the published
+revision and are reported in the PR handoff; local checks do not establish those remote results.
+
+The previous pause condition is satisfied by the verified S1/S2 merge sequence and this rebase. Hive retains merge and
+archive reconciliation; this worker stops with the draft PR open.
