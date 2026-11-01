@@ -784,6 +784,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.schema
 
             import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.Converters
             import com.blackbuild.klum.ast.Struct
             import com.blackbuild.klum.ast.runtime.KlumModelException
             import com.blackbuild.klum.ast.DSL

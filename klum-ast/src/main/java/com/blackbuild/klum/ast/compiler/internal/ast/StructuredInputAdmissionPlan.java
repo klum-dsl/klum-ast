@@ -526,7 +526,8 @@ final class StructuredInputAdmissionPlan {
         }
         Payload payload = payloadForValue(parameters[0].getOriginType());
         // A CharSequence signature consumes the same strict String grammar, only for scalar operations.
-        if (parameters[0].getOriginType().getName().equals(CharSequence.class.getName())) {
+        if (!parameters[0].getOriginType().isGenericsPlaceHolder()
+                && parameters[0].getOriginType().getName().equals(CharSequence.class.getName())) {
             payload = new Payload(PayloadKind.SCALAR, CharSequence.class.getName(), null, null, null);
         }
         if (payload == null) {

@@ -65,7 +65,8 @@ final class StructuredInputConverter {
     }
 
     static boolean isStringInput(ClassNode type) {
-        return ClassHelper.STRING_TYPE.equals(type) || type.getName().equals(CharSequence.class.getName());
+        return !type.isGenericsPlaceHolder()
+                && (ClassHelper.STRING_TYPE.equals(type) || type.getName().equals(CharSequence.class.getName()));
     }
 
     static boolean attempted(FieldNode field) { return field.getNodeMetaData(ROUTES) != null; }

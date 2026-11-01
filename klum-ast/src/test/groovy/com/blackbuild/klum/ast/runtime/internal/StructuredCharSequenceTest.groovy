@@ -270,6 +270,31 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         'Serializable' | 'api'
     }
 
+    def 'an erased generic CharSequence signature cannot admit a String: marked=#marked'() {
+        given:
+        def type = schema("""
+            @DSL class Service {
+                $marked @Builder.Method
+                <T extends CharSequence & Cloneable> void endpoint(T value) { throw new AssertionError('generic operation') }
+            }
+        """)
+
+        when:
+        def contract = new InputContractResolver().read(type)
+
+        then:
+        !contract.entries().containsKey('endpoint')
+
+        when:
+        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'generic.yaml')
+
+        then:
+        thrown(KlumModelException)
+
+        where:
+        marked << ['', '@Struct.Operation']
+    }
+
     private static class MutableSequence implements CharSequence {
         final StringBuilder value = new StringBuilder('PT30S')
         int length() { value.length() }

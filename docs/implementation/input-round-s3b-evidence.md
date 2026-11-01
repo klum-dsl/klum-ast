@@ -19,6 +19,7 @@ rerun checks invalidated by integration**. Until then retain this clean worktree
 ## Implementation and review focus
 
 The existing strict scalar interpreter accepts only actual Strings for selected public CharSequence signatures.
+A generic parameter merely erased to CharSequence is not a concrete CharSequence signature.
 The compiler records only already-generated exact String/CharSequence converter projections, and retains their exact
 source descriptor. Both compiler provisional selection and runtime selection apply S2 authority without a specificity
 preference. An authored marked CharSequence method can win over a String peer. Competing generated converter routes
@@ -58,8 +59,17 @@ no closure.
 
 ## Local validation
 
-Focused Groovy 3 changed-seam tests passed during implementation. Final aggregate validation and exactly two local
-review axes are pending. This section will be replaced with completed evidence before the local pause.
+Focused Groovy 3 tests passed: `StructuredCharSequenceTest` (43), `StructuredConverterOriginTest` (25), and
+`StructuredOperationSelectionTest` (42): 110 cases with zero failures/errors/skips. A targeted G4 named-module consumer
+rerun passed after adding the missing `Converters` import to the expanded fixture. The initial aggregate run was stopped
+at that fixture failure and is not qualification. Final aggregate validation remains pending.
+
+Exactly two local read-only review children inspected the S3a-base diff. Standards found no hard violations; its optional
+suggestion to share the two ASM corruption helpers is deferred because each currently owns its distinct fixture and
+signature matrix, and new fixture infrastructure is unnecessary for this narrow slice. Specification found an erased
+generic CharSequence parameter could bypass ordinary generic rejection. Marked/unmarked bounded-generic probes reproduced
+it; exact generic-type checks and compiler placeholder guards now reject it, with runtime and packaged-schema controls.
+Both reviewers will renew their review on the corrected final head before the pause.
 
 The merged risk-tiered policy from PR #1006 (`52b9e0d97d181e8f2ad2222c50ae3a176ea4bfb4`) governs this stacked assignment.
 A new generated-code hook spans compiler/runtime ABI, so the shared-contract tier requires root `check`; the run also

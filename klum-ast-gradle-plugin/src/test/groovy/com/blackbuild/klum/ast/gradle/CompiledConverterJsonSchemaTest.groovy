@@ -90,6 +90,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         !fields.'group-redefined'.containsKey('allOf')
         fields.'group-redefined'.description.contains('group redefinition/sequence')
         !fields.containsKey('hidden')
+        !fields.containsKey('generic-endpoint')
         !schema.'$defs'.keySet().any { it.contains('PortNumber') || it.contains('FactoryPort') }
         !schema.'$defs'.'converterjson.Service_DSL$Builder'.containsKey('required')
         !new File(directory, 'executed').exists()
@@ -328,6 +329,8 @@ import java.nio.file.Path
     @Field(converters = [{ String value -> throw new AssertionError('closure executed') }]) Duration duration
     @Struct.Operation @Builder.Method void sequence(CharSequence value) { throw new AssertionError('CharSequence operation executed') }
     @Builder.Method void sequence(String value) { throw new AssertionError('String peer executed') }
+    @Struct.Operation @Builder.Method
+    <T extends CharSequence & Cloneable> void genericEndpoint(T value) { throw new AssertionError('generic operation executed') }
     @Pattern(regexp='[A-Z]{2}') LocalValue local
     /** External adapter prose. */
     @Converters(value=[DurationAdapter], excludeMethods=['parse']) Duration adapted

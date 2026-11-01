@@ -463,6 +463,7 @@ final class InputContractResolver {
                     || !method.getName().equals(field) || method.getReturnType() != domain
                     || (method.getParameterCount() != 1
                         || method.getParameterTypes()[0] != String.class && method.getParameterTypes()[0] != CharSequence.class)
+                    || method.getGenericParameterTypes()[0] != method.getParameterTypes()[0]
                     || selected.parameterFacts() && method.getParameterTypes()[0] != String.class
                     || method.isSynthetic() || method.isBridge() || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
@@ -554,7 +555,7 @@ final class InputContractResolver {
         } else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare zero arguments or exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
         // Keep CharSequence admission scalar-only; containers retain their existing grammar.
-        if (reason == null && method.getParameterTypes()[0] == CharSequence.class) {
+        if (reason == null && method.getGenericParameterTypes()[0] == CharSequence.class) {
             payload = new Payload(Kind.SCALAR, CharSequence.class, null, null, null);
         }
         if (reason == null && payload == null) reason = unsupportedReason(method.getGenericParameterTypes()[0]);
