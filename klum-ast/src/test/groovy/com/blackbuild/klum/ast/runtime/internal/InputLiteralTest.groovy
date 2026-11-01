@@ -430,7 +430,8 @@ class InputLiteralTest extends AbstractDSLSpec {
         owner.services['Map/Red'].serviceId == 'Map/Red'
     }
 
-    def 'ignored members and native aliases reject before any earlier operation can execute: #input'() {
+    @Issue('952')
+    def 'ignored members and native aliases reject after earlier operations execute: #input'() {
         given:
         def type = schema('''
             @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service {
@@ -454,7 +455,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         then:
         rejected != null
         result.serviceName == 'before'
-        System.getProperty('literal.executed') == null
+        System.getProperty('literal.executed') == 'yes'
 
         where:
         input << [[serviceName: 'alias'], ['service-name': 'alias'], ['hidden-value': 'forbidden'], ['hidden-operation': 'forbidden']]
