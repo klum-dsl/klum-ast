@@ -69,6 +69,13 @@ container linkage or public Builder signature changes are needed. Focused ordina
 G4/G5 classpath/named-module fixtures pass, including bytecode linkage assertions. The interrupted full run is not a
 qualification result. The same two reviewers will inspect this correction before final full-check qualification.
 
+A subsequent full run completed both compatibility lanes (2,949 tests each, zero failures/errors, 16 unchanged skips)
+and the compiler/annotation/Bean Validation baseline suites, then found one stale hand-authored plugin fixture inherited
+from S2. Its `Misdirected_DSL.Builder` lacked `operationCount=0`, masking the intended model-identity rejection with an
+earlier completeness failure. The fixture now carries the required zero count; its original identity assertion is
+unchanged and the focused control passes. No production change is associated with this correction. The full check is
+rerun before final handoff.
+
 ## Delivery and resume condition
 
 Local commits only: no push, PR, GitHub issue edits or merge. Tracker impact: **Related: #952**; no closure and no curation
