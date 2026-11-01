@@ -82,6 +82,30 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         !entry.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
     }
 
+    def 'a field String closure remains distinct from the implicit CharSequence factory'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @Field(converters = [{ String value -> Duration.parse(value).plusSeconds(7) }])
+                Duration timeout
+            }
+        ''')
+
+        when:
+        def direct = type.Create.With { timeout 'PT30S' }
+        def structured = KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'closure-route.yaml')
+        def selected = new InputContractResolver().read(type).entries().timeout.methods()[0]
+                .getAnnotation(GeneratedInput.Converter)
+
+        then:
+        Duration.parse('PT30S') == Duration.ofSeconds(30)
+        direct.timeout == Duration.ofSeconds(37)
+        structured.timeout == direct.timeout
+        selected.owner().endsWith('Service$_timeout_converterClosures')
+        selected.name() == 'from_String'
+        !selected.parameterFacts()
+    }
+
     def 'the same effective String projection admits same-compilation values and adapters: #origin'() {
         given:
         def type = schema("""

@@ -788,38 +788,123 @@ class CompiledConverterInputTest extends Specification {
     }
 
     @Issue('952')
-    def 'separately compiled external adapter uses the same String Builder projection at runtime'() {
+    def 'separately compiled external adapter keeps its selected route inherited=#inherited'() {
         given:
         File domain = groovyJar('''
             package converterinput
             class PortNumber { String raw }
             class Adapter {
                 static PortNumber fromString(String value) { new PortNumber(raw: 'adapter:' + value) }
+                static PortNumber parse(String value) { new PortNumber(raw: 'peer:' + value) }
             }
         ''', [])
         File schema = groovyJar('''
             package converterinput
             import com.blackbuild.klum.ast.*
-            @DSL class Service { @Converters([Adapter]) PortNumber port }
+            @DSL class Service {
+                @Converters(value=[Adapter], includeMethods=['fromString']) PortNumber port
+            }
         ''', [domain])
-        def loader = binaryLoader([schema, domain])
-        def model = Class.forName(MODEL, false, loader)
+        File descendant = inherited ? groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Child extends Service { String label }
+        ''', [schema, domain]) : null
+        def loader = binaryLoader([descendant, schema, domain].findAll { it != null })
+        def model = Class.forName(inherited ? 'converterinput.Child' : MODEL, false, loader)
 
         when:
         def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'adapter.yaml')
         def direct = model.Create.With { port '1234' }
+        def peer = Class.forName('converterinput.Adapter', false, loader).parse('1234')
         def contract = new InputContractResolver().read(model)
+        def selected = contract.entries().port.methods()[0].getAnnotation(GeneratedInput.Converter)
 
         then:
+        peer.raw == 'peer:1234'
         result.port.raw == 'adapter:1234'
         result.port.raw == direct.port.raw
         contract.entries().port.source() == MODEL + '#port'
+        selected.owner() == 'converterinput.Adapter'
+        selected.name() == 'fromString'
+        !selected.parameterFacts()
         contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
         !new File(domain.parentFile, 'classes').exists()
         !new File(schema.parentFile, 'classes').exists()
 
         cleanup:
         loader?.close()
+
+        where:
+        inherited << [false, true]
+    }
+
+    @Issue(['952', '991'])
+    def 'a binary descendant owns its structural adapter override through a further descendant: ignored=#ignored'() {
+        given:
+        File domain = groovyJar('''
+            package converterinput
+            import jakarta.validation.constraints.Pattern
+            class PortNumber { String raw }
+            class Adapter {
+                static PortNumber fromString(@Pattern(regexp='[0-9]+') String value) {
+                    new PortNumber(raw: 'adapter:' + value)
+                }
+            }
+        ''', [])
+        File schema = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Struct.Name('port-number') @Converters([Adapter]) PortNumber port
+            }
+        ''', [domain])
+        File descendant = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Child extends Service {
+                @Builder.Method @Struct.Name('other') ${ignored ? '@Struct.Ignore' : ''}
+                PortNumber port(String raw) { port = new PortNumber(raw: 'override:' + raw) }
+            }
+            @DSL class Leaf extends Child { String label }
+        """, [schema, domain])
+        def loader = binaryLoader([descendant, schema, domain])
+        def parent = Class.forName(MODEL, false, loader)
+        def model = Class.forName('converterinput.Leaf', false, loader)
+
+        when:
+        def parentContract = new InputContractResolver().read(parent)
+        def inheritedMethod = parentContract.entries()['port-number'].methods()[0]
+        def parentValue = parent.Create.With { port '1234' }
+        def direct = model.Create.With { port '1234' }
+        def contract = new InputContractResolver().read(model)
+
+        then:
+        !inheritedMethod.getAnnotation(GeneratedInput.Converter).parameterFacts()
+        parentContract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+        parentValue.port.raw == 'adapter:1234'
+        direct.port.raw == 'override:1234'
+        !contract.entries().containsKey('port-number')
+        contract.entries().containsKey('other') == !ignored
+
+        when:
+        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'override.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('overridden')
+
+        when:
+        def structured = KlumStructuredInput.readRoot(model, ignored ? [:] : [other: '1234'], 'override.yaml')
+
+        then:
+        structured.port?.raw == (ignored ? null : direct.port.raw)
+
+        cleanup:
+        loader?.close()
+
+        where:
+        ignored << [false, true]
     }
 
     @Issue('952')
@@ -863,21 +948,35 @@ class CompiledConverterInputTest extends Specification {
     }
 
     @Issue('952')
-    def 'same-compilation domain source admits its projected String without C1 facts'() {
+    def 'same-compilation constructor dispatch remains distinct from an excluded factory without C1 facts'() {
         given:
         File schema = groovyJar('''
             package converterinput
             import com.blackbuild.klum.ast.*
-            class PortNumber { PortNumber(String raw) {} }
-            @DSL class Service { @Converters(includeConstructors=true) PortNumber port }
+            class PortNumber {
+                final String raw
+                PortNumber(String value) { raw = 'constructor:' + value }
+                static PortNumber fromString(String value) { new PortNumber('factory:' + value) }
+            }
+            @DSL class Service {
+                @Converters(includeConstructors=true, includeMethods=['noFactories']) PortNumber port
+            }
         ''', [])
         def loader = binaryLoader([schema])
+        def model = Class.forName(MODEL, false, loader)
 
         when:
-        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+        def contract = new InputContractResolver().read(model)
+        def direct = model.Create.With { port '1234' }
+        def structured = KlumStructuredInput.readRoot(model, [port: '1234'], 'constructor.yaml')
+        def peer = Class.forName(DOMAIN, false, loader).fromString('1234')
 
         then:
+        peer.raw == 'constructor:factory:1234'
+        direct.port.raw == 'constructor:1234'
+        structured.port.raw == direct.port.raw
         contract.entries().port.payload().type() == String
+        !contract.entries().port.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
         contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
 
         cleanup:

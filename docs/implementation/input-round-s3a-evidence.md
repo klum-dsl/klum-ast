@@ -47,6 +47,59 @@ generated-code hook that delegates to the same runtime conversion/assignment pat
 No CharSequence invocation, converter containers, String-to-DSL routes, commands, scopes, Templates, body schemas,
 CollectionFactories, coercion, parameter validation, discovery widening or source-mirror authority is added.
 
+## Dispatch-equivalence verification for PR #1004
+
+The concern was that a syntactically valid structural converter descriptor does not independently prove which executable
+the generated Builder invokes. The trace and route-distinguishing tests found **no production dispatch defect**.
+
+The complete path is:
+
+1. `ConverterBuilder` discovers closures, enabled factories/adapters and constructors. A field closure becomes a static
+   generated converter method. `createConverterMethod` embeds the field name, converter class and converter method name
+   (null for a constructor) in the ordinary Builder implementation, then records that source/implementation pair through
+   `StructuredInputConverter.recordRoute`. Failed optional generation is recorded too.
+2. `GeneratedDslSupport` links the implementation to its public projection. `StructuredInputConverter.selected` requires
+   exactly one recorded raw String route and a real public instance projection with the exact String parameter and field
+   return type. Competing or unsuccessful projections are rejected. `enrich` attaches `GeneratedInput.Converter` to that
+   same projection, with source provenance and the separate C1 `parameterFacts` flag.
+3. `BuilderContractReader` checks metadata completeness. `InputContractResolver` verifies the selected PROPERTY/public
+   signature, preserves S2 effective-name selection, and rejects inherited converter fields shadowed by descendant methods
+   under the #991 safeguards. These override checks apply regardless of `parameterFacts`.
+4. `StructuredInputSupport` accepts a genuine String, selects the one recorded public method and checks Groovy's selected
+   method against its name, native parameter types, public visibility and compatible return type. It invokes that Builder
+   method. It never dispatches a converter using the descriptor.
+5. The generated method directly calls `GeneratedKlumBuilder.$setSingleFieldViaStringConverter`, then the existing
+   `InternalKlumBuilder.setSingleFieldViaConverter/createObjectViaConverter` path. Ordinary Builder calls enter the same
+   generated body, with the same embedded converter owner/name and String argument. Both therefore share the existing
+   Groovy constructor/static-method dispatch and field assignment.
+
+`validStructuralConverterDescriptor()` remains sufficient for its limited sanity-check role: constructor descriptors
+must be `(String)void`, while factory descriptors must take String and return a reference type. It is not an independent
+bytecode-to-metadata attestation or a second executable selector. Adding descriptor-driven dispatch would duplicate the
+ordinary Builder route. Matched compiler/runtime/plugin and Schema artifacts remain the compatibility boundary; this
+verification does not claim protection against deliberate arbitrary bytecode or runtime-metaclass rewriting.
+
+| Evidence | Existing coverage / focused addition |
+| --- | --- |
+| Closure route | Existing Duration equivalence and strict payload/cause/path checks; new control yields 37 seconds while the implicit `Duration.parse` peer yields 30 |
+| Same-compilation value | Existing factory/adapter `converted:` results; constructor control now distinguishes `constructor:1234` from excluded factory `constructor:factory:1234` |
+| Binary external adapter | Existing source-free runtime dispatch; strengthened with excluded `peer:` result and inherited adapter route producing `adapter:` |
+| Inheritance/overrides | Existing C1 binary override matrix and S2 route-selection tests; new structural-only renamed/ignored override through a further descendant distinguishes `adapter:` from `override:` and rejects the old field name |
+| Collisions/projection integrity | Existing competing-factory and closure collisions, missing projection/association/authority and malformed-descriptor rejection |
+| C1 isolation | Existing PROJECT/TEXT_ONLY/OMIT and malformed-fact matrix; structural controls assert absent authority/assertions, including a constrained adapter parameter |
+| No execution during inspection/schema generation | Existing deleted-source/class packaged producers, domain/Schema/adapter/closure/lifecycle/validator traps and explicit initialization positive control |
+| Failure attribution | Existing converter-thrown `DateTimeParseException` cause-chain and input source/field-path assertions; runtime unwraps invocation wrappers while preserving the original cause |
+
+Validation after the focused test-only additions:
+
+- G3, G4 and G5 each passed `StructuredConverterOriginTest` (25), `StructuredOperationSelectionTest` (43), and
+  `CompiledConverterInputTest` (103): **171 tests per lane**, no failures/errors/skips.
+- `CompiledConverterJsonSchemaTest`: **8 passing cases**, including packaged G3/G4/G5 producers.
+- Independent actual-output oracle: **28 JDK + 270 ECMA/Draft C1 + 210 structural checks**, all passed.
+- Standards and Specification review of the test delta: zero findings on both axes.
+- No production change, new metadata, dispatcher, reflective fallback, admission widening or broad-check rerun.
+  The full implementation qualification below remains applicable; hosted checks must be read for the updated PR head.
+
 ## Master integration and current validation
 
 On 2026-11-01, the S2 merge was verified at the exact requested master above. Rebase preserved the production changes
