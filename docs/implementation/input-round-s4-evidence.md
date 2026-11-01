@@ -1,5 +1,7 @@
 # S4 — zero-argument structured commands
 
+Date: 2026-11-01. Local qualification only.
+
 Related: [#952](https://github.com/klum-dsl/klum-ast/issues/952),
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md),
 [4.2 implementation plan](input-round-plan-4-2.md).
@@ -57,7 +59,40 @@ as structured input. The additive correction records compiler-owned LIFECYCLE ex
 than the first, and adds both annotation orders across PostCreate/PostApply/PostTree plus inherited-alias and packaged
 schema controls. Focused command and G3/G4/G5 packaged schema controls passed after the correction. The initial full
 check was stopped during the Groovy 4 AST suite to incorporate that valid finding; it does not count as a passing gate.
-The same two children will review the correction, and a fresh full check will qualify the corrected head before handoff.
+The same two children accepted the correction at `165daa81162a8da6f5a8794862b31071bc3f9e62`:
+Standards has zero findings; Specification has no remaining findings and independently confirmed its original probe rejects.
+
+The complete 140-task check then passed every compiler/runtime/Jackson/Bean Validation/test-support lane and 652 of 653
+plugin cases. Its sole failure was the existing hand-written `Misdirected_DSL.Builder` fixture, which omitted S2's required
+`operationCount=0` and therefore failed metadata completeness before its intended Model-identity assertion. That omission
+is also present at the pinned S2 base. The fixture now supplies that inert fact; the original assertion is unchanged and
+passed in an isolated rerun. No production behavior changed for this fixture correction. The final aggregate gate passed:
+
+- `./gradlew check --continue --no-parallel --max-workers=2 --console=plain`: **passed**, 140 actionable tasks
+  (35 executed, 105 up-to-date), 25m 50s. This includes affected baseline suites, Groovy 4/5, real binary Java/static Groovy
+  and applicable JPMS consumers, full plugin/schema coverage, documentation renderer, licenses and lane isolation.
+- Compiler: 2,614 G3 / 2,616 G4 / 2,616 G5 cases; runtime: 73 per lane; Jackson: 121 / 119 / 119; Bean Validation: 148 per
+  lane; test support: 8 / 6 / 6. All have zero failures. Existing conditional skips remain; this slice adds none.
+- Full Gradle plugin suite: **653 cases, zero failures**, including the corrected Model-identity fixture and packaged
+  producer G3/G4/G5 command schema controls.
+- New/changed local Markdown links and anchors: **10 checked, zero failures**. Final `git diff --check` passed.
+- No local SonarCloud upload or hosted CI/consumer qualification is claimed.
+
+Both review axes accepted final production head `165daa81162a8da6f5a8794862b31071bc3f9e62`. The enclosing qualification
+commit adds only the inert test-fixture completeness correction and this final evidence; its production source is unchanged.
+The same two review children also inspect that enclosing final local head before handoff.
+
+## Local history
+
+Reviewed history is preserved; no reordering or rewriting occurred after review.
+
+- `55e6157449a1ca1a7df361b2986435edb468ba2a` — vertical compiler/runtime/schema implementation and tests.
+- `761bc51589a6bac957fc0053ac33f29a41e85809` — current user docs, migration, changelog and evidence.
+- `165daa81162a8da6f5a8794862b31071bc3f9e62` — additive lifecycle exclusion review correction.
+- The enclosing qualification commit completes the binary fixture and validation/review record.
+
+The documentary feature, current user page and issue links are prepared locally. GitHub cross-link updates are deliberately
+left to later delivery under the explicit no-issue-mutation boundary.
 
 ## Delivery boundary
 

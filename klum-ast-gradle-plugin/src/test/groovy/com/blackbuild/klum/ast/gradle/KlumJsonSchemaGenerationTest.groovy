@@ -1753,7 +1753,7 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
         !output('example.Deployment').exists()
     }
 
-    @Issue(['529', '959'])
+    @Issue(['529', '959', '952'])
     def 'rejects a Builder contract belonging to a different DSL Model'() {
         given:
         fixture('3')
