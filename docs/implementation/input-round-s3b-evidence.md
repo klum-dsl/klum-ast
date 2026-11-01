@@ -21,8 +21,33 @@ to the previously qualified `c53c73cd3` tree. Under #1006's post-rebase risk pol
 affected Gradle plugin suite and its source-free G3/G4/G5 producer matrix, plugin validation/licenses, documentation
 renderer, all seven retained emitted-output oracle families and documentation/diff checks. The prior root result is
 retained for the unchanged compiler/runtime/JPMS inputs; it is not a fresh complete-build result for the new head.
-Hosted CI and SonarCloud must qualify the final published head before Hive may merge. Fresh local results and renewed
-independent reviews are pending. Earlier integration records below are historical.
+Hosted CI and SonarCloud must qualify the final published head before Hive may merge. Earlier integration records below
+are historical.
+
+Clean integration head `491b725869194cd4eb512f1727889d7fce786f14` passed the affected plugin suite: **664 tests in
+27 suites**, zero failures/errors/skips. Compilation, plugin validation, production/test license checks and documentation
+renderer passed in **11m 8s** (44 tasks, 18 executed and 26 up to date):
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast-gradle-plugin:test :klum-ast-gradle-plugin:validatePlugins :klum-ast-gradle-plugin:licenseMain :klum-ast-gradle-plugin:licenseTest verifyVersionedDocumentationRenderer --no-parallel --max-workers=2 --console=plain
+```
+
+All seven actual-output validators passed using jsonschema 4.23.0, Node v24.19.0 and Java 17: positional keys, integral,
+decimal, deprecation, composed constraints, converter parameters and Builder bodies. S7 now covers **30 emitted schemas,
+75 accepted / 114 rejected instances**, with G3/G4/G5 parity and only diagnostic artifact locations normalized for command
+families. Retained converter checks passed **28 JDK, 270 ECMA/Draft C1 and 270 structural String controls**. The three
+converter artifacts retain SHA-256 `5b0e6804fd4bb63f0ced84becd8cdad587795a1a22a6fa573defb1a12a59805d`.
+Markdown fences, 210 relative file links, documentary anchors, oracle syntax and `git diff --check` passed.
+
+Both original independent reviewers renewed against `4b93ffa6037f06e55f39073ce9ccc8ea1477b39b` at `491b72586`:
+**Standards: zero remaining required findings. Specification: zero remaining findings.** Both confirmed the preserved
+S7/S3b assertions and the post-rebase validation scope. This final evidence-only successor changes no tested inputs.
+`git range-diff` records the conservative conflict resolutions plus the additive S7 oracle/public-guidance adjustment.
+
+Delivery preflight: **Git branch push: authorized**, with an explicit lease for old remote head `c53c73cd3`;
+**GitHub CLI repository write: authorized**. Existing PR #1010 retains **Related: #952** and its open state. Its old-head
+CI/Sonar results do not qualify this rebase; the handoff must bind fresh hosted results to the published successor.
+No local SonarCloud upload, merge, issue-state change or archive action is included.
 
 ## Previous integration and delivery boundary
 
