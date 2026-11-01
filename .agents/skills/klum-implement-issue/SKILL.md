@@ -28,7 +28,7 @@ Keep the change focused. Preserve Java 17, license headers, generated-code conve
 
 ## Verify progressively
 
-Follow `docs/agents/testing.md`: start with the narrowest Groovy 3 test, then the affected module suite. Run Groovy 4 and 5 compatibility lanes when touching compiler APIs, AST behavior, Groovy syntax, dependencies, or before final handoff. Run root `check` for repository-wide or release-critical changes.
+Follow the risk-tiered local validation matrix in `docs/agents/testing.md`: start with the narrowest Groovy 3 test, then select module suites, compatibility lanes and broader checks for the affected contracts and risk.
 
 ## Synchronize durable artifacts
 
