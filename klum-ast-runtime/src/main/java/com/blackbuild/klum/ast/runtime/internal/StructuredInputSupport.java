@@ -106,10 +106,6 @@ public final class StructuredInputSupport {
             throw new KlumModelException("Structured input requires a nonempty opaque sourceName");
     }
 
-    private static String pointer(String parent, String token) {
-        return parent + "/" + token.replace("~", "~0").replace("/", "~1");
-    }
-
     private static KlumModelException problem(String source, String path, Class<?> contract, String name,
                                                String expected, Object actual, Throwable cause) {
         String message = source + " at '" + (path.isEmpty() ? "/" : path) + "', external name '" + name
@@ -190,6 +186,7 @@ public final class StructuredInputSupport {
     }
 
     private static final class Traversal {
+        private static final String ACYCLIC_INPUT = "acyclic input (cyclic container detected)";
         private static final Set<Class<?>> NUMBERS = Set.of(Byte.class, Short.class, Integer.class, Long.class,
                 Float.class, Double.class, BigInteger.class, BigDecimal.class);
         private final String source;
@@ -198,12 +195,16 @@ public final class StructuredInputSupport {
         private final Map<Object, Boolean> visiting = new IdentityHashMap<>();
         private Traversal(String source) { this.source = source; }
 
+        private static String pointer(String parent, String token) {
+            return parent + "/" + token.replace("~", "~0").replace("/", "~1");
+        }
+
         private Domain domain(Class<?> model, Object input, String path, Position position) {
             CompiledBuilderSchema plan = plan(model, path);
             if (!(input instanceof Map<?, ?> map))
                 throw problem(source, path, plan.contract(), DOMAIN_NAME, "domain Map with String keys", input, null);
             if (visiting.containsKey(input))
-                throw problem(source, path, plan.contract(), DOMAIN_NAME, "acyclic input (cyclic container detected)", input, null);
+                throw problem(source, path, plan.contract(), DOMAIN_NAME, ACYCLIC_INPUT, input, null);
             Key key = plan.key();
             validatePosition(plan, key, position, path, input);
             String inputKey = null;
@@ -399,7 +400,7 @@ public final class StructuredInputSupport {
         private Value value(Entry entry, Payload payload, Object input, String path) {
             if (input == null) throw bad(entry, path, payload.kind() + " " + payload.type().getTypeName(), null, null);
             if ((input instanceof Map || input instanceof List) && visiting.containsKey(input))
-                throw bad(entry, path, "acyclic input (cyclic container detected)", input, null);
+                throw bad(entry, path, ACYCLIC_INPUT, input, null);
             return switch (payload.kind()) {
                 case SCALAR -> scalar(entry, payload.type(), input, path);
                 case ENUM -> {
@@ -491,7 +492,7 @@ public final class StructuredInputSupport {
 
         private void enter(Object container, String path, Class<?> contract, String name) {
             if (visiting.put(container, Boolean.TRUE) != null)
-                throw problem(source, path, contract, name, "acyclic input (cyclic container detected)", container, null);
+                throw problem(source, path, contract, name, ACYCLIC_INPUT, container, null);
         }
 
         private KlumModelException bad(Entry entry, String path, String expected, Object actual, Throwable cause) {

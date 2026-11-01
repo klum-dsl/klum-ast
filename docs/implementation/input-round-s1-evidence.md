@@ -92,3 +92,14 @@ Tracker impact: **Related: #952**; this S1 slice leaves the broader coordination
 dependency, release-gate or curation-index change is part of this localized runtime slice. The documentary example and
 [order/failure documentation](../user/Structured-Input.md#order-and-failures) are linked here for issue reconciliation.
 Hive owns final acceptance/archive reconciliation and cross-project notification; no Schelm qualification is claimed.
+
+## PR #1002 SonarCloud follow-up
+
+Hosted CI and SonarCloud passed on `038702ef6`, with two maintainability findings. The follow-up addresses both:
+`java:S1192` shares the existing cycle diagnostic through a private `ACYCLIC_INPUT` constant, and `java:S3398` moves
+`pointer` into its sole consumer, `Traversal`. Diagnostic text and behavior are unchanged; no suppression is added.
+
+Follow-up validation on 2026-11-01: focused `StructuredInputRuntimeTest` and `StructuredInputKeyTest` passed on
+Groovy 3, 4 and 5 (97 cases per lane). `:klum-ast-runtime:check` passed, including its three test lanes, license and
+lane-isolation checks. `git diff --check` passed. The full aggregate result above belongs to the original implementation;
+hosted CI/SonarCloud must analyze the follow-up revision separately. No local SonarCloud upload was performed.
