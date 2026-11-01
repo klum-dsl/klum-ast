@@ -3,7 +3,8 @@
 Related: [#952](https://github.com/klum-dsl/klum-ast/issues/952),
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) and the
 [4.2 implementation plan](input-round-plan-4-2.md).
-Base: S1 head `038702ef6f256d26e5d1126d3f1d2163b1671584` / `codex/952-ordered-structured-input`.
+Original stacked base: S1 head `038702ef6f256d26e5d1126d3f1d2163b1671584` / `codex/952-ordered-structured-input`.
+Integrated base: merged master `2ddb18c61e31d595a97881cc6dcf834580037c2a` (S1 PR #1002).
 Local branch: `codex/952-string-operation-selection`.
 
 ## Implementation boundary
@@ -60,7 +61,7 @@ The documentary method carries `@Issue('952')`, `@Tag('documentary')` and `@See`
 [the user-facing selection contract](../user/Structured-Input.md#select-a-string-operation). New tests and materially
 extended JPMS controls carry #952; existing C1 controls retain their original issue links.
 
-## Validation and local review
+## Qualification before integration
 
 Focused Groovy 3 selection/naming/admission/reader controls passed. Packaged converter/schema controls passed, including
 the G3/G4/G5 producer matrix. The C1 baseline suite passed with the collision control. The updated direct Java and static
@@ -118,7 +119,7 @@ passed. The final evidence/plan wording change does not alter the qualified prod
 Local diagnostic logs were retained as `/tmp/s2-check-stable.log` and `/tmp/s2-final-results.json`; this committed record
 contains the durable qualification summary. This is local evidence, not hosted CI or SonarCloud qualification.
 
-## Local commit sequence
+## Original local commit sequence
 
 Reviewed commits are preserved; corrections are additive. Every implementation commit uses the neutral relationship
 `Related: #952`.
@@ -134,12 +135,22 @@ Reviewed commits are preserved; corrections are additive. Every implementation c
 The final documentation-only commit completes this evidence and distinguishes the plan's dated baseline matrix from
 its subsequent local S2 implementation. It changes no production code, test, fixture or build input.
 
+## Integration onto merged S1
+
+S1 PR #1002 merged on 2026-11-01 at `2ddb18c61e31d595a97881cc6dcf834580037c2a`. Hive explicitly resumed this worker
+and authorized rebase, integration validation, local reviews, push and a draft PR against master, without merge.
+The six original S2 commits rebased without conflicts; `git range-diff` reports all six patches unchanged. The later S1
+production changes move the pointer helper into Traversal and extract the repeated cycle diagnostic; no S2 adjustment
+was required. Rebased commits are `6093a7416`, `3b0a05a8b`, `7144823be`, `01d4b01cf`, `1057cb94c` and `ebbe55c64`.
+
+Fresh aggregate validation and the same two local review axes are pending on the integrated branch. The earlier counts
+above describe qualification before integration and are not a substitute for this gate. This section will record the
+integrated result before publication.
+
 ## Delivery boundary
 
-Local commits only. No push, PR, issue mutation, local SonarCloud upload or Schelm dispatch is authorized in this stacked
-implementation. Tracker impact: **Related: #952**; the parent remains open. Curation impact: none.
-On 2026-11-01, the final dependency-state read found S1 PR #1002 still open at
-`29c2dca4089c1f86c985df05b60c93f61038a68a`, advanced beyond this branch's agreed `038702ef6` base. This local qualification
-does not include those subsequent S1 changes.
-The sole resume condition is **S1 PR #1002 merged, then rebase this branch onto master** and validate the integrated result. Hive owns resumption, later
-publication and archive reconciliation. This worker does not self-archive.
+Tracker impact: **Related: #952**; the parent remains open. Curation impact: none.
+Push and a draft PR against master are now authorized after integrated validation and local review. Merge, issue mutation,
+local SonarCloud upload and Schelm dispatch remain outside this task. The coverage-bearing hosted CI/SonarCloud result
+will be inspected for the published head. Hive owns subsequent delivery and archive reconciliation; this worker does not
+self-archive.
