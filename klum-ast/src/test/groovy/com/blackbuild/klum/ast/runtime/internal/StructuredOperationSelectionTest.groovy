@@ -354,6 +354,38 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         new InputContractResolver().read(type).entries().containsKey('host')
     }
 
+    def 'an override resolves an inherited unmarked String collision: #annotations'() {
+        given:
+        def type = schema("""
+            @DSL class Base {
+                @Struct.Ignore String host
+                @Builder.Method void endpoint(String value) { host = 'base:' + value }
+                @Struct.Name('endpoint') @Builder.Method void alternate(String value) { host = 'alternate:' + value }
+            }
+            @DSL class Service extends Base {
+                $annotations @Builder.Method
+                void endpoint(String value) { host = 'child:' + value }
+            }
+        """)
+
+        when:
+        def contract = new InputContractResolver().read(type)
+        def original = KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'surviving.yaml')
+        def renamed = KlumStructuredInput.readRoot(type, ignored ? [:] : [renamed: 'api'], 'renamed.yaml')
+
+        then:
+        contract.entries().keySet() == (ignored ? ['endpoint'] : ['endpoint', 'renamed']) as Set
+        original.host == 'alternate:api'
+        original.host == type.Create.With { alternate 'api' }.host
+        renamed.host == (ignored ? null : 'child:api')
+
+        where:
+        annotations                                      | ignored
+        "@Struct.Name('renamed')"                         | false
+        "@Struct.Operation @Struct.Name('renamed')"       | false
+        '@Struct.Ignore'                                 | true
+    }
+
     def 'unmarked override cannot inherit a parent mark or discard its surviving competitor'() {
         given:
         def type = schema('''

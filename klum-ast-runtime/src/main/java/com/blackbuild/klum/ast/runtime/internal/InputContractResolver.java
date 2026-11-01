@@ -131,13 +131,19 @@ final class InputContractResolver {
         return names;
     }
 
-    /** Keep existing rejected-parent sources excluded, without discarding a marked group's other callable candidates. */
+    /** Preserve legacy parent collisions, but resolve String-operation groups only after descendant overrides. */
     private void retainUnmarkedCollisions(List<Entry> entries, List<Rejection> rejected) {
         candidateGroups(entries, rejected).forEach((name, group) -> {
-            if (group.size() > 1 && group.stream().noneMatch(this::authoritativeString)) {
+            if (group.size() > 1 && group.stream().noneMatch(InputContractResolver::stringSelectionCandidate)) {
                 rejectCollision(name, group, rejected, false);
             }
         });
+    }
+
+    private static boolean stringSelectionCandidate(Entry entry) {
+        return entry.role() == Role.OPERATION && entry.payload().kind() == Kind.SCALAR
+                && (entry.payload().type() == String.class || entry.payload().type() == CharSequence.class)
+                && entry.methods().size() == 1;
     }
 
     private Entry selectOperation(String name, List<Entry> group, List<Rejection> rejected, boolean strict) {
@@ -164,8 +170,7 @@ final class InputContractResolver {
     }
 
     private boolean authoritativeString(Entry entry) {
-        if (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
-                || entry.payload().type() != String.class || entry.methods().size() != 1) return false;
+        if (!stringSelectionCandidate(entry) || entry.payload().type() != String.class) return false;
         try {
             return Boolean.TRUE.equals(reader.metadata(entry.contract()).methods()
                     .get(signature(entry.methods().get(0))).authoritative());

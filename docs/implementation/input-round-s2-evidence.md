@@ -15,11 +15,12 @@ Local branch: `codex/952-string-operation-selection`.
 retained author marker; stripping both the role and its fact is still detected by the count. Development protocol 1 is
 retained; participating compiler/runtime/plugin and Schema artifacts must match and be recompiled.
 
-The shared resolver collects declarations without resolving name collisions early, removes overridden authored String
-candidates, applies exclusions and the effective hierarchy naming profile, then selects one exact operation. Exactly one
+The shared resolver retains authored String-operation candidates through descendant overrides, applies exclusions and
+the effective hierarchy naming profile, then selects one exact operation. Exactly one
 eligible String mark wins; multiple eligible marks fail; without a mark a unique candidate is required. This uses no input
-values, method enumeration preference or trial invocation. Previously rejected unmarked parent sources remain excluded
-under identity naming; a marked group's surviving candidates remain available for exact descendant override resolution.
+values, method enumeration preference or trial invocation. Legacy parent collisions without authored String or CharSequence operation candidates retain their identity-name
+exclusions. Groups containing those operation candidates remain available through exact descendant override resolution;
+CharSequence still participates only in competition, never invocation.
 Renamed operations expose only their effective names. An
 override owns its own names and intent, including exclusion through further descendants. Non-String override behavior
 remains outside S2. Overriding an inherited ordinary String field's selected String signature excludes the parent's field
@@ -48,7 +49,7 @@ CollectionFactories, parsers, coercion or parameter validation are implemented.
 | Unique unmarked and one marked winner; actual direct dispatch equality | `StructuredOperationSelectionTest`: unique control and documentary endpoint operation |
 | Competing Strings, zero eligible, multiple marks, no runtime preference | Same test: ambiguous values, unsupported roles, multiple eligible marks, numeric fallback rejection |
 | Exclusion, effective rename/profile and conflicting mark groups | Same test: excluded marked candidate, native-name rejection, effective profile collision and literal/native separation |
-| Inheritance, exact overrides and shadowing | Same test: same-compilation inheritance/override/rename, ignored override through grandchild, ordinary String-field override/rename/exclusion, unrelated-overload control, separately compiled parent/descendant dispatch |
+| Inheritance, exact overrides and shadowing | Same test: same-compilation inheritance/override/rename, recovery after unmarked-parent collision rename/ignore, ignored override through grandchild, ordinary String-field override/rename/exclusion, unrelated-overload control, separately compiled parent/descendant dispatch |
 | String/CharSequence competition without S3b admission | Same test: unmarked competition rejection, marked String winner, CharSequence-only negative |
 | No marker escape from missing/invalid public projection | Same test: private-method compilation rejection, unprojected Model/query methods; `CompiledConverterInputTest`: marked colliding converter source remains excluded |
 | Required generated facts fail closed | Same test: missing/wrong count, missing/malformed/flipped intent, stripped author marker, stripped operation fact and jointly stripped role/fact |
@@ -156,6 +157,32 @@ changes no qualified production code, tests, fixtures or build inputs. Integrate
 `/tmp/s2-integrated-check.log` and `/tmp/s2-integrated-results.json`.
 
 Delivery-channel audit: SSH Git push — authorized (dry run); GitHub CLI — authorized (repository permission).
+
+## Effective-name candidate preservation follow-up
+
+The bounded PR #1003 verification confirmed that `enrichPublicContract` runs before `rejectCollisions` and that
+`restoreAuthoredFacts` emits all actual public operation declarations independently of the provisional entry list.
+Provisional pruning therefore cannot erase the metadata needed for later hierarchy naming. `InputContractResolver.read`
+resolves the hierarchy profile before collection and applies the effective names before `admitted`; JSON Schema consumes
+that same resolved contract. The provisional AST plan itself is not a final admission result.
+
+A new focused probe nevertheless exposed a runtime ancestor-order defect: two unmarked parent String operations shared
+`endpoint`; a descendant renamed one exact override to `renamed`, but `retainUnmarkedCollisions` had already excluded the
+surviving parent operation. Reading `endpoint` failed with the stale parent collision, despite distinct final groups.
+The correction defers collision groups containing authored String/CharSequence candidates to the existing final
+selection step. Legacy field-only collision exclusions and converter override guards remain intact; no dispatch or
+CharSequence-admission change is made.
+
+`StructuredOperationSelectionTest#'an override resolves an inherited unmarked String collision: #annotations'` covers
+unmarked rename, marked rename and ignored override, including direct Builder dispatch equality. The existing packaged
+selection test in `CompiledConverterJsonSchemaTest` now also asserts both surviving and renamed properties from separate
+parent/descendant artifacts for G3/G4/G5 producers.
+
+Before correction, the requested existing matrix passed: 219 compiler/naming cases and 97 C1 cases per Groovy lane,
+plus 26 packaged schema cases. The new single regression then failed with the stale collision diagnostic. After
+correction, the full selection/public-contract focused suite and all three affected packaged producer cases passed.
+Both local review axes accepted the code/tests; their documentation follow-up is reflected above. Broader aggregate
+qualification is pending because the correction changes inherited runtime admission.
 
 ## Delivery boundary
 
