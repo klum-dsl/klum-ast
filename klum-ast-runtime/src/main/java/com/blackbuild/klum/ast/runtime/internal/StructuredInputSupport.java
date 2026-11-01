@@ -208,8 +208,7 @@ public final class StructuredInputSupport {
             validatePosition(plan, key, position, path, input);
             String inputKey = null;
             if (position.memberKey() && key != null) {
-                requireInputKey(plan, key, path, map);
-                inputKey = constructionKeyValue(plan, key, position, pointer(path, key.externalName()), map.get(key.externalName()));
+                inputKey = requiredConstructionKey(plan, key, position, path, map);
             }
             return new Domain(this, plan, map, path, position, inputKey);
         }
@@ -285,10 +284,16 @@ public final class StructuredInputSupport {
                     "an admitted entry; unavailable declarations: " + plan.rejections() + spelling, input, null);
         }
 
-        private void requireInputKey(CompiledBuilderSchema plan, Key key, String path, Map<?, ?> input) {
-            if (!input.containsKey(key.externalName()))
-                throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
-                        "required construction key declared by " + key.source() + " (member is absent)", null, null);
+        private String requiredConstructionKey(CompiledBuilderSchema plan, Key key, Position position,
+                                               String path, Map<?, ?> input) {
+            // Map lookup may use identity or a comparator; external names always use exact String equality.
+            for (Map.Entry<?, ?> supplied : input.entrySet()) {
+                if (key.externalName().equals(supplied.getKey())) {
+                    return constructionKeyValue(plan, key, position, pointer(path, key.externalName()), supplied.getValue());
+                }
+            }
+            throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
+                    "required construction key declared by " + key.source() + " (member is absent)", null, null);
         }
 
         private void validateMemberKey(CompiledBuilderSchema plan, Key key, String path, Object input) {

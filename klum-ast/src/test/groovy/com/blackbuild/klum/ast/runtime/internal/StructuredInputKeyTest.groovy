@@ -733,4 +733,48 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         child << [false, true]
     }
 
+    @Issue('952')
+    def 'construction keys use exact names regardless of Map lookup semantics: #mapKind child=#child'() {
+        given:
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Deployment {
+                @Key String name
+                static List<String> events = []
+                Service service
+                @PostCreate void created() { events << 'root' }
+                @Builder.Method void first(String value) { events << value }
+            }
+            @DSL class Service {
+                @Key String name
+                String allocation = { Deployment.events << 'child'; 'allocated' }()
+            }
+        ''')
+        Map body = mapKind == 'identity' ? new IdentityHashMap() : new TreeMap(String.CASE_INSENSITIVE_ORDER)
+        body.put(new String(mapKind == 'identity' ? 'name' : 'NAME'), 'catalog')
+        Map input = child ? [name: 'root', first: 'sibling', service: body] : body
+        def result
+        def failure
+
+        when:
+        try { result = KlumStructuredInput.readRoot(deployment, input, 'map-key.yaml') }
+        catch (KlumModelException caught) { failure = caught }
+
+        then:
+        if (mapKind == 'identity') {
+            assert failure == null
+            assert (child ? result.service.name : result.name) == 'catalog'
+            assert deployment.events == (child ? ['root', 'sibling', 'child'] : ['root'])
+        } else {
+            assert result == null
+            assert failure.message.contains(child ? '/service/name' : '/name')
+            assert failure.message.contains('member is absent')
+            assert deployment.events == (child ? ['root', 'sibling'] : [])
+        }
+
+        where:
+        [mapKind, child] << [['identity', 'case-insensitive'], [false, true]].combinations()
+    }
+
 }
