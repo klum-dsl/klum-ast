@@ -95,8 +95,30 @@ command objects remain closed, source prose and String-operation selection are p
 purpose, and Factory/Template helpers do not gain grammar admission. The external S7 oracle now includes these actual
 emitted command artifacts, in addition to the original recursive/positional corpus.
 
-Fresh integration validation and both independent review outcomes are recorded in the PR follow-up and handoff.
-The initial counts above are historical qualification, not a fresh result for the rebased head.
+Fresh integration qualification on code/test revision `58ac14438da65a8982f749794ba48f1977fd7896` passed the affected
+plugin module's **664 tests / 27 suites**, zero failures/errors/skips, plus task validation, production/test licenses,
+compilation and `verifyVersionedDocumentationRenderer` in **11m 49s**. All seven emitted-output oracles passed; the
+converter oracle additionally qualified S3a's 210 structural String controls. The S7 oracle now validates **30 artifacts,
+69 accepted / 102 rejected instances**. Original recursive/positional families retain byte parity across Groovy 3/4/5;
+new command families retain full schema/diagnostic parity after normalizing only temporary artifact-file locators in
+`x-klum-unsupported`. Those locators intentionally identify each fixture's distinct binary artifact and are not schema
+assertions. All emitted schemas are validated without removing their diagnostics.
+
+The first added command fixture put a key below an unkeyed parent; it was corrected to declare the key on the root
+Schema, preserving existing inheritance rules. The initial strict byte comparison then identified those artifact URLs;
+the bounded oracle correction preserves all remaining diagnostic text and assertions. Its rerun and Markdown/link/fence,
+Python syntax, license and diff checks qualify the final helper/prose follow-up; production and Spock inputs are unchanged.
+The initial counts above remain historical qualification. Final-head review and hosted CI outcomes are recorded in the
+PR follow-up and handoff; earlier-head CI is not reused for the rebased revision.
+
+Integration command:
+
+```shell
+./gradlew :klum-ast-gradle-plugin:test :klum-ast-gradle-plugin:validatePlugins \
+  :klum-ast-gradle-plugin:licenseMain :klum-ast-gradle-plugin:licenseTest \
+  verifyVersionedDocumentationRenderer --no-parallel --max-workers=2 --offline
+```
+
 
 ## Delivery boundary
 

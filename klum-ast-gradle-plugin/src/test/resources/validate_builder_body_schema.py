@@ -25,6 +25,7 @@
 """Issue #953 / S7: independently validate emitted body and self-contained artifacts."""
 import importlib.metadata
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -56,12 +57,25 @@ cases = {
     # The colliding spelling belongs to the admitted ordinary property in a keyless body.
     "collision.builder-body": ([{}, {"value": "ordinary"}], [{"name": "root"}]),
 }
-def validate_cases(cases, prefix):
+
+def schema_without_artifact_locations(path):
+    """Compare diagnostics independently of each fixture's temporary JAR location."""
+    schema = json.loads(path.read_text())
+    schema["x-klum-unsupported"] = {
+        source: re.sub(r"artifact file:[^\]]+", "artifact <fixture>", reason)
+        for source, reason in schema.get("x-klum-unsupported", {}).items()
+    }
+    return json.dumps(schema, sort_keys=True)
+
+
+def validate_cases(cases, prefix, normalise_artifact_locations=False):
     accepted = rejected = emitted = 0
     for name, (positive, negative) in cases.items():
         paths = sorted(root.glob(f"{prefix}/{name}.schema.json"))
         assert len(paths) == 3, f"Run S7 fixture for Groovy 3/4/5: {name}"
-        assert len({path.read_bytes() for path in paths}) == 1, name
+        comparable = [schema_without_artifact_locations(path) if normalise_artifact_locations else path.read_bytes()
+                      for path in paths]
+        assert len(set(comparable)) == 1, name
         for path in paths:
             schema = json.loads(path.read_text())
             Draft202012Validator.check_schema(schema)
@@ -90,8 +104,10 @@ command_cases = {
         [{"name": "root"}, {"name": "root", "resetTimeout": {}}],
         [{}, {"resetTimeout": {}}, {"name": "root", "resetTimeout": {"value": "bad"}}]),
 }
-command_accepted, command_rejected, command_emitted = validate_cases(command_cases, "body-command-*")
+command_accepted, command_rejected, command_emitted = validate_cases(
+    command_cases, "body-command-*", normalise_artifact_locations=True)
 accepted += command_accepted
 rejected += command_rejected
 emitted += command_emitted + 3  # Unkeyed self-contained deployment artifacts equal their checked body artifacts.
-print(f"S7: {emitted} emitted schemas; {accepted} accepted / {rejected} rejected instances; Groovy 3/4/5 byte parity")
+print(f"S7: {emitted} emitted schemas; {accepted} accepted / {rejected} rejected instances; "
+      "Groovy 3/4/5 parity (command diagnostic artifact URLs normalized)")

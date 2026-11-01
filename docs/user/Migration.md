@@ -188,7 +188,8 @@ See [order and failures](Structured-Input.md#order-and-failures) and
 
 [#954](https://github.com/klum-dsl/klum-ast/issues/954) establishes actual key members for
 self-contained keyed documents. Use the actual key's external member name, including literal `@JsonProperty` renames.
-A caller-pre-keyed root body retains its explicit key and forbids an inner root key, even if equal. Active Builder targets likewise retain their existing identity.
+A caller-pre-keyed root retains its explicit identity; its body forbids an inner root key, even if equal.
+Active Builder targets likewise retain their existing identity.
 
 A supplied direct caller-key child now requires its key before construction; input that previously reached construction
 with null identity rejects before that child's allocation. Omitted optional children remain legal. Fixed/derived/Cluster-key children
