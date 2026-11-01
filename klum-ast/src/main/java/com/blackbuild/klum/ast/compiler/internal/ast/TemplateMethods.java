@@ -211,6 +211,8 @@ class TemplateMethods {
         addTemplateFactoryMethod("With", params(param(mapOfStringsAndObjects, "configMap"), configurationParameter()), support);
         addTemplateFactoryMethod("With", params(configurationParameter()), support);
         addTemplateFactoryMethod("With", params(param(mapOfStringsAndObjects, "configMap")), support);
+        addTemplateFactoryMethod("FromStruct", params(param(MAP_TYPE, "body")), support);
+        addTemplateFactoryMethod("FromStruct", params(param(MAP_TYPE, "body"), param(STRING_TYPE, "sourceName")), support);
         addTemplateFactoryMethod("From", params(param(make(File.class), "scriptFile")), support);
         addTemplateFactoryMethod("From", params(param(make(File.class), "scriptFile"), param(CLASSLOADER_TYPE, "loader")), support);
         addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl")), support);
@@ -329,6 +331,11 @@ class TemplateMethods {
                 else if (parameter.getName().equals("configuration"))
                     documentation.param(parameter.getName(), "the Builder configuration for the Template");
             }
+        } else if (name.equals("FromStruct")) {
+            documentation.title("Creates a reusable Template from a caller-parsed keyless body.")
+                    .param("body", "the structured Template body without a root key");
+            if (method.getParameters().length == 2)
+                documentation.param("sourceName", "a nonempty opaque diagnostic label");
         } else if (name.equals("FromClasspath")) {
             documentClasspathTemplateFactoryMethod(method, documentation);
         } else {

@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.generated;
 
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper;
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport;
 import groovy.lang.Closure;
 
 import java.io.File;
@@ -61,6 +62,14 @@ public final class GeneratedTemplateFactorySupport<T> {
 
     public T With(Map<String, ?> configMap) {
         return FactoryHelper.createAsTemplate(type, configMap, null);
+    }
+
+    public T FromStruct(Map<?, ?> body) {
+        return FromStruct(body, type.getName() + ".Create.Template.FromStruct");
+    }
+
+    public T FromStruct(Map<?, ?> body, String sourceName) {
+        return StructuredInputSupport.readTemplate(type, body, sourceName);
     }
 
     public T From(File scriptFile) {

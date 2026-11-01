@@ -11,7 +11,7 @@
   See [commands](docs/user/Structured-Input.md#zero-argument-commands)
   ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S4).
 
-- Add parser-free `KlumStructuredInput.readTemplate` for keyless Template bodies, preserving ordinary Template recipe
+- Add parser-free `Create.Template.FromStruct` for keyless Template bodies, preserving ordinary Template recipe
   and lifecycle behavior. See [Templates](docs/user/Templates.md#structured-input-templates)
   ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S6).
 

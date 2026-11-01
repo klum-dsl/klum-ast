@@ -11,7 +11,7 @@ See [JSON Schema generation](Json-Schema.md).
 
 ### Structured input Template bodies
 
-The additive `readTemplate` entry point accepts a parsed keyless root body and returns a reusable Template. Supply
+The additive `Create.Template.FromStruct` entry point accepts a parsed keyless root body and returns a reusable Template. Supply
 identity when constructing each recipient; see [structured input Templates](Templates.md#structured-input-templates).
 Existing root and active Builder entry points retain their contracts.
 

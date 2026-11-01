@@ -620,25 +620,21 @@ assert billing.identifier == 'BILLING'
 ## Structured input Templates
 
 A caller that has already parsed a document can define a Template from its keyless body. The source name is an opaque
-identity for diagnostics; KlumAST does not open it. For a keyed root, omit its key: each recipient supplies its own.
+identity for diagnostics; KlumAST does not open it. Omit it to use a generated diagnostic label. For a keyed root, omit its key: each recipient supplies its own.
 Nested direct children retain their own key rules, and the outer entry supplies the identity of a keyed Map child.
 
 (See: `StructuredInputTemplateDocumentaryTest#'parsed keyless bodies define ordinary reusable Template recipes'`.)
 
 ```java
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput;
-
-Deployment template = KlumStructuredInput.readTemplate(Deployment.class, parsed, "deployment.yaml");
+Deployment template = Deployment.Create.Template.FromStruct(parsed, "deployment.yaml");
 ```
 
 (See: `StructuredInputTemplateDocumentaryTest#'parsed keyless bodies define ordinary reusable Template recipes'`.)
 
 ```groovy
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
-
 def parsed = [locate: 'eu', primary: [name: 'api', image: 'api:1'],
               services: [worker: [image: 'worker:1']]]
-def template = KlumStructuredInput.readTemplate(Deployment, parsed, 'deployment.yaml')
+def template = Deployment.Create.Template.FromStruct(parsed, 'deployment.yaml')
 Deployment.Template.With(template) {
     def production = Deployment.Create.With('production')
 }
@@ -646,8 +642,7 @@ Deployment.Template.With(template) {
 
 Definition executes admitted operations and converters to configure the recipe, but runs no lifecycle callbacks or
 phases. Applying it creates fresh recipient Builders and runs the normal lifecycle. Input is processed in order; a failure
-returns no Template, but earlier configuration side effects are not rolled back. The ordinary `applyToBuilder` entry
-point still requires an active ordinary Builder. See [structured input](Structured-Input.md) for admitted forms and
+returns no Template, but earlier configuration side effects are not rolled back. The ordinary Builder application route still requires an active ordinary Builder. See [structured input](Structured-Input.md) for admitted forms and
 [construction keys](Structured-Input.md#construction-keys) for nested identity.
 
 See [`StructuredInputTemplateDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputTemplateDocumentaryTest.groovy),

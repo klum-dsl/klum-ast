@@ -1,7 +1,7 @@
 # Structured Input
 
 `KlumStructuredInput` applies caller-parsed Maps, Lists and scalars through a Schema's admitted Builder operations.
-Use [`readTemplate`](Templates.md#structured-input-templates) for a keyless reusable Template body.
+Use [`Create.Template.FromStruct`](Templates.md#structured-input-templates) for a keyless reusable Template body.
 It belongs to `klum-ast-runtime` and adds no JSON/YAML parser dependency. Parse the format with your chosen library,
 then pass the resulting data together with an opaque source name for diagnostics.
 

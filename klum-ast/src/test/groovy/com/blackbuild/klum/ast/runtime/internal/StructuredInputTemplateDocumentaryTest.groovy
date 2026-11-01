@@ -30,6 +30,9 @@ import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
 
+import javax.tools.ToolProvider
+import java.time.Duration
+
 @Issue('953')
 @Tag('documentary')
 @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#structured-input-templates')
@@ -41,11 +44,14 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         createClass '''
             package structuredtemplate
             import com.blackbuild.klum.ast.*
+            import java.time.Duration
             @DSL class Deployment {
                 static List<String> events = []
                 @Key String name
                 String region
                 String identifier
+                @Field(converters = [{ String value -> Deployment.events << 'converter'; Duration.parse(value) }])
+                Duration timeout
                 Service primary
                 Map<String, Service> services
                 @Builder.Method void locate(String value) {
@@ -53,6 +59,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
                     region = value
                     applyLater { identifier name.toUpperCase() }
                 }
+                @Builder.Method void useDefaultRegion() { events << 'command'; region = 'default' }
                 @Builder.Method void seed(String value) {
                     primary('api') { image value }
                     service('worker') { image value }
@@ -81,7 +88,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
                       services: [worker: [image: 'worker:1']]]
 
         when:
-        def template = KlumStructuredInput.readTemplate(deployment, parsed, 'deployment.yaml')
+        def template = deployment.Create.Template.FromStruct(parsed, 'deployment.yaml')
 
         then:
         TemplateManager.isTemplate(template)
@@ -136,7 +143,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
 
     def 'reconfiguring existing Template children does not run lifecycle callbacks'() {
         when:
-        def template = KlumStructuredInput.readTemplate(deployment,
+        def template = deployment.Create.Template.FromStruct(
                 [seed: 'initial', primary: [name: 'api', image: 'updated'],
                  services: [worker: [image: 'updated']]], 'input')
 
@@ -156,16 +163,117 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         deployment.events.contains('child:apply')
     }
 
+    @Issue('952')
+    def 'field converters execute during Template definition without lifecycle'() {
+        when:
+        def template = deployment.Create.Template.FromStruct([timeout: 'PT30S'], 'input')
+
+        then:
+        deployment.events == ['converter']
+        template.timeout == Duration.ofSeconds(30)
+
+        when:
+        deployment.events.clear()
+        def recipient
+        deployment.Template.With(template) { recipient = deployment.Create.With('target') }
+
+        then:
+        recipient.timeout == template.timeout
+        deployment.events == ['root:create', 'root:apply', 'root:tree']
+    }
+
+    @Issue('952')
+    def 'zero-argument commands configure Templates without running lifecycle'() {
+        when:
+        def template = deployment.Create.Template.FromStruct([useDefaultRegion: [:]])
+
+        then:
+        deployment.events == ['command']
+        template.region == 'default'
+
+        when:
+        deployment.events.clear()
+        def recipient
+        deployment.Template.With(template) { recipient = deployment.Create.With('target') }
+
+        then:
+        recipient.region == 'default'
+        deployment.events == ['root:create', 'root:apply', 'root:tree']
+    }
+
+    def 'Java and static Groovy callers use both generated Template Factory signatures'() {
+        given:
+        def source = new File(tempFolder.root, 'structuredtemplate/JavaTemplateConsumer.java')
+        source.parentFile.mkdirs()
+        source.text = '''
+            package structuredtemplate;
+            import java.util.Map;
+            public class JavaTemplateConsumer {
+                public static Deployment create(Map<?, ?> body) {
+                    return Deployment.Create.Template.FromStruct(body);
+                }
+                public static Deployment create(Map<?, ?> body, String source) {
+                    return Deployment.Create.Template.FromStruct(body, source);
+                }
+            }
+        '''
+        String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
+                .join(File.pathSeparator)
+
+        when:
+        int result = ToolProvider.systemJavaCompiler.run(null, null, null, '-classpath', classpath,
+                '-d', compilerConfiguration.targetDirectory.absolutePath, source.absolutePath)
+        createSecondaryClass '''
+            package structuredtemplate
+            import groovy.transform.CompileStatic
+            @CompileStatic class StaticTemplateConsumer {
+                static Deployment create(Map<?, ?> body) { Deployment.Create.Template.FromStruct(body) }
+                static Deployment create(Map<?, ?> body, String source) { Deployment.Create.Template.FromStruct(body, source) }
+            }
+        '''
+        def javaConsumer = artifactLoader.loadClass('structuredtemplate.JavaTemplateConsumer')
+        def staticConsumer = artifactLoader.loadClass('structuredtemplate.StaticTemplateConsumer')
+        def factory = artifactLoader.loadClass('structuredtemplate.Deployment_DSL$Factory$Template')
+
+        then:
+        result == 0
+        factory.getMethod('FromStruct', Map).returnType == deployment
+        factory.getMethod('FromStruct', Map).genericParameterTypes[0].typeName == 'java.util.Map<?, ?>'
+        factory.getMethod('FromStruct', Map, String).returnType == deployment
+        [javaConsumer, staticConsumer].each { consumer ->
+            assert TemplateManager.isTemplate(consumer.getMethod('create', Map).invoke(null, [region: 'eu']))
+            assert TemplateManager.isTemplate(consumer.getMethod('create', Map, String).invoke(null, [region: 'eu'], 'input'))
+        }
+    }
+
+    def 'source labels are diagnostic and explicit empty labels reject'() {
+        when:
+        deployment.Create.Template.FromStruct([unknown: 'bad'])
+
+        then:
+        def generated = thrown(KlumModelException)
+        generated.message.contains('Create.Template.FromStruct')
+
+        when:
+        deployment.Create.Template.FromStruct([:], source)
+
+        then:
+        thrown(KlumModelException)
+
+        where:
+        source << [null, '']
+    }
+
     def 'root and map identities are not accepted inside bodies and failures return no Template'() {
         when:
-        KlumStructuredInput.readTemplate(deployment, [name: 'forbidden'], 'input')
+        deployment.Create.Template.FromStruct([name: 'forbidden'], 'input')
 
         then:
         def rootFailure = thrown(KlumModelException)
         rootFailure.message.contains('recipient of the Template')
 
         when:
-        KlumStructuredInput.readTemplate(deployment, [services: [worker: [name: 'worker']]], 'input')
+        deployment.Create.Template.FromStruct([services: [worker: [name: 'worker']]], 'input')
 
         then:
         def childFailure = thrown(KlumModelException)
@@ -173,7 +281,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
 
         when:
         def result = null
-        result = KlumStructuredInput.readTemplate(deployment, [unknown: 'bad'], 'input')
+        result = deployment.Create.Template.FromStruct([unknown: 'bad'], 'input')
 
         then:
         thrown(KlumModelException)

@@ -6,7 +6,7 @@ This plan records the accepted design; V0 implemented the vocabulary rename and 
 [S4 evidence](input-round-s4-evidence.md) record the merged traversal, String-selection and zero-argument command slices.
 [S3a evidence](input-round-s3a-evidence.md) records converter-origin parity, merged through
 [PR #1004](https://github.com/klum-dsl/klum-ast/pull/1004) at `f71d0cea1ddd100d24b8106b7f64dc37e819c988`.
-Remaining slices are not qualified as merged here; S6 has an open implementation on merge hold. See
+Remaining slices are not qualified as merged here; S6 has an open retargeted implementation. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
@@ -29,7 +29,7 @@ For this clarification, source and test seams were reinspected at `5e06b1545` on
 release-artifact finding that these APIs are development-only; this task did not independently download release JARs.
 [#953](https://github.com/klum-dsl/klum-ast/issues/953) was open without a milestone when read. S6
 [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007), inspected at `b1a1905504e0e56a8b65de1581a8dcb6d10b1afe`, was open;
-its public `readTemplate` addition implements the superseded premise. The maintainer's explicit merge hold remains in force.
+its former public `readTemplate` addition implemented the superseded premise. The Hive subsequently lifted the hold for retargeting.
 Its internal `FactoryHelper.doCreateTemplate` access, Template-position traversal and lifecycle suppression for reused
 Template children, plus `StructuredInputTemplateDocumentaryTest`, are reusable work requiring retargeting and revalidation.
 
@@ -40,7 +40,7 @@ Read-only original issue snapshot (2026-10-31), with the #953 mapping clarified 
 | [#529](https://github.com/klum-dsl/klum-ast/issues/529) | Closed | Delivered JSON Schema foundation. New grammar projection must accompany the corresponding #952 slice; do not reopen the delivered parent. |
 | [#932](https://github.com/klum-dsl/klum-ast/issues/932) | Closed | Delivered v1 interpreter. Preserve its dated preflight evidence and migrate its behavior explicitly under #952. |
 | [#952](https://github.com/klum-dsl/klum-ast/issues/952) | Open | Grammar coordination: scalar selection, zero-argument commands, known scopes, conditional relationships and CollectionFactory proof. Its broad deferred list is not blanket authorization. |
-| [#953](https://github.com/klum-dsl/klum-ast/issues/953) | Open | Construction-entry/body-schema coordination. Accepted common/keyed/Template Factory `FromStruct` and inherited void Builder `applyStruct`, each with optional trailing `sourceName`; see A0–A3/S6 and the migration table below. Preserve `FromMap` and ADR 0009. S6/#1007 must be retargeted after this clarification merges. File/URL loading stays deferred. |
+| [#953](https://github.com/klum-dsl/klum-ast/issues/953) | Open | Construction-entry/body-schema coordination. Accepted common/keyed/Template Factory `FromStruct` and inherited void Builder `applyStruct`, each with optional trailing `sourceName`; see A0–A3/S6 and the migration table below. Preserve `FromMap` and ADR 0009. S6/#1007 is retargeted after this clarification merged. File/URL loading stays deferred. |
 | [#954](https://github.com/klum-dsl/klum-ast/issues/954) | Closed | Retain positional key authority and merged Stage A/B evidence. The body schema is additive; no reopening or changed key derivation. Its stale body still mentions pending delivery. |
 | [#959](https://github.com/klum-dsl/klum-ast/issues/959) | Open | Retain delivered naming, exclusion, descriptions, numeric/Pattern/composed projections and documentary strings. Defaults, Size, typed examples and broader constraints do not block admission. Historical issue text understates delivered work. |
 | [#971](https://github.com/klum-dsl/klum-ast/issues/971) | Open | Explicitly Future/untargeted. No executable parameter validation or new 4.2 placement. Provider inheritance and Groovy 4/5 annotation failures remain future proof gates. |
@@ -142,7 +142,7 @@ at that base; the ordered slice rows and linked evidence below track subsequent 
 | Known nested Builder scope | Concrete relationships only | Accepted S5 where a fixed scope contract and direct entry exist; no dynamic/untyped delegation or synthetic closures. |
 | Zero-argument command | S4 implemented; integrated onto merged S2 | S4: `operation: {}` only. |
 | Factory creation / Builder application | Development reader calls only | Accepted A0–A3: common/keyed `FromStruct`, inherited void `applyStruct`, diagnostic overloads; no parser or registry. |
-| Structured Template definition | No merged implementation | Accepted S6 through generated Template Factory `FromStruct`; #1007 on hold pending retargeting. Existing Template semantics; no root lifecycle or implicit mode. |
+| Structured Template definition | No merged implementation | S6 through generated Template Factory `FromStruct`; #1007 retargeted for review. Existing Template semantics; no root lifecycle or implicit mode. |
 | Explicit keyless root-body schema | Private positional definitions only | Accepted useful additive S7; caller supplies identity, editor association and source parsing. |
 | CollectionFactory scope | No | Bounded 4.2 F2 feasibility only; existing closed alternatives and key contracts, not generic subtype selection. |
 | One-Map NamedParams/NamedParam shape | Ordinary typed Map only | Later contained L2: declared keys and proven required/type facts only. |
@@ -171,7 +171,7 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 | A0 — accepted Factory contract | This clarification merged; S1 | Add common generated `FromStruct(Map<?, ?>)` and trailing `String sourceName` overload using the internal self-contained root path. One runtime/compiler/generated-contract/test commit, then docs when scope is assigned. | Java/static/dynamic Groovy and binary callers; unkeyed/keyed root, named/inherited key before allocation, strict Map payload, ordinary/generated labels, source/path/cause failures, normal lifecycle. KlumAST compiler/runtime. |
 | A1 — accepted explicit-key Factory | A0 | Add keyed-only `FromStruct(String rootKey, Map<?, ?> body)` and trailing `String sourceName` overload through the single root configuration seam. One behavior/contract/test commit plus docs. | One `PostApply`, key visible at `PostCreate`, same ownership/materialization as old explicit-key reader; inner equal/different/null key rejected; absent from unkeyed/relationship/AsBuilder contracts. KlumAST compiler/runtime. |
 | A2 — accepted Builder capability | This clarification merged; S1 | Add both void `applyStruct(Map<?, ?> body[, String sourceName])` methods to `KlumBuilder`, implemented by runtime Builder base and inherited by generated contracts. One capability/dispatch/test commit plus docs. | Exact void descriptors, inherited Java/static/dynamic Groovy calls, helper returns identical typed B; prepared context before early callbacks; same-thread active unsealed ordinary targets only, one apply callback/no completion, key/body and ordered partial-failure controls. KlumAST runtime/compiler qualification. |
-| S6 — retarget required; #1007 merge hold | This clarification merged; A0 diagnostic/Factory pattern; S1; S3/S5 for newly admitted forms | Rebase and expose both generated Template Factory `FromStruct(Map<?, ?> body[, String sourceName])` forms. Reuse internal Template mechanics/tests from #1007; replace its public `readTemplate` facade and reader-based documentation. One coherent runtime/generated-contract/test commit, then docs. | Marked recipe, no definition lifecycle including reused children, same values/actions as ordinary Template, fresh recipients, root key forbidden/not copied, nested key/ownership/serialization controls; no ordinary apply-to-Template escape. Failure returns no Template. Java/Groovy and generated Template signatures. KlumAST compiler/runtime; Hive controls hold. |
+| S6 — retargeted; #1007 open | This clarification merged; A0 diagnostic/Factory pattern; S1; S3/S5 for newly admitted forms | Rebase and expose both generated Template Factory `FromStruct(Map<?, ?> body[, String sourceName])` forms. Reuse internal Template mechanics/tests from #1007; replace its public `readTemplate` facade and reader-based documentation. One coherent runtime/generated-contract/test commit, then docs. | Marked recipe, no definition lifecycle including reused children, same values/actions as ordinary Template, fresh recipients, root key forbidden/not copied, nested key/ownership/serialization controls; no ordinary apply-to-Template escape. Failure returns no Template. Java/Groovy and generated Template signatures. KlumAST compiler/runtime; Hive controls delivery. |
 | A3 — development caller migration | A0; A1; A2; retargeted S6 | Migrate development tests/fixtures, generic caller helpers and current user examples, then remove the development public reader surface. One repository migration/removal commit plus final API/docs consistency check. Schelm adaptation/qualification is consumer-owned. | No production/user-facing dependency on a public reader; all four modes tested through supported capabilities; no deprecated alias/registry, `FromMap` and ADR 0009 unchanged; matched compiler/runtime/Schema artifacts. KlumAST; Schelm; Hive delivery. |
 | S7 — accepted implementation | #954 retained; S1 | Explicit Builder-body schema root variant, with distinct output and unchanged default root artifact. One plugin configuration/projection/packaged-test commit plus docs. No runtime Factory/File/URL API. | Body forbids root key; self-contained root requires it; same child key positions; roots of same type in both modes coexist; recursive definitions, names, cache/manifest/root-removal/failure-preservation controls. KlumAST plugin. |
 | Q0/Q1 — consumer qualification | Q0 baseline now; Q1 S1–S7 and A0–A3 higher-tier result | Qualify one explicitly matched artifact graph against the three real Schelm YAML documents and active-Builder context. Consumer evidence commit records coordinates/hashes/commands/results; parser/numeric adoption are separate Schelm changes. | Fresh generated/packaged/editor schema provenance, three inputs, four renders and current harness, negative corpus below; no stale-output acceptance. Schelm; Hive reconciles outcome. |
@@ -183,8 +183,7 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 
 D0 and Q0 can proceed independently. S1 → S2 → S3a → S3b is the primary implementation chain. S4 and S5 branch after S2;
 S7 can use the retained grammar after S1. A0 → A1 and A0 → retargeted S6 establish Factory creation; A2 can proceed
-independently after this clarification merges. A3 follows all four public forms. S6/#1007 must first be rebased and
-retargeted by its worker on Hive assignment after this documentation merge; the hold is not lifted here. Recheck all
+independently after this clarification merges. A3 follows all four public forms. S6/#1007 is rebased and retargeted after Hive assignment; the later forms remain separate. Recheck all
 entry modes against newly admitted S3/S5 forms before Q1. F1/F2
 are probes, not dependencies forcing a broader engine into S1–S7. Do not start follow-ons just because a probe finishes.
 
@@ -264,7 +263,7 @@ Rows 1–16 match the original accepted assignment; the #953 row records the lat
 | 13. Owned List/Set and keyMapping conditional | R1 per-shape disposition after Q1; no current support claim. | Maintainer/Hive |
 | 14. CollectionFactory bounded probe | F2 generated alternatives/key/direct-entry evidence and stop conditions; no composition prerequisite. | KlumAST probe; maintainer |
 | 15. Jackson separate | D0 reciprocal import-path table, unchanged ADR 0009 modes, language versus export examples. | KlumAST docs |
-| #953. Factory/Builder public boundary | A0 common root, A1 explicit key/one PostApply, A2 void inherited capability, S6 Template Factory, A3 development migration; eight signatures/labels, unchanged FromMap/Jackson and explicit #1007 hold. | KlumAST; Hive retarget/delivery; Schelm qualification |
+| #953. Factory/Builder public boundary | A0 common root, A1 explicit key/one PostApply, A2 void inherited capability, S6 Template Factory, A3 development migration; eight signatures/labels, unchanged FromMap/Jackson and retargeted #1007. | KlumAST; Hive retarget/delivery; Schelm qualification |
 | 16. Composition deferred | R1 records separate 4.3-oriented track; no composition production dependency or redesign. | Maintainer/Hive |
 
 ## Schelm evidence and consumer acceptance
