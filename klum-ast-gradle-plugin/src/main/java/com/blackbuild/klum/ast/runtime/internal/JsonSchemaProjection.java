@@ -37,11 +37,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /** Private plugin implementation, loaded beside the facade in one isolated unnamed module. */
-final class JsonSchemaProjection implements Function<List<String>, Map<String, String>> {
+final class JsonSchemaProjection implements BiFunction<List<String>, List<String>, Map<String, String>> {
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private static final String STRING_TYPE = "string";
@@ -57,8 +57,14 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private enum KeyPosition { MEMBER, KEYLESS }
 
     @Override
-    public Map<String, String> apply(List<String> roots) {
+    public Map<String, String> apply(List<String> roots, List<String> bodyRoots) {
         Map<String, String> result = new LinkedHashMap<>();
+        projectRoots(roots, KeyPosition.MEMBER, ".schema.json", result);
+        projectRoots(bodyRoots, KeyPosition.KEYLESS, ".builder-body.schema.json", result);
+        return result;
+    }
+
+    private void projectRoots(List<String> roots, KeyPosition position, String suffix, Map<String, String> result) {
         for (String root : roots.stream().sorted().toList()) {
             definitions.clear();
             constraintProfiles.clear();
@@ -66,7 +72,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
             try {
                 Class<?> builder = Class.forName(builderName(root), false, getClass().getClassLoader());
                 resolver = new InputContractResolver();
-                String rootDefinition = definition(builder, KeyPosition.MEMBER, root, root);
+                String rootDefinition = definition(builder, position, root, root);
                 Map<String, Object> document = new LinkedHashMap<>();
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(rootDefinition));
@@ -76,14 +82,13 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
                 document.put("$comment", "Raw-input authoring bounds only; "
                         + "defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
-                result.put(root + ".schema.json", json(document) + "\n");
+                result.put(root + suffix, json(document) + "\n");
             } catch (ClassNotFoundException | LinkageError | RuntimeException failure) {
                 throw new IllegalArgumentException("Cannot generate JSON Schema for root '" + root
-                        + "'; supply the complete resolved Schema/API/runtime/annotation classpath and recompile with generated input enrichment: "
+                        + "', key position " + position + "; supply the complete resolved Schema/API/runtime/annotation classpath and recompile with generated input enrichment: "
                         + failure.getMessage(), failure);
             }
         }
-        return result;
     }
 
     private static String builderName(String root) {

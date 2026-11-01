@@ -57,6 +57,184 @@ class KlumJsonSchemaGenerationTest extends Specification {
     File trap
     boolean packagedPlugin
 
+    @Issue('953')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#caller-pre-keyed-builder-bodies')
+    def 'select self-contained and Builder-body schemas for the same binary roots with Groovy #generation'() {
+        given:
+        fixture(generation)
+        ['api', 'schema'].each { new File(producer, "$it/build/classes").deleteDir() }
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema {
+    rootTypes.set(['example.Service', 'example.Deployment', 'example.FallbackKey'])
+    bodyRootTypes.set(['example.Service', 'example.Deployment', 'example.FallbackKey', 'example.Ignored', 'example.Collision'])
+}
+''')
+
+        when:
+        run('generateKlumJsonSchema')
+        def service = document('example.Service')
+        def body = document('example.Service.builder-body')
+        def member = body.'$defs'.'example.Service_DSL$Builder'
+        def keyless = body.'$defs'.'example.Service_DSL$Builder::keyless'
+        def fallback = document('example.FallbackKey.builder-body').'$defs'.'example.FallbackKey_DSL$Builder::keyless'
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'body-' + generation)
+        validation.deleteDir()
+        validation.mkdirs()
+        ['Service', 'Deployment', 'FallbackKey', 'Ignored', 'Collision'].each { model ->
+            new File(validation, model.toLowerCase() + '.builder-body.schema.json').bytes = output("example.${model}.builder-body").bytes
+        }
+        ['Service', 'Deployment', 'FallbackKey'].each { model ->
+            new File(validation, model.toLowerCase() + '.self-contained.schema.json').bytes = output("example.$model").bytes
+        }
+
+        then:
+        service.'$ref' == '#/$defs/example.Service_DSL%24Builder'
+        body.'$ref' == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
+        service.'$defs'.'example.Service_DSL$Builder'.required == ['service/id~']
+        member == service.'$defs'.'example.Service_DSL$Builder'
+        keyless == service.'$defs'.'example.Service_DSL$Builder::keyless'
+        member.required == ['service/id~']
+        !keyless.containsKey('required')
+        !keyless.properties.containsKey('service/id~')
+        keyless.additionalProperties == false
+        keyless.properties.nested.'$ref' == service.'$ref'
+        keyless.properties.children.additionalProperties.'$ref' == body.'$ref'
+        output('example.Deployment').bytes == output('example.Deployment.builder-body').bytes
+        !fallback.properties.containsKey('id/~')
+        fallback.properties.value.type == 'string'
+        document('example.Ignored.builder-body').'$defs'.'example.Ignored_DSL$Builder::keyless'.properties.keySet() == ['value'] as Set
+        document('example.Collision.builder-body').'$defs'.'example.Collision_DSL$Builder::keyless'.properties.keySet() == ['value'] as Set
+        !trap.exists()
+        ['api', 'schema'].every { !new File(producer, "$it/src").exists() && !new File(producer, "$it/build/classes").exists() }
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('953')
+    def 'Builder-body selection is a cache input with configuration reuse and relocation'() {
+        given:
+        fixture('3')
+        String cache = new File(directory, 'body-build-cache').absolutePath.replace('\\', '/')
+        new File(consumer, 'settings.gradle').append("\nbuildCache { local { directory = '$cache' } }\n")
+        run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
+        byte[] selfContained = output('example.Service').bytes
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.bodyRootTypes.add('example.Service')\n")
+
+        when:
+        def selected = run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
+        byte[] body = output('example.Service.builder-body').bytes
+        def reused = run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
+
+        then:
+        selected.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        selfContained == output('example.Service').bytes
+        body != selfContained
+        reused.output.contains('Configuration cache entry reused')
+        reused.task(':generateKlumJsonSchema').outcome == TaskOutcome.UP_TO_DATE
+
+        when:
+        output('example.Service').parentFile.deleteDir()
+        def restored = run('generateKlumJsonSchema', '--configuration-cache', '--build-cache')
+
+        then:
+        restored.task(':generateKlumJsonSchema').outcome == TaskOutcome.FROM_CACHE
+        output('example.Service.builder-body').bytes == body
+        output('example.Service').bytes == selfContained
+
+        when:
+        File relocated = new File(directory, 'body-relocated')
+        relocated.mkdirs()
+        ['settings.gradle', 'build.gradle'].each { new File(relocated, it).bytes = new File(consumer, it).bytes }
+        consumer = relocated
+        def moved = run('generateKlumJsonSchema', '--build-cache')
+
+        then:
+        moved.task(':generateKlumJsonSchema').outcome == TaskOutcome.FROM_CACHE
+        output('example.Service.builder-body').bytes == body
+        output('example.Service').bytes == selfContained
+        !trap.exists()
+    }
+
+    @Issue('953')
+    def 'removing selected purposes and roots deletes only last-successful owned outputs'() {
+        given:
+        fixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.bodyRootTypes.set(['example.Service', 'example.Deployment'])\n")
+        run('generateKlumJsonSchema')
+        File manifest = new File(output('example.Service').parentFile, '.klum-json-schema-outputs')
+        File untracked = output('consumer-owned.builder-body')
+        untracked.text = 'consumer owned'
+        File unrelated = new File(manifest.parentFile, 'consumer-owned.txt')
+        unrelated.text = 'unrelated'
+
+        when: 'only a body root remains, without a self-contained selection'
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema {
+    rootTypes.set([])
+    bodyRootTypes.set(['example.Service'])
+}
+''')
+        run('generateKlumJsonSchema')
+
+        then:
+        manifest.readLines() == ['example.Service.builder-body.schema.json']
+        !output('example.Service').exists()
+        !output('example.Deployment').exists()
+        !output('example.Deployment.builder-body').exists()
+        output('example.Service.builder-body').exists()
+        untracked.text == 'consumer owned'
+        unrelated.text == 'unrelated'
+
+        when: 'the same root changes purpose'
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema {
+    rootTypes.set(['example.Service'])
+    bodyRootTypes.set([])
+}
+''')
+        run('generateKlumJsonSchema')
+
+        then:
+        manifest.readLines() == ['example.Service.schema.json']
+        output('example.Service').exists()
+        !output('example.Service.builder-body').exists()
+        untracked.text == 'consumer owned'
+        unrelated.text == 'unrelated'
+        !trap.exists()
+    }
+
+    @Issue('953')
+    def 'a failed body selection preserves every successful artifact and manifest: #model'() {
+        given:
+        fixture('3')
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['other.Service']); bodyRootTypes.add('example.Service') }\n")
+        run('generateKlumJsonSchema')
+        File outputDirectory = output('example.Service').parentFile
+        def previous = outputDirectory.listFiles().collectEntries { [(it.name): it.bytes.toList()] }
+        if (corrupt) { stripConstraintFacts('Service', 'count', 'image') }
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.bodyRootTypes.set(['example.$model'])\n")
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+
+        then:
+        failed.output.contains(reason)
+        failed.output.contains('Builder-body roots')
+        outputDirectory.listFiles().collectEntries { [(it.name): it.bytes.toList()] } == previous
+        !trap.exists()
+
+        where:
+        model                     | corrupt | reason
+        'Missing'                 | false   | "root 'example.Missing'"
+        '../Service'              | false   | 'Expected a fully qualified DSL Model binary name'
+        'Service_DSL$Builder'      | false   | 'Generated Builder names are not rootTypes values'
+        'IgnoredHolder'           | false   | 'key position MEMBER'
+        'CollisionHolder'         | false   | 'external-name collision'
+        'Service'                 | true    | 'Missing constraint count'
+    }
+
     @Issue('959')
     def 'project independent first-level composing constraints without domain classes with Groovy #generation'() {
         given:
@@ -1795,6 +1973,7 @@ klumSchema.jsonSchema { rootTypes.set(['example.Capacity']) }
         !output('example.Deployment').exists()
     }
 
+    @Issue(['529', '953'])
     def 'default classpath compiles local roots and resolves their binary Schema dependencies'() {
         given:
         fixture('3', true)
@@ -1810,13 +1989,15 @@ dependencies {
 }
 tasks.withType(GroovyCompile).configureEach { groovyClasspath = files($groovy) }
 klumSchema.jsonSchema.rootTypes.set(['example.Local', 'example.Deployment'])
+klumSchema.jsonSchema.bodyRootTypes.add('example.Local')
 """)
         File local = new File(consumer, 'src/main/groovy/example/Local.groovy')
         local.parentFile.mkdirs()
         local.text = '''
 package example
 import com.blackbuild.klum.ast.DSL
-@DSL class Local extends DeploymentApi { String title }
+import com.blackbuild.klum.ast.Key
+@DSL class Local extends DeploymentApi { @Key String name; String title }
 '''
 
         when:
@@ -1825,6 +2006,9 @@ import com.blackbuild.klum.ast.DSL
         then:
         result.task(':compileGroovy').outcome == TaskOutcome.SUCCESS
         document('example.Local').get('$defs').get('example.Local_DSL$Builder').get('properties').containsKey('region')
+        document('example.Local').'$defs'.'example.Local_DSL$Builder'.required == ['name']
+        !document('example.Local.builder-body').'$defs'.'example.Local_DSL$Builder::keyless'.properties.containsKey('name')
+        document('example.Local.builder-body').'$defs'.'example.Local_DSL$Builder::keyless'.properties.region.type == 'string'
         output('example.Deployment').exists()
         !trap.exists()
     }
