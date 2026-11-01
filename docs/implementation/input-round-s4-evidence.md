@@ -1,13 +1,30 @@
 # S4 — zero-argument structured commands
 
-Date: 2026-11-01. Local qualification only.
+Date: 2026-11-01. Local qualification; draft publication authorized after integration checks.
 
 Related: [#952](https://github.com/klum-dsl/klum-ast/issues/952),
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md),
 [4.2 implementation plan](input-round-plan-4-2.md).
-Base: `4f68e1ec97b6a9e78e9e7eccb300dad7b55ce6d0` (S2, `codex/952-string-operation-selection`).
+Original stacked base: `4f68e1ec97b6a9e78e9e7eccb300dad7b55ce6d0` (S2, `codex/952-string-operation-selection`).
 Worktree: `/Users/stephan/.codex/worktrees/c54e/klum-ast`.
 Branch: `codex/952-zero-argument-commands`.
+
+## Integration onto merged S2
+
+Current base: `325cfda9d373b235caaa7590475ecde01c33fdb7`, fetched and verified as `origin/master`.
+S1 #1002 and S2 #1003 are merged. The maintainer explicitly resumed S4 independently of S3a and authorized rebasing,
+validation, final local review, branch push and a draft PR targeting master with **Related: #952**. Merge remains unauthorized.
+
+The four S4 commits were replayed directly onto that exact master. Genuine overlaps were resolved by retaining S2's
+extracted operation-metadata validation helper (including its explicit boolean comparison) and adding S4 role checks there;
+the packaged schema test retains both S2's surviving inherited String candidates and S4's command assertions.
+S2 already contains the wrong-Model fixture's explicit zero-operation count, so S4 adds no duplicate fixture change or
+annotation-only tracker churn. S2's inherited-candidate correction and S1 traversal/Sonar cleanup remain intact.
+No S3a code or dependency is introduced.
+
+Rebased implementation commits: `9142a88ee`, `306ffd9b4`, `48c494d0f`, `5b8769673`.
+Focused and aggregate integration validation and the repeated Standards/Specification review are pending below; the dated
+stacked results are retained as historical evidence and do not substitute for the integration gate.
 
 ## Implementation boundary
 
@@ -33,7 +50,7 @@ JSON Schema uses `type: object`, empty `properties` and `additionalProperties: f
 executing command bodies or initializing Schema classes. No scopes, Templates, body-schema variant, converters, parser,
 command suffix, null call marker, repeated-call carrier or generic command framework is added.
 
-## Acceptance and validation
+## Initial stacked acceptance and validation (historical)
 
 - `StructuredCommandTest` covers once-only documentary/direct parity, all rejected payload kinds, normal lifecycle counts,
   active Builder partial state, unknown/helper/query/lifecycle names, original cause/escaped pointer/root cleanup,
@@ -84,20 +101,19 @@ The same two review children also inspect that enclosing final local head before
 
 ## Local history
 
-Reviewed history is preserved; no reordering or rewriting occurred after review.
+The following original stack was reviewed and preserved until the maintainer explicitly authorized the integration rebase above.
 
 - `55e6157449a1ca1a7df361b2986435edb468ba2a` — vertical compiler/runtime/schema implementation and tests.
 - `761bc51589a6bac957fc0053ac33f29a41e85809` — current user docs, migration, changelog and evidence.
 - `165daa81162a8da6f5a8794862b31071bc3f9e62` — additive lifecycle exclusion review correction.
 - The enclosing qualification commit completes the binary fixture and validation/review record.
 
-The documentary feature, current user page and issue links are prepared locally. GitHub cross-link updates are deliberately
-left to later delivery under the explicit no-issue-mutation boundary.
+The documentary feature, current user page and issue links are prepared locally. No GitHub issue body or state mutation is
+part of S4 delivery; the draft PR will link the documentary test, user contract and evidence under Related: #952.
 
-## Delivery boundary
+## Current delivery boundary
 
-Local commits only; no push, PR, GitHub issue mutation, merge, SonarCloud upload or adopter dispatch.
-Tracker impact: **Related: #952**, no closure. Curation impact: none.
-Finish **(paused)** with a clean worktree. The sole resume condition is **S1 PR #1002 merged, then S2 rebased onto merged
-S1 and itself merged; explicitly resume S4 to rebase onto master**. Hive owns subsequent delivery and reconciliation.
-This worker does not self-archive.
+The original pause condition has been satisfied and explicitly revoked by the resume instruction. After integration checks
+and final local review, publish the dedicated branch and open a draft PR against master. Do not mark it ready or merge it.
+No local SonarCloud upload or adopter dispatch is authorized; report hosted CI/SonarCloud state against the exact PR head.
+Tracker impact: **Related: #952**, no closure. Curation impact: none. The worker does not self-archive.
