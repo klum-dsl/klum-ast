@@ -65,7 +65,7 @@ public final class StructuredInputSupport {
     public static <T> T readRoot(Class<T> type, Object parsed, String sourceName) {
         requireSource(sourceName);
         requireConcrete(type, sourceName);
-        Domain domain = new Preparation(sourceName).domain(type, parsed, "", Position.ROOT);
+        Domain domain = new Traversal(sourceName).domain(type, parsed, "", Position.ROOT);
         return FactoryHelper.createWithConfiguration(type, domain.key(), domain::execute);
     }
 
@@ -77,8 +77,8 @@ public final class StructuredInputSupport {
     public static <T> T readRoot(Class<T> type, String rootKey, Object parsed, String sourceName) {
         requireSource(sourceName);
         requireConcrete(type, sourceName);
-        Preparation preparation = new Preparation(sourceName);
-        Domain domain = preparation.domain(type, parsed, "", Position.EXPLICIT_ROOT);
+        Traversal traversal = new Traversal(sourceName);
+        Domain domain = traversal.domain(type, parsed, "", Position.EXPLICIT_ROOT);
         if (DslHelper.isKeyed(type) != (rootKey != null))
             throw new KlumModelException(sourceName + ": supply an explicit rootKey for a keyed Schema and null for an unkeyed Schema");
         return FactoryHelper.createWithConfiguration(type, rootKey, domain::execute);
@@ -92,7 +92,7 @@ public final class StructuredInputSupport {
         if (builder.isSealed() || builder.isTemplate()
                 || builder.getClass() != GeneratedBuilderSupport.builderTypeFor(builder.getModelType()))
             throw new KlumModelException(sourceName + ": structured input requires an unsealed ordinary generated Builder");
-        Domain domain = new Preparation(sourceName).domain(builder.getModelType(), parsed, "", Position.ACTIVE_BUILDER);
+        Domain domain = new Traversal(sourceName).domain(builder.getModelType(), parsed, "", Position.ACTIVE_BUILDER);
         apply(builder, domain);
         return target;
     }
@@ -104,10 +104,6 @@ public final class StructuredInputSupport {
     private static void requireSource(String source) {
         if (source == null || source.isEmpty())
             throw new KlumModelException("Structured input requires a nonempty opaque sourceName");
-    }
-
-    private static String pointer(String parent, String token) {
-        return parent + "/" + token.replace("~", "~0").replace("/", "~1");
     }
 
     private static KlumModelException problem(String source, String path, Class<?> contract, String name,
@@ -155,39 +151,13 @@ public final class StructuredInputSupport {
             return result;
         }
     }
-    private record KeyedChild(String key, Domain domain) { }
-    private record Domain(String key, List<Step> steps) {
-        void execute(InternalKlumBuilder<?> builder) { steps.forEach(step -> step.execute(builder)); }
+    /** One reached scope; only its identity is read before allocation, never its remaining body. */
+    private record Domain(Traversal traversal, CompiledBuilderSchema plan, Map<?, ?> input,
+                          String path, Position position, String key) {
+        void execute(InternalKlumBuilder<?> builder) { traversal.executeDomain(this, builder); }
     }
 
-    private record Step(String source, String path, Entry entry, Method method,
-                        Value value, Domain child, List<KeyedChild> children) {
-        void execute(InternalKlumBuilder<?> builder) {
-            switch (entry.role()) {
-                case OPERATION -> invoke(builder, new Object[]{value.materialize()}, path);
-                case PROPERTY -> {
-                    if (value instanceof Sequence sequence) {
-                        for (int i = 0; i < sequence.values().size(); i++)
-                            invoke(builder, new Object[]{sequence.values().get(i).materialize()}, pointer(path, Integer.toString(i)));
-                    } else if (value instanceof DataMap map) {
-                        for (MapItem item : map.items())
-                            invoke(builder, new Object[]{item.key(), item.value().materialize()}, pointer(path, item.key()));
-                    } else invoke(builder, new Object[]{value.materialize()}, path);
-                }
-                case OWNED_OBJECT -> {
-                    recordInvocation(builder);
-                    builder.createSingleChildWithConfiguration(fieldName(), entry.payload().type(), false, child.key() == null ? entry.fixedChildKey() : child.key(), child::execute);
-                }
-                case KEYED_OWNED_MAP -> {
-                    for (KeyedChild item : children) {
-                        recordInvocation(builder);
-                        builder.addNewDslElementToMapWithConfiguration(fieldName(), entry.payload().type(), false,
-                                item.key(), item.domain()::execute);
-                    }
-                }
-            }
-        }
-
+    private record Invocation(String source, String path, Entry entry, Method method) {
         private String fieldName() { return entry.source().substring(entry.source().indexOf('#') + 1); }
 
         private void recordInvocation(InternalKlumBuilder<?> builder) {
@@ -215,39 +185,54 @@ public final class StructuredInputSupport {
         }
     }
 
-    private static final class Preparation {
+    private static final class Traversal {
+        private static final String ACYCLIC_INPUT = "acyclic input (cyclic container detected)";
         private static final Set<Class<?>> NUMBERS = Set.of(Byte.class, Short.class, Integer.class, Long.class,
                 Float.class, Double.class, BigInteger.class, BigDecimal.class);
         private final String source;
         private final InputContractResolver resolver = new InputContractResolver();
         private final Map<Class<?>, CompiledBuilderSchema> plans = new HashMap<>();
         private final Map<Object, Boolean> visiting = new IdentityHashMap<>();
-        private Preparation(String source) { this.source = source; }
+        private Traversal(String source) { this.source = source; }
+
+        private static String pointer(String parent, String token) {
+            return parent + "/" + token.replace("~", "~0").replace("/", "~1");
+        }
 
         private Domain domain(Class<?> model, Object input, String path, Position position) {
             CompiledBuilderSchema plan = plan(model, path);
             if (!(input instanceof Map<?, ?> map))
                 throw problem(source, path, plan.contract(), DOMAIN_NAME, "domain Map with String keys", input, null);
-            enter(input, path, plan.contract(), DOMAIN_NAME);
+            if (visiting.containsKey(input))
+                throw problem(source, path, plan.contract(), DOMAIN_NAME, ACYCLIC_INPUT, input, null);
+            Key key = plan.key();
+            validatePosition(plan, key, position, path, input);
+            String inputKey = null;
+            if (position.memberKey() && key != null) {
+                inputKey = requiredConstructionKey(plan, key, position, path, map);
+            }
+            return new Domain(this, plan, map, path, position, inputKey);
+        }
+
+        private void executeDomain(Domain domain, InternalKlumBuilder<?> builder) {
+            CompiledBuilderSchema plan = domain.plan();
+            enter(domain.input(), domain.path(), plan.contract(), DOMAIN_NAME);
             try {
-                Key key = plan.key();
-                validatePosition(plan, key, position, path, input);
-                String inputKey = null;
-                List<Step> result = new ArrayList<>();
-                for (Map.Entry<?, ?> supplied : map.entrySet()) {
-                    String name = suppliedName(plan, supplied.getKey(), path);
-                    String location = pointer(path, name);
+                for (Map.Entry<?, ?> supplied : domain.input().entrySet()) {
+                    String name = suppliedName(plan, supplied.getKey(), domain.path());
+                    String location = pointer(domain.path(), name);
                     Entry entry = plan.entries().get(name);
-                    if (isKeyInput(key, position, name, entry)) {
-                        inputKey = constructionKeyValue(plan, key, position, location, supplied.getValue());
+                    if (isKeyInput(plan.key(), domain.position(), name, entry)) {
+                        // Member identity was required before allocation; external identities reject when reached.
+                        if (!domain.position().memberKey()) {
+                            constructionKeyValue(plan, plan.key(), domain.position(), location, supplied.getValue());
+                        }
                     } else {
-                        requireEntry(plan, key, entry, name, location, supplied.getValue());
-                        result.add(step(entry, supplied.getValue(), location));
+                        requireEntry(plan, plan.key(), entry, name, location, supplied.getValue());
+                        execute(entry, supplied.getValue(), location, builder);
                     }
                 }
-                requireInputKey(plan, key, position, path, inputKey);
-                return new Domain(inputKey, List.copyOf(result));
-            } finally { visiting.remove(input); }
+            } finally { visiting.remove(domain.input()); }
         }
 
         private CompiledBuilderSchema plan(Class<?> model, String path) {
@@ -300,10 +285,16 @@ public final class StructuredInputSupport {
                     "an admitted entry; unavailable declarations: " + plan.rejections() + spelling, input, null);
         }
 
-        private void requireInputKey(CompiledBuilderSchema plan, Key key, Position position, String path, String inputKey) {
-            if (position.memberKey() && key != null && inputKey == null)
-                throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
-                        "required construction key declared by " + key.source() + " (member is absent)", null, null);
+        private String requiredConstructionKey(CompiledBuilderSchema plan, Key key, Position position,
+                                               String path, Map<?, ?> input) {
+            // Map lookup may use identity or a comparator; external names always use exact String equality.
+            for (Map.Entry<?, ?> supplied : input.entrySet()) {
+                if (key.externalName().equals(supplied.getKey())) {
+                    return constructionKeyValue(plan, key, position, pointer(path, key.externalName()), supplied.getValue());
+                }
+            }
+            throw problem(source, pointer(path, key.externalName()), plan.contract(), key.externalName(),
+                    "required construction key declared by " + key.source() + " (member is absent)", null, null);
         }
 
         private void validateMemberKey(CompiledBuilderSchema plan, Key key, String path, Object input) {
@@ -317,33 +308,74 @@ public final class StructuredInputSupport {
                         "unambiguous required construction key; external-name collision: " + key.source() + ", " + String.join(", ", collisions), input, null);
         }
 
-        private Step step(Entry entry, Object input, String path) {
-            return switch (entry.role()) {
+        private void execute(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            switch (entry.role()) {
                 case OWNED_OBJECT -> {
                     if (!(input instanceof Map)) throw bad(entry, path, "domain Map for " + entry.payload().type().getName(), input, null);
-                    yield new Step(source, path, entry, null, null, domain(entry.payload().type(), input, path,
-                            directPosition(entry)), null);
+                    Domain child = domain(entry.payload().type(), input, path, directPosition(entry));
+                    Invocation invocation = new Invocation(source, path, entry, null);
+                    invocation.recordInvocation(builder);
+                    builder.createSingleChildWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
+                            child.key() == null ? entry.fixedChildKey() : child.key(), child::execute);
                 }
-                case KEYED_OWNED_MAP -> {
-                    if (!(input instanceof Map<?, ?> map))
-                        throw bad(entry, path, "Map of literal String instance keys to domain Maps", input, null);
-                    enter(input, path, entry.contract(), entry.externalName());
-                    try {
-                        List<KeyedChild> children = new ArrayList<>();
-                        for (Map.Entry<?, ?> supplied : map.entrySet()) {
-                            if (!(supplied.getKey() instanceof String key))
-                                throw bad(entry, path, "String instance key", supplied.getKey(), null);
-                            children.add(new KeyedChild(key, domain(entry.payload().type(), supplied.getValue(), pointer(path, key), Position.MAP_VALUE)));
-                        }
-                        yield new Step(source, path, entry, null, null, null, List.copyOf(children));
-                    } finally { visiting.remove(input); }
-                }
+                case KEYED_OWNED_MAP -> executeChildren(entry, input, path, builder);
                 case PROPERTY, OPERATION -> {
-                    Method method = method(entry, path);
-                    Value prepared = value(entry, entry.payload(), input, path);
-                    yield new Step(source, path, entry, method, prepared, null, null);
+                    Invocation invocation = new Invocation(source, path, entry, method(entry, path));
+                    if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST) {
+                        populateList(invocation, input, builder);
+                    } else if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.MAP) {
+                        populateMap(invocation, input, builder);
+                    } else {
+                        invocation.invoke(builder, new Object[]{value(entry, entry.payload(), input, path).materialize()}, path);
+                    }
                 }
-            };
+            }
+        }
+
+        private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            if (!(input instanceof Map<?, ?> map))
+                throw bad(entry, path, "Map of literal String instance keys to domain Maps", input, null);
+            enter(input, path, entry.contract(), entry.externalName());
+            try {
+                Invocation invocation = new Invocation(source, path, entry, null);
+                for (Map.Entry<?, ?> supplied : map.entrySet()) {
+                    if (!(supplied.getKey() instanceof String key))
+                        throw bad(entry, path, "String instance key", supplied.getKey(), null);
+                    Domain child = domain(entry.payload().type(), supplied.getValue(), pointer(path, key), Position.MAP_VALUE);
+                    invocation.recordInvocation(builder);
+                    builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
+                            key, child::execute);
+                }
+            } finally { visiting.remove(input); }
+        }
+
+        private void populateList(Invocation invocation, Object input, InternalKlumBuilder<?> builder) {
+            Entry entry = invocation.entry();
+            String path = invocation.path();
+            if (!(input instanceof List<?> list)) throw bad(entry, path, "List", input, null);
+            enter(input, path, entry.contract(), entry.externalName());
+            try {
+                for (int i = 0; i < list.size(); i++) {
+                    String location = pointer(path, Integer.toString(i));
+                    Object item = value(entry, entry.payload().item(), list.get(i), location).materialize();
+                    invocation.invoke(builder, new Object[]{item}, location);
+                }
+            } finally { visiting.remove(input); }
+        }
+
+        private void populateMap(Invocation invocation, Object input, InternalKlumBuilder<?> builder) {
+            Entry entry = invocation.entry();
+            String path = invocation.path();
+            if (!(input instanceof Map<?, ?> map)) throw bad(entry, path, "Map with String keys", input, null);
+            enter(input, path, entry.contract(), entry.externalName());
+            try {
+                for (Map.Entry<?, ?> supplied : map.entrySet()) {
+                    if (!(supplied.getKey() instanceof String key)) throw bad(entry, path, "String data-map key", supplied.getKey(), null);
+                    String location = pointer(path, key);
+                    Object item = value(entry, entry.payload().item(), supplied.getValue(), location).materialize();
+                    invocation.invoke(builder, new Object[]{key, item}, location);
+                }
+            } finally { visiting.remove(input); }
         }
 
         private static Position directPosition(Entry entry) {
@@ -368,7 +400,7 @@ public final class StructuredInputSupport {
         private Value value(Entry entry, Payload payload, Object input, String path) {
             if (input == null) throw bad(entry, path, payload.kind() + " " + payload.type().getTypeName(), null, null);
             if ((input instanceof Map || input instanceof List) && visiting.containsKey(input))
-                throw bad(entry, path, "acyclic input (cyclic container detected)", input, null);
+                throw bad(entry, path, ACYCLIC_INPUT, input, null);
             return switch (payload.kind()) {
                 case SCALAR -> scalar(entry, payload.type(), input, path);
                 case ENUM -> {
@@ -460,7 +492,7 @@ public final class StructuredInputSupport {
 
         private void enter(Object container, String path, Class<?> contract, String name) {
             if (visiting.put(container, Boolean.TRUE) != null)
-                throw problem(source, path, contract, name, "acyclic input (cyclic container detected)", container, null);
+                throw problem(source, path, contract, name, ACYCLIC_INPUT, container, null);
         }
 
         private KlumModelException bad(Entry entry, String path, String expected, Object actual, Throwable cause) {

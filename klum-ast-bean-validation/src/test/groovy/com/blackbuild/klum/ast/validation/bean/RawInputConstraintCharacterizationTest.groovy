@@ -80,7 +80,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         [percentage: 100.0G]  | 100
     }
 
-    def 'out of bound integral input passes preflight and fails final validation: #value'() {
+    def 'out of bound integral input passes payload checks and fails final validation: #value'() {
         given:
         def type = percentageSchema()
 
@@ -97,7 +97,8 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         value << [-1, 101]
     }
 
-    def 'invalid raw kinds and machine overflow reject before construction: #value'() {
+    @Issue('952')
+    def 'invalid raw kinds and machine overflow reject when reached after root creation: #value'() {
         given:
         def type = percentageSchema()
 
@@ -109,7 +110,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         !(failure instanceof KlumValidationException)
         failure.message.contains('capacity.json')
         failure.message.contains('/percentage')
-        type.creations == 0
+        type.creations == 1
 
         where:
         value << [null, false, '', '50', 0.5G, 2147483648G, -2147483649G]

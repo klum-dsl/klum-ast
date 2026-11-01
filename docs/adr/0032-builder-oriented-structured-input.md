@@ -2,8 +2,10 @@
 
 Date: 2026-10-31.
 
-Status: **Accepted semantic direction and `Struct.*` vocabulary; planning only, not implemented.**
-Implementation status: none from this decision. Current behavior remains the delivered ADR 0031 implementation.
+Status: **Accepted; vocabulary V0 and ordered-traversal S1 implemented. Other slices remain planned.**
+Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
+contract integrity and construction-key prerequisites. No new grammar is admitted. See the
+[S1 evidence](../implementation/input-round-s1-evidence.md).
 
 Authority: the maintainer's INPUT-ROUND-PLAN decisions, reconciled in the
 [implementation and issue plan](../implementation/input-round-plan-4-2.md). The 4.2 horizon records that direction;

@@ -30,7 +30,8 @@ public final class KlumStructuredInput {
     private KlumStructuredInput() { }
 
     /**
-     * Reads one concrete root through ordinary construction after complete input preflight.
+     * Reads one concrete root through ordinary construction in supplied Map/List iteration order.
+     * Input is checked as operations are reached. Failure returns no Model, but earlier side effects remain.
      * @param concreteType exact concrete Schema class, compiled and packaged with its generated metadata
      * @param rootKey explicit String key for a keyed root, or null for an unkeyed root
      * @param parsed caller-parsed domain Map with String keys; nested data follows the admitted Schema grammar
@@ -45,6 +46,8 @@ public final class KlumStructuredInput {
 
     /**
      * Reads a self-contained root, taking a keyed Schema's construction identity from its admitted key member.
+     * Only required identity is read ahead of allocation; remaining input follows supplied iteration order.
+     * Failure returns no Model and does not roll back earlier side effects.
      * @param concreteType exact concrete Schema class with generated input metadata
      * @param parsed caller-parsed domain Map with String keys
      * @param sourceName nonempty opaque diagnostic identity, never opened as a resource
@@ -57,8 +60,8 @@ public final class KlumStructuredInput {
     }
 
     /**
-     * Applies one completely preflighted input in supplied iteration order, then runs ordinary PostApply.
-     * Existing state predates this call; after execution starts, side effects are not rolled back on failure.
+     * Checks and invokes input operations in supplied iteration order, running ordinary PostApply on success.
+     * Failure stops traversal and may leave the caller's Builder partially configured. It is neither reset nor completed.
      * @param builder active, same-thread, unsealed ordinary generated Builder
      * @param parsed caller-parsed domain Map with String keys
      * @param sourceName nonempty diagnostic identity, never opened as a file or resource

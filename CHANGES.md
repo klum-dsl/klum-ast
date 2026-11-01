@@ -1,5 +1,10 @@
 # Unreleased
 
+- Structured input now checks and executes each operation in supplied Map/List iteration order. A later payload failure
+  leaves earlier effects in place; active Builders can remain partially configured, while failed root reads return no
+  Model. Static contract verification and construction-key prerequisites remain before use. See
+  [migration](docs/user/Migration.md#ordered-structured-input-failures) ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S1).
+
 - `copyFrom(Map)` now configures construction-only `FieldType.BUILDER` input for later Builder/lifecycle work, including
   inherited fields. Model-only members without Builder storage are ignored, while genuinely unknown names retain the
   configured missing-field policy. Builder-only state remains absent from completed Models. See
@@ -77,7 +82,7 @@
   Schema key's external name. Fixed/derived/Cluster keys, keyed Map values, explicit rootKey and active Builder targets
   retain their existing authority and reject inner keys. Generated JSON Schema now requires self-contained keys and
   reuses separate closed keyless definitions; ignored/colliding required keys fail generation without replacing prior
-  output. Supplied direct children that previously reached construction with null identity now reject in preflight.
+  output. Supplied direct children require identity before that child's allocation.
   Recompile Schemas and align compiler/runtime/plugin versions. See [construction keys](docs/user/Structured-Input.md#construction-keys)
   and [migration](docs/user/Migration.md#explicit-structured-construction-keys)
   ([#954](https://github.com/klum-dsl/klum-ast/issues/954)).
@@ -98,7 +103,7 @@
   ([#529](https://github.com/klum-dsl/klum-ast/issues/529)); real ScHelm root/output qualification remains pending.
 
 - Added opt-in parser-free `KlumStructuredInput.readRoot` and `applyToBuilder` for caller-parsed Map/List/scalar data.
-  Complete preflight precedes ordered Builder execution; concrete ownership, literal keyed maps and admitted one-payload
+  Static contract checks precede ordered, per-operation Builder execution; concrete ownership, literal keyed maps and admitted one-payload
   operations preserve ordinary construction/lifecycle semantics. Numeric/container/keyMapping admission is bounded;
   named parameters and Jackson retain their existing behavior. Recompile Schemas and ship generated metadata. See
   [structured input](docs/user/Structured-Input.md) ([#932](https://github.com/klum-dsl/klum-ast/issues/932)).

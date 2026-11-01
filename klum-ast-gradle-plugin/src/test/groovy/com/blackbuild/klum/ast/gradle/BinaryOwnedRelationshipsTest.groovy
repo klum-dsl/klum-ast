@@ -38,7 +38,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     File repository
     File trap
 
-    @Issue(['957', '954'])
+    @Issue(['957', '954', '952'])
     def 'binary owned relationships support #capability with Groovy #generation'() {
         given:
         fixture(generation)
@@ -221,13 +221,16 @@ class Consumer {
         assert Trace.events == nativeTrace
         Trace.events.clear()
         try {
-            KlumStructuredInput.readRoot(Deployment, null, [workloads: [('a/b~c'): [image: 42]]], 'invalid.yaml')
+            KlumStructuredInput.readRoot(Deployment, null,
+                    [facts: ['host-name': 'earlier'], workloads: [('a/b~c'): [image: 42]],
+                     inherited: ['host-name': 'never']], 'invalid.yaml')
             assert false: 'Invalid nested input must reject'
         } catch (KlumModelException failure) {
             assert failure.message.contains('invalid.yaml')
             assert failure.message.contains('/workloads/a~1b~0c/image')
         }
-        assert Trace.events.empty
+        assert Trace.events == ['facts:create', 'facts:apply', 'workload:create']
+        Trace.events.clear()
         for (String rejected : ['abstractFacts', 'genericFacts', 'consumeBuilder', 'mapped', 'ignored']) {
             try {
                 KlumStructuredInput.readRoot(Deployment, null, [(rejected): [:]], 'rejected.yaml')

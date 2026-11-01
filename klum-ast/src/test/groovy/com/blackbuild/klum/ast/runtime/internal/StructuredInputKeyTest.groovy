@@ -223,7 +223,8 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         absent.service == null
     }
 
-    def 'missing child identity rejects the complete tree without mutating an active Builder: #payload'() {
+    @Issue('952')
+    def 'missing child identity stops before its allocation after earlier siblings: #payload'() {
         given:
         def deployment = schema('''
             package keyinput
@@ -237,6 +238,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
             }
             @DSL class Service {
                 @Key String name
+                String allocation = { Deployment.events << 'allocated'; 'allocated' }()
                 @PostCreate void created() { Deployment.events << name }
                 Service nested
             }
@@ -254,15 +256,15 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         failure.message.contains(pointer)
         failure.message.contains('required construction key')
         model.name == 'fixed'
-        model.value == 'before'
+        model.value == 'after'
         model.service == null
-        deployment.events.empty
+        deployment.events == events
 
         where:
-        payload                                                       | pointer
-        [record: 'after', service: [:]]                                | '/service/name'
-        [record: 'after', service: [name: 'ok', nested: [:]]]            | '/service/nested/name'
-        [record: 'after', service: [name: null]]                        | '/service/name'
+        payload                                                       | pointer | events
+        [record: 'after', service: [:]]                                | '/service/name' | ['after']
+        [record: 'after', service: [name: 'ok', nested: [:]]]            | '/service/nested/name' | ['after', 'allocated', 'ok']
+        [record: 'after', service: [name: null]]                        | '/service/name' | ['after']
     }
 
     def 'external identity sources forbid inner keys even when equal: #position #inner'() {
@@ -300,7 +302,8 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         'map'     | 'different' | [services: [outer: [name: 'different']]] | '/services/outer/name' | 'outer Map entry key'
     }
 
-    def 'active Builder identity cannot be confirmed or changed and no earlier operations run: #inner'() {
+    @Issue('952')
+    def 'active Builder identity cannot be confirmed or changed after earlier operations: #inner'() {
         given:
         def deployment = schema('''
             package keyinput
@@ -318,13 +321,14 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         then:
         failure.message.contains('already allocated active Builder')
         model.name == 'fixed'
-        model.value == 'before'
+        model.value == 'after'
 
         where:
         inner << ['fixed', 'different']
     }
 
-    def 'provider execution stays after complete preflight and retains normal authority'() {
+    @Issue('952')
+    def 'provider executes when its child is reached before later payload failures'() {
         given:
         def deployment = schema('''
             package keyinput
@@ -342,14 +346,14 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         then:
         def failure = thrown(KlumModelException)
         failure.message.contains('/unknown')
-        deployment.events.empty
+        deployment.events == ['provider']
 
         when:
         def model = KlumStructuredInput.readRoot(deployment, [service: [:]], 'ok.yaml')
 
         then:
         model.service.name == 'derived'
-        deployment.events == ['provider']
+        deployment.events == ['provider', 'provider']
     }
 
     def 'key placement preserves ordered operations while nested builders share lifecycle and ownership: #order'() {
@@ -545,7 +549,8 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         external.label == 'ordinary'
     }
 
-    def 'unknown native spelling names the accepted key and supplied errors precede missing-key errors'() {
+    @Issue('952')
+    def 'required construction identity precedes unrelated member errors'() {
         given:
         loader.parseClass '''
             package com.fasterxml.jackson.annotation
@@ -556,7 +561,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             import com.fasterxml.jackson.annotation.JsonProperty
             @DSL class Deployment {
-                static { throw new AssertionError('Schema initialized during preflight') }
+                static { throw new AssertionError('Schema initialized without required identity') }
                 @Key @JsonProperty('identity') String name
             }
         ''')
@@ -566,16 +571,16 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
         then:
         def nativeFailure = thrown(KlumModelException)
-        nativeFailure.message.contains('/name')
-        nativeFailure.message.contains("accepted construction key spelling is 'identity'")
+        nativeFailure.message.contains('/identity')
+        nativeFailure.message.contains('member is absent')
 
         when:
         KlumStructuredInput.readRoot(deployment, [unknown: true], 'missing.yaml')
 
         then:
         def missingFailure = thrown(KlumModelException)
-        missingFailure.message.contains('/unknown')
-        !missingFailure.message.contains('member is absent')
+        missingFailure.message.contains('/identity')
+        missingFailure.message.contains('member is absent')
     }
 
     def 'actual key named key supports the existing suppressed-getter shape with external naming'() {
@@ -690,6 +695,86 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
         where:
         input << [[:], [name: null], [name: 42]]
+    }
+
+    @Issue('952')
+    def 'late keys precede allocation while unrelated body members wait for traversal: child=#child'() {
+        given:
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Deployment {
+                @Key String name
+                static List<String> events = []
+                Service service
+                @PostCreate void created() { events << "root:$name".toString() }
+                @Builder.Method void first(String value) { events << value }
+                @Builder.Method void last(String value) { events << value }
+            }
+            @DSL class Service {
+                @Key String name
+                @PostCreate void created() { Deployment.events << "child:$name".toString() }
+                @Builder.Method void first(String value) { Deployment.events << value }
+                @Builder.Method void last(String value) { Deployment.events << value }
+            }
+        ''')
+        def body = [first: 'first', unknown: true, last: 'never', name: 'late']
+        def input = child ? [first: 'sibling', service: body, name: 'root'] : body
+
+        when:
+        KlumStructuredInput.readRoot(deployment, input, 'late.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains(child ? '/service/unknown' : '/unknown')
+        deployment.events == (child ? ['root:root', 'sibling', 'child:late', 'first'] : ['root:late', 'first'])
+
+        where:
+        child << [false, true]
+    }
+
+    @Issue('952')
+    def 'construction keys use exact names regardless of Map lookup semantics: #mapKind child=#child'() {
+        given:
+        def deployment = schema('''
+            package keyinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Deployment {
+                @Key String name
+                static List<String> events = []
+                Service service
+                @PostCreate void created() { events << 'root' }
+                @Builder.Method void first(String value) { events << value }
+            }
+            @DSL class Service {
+                @Key String name
+                String allocation = { Deployment.events << 'child'; 'allocated' }()
+            }
+        ''')
+        Map body = mapKind == 'identity' ? new IdentityHashMap() : new TreeMap(String.CASE_INSENSITIVE_ORDER)
+        body.put(new String(mapKind == 'identity' ? 'name' : 'NAME'), 'catalog')
+        Map input = child ? [name: 'root', first: 'sibling', service: body] : body
+        def result
+        def failure
+
+        when:
+        try { result = KlumStructuredInput.readRoot(deployment, input, 'map-key.yaml') }
+        catch (KlumModelException caught) { failure = caught }
+
+        then:
+        if (mapKind == 'identity') {
+            assert failure == null
+            assert (child ? result.service.name : result.name) == 'catalog'
+            assert deployment.events == (child ? ['root', 'sibling', 'child'] : ['root'])
+        } else {
+            assert result == null
+            assert failure.message.contains(child ? '/service/name' : '/name')
+            assert failure.message.contains('member is absent')
+            assert deployment.events == (child ? ['root', 'sibling'] : [])
+        }
+
+        where:
+        [mapKind, child] << [['identity', 'case-insensitive'], [false, true]].combinations()
     }
 
 }

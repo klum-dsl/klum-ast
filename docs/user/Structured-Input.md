@@ -340,7 +340,7 @@ non-generic domain class. Broader custom converter/factory routes remain outside
 Converter input is a String scalar at the field's effective external name. Quote numeric YAML values; neither numeric
 coercion nor null admission is added. An absent optional field remains allowed. The public Builder selects the exact
 overload, while its matched domain artifact supplies the selected parameter facts. Missing/malformed associations or
-parameter facts fail during preparation, even behind naming exclusion or OMIT. Recompile participating Schemas after
+parameter facts fail during static contract verification, even behind naming exclusion or OMIT. Recompile participating Schemas after
 domain contract changes. Pattern projection is an authoring aid; structured import does not enforce parameter constraints
 or automatically validate input against JSON Schema (#971).
 
@@ -361,13 +361,41 @@ then identity. See [literal names and exclusion](#literal-names-and-exclusion). 
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
 
-## Preparation, order and failures
+## Order and failures
 
-The complete input is checked before any input operation or root allocation: names, shapes, types, numeric limits,
-enum names, required construction keys and container cycles. Keys are extracted without mutating the supplied Map
-and reach root/child allocation before PostCreate. Extracting a key does not reorder the remaining operations. Preparation executes no Schema initialization, callbacks, operations, converters,
-constructors or enum initialization. A bad entry anywhere prevents all execution for this call. Existing active Builder
-state can predate the call. Repeated acyclic shared values are allowed, and prepared containers are snapshots.
+Input is checked one operation at a time and execution stops at the first encountered invalid name, payload, type,
+child or invocation. Earlier operations and their ordinary side effects remain; later operations are not reached.
+There is no whole-document payload preflight or rollback. A failed `readRoot` returns no completed Model.
+A failed `applyToBuilder` can leave the caller's Builder partially configured; it does not reset or complete it,
+and does not run PostApply for the failed application.
+
+Source, root Map, active same-thread unsealed target and complete static contract checks precede traversal. The full
+admitted ownership contract graph is verified even for omitted children, without executing user code. A newly allocated
+keyed root or direct child reads its required construction key before allocation and PostCreate, wherever that key occurs
+in its Map. Its remaining body is not checked ahead. A missing or invalid required key prevents that object's allocation;
+earlier siblings may already have run. Externally supplied identity remains authoritative and inner keys reject when reached.
+
+A typed List/Map passed as one authored operation argument is validated as one payload before that invocation. Generated
+population routes instead check and invoke each element or Map entry in supplied order. Cyclic containers reject when
+reached; repeated acyclic shared values remain allowed. The interpreter does not take a whole-input snapshot.
+
+(See: `StructuredInputRuntimeTest#'supplied operation order configures the Builder until the first invalid member'`.)
+
+```groovy
+@DSL class Application { String host; int port }
+
+def failure
+// This caller deliberately catches the failure and continues its enclosing construction.
+def model = Application.Create.With {
+    try {
+        KlumStructuredInput.applyToBuilder(delegate,
+                [host: 'api', unknown: true, port: 8080], 'application.yaml')
+    } catch (KlumModelException caught) { failure = caught }
+}
+assert failure.message.contains('/unknown')
+assert model.host == 'api'
+assert model.port == 0
+```
 
 Execution follows each supplied Map's iteration order recursively and each List's element order. An insertion-ordered
 Map preserves the caller's chosen order; an unordered Map exposes its own iteration order. There is no portable parser
@@ -379,10 +407,9 @@ Builder contract and expected/actual shape or type. Pointer tokens escape `/` as
 included. Original operation causes are retained. Late lifecycle/validation failures keep their normal framework behavior
 and are not attributed to an invented last input leaf. No input provenance is retained on the completed Model.
 A Template or earlier operation may already have populated a child. Ordinary same-key reuse and different-key
-rejection still apply during execution; preflight cannot predict that state.
+rejection still apply during execution.
 A parser must reject repeated raw JSON/YAML member names before collapsing them into a Map; neither this API nor JSON
 Schema can recover discarded duplicates.
-Once Schema execution begins, ordinary side effects remain if a later operation fails; there is no rollback.
 
 [Jackson integration](Jackson-Integration.md) remains an independent foreign-data binding route with its existing
 callback and codec behavior. Structured input is opt-in and does not change named-parameter configuration or Jackson.

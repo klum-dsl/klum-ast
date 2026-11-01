@@ -27,6 +27,8 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
+import spock.lang.Tag
+import spock.lang.See
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 
 import java.util.concurrent.atomic.AtomicReference
@@ -63,7 +65,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
                 @Builder.Method void multiply(int value) { count *= value; events << "multiply:$value".toString() }
                 @Builder.Method void values(List<String> value) { summary = value.join(':') }
                 @Builder.Method void settings(Map<String, String> value) { summary = value.host }
-                @Builder.Method void mutate(String value) { ((List<String>) supplied.words).clear(); supplied.put('unknown', true) }
+                @Builder.Method void mutate(String value) { ((List<String>) supplied.words).clear() }
                 @Builder.Method void fail(String value) { count = 99; throw new IllegalArgumentException(value) }
                 @Builder.Method void explode(String value) { throw new AssertionError(value) }
                 @PostCreate void created() { events << 'root:create' }
@@ -82,6 +84,8 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
                 @Key String name
                 @Owner Document owner
                 String value
+                @Builder.Method void first(String text) { value = text; Document.events << "entry:first:$text".toString() }
+                @Builder.Method void last(String text) { value = text; Document.events << "entry:last:$text".toString() }
                 @PostCreate void created() { Document.events << "entry:create:$name".toString() }
                 @PostApply void applied() { Document.events << "entry:apply:$name:$value".toString() }
             }
@@ -141,7 +145,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         document.events == ['root:create', 'multiply:4', 'add:3', 'root:apply', 'root:tree']
     }
 
-    def 'nested ownership keyed creation collection population and whole payloads retain prepared order'() {
+    def 'nested ownership keyed creation collection population and whole payloads retain supplied order'() {
         given:
         def document = documentSchema()
         def input = [words: ['b', 'a'], ranks: [3, 1, 3, 2], prices: [b: 2.5G, a: 1G],
@@ -173,81 +177,139 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         input.words == ['b', 'a']
     }
 
-    def 'complete preflight leaves an active Builder unchanged: #input'() {
+    @Issue('952')
+    def 'nested and population order follows reversed supplied containers'() {
+        given:
+        def document = documentSchema()
+
+        when:
+        def first = KlumStructuredInput.readRoot(document,
+                [child: [prefix: 'a', suffix: 'b'], entries: [second: [:], first: [:]], words: ['b', 'a']], 'first.yaml')
+        def firstEvents = new ArrayList(document.events)
+        document.events.clear()
+        def second = KlumStructuredInput.readRoot(document,
+                [words: ['a', 'b'], entries: [first: [:], second: [:]], child: [suffix: 'b', prefix: 'a']], 'second.yaml')
+
+        then:
+        first.words == ['b', 'a']
+        second.words == ['a', 'b']
+        first.entries.keySet().toList() == ['second', 'first']
+        second.entries.keySet().toList() == ['first', 'second']
+        firstEvents == ['root:create', 'prefix:a', 'suffix:b', 'child:apply:ab',
+                        'entry:create:second', 'entry:apply:second:null', 'entry:create:first', 'entry:apply:first:null',
+                        'root:apply', 'root:tree']
+        document.events == ['root:create', 'entry:create:first', 'entry:apply:first:null',
+                            'entry:create:second', 'entry:apply:second:null', 'suffix:b', 'prefix:a', 'child:apply:ab',
+                            'root:apply', 'root:tree']
+    }
+
+    @Issue('952')
+    def 'active Builder retains only reached operations on payload failure: #input'() {
         given:
         def document = documentSchema()
         def failure
 
         when:
         def model = document.Create.With {
-            def before = new ArrayList(document.events)
             try { KlumStructuredInput.applyToBuilder(delegate, input, 'bad.yaml') }
             catch (KlumModelException caught) { failure = caught }
             assert failure != null
-            assert ((InternalKlumBuilder) delegate).getInstanceAttribute('count') == 2
-            assert document.events == before
+            assert ((InternalKlumBuilder) delegate).getInstanceAttribute('count') == count
+            assert !((InternalKlumBuilder) delegate).sealed
+            assert ((InternalKlumBuilder) delegate).completedModel == null
+            assert document.events == events
         }
 
         then:
-        model.count == 2
+        model.count == count
         failure.message.contains('bad.yaml')
         failure.message.contains(pointer)
         failure.message.contains(contract)
-        document.events == ['root:create', 'root:apply', 'root:tree']
+        document.events == events + ['root:apply', 'root:tree']
 
         where:
-        input                                                         | pointer                    | contract
-        [unknown: 1, add: 3]                                           | '/unknown'                  | 'Document_DSL$Builder'
-        [add: 3, unknown: 1]                                           | '/unknown'                  | 'Document_DSL$Builder'
-        [add: 3, child: [unknown: 'bad']]                               | '/child/unknown'            | 'Child_DSL$Builder'
-        [add: 3, entries: [ok: [value: 'first'], 'a/b~c': [name: 'x']]]  | '/entries/a~1b~0c/name'      | 'Entry_DSL$Builder'
-        [add: 3, matrix: ['a/b~': [1, 'wrong']]]                        | '/matrix/a~1b~0/1'          | 'Document_DSL$Builder'
-        [add: 3, words: [null]]                                        | '/words/0'                  | 'Document_DSL$Builder'
+        input                                                         | pointer                 | contract               | count | events
+        [unknown: 1, add: 3]                                           | '/unknown'              | 'Document_DSL$Builder' | 2     | ['root:create']
+        [add: 3, unknown: 1, multiply: 4]                               | '/unknown'              | 'Document_DSL$Builder' | 5     | ['root:create', 'add:3']
+        [add: 3, enabled: 'bad', multiply: 4]                           | '/enabled'              | 'Document_DSL$Builder' | 5     | ['root:create', 'add:3']
+        [add: 3, child: [prefix: 'a', unknown: 'bad', suffix: 'z']]      | '/child/unknown'        | 'Child_DSL$Builder'    | 5     | ['root:create', 'add:3', 'prefix:a']
+        [add: 3, entries: [ok: [value: 'first'], 'a/b~c': [name: 'x'], later: [:]]] | '/entries/a~1b~0c/name' | 'Entry_DSL$Builder' | 5 | ['root:create', 'add:3', 'entry:create:ok', 'entry:apply:ok:first', 'entry:create:a/b~c']
+        [entries: ['a/b~c': [first: 'one', unknown: true, last: 'never'], later: [:]], multiply: 4] | '/entries/a~1b~0c/unknown' | 'Entry_DSL$Builder' | 2 | ['root:create', 'entry:create:a/b~c', 'entry:first:one']
+        [add: 3, matrix: ['a/b~': [1, 'wrong']], multiply: 4]            | '/matrix/a~1b~0/1'      | 'Document_DSL$Builder' | 5     | ['root:create', 'add:3']
+        [add: 3, words: [null], multiply: 4]                            | '/words/0'              | 'Document_DSL$Builder' | 5     | ['root:create', 'add:3']
     }
 
-    def 'preflight does not initialize Schema or enum code before a later unknown entry rejects'() {
+    @Issue('952')
+    def 'population retains earlier elements but a typed operation argument is validated as one payload: #input'() {
         given:
-        def trapped = schema('''
-            package trappedinput
-            import com.blackbuild.klum.ast.*
-            @DSL class Document {
-                static { throw new AssertionError('Schema initialized before complete preflight') }
-                Mode mode
-            }
-            enum Mode {
-                READY
-                static { throw new AssertionError('Enum initialized during preflight') }
-            }
-        ''', 'trappedinput.Document')
+        def document = documentSchema()
+        def failure
 
         when:
-        KlumStructuredInput.readRoot(trapped, null, [mode: 'READY', unknown: true], 'trapped.yaml')
+        def model = document.Create.With {
+            try { KlumStructuredInput.applyToBuilder(delegate, input, 'population.yaml') }
+            catch (KlumModelException caught) { failure = caught }
+        }
+
+        then:
+        failure.message.contains(pointer)
+        model.words == words
+        model.prices == prices
+        model.summary == null
+        !document.events.contains('multiply:4')
+
+        where:
+        input                                              | pointer     | words     | prices
+        [words: ['first', null, 'third'], multiply: 4]       | '/words/1'  | ['first'] | [:]
+        [prices: [first: 1, bad: 'x', third: 3], multiply: 4]| '/prices/bad' | []      | [first: 1G]
+        [values: ['first', null, 'third'], multiply: 4]      | '/values/1' | []        | [:]
+    }
+
+    @Issue('952')
+    def 'root failure returns no Model after earlier effects and cleans up for the next root'() {
+        given:
+        def document = documentSchema()
+        def result = null
+
+        when:
+        result = KlumStructuredInput.readRoot(document, [add: 3, unknown: true, multiply: 4], 'root.yaml')
 
         then:
         def failure = thrown(KlumModelException)
+        result == null
         failure.message.contains('/unknown')
+        document.events == ['root:create', 'add:3']
+
+        when:
+        def fresh = KlumStructuredInput.readRoot(document, [multiply: 4], 'fresh.yaml')
+
+        then:
+        fresh.count == 8
+        document.events == ['root:create', 'add:3', 'root:create', 'multiply:4', 'root:apply', 'root:tree']
     }
 
-    def 'preflight snapshots containers before an operation can change caller input'() {
+    @Issue('952')
+    def 'later containers are read when reached without a whole-input snapshot'() {
         given:
         def document = documentSchema()
         def input = [mutate: 'go', words: ['first', 'second']]
         document.supplied = input
 
         when:
-        def model = KlumStructuredInput.readRoot(document, null, input, 'snapshot.yaml')
+        def model = KlumStructuredInput.readRoot(document, null, input, 'live.yaml')
 
         then:
-        model.words == ['first', 'second']
+        model.words.empty
         input.words.empty
-        input.unknown
     }
 
-    def 'cyclic containers reject while repeated acyclic data can be prepared twice'() {
+    @Issue('952')
+    def 'cyclic containers stop traversal while repeated acyclic data remains usable'() {
         given:
         def document = documentSchema()
-        def cycle = [:]
+        def cycle = [add: 3]
         cycle.child = cycle
+        cycle.multiply = 4
 
         when:
         KlumStructuredInput.readRoot(document, null, cycle, 'cycle.yaml')
@@ -256,7 +318,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def failure = thrown(KlumModelException)
         failure.message.contains('/child')
         failure.message.contains('cyclic')
-        document.events.empty
+        document.events == ['root:create', 'add:3']
 
         when:
         def shared = ['a', 'b']
@@ -264,6 +326,34 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         then:
         model.rows == [['a', 'b'], ['a', 'b']]
+    }
+
+    @Issue('952')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#order-and-failures')
+    def 'supplied operation order configures the Builder until the first invalid member'() {
+        given:
+        def application = schema('''
+            package orderedexample
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Application { String host; int port }
+        ''', 'orderedexample.Application')
+        def failure
+
+        when:
+        def model = application.Create.With {
+            try {
+                KlumStructuredInput.applyToBuilder(delegate,
+                        [host: 'api', unknown: true, port: 8080], 'application.yaml')
+            } catch (KlumModelException caught) { failure = caught }
+            // The caller explicitly chooses to continue its enclosing construction.
+            assert !((InternalKlumBuilder) delegate).sealed
+        }
+
+        then:
+        failure.message.contains('/unknown')
+        model.host == 'api'
+        model.port == 0
     }
 
     def 'active route returns the same Builder and rejects use from another thread or after completion'() {
@@ -300,12 +390,13 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         thrown(KlumModelException)
     }
 
-    def 'operation failure retains cause and external pointer and root cleanup permits another root'() {
+    @Issue('952')
+    def 'operation failure retains cause before later invalid input and root cleanup permits another root'() {
         given:
         def document = documentSchema()
 
         when:
-        KlumStructuredInput.readRoot(document, null, [fail: 'authored failure'], 'failure.yaml')
+        KlumStructuredInput.readRoot(document, null, [fail: 'authored failure', unknown: true, add: 1], 'failure.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -353,13 +444,13 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         model.precise == 0.125G
     }
 
-    def 'unsupported numeric values reject before construction at #pointer'() {
+    @Issue('952')
+    def 'unsupported numeric values reject when reached at #pointer'() {
         given:
         def numeric = schema('''
             package invalidnumericinput
             import com.blackbuild.klum.ast.DSL
             @DSL class Numbers {
-                static { throw new AssertionError('Allocated invalid numeric root') }
                 byte tiny
                 int count
                 float single
@@ -513,7 +604,8 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         model.ordinary == ['literal/a~': 'value']
     }
 
-    def 'invalid root shapes names and scalar kinds reject before allocation: #label'() {
+    @Issue('952')
+    def 'invalid root shapes reject before allocation and members reject when reached: #label'() {
         given:
         def document = documentSchema()
 
@@ -523,7 +615,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         then:
         def failure = thrown(KlumModelException)
         failure.message.contains('shape.yaml')
-        document.events.empty
+        document.events == (payload instanceof Map ? ['root:create'] : [])
 
         where:
         label           | payload
