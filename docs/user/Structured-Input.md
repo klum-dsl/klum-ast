@@ -340,7 +340,7 @@ non-generic domain class. Broader custom converter/factory routes remain outside
 Converter input is a String scalar at the field's effective external name. Quote numeric YAML values; neither numeric
 coercion nor null admission is added. An absent optional field remains allowed. The public Builder selects the exact
 overload, while its matched domain artifact supplies the selected parameter facts. Missing/malformed associations or
-parameter facts fail during preparation, even behind naming exclusion or OMIT. Recompile participating Schemas after
+parameter facts fail during static contract verification, even behind naming exclusion or OMIT. Recompile participating Schemas after
 domain contract changes. Pattern projection is an authoring aid; structured import does not enforce parameter constraints
 or automatically validate input against JSON Schema (#971).
 
