@@ -291,6 +291,24 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         !new InputContractResolver().read(type).entries().containsKey('timeout')
     }
 
+    def 'long structural converter descriptors remain inert during inspection'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @Field(converters = [{ String value -> throw new AssertionError('converter executed') }])
+                Duration timeout
+            }
+        ''')
+        damageContract('long valid descriptor')
+
+        when:
+        def contract = new InputContractResolver().read(type)
+
+        then:
+        contract.entries().timeout.payload().type() == String
+        !contract.entries().timeout.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
+    }
+
     def 'structural converter association and exact projection fail closed when damaged: #damage'() {
         given:
         def type = schema('''
@@ -308,7 +326,8 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         failure.message.contains('recompile')
 
         where:
-        damage << ['missing projection', 'missing association', 'missing authority', 'invalid authority', 'wrong descriptor']
+        damage << ['missing projection', 'missing association', 'missing authority', 'invalid authority', 'wrong descriptor',
+                   'long invalid descriptor']
     }
 
     private void damageContract(String damage) {
@@ -316,11 +335,15 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (damage == 'missing projection' && name == 'timeout' && descriptor.startsWith('(Ljava/lang/String;)')) return null
+                if (damage == 'missing projection' && name == 'timeout' && descriptor.startsWith('(Ljava/lang/String;)')) {
+                    return null
+                }
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (damage == 'missing association' && annotation.endsWith('GeneratedInput$Converter;')) return null
+                        if (damage == 'missing association' && annotation.endsWith('GeneratedInput$Converter;')) {
+                            return null
+                        }
                         def downstream = super.visitAnnotation(annotation, visible)
                         annotation.endsWith('GeneratedInput$Converter;') ? damageAssociation(downstream, damage) : downstream
                     }
@@ -333,9 +356,18 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
     private static AnnotationVisitor damageAssociation(AnnotationVisitor downstream, String damage) {
         new AnnotationVisitor(Opcodes.ASM9, downstream) {
             @Override void visit(String member, Object value) {
-                if (damage == 'missing authority' && member == 'parameterFacts') return
-                if (damage == 'invalid authority' && member == 'parameterFacts') value = 'false'
-                if (damage == 'wrong descriptor' && member == 'descriptor') value = '(I)V'
+                if (damage == 'missing authority' && member == 'parameterFacts') {
+                    return
+                }
+                if (damage == 'invalid authority' && member == 'parameterFacts') {
+                    value = 'false'
+                }
+                if (damage == 'wrong descriptor' && member == 'descriptor') {
+                    value = '(I)V'
+                }
+                if (member == 'descriptor' && damage.startsWith('long ')) {
+                    value = '(Ljava/lang/String;)L' + 'segment/' * 4096 + (damage == 'long valid descriptor' ? 'Value;' : ';')
+                }
                 super.visit(member, value)
             }
         }
@@ -343,7 +375,9 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
 
     private static List<Throwable> causes(Throwable failure) {
         List<Throwable> result = []
-        for (Throwable cause = failure; cause != null; cause = cause.cause) result.add(cause)
+        for (Throwable cause = failure; cause != null; cause = cause.cause) {
+            result.add(cause)
+        }
         result
     }
 }

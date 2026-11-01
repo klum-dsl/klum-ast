@@ -478,7 +478,7 @@ final class StructuredInputAdmissionPlan {
 
     /** Existing scalar exclusions apply before considering an already-generated String projection. */
     static boolean supportsScalarConverterInput(ClassNode type) {
-        return !isDSLObject(type) && !isCollection(type) && !isMap(type) && !type.isArray()
+        return type != null && !isDSLObject(type) && !isCollection(type) && !isMap(type) && !type.isArray()
                 && !type.equals(ClassHelper.OBJECT_TYPE) && !type.isGenericsPlaceHolder()
                 && unsupportedNumericType(type) == null && payloadForField(type) == null;
     }

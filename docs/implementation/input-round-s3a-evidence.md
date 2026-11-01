@@ -100,6 +100,40 @@ Validation after the focused test-only additions:
 - No production change, new metadata, dispatcher, reflective fallback, admission widening or broad-check rerun.
   The full implementation qualification below remains applicable; hosted checks must be read for the updated PR head.
 
+## SonarCloud follow-up for PR #1004
+
+The analysis of `39e481e1d532c0f1a8145e79faa9ec6f8eee1f8c` reported eight findings. All are addressed locally without
+suppression or manual issue-state changes; the next coverage-bearing CI analysis must establish the new hosted result.
+
+| Finding | Correction and evidence |
+| --- | --- |
+| `javabugs:S2259` in `supportsScalarConverterInput` | Reject a null destination before the three null-tolerant type predicates and subsequent dereference. A new direct boundary test reproduced the NPE before the guard and passes afterward. No normal Schema compilation supplying a null field type was established. |
+| `java:S5998` in `validStructuralConverterDescriptor` | Make only the package-segment repetition possessive. The real metadata-reading path reproduced `StackOverflowError` for a valid descriptor with 4,096 segments before the change; the descriptor now passes inert inspection and a malformed long descriptor rejects. |
+| Six `groovydre:S8306` findings | Add braces to the six reported branches/loop in `StructuredConverterOriginTest` helpers. No repository-wide style policy change. |
+
+A segment excludes both slash and semicolon, so returning a completed package segment cannot enable a successful match.
+The possessive quantifier preserves the existing accepted descriptor language and avoids recursive backtracking.
+This remains a limited provenance sanity check: converter dispatch, C1 parameter authority, schema projection and S3a
+admission scope are unchanged. No new dispatcher, descriptor framework, metadata, reflection fallback or deferred feature
+was introduced.
+
+The initial focused red run had two failures: the helper-null NPE and the long-valid-descriptor stack overflow. Both
+passed after the minimal corrections. Subsequent affected-suite validation passed in 5m 20s (89 tasks):
+
+| Suite | Tests | Failures / errors | Skipped |
+| --- | ---: | ---: | ---: |
+| Compiler full G3 baseline | 2,611 | 0 / 0 | 16 |
+| Compiler admission/origin/selection/JPMS, each of G4/G5 | 100 | 0 / 0 | 0 |
+| Runtime full suite, each of G3/G4/G5 | 73 | 0 / 0 | 1 |
+| Bean Validation full G3 baseline | 154 | 0 / 0 | 0 |
+| Compiled converter/C1, each of G4/G5 | 103 | 0 / 0 | 0 |
+| Packaged schema cases, including G3/G4/G5 producers | 8 | 0 / 0 | 0 |
+
+License checks, affected lane-isolation checks and the independent 508-check actual-output oracle passed. The full
+repository check was not repeated for these two narrow guards; the affected module baselines and relevant compatibility,
+JPMS and packaged-consumer checks were run instead. Standards and Specification review of the correction each reported
+zero findings. Existing reviewed commits are preserved; corrections are an additive follow-up.
+
 ## Master integration and current validation
 
 On 2026-11-01, the S2 merge was verified at the exact requested master above. Rebase preserved the production changes

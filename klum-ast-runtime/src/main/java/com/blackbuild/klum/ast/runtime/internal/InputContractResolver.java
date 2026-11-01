@@ -465,7 +465,8 @@ final class InputContractResolver {
     private static boolean validStructuralConverterDescriptor(ConverterSelection selected) {
         if (selected.name().equals("<init>")) return selected.descriptor().equals("(Ljava/lang/String;)V");
         // The source may return a subtype; the exact destination type belongs to the public Builder projection.
-        return selected.descriptor().matches("\\(Ljava/lang/String;\\)L[^.;\\[()/]+(?:/[^.;\\[()/]+)*;");
+        // Possessive repetition avoids stack growth; a name segment cannot consume a package separator.
+        return selected.descriptor().matches("\\(Ljava/lang/String;\\)L[^.;\\[()/]+(?:/[^.;\\[()/]+)*+;");
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
