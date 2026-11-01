@@ -143,9 +143,19 @@ The six original S2 commits rebased without conflicts; `git range-diff` reports 
 production changes move the pointer helper into Traversal and extract the repeated cycle diagnostic; no S2 adjustment
 was required. Rebased commits are `6093a7416`, `3b0a05a8b`, `7144823be`, `01d4b01cf`, `1057cb94c` and `ebbe55c64`.
 
-Fresh aggregate validation and the same two local review axes are pending on the integrated branch. The earlier counts
-above describe qualification before integration and are not a substitute for this gate. This section will record the
-integrated result before publication.
+The clean integrated head `1221e33e6fca38e9e8101ab3b05d1f2a34ddd718` passed the same JDK 17 root `check` command on 2026-11-01:
+**BUILD SUCCESSFUL in 28m 58s**, 140 actionable tasks (73 executed, 67 up-to-date). All JUnit XML reports were inspected:
+zero failures/errors, with 3603 baseline cases and 2928 cases in each Groovy 4/5 lane; existing skips remain 17/16/16.
+The module counts match the table above, including all 653 plugin cases, 40 selection cases and 97 C1 converter cases per
+applicable lane. Binary/JPMS consumers, schema producer matrices, license, lane-isolation, plugin and documentation
+verification all passed. The checkout remained clean throughout this run, including nested fixture publication.
+
+The same two read-only children renewed Standards and Specification review at `1221e33e6`: zero open findings on both
+axes. Local checks resolved 171 Markdown targets/anchors, and `git diff --check` passed. The final evidence-only commit
+changes no qualified production code, tests, fixtures or build inputs. Integrated diagnostics are retained locally as
+`/tmp/s2-integrated-check.log` and `/tmp/s2-integrated-results.json`.
+
+Delivery-channel audit: SSH Git push — authorized (dry run); GitHub CLI — authorized (repository permission).
 
 ## Delivery boundary
 
