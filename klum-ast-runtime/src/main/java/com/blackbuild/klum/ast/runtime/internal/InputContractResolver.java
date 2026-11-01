@@ -129,8 +129,10 @@ final class InputContractResolver {
 
     private Entry selectOperation(String name, List<Entry> group, List<Rejection> rejected, boolean strict) {
         List<Entry> marked = group.stream().filter(this::authoritativeString).toList();
-        if (marked.size() > 1) throw invalid("Multiple @Struct.Operation candidates for '" + name + "': "
-                + marked.stream().map(Entry::source).collect(Collectors.joining(", ")));
+        if (marked.size() > 1) {
+            throw invalid("Multiple @Struct.Operation candidates for '" + name + "': "
+                    + marked.stream().map(Entry::source).collect(Collectors.joining(", ")));
+        }
         if (marked.size() == 1) return marked.get(0);
         if (group.size() == 1) {
             Entry unique = group.get(0);
@@ -188,7 +190,7 @@ final class InputContractResolver {
             if (!parentModel.isAssignableFrom(model)) throw invalid("Unrelated Builder parent " + parent.getName());
             Facts inherited = collect(parent, known, nativeCandidates);
             key = inheritKey(key, inherited.key());
-            rejectOverriddenConverters(context, inherited.entries(), rejections);
+            rejectOverriddenFields(context, inherited.entries(), rejections);
             inherited.entries().stream().filter(entry -> !overriddenOperation(context, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
@@ -204,23 +206,28 @@ final class InputContractResolver {
     private static boolean overriddenOperation(BuilderContext context, Entry entry) {
         if (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
                 || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class) return false;
-        return entry.methods().stream().anyMatch(inherited -> Arrays.stream(declaredMethods(context)).anyMatch(method ->
-                !Modifier.isStatic(method.getModifiers()) && method.getName().equals(inherited.getName())
-                        && Arrays.equals(method.getParameterTypes(), inherited.getParameterTypes())));
+        return entry.methods().stream().anyMatch(inherited -> overridden(inherited, declaredMethods(context)));
     }
 
-    private void rejectOverriddenConverters(BuilderContext context, List<Entry> inherited, List<Rejection> rejections)
+    private static boolean overridden(Method inherited, Method[] declared) {
+        return Arrays.stream(declared).anyMatch(method -> !Modifier.isStatic(method.getModifiers())
+                && method.getName().equals(inherited.getName())
+                && Arrays.equals(method.getParameterTypes(), inherited.getParameterTypes()));
+    }
+
+    private void rejectOverriddenFields(BuilderContext context, List<Entry> inherited, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
         Method[] declared = declaredMethods(context);
         for (Entry entry : inherited) {
             Metadata origin = reader.metadata(entry.contract());
             for (Method selected : entry.methods()) {
-                if (origin.methods().get(signature(selected)).converter() == null) continue;
-                boolean overridden = Arrays.stream(declared).anyMatch(method -> !Modifier.isStatic(method.getModifiers())
-                        && method.getName().equals(selected.getName())
-                        && Arrays.equals(method.getParameterTypes(), selected.getParameterTypes()));
-                if (overridden) {
-                    rejections.add(new Rejection(entry.source(), "inherited converter overload " + selected.getName()
+                boolean converter = origin.methods().get(signature(selected)).converter() != null;
+                boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
+                        && entry.payload().type() == String.class
+                        && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{String.class});
+                if ((converter || stringField) && overridden(selected, declared)) {
+                    String originKind = converter ? "converter overload " : "String field operation ";
+                    rejections.add(new Rejection(entry.source(), "inherited " + originKind + selected.getName()
                             + "(String) is overridden by " + namingOrigin(context.builder())
                             + "; expose one supported non-overridden String route"));
                 }
@@ -484,8 +491,9 @@ final class InputContractResolver {
         else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
         // Preserve String/CharSequence competition without admitting CharSequence dispatch before S3b.
-        if (reason == null && method.getParameterTypes()[0] == CharSequence.class)
+        if (reason == null && method.getParameterTypes()[0] == CharSequence.class) {
             payload = new Payload(Kind.SCALAR, CharSequence.class, null, null, null);
+        }
         if (reason == null && payload == null) reason = unsupportedReason(method.getGenericParameterTypes()[0]);
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = names.rename().isEmpty() ? method.getName() : names.rename();

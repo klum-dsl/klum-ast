@@ -302,6 +302,58 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         'renamed override' | "@Struct.Operation @Struct.Name('renamed') @Builder.Method void endpoint(String value) { host = 'child:' + value }" | 'renamed' | 'child:api' | 'Service'
     }
 
+    def 'String field override cannot retain its old external route: ignored=#ignored grandchild=#grandchild'() {
+        given:
+        def type = schema("""
+            @DSL class Base { @Struct.Name('original') String host }
+            @DSL class Middle extends Base {
+                @Struct.Operation @Struct.Name('renamed') @Builder.Method ${ignored ? '@Struct.Ignore' : ''}
+                String host(String value) { host = 'override:' + value }
+            }
+            @DSL class Service extends Middle {}
+        """, grandchild ? 'Service' : 'Middle')
+
+        when:
+        def contract = new InputContractResolver().read(type)
+        def result = KlumStructuredInput.readRoot(type, ignored ? [:] : [renamed: 'api'], 'override.yaml')
+        def direct = type.Create.With { host 'api' }
+
+        then:
+        direct.host == 'override:api'
+        result.host == (ignored ? null : direct.host)
+        contract.entries().keySet() == (ignored ? [] : ['renamed']) as Set
+
+        when:
+        KlumStructuredInput.readRoot(type, [original: 'api'], 'old-name.yaml')
+
+        then:
+        thrown(KlumModelException)
+
+        where:
+        [ignored, grandchild] << [[false, true], [false, true]].combinations()
+    }
+
+    def 'overriding an unrelated generated overload retains the exact String field route'() {
+        given:
+        def type = schema('''
+            @DSL class Base {
+                @Field(converters=[{ Integer value -> value.toString() }]) String host
+            }
+            @DSL class Service extends Base {
+                @Struct.Ignore @Builder.Method String host(Integer value) { host = 'integer:' + value }
+            }
+        ''')
+
+        when:
+        def result = KlumStructuredInput.readRoot(type, [host: 'api'], 'exact-signature.yaml')
+        def direct = type.Create.With { host 'api' }
+
+        then:
+        result.host == 'api'
+        result.host == direct.host
+        new InputContractResolver().read(type).entries().containsKey('host')
+    }
+
     def 'ignored override shadows the parent mark through a further descendant'() {
         given:
         def type = schema('''
@@ -356,6 +408,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         given:
         schema('''
             @DSL class Base {
+                @Struct.Name('original') String label
                 @Struct.Ignore String host
                 @Struct.Operation @Builder.Method void endpoint(String value) { host = 'base:' + value }
                 @Struct.Name('endpoint') @Builder.Method void alternate(String value) { host = 'alternate:' + value }
@@ -367,6 +420,8 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.*
             @DSL class Inherited extends Base {}
             @DSL class Overridden extends Base {
+                @Struct.Operation @Struct.Name('renamed') @Builder.Method
+                String label(String value) { label = 'override:' + value }
                 @Struct.Operation @Builder.Method void endpoint(String value) { host = 'override:' + value }
             }
         ''')
@@ -375,13 +430,15 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         def inherited = Class.forName('operationselection.Inherited', false, artifacts)
         def overridden = Class.forName('operationselection.Overridden', false, artifacts)
         def inheritedValue = KlumStructuredInput.readRoot(inherited, [endpoint: 'api'], 'binary.yaml')
-        def overriddenValue = KlumStructuredInput.readRoot(overridden, [endpoint: 'api'], 'binary.yaml')
+        def overriddenValue = KlumStructuredInput.readRoot(overridden, [endpoint: 'api', renamed: 'label'], 'binary.yaml')
 
         then:
         inheritedValue.host == inherited.Create.With { endpoint 'api' }.host
         inheritedValue.host == 'base:api'
         overriddenValue.host == overridden.Create.With { endpoint 'api' }.host
         overriddenValue.host == 'override:api'
+        overriddenValue.label == 'override:label'
+        !new InputContractResolver().read(overridden).entries().containsKey('original')
 
         cleanup:
         binaryCompiler?.close()

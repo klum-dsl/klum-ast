@@ -115,7 +115,7 @@ final class StructuredInputAdmissionPlan {
 
         StructuredInputAdmissionPlan inherited = planOf(model.getSuperClass());
         if (inherited != null) {
-            inherited.entries.stream().filter(entry -> !overriddenOperation(transformation, entry)).forEach(entries::add);
+            inherited.entries.stream().filter(entry -> !overriddenStringCandidate(transformation, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections);
         }
 
@@ -136,15 +136,17 @@ final class StructuredInputAdmissionPlan {
                 model.getName(), GeneratedDslSupport.of(model).getBuilderInterface().redirect().getName(), entries, rejections));
     }
 
-    private static boolean overriddenOperation(DSLASTTransformation transformation, Entry entry) {
-        if (entry.role() != Role.OPERATION || entry.payload().kind() != PayloadKind.SCALAR
+    private static boolean overriddenStringCandidate(DSLASTTransformation transformation, Entry entry) {
+        if (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY || entry.payload().kind() != PayloadKind.SCALAR
                 || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type())) return false;
         return transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .map(GeneratedDslSupport::publicProjectionOf)
                 .filter(method -> method != null && method.isPublic() && !method.isStatic())
-                .anyMatch(method -> entry.operation().descriptorGroup().stream().anyMatch(inherited ->
-                        signature(inherited).equals(signature(descriptor(method)))));
+                .anyMatch(method -> entry.operation().descriptorGroup().stream()
+                        .filter(inherited -> entry.role() == Role.OPERATION
+                                || signature(inherited).equals(entry.operation().name() + "(" + String.class.getName() + ")"))
+                        .anyMatch(inherited -> signature(inherited).equals(signature(descriptor(method)))));
     }
 
     private static String signature(String descriptor) {
@@ -501,8 +503,9 @@ final class StructuredInputAdmissionPlan {
         }
         Payload payload = payloadForValue(parameters[0].getOriginType());
         // Count a projected CharSequence competitor, but do not publish it as an admitted operation in S2.
-        if (parameters[0].getOriginType().getName().equals(CharSequence.class.getName()))
+        if (parameters[0].getOriginType().getName().equals(CharSequence.class.getName())) {
             payload = new Payload(PayloadKind.SCALAR, CharSequence.class.getName(), null, null, null);
+        }
         if (payload == null) {
             rejections.add(new Rejection(source, "@Builder.Method payload is outside the admitted grammar"));
             return;
@@ -720,9 +723,10 @@ final class StructuredInputAdmissionPlan {
             candidates.stream().filter(candidate -> candidate != marked.get(0)).forEach(rejected::add);
         } else if (candidates.size() == 1) {
             Entry unique = candidates.get(0);
-            if (unique.payload().type().equals(CharSequence.class.getName()))
+            if (unique.payload().type().equals(CharSequence.class.getName())) {
                 rejectGroup(candidates, rejected, rejections,
                         "CharSequence scalar operations are not admitted; expose an exact String operation");
+            }
         } else {
             String declarations = candidates.stream().map(Entry::source).sorted()
                     .reduce((left, right) -> left + ", " + right).orElseThrow();

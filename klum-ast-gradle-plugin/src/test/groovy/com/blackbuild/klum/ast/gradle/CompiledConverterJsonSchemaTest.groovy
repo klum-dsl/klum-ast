@@ -157,6 +157,7 @@ import com.blackbuild.klum.ast.*
 package converterjson
 import com.blackbuild.klum.ast.*
 @DSL class SelectedBase extends Base {
+    @Struct.Name('legacy-label') @Struct.Examples(['wrong label example']) String label
     /** Selected endpoint prose. */
     @Struct.Operation @Struct.Name('external-endpoint') @Struct.Examples(['api.internal'])
     @Builder.Method void endpoint(String value) { throw new AssertionError('operation executed during generation') }
@@ -168,6 +169,9 @@ import com.blackbuild.klum.ast.*
 package converterjson
 import com.blackbuild.klum.ast.*
 @DSL class SelectedService extends SelectedBase {
+    /** Selected label prose. */
+    @Struct.Operation @Struct.Name('current-label') @Builder.Method
+    String label(String value) { throw new AssertionError('overriding field operation executed') }
     static { throw new AssertionError('Schema initialized during generation') }
     /** Wrapper owns its own grammar. */
     @Struct.Operation @Struct.Name('port-number')
@@ -184,7 +188,8 @@ import com.blackbuild.klum.ast.*
         def properties = schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties
 
         then:
-        properties.keySet() == ['external-endpoint', 'port-number'] as Set
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label'] as Set
+        properties.'current-label' == [type: 'string', description: 'Selected label prose.']
         properties.'external-endpoint' == [type: 'string', description: 'Selected endpoint prose.', examples: ['api.internal']]
         properties.'port-number' == [type: 'string', description: 'Wrapper owns its own grammar.']
         !new File(directory, 'executed').exists()

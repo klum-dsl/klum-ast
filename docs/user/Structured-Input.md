@@ -375,6 +375,7 @@ related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).)
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
 import com.blackbuild.klum.ast.Struct
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
 @DSL class Service {
     @Struct.Ignore String host
@@ -385,9 +386,7 @@ import com.blackbuild.klum.ast.Struct
     @Struct.Name('endpoint') @Builder.Method
     void backupEndpoint(String value) { host = 'backup:' + value }
 }
-```
 
-```groovy
 def service = KlumStructuredInput.readRoot(Service, [endpoint: 'api.internal'], 'service.yaml')
 assert service.host == 'primary:api.internal'
 ```
@@ -397,7 +396,9 @@ unsupported roles and missing public projections cannot be repaired with a mark.
 field: it cannot choose among several generated converters. An authored marked wrapper can expose an exact String route.
 
 Inherited String operations retain their declaring contract. A String override replaces the parent operation's name and selection
-intent, including when the override is renamed or ignored. Existing C1 converter routes remain excluded when a descendant
+intent, including when the override is renamed or ignored. Overriding an inherited String field's String input signature
+also excludes the parent's external field route; overriding an unrelated overload leaves that String route intact.
+Existing C1 converter routes remain excluded when a descendant
 overrides their signature; the parent's converter constraints cannot describe different code.
 
 A selected String route rejects numeric, null, GString and mutable CharSequence payloads without trying another overload.

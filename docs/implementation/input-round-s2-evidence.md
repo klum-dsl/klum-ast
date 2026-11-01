@@ -19,7 +19,9 @@ candidates, applies exclusions and the effective hierarchy naming profile, then 
 eligible String mark wins; multiple eligible marks fail; without a mark a unique candidate is required. This uses no input
 values, method enumeration preference or trial invocation. Renamed operations expose only their effective names. An
 override owns its own names and intent, including exclusion through further descendants. Non-String override behavior
-remains outside S2. Existing C1 converter-override rejection remains intact.
+remains outside S2. Overriding an inherited ordinary String field's selected String signature excludes the parent's field
+entry, so its old name and constraints cannot describe the descendant body. An override of an unrelated generated
+Integer overload does not remove the unchanged String route. Existing C1 converter-override rejection remains intact.
 
 A projected CharSequence operation counts as a String competitor but cannot be admitted for invocation in S2; one marked
 String route can win. Unsupported roles, nonpublic declarations and omitted/colliding generated routes cannot gain
@@ -43,7 +45,7 @@ CollectionFactories, parsers, coercion or parameter validation are implemented.
 | Unique unmarked and one marked winner; actual direct dispatch equality | `StructuredOperationSelectionTest`: unique control and documentary endpoint operation |
 | Competing Strings, zero eligible, multiple marks, no runtime preference | Same test: ambiguous values, unsupported roles, multiple eligible marks, numeric fallback rejection |
 | Exclusion, effective rename/profile and conflicting mark groups | Same test: excluded marked candidate, native-name rejection, effective profile collision and literal/native separation |
-| Inheritance, exact overrides and shadowing | Same test: same-compilation inheritance/override/rename, ignored override through grandchild, separately compiled parent/descendant dispatch |
+| Inheritance, exact overrides and shadowing | Same test: same-compilation inheritance/override/rename, ignored override through grandchild, ordinary String-field override/rename/exclusion, unrelated-overload control, separately compiled parent/descendant dispatch |
 | String/CharSequence competition without S3b admission | Same test: unmarked competition rejection, marked String winner, CharSequence-only negative |
 | No marker escape from missing/invalid public projection | Same test: private-method compilation rejection, unprojected Model/query methods; `CompiledConverterInputTest`: marked colliding converter source remains excluded |
 | Required generated facts fail closed | Same test: missing/wrong count, missing/malformed/flipped intent, stripped author marker, stripped operation fact and jointly stripped role/fact |
@@ -64,7 +66,11 @@ Groovy consumer check passed on Groovy 4's named module path. An initial full ru
 Java Closure reflective-access failure; the fixture now overrides `Closure.call()` directly and needs no added module opens.
 A private-method negative was corrected to assert its existing compilation-time rejection.
 
-Final full repository `check` and the two declared local review axes are in progress. This record will be completed before
+Exactly two read-only local children reviewed base through `576338ee8`: Standards and Specification. Standards requested
+one documentary code block and braces for multiline branches; both are corrected. A targeted parent regression and
+Specification follow-up identified an inherited ordinary String-field alias surviving a renamed/ignored descendant
+override. The correction examines only the actual String signature, preserves unrelated overloads and C1 guards, and
+adds runtime/binary/schema controls. Reviews of the correction and final full repository `check` are in progress. This record will be completed before
 handoff; these focused results do not yet claim complete qualification.
 
 ## Delivery boundary
