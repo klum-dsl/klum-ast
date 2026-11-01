@@ -39,6 +39,12 @@ import groovyjarjarasm.asm.Opcodes
 @Issue(['529', '932'])
 class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
+    @Issue('952')
+    def 'missing converter destination type is not structurally admitted'() {
+        expect:
+        !StructuredInputAdmissionPlan.supportsScalarConverterInput(null)
+    }
+
     @Issue('950')
     def "admits direct and inherited ordinary scalar properties including a non-key property named key"() {
         given:

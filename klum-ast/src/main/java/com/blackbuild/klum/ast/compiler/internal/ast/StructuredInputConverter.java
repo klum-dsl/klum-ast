@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.FieldType;
-import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -69,18 +68,19 @@ final class StructuredInputConverter {
 
     static MethodNode selected(FieldNode field) {
         List<Route> routes = field.getNodeMetaData(ROUTES);
-        if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT) return null;
-        if (DslAstHelper.getBuilderClassOf(field.getOwner()).getDeclaredMethods(field.getName()).stream()
-                .anyMatch(method -> !method.getAnnotations(ClassHelper.make(Builder.Method.class)).isEmpty())) return null;
+        if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT
+                || !StructuredInputAdmissionPlan.supportsScalarConverterInput(field.getType())) return null;
         Route route = routes.get(0);
-        if (route.generated() == null || !eligible(field.getType(), route.source())) return null;
+        if (route.generated() == null) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
-        if (api == null || api.getParameters().length != 1
-                || !ClassHelper.STRING_TYPE.equals(api.getParameters()[0].getOriginType())) return null;
+        if (api == null || !api.isPublic() || api.isStatic() || api.isSynthetic()
+                || (api.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC)) != 0 || api.getParameters().length != 1
+                || !ClassHelper.STRING_TYPE.equals(api.getParameters()[0].getOriginType())
+                || !api.getReturnType().redirect().equals(field.getType().redirect())) return null;
         return api;
     }
 
-    private static boolean eligible(ClassNode domain, MethodNode source) {
+    private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
         ClassNode owner = domain.redirect();
         if (!owner.isResolved() || !Modifier.isPublic(owner.getModifiers()) || owner.isInterface() || owner.isEnum()
                 || owner.getGenericsTypes() != null || domain.isGenericsPlaceHolder()
@@ -101,6 +101,7 @@ final class StructuredInputConverter {
         fact.setMember("name", constX(source instanceof ConstructorNode ? "<init>" : source.getName()));
         fact.setMember("descriptor", constX(BytecodeHelper.getMethodDescriptor(source)));
         fact.setMember("parameter", constX(0));
+        fact.setMember("parameterFacts", constX(hasParameterAuthority(field.getType(), source)));
         api.addAnnotation(fact);
     }
 }

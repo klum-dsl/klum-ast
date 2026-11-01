@@ -441,20 +441,32 @@ final class InputContractResolver {
                 + externalFieldName(context, field, literal) + "', selected "
                 + selected.owner() + "#" + selected.name() + selected.descriptor() + " parameter[" + selected.parameter() + "]";
         try {
-            if (!(fieldType instanceof Class<?> domain) || methods.size() != 1
+            Class<?> domain = rawType(fieldType);
+            if (domain == null || selected.parameterFacts() && !(fieldType instanceof Class<?>) || methods.size() != 1
                     || !method.getName().equals(field) || method.getReturnType() != domain
                     || !Arrays.equals(method.getParameterTypes(), new Class<?>[]{String.class})
                     || method.isSynthetic() || method.isBridge() || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid("Converter selection disagrees with field/overload");
+            if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected))
+                throw invalid("Structural converter descriptor disagrees with field/overload");
             validateSelection(Role.PROPERTY, new Payload(Kind.SCALAR, String.class, null, null, null), methods, location);
-            ConverterConstraints constraints = converterReader.read(domain, selected);
+            // Structural routes carry provenance, but only C1 owns selected-parameter inspection.
+            ConverterConstraints constraints = selected.parameterFacts() ? converterReader.read(domain, selected)
+                    : new ConverterConstraints("", "", Policy.OMIT, List.of());
             converterConstraints.computeIfAbsent(context.builder(), ignored -> new LinkedHashMap<>()).put(field, constraints);
             return constraints;
         } catch (ReflectiveOperationException | IOException | LinkageError | RuntimeException failure) {
             throw invalid("Cannot resolve converter for " + location + ": " + failure.getMessage()
                     + "; expose one supported route and recompile matched domain/Schema artifacts with the complete API classpath");
         }
+    }
+
+    private static boolean validStructuralConverterDescriptor(ConverterSelection selected) {
+        if (selected.name().equals("<init>")) return selected.descriptor().equals("(Ljava/lang/String;)V");
+        // The source may return a subtype; the exact destination type belongs to the public Builder projection.
+        // Possessive repetition avoids stack growth; a name segment cannot consume a package separator.
+        return selected.descriptor().matches("\\(Ljava/lang/String;\\)L[^.;\\[()/]+(?:/[^.;\\[()/]+)*+;");
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {

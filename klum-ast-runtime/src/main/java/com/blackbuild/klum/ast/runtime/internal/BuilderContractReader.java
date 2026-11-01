@@ -124,7 +124,7 @@ final class BuilderContractReader {
         }
     }
 
-    record ConverterSelection(String owner, String name, String descriptor, int parameter) { }
+    record ConverterSelection(String owner, String name, String descriptor, int parameter, boolean parameterFacts) { }
 
     record NameFacts(String rename, String origin, boolean ignored) { }
 
@@ -607,7 +607,7 @@ final class BuilderContractReader {
         }
 
         @Override public void visit(String name, Object value) {
-            if (!Set.of(OWNER_MEMBER, "name", "descriptor", "parameter").contains(name) || facts.putIfAbsent(name, value) != null) {
+            if (!Set.of(OWNER_MEMBER, "name", "descriptor", "parameter", "parameterFacts").contains(name) || facts.putIfAbsent(name, value) != null) {
                 throw invalid("Unknown or duplicate converter fact " + name);
             }
         }
@@ -615,13 +615,14 @@ final class BuilderContractReader {
         @Override public AnnotationVisitor visitAnnotation(String name, String type) { throw invalid("Unexpected converter annotation " + name); }
         @Override public void visitEnum(String name, String type, String value) { throw invalid("Unexpected converter enum " + name); }
         @Override public void visitEnd() {
-            if (facts.size() != 4 || !(facts.get(OWNER_MEMBER) instanceof String owner) || owner.isEmpty()
+            if (facts.size() != 5 || !(facts.get(OWNER_MEMBER) instanceof String owner) || owner.isEmpty()
                     || !(facts.get("name") instanceof String name) || name.isEmpty()
                     || !(facts.get("descriptor") instanceof String descriptor) || descriptor.isEmpty()
-                    || !(facts.get("parameter") instanceof Integer parameter) || parameter != 0) {
+                    || !(facts.get("parameter") instanceof Integer parameter) || parameter != 0
+                    || !(facts.get("parameterFacts") instanceof Boolean parameterFacts)) {
                 throw invalid("Incomplete or malformed converter association on " + literal.location);
             }
-            literal.converter = new ConverterSelection(owner, name, descriptor, parameter);
+            literal.converter = new ConverterSelection(owner, name, descriptor, parameter, parameterFacts);
         }
     }
 

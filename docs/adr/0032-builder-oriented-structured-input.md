@@ -2,11 +2,13 @@
 
 Date: 2026-10-31.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1 and exact String-selection S2 implemented. Other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a and zero-argument commands S4 implemented. Other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
-see [S2 evidence](../implementation/input-round-s2-evidence.md). CharSequence invocation and origin expansion remain planned.
+see [S2 evidence](../implementation/input-round-s2-evidence.md). S3a admits exact generated String converter origins; see
+[S3a evidence](../implementation/input-round-s3a-evidence.md). S4 admits zero-argument Builder commands with empty mappings;
+see [S4 evidence](../implementation/input-round-s4-evidence.md). CharSequence invocation remains planned.
 
 Authority: the maintainer's INPUT-ROUND-PLAN decisions, reconciled in the
 [implementation and issue plan](../implementation/input-round-plan-4-2.md). The 4.2 horizon records that direction;

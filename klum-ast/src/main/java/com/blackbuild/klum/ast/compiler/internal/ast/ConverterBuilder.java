@@ -227,7 +227,7 @@ class ConverterBuilder {
 
         checkForUnmatchedGenericPlaceholders(sourceMethod, genericsSpec);
 
-        ProxyMethodBuilder method = createRuntimeProxyMethod()
+        ProxyMethodBuilder method = createRuntimeProxyMethod(sourceParameters)
                 .mod(ACC_PUBLIC)
                 .optional()
                 .returning(elementType)
@@ -259,10 +259,13 @@ class ConverterBuilder {
         StructuredInputConverter.recordRoute(fieldNode, sourceMethod, generated);
     }
 
-    private ProxyMethodBuilder createRuntimeProxyMethod() {
+    private ProxyMethodBuilder createRuntimeProxyMethod(Parameter[] sourceParameters) {
         ClassNode modelBuilder = getBuilderClassOf(transformation.annotatedClass);
-        if (builderClass.equals(modelBuilder))
-            return createProxyMethod(methodName, getProxyMethodName());
+        if (builderClass.equals(modelBuilder)) {
+            boolean scalarString = !isCollection(fieldNode.getType()) && !isMap(fieldNode.getType())
+                    && sourceParameters.length == 1 && STRING_TYPE.equals(sourceParameters[0].getOriginType());
+            return createProxyMethod(methodName, scalarString ? "setSingleFieldViaStringConverter" : getProxyMethodName());
+        }
         return new ProxyMethodBuilder(org.codehaus.groovy.ast.tools.GeneralUtils.varX("rw"), methodName, getProxyMethodName())
                 .targetType(modelBuilder);
     }

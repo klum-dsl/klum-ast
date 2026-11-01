@@ -265,7 +265,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         @Override
                         void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
                                                     Object... bootstrapMethodArguments) {
-                            if (bootstrapMethodArguments.contains('$setSingleField'))
+                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter'] })
                                 unresolvedSetters << "$name$descriptor"
                         }
 
@@ -273,7 +273,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
                                              boolean isInterface) {
                             if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
-                                    methodName == '$setSingleField')
+                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter'])
                                 directlyLinkedSetters << "$name$descriptor"
                         }
                     }
@@ -281,6 +281,8 @@ class JpmsPackageBoundaryTest extends Specification {
             }, 0)
         }
 
+        assert directlyLinkedSetters.any { it.toString() == 'timeout(Ljava/lang/String;)Ljava/time/Duration;' }:
+                "Generated String converter must directly link its runtime hook: $directlyLinkedSetters"
         assert unresolvedSetters.empty: "Generated setters must not use invokedynamic for \$setSingleField: $unresolvedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'name(Ljava/lang/String;)Ljava/lang/String;' }:
                 "Generated setter must directly link \$setSingleField: $directlyLinkedSetters"
@@ -788,6 +790,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.Key
             import com.blackbuild.klum.ast.PostCreate
             import com.blackbuild.klum.ast.PostTree
+            import com.blackbuild.klum.ast.Field
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumBuilder
             import org.codehaus.groovy.runtime.InvokerHelper
@@ -799,6 +802,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import java.lang.annotation.RetentionPolicy
             import java.lang.annotation.Target
             import java.util.List
+            import java.time.Duration
 
             @Retention(RetentionPolicy.RUNTIME)
             @Target(ElementType.ANNOTATION_TYPE)
@@ -818,6 +822,7 @@ class JpmsPackageBoundaryTest extends Specification {
             class Station {
                 static final List<String> EVENTS = []
 
+                @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
                 @Struct.Name('station-name') String name = 'North'
                 @Struct.Operation @Builder.Method
                 void endpoint(String value) { name = 'selected:' + value }
@@ -1075,6 +1080,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
                         throw new AssertionError("Selected public String operation differs from direct Java dispatch");
+                    Station converted = KlumStructuredInput.readRoot(Station.class, Map.of("timeout", "PT30S"), "converter.json");
+                    if (converted.getTimeout().getSeconds() != 30)
+                        throw new AssertionError("Field converter failed through the public named-module contract");
                     Station commanded = KlumStructuredInput.readRoot(Station.class, Map.of("resetTimeout", Map.of()), "command.json");
                     Station directCommand = factory.With(new Closure<Object>(null) {
                         @Override public Object call() {
@@ -1206,6 +1214,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'
                     assert selected.name == directSelected.name
+                    Station converted = KlumStructuredInput.readRoot(Station, [timeout: 'PT30S'], 'converter.json')
+                    Station directConverted = Station.Create.With { timeout 'PT30S' }
+                    assert converted.timeout.seconds == 30
+                    assert converted.timeout == directConverted.timeout
                     Station commanded = KlumStructuredInput.readRoot(Station, [resetTimeout: [:]], 'command.json')
                     Station directCommand = Station.Create.With { resetTimeout() }
                     assert commanded.capacity == 30

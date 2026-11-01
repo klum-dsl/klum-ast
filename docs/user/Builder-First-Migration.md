@@ -427,3 +427,11 @@ Do not treat JSON/YAML output as a Klum persistence or round-trip format. Comple
 Jackson APIs, KlumAST adds no wire metadata, and external version properties remain Schema-controlled data.
 Each importer operation accepts one input and owns one lifecycle; YAML documents and exported projections never establish
 Jackson-owned composition or cross-input overwrite semantics.
+
+### Structured String converter projections
+
+Field closures, same-compilation non-DSL values and external adapters can supply structured input through an exact
+public String Builder projection. This does not change DSL-object producer ownership or admit a missing/colliding
+projection. C1-qualified compiled domain parameters retain their constraint authority; other origins supply structural
+String schemas. Recompile matched artifacts; see [migration](Migration.md#string-converter-origins) and
+[converter authoring](Converters.md#structured-string-input).

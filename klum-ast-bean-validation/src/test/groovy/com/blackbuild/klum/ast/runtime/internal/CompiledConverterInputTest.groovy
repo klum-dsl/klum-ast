@@ -566,6 +566,7 @@ class CompiledConverterInputTest extends Specification {
         System.getProperty(TRAP) == null
     }
 
+    @Issue(['981', '952'])
     def 'rejects unsupported selection instead of accepting the first generated overload: #shape'() {
         given:
         File domain = javaJar("""
@@ -592,10 +593,6 @@ class CompiledConverterInputTest extends Specification {
         shape               | generic | constructors                                      | methods                                                                                                                                    | route         | fieldAnnotation
         'two factories'     | ''      | 'private PortNumber() {}'                          | 'public static PortNumber fromString(String v) { return null; } public static PortNumber parse(String v) { return null; }'                 | 'fromString'  | ''
         'constructor pair'  | ''      | 'public PortNumber(String v) {}'                   | 'public static PortNumber fromString(String v) { return null; }'                                                                            | 'constructor' | ''
-        'overloaded factory'| ''      | 'private PortNumber() {}'                          | 'public static PortNumber fromString(String v) { return null; } public static PortNumber fromString(int v) { return null; }'                | 'fromString'  | ''
-        'overloaded ctor'   | ''      | 'public PortNumber(String v) {} public PortNumber(int v) {}' | ''                                                                                                                                 | 'constructor' | ''
-        'generic domain'    | '<T>'   | 'public PortNumber(String v) {}'                   | ''                                                                                                                                         | 'constructor' | ''
-        'generic method'    | ''      | 'private PortNumber() {}'                          | 'public static <T> PortNumber fromString(String v) { return null; }'                                                                        | 'fromString'  | ''
         'constructors off'  | ''      | 'public PortNumber(String v) {}'                   | ''                                                                                                                                         | 'fromString'  | ''
         'factory undiscovered' | ''   | 'private PortNumber() {}'                          | 'public static PortNumber decode(String v) { return null; }'                                                                                | 'discovery-defaults'  | ''
         'varargs'           | ''      | 'private PortNumber() {}'                          | 'public static PortNumber fromString(String... v) { return null; }'                                                                         | 'fromString'  | ''
@@ -648,7 +645,8 @@ class CompiledConverterInputTest extends Specification {
         policy << ['PROJECT', 'TEXT_ONLY', 'OMIT']
     }
 
-    def 'inherited and external domain factory ownership is not an eligible exact route: #external'() {
+    @Issue('952')
+    def 'external adapter projection admits while an undiscovered inherited factory remains excluded: #external'() {
         given:
         File domain = groovyJar('''
             package converterinput
@@ -674,8 +672,8 @@ class CompiledConverterInputTest extends Specification {
         def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
 
         then:
-        !contract.entries().containsKey('port')
-        contract.rejections().any { it.source().endsWith('#port') }
+        contract.entries().containsKey('port') == external
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
 
         cleanup:
         loader?.close()
@@ -684,41 +682,102 @@ class CompiledConverterInputTest extends Specification {
         external << [false, true]
     }
 
-    def 'default-generated binary overloads are rejected'() {
+    @Issue('952')
+    def 'an already generated binary String overload retains its ordinary default dispatch without C1 facts'() {
         given:
         File domain = groovyJar('''
             package converterinput
             class PortNumber {
-                static PortNumber fromString(String raw, int count = 1) { throw new AssertionError('converter') }
+                String raw
+                static PortNumber fromString(String raw, int count = 1) { new PortNumber(raw: raw + ':' + count) }
             }
         ''', [])
-        File schema = schemaJar(domain, 'fromString')
+        File schema = schemaJar(domain, 'fromString', false)
         def loader = binaryLoader([schema, domain])
+        def model = Class.forName(MODEL, false, loader)
 
         when:
-        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'default.yaml')
+        def direct = model.Create.With { port '1234' }
 
         then:
-        !contract.entries().containsKey('port-number')
-        contract.rejections().any { it.source().endsWith('#port') }
+        result.port.raw == '1234:1'
+        result.port.raw == direct.port.raw
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
 
         cleanup:
         loader?.close()
     }
 
-    def 'synthetic or bridge binary routes are rejected: #mutation'() {
+    @Issue('952')
+    def 'unrelated overloads retain the same exact String projection for #origin without C1 assertions'() {
         given:
-        File original = domainJar('Java', 'fromString', '', true)
+        String constructors = origin == 'constructor' ? '''
+            PortNumber(@Pattern(regexp='[0-9]{1,8}') String value) { raw = value }
+            PortNumber(int value) { throw new AssertionError('wrong constructor') }
+        ''' : ''
+        String factories = '''
+            static PortNumber fromString(@Pattern(regexp='[0-9]{1,8}') String value) { new PortNumber(raw: value) }
+            static PortNumber fromString(int value) { throw new AssertionError('wrong factory') }
+        '''
+        File domain = groovyJar("""
+            package converterinput
+            import jakarta.validation.constraints.Pattern
+            class PortNumber {
+                String raw
+                $constructors
+                ${origin == 'factory' ? factories : ''}
+            }
+            class Adapter { ${origin == 'adapter' ? factories : ''} }
+        """, [])
+        File schema = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Converters(includeConstructors=${origin == 'constructor'}, value=${origin == 'adapter' ? '[Adapter]' : '[]'})
+                PortNumber port
+            }
+        """, [domain])
+        def loader = binaryLoader([schema, domain])
+        def model = Class.forName(MODEL, false, loader)
+
+        when:
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'overload.yaml')
+        def direct = model.Create.With { port '1234' }
+
+        then:
+        result.port.raw == '1234'
+        result.port.raw == direct.port.raw
+        contract.entries().port.methods()[0].parameterTypes == [String] as Class[]
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+
+        cleanup:
+        loader?.close()
+
+        where:
+        origin << ['constructor', 'factory', 'adapter']
+    }
+
+    @Issue('952')
+    def 'existing binary projections of synthetic or bridge sources are structural only: #mutation'() {
+        given:
+        File original = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}")', false)
         File domain = rewrite(original, 'converterinput/PortNumber.class', mutation)
-        File schema = schemaJar(domain, 'fromString')
+        File schema = schemaJar(domain, 'fromString', false)
         def loader = binaryLoader([schema, domain])
 
         when:
-        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+        def model = Class.forName(MODEL, false, loader)
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'flags.yaml')
+        def direct = model.Create.With { port '1234' }
 
         then:
-        !contract.entries().containsKey('port-number')
-        contract.rejections().any { it.source().endsWith('#port') }
+        result.port.raw == '1234'
+        result.port.raw == direct.port.raw
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
         System.getProperty(TRAP) == null
 
         cleanup:
@@ -728,28 +787,204 @@ class CompiledConverterInputTest extends Specification {
         mutation << ['domain-synthetic', 'domain-bridge']
     }
 
-    def 'same-compilation domain source remains outside the compiled route'() {
+    @Issue('952')
+    def 'separately compiled external adapter keeps its selected route inherited=#inherited'() {
+        given:
+        File domain = groovyJar('''
+            package converterinput
+            class PortNumber { String raw }
+            class Adapter {
+                static PortNumber fromString(String value) { new PortNumber(raw: 'adapter:' + value) }
+                static PortNumber parse(String value) { new PortNumber(raw: 'peer:' + value) }
+            }
+        ''', [])
+        File schema = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Converters(value=[Adapter], includeMethods=['fromString']) PortNumber port
+            }
+        ''', [domain])
+        File descendant = inherited ? groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.DSL
+            @DSL class Child extends Service { String label }
+        ''', [schema, domain]) : null
+        def loader = binaryLoader([descendant, schema, domain].findAll { it != null })
+        def model = Class.forName(inherited ? 'converterinput.Child' : MODEL, false, loader)
+
+        when:
+        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'adapter.yaml')
+        def direct = model.Create.With { port '1234' }
+        def peer = Class.forName('converterinput.Adapter', false, loader).parse('1234')
+        def contract = new InputContractResolver().read(model)
+        def selected = contract.entries().port.methods()[0].getAnnotation(GeneratedInput.Converter)
+
+        then:
+        peer.raw == 'peer:1234'
+        result.port.raw == 'adapter:1234'
+        result.port.raw == direct.port.raw
+        contract.entries().port.source() == MODEL + '#port'
+        selected.owner() == 'converterinput.Adapter'
+        selected.name() == 'fromString'
+        !selected.parameterFacts()
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+        !new File(domain.parentFile, 'classes').exists()
+        !new File(schema.parentFile, 'classes').exists()
+
+        cleanup:
+        loader?.close()
+
+        where:
+        inherited << [false, true]
+    }
+
+    @Issue(['952', '991'])
+    def 'a binary descendant owns its structural adapter override through a further descendant: ignored=#ignored'() {
+        given:
+        File domain = groovyJar('''
+            package converterinput
+            import jakarta.validation.constraints.Pattern
+            class PortNumber { String raw }
+            class Adapter {
+                static PortNumber fromString(@Pattern(regexp='[0-9]+') String value) {
+                    new PortNumber(raw: 'adapter:' + value)
+                }
+            }
+        ''', [])
+        File schema = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Struct.Name('port-number') @Converters([Adapter]) PortNumber port
+            }
+        ''', [domain])
+        File descendant = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Child extends Service {
+                @Builder.Method @Struct.Name('other') ${ignored ? '@Struct.Ignore' : ''}
+                PortNumber port(String raw) { port = new PortNumber(raw: 'override:' + raw) }
+            }
+            @DSL class Leaf extends Child { String label }
+        """, [schema, domain])
+        def loader = binaryLoader([descendant, schema, domain])
+        def parent = Class.forName(MODEL, false, loader)
+        def model = Class.forName('converterinput.Leaf', false, loader)
+
+        when:
+        def parentContract = new InputContractResolver().read(parent)
+        def inheritedMethod = parentContract.entries()['port-number'].methods()[0]
+        def parentValue = parent.Create.With { port '1234' }
+        def direct = model.Create.With { port '1234' }
+        def contract = new InputContractResolver().read(model)
+
+        then:
+        !inheritedMethod.getAnnotation(GeneratedInput.Converter).parameterFacts()
+        parentContract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+        parentValue.port.raw == 'adapter:1234'
+        direct.port.raw == 'override:1234'
+        !contract.entries().containsKey('port-number')
+        contract.entries().containsKey('other') == !ignored
+
+        when:
+        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'override.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('overridden')
+
+        when:
+        def structured = KlumStructuredInput.readRoot(model, ignored ? [:] : [other: '1234'], 'override.yaml')
+
+        then:
+        structured.port?.raw == (ignored ? null : direct.port.raw)
+
+        cleanup:
+        loader?.close()
+
+        where:
+        ignored << [false, true]
+    }
+
+    @Issue('952')
+    def 'an existing exact generic #origin projection needs no new inference and carries no C1 assertions'() {
+        given:
+        File domain = javaJar("""
+            package converterinput;
+            import jakarta.validation.constraints.Pattern;
+            public class PortNumber${origin == 'factory' ? '' : '<T>'} {
+                public final String raw;
+                ${origin == 'factory' ? 'private' : 'public'} PortNumber(@Pattern(regexp="[0-9]{1,8}") String value) { raw = value; }
+                ${origin == 'factory' ? 'public static <T> PortNumber fromString(String value) { return new PortNumber(value); }' : ''}
+            }
+        """)
+        File schema = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Converters(includeConstructors=${origin != 'factory'})
+                PortNumber${origin == 'parameterized domain' ? '<String>' : ''} port
+            }
+        """, [domain])
+        def loader = binaryLoader([schema, domain])
+        def model = Class.forName(MODEL, false, loader)
+
+        when:
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'generic.yaml')
+        def direct = model.Create.With { port '1234' }
+
+        then:
+        result.port.raw == '1234'
+        result.port.raw == direct.port.raw
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+
+        cleanup:
+        loader?.close()
+
+        where:
+        origin << ['raw domain', 'parameterized domain', 'factory']
+    }
+
+    @Issue('952')
+    def 'same-compilation constructor dispatch remains distinct from an excluded factory without C1 facts'() {
         given:
         File schema = groovyJar('''
             package converterinput
             import com.blackbuild.klum.ast.*
-            class PortNumber { PortNumber(String raw) {} }
-            @DSL class Service { @Converters(includeConstructors=true) PortNumber port }
+            class PortNumber {
+                final String raw
+                PortNumber(String value) { raw = 'constructor:' + value }
+                static PortNumber fromString(String value) { new PortNumber('factory:' + value) }
+            }
+            @DSL class Service {
+                @Converters(includeConstructors=true, includeMethods=['noFactories']) PortNumber port
+            }
         ''', [])
         def loader = binaryLoader([schema])
+        def model = Class.forName(MODEL, false, loader)
 
         when:
-        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+        def contract = new InputContractResolver().read(model)
+        def direct = model.Create.With { port '1234' }
+        def structured = KlumStructuredInput.readRoot(model, [port: '1234'], 'constructor.yaml')
+        def peer = Class.forName(DOMAIN, false, loader).fromString('1234')
 
         then:
-        !contract.entries().containsKey('port')
-        contract.rejections().any { it.source().endsWith('#port') }
+        peer.raw == 'constructor:factory:1234'
+        direct.port.raw == 'constructor:1234'
+        structured.port.raw == direct.port.raw
+        contract.entries().port.payload().type() == String
+        !contract.entries().port.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
 
         cleanup:
         loader?.close()
     }
 
-    def 'authored Builder input competing with the field rejects converter admission'() {
+    @Issue('952')
+    def 'unrelated authored overload does not remove the exact converter projection'() {
         given:
         File domain = domainJar('Java', 'fromString', '', true)
         File schema = groovyJar('''
@@ -766,8 +1001,7 @@ class CompiledConverterInputTest extends Specification {
         def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
 
         then:
-        !contract.entries().containsKey('port-number')
-        contract.rejections().any { it.source().endsWith('#port') && it.reason().contains('one supported public String route') }
+        contract.entries()['port-number'].payload().type() == String
         System.getProperty(TRAP) == null
 
         cleanup:

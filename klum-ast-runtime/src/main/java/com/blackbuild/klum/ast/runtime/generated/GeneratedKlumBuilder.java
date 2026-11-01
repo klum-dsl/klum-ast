@@ -74,6 +74,12 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         return super.setSingleField(fieldOrMethodName, value);
     }
 
+    /** Direct generated-code linkage for an exact scalar String converter, including named-module Schemas. */
+    protected final <T> T $setSingleFieldViaStringConverter(String fieldOrMethodName, Class<?> converterType,
+                                                           String converterMethod, String value) {
+        return super.setSingleFieldViaConverter(fieldOrMethodName, converterType, converterMethod, value);
+    }
+
     protected final <T> T $createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
                                               Class<T> type, Boolean explicitType, String key, Closure<T> body) {
         return super.createSingleChild(namedParams, fieldOrMethodName, type, explicitType, key, body);

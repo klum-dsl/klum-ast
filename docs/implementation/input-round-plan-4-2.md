@@ -2,8 +2,10 @@
 
 Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
 This plan records the accepted design; V0 implemented the vocabulary rename and S1 implemented ordered traversal.
-[S1 evidence](input-round-s1-evidence.md) and [S2 evidence](input-round-s2-evidence.md) record the merged prerequisites;
-[S4 evidence](input-round-s4-evidence.md) records the zero-argument command implementation. Remaining slices are unimplemented. See
+[S1 evidence](input-round-s1-evidence.md), [S2 evidence](input-round-s2-evidence.md) and
+[S4 evidence](input-round-s4-evidence.md) record the merged traversal, String-selection and zero-argument command slices.
+[S3a evidence](input-round-s3a-evidence.md) records converter-origin parity integrated onto that master; PR #1004 is open, pending merge.
+Remaining slices are unimplemented. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline

@@ -1,5 +1,10 @@
 # Unreleased
 
+- Admit exact generated String Builder routes for field converter closures, same-compilation non-DSL values and external
+  adapters. Preserve C1 parameter constraints on qualified routes; other origins emit String structure and field prose.
+  Conversion remains invocation-only, with no coercion or new discovery. Recompile matched artifacts. See
+  [converters](docs/user/Converters.md#structured-string-input) ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S3a).
+
 - Admit zero-argument domain Builder commands in structured input using an empty mapping (`resetTimeout: {}`) only.
   Null, nonempty mappings, Lists and scalars reject; ordered partial-failure behavior remains. JSON Schema emits a closed
   empty object without executing the command. Recompile matched Schema artifacts for required command-role facts.
