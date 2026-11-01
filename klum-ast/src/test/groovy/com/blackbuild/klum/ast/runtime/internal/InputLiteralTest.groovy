@@ -102,6 +102,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         new InputContractResolver().read(type).entries().keySet() == ['service.id', 'configure/URL'] as Set
     }
 
+    @Issue('952')
     def 'field and authored getter facts stay independent on a shared public accessor: #fieldAnnotation #methodAnnotation'() {
         given:
         def type = schema("""
@@ -116,18 +117,19 @@ class InputLiteralTest extends AbstractDSLSpec {
         def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
 
         then:
-        plan.entries().keySet() == [external] as Set
+        plan.entries().keySet() == (reason == null ? [external, 'getValue'] : [external]) as Set
         result.value == 'catalog'
-        plan.rejections().find { it.source.contains('#getValue(') }.reason == reason
+        plan.rejections().find { it.source.contains('#getValue(') }?.reason == reason
 
         where:
         fieldAnnotation             | methodAnnotation                         | external      | reason
-        ''                          | ''                                       | 'value'       | '@Builder.Method must declare exactly one payload'
+        ''                          | ''                                       | 'value'       | null
         "@Struct.Name('field/exact')" | "@Struct.Name('getter/exact') @Struct.Ignore" | 'field/exact' | 'excluded by @Struct.Ignore'
         "@Struct.Name('field/exact')" | "@JsonProperty('getter/exact') @JsonIgnore" | 'field/exact' | 'excluded by @JsonIgnore(true)'
     }
 
-    def 'field exclusion does not replace the authored getter rejection on a shared accessor'() {
+    @Issue('952')
+    def 'field exclusion does not exclude an authored zero-argument operation on a shared accessor'() {
         given:
         def type = schema('''
             @DSL class Service {
@@ -140,9 +142,10 @@ class InputLiteralTest extends AbstractDSLSpec {
         def plan = new InputContractResolver().read(type)
 
         then:
-        plan.entries().isEmpty()
+        plan.entries().keySet() == ['getValue'] as Set
+        plan.entries().getValue.role() == CompiledBuilderSchema.Role.COMMAND
         plan.rejections().find { it.source == 'literals.Service#value' }.reason == 'excluded by @Struct.Ignore'
-        plan.rejections().find { it.source.contains('#getValue(') }.reason == '@Builder.Method must declare exactly one payload'
+        !plan.rejections().any { it.source.contains('#getValue(') }
     }
 
     def 'field and authored setter facts stay independent on a shared fallback accessor'() {

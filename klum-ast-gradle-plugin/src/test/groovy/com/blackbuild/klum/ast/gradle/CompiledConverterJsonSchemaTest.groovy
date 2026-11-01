@@ -150,13 +150,20 @@ import com.blackbuild.klum.ast.*
     }
 
     @Issue('952')
-    def 'packaged binary selection projects only the selected String operation with Groovy #lane'() {
+    def 'packaged binary selection projects selected Strings and closed zero-argument commands with Groovy #lane'() {
         given:
         fixture(lane)
         write(producer, 'parent/src/main/groovy/converterjson/SelectedBase.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
 @DSL class SelectedBase extends Base {
+    @Builder.Method @PostCreate void created() { throw new AssertionError('lifecycle helper executed') }
+    @PostApply @Builder.Method void applied() { throw new AssertionError('lifecycle helper executed') }
+    /** Restore the domain timeout. */
+    @Builder.Method void resetTimeout() { throw new AssertionError('command executed during generation') }
+    @Builder.Method @Struct.Name('old-command') void refresh() { throw new AssertionError('parent command executed') }
+    @Builder.Method @Struct.Name('hidden-command') void hiddenCommand() { throw new AssertionError('ignored command executed') }
+
     @Struct.Name('legacy-label') @Struct.Examples(['wrong label example']) String label
     /** Selected endpoint prose. */
     @Struct.Operation @Struct.Name('external-endpoint') @Struct.Examples(['api.internal'])
@@ -174,6 +181,9 @@ import com.blackbuild.klum.ast.*
 @DSL class SelectedService extends SelectedBase {
     @Struct.Operation @Struct.Name('renamed-name') @Builder.Method
     void configureName(String value) { throw new AssertionError('renamed operation') }
+    @Builder.Method @Struct.Name('current-command') void refresh() { throw new AssertionError('override executed') }
+    @Builder.Method @Struct.Ignore void hiddenCommand() { throw new AssertionError('ignored override executed') }
+
     /** Selected label prose. */
     @Struct.Operation @Struct.Name('current-label') @Builder.Method
     String label(String value) { throw new AssertionError('overriding field operation executed') }
@@ -193,9 +203,11 @@ import com.blackbuild.klum.ast.*
         def properties = schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties
 
         then:
-        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name'] as Set
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'resetTimeout', 'current-command'] as Set
         properties.configureName == [type: 'string']
         properties.'renamed-name' == [type: 'string']
+        properties.resetTimeout == [type: 'object', properties: [:], additionalProperties: false, description: 'Restore the domain timeout.']
+        properties.'current-command' == [type: 'object', properties: [:], additionalProperties: false]
         properties.'current-label' == [type: 'string', description: 'Selected label prose.']
         properties.'external-endpoint' == [type: 'string', description: 'Selected endpoint prose.', examples: ['api.internal']]
         properties.'port-number' == [type: 'string', description: 'Wrapper owns its own grammar.']

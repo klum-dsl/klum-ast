@@ -51,8 +51,8 @@ final class CompiledBuilderSchema {
     private final List<Rejection> rejections;
     private final List<Declaration> declarations;
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION }
-    enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
+    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION, COMMAND }
+    enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
 
     /** Owned types use stable Class references; data-container items are finite, recursively immutable shapes. */
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }

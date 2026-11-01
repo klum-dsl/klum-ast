@@ -52,6 +52,20 @@ unrelated files. It also removes earlier Builder-named files recorded in that ma
 untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
 previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
 
+## Zero-argument commands
+
+Admitted [zero-argument Builder commands](Structured-Input.md#zero-argument-commands) project as closed empty objects:
+
+```json
+{"type": "object", "properties": {}, "additionalProperties": false}
+```
+
+This accepts `{}` and rejects null, arrays, scalars and objects with members. The command is optional unless supplied;
+projection adds no default or implicit reset/clear behavior. Generation reads its exact compiled role/signature and retained
+prose without invoking the command or initializing the Schema. Inherited names and exclusions use the shared resolver.
+The packaged `CompiledConverterJsonSchemaTest` String/command matrix checks source-free parent/descendant artifacts
+produced with Groovy 3, 4 and 5, including throwing command-body and Schema-initialization controls.
+
 ## Type naming profiles
 
 Schema `@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)` selects the same resolved member names used by

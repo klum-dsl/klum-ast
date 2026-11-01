@@ -144,6 +144,16 @@ For caller-parsed Map/List/scalar data that should invoke admitted domain Builde
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
 callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
 
+### Structured zero-argument commands
+
+Structured input now admits public Schema-authored zero-argument `@Builder.Method` commands with an empty mapping only
+(`resetTimeout: {}` in YAML). Blank YAML values and explicit null still reject. Existing Groovy/Java method behavior is
+unchanged; there are no implicit reset/clear semantics. See [commands](Structured-Input.md#zero-argument-commands).
+
+Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Each authored public
+operation now carries an explicit compiler role, checked against its exact signature; missing, malformed or inconsistent
+facts fail closed. The development metadata protocol remains version 1. This adds no mixed-toolchain compatibility.
+
 ### Ordered structured-input failures
 
 Structured input now checks and invokes operations in the supplied Map/List iteration order, recursively. A later invalid

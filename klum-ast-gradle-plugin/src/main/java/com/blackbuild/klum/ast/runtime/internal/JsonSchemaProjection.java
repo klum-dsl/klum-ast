@@ -45,6 +45,8 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     private static final String BUILDER = "_DSL$Builder";
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private static final String STRING_TYPE = "string";
+    private static final String OBJECT_TYPE = "object";
+    private static final String ADDITIONAL_PROPERTIES = "additionalProperties";
     private static final String DESCRIPTION = "description";
     private static final String MINIMUM = "minimum";
     private static final String MAXIMUM = "maximum";
@@ -112,9 +114,9 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
         Map<String, Object> object = new LinkedHashMap<>();
         definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
-        object.put("type", "object");
+        object.put("type", OBJECT_TYPE);
         object.put("properties", properties);
-        object.put("additionalProperties", false);
+        object.put(ADDITIONAL_PROPERTIES, false);
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
             deprecate(key, schema.key().sourceDeprecated());
@@ -155,7 +157,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
     }
 
     private void constrain(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined) {
-        if (entry.role() == CompiledBuilderSchema.Role.OPERATION) return;
+        if (entry.role() == CompiledBuilderSchema.Role.OPERATION || entry.role() == CompiledBuilderSchema.Role.COMMAND) return;
         CompiledBuilderSchema.ConstraintProfile profile = constraintProfiles.get(entry.contract());
         String field = entry.source().substring(entry.source().lastIndexOf('#') + 1);
         CompiledBuilderSchema.FieldConstraints constraints = profile.fields().get(field);
@@ -270,6 +272,7 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
 
     private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, KeyPosition position, String source) throws ClassNotFoundException {
         return switch (payload.kind()) {
+            case EMPTY_OBJECT -> new LinkedHashMap<>(Map.of("type", OBJECT_TYPE, "properties", Map.of(), ADDITIONAL_PROPERTIES, false));
             case SCALAR -> scalar(payload.type());
             case ENUM -> enumeration(payload.type());
             case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), KeyPosition.MEMBER, source)));
@@ -283,8 +286,8 @@ final class JsonSchemaProjection implements Function<List<String>, Map<String, S
 
     private static Map<String, Object> map(Map<String, Object> values) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("type", "object");
-        result.put("additionalProperties", values);
+        result.put("type", OBJECT_TYPE);
+        result.put(ADDITIONAL_PROPERTIES, values);
         return result;
     }
 

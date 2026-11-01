@@ -320,6 +320,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | String or boolean property/one-payload operation | String or Boolean of the matching kind |
 | Numeric property/one-payload operation | A supported standard Number; integral targets require exact range and no fraction |
 | Enum | An exact declared constant name as a String |
+| Zero-argument `@Builder.Method` command | An empty Map (`operation: {}` in YAML) |
 | Ordinary List/Map operation argument | One List/Map payload, recursively typed; never spread or treated as named arguments |
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
@@ -352,8 +353,9 @@ An authored operation can interpret its own admitted String payload, as `endpoin
 Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conflict with literal structured instance
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
 explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, unkeyed relationship
-collections, polymorphic selection and CollectionFactory scopes are outside v1. Null at any depth, reset/clear,
-arbitrary caller objects, helper/query/lifecycle names and zero/multi-payload authored operations reject.
+collections, polymorphic selection and CollectionFactory scopes remain outside the admitted grammar. Null at any depth,
+arbitrary caller objects, helper/query/lifecycle names and multi-payload authored operations reject.
+Zero-argument domain commands have only their explicitly authored behavior; there is no implicit reset/clear operation.
 An ordinary unannotated property named `key` is normal domain input; actual `@Key` members follow the position-specific rules above.
 
 Names follow compiler decisions: exclusion, compatible `@Struct.Name`/`@JsonProperty` literal, effective type profile,
@@ -409,6 +411,47 @@ selected operation's String grammar, prose and examples; constraints from a supe
 Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts
 and selection facts are required even for unmarked or excluded operations; missing or inconsistent facts fail closed.
 The development metadata protocol remains version 1. See [migration](Migration.md#structured-string-operation-selection).
+
+## Zero-argument commands
+
+A public Schema-authored `@Builder.Method` with no arguments is a command. Supply an empty mapping to invoke its exact
+public Builder operation once. Omission makes no call. Its return value, if any, is ignored. The method body defines its
+behavior: KlumAST adds no reset, clear, scheduling or repeated-call semantics.
+
+(See: `StructuredCommandTest#'an empty mapping invokes the domain reset command once'`,
+related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+
+@DSL class Service {
+    int timeout = 30
+    @Builder.Method void resetTimeout() { timeout = 30 }
+}
+
+def service = KlumStructuredInput.readRoot(Service,
+        [timeout: 90, resetTimeout: [:]], 'service.yaml')
+assert service.timeout == 30
+```
+
+The corresponding YAML command member is:
+
+```yaml
+resetTimeout: {}
+```
+
+A blank YAML value (`resetTimeout:`) and explicit null are not call markers. Null, nonempty Maps, Lists and scalars reject;
+`resetTimeout!` is an unknown name. Parsing stays caller-owned. The command follows the same literal/profile naming,
+exclusion, exact inherited override and collision rules as other admitted entries; payload shape never chooses an overload.
+`@Struct.Operation` retains its String-selection role and is not needed on a command. Query, lifecycle and framework helpers
+are not commands. Inherited overrides own their names and exclusions, so an old parent spelling cannot call renamed code.
+
+[Order and failures](#order-and-failures) apply: a command reached before a later invalid member may execute; no later
+operation runs after failure. Generated [JSON Schema](Json-Schema.md#zero-argument-commands) describes a closed empty object.
+Recompile participating Schema hierarchies with matching compiler/runtime/plugin artifacts for the required command-role
+facts; see [migration](Migration.md#structured-zero-argument-commands).
 
 ## Order and failures
 

@@ -57,6 +57,13 @@ public class WriteAccessHelper {
         return method != null && !method.getAnnotations(BUILDER_METHOD_ANNOTATION).isEmpty();
     }
 
+    /** Inspect every marker: an explicit manual marker must not hide a lifecycle annotation. */
+    public static boolean isLifecycleMethod(AnnotatedNode method) {
+        return method != null && method.getAnnotations().stream()
+                .map(WriteAccessHelper::getWriteAccessTypeForAnnotation)
+                .anyMatch(type -> type == WriteAccess.Type.LIFECYCLE);
+    }
+
     private static WriteAccess.Type getWriteAccessTypeForAnnotation(AnnotationNode annotation) {
         if (!DslAstHelper.hasAnnotation(annotation.getClassNode(), WRITE_ACCESS_ANNOTATION)) return null;
 

@@ -28,6 +28,7 @@ import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.Struct;
+import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.Struct.Ignore;
 import com.blackbuild.klum.ast.Struct.Naming;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
@@ -115,7 +116,7 @@ final class StructuredInputAdmissionPlan {
 
         StructuredInputAdmissionPlan inherited = planOf(model.getSuperClass());
         if (inherited != null) {
-            inherited.entries.stream().filter(entry -> !overriddenStringCandidate(transformation, entry)).forEach(entries::add);
+            inherited.entries.stream().filter(entry -> !overriddenInputCandidate(transformation, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections);
         }
 
@@ -136,15 +137,16 @@ final class StructuredInputAdmissionPlan {
                 model.getName(), GeneratedDslSupport.of(model).getBuilderInterface().redirect().getName(), entries, rejections));
     }
 
-    private static boolean overriddenStringCandidate(DSLASTTransformation transformation, Entry entry) {
-        if (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY || entry.payload().kind() != PayloadKind.SCALAR
-                || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type())) return false;
+    private static boolean overriddenInputCandidate(DSLASTTransformation transformation, Entry entry) {
+        if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
+                || entry.payload().kind() != PayloadKind.SCALAR
+                || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type()))) return false;
         return transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .map(GeneratedDslSupport::publicProjectionOf)
                 .filter(method -> method != null && method.isPublic() && !method.isStatic())
                 .anyMatch(method -> entry.operation().descriptorGroup().stream()
-                        .filter(inherited -> entry.role() == Role.OPERATION
+                        .filter(inherited -> entry.role() != Role.PROPERTY
                                 || signature(inherited).equals(entry.operation().name() + "(" + String.class.getName() + ")"))
                         .anyMatch(inherited -> signature(inherited).equals(signature(descriptor(method)))));
     }
@@ -329,6 +331,7 @@ final class StructuredInputAdmissionPlan {
                     if (api == null) return;
                     // Read the authored implementation, never a generated/compatibility projection's annotations.
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
+                    operation.setMember("role", new ConstantExpression(operationRole(method)));
                     operation.setMember("authoritative", new ConstantExpression(annotation(method, Struct.Operation.class.getName()) != null));
                     enrichDeprecation(method, operation);
                     StructuredInputExamples.enrich(method, transformation.annotatedClass, operation, source(method));
@@ -487,8 +490,21 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         Parameter[] parameters = method.getParameters();
+        if (parameters.length == 0 && lifecycleCommand(method)) {
+            rejections.add(new Rejection(source, "lifecycle methods are not structured commands"));
+            return;
+        }
+        if (parameters.length == 0) {
+            PublicOperation operation = publicOperation(method, rejections);
+            if (operation != null) {
+                entries.add(new Entry(name.value(), Role.COMMAND, source, operation,
+                        new Payload(PayloadKind.EMPTY_OBJECT, Map.class.getName(), null, null, null),
+                        name.origin(), null, null, null, false));
+            }
+            return;
+        }
         if (parameters.length != 1) {
-            rejections.add(new Rejection(source, "@Builder.Method must declare exactly one payload"));
+            rejections.add(new Rejection(source, "@Builder.Method must declare zero arguments or exactly one payload"));
             return;
         }
         String unsupported = unsupportedNumericType(parameters[0].getOriginType());
@@ -514,6 +530,16 @@ final class StructuredInputAdmissionPlan {
         if (operation == null) return;
         entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null,
                 ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
+    }
+
+    private static String operationRole(MethodNode method) {
+        if (method.getParameters().length != 0) return Role.OPERATION.name();
+        return lifecycleCommand(method) ? "LIFECYCLE" : Role.COMMAND.name();
+    }
+
+    private static boolean lifecycleCommand(MethodNode method) {
+        return WriteAccessHelper.isLifecycleMethod(method)
+                || annotation(method, Validate.class.getName()) != null;
     }
 
     private static Payload payloadForModel(ClassNode model) {
@@ -748,8 +774,8 @@ final class StructuredInputAdmissionPlan {
         return (model == null ? method.getDeclaringClass() : model).getName() + "#" + descriptor(method);
     }
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION }
-    enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT }
+    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION, COMMAND }
+    enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, INPUT_NAME, IGNORE, INPUT_IGNORE }
     record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }
     record PublicOperation(String declaringBuilder, String name, List<String> descriptorGroup) {
