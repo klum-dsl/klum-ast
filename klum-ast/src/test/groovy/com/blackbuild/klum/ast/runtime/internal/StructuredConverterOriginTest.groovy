@@ -299,6 +299,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         given:
         def type = schema('''
             @DSL class Service {
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> throw new AssertionError('converter executed') }])
                 Duration timeout
             }

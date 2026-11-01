@@ -80,6 +80,27 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         !converter.parameterFacts()
     }
 
+    def 'CharSequence conversion composes with merged commands and structured Templates'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                Duration timeout
+                @Builder.Method void extendTimeout() { timeout(timeout.plusSeconds(7)) }
+            }
+        ''')
+
+        when:
+        def template = type.Create.Template.FromStruct([timeout: 'PT30S', extendTimeout: [:]], 'integration.yaml')
+        def recipient
+        type.Template.With(template) { recipient = type.Create.One() }
+        def direct = type.Create.With { timeout 'PT30S'; extendTimeout() }
+
+        then:
+        template.timeout == Duration.ofSeconds(37)
+        recipient.timeout == direct.timeout
+        recipient.timeout == template.timeout
+    }
+
     def 'the exact marked CharSequence overload receives the original String: marked=#marked'() {
         given:
         def type = schema("""

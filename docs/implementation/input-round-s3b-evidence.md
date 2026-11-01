@@ -4,17 +4,41 @@ Related: #952. Authority: [ADR 0032](../adr/0032-builder-oriented-structured-inp
 [S3b acceptance](input-round-plan-4-2.md#acceptance-details-that-must-not-disappear-inside-a-slice),
 [S2 selection](input-round-s2-evidence.md) and [S3a origins](input-round-s3a-evidence.md).
 
-## Stack and delivery boundary
+## Integration and delivery boundary
 
-Base: `39e481e1d532c0f1a8145e79faa9ec6f8eee1f8c`, the assigned S3a PR #1004 head.
+Integrated base: `97a6775e580f3164a5ec18019312bf871512ac65`, fetched from origin/master on 2026-11-01.
+S3a PR #1004 is verified merged at `f71d0cea1ddd100d24b8106b7f64dc37e819c988`, an ancestor of that base.
+Original stack base: `39e481e1d532c0f1a8145e79faa9ec6f8eee1f8c`.
 Worktree: `/Users/stephan/.codex/worktrees/2e62/klum-ast`.
-Branch: `codex/952-charsequence-scalar`.
-This is speculative local work stacked behind S3a. No push, PR creation, GitHub issue edits, merge or self-archive is
-permitted. Tracker relationship is **Related: #952**, never closure. Hive owns later tracker/documentary-link and delivery
-reconciliation. No curation status is changed by this implementation.
+Branch: `codex/952-charsequence-scalar-routes` (renamed from `codex/952-charsequence-scalar` on explicit resume).
 
-Single resume condition: **explicit resume after S3a PR #1004 is verified merged, to rebase only S3b once onto master and
-rerun checks invalidated by integration**. Until then retain this clean worktree and local commits.
+The S3a-merge pause prerequisite is satisfied. The authorized rebase replayed only the five S3b commits onto current
+master. The resumed assignment authorizes local validation/review, pushing this branch and opening a draft PR. No merge,
+unrelated public API change, issue closure or self-archive is authorized. Tracker relationship remains **Related: #952**;
+Hive retains issue, release and archive reconciliation. No curation status is changed by this implementation.
+
+## Master integration validation
+
+The rebase preserves merged S4 commands, structured Template support and the #953 public-API decisions. Conflict
+resolutions retain S3a's possessive descriptor regex, extend the compiler's existing override filter to the exact scalar
+type, preserve command regressions in the named-module fixture, and keep both command and CharSequence schema properties.
+`git range-diff` confirms that these integrations and slice-status prose account for the rebased patch differences.
+
+Two newer String Duration fixtures explicitly exclude `parse` to preserve their intended route under S3b competition:
+S3a's long-descriptor regression and the structured Template documentary fixture. A new S3b regression composes an exact
+CharSequence conversion, an existing zero-argument command and an existing structured Template recipient. No public
+entry-point or Template/command implementation was changed for that regression.
+
+The integrated focused run passed 158 Groovy 3 cases across CharSequence, converter-origin, selection, command and Template
+suites, the G4 named-module consumer case, and all 8 packaged-schema cases, without failures/errors/skips:
+
+```shell
+./gradlew :klum-ast:test --tests '*StructuredCharSequenceTest' --tests '*StructuredConverterOriginTest' --tests '*StructuredOperationSelectionTest' --tests '*StructuredCommandTest' --tests '*StructuredInputTemplateDocumentaryTest' :klum-ast:groovy4Tests --tests '*JpmsPackageBoundaryTest.a real schema and consumer*' :klum-ast-gradle-plugin:test --tests '*CompiledConverterJsonSchemaTest' --no-parallel --max-workers=2 --console=plain
+```
+
+Final integrated root qualification and independent Standards/Specification reviews are pending. Earlier local results
+below remain historical, not proof of the integrated head. The shared compiler/runtime hook and overlapping master
+changes require the full-check tier under the merged PR #1006 policy.
 
 ## Implementation and review focus
 
@@ -57,7 +81,7 @@ no closure.
 | Named modules and direct generated linkage | `JpmsPackageBoundaryTest`: Java/static Groovy consumers and bytecode linkage controls |
 | Actual emitted grammar | `validate_converter_schema.py`: Draft 2020-12 structural String corpus alongside retained JDK/ECMA C1 oracle |
 
-## Local qualification
+## Pre-integration local qualification
 
 Clean implementation/test head `9b7fdbad74b09149b89bdacca26fa4ed63fda063` passed root `check` on 2026-11-01 in
 **24m 43s**: 140 tasks, 63 executed and 77 up to date. All final JUnit XML reports were inspected:
@@ -101,7 +125,7 @@ Node v24.19.0 and Java 17. All three emitted schemas have SHA-256
 `5b0e6804fd4bb63f0ced84becd8cdad587795a1a22a6fa573defb1a12a59805d`.
 Markdown fences, 187 relative file links, documentary anchors and `git diff --check` passed.
 
-## Reviews and commit history
+## Pre-integration reviews and commit history
 
 Exactly two local read-only review children reviewed the diff from the fixed S3a base: **Standards** and **Specification**.
 Both renewed at `9b7fdbad74b09149b89bdacca26fa4ed63fda063` with zero remaining findings.
@@ -124,5 +148,5 @@ the successful root run includes every correction.
 | `9b7fdbad7` | Reconcile inherited structural schema output in the shared fixture |
 
 History was reviewed for scope and ordering. Reviewed commits are preserved; fixes are additive. The final local commit
-records completed qualification only. The worktree pauses clean, without publication or self-archive; Hive retains
-integration, tracker and eventual archive reconciliation under the single resume condition above.
+records completed qualification only. That original worktree paused clean without publication. The explicit resume and verified integration above supersede
+its pause condition; Hive retains tracker and eventual archive reconciliation.
