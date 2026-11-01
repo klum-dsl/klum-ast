@@ -557,3 +557,9 @@ conversion, templates or lifecycle. There is no content grammar or example evalu
 apply; excessively large carried documentation is rejected defensively. The source-free public Builder metadata remains
 authoritative, and malformed or missing required metadata fails before replacing successful output. The unified
 [development metadata protocol](Migration.md#structured-input-metadata-protocol) remains version 1.
+
+### Runtime order and failure
+
+Schema validation describes structural grammar; it does not predict execution order, side effects or successful
+construction. The interpreter validates and invokes operations in supplied Map/List order and stops on the first
+encountered failure, retaining earlier effects. See [order and failures](Structured-Input.md#order-and-failures).

@@ -355,6 +355,9 @@ generated producer projection, lifecycle state, and the public-versus-synthetic 
 
 ## Opt-in structured Builder input
 
+Input failure stops ordered traversal and can leave earlier effects and partial Builder state. Callers must no longer
+rely on whole-document preflight. See [ordered structured-input failures](Migration.md#ordered-structured-input-failures).
+
 For caller-parsed Map/List/scalar data that should invoke admitted domain Builder operations, see
 [Structured Input](Structured-Input.md). Recompile and package Schema-generated metadata for this route. It adds no
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early

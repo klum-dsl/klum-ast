@@ -133,6 +133,21 @@ For caller-parsed Map/List/scalar data that should invoke admitted domain Builde
 parser and leaves named-parameter/Jackson behavior unchanged. Use an already-prepared active Builder when early
 callbacks require Schema-specific dependencies; later LINK assignment does not supply earlier callbacks.
 
+### Ordered structured-input failures
+
+Structured input now checks and invokes operations in the supplied Map/List iteration order, recursively. A later invalid
+name, type or child no longer prevents earlier mutations or side effects. `readRoot` returns no completed Model on failure;
+`applyToBuilder` may leave the caller's Builder partially configured. Neither route rolls back, resets or forces completion.
+Review callers that catch input exceptions and previously relied on an unchanged Builder. Decide explicitly whether to
+abandon their enclosing construction or continue with the partial state.
+
+Structural entry and complete static contract checks remain before traversal. Required construction identity is read before
+allocating that root/child; a missing key stops that allocation even when other body members precede it. Earlier siblings
+can already have run. Typed operation arguments validate as one payload; population containers validate element by element.
+Generated JSON Schema still describes structural input, with no execution-order or successful-construction promise.
+See [order and failures](Structured-Input.md#order-and-failures) and
+[ADR 0032](../adr/0032-builder-oriented-structured-input.md), related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).
+
 ### Explicit structured construction keys
 
 [#954](https://github.com/klum-dsl/klum-ast/issues/954) adds the three-argument `KlumStructuredInput.readRoot` route for
@@ -141,7 +156,7 @@ The existing four-argument route still requires its explicit root key and forbid
 passing null does not request inference. Active Builder targets likewise retain their existing identity.
 
 A supplied direct caller-key child now requires its key before construction; input that previously reached construction
-with null identity rejects during preflight. Omitted optional children remain legal. Fixed/derived/Cluster-key children
+with null identity rejects before that child's allocation. Omitted optional children remain legal. Fixed/derived/Cluster-key children
 and keyed Map values continue to forbid inner identity. Their providers and outer keys retain authority.
 
 Generated keyed-root JSON Schema now describes the self-contained document and gains a required String key member.

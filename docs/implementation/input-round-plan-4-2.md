@@ -1,7 +1,8 @@
 # INPUT-ROUND-PLAN — 4.2 structured-input implementation plan
 
 Date: 2026-10-31. Status: **Planning complete; `Struct.*` and direct internal rename accepted; documentation delivery subject to review.**
-This plan records the accepted design; V0 has since implemented the vocabulary rename. No further execution qualification is claimed. See
+This plan records the accepted design; V0 implemented the vocabulary rename and S1 implemented ordered traversal.
+[S1 evidence](input-round-s1-evidence.md) records its bounded validation; other slices remain unimplemented. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
 ## Authority and baseline
@@ -67,8 +68,8 @@ Important regression seams are `StructuredInputAdmissionPlanTest`, `CompiledBuil
 `StructuredInputRuntimeTest`, `StructuredInputConstructionTest`, `StructuredInputKeyTest`,
 `StructuredInputKeyBoundaryTest`, `CompiledConverterInputTest`, `StructuredInputDocumentaryTest`,
 `StructuredInputKeyDocumentaryTest`, `TemplatesDocumentaryTest` and packaged `KlumJsonSchemaGenerationTest`.
-The current runtime test named `complete preflight leaves an active Builder unchanged: #input` explicitly describes
-the behavior S1 must replace, rather than preserve accidentally.
+The former runtime test `complete preflight leaves an active Builder unchanged: #input` has been replaced by
+partial-state and first-failure coverage under S1. Static malformed-contract controls remain separate.
 
 ## Positive support matrix
 
@@ -105,7 +106,7 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 | --- | --- | --- | --- |
 | V0 — implemented | Maintainer `Struct.*` decision | [Annotation decision](input-round-annotation-vocabulary.md): directly rename existing author vocabulary and update internal tests/Schelm qualification. No migration, cutover, aliases or compatibility bridge. | Consistent compiler/reader/generated type references, equivalent behavior; G3/G4/G5 and binary fixture/JPMS gates. Later KlumAST implementation; Schelm qualification owner. |
 | D0 — docs-only | This plan | Reconcile present-tense delivery wording and publish the positive matrix/import-path guide. One commit for current capability/status reconciliation, another only if future-syntax guidance is separately labelled. | Links, current-source checks, no prospective API advertised as shipped. KlumAST docs; Hive owns issue updates. |
-| S1 — accepted implementation | ADR 0032 | Replace whole-input `Preparation` with per-operation traversal in runtime; retain contract verification, root/child identity prerequisites and existing Consumer dispatch. One cohesive behavior/test commit, then migration/docs. No new grammar in this slice. | Earlier operation persists before bad later member/type/child; later operation never runs; root returns no Model; active Builder may be partial. Key order/cycles/diagnostics/session cleanup controls. KlumAST runtime. |
+| S1 — implemented | ADR 0032 | Replace whole-input `Preparation` with per-operation traversal in runtime; retain contract verification, root/child identity prerequisites and existing Consumer dispatch. One cohesive behavior/test commit, then migration/docs. No new grammar in this slice. | Earlier operation persists before bad later member/type/child; later operation never runs; root returns no Model; active Builder may be partial. Key order/cycles/diagnostics/session cleanup controls. KlumAST runtime. |
 | S2 — accepted implementation | V0; S1 | Normalize one scalar candidate selection on public Builder contracts. Add author marker and minimal generated selection/completeness facts across annotations/compiler/runtime/plugin. One vertical String-selection commit with tests; second compatibility/docs commit only when independently useful. | Unique unmarked, one marked, multiple marked, zero eligible, exclusion, renamed/inherited candidates, competing String/CharSequence, actual dispatch equality, shadowing and stripped facts. Selected String schema agrees. KlumAST compiler/runtime/plugin. |
 | S3a — accepted implementation | S2 | Admit exact String scalar routes from field closures, same-compilation values and existing external adapters without C1-origin restrictions. Keep current C1 constraint authority when still applicable. One origin-parity behavior/test commit plus docs. | Same effective Builder shape works across origins; typed failure and thrown converter cause preserved; converter not invoked by generation. Collision with missing generated method fails; no duplicate factory scan. KlumAST compiler/runtime/plugin. |
 | S3b — accepted implementation | S3a | Admit deterministic CharSequence scalar routes (e.g. existing projected `Duration.parse`). One narrow behavior/schema/test commit plus docs. | A supplied String reaches the exact recorded CharSequence signature; String/CharSequence competition needs authority; numeric/null/GString/custom mutable CharSequence input rejects; no StringBuilder construction. KlumAST compiler/runtime/plugin. |
