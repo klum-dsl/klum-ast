@@ -2,10 +2,11 @@
 
 Date: 2026-10-31.
 
-Status: **Accepted; vocabulary V0 and ordered-traversal S1 implemented. Other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1 and exact String-selection S2 implemented. Other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
-[S1 evidence](../implementation/input-round-s1-evidence.md).
+[S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
+see [S2 evidence](../implementation/input-round-s2-evidence.md). CharSequence invocation and origin expansion remain planned.
 
 Authority: the maintainer's INPUT-ROUND-PLAN decisions, reconciled in the
 [implementation and issue plan](../implementation/input-round-plan-4-2.md). The 4.2 horizon records that direction;
@@ -70,12 +71,11 @@ record Name, Ignore, Naming, Examples, Operation and constraint projection/descr
 confirmed that existing names were used only by internal tests and Schelm qualification: use a direct internal rename,
 with no migration, cutover, aliases, deprecation window or compatibility bridge. This supersedes the earlier standalone
 `InputOperation` and `StructuredInput.*` proposals. `Builder.Input` and ordinary converter vocabulary retain their meanings.
-The following accepted future syntax is not yet implemented:
+The following syntax selects the String operation; CharSequence invocation remains deferred:
 
 ```groovy
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
-// Accepted vocabulary, not yet available:
 import com.blackbuild.klum.ast.Struct
 
 @DSL

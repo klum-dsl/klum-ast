@@ -187,6 +187,40 @@ class CompiledConverterInputTest extends Specification {
         [language, route, inherited] << [['Java', 'Groovy'], ['constructor', 'fromString', 'parse'], [false, true]].combinations()
     }
 
+    @Issue('952')
+    def 'a mark on a colliding converter source cannot manufacture a public selection'() {
+        given:
+        File domain = javaJar("""
+            package converterinput;
+            import com.blackbuild.klum.ast.Struct;
+            public class PortNumber {
+                private PortNumber() {}
+                public static PortNumber fromString(String raw) { throw new AssertionError("first converter"); }
+                @Struct.Operation
+                public static PortNumber parse(String raw) { throw new AssertionError("marked converter"); }
+            }
+        """)
+        File schema = schemaJar(domain, 'fromString', false)
+        def loader = binaryLoader([schema, domain])
+        Class<?> model = Class.forName(MODEL, false, loader)
+
+        when:
+        def contract = new InputContractResolver().read(model)
+
+        then:
+        !contract.entries().containsKey('port-number')
+        contract.rejections().any { it.reason().contains('unsupported converter selection') }
+
+        when:
+        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'collision.yaml')
+
+        then:
+        thrown(KlumModelException)
+
+        cleanup:
+        loader?.close()
+    }
+
     def 'an authored binary descendant override rejects inherited converter input: kebab=#kebab ignored=#ignored grandchild=#grandchild'() {
         given:
         File domain = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}")', false)

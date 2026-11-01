@@ -74,7 +74,7 @@ stay literal; owned definitions use the owned type's hierarchy rather than the o
 `@Struct.Name` or compatible `@JsonProperty` names override the profile; `@Struct.Ignore`/`@JsonIgnore` exclusions remain effective. The generator and interpreter share one resolver over public Builder facts;
 Model bytes, mapper strategies and annotation proxies do not provide naming facts.
 
-Conflicting explicit profiles, nonidentity member collisions and malformed/incomplete required metadata fail before
+Conflicting explicit profiles, unresolved nonidentity member collisions and malformed/incomplete required metadata fail before
 schema publication, preserving previous successful output. An ignored/colliding required key still makes member-key
 positions unrepresentable; keyless definitions retain existing behavior. Properly compiled no-profile/identity Schemas
 retain their native output. Recompile participating hierarchies and owned artifacts with the supported protocol; see
@@ -102,7 +102,8 @@ and keyed-instance identities remain literal.
 // Closed properties: Service/ID (required), URL/exact, url-value.
 ```
 
-A literal can separate profile-colliding declarations; remaining nonidentity collisions fail before artifact replacement.
+A literal can separate profile-colliding declarations. [String operation selection](Structured-Input.md#select-a-string-operation)
+can select one eligible marked operation; remaining nonidentity collisions fail before artifact replacement.
 An ignored required key still makes a member-key position unrepresentable; externally keyed owned Map bodies remain keyless.
 The compiler freezes exact names, exclusion and origin on declaring public Builder contracts. Both consumers require the
 same supported metadata protocol and complete facts. Missing, unknown, inconsistent or malformed facts fail with
@@ -420,6 +421,9 @@ The generated document uses reusable `$defs`/`$ref` for concrete owned objects, 
 keys for ordinary data maps and keyed owned maps, scalar/enum values, supported field containers, and admitted authored
 `@Builder.Method` operations with one payload. Inherited members and retained prose are preserved. A Map/List operation
 payload remains one value. Exclusion, compatible literal rename, type profile and identity fallback determine external names.
+For a [selected String operation](Structured-Input.md#select-a-string-operation), only that operation's `type: string`,
+prose and examples are projected. Superseded candidates supply no assertions. Multiple eligible marks and incomplete
+selection facts fail generation before output replacement; excluded/unsupported operations remain unavailable.
 Concrete owned relationships in compatible binary API/Schema dependencies follow the same admission rules as local
 relationships, including inherited fields and keyed Map values. No alternate naming strategy is currently configurable.
 

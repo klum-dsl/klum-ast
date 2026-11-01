@@ -9,6 +9,17 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Structured String operation selection
+
+Use `@Struct.Operation` on one eligible Schema-authored String Builder method when several public operations share an
+external input name. Unmarked selection requires uniqueness; String and CharSequence overloads have no implicit
+specificity preference. CharSequence invocation is still unsupported. Renamed/ignored overrides now replace inherited
+authored operation names and selection intent; inherited C1 converter override rejection remains unchanged.
+
+Recompile participating Schema hierarchies with matching compiler/runtime/plugin artifacts for the new explicit operation
+completeness and selection facts (development protocol 1). Old or stripped facts reject before execution/generation.
+See [String selection](Structured-Input.md#select-a-string-operation) and [ADR 0032](../adr/0032-builder-oriented-structured-input.md).
+
 ### Compiled converter String input
 
 Ordinary non-DSL fields with one eligible separately compiled String converter can now participate in structured input

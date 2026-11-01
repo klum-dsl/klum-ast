@@ -149,6 +149,50 @@ import com.blackbuild.klum.ast.*
         !new File(directory, 'executed').exists()
     }
 
+    @Issue('952')
+    def 'packaged binary selection projects only the selected String operation with Groovy #lane'() {
+        given:
+        fixture(lane)
+        write(producer, 'parent/src/main/groovy/converterjson/SelectedBase.groovy', '''
+package converterjson
+import com.blackbuild.klum.ast.*
+@DSL class SelectedBase extends Base {
+    /** Selected endpoint prose. */
+    @Struct.Operation @Struct.Name('external-endpoint') @Struct.Examples(['api.internal'])
+    @Builder.Method void endpoint(String value) { throw new AssertionError('operation executed during generation') }
+    @Struct.Name('external-endpoint') @Struct.Examples(['wrong example'])
+    @Builder.Method void alternate(String value) { throw new AssertionError('unselected operation') }
+}
+''')
+        write(producer, 'schema/src/main/groovy/converterjson/SelectedService.groovy', '''
+package converterjson
+import com.blackbuild.klum.ast.*
+@DSL class SelectedService extends SelectedBase {
+    static { throw new AssertionError('Schema initialized during generation') }
+    /** Wrapper owns its own grammar. */
+    @Struct.Operation @Struct.Name('port-number')
+    @Builder.Method void selectedPort(String value) { throw new AssertionError('wrapper executed during generation') }
+}
+''')
+        runner(producer, ':schema:jar').build()
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['converterjson.SelectedService'])\n")
+
+        when:
+        runner(consumer, 'generateKlumJsonSchema').build()
+        def schema = new JsonSlurper().parse(new File(consumer,
+                'build/generated/klum-json-schema/converterjson.SelectedService.schema.json'))
+        def properties = schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties
+
+        then:
+        properties.keySet() == ['external-endpoint', 'port-number'] as Set
+        properties.'external-endpoint' == [type: 'string', description: 'Selected endpoint prose.', examples: ['api.internal']]
+        properties.'port-number' == [type: 'string', description: 'Wrapper owns its own grammar.']
+        !new File(directory, 'executed').exists()
+
+        where:
+        lane << ['3', '4', '5']
+    }
+
     private void fixture(String lane) {
         generation = lane
         producer = new File(directory, 'producer')

@@ -382,7 +382,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
-    @Issue(["391", "658", "954", "959"])
+    @Issue(["391", "658", "954", "959", "952"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -819,6 +819,10 @@ class JpmsPackageBoundaryTest extends Specification {
                 static final List<String> EVENTS = []
 
                 @Struct.Name('station-name') String name = 'North'
+                @Struct.Operation @Builder.Method
+                void endpoint(String value) { name = 'selected:' + value }
+                @Struct.Name('endpoint') @Builder.Method
+                void backupEndpoint(String value) { throw new AssertionError('unselected operation') }
                 StationSlot slot
                 @Cluster(fixedKeys = true) Map<String, StationSlot> getSlots() {}
 
@@ -1061,6 +1065,15 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new AssertionError("Named schema could not retain the reporter diagnostic");
                     if (KlumSchemaSupport.klumValidationForObject(station).getFailLevel() != Validate.Level.ERROR)
                         throw new AssertionError("Named Java consumer could not access the validation reporter");
+                    Station selected = KlumStructuredInput.readRoot(Station.class, Map.of("endpoint", "Java"), "selected.json");
+                    Station directSelected = factory.With(new Closure<Object>(null) {
+                        @Override public Object call() {
+                            ((Station_DSL.Builder<Station>) getDelegate()).endpoint("Java");
+                            return null;
+                        }
+                    });
+                    if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
+                        throw new AssertionError("Selected public String operation differs from direct Java dispatch");
                     Station structured = KlumStructuredInput.readRoot(Station.class, null,
                             Map.of("station-name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
                     if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
@@ -1179,6 +1192,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
                     assert station.capacity == 4
+                    Station selected = KlumStructuredInput.readRoot(Station, [endpoint: 'static'], 'selected.json')
+                    Station directSelected = Station.Create.With { endpoint 'static' }
+                    assert selected.name == 'selected:static'
+                    assert selected.name == directSelected.name
                     Station structured = KlumStructuredInput.readRoot(Station, null, ['station-name': 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
                     assert structured.name == 'Structured static'
                     assert structured.capacity == 6

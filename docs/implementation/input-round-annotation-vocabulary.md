@@ -79,7 +79,7 @@ not represent a memory layout, parser or completed-model serialization contract.
 | `InputIgnore` | `Struct.Ignore` | Same exclusion marker; no opt-out from ordinary validation. |
 | `InputNaming` / `.Profile` | `Struct.Naming` / `.Naming.Profile` | Preserve explicit choice, IDENTITY/KEBAB_CASE, inheritance and literal precedence. No new profile. |
 | `InputExamples` | `Struct.Examples` | Same documentary String array. Nesting does not make examples typed input. |
-| Proposed `InputOperation` | `Struct.Operation` | New authoritative-admission marker, accepted but not implemented; exactly one marked eligible operation wins. Does not replace `Builder.Method` or admit all public methods. |
+| Proposed `InputOperation` | `Struct.Operation` | New authoritative-admission marker, implemented in [S2](input-round-s2-evidence.md) for exact String operations; exactly one marked eligible operation wins. Does not replace `Builder.Method` or admit all public methods. |
 | `ConstraintProjection` / `.Policy` | `Struct.ConstraintProjection` / `.ConstraintProjection.Policy` | Keep PROJECT/TEXT_ONLY/OMIT and FIELD/PARAMETER targets. This particular member controls constraint output; membership in the shared namespace does not give it runtime authority. |
 | `InputConstraintDescription` | `Struct.ConstraintDescription` | Preserve ANNOTATION_TYPE-only literal prose and policy behavior. Prefer the specific name over `.Description`, which suggests arbitrary field documentation. |
 
@@ -88,7 +88,7 @@ but is less direct at an annotated method. Keep `.ConstraintProjection` rather t
 not appear to control all structural schema output. A second nested `Constraints` framework or a family of constraint
 annotations is not justified. The nested enums keep their present relationship to their annotations.
 
-Illustrative Schema syntax; `Struct.Operation` remains planned for S2:
+Schema syntax implemented by S2 for the exact String operation (CharSequence invocation remains deferred):
 
 ```groovy
 import com.blackbuild.klum.ast.Builder
