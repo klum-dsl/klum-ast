@@ -6,12 +6,13 @@ Related: #952. Authority: [ADR 0032](../adr/0032-builder-oriented-structured-inp
 
 ## Local implementation boundary
 
-Integrated base: `325cfda9d373b235caaa7590475ecde01c33fdb7`, the verified S2 PR #1003 merge on master.
+Integrated base: `5e06b1545199aa715778b4cc8c474e97cb65779f`, master including S4 PR #1005 and validation policy PR #1006.
+Previous integrated base: `325cfda9d373b235caaa7590475ecde01c33fdb7`, the S2 PR #1003 merge on master.
 Original stack base: `4f68e1ec97b6a9e78e9e7eccb300dad7b55ce6d0`, the assigned S2 branch tip.
 Branch: `codex/952-string-origin-parity`.
 Worktree: `/Users/stephan/.codex/worktrees/2bc6/klum-ast`.
 The S1/S2 merge prerequisite is satisfied. Only S3a commits were replayed onto the integrated base; the old S1/S2 stack
-was not replayed. S3a delivery remains a draft pull request, without merge authorization.
+was not replayed. PR #1004 is open, pending merge; Hive alone owns merge after final clean hosted qualification.
 
 The compiler admits an existing exact String projection for field converter closures, same-compilation non-DSL values,
 and separately compiled external adapters. It keeps the recorded converter source paired with the actual public Builder
@@ -44,8 +45,9 @@ generated-code hook that delegates to the same runtime conversion/assignment pat
 | Binary and named-module access | `JpmsPackageBoundaryTest`: Java and static Groovy String-converter calls, G3 classpath and G4/G5 named modules; no new opens |
 | Actual Draft 2020-12 output | `validate_converter_schema.py`: retained C1 JDK/ECMA/Draft oracle plus structural scalar acceptance/rejection for each new origin |
 
-No CharSequence invocation, converter containers, String-to-DSL routes, commands, scopes, Templates, body schemas,
-CollectionFactories, coercion, parameter validation, discovery widening or source-mirror authority is added.
+S3a adds no CharSequence invocation, converter containers, String-to-DSL routes, commands, scopes, Templates, body schemas,
+CollectionFactories, coercion, parameter validation, discovery widening or source-mirror authority. S4 commands are
+retained from the integrated master and remain a separate contract.
 
 ## Dispatch-equivalence verification for PR #1004
 
@@ -134,9 +136,45 @@ repository check was not repeated for these two narrow guards; the affected modu
 JPMS and packaged-consumer checks were run instead. Standards and Specification review of the correction each reported
 zero findings. Existing reviewed commits are preserved; corrections are an additive follow-up.
 
-## Master integration and current validation
+## S4 master integration and current validation
 
-On 2026-11-01, the S2 merge was verified at the exact requested master above. Rebase preserved the production changes
+On 2026-11-01, the explicitly requested rebase replayed only the ten S3a commits from published head
+`70080411a8ffdf154151d10e2e077f2dbbd004d1` onto master `5e06b1545199aa715778b4cc8c474e97cb65779f`.
+The tested code head is `cf4394b8f0d9fe755d5630874878bcc2d75e55ce`. This authorized rebase rewrites the reviewed
+commit identities while retaining the dispatch controls and all eight SonarCloud corrections.
+
+Conflicts were additive: the changelog and plan retain both S3a and S4, and the two Java/static-Groovy JPMS fixture
+blocks retain both String converter calls and zero-argument command assertions. The ADR status now records merged S4.
+Production files merged without manual changes. Range-diff shows only the expected JPMS context and documentation
+status differences; the remaining eight commits replayed unchanged. Standards and Specification review of the combined
+change each reported zero findings at the tested code head. No dispatcher, admission widening or C1 policy change was
+introduced by conflict resolution.
+
+The shared compiler/runtime/generated-contract integration requires the full-check tier under merged PR #1006.
+With Java 17, `./gradlew check --no-parallel --max-workers=2` passed in **24m 54s**: 140 tasks, 72 executed and
+68 up to date. The final JUnit reports contain:
+
+| Lane | Tests | Failures / errors | Skipped |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline (`test`) | 3,674 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 2,999 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 2,999 | 0 / 0 | 16 |
+
+The baseline includes **653 passing plugin tests**, including eight packaged converter-schema cases. The check covers
+S3a/S4 selection, C1, binary/JPMS, source-free producers, lane isolation, license and documentation-renderer checks.
+The independent actual-output oracle passed **28 JDK + 270 ECMA/Draft C1 + 210 structural checks**. All three emitted
+converter schemas retain SHA-256 `b10e567dfc75e22b1997411782ea29325e66acb0f937d263d1a5a28a17657aa0`.
+The final evidence update is documentation-only; Markdown fences, 190 relative links across nine changed Markdown files
+and diff checks passed. No further Groovy run is required for that evidence-only update.
+
+The interrupted noncommitting merge check was abandoned when the explicit rebase direction arrived and is not
+qualification. The successful run above is the completed validation of the rebased code. Hosted CI and the
+coverage-bearing SonarCloud Code Analysis gate must still qualify the final published revision; previous-head results
+are historical and cannot establish current merge readiness.
+
+## S2 master integration validation (historical)
+
+On 2026-11-01, the S2 merge was verified at the then-requested master `325cfda9d373b235caaa7590475ecde01c33fdb7`. Rebase preserved the production changes
 without conflicts. The plan's slice-status paragraph was reconciled with merged S1/S2, and the model-identity fixture
 correction was already present upstream. Range-diff confirmed those were the only integration differences.
 
@@ -197,7 +235,7 @@ Earlier interrupted or failed runs are diagnostic history, not qualification. Th
 all corrections. The final compatibility totals include six test-support tests per lane beyond the earlier intermediate
 2,949-test reports.
 
-## Rebase audit
+## S2 rebase audit (historical)
 
 | Original commit | Rebased commit | Purpose |
 | --- | --- | --- |
@@ -209,18 +247,16 @@ all corrections. The final compatibility totals include six test-support tests p
 | `b75482a5c` | `22f32a31a` | Retained diagnostic evidence; fixture correction is already in master |
 | `9ad811e46` | `7d81b9e07` | Prior local qualification and paused-stack evidence |
 
-The reviewed sequence is preserved through the authorized rebase. The current integration record is a subsequent
-documentation-only commit.
+The reviewed sequence was preserved through that authorized S2 rebase. The subsequent S4 rebase retains the ten S3a
+commits; its code head and validation are recorded above.
 
 ## Delivery boundary
 
-The resumed assignment authorizes pushing this dedicated branch and opening a draft pull request against master.
-Tracker impact: **Related: #952**; no issue closure or curation mutation. The documentary test/user-documentation links
-above remain available for Hive tracker reconciliation. No merge or self-archive is authorized.
+The resumed assignment authorizes updating the existing branch and PR #1004 after the explicit master rebase, using
+an exact lease against the previously published head. The PR is open and no longer draft. Tracker impact remains
+**Related: #952**; no issue closure or curation mutation. The documentary test/user-documentation links above remain
+available for Hive tracker reconciliation. No merge or self-archive is authorized.
 
-Delivery-channel audit: Git transport push **authorized** (dry run); GitHub CLI pull-request channel **authorized**.
-No alternative connector authority is inferred. CI and coverage-bearing SonarCloud results belong to the published
-revision and are reported in the PR handoff; local checks do not establish those remote results.
-
-The previous pause condition is satisfied by the verified S1/S2 merge sequence and this rebase. Hive retains merge and
-archive reconciliation; this worker stops with the draft PR open.
+Git transport and GitHub CLI pull-request updates are authorized. CI and coverage-bearing SonarCloud results belong to
+the final published revision and must be reported separately; local checks do not establish those remote results.
+Hive retains merge and archive reconciliation. This worker leaves PR #1004 open and monitors final-head checks.
