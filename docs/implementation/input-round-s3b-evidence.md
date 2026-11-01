@@ -69,7 +69,15 @@ suggestion to share the two ASM corruption helpers is deferred because each curr
 signature matrix, and new fixture infrastructure is unnecessary for this narrow slice. Specification found an erased
 generic CharSequence parameter could bypass ordinary generic rejection. Marked/unmarked bounded-generic probes reproduced
 it; exact generic-type checks and compiler placeholder guards now reject it, with runtime and packaged-schema controls.
-Both reviewers will renew their review on the corrected final head before the pause.
+Both reviewers renewed at `6a6adb19e873d3b10c2ecbadb53a48f06ca595ac`: zero remaining findings. Final evidence review
+will include the later fixture-only correction and completed qualification.
+
+The next aggregate run completed Groovy 4/5 successfully, then was stopped while the inherited Duration addition was
+reconciled with a shared plugin fixture's exact property-set assertion. The corrected `CompiledConverterJsonSchemaTest`
+passed all 8 cases, including the G3/G4/G5 producer matrix. The independent actual-output oracle passed 28 JDK checks,
+270 ECMA/Draft C1 checks and 270 structural String checks. All three emitted schemas have SHA-256
+`5b0e6804fd4bb63f0ced84becd8cdad587795a1a22a6fa573defb1a12a59805d`.
+Oracle tools: jsonschema 4.23.0, Node v24.19.0 and Java 17. Interrupted aggregate runs are diagnostic history only.
 
 The merged risk-tiered policy from PR #1006 (`52b9e0d97d181e8f2ad2222c50ae3a176ea4bfb4`) governs this stacked assignment.
 A new generated-code hook spans compiler/runtime ABI, so the shared-contract tier requires root `check`; the run also

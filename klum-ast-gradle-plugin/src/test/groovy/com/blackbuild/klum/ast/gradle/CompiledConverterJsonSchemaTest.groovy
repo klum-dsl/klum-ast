@@ -226,7 +226,10 @@ import com.blackbuild.klum.ast.*
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.required == ['name']
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties.findAll { key, value -> key != 'name' } == properties
         !body.'$defs'.'converterjson.SelectedService_DSL$Builder::keyless'.containsKey('required')
-        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'resetTimeout', 'current-command'] as Set
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'naturalDuration', 'resetTimeout', 'current-command'] as Set
+        properties.naturalDuration.type == 'string'
+        !properties.naturalDuration.containsKey('allOf')
+        !properties.naturalDuration.containsKey('x-klum-converter-constraint-source')
         properties.configureName == [type: 'string']
         properties.'renamed-name' == [type: 'string']
         properties.resetTimeout == [type: 'object', properties: [:], additionalProperties: false, description: 'Restore the domain timeout.']
