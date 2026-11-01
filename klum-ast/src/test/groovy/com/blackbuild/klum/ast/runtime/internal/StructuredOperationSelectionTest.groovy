@@ -354,6 +354,33 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         new InputContractResolver().read(type).entries().containsKey('host')
     }
 
+    def 'unmarked override cannot inherit a parent mark or discard its surviving competitor'() {
+        given:
+        def type = schema('''
+            @DSL class Base {
+                @Struct.Ignore String host
+                @Struct.Operation @Builder.Method void endpoint(String value) { host = 'base:' + value }
+                @Struct.Name('endpoint') @Builder.Method void alternate(String value) { host = 'alternate:' + value }
+            }
+            @DSL class Service extends Base {
+                @Builder.Method void endpoint(String value) { host = 'child:' + value }
+            }
+        ''')
+
+        when:
+        def direct = type.Create.With { endpoint 'api' }
+
+        then:
+        direct.host == 'child:api'
+
+        when:
+        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'unmarked-override.yaml')
+
+        then:
+        thrown(KlumModelException)
+        !new InputContractResolver().read(type).entries().containsKey('endpoint')
+    }
+
     def 'ignored override shadows the parent mark through a further descendant'() {
         given:
         def type = schema('''

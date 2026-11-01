@@ -17,7 +17,9 @@ retained; participating compiler/runtime/plugin and Schema artifacts must match 
 The shared resolver collects declarations without resolving name collisions early, removes overridden authored String
 candidates, applies exclusions and the effective hierarchy naming profile, then selects one exact operation. Exactly one
 eligible String mark wins; multiple eligible marks fail; without a mark a unique candidate is required. This uses no input
-values, method enumeration preference or trial invocation. Renamed operations expose only their effective names. An
+values, method enumeration preference or trial invocation. Previously rejected unmarked parent sources remain excluded
+under identity naming; a marked group's surviving candidates remain available for exact descendant override resolution.
+Renamed operations expose only their effective names. An
 override owns its own names and intent, including exclusion through further descendants. Non-String override behavior
 remains outside S2. Overriding an inherited ordinary String field's selected String signature excludes the parent's field
 entry, so its old name and constraints cannot describe the descendant body. An override of an unrelated generated
@@ -70,7 +72,11 @@ Exactly two read-only local children reviewed base through `576338ee8`: Standard
 one documentary code block and braces for multiline branches; both are corrected. A targeted parent regression and
 Specification follow-up identified an inherited ordinary String-field alias surviving a renamed/ignored descendant
 override. The correction examines only the actual String signature, preserves unrelated overloads and C1 guards, and
-adds runtime/binary/schema controls. Reviews of the correction and final full repository `check` are in progress. This record will be completed before
+adds runtime/binary/schema controls. Both review axes accepted that correction at `d87049fce`. The aggregate run then
+exposed the existing `rejectedparent` fixture: previously excluded unmarked parent collisions must remain excluded. That
+behavior is restored without pruning a marked group's surviving competitors; the original expected contract is unchanged.
+The complete compiled-contract, naming, selection and C1 focused suites passed. Reviews of this final compatibility
+correction and full repository `check` are in progress. This record will be completed before
 handoff; these focused results do not yet claim complete qualification.
 
 ## Delivery boundary

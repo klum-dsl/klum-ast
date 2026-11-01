@@ -109,6 +109,15 @@ final class InputContractResolver {
 
     /** Select only after override, exclusion and effective hierarchy naming have been resolved. */
     private Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected, boolean strict) {
+        Map<String, Entry> entries = new LinkedHashMap<>();
+        candidateGroups(candidates, rejected).forEach((name, group) -> {
+            Entry selected = selectOperation(name, group, rejected, strict);
+            if (selected != null) entries.put(name, selected);
+        });
+        return entries;
+    }
+
+    private static Map<String, List<Entry>> candidateGroups(List<Entry> candidates, List<Rejection> rejected) {
         Map<String, Entry> sources = new LinkedHashMap<>();
         for (Entry entry : candidates) {
             Entry previous = sources.putIfAbsent(entry.source(), entry);
@@ -119,12 +128,16 @@ final class InputContractResolver {
         sources.values().stream().filter(entry -> !exclusions.contains(entry.source()))
                 .sorted(Comparator.comparing(Entry::externalName).thenComparing(Entry::source))
                 .forEach(entry -> names.computeIfAbsent(entry.externalName(), ignored -> new ArrayList<>()).add(entry));
-        Map<String, Entry> entries = new LinkedHashMap<>();
-        names.forEach((name, group) -> {
-            Entry selected = selectOperation(name, group, rejected, strict);
-            if (selected != null) entries.put(name, selected);
+        return names;
+    }
+
+    /** Keep existing rejected-parent sources excluded, without discarding a marked group's other callable candidates. */
+    private void retainUnmarkedCollisions(List<Entry> entries, List<Rejection> rejected) {
+        candidateGroups(entries, rejected).forEach((name, group) -> {
+            if (group.size() > 1 && group.stream().noneMatch(this::authoritativeString)) {
+                rejectCollision(name, group, rejected, false);
+            }
         });
-        return entries;
     }
 
     private Entry selectOperation(String name, List<Entry> group, List<Rejection> rejected, boolean strict) {
@@ -140,10 +153,14 @@ final class InputContractResolver {
             rejected.add(new Rejection(unique.source(), "CharSequence scalar operations are not admitted; expose an exact String operation"));
             return null;
         }
+        rejectCollision(name, group, rejected, strict);
+        return null;
+    }
+
+    private static void rejectCollision(String name, List<Entry> group, List<Rejection> rejected, boolean strict) {
         String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
         if (strict) throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
         group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
-        return null;
     }
 
     private boolean authoritativeString(Entry entry) {
@@ -196,6 +213,7 @@ final class InputContractResolver {
             declarations.addAll(inherited.declarations());
         }
         validateKeyMetadata(metadata, key, builder);
+        if (!nativeCandidates) retainUnmarkedCollisions(entries, rejections);
         List<Entry> resolved = List.copyOf(entries);
         Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
