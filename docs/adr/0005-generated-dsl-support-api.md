@@ -48,6 +48,11 @@ their public interfaces through explicit generated metadata or hooks, never clie
 internal/support base class. The public interface exposes only operations intended for Builder-producing protocols; raw
 construction metadata, lifecycle internals, and implementation hooks are not client capabilities.
 
+The accepted 4.2 [structured-input capability clarification](0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953)
+adds generated Factory/Template Factory `FromStruct` creation and inherited `KlumBuilder.applyStruct` application.
+These are planned public construction capabilities; the reader/interpreter remains internal. ADR 0032 owns their exact
+signatures, key/body rules, diagnostics and development-only migration. Existing `FromMap` remains a distinct contract.
+
 For inheritance, `Child_DSL.Builder<SELF extends Child>` extends `Parent_DSL.Builder<SELF>`; the hidden Builder
 implementations mirror that hierarchy. A factory for `Child` therefore exposes `Child_DSL.Builder<Child>` and the complete
 chain has exactly one `KlumBuilder<Child>` capability. This is the 4.0 recompilation break and stable 4.x contract.
