@@ -47,34 +47,58 @@ CollectionFactories, coercion, parameter validation, discovery widening or sourc
 
 ## Validation and review
 
-Final focused Groovy 3 converter-origin, S2 selection, C1 and binary/module suites passed, together with the packaged
-G3/G4/G5 schema producer matrix. The independent oracle passed 28 JDK, 270 ECMA/Draft and 90 initial S3a structural checks.
-Markdown fences, 183 relative file links and `git diff --check` passed. Affected suites, full repository `check`, and the
-two local review axes are in progress. This section will record the final results before handoff; it makes no full-suite or
-remote CI claim yet. No local SonarCloud upload is used. The preliminary full-check attempts were stopped for review corrections; they are not qualification evidence.
+The final implementation head `b75482a5c060100b690f5074b993ed5cc9ff0304` passed the full repository
+`./gradlew check --no-parallel --max-workers=2` with Java 17 in 24m 25s: 140 actionable tasks, 58 executed and 82 up to date.
+The final JUnit reports, including test-support, contain:
 
-Standards review requested braces and a named corruption-annotation helper. Specification review identified retained C1
-source-family cardinality restrictions in structural admission. Corrections retain those restrictions only for C1
-parameter authority and add overloaded constructor/factory/adapter dispatch and schema controls, plus a native-scalar
-regression. Existing native scalar input remains unchanged. The follow-up specification review found further inherited C1 interface/generic/source restrictions. Structural eligibility
-now uses the exact public projection plus ordinary scalar exclusions; the original source predicate is retained solely for
-C1 authority. New interface/subtype/generic and existing binary source controls prove direct/structured dispatch, while
-packaged schemas confirm absent C1 assertions. Raw Object, arrays and converter-backed containers remain excluded.
-The same two children accepted the corrected code at `c7aeffc24` with zero remaining findings.
+| Lane | Tests | Failures / errors | Skipped |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline (`test`) | 3,630 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 2,955 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 2,955 | 0 / 0 | 16 |
 
-The full-check Groovy 4 JPMS fixture then exposed dynamic lookup of the existing scalar converter hook on a non-exported
-runtime implementation class. The compiler now links exact scalar String converter calls through the protected
-`GeneratedKlumBuilder` hook, following the existing setter/relationship pattern. No module opens, converter discovery,
-container linkage or public Builder signature changes are needed. Focused ordinary Groovy 3 converter regressions and
-G4/G5 classpath/named-module fixtures pass, including bytecode linkage assertions. The interrupted full run is not a
-qualification result. The same two reviewers will inspect this correction before final full-check qualification.
+The Gradle plugin contributes 653 passing baseline tests with no skips. The full check includes binary/JPMS,
+source-free packaged producers, lane isolation, license, plugin validation and documentation-renderer checks.
+Focused converter-origin, S2 selection, C1, converter regression and named-module checks also passed during development.
+The final evidence update is documentation-only and does not change the tested implementation.
 
-A subsequent full run completed both compatibility lanes (2,949 tests each, zero failures/errors, 16 unchanged skips)
-and the compiler/annotation/Bean Validation baseline suites, then found one stale hand-authored plugin fixture inherited
-from S2. Its `Misdirected_DSL.Builder` lacked `operationCount=0`, masking the intended model-identity rejection with an
-earlier completeness failure. The fixture now carries the required zero count; its original identity assertion is
-unchanged and the focused control passes. No production change is associated with this correction. The full check is
-rerun before final handoff.
+After the successful full check, the independent actual-output oracle passed **28 JDK, 270 ECMA/Draft C1 and 210 S3a
+structural String checks** across G3/G4/G5. It used `jsonschema` 4.23.0, Node v26.12.0 and the Java 17 launcher.
+All three emitted `converter.schema.json` documents have SHA-256
+`b10e567dfc75e22b1997411782ea29325e66acb0f937d263d1a5a28a17657aa0`.
+Markdown fences, relative file links, the linked documentary anchors and `git diff --check` passed.
+This is local qualification only; no remote CI dispatch or SonarCloud upload occurred.
+
+Exactly two review children performed the Standards and Specification reviews. Both reported zero remaining findings
+at `b75482a5c`. Their corrections are retained as follow-up commits:
+
+- Standards requested braces and a named corruption-annotation helper.
+- Specification identified C1 source-family, interface and generic restrictions in structural admission. Those restrictions
+  now apply only to C1 parameter authority. Structural admission uses the actual exact public projection and ordinary
+  scalar exclusions. Added dispatch/schema controls cover overloaded, interface, subtype and generic routes without C1 leakage.
+- Full validation exposed dynamic converter-hook lookup on a non-exported runtime class. Exact scalar String methods now
+  directly link the protected `GeneratedKlumBuilder` hook, with no module opens or public Builder signature change.
+  Both reviewers accepted the correction; bytecode and named-module controls pass.
+- A later full run found a stale S2 hand-authored plugin fixture missing `operationCount=0`. Adding the required zero count
+  restores the original model-identity rejection assertion without changing production code. Both reviewers accepted it.
+
+Earlier interrupted or failed runs are diagnostic history, not qualification. The successful full run above includes
+all corrections. The final compatibility totals include six test-support tests per lane beyond the earlier intermediate
+2,949-test reports.
+
+## Local commit sequence
+
+| Commit | Purpose |
+| --- | --- |
+| `429e032e9` | Exact String converter origin parity and initial controls |
+| `4fd30fc79` | User documentation and local stack boundary |
+| `06490fdd5` | Separate C1 source-family authority from structural routes |
+| `c7aeffc24` | Make the actual public projection authoritative for structural String input |
+| `82432c6fb` | Direct scalar String converter linkage across named modules |
+| `b75482a5c` | Complete the inherited model-identity fixture under S2 metadata |
+
+This evidence record is finalized in a subsequent documentation-only commit. The reviewed implementation sequence is
+preserved rather than rewritten.
 
 ## Delivery and resume condition
 
@@ -82,5 +106,6 @@ Local commits only: no push, PR, GitHub issue edits or merge. Tracker impact: **
 mutation. The documentary test/user-documentation links above are ready for later Hive tracker reconciliation.
 
 Retain a clean worktree with a `(paused)` title. Resume only after **S1 PR #1002 merges, S2 rebases onto merged S1 and
-itself merges, then this S3a branch rebases onto master**. Revalidate the rebased result before any subsequent delivery.
+itself merges, then this S3a branch rebases onto master**. Replay only the S3a commits after the pinned S2 base above; do
+not replay the old S1/S2 stack. Revalidate the rebased result before any subsequent delivery.
 Hive owns resumption, publication and archive reconciliation. This worker does not self-archive.
