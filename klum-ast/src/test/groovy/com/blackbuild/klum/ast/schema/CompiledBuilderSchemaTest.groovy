@@ -978,6 +978,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
                 'java/lang/Object', ['admission/Base_DSL$Builder'] as String[])
         def schema = writer.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Schema;', true)
         schema.visit('version', 1)
+        schema.visit('operationCount', 0)
         schema.visit('groupRedefined', false)
         schema.visit('namingExplicit', false)
         schema.visit('namingProfile', 'IDENTITY')

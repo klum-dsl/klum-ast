@@ -39,6 +39,8 @@ public final class GeneratedInput {
     public @interface Schema {
         /** Required protocol version; producers explicitly emit the supported value. */
         int version() default 0;
+        /** Explicit count of authored public operation facts, including excluded operations. */
+        int operationCount() default -1;
         /** Explicit presence is separate from a binding IDENTITY selection. */
         boolean namingExplicit() default false;
         /** Compiler-folded finite profile name; always emitted with the current protocol. */
@@ -97,6 +99,8 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Operation {
+        /** Explicit author selection intent on this exact public projection, including false. */
+        boolean authoritative();
         boolean sourceDeprecated();
         /** Separate from any field facts on this same public declaration. */
         String[] examples() default {};

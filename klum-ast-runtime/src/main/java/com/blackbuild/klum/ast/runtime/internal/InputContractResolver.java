@@ -97,7 +97,7 @@ final class InputContractResolver {
                     key = profileKey(key);
                 }
             } else {
-                facts.entries().forEach(entry -> entries.put(entry.externalName(), entry));
+                entries.putAll(admitted(facts.entries(), rejected, false));
             }
             return new CompiledBuilderSchema(builder, model, entries, rejected.stream().distinct()
                     .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(),
@@ -107,8 +107,8 @@ final class InputContractResolver {
         }
     }
 
-    /** Resolve each declaring hierarchy before its descendants, preserving previously rejected parent sources. */
-    private static Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected, boolean strict) {
+    /** Select only after override, exclusion and effective hierarchy naming have been resolved. */
+    private Map<String, Entry> admitted(List<Entry> candidates, List<Rejection> rejected, boolean strict) {
         Map<String, Entry> sources = new LinkedHashMap<>();
         for (Entry entry : candidates) {
             Entry previous = sources.putIfAbsent(entry.source(), entry);
@@ -121,16 +121,38 @@ final class InputContractResolver {
                 .forEach(entry -> names.computeIfAbsent(entry.externalName(), ignored -> new ArrayList<>()).add(entry));
         Map<String, Entry> entries = new LinkedHashMap<>();
         names.forEach((name, group) -> {
-            if (group.size() == 1) entries.put(name, group.get(0));
-            else {
-                String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
-                if (strict) {
-                    throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
-                }
-                group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
-            }
+            Entry selected = selectOperation(name, group, rejected, strict);
+            if (selected != null) entries.put(name, selected);
         });
         return entries;
+    }
+
+    private Entry selectOperation(String name, List<Entry> group, List<Rejection> rejected, boolean strict) {
+        List<Entry> marked = group.stream().filter(this::authoritativeString).toList();
+        if (marked.size() > 1) throw invalid("Multiple @Struct.Operation candidates for '" + name + "': "
+                + marked.stream().map(Entry::source).collect(Collectors.joining(", ")));
+        if (marked.size() == 1) return marked.get(0);
+        if (group.size() == 1) {
+            Entry unique = group.get(0);
+            if (unique.payload().type() != CharSequence.class) return unique;
+            rejected.add(new Rejection(unique.source(), "CharSequence scalar operations are not admitted; expose an exact String operation"));
+            return null;
+        }
+        String all = group.stream().map(Entry::source).sorted().collect(Collectors.joining(", "));
+        if (strict) throw invalid("KEBAB_CASE external-name collision for '" + name + "': " + all);
+        group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
+        return null;
+    }
+
+    private boolean authoritativeString(Entry entry) {
+        if (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
+                || entry.payload().type() != String.class || entry.methods().size() != 1) return false;
+        try {
+            return Boolean.TRUE.equals(reader.metadata(entry.contract()).methods()
+                    .get(signature(entry.methods().get(0))).authoritative());
+        } catch (IOException | ClassNotFoundException failure) {
+            throw failure(entry.contract().getName(), failure);
+        }
     }
 
     private record Facts(List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations, Key key) { }
@@ -167,15 +189,24 @@ final class InputContractResolver {
             Facts inherited = collect(parent, known, nativeCandidates);
             key = inheritKey(key, inherited.key());
             rejectOverriddenConverters(context, inherited.entries(), rejections);
-            entries.addAll(inherited.entries());
+            inherited.entries().stream().filter(entry -> !overriddenOperation(context, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
         }
         validateKeyMetadata(metadata, key, builder);
-        List<Entry> resolved = List.copyOf(nativeCandidates ? entries : admitted(entries, rejections, false).values());
+        List<Entry> resolved = List.copyOf(entries);
         Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
         known.put(builder, facts);
         return facts;
+    }
+
+    /** An override owns its own names, exclusion and selection intent; parent annotations cannot select different code. */
+    private static boolean overriddenOperation(BuilderContext context, Entry entry) {
+        if (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
+                || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class) return false;
+        return entry.methods().stream().anyMatch(inherited -> Arrays.stream(declaredMethods(context)).anyMatch(method ->
+                !Modifier.isStatic(method.getModifiers()) && method.getName().equals(inherited.getName())
+                        && Arrays.equals(method.getParameterTypes(), inherited.getParameterTypes())));
     }
 
     private void rejectOverriddenConverters(BuilderContext context, List<Entry> inherited, List<Rejection> rejections)
@@ -452,6 +483,9 @@ final class InputContractResolver {
         if (names.ignored()) reason = ignoreReason(names);
         else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
+        // Preserve String/CharSequence competition without admitting CharSequence dispatch before S3b.
+        if (reason == null && method.getParameterTypes()[0] == CharSequence.class)
+            payload = new Payload(Kind.SCALAR, CharSequence.class, null, null, null);
         if (reason == null && payload == null) reason = unsupportedReason(method.getGenericParameterTypes()[0]);
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = names.rename().isEmpty() ? method.getName() : names.rename();

@@ -115,7 +115,7 @@ final class StructuredInputAdmissionPlan {
 
         StructuredInputAdmissionPlan inherited = planOf(model.getSuperClass());
         if (inherited != null) {
-            entries.addAll(inherited.entries);
+            inherited.entries.stream().filter(entry -> !overriddenOperation(transformation, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections);
         }
 
@@ -134,6 +134,21 @@ final class StructuredInputAdmissionPlan {
         rejections.sort(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason));
         model.setNodeMetaData(METADATA_KEY, new StructuredInputAdmissionPlan(
                 model.getName(), GeneratedDslSupport.of(model).getBuilderInterface().redirect().getName(), entries, rejections));
+    }
+
+    private static boolean overriddenOperation(DSLASTTransformation transformation, Entry entry) {
+        if (entry.role() != Role.OPERATION || entry.payload().kind() != PayloadKind.SCALAR
+                || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type())) return false;
+        return transformation.builderClass.getMethods().stream()
+                .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
+                .map(GeneratedDslSupport::publicProjectionOf)
+                .filter(method -> method != null && method.isPublic() && !method.isStatic())
+                .anyMatch(method -> entry.operation().descriptorGroup().stream().anyMatch(inherited ->
+                        signature(inherited).equals(signature(descriptor(method)))));
+    }
+
+    private static String signature(String descriptor) {
+        return descriptor.substring(0, descriptor.indexOf(':'));
     }
 
     /** Only irreducible source/group facts; signatures, payloads, names of methods and docs stay on declarations. */
@@ -156,6 +171,10 @@ final class StructuredInputAdmissionPlan {
         StructuredInputConstraintMetadata.enrichSchema(model, schema);
         builder.addAnnotation(schema);
         restoreAuthoredFacts(transformation);
+        long operationCount = builder.getMethods().stream()
+                .filter(method -> method.getDeclaringClass().redirect().equals(builder))
+                .filter(method -> annotation(method, GeneratedInput.Operation.class.getName()) != null).count();
+        schema.setMember("operationCount", new ConstantExpression((int) operationCount));
     }
 
     private static void enrichNaming(ClassNode model, AnnotationNode schema) {
@@ -299,7 +318,7 @@ final class StructuredInputAdmissionPlan {
     private static void restoreAuthoredFacts(DSLASTTransformation transformation) {
         // A generated projection can occupy an authored signature before annotation copying occurs.
         // Restore the original admission/naming annotations together; a marker alone can change rejection precedence.
-        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY, Struct.Name.class.getName(), Ignore.class.getName());
+        Set<String> authoredFacts = Set.of(Builder.Method.class.getName(), JSON_IGNORE, JSON_PROPERTY, Struct.Name.class.getName(), Ignore.class.getName(), Struct.Operation.class.getName());
         transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
@@ -308,6 +327,7 @@ final class StructuredInputAdmissionPlan {
                     if (api == null) return;
                     // Read the authored implementation, never a generated/compatibility projection's annotations.
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
+                    operation.setMember("authoritative", new ConstantExpression(annotation(method, Struct.Operation.class.getName()) != null));
                     enrichDeprecation(method, operation);
                     StructuredInputExamples.enrich(method, transformation.annotatedClass, operation, source(method));
                     enrichName(externalName(method), operation);
@@ -394,7 +414,7 @@ final class StructuredInputAdmissionPlan {
                 ? field.getName() : null;
         if (operation != null)
             entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
-                    payloadForModel(type), name.origin(), null, null, fixedKey));
+                    payloadForModel(type), name.origin(), null, null, fixedKey, false));
     }
 
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
@@ -416,7 +436,7 @@ final class StructuredInputAdmissionPlan {
         PublicOperation operation = publicOperation(field, rejections);
         if (operation != null)
             entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, operation,
-                    payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null));
+                    payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null, false));
     }
 
     private static void classifyProperty(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
@@ -437,7 +457,7 @@ final class StructuredInputAdmissionPlan {
         if (converter != null) {
             entries.add(new Entry(name.value(), Role.PROPERTY, source,
                     new PublicOperation(converter.getDeclaringClass().getName(), converter.getName(), List.of(descriptor(converter))),
-                    payloadForValue(ClassHelper.STRING_TYPE), name.origin(), null, null, null));
+                    payloadForValue(ClassHelper.STRING_TYPE), name.origin(), null, null, null, false));
             return;
         }
         if (payload == null) {
@@ -448,7 +468,7 @@ final class StructuredInputAdmissionPlan {
         PublicOperation operation = isCollection(type) || isMap(type)
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
         if (operation != null)
-            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null));
+            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null, false));
     }
 
     private static ClassNode fieldValueType(ClassNode type) {
@@ -480,13 +500,17 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         Payload payload = payloadForValue(parameters[0].getOriginType());
+        // Count a projected CharSequence competitor, but do not publish it as an admitted operation in S2.
+        if (parameters[0].getOriginType().getName().equals(CharSequence.class.getName()))
+            payload = new Payload(PayloadKind.SCALAR, CharSequence.class.getName(), null, null, null);
         if (payload == null) {
             rejections.add(new Rejection(source, "@Builder.Method payload is outside the admitted grammar"));
             return;
         }
         PublicOperation operation = publicOperation(method, rejections);
         if (operation == null) return;
-        entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null));
+        entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null,
+                ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
     }
 
     private static Payload payloadForModel(ClassNode model) {
@@ -682,15 +706,35 @@ final class StructuredInputAdmissionPlan {
         Map<String, List<Entry>> names = new LinkedHashMap<>();
         entries.forEach(entry -> names.computeIfAbsent(entry.externalName(), ignored -> new ArrayList<>()).add(entry));
         Set<Entry> rejected = new LinkedHashSet<>();
-        names.forEach((name, candidates) -> {
-            if (candidates.size() < 2) return;
-            String declarations = candidates.stream().map(Entry::source).sorted().reduce((left, right) -> left + ", " + right).orElseThrow();
-            candidates.forEach(candidate -> {
-                rejected.add(candidate);
-                rejections.add(new Rejection(candidate.source(), "external-name collision for '" + name + "': " + declarations));
-            });
-        });
+        names.forEach((name, candidates) -> selectProvisionalGroup(name, candidates, rejected, rejections));
         entries.removeAll(rejected);
+    }
+
+    private static void selectProvisionalGroup(String name, List<Entry> candidates, Set<Entry> rejected,
+                                               List<Rejection> rejections) {
+        List<Entry> marked = candidates.stream().filter(Entry::authoritative).toList();
+        if (marked.size() > 1) {
+            // Final hierarchy naming can separate a literal from an identity spelling under KEBAB_CASE.
+            rejectGroup(candidates, rejected, rejections, "multiple provisional @Struct.Operation candidates for '" + name + "'");
+        } else if (marked.size() == 1) {
+            candidates.stream().filter(candidate -> candidate != marked.get(0)).forEach(rejected::add);
+        } else if (candidates.size() == 1) {
+            Entry unique = candidates.get(0);
+            if (unique.payload().type().equals(CharSequence.class.getName()))
+                rejectGroup(candidates, rejected, rejections,
+                        "CharSequence scalar operations are not admitted; expose an exact String operation");
+        } else {
+            String declarations = candidates.stream().map(Entry::source).sorted()
+                    .reduce((left, right) -> left + ", " + right).orElseThrow();
+            rejectGroup(candidates, rejected, rejections, "external-name collision for '" + name + "': " + declarations);
+        }
+    }
+
+    private static void rejectGroup(List<Entry> candidates, Set<Entry> rejected, List<Rejection> rejections, String reason) {
+        candidates.forEach(candidate -> {
+            rejected.add(candidate);
+            rejections.add(new Rejection(candidate.source(), reason));
+        });
     }
 
     private static String source(AnnotatedNode node) {
@@ -710,7 +754,7 @@ final class StructuredInputAdmissionPlan {
         }
     }
     record Entry(String externalName, Role role, String source, PublicOperation operation, Payload payload,
-                 NameOrigin nameOrigin, String mapKeyType, String excludedChildKeyMember, String fixedChildKey) { }
+                 NameOrigin nameOrigin, String mapKeyType, String excludedChildKeyMember, String fixedChildKey, boolean authoritative) { }
     record Rejection(String source, String reason) { }
     private record Name(String value, NameOrigin origin, boolean ignored) { }
 }
