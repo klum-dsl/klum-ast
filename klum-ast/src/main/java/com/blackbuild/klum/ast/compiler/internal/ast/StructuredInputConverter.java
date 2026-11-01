@@ -54,7 +54,7 @@ final class StructuredInputConverter {
 
     static void recordRoute(FieldNode field, MethodNode source, MethodNode generated) {
         Parameter[] parameters = source.getParameters();
-        if (parameters.length != 1 || !ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType())) return;
+        if (parameters.length != 1 || !isStringInput(parameters[0].getOriginType())) return;
         List<Route> routes = field.getNodeMetaData(ROUTES);
         if (routes == null) {
             routes = new ArrayList<>();
@@ -62,6 +62,10 @@ final class StructuredInputConverter {
         }
         // Keep unsuccessful generation too: optional signature collisions must not select the first route.
         routes.add(new Route(source, generated));
+    }
+
+    static boolean isStringInput(ClassNode type) {
+        return ClassHelper.STRING_TYPE.equals(type) || type.getName().equals(CharSequence.class.getName());
     }
 
     static boolean attempted(FieldNode field) { return field.getNodeMetaData(ROUTES) != null; }
@@ -75,14 +79,14 @@ final class StructuredInputConverter {
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
         if (api == null || !api.isPublic() || api.isStatic() || api.isSynthetic()
                 || (api.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC)) != 0 || api.getParameters().length != 1
-                || !ClassHelper.STRING_TYPE.equals(api.getParameters()[0].getOriginType())
+                || !api.getParameters()[0].getOriginType().equals(route.source().getParameters()[0].getOriginType())
                 || !api.getReturnType().redirect().equals(field.getType().redirect())) return null;
         return api;
     }
 
     private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
         ClassNode owner = domain.redirect();
-        if (!owner.isResolved() || !Modifier.isPublic(owner.getModifiers()) || owner.isInterface() || owner.isEnum()
+        if (!ClassHelper.STRING_TYPE.equals(source.getParameters()[0].getOriginType()) || !owner.isResolved() || !Modifier.isPublic(owner.getModifiers()) || owner.isInterface() || owner.isEnum()
                 || owner.getGenericsTypes() != null || domain.isGenericsPlaceHolder()
                 || !source.getDeclaringClass().redirect().equals(owner)
                 || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC | ACC_VARARGS)) != 0

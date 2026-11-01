@@ -60,7 +60,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
 
         then:
         body == schema
-        ['duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
+        ['duration', 'natural-duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype', 'sequence'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
         fields.duration.description.contains('ISO-8601 duration.')
         fields.local.description.contains('converted domain value')
@@ -307,7 +307,9 @@ class GenericValue<T> {
         write(producer, 'parent/src/main/groovy/converterjson/Base.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
+import java.time.Duration
 @DSL class Base {
+    Duration naturalDuration
     /** Inherited port prose. */
     @Struct.Name('port-number') @Struct.Examples(['1234']) @Deprecated
     @Converters(includeConstructors=true) PortNumber port
@@ -322,10 +324,13 @@ import java.nio.file.Path
 @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Service extends Base {
     static { throw new AssertionError('Schema initialized') }
     /** ISO-8601 duration. */
+    @Converters(excludeMethods=['parse'])
     @Field(converters = [{ String value -> throw new AssertionError('closure executed') }]) Duration duration
+    @Struct.Operation @Builder.Method void sequence(CharSequence value) { throw new AssertionError('CharSequence operation executed') }
+    @Builder.Method void sequence(String value) { throw new AssertionError('String peer executed') }
     @Pattern(regexp='[A-Z]{2}') LocalValue local
     /** External adapter prose. */
-    @Converters([DurationAdapter]) Duration adapted
+    @Converters(value=[DurationAdapter], excludeMethods=['parse']) Duration adapted
     @Converters(includeConstructors=true) OverloadedValue overloaded
     @Field(converters = [{ String value -> throw new AssertionError('Path closure executed') }]) Path path
     @Converters(includeConstructors=true) GenericValue<String> generic

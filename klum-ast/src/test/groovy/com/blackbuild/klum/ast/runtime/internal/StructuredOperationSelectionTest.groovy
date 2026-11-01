@@ -241,7 +241,6 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         where:
         declaration << [
             '@Struct.Operation @Builder.Method void endpoint(String first, String second) {}',
-            '@Struct.Operation @Builder.Method void endpoint(CharSequence value) {}',
             '@Struct.Operation @Builder.Method void endpoint(Object value) {}',
             '@Struct.Operation @Builder.Query String endpoint(String value) { value }',
             '@Struct.Operation String endpoint(String value) { value }',
@@ -446,7 +445,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         !new InputContractResolver().read(type).entries().containsKey('endpoint')
     }
 
-    def 'marked String operation resolves String and CharSequence competition without admitting CharSequence'() {
+    def 'marked String operation resolves String and CharSequence competition without invoking its peer'() {
         given:
         def type = schema('''
             @DSL class Service {

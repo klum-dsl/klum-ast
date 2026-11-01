@@ -175,12 +175,7 @@ final class InputContractResolver {
                     + marked.stream().map(Entry::source).collect(Collectors.joining(", ")));
         }
         if (marked.size() == 1) return marked.get(0);
-        if (group.size() == 1) {
-            Entry unique = group.get(0);
-            if (unique.payload().type() != CharSequence.class) return unique;
-            rejected.add(new Rejection(unique.source(), "CharSequence scalar operations are not admitted; expose an exact String operation"));
-            return null;
-        }
+        if (group.size() == 1) return group.get(0);
         rejectCollision(name, group, rejected, strict);
         return null;
     }
@@ -192,7 +187,7 @@ final class InputContractResolver {
     }
 
     private boolean authoritativeString(Entry entry) {
-        if (!stringSelectionCandidate(entry) || entry.payload().type() != String.class) return false;
+        if (!stringSelectionCandidate(entry)) return false;
         try {
             return Boolean.TRUE.equals(reader.metadata(entry.contract()).methods()
                     .get(signature(entry.methods().get(0))).authoritative());
@@ -273,8 +268,8 @@ final class InputContractResolver {
                 if ((converter || stringField) && overridden(selected, declared)) {
                     String originKind = converter ? "converter overload " : "String field operation ";
                     rejections.add(new Rejection(entry.source(), "inherited " + originKind + selected.getName()
-                            + "(String) is overridden by " + namingOrigin(context.builder())
-                            + "; expose one supported non-overridden String route"));
+                            + "(" + selected.getParameterTypes()[0].getSimpleName() + ") is overridden by " + namingOrigin(context.builder())
+                            + "; expose one supported non-overridden scalar route"));
                 }
             }
         }
@@ -441,7 +436,7 @@ final class InputContractResolver {
         if (literal.schemaKey() != null && (role != Role.OWNED_OBJECT || literal.fixed() && !literal.schemaKey()))
             throw invalid("Schema child-key authority requires OWNED_OBJECT and agrees with fixed key: " + source);
         Payload payload = converter == null ? fieldPayload(fieldType, role, source)
-                : new Payload(Kind.SCALAR, String.class, null, null, null);
+                : new Payload(Kind.SCALAR, methods.get(0).getParameterTypes()[0], null, null, null);
         String key = childKey(payload, role, literal, source);
         validateSelection(role, payload, methods, source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
@@ -466,13 +461,15 @@ final class InputContractResolver {
             Class<?> domain = rawType(fieldType);
             if (domain == null || selected.parameterFacts() && !(fieldType instanceof Class<?>) || methods.size() != 1
                     || !method.getName().equals(field) || method.getReturnType() != domain
-                    || !Arrays.equals(method.getParameterTypes(), new Class<?>[]{String.class})
+                    || (method.getParameterCount() != 1
+                        || method.getParameterTypes()[0] != String.class && method.getParameterTypes()[0] != CharSequence.class)
+                    || selected.parameterFacts() && method.getParameterTypes()[0] != String.class
                     || method.isSynthetic() || method.isBridge() || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid("Converter selection disagrees with field/overload");
-            if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected))
+            if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, method.getParameterTypes()[0]))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
-            validateSelection(Role.PROPERTY, new Payload(Kind.SCALAR, String.class, null, null, null), methods, location);
+            validateSelection(Role.PROPERTY, new Payload(Kind.SCALAR, method.getParameterTypes()[0], null, null, null), methods, location);
             // Structural routes carry provenance, but only C1 owns selected-parameter inspection.
             ConverterConstraints constraints = selected.parameterFacts() ? converterReader.read(domain, selected)
                     : new ConverterConstraints("", "", Policy.OMIT, List.of());
@@ -484,11 +481,13 @@ final class InputContractResolver {
         }
     }
 
-    private static boolean validStructuralConverterDescriptor(ConverterSelection selected) {
-        if (selected.name().equals("<init>")) return selected.descriptor().equals("(Ljava/lang/String;)V");
+    private static boolean validStructuralConverterDescriptor(ConverterSelection selected, Class<?> parameter) {
+        String prefix = "(L" + parameter.getName().replace('.', '/') + ";)";
+        if (selected.name().equals("<init>")) return selected.descriptor().equals(prefix + "V");
         // The source may return a subtype; the exact destination type belongs to the public Builder projection.
         // Possessive repetition avoids stack growth; a name segment cannot consume a package separator.
-        return selected.descriptor().matches("\\(Ljava/lang/String;\\)L[^.;\\[()/]+(?:/[^.;\\[()/]+)*+;");
+        return selected.descriptor().startsWith(prefix)
+                && selected.descriptor().substring(prefix.length()).matches("L[^.;\\[()/]+(?:/[^.;\\[()/]+)*+;");
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
@@ -554,7 +553,7 @@ final class InputContractResolver {
             return;
         } else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare zero arguments or exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
-        // Preserve String/CharSequence competition without admitting CharSequence dispatch before S3b.
+        // Keep CharSequence admission scalar-only; containers retain their existing grammar.
         if (reason == null && method.getParameterTypes()[0] == CharSequence.class) {
             payload = new Payload(Kind.SCALAR, CharSequence.class, null, null, null);
         }
