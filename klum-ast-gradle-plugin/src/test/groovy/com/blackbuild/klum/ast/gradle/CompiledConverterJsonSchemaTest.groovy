@@ -37,11 +37,12 @@ class CompiledConverterJsonSchemaTest extends Specification {
     File consumer
     String generation
 
-    @Issue(['981', '952'])
+    @Issue(['981', '952', '953'])
     def 'packaged Groovy #lane producer projects exact converter parameters while preserving field ownership'() {
         given:
         fixture(lane)
         runner(producer, ':schema:jar').build()
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.bodyRootTypes.add('converterjson.Service')\n")
         ['domain', 'parent', 'schema'].each {
             assert new File(producer, "$it/src").deleteDir()
             assert new File(producer, "$it/build/classes").deleteDir()
@@ -50,12 +51,15 @@ class CompiledConverterJsonSchemaTest extends Specification {
         when:
         runner(consumer, 'generateKlumJsonSchema').build()
         def schema = document()
+        def body = new JsonSlurper().parse(new File(consumer,
+                'build/generated/klum-json-schema/converterjson.Service.builder-body.schema.json'))
         def fields = schema.'$defs'.'converterjson.Service_DSL$Builder'.properties
         File evidence = new File(System.getProperty('schemaValidationDirectory'), 'converter-' + lane)
         evidence.mkdirs()
         new File(evidence, 'converter.schema.json').bytes = output().bytes
 
         then:
+        body == schema
         ['duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
         fields.duration.description.contains('ISO-8601 duration.')
@@ -155,10 +159,12 @@ import com.blackbuild.klum.ast.*
         !new File(directory, 'executed').exists()
     }
 
-    @Issue('952')
+    @Issue(['952', '953'])
     def 'packaged binary selection projects selected Strings and closed zero-argument commands with Groovy #lane'() {
         given:
         fixture(lane)
+        File base = new File(producer, 'parent/src/main/groovy/converterjson/Base.groovy')
+        base.text = base.text.replace('@DSL class Base {', '@DSL class Base { @Key String name')
         write(producer, 'parent/src/main/groovy/converterjson/SelectedBase.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
@@ -200,15 +206,25 @@ import com.blackbuild.klum.ast.*
 }
 ''')
         runner(producer, ':schema:jar').build()
-        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['converterjson.SelectedService'])\n")
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema { rootTypes.set(['converterjson.SelectedService']); bodyRootTypes.set(['converterjson.SelectedService']) }\n")
 
         when:
         runner(consumer, 'generateKlumJsonSchema').build()
         def schema = new JsonSlurper().parse(new File(consumer,
                 'build/generated/klum-json-schema/converterjson.SelectedService.schema.json'))
-        def properties = schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties
+        def bodyFile = new File(consumer, 'build/generated/klum-json-schema/converterjson.SelectedService.builder-body.schema.json')
+        def body = new JsonSlurper().parse(bodyFile)
+        def properties = body.'$defs'.'converterjson.SelectedService_DSL$Builder::keyless'.properties
+        File evidence = new File(System.getProperty('schemaValidationDirectory'), 'body-command-' + lane)
+        evidence.mkdirs()
+        new File(evidence, 'command.builder-body.schema.json').bytes = bodyFile.bytes
+        new File(evidence, 'command.self-contained.schema.json').bytes = new File(consumer,
+                'build/generated/klum-json-schema/converterjson.SelectedService.schema.json').bytes
 
         then:
+        schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.required == ['name']
+        schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties.findAll { key, value -> key != 'name' } == properties
+        !body.'$defs'.'converterjson.SelectedService_DSL$Builder::keyless'.containsKey('required')
         properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'resetTimeout', 'current-command'] as Set
         properties.configureName == [type: 'string']
         properties.'renamed-name' == [type: 'string']

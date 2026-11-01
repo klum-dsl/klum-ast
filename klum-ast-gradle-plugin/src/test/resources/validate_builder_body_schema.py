@@ -56,22 +56,42 @@ cases = {
     # The colliding spelling belongs to the admitted ordinary property in a keyless body.
     "collision.builder-body": ([{}, {"value": "ordinary"}], [{"name": "root"}]),
 }
-accepted = rejected = 0
-for name, (positive, negative) in cases.items():
-    paths = sorted(root.glob(f"body-*/{name}.schema.json"))
-    assert len(paths) == 3, f"Run S7 fixture for Groovy 3/4/5: {name}"
-    assert len({path.read_bytes() for path in paths}) == 1, name
-    for path in paths:
-        schema = json.loads(path.read_text())
-        Draft202012Validator.check_schema(schema)
-        validator = Draft202012Validator(schema)
-        for value in positive:
-            assert validator.is_valid(value), (path, value, list(validator.iter_errors(value)))
-            accepted += 1
-        for value in negative:
-            assert not validator.is_valid(value), (path, value)
-            rejected += 1
+def validate_cases(cases, prefix):
+    accepted = rejected = emitted = 0
+    for name, (positive, negative) in cases.items():
+        paths = sorted(root.glob(f"{prefix}/{name}.schema.json"))
+        assert len(paths) == 3, f"Run S7 fixture for Groovy 3/4/5: {name}"
+        assert len({path.read_bytes() for path in paths}) == 1, name
+        for path in paths:
+            schema = json.loads(path.read_text())
+            Draft202012Validator.check_schema(schema)
+            validator = Draft202012Validator(schema)
+            for value in positive:
+                assert validator.is_valid(value), (path, value, list(validator.iter_errors(value)))
+                accepted += 1
+            for value in negative:
+                assert not validator.is_valid(value), (path, value)
+                rejected += 1
+            emitted += 1
+    return accepted, rejected, emitted
+
+
+accepted, rejected, emitted = validate_cases(cases, "body-*")
 for generation in ("3", "4", "5"):
     directory = root / f"body-{generation}"
     assert (directory / "deployment.self-contained.schema.json").read_bytes() == (directory / "deployment.builder-body.schema.json").read_bytes()
-print(f"S7: 24 emitted schemas; {accepted} accepted / {rejected} rejected instances; Groovy 3/4/5 byte parity")
+command_cases = {
+    "command.builder-body": (
+        [{}, {"resetTimeout": {}}, {"current-command": {}}, {"external-endpoint": "api"}],
+        [{"name": "root"}, {"resetTimeout": None}, {"resetTimeout": {"value": "bad"}},
+         {"resetTimeout": []}, {"current-command": False}, {"old-command": {}},
+         {"FromStruct": {}}, {"Template": {}}]),
+    "command.self-contained": (
+        [{"name": "root"}, {"name": "root", "resetTimeout": {}}],
+        [{}, {"resetTimeout": {}}, {"name": "root", "resetTimeout": {"value": "bad"}}]),
+}
+command_accepted, command_rejected, command_emitted = validate_cases(command_cases, "body-command-*")
+accepted += command_accepted
+rejected += command_rejected
+emitted += command_emitted + 3  # Unkeyed self-contained deployment artifacts equal their checked body artifacts.
+print(f"S7: {emitted} emitted schemas; {accepted} accepted / {rejected} rejected instances; Groovy 3/4/5 byte parity")
