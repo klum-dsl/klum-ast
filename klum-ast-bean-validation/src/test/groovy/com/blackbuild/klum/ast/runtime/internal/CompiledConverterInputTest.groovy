@@ -593,8 +593,6 @@ class CompiledConverterInputTest extends Specification {
         shape               | generic | constructors                                      | methods                                                                                                                                    | route         | fieldAnnotation
         'two factories'     | ''      | 'private PortNumber() {}'                          | 'public static PortNumber fromString(String v) { return null; } public static PortNumber parse(String v) { return null; }'                 | 'fromString'  | ''
         'constructor pair'  | ''      | 'public PortNumber(String v) {}'                   | 'public static PortNumber fromString(String v) { return null; }'                                                                            | 'constructor' | ''
-        'generic domain'    | '<T>'   | 'public PortNumber(String v) {}'                   | ''                                                                                                                                         | 'constructor' | ''
-        'generic method'    | ''      | 'private PortNumber() {}'                          | 'public static <T> PortNumber fromString(String v) { return null; }'                                                                        | 'fromString'  | ''
         'constructors off'  | ''      | 'public PortNumber(String v) {}'                   | ''                                                                                                                                         | 'fromString'  | ''
         'factory undiscovered' | ''   | 'private PortNumber() {}'                          | 'public static PortNumber decode(String v) { return null; }'                                                                                | 'discovery-defaults'  | ''
         'varargs'           | ''      | 'private PortNumber() {}'                          | 'public static PortNumber fromString(String... v) { return null; }'                                                                         | 'fromString'  | ''
@@ -762,19 +760,24 @@ class CompiledConverterInputTest extends Specification {
         origin << ['constructor', 'factory', 'adapter']
     }
 
-    def 'synthetic or bridge binary routes are rejected: #mutation'() {
+    @Issue('952')
+    def 'existing binary projections of synthetic or bridge sources are structural only: #mutation'() {
         given:
-        File original = domainJar('Java', 'fromString', '', true)
+        File original = domainJar('Java', 'fromString', '@Pattern(regexp="[0-9]{1,8}")', false)
         File domain = rewrite(original, 'converterinput/PortNumber.class', mutation)
-        File schema = schemaJar(domain, 'fromString')
+        File schema = schemaJar(domain, 'fromString', false)
         def loader = binaryLoader([schema, domain])
 
         when:
-        def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
+        def model = Class.forName(MODEL, false, loader)
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'flags.yaml')
+        def direct = model.Create.With { port '1234' }
 
         then:
-        !contract.entries().containsKey('port-number')
-        contract.rejections().any { it.source().endsWith('#port') }
+        result.port.raw == '1234'
+        result.port.raw == direct.port.raw
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
         System.getProperty(TRAP) == null
 
         cleanup:
@@ -817,6 +820,46 @@ class CompiledConverterInputTest extends Specification {
 
         cleanup:
         loader?.close()
+    }
+
+    @Issue('952')
+    def 'an existing exact generic #origin projection needs no new inference and carries no C1 assertions'() {
+        given:
+        File domain = javaJar("""
+            package converterinput;
+            import jakarta.validation.constraints.Pattern;
+            public class PortNumber${origin == 'factory' ? '' : '<T>'} {
+                public final String raw;
+                ${origin == 'factory' ? 'private' : 'public'} PortNumber(@Pattern(regexp="[0-9]{1,8}") String value) { raw = value; }
+                ${origin == 'factory' ? 'public static <T> PortNumber fromString(String value) { return new PortNumber(value); }' : ''}
+            }
+        """)
+        File schema = groovyJar("""
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service {
+                @Converters(includeConstructors=${origin != 'factory'})
+                PortNumber${origin == 'parameterized domain' ? '<String>' : ''} port
+            }
+        """, [domain])
+        def loader = binaryLoader([schema, domain])
+        def model = Class.forName(MODEL, false, loader)
+
+        when:
+        def contract = new InputContractResolver().read(model)
+        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'generic.yaml')
+        def direct = model.Create.With { port '1234' }
+
+        then:
+        result.port.raw == '1234'
+        result.port.raw == direct.port.raw
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+
+        cleanup:
+        loader?.close()
+
+        where:
+        origin << ['raw domain', 'parameterized domain', 'factory']
     }
 
     @Issue('952')

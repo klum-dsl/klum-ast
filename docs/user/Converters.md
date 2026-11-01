@@ -232,8 +232,10 @@ cannot suppress or override parameter facts. The field retains names, exclusion,
 own domain-value constraints. See [converter Pattern projection](Json-Schema.md#compiled-converter-parameters).
 
 An unrelated constructor/factory overload does not remove an existing exact String projection. Such source families
-remain outside C1 parameter inspection. No new default/varargs expansion or generic inference is performed; generic,
-bridge/synthetic and varargs converter sources remain outside this bounded route.
+remain outside C1 parameter inspection. An existing exact String projection can also target a non-DSL interface or
+parameterized domain, or call a factory returning a subtype. Already-generated generic/default/bridge/synthetic source
+routes do not gain C1 authority. No new default/varargs expansion or generic inference is performed; a source with a
+String-array varargs parameter is not an exact String route.
 Collection, map and DSL-object conversions remain outside this structured-input feature. CharSequence invocation is
 separate. An unrelated authored overload does not suppress the generated String route; competing external String names
 use the [shared selection rules](Structured-Input.md#select-a-string-operation).

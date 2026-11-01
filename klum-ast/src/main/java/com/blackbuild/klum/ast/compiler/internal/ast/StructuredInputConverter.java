@@ -39,8 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
-import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
-import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static groovyjarjarasm.asm.Opcodes.ACC_BRIDGE;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
@@ -70,35 +68,29 @@ final class StructuredInputConverter {
 
     static MethodNode selected(FieldNode field) {
         List<Route> routes = field.getNodeMetaData(ROUTES);
-        if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT) return null;
+        if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT
+                || !StructuredInputAdmissionPlan.supportsScalarConverterInput(field.getType())) return null;
         Route route = routes.get(0);
-        if (route.generated() == null || !eligibleRoute(field.getType(), route.source())) return null;
+        if (route.generated() == null) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
-        if (api == null || api.getParameters().length != 1
-                || !ClassHelper.STRING_TYPE.equals(api.getParameters()[0].getOriginType())) return null;
+        if (api == null || !api.isPublic() || api.isStatic() || api.isSynthetic()
+                || (api.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC)) != 0 || api.getParameters().length != 1
+                || !ClassHelper.STRING_TYPE.equals(api.getParameters()[0].getOriginType())
+                || !api.getReturnType().redirect().equals(field.getType().redirect())) return null;
         return api;
-    }
-
-    private static boolean eligibleRoute(ClassNode domain, MethodNode source) {
-        ClassNode owner = source.getDeclaringClass().redirect();
-        if (DslAstHelper.isDSLObject(domain) || isCollection(domain) || isMap(domain)
-                || !Modifier.isPublic(domain.getModifiers()) || domain.isInterface() || domain.isEnum()
-                || domain.redirect().getGenericsTypes() != null || domain.isGenericsPlaceHolder()
-                || !Modifier.isPublic(owner.getModifiers())
-                || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC | ACC_VARARGS)) != 0
-                || source.getGenericsTypes() != null || source.hasDefaultValue()) return false;
-        if (source instanceof ConstructorNode) {
-            return owner.equals(domain.redirect()) && !Modifier.isAbstract(owner.getModifiers());
-        }
-        return source.isStatic() && source.getReturnType().redirect().equals(domain.redirect());
     }
 
     private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
         ClassNode owner = domain.redirect();
-        if (!owner.isResolved() || !source.getDeclaringClass().redirect().equals(owner)
-                || !eligibleRoute(domain, source)) return false;
-        return source instanceof ConstructorNode ? owner.getDeclaredConstructors().size() == 1
-                : owner.getDeclaredMethods(source.getName()).size() == 1;
+        if (!owner.isResolved() || !Modifier.isPublic(owner.getModifiers()) || owner.isInterface() || owner.isEnum()
+                || owner.getGenericsTypes() != null || domain.isGenericsPlaceHolder()
+                || !source.getDeclaringClass().redirect().equals(owner)
+                || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC | ACC_VARARGS)) != 0
+                || source.getGenericsTypes() != null || source.hasDefaultValue()) return false;
+        if (source instanceof ConstructorNode)
+            return !Modifier.isAbstract(owner.getModifiers()) && owner.getDeclaredConstructors().size() == 1;
+        return source.isStatic() && source.getReturnType().redirect().equals(owner)
+                && owner.getDeclaredMethods(source.getName()).size() == 1;
     }
 
     static void enrich(FieldNode field, MethodNode api) {

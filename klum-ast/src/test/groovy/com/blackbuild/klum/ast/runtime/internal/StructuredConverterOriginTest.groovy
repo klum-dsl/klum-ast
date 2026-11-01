@@ -38,6 +38,7 @@ import spock.lang.See
 import spock.lang.Tag
 
 import java.time.Duration
+import java.nio.file.Path
 import java.time.format.DateTimeParseException
 
 @Issue('952')
@@ -112,6 +113,52 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         'adapter' | '' | '@Converters([Adapter])'
     }
 
+    def 'an interface-valued field closure uses the existing exact String projection'() {
+        given:
+        def type = schema('''
+            import java.nio.file.Path
+            @DSL class Service {
+                @Field(converters = [{ String value -> Path.of(value) }]) Path location
+            }
+        ''')
+
+        when:
+        def result = KlumStructuredInput.readRoot(type, [location: 'config/service.yaml'], 'path.yaml')
+        def direct = type.Create.With { location 'config/service.yaml' }
+
+        then:
+        result.location == Path.of('config/service.yaml')
+        result.location == direct.location
+    }
+
+    def 'a subtype-returning adapter and a field closure expose the same exact Builder shape'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @Converters([Adapter]) Timeout adapted
+                @Field(converters = [{ String value -> Adapter.fromString(value) }]) Timeout wrapped
+            }
+            abstract class Timeout { String value }
+            class ConcreteTimeout extends Timeout {}
+            class Adapter {
+                static ConcreteTimeout fromString(String value) { new ConcreteTimeout(value: value) }
+            }
+        ''')
+
+        when:
+        def result = KlumStructuredInput.readRoot(type, [adapted: 'PT30S', wrapped: 'PT30S'], 'subtype.yaml')
+        def direct = type.Create.With { adapted 'PT30S'; wrapped 'PT30S' }
+        def entries = new InputContractResolver().read(type).entries()
+
+        then:
+        result.adapted.value == 'PT30S'
+        result.adapted.value == result.wrapped.value
+        result.adapted.value == direct.adapted.value
+        result.wrapped.value == direct.wrapped.value
+        entries.adapted.methods()[0].returnType == entries.wrapped.methods()[0].returnType
+        entries.adapted.methods()[0].parameterTypes == entries.wrapped.methods()[0].parameterTypes
+    }
+
     def 'native scalar fields retain their existing payload grammar when they also have a String converter'() {
         given:
         def type = schema('''
@@ -131,6 +178,34 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
 
         then:
         thrown(KlumModelException)
+    }
+
+    def 'String projections do not admit raw Object or converter-backed container fields: #target'() {
+        given:
+        def type = schema("""
+            @DSL class Service {
+                @Field(converters = [{ String value -> throw new AssertionError('excluded converter') }]) $target timeout
+            }
+            class Timeout {}
+        """)
+
+        when:
+        def contract = new InputContractResolver().read(type)
+        def result = KlumStructuredInput.readRoot(type, [:], 'excluded.yaml')
+
+        then:
+        result != null
+        !contract.entries().containsKey('timeout')
+        contract.rejections().any { it.source().endsWith('#timeout') }
+
+        when:
+        KlumStructuredInput.readRoot(type, [timeout: 'value'], 'excluded.yaml')
+
+        then:
+        thrown(KlumModelException)
+
+        where:
+        target << ['Object', 'List<Timeout>', 'Map<String, Timeout>', 'Timeout[]']
     }
 
     def 'field converter rejects typed payloads without coercion: #value'() {

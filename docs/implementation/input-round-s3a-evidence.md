@@ -15,9 +15,10 @@ The compiler admits an existing exact String projection for field converter clos
 and separately compiled external adapters. It keeps the recorded converter source paired with the actual public Builder
 method. Failed or colliding generation remains rejection; no additional discovery, reflection scan or converter execution
 is introduced. An unrelated authored overload no longer suppresses the exact generated String projection; effective-name
-competition still uses S2 selection. Existing generic, bridge/synthetic and varargs exclusions remain. An unrelated constructor/factory overload does not
-block an existing exact String projection, but keeps that route outside C1 parameter authority. An already-generated
-binary default overload can be called as-is; this slice does not generate any additional expansion. An inherited factory that ordinary generation does not expose remains unavailable.
+competition still uses S2 selection. Existing public projections for interface/parameterized targets, subtype-returning
+factories and generic/default/bridge/synthetic sources are structural-only when they lack C1 authority. No additional
+discovery, expansion or inference creates such projections. A raw String-array varargs signature is not a String route.
+An unrelated constructor/factory overload does not block an exact String projection, but keeps it outside C1 authority. An inherited factory that ordinary generation does not expose remains unavailable.
 
 Every converter association explicitly records whether C1 selected-parameter facts apply. C1-qualified separately compiled
 declared domain routes retain exact parameter policies, constraints and missing/corrupt-fact failures. Structural routes
@@ -49,12 +50,16 @@ Final focused Groovy 3 converter-origin, S2 selection, C1 and binary/module suit
 G3/G4/G5 schema producer matrix. The independent oracle passed 28 JDK, 270 ECMA/Draft and 90 initial S3a structural checks.
 Markdown fences, 183 relative file links and `git diff --check` passed. Affected suites, full repository `check`, and the
 two local review axes are in progress. This section will record the final results before handoff; it makes no full-suite or
-remote CI claim yet. No local SonarCloud upload is used. The first full-check attempt was stopped for review corrections; it is not qualification evidence.
+remote CI claim yet. No local SonarCloud upload is used. The preliminary full-check attempts were stopped for review corrections; they are not qualification evidence.
 
 Standards review requested braces and a named corruption-annotation helper. Specification review identified retained C1
 source-family cardinality restrictions in structural admission. Corrections retain those restrictions only for C1
 parameter authority and add overloaded constructor/factory/adapter dispatch and schema controls, plus a native-scalar
-regression. Existing native scalar input remains unchanged. The same two children will review the corrected head.
+regression. Existing native scalar input remains unchanged. The follow-up specification review found further inherited C1 interface/generic/source restrictions. Structural eligibility
+now uses the exact public projection plus ordinary scalar exclusions; the original source predicate is retained solely for
+C1 authority. New interface/subtype/generic and existing binary source controls prove direct/structured dispatch, while
+packaged schemas confirm absent C1 assertions. Raw Object, arrays and converter-backed containers remain excluded.
+The same two children will review the corrected head.
 
 ## Delivery and resume condition
 

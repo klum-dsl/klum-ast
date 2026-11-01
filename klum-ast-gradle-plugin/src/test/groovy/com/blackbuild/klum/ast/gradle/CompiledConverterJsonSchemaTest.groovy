@@ -56,7 +56,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         new File(evidence, 'converter.schema.json').bytes = output().bytes
 
         then:
-        ['duration', 'local', 'adapted', 'overloaded'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
+        ['duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
         fields.duration.description.contains('ISO-8601 duration.')
         fields.local.description.contains('converted domain value')
@@ -274,6 +274,20 @@ class DurationAdapter {
     static Duration fromString(int value) { throw new AssertionError('wrong adapter overload') }
 }
 ''')
+        write(producer, 'domain/src/main/groovy/converterjson/StructuralValues.groovy', '''
+package converterjson
+import jakarta.validation.constraints.Pattern
+interface Endpoint {}
+class ConcreteEndpoint implements Endpoint {}
+class EndpointAdapter {
+    static ConcreteEndpoint fromString(@Pattern(regexp='[0-9]{1,8}') String value) {
+        throw new AssertionError('subtype adapter executed')
+    }
+}
+class GenericValue<T> {
+    GenericValue(@Pattern(regexp='[0-9]{1,8}') String value) { throw new AssertionError('generic constructor executed') }
+}
+''')
         write(producer, 'parent/src/main/groovy/converterjson/Base.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
@@ -288,6 +302,7 @@ package converterjson
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.Pattern
 import java.time.Duration
+import java.nio.file.Path
 @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Service extends Base {
     static { throw new AssertionError('Schema initialized') }
     /** ISO-8601 duration. */
@@ -296,6 +311,9 @@ import java.time.Duration
     /** External adapter prose. */
     @Converters([DurationAdapter]) Duration adapted
     @Converters(includeConstructors=true) OverloadedValue overloaded
+    @Field(converters = [{ String value -> throw new AssertionError('Path closure executed') }]) Path path
+    @Converters(includeConstructors=true) GenericValue<String> generic
+    @Converters([EndpointAdapter]) Endpoint subtype
     FactoryPort factory
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) FactoryPort fieldText

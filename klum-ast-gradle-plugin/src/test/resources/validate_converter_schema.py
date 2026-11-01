@@ -96,7 +96,7 @@ for lane in ("3", "4", "5"):
     # #952 S3a: all new origins share structural String grammar, without C1 leakage.
     # A syntactically invalid duration remains a valid schema String; conversion owns that failure.
     properties = schema["$defs"]["converterjson.Service_DSL$Builder"]["properties"]
-    for name in ("duration", "local", "adapted", "overloaded"):
+    for name in ("duration", "local", "adapted", "overloaded", "path", "generic", "subtype"):
         assert "allOf" not in properties[name]
         assert "x-klum-converter-constraint-source" not in properties[name]
         for value in ("PT30S", "bad", "", "1234", "unicode-✓"):

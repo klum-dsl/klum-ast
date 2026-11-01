@@ -255,7 +255,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void enrichConverter(FieldNode field, Entry entry, Name name, AnnotationNode fact) {
-        MethodNode converter = payloadForField(field.getType()) == null ? StructuredInputConverter.selected(field) : null;
+        MethodNode converter = StructuredInputConverter.selected(field);
         fact.setMember("converterCount", new ConstantExpression(converter == null ? 0 : 1));
         if (converter == null) return;
 
@@ -474,6 +474,13 @@ final class StructuredInputAdmissionPlan {
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
         if (operation != null)
             entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null, false));
+    }
+
+    /** Existing scalar exclusions apply before considering an already-generated String projection. */
+    static boolean supportsScalarConverterInput(ClassNode type) {
+        return !isDSLObject(type) && !isCollection(type) && !isMap(type) && !type.isArray()
+                && !type.equals(ClassHelper.OBJECT_TYPE) && !type.isGenericsPlaceHolder()
+                && unsupportedNumericType(type) == null && payloadForField(type) == null;
     }
 
     private static ClassNode fieldValueType(ClassNode type) {

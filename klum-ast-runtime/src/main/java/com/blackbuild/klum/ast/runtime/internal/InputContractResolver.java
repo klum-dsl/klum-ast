@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static groovyjarjarasm.asm.Type.getDescriptor;
 import static com.blackbuild.klum.ast.runtime.internal.BuilderContractReader.*;
 import static com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.*;
 
@@ -442,14 +441,14 @@ final class InputContractResolver {
                 + externalFieldName(context, field, literal) + "', selected "
                 + selected.owner() + "#" + selected.name() + selected.descriptor() + " parameter[" + selected.parameter() + "]";
         try {
-            if (!(fieldType instanceof Class<?> domain) || methods.size() != 1
+            Class<?> domain = rawType(fieldType);
+            if (domain == null || selected.parameterFacts() && !(fieldType instanceof Class<?>) || methods.size() != 1
                     || !method.getName().equals(field) || method.getReturnType() != domain
                     || !Arrays.equals(method.getParameterTypes(), new Class<?>[]{String.class})
                     || method.isSynthetic() || method.isBridge() || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid("Converter selection disagrees with field/overload");
-            if (!selected.parameterFacts() && !selected.descriptor().equals("(Ljava/lang/String;)"
-                    + (selected.name().equals("<init>") ? "V" : getDescriptor(domain))))
+            if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
             validateSelection(Role.PROPERTY, new Payload(Kind.SCALAR, String.class, null, null, null), methods, location);
             // Structural routes carry provenance, but only C1 owns selected-parameter inspection.
@@ -461,6 +460,12 @@ final class InputContractResolver {
             throw invalid("Cannot resolve converter for " + location + ": " + failure.getMessage()
                     + "; expose one supported route and recompile matched domain/Schema artifacts with the complete API classpath");
         }
+    }
+
+    private static boolean validStructuralConverterDescriptor(ConverterSelection selected) {
+        if (selected.name().equals("<init>")) return selected.descriptor().equals("(Ljava/lang/String;)V");
+        // The source may return a subtype; the exact destination type belongs to the public Builder projection.
+        return selected.descriptor().matches("\\(Ljava/lang/String;\\)L[^.;\\[()/]+(?:/[^.;\\[()/]+)*;");
     }
 
     private static Role selectedRole(Metadata metadata, List<Method> methods, String source) {
