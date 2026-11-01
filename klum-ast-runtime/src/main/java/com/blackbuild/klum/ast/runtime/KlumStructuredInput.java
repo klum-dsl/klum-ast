@@ -60,6 +60,21 @@ public final class KlumStructuredInput {
     }
 
     /**
+     * Defines a reusable Template from a caller-parsed, keyless root body. Configuration operations
+     * execute during definition, without lifecycle callbacks. Recipients provide their own identity.
+     * Failure returns no Template and does not undo earlier configuration side effects.
+     * @param concreteType exact concrete Schema class with generated input metadata
+     * @param parsed caller-parsed domain Map with String keys
+     * @param sourceName nonempty opaque diagnostic identity, never opened as a resource
+     * @param <T> Template Model type
+     * @return the marked Template recipe
+     * @throws KlumModelException if metadata or input is unsupported or configuration fails
+     */
+    public static <T> T readTemplate(Class<T> concreteType, Object parsed, String sourceName) {
+        return StructuredInputSupport.readTemplate(concreteType, parsed, sourceName);
+    }
+
+    /**
      * Checks and invokes input operations in supplied iteration order, running ordinary PostApply on success.
      * Failure stops traversal and may leave the caller's Builder partially configured. It is neither reset nor completed.
      * @param builder active, same-thread, unsealed ordinary generated Builder

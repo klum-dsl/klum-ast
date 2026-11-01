@@ -233,6 +233,11 @@ excluded from admitted input operations. Preserve `FromMap` custom overrides, ne
 regressions, and existing managed Jackson tests. Reader removal must not strand tests or examples between slices; A3 is a
 release gate. No mixed development-toolchain or serialized Builder/input-plan compatibility promise is introduced.
 
+S6 implementation evidence: `StructuredInputTemplateDocumentaryTest` compares a parsed recipe with
+`Create.Template.With`, including definition-time configuration, lifecycle silence, recipient keys, fresh owned graphs,
+keyed-Map identity and rejection controls. The existing Template and serialization regression suites remain applicable.
+S3/S5 forms admitted later still require reconciliation before Q1.
+
 S7's configuration/output spelling is an additive implementation proposal to review with its tests, not a new product
 question about whether filenames should supply keys. They must not. Retain a distinct explicit purpose in Gradle inputs
 and output identities without publishing private definition suffixes. This body variant does not silently become a

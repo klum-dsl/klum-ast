@@ -550,7 +550,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return doCreateTemplate(type, builder -> builder.applyOnly(values, closure));
     }
 
-    private static <T> T doCreateTemplate(Class<T> type, Consumer<InternalKlumBuilder<T>> configuration) {
+    static <T> T doCreateTemplate(Class<T> type, Consumer<InternalKlumBuilder<T>> configuration) {
         return BreadcrumbCollector.withBreadcrumb(() ->
             withTemplateDefinition(() -> {
                 InternalKlumBuilder<T> builder = createTemplateBuilder(type);

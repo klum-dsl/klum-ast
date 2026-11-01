@@ -69,6 +69,13 @@ public final class StructuredInputSupport {
         return FactoryHelper.createWithConfiguration(type, domain.key(), domain::execute);
     }
 
+    public static <T> T readTemplate(Class<T> type, Object parsed, String sourceName) {
+        requireSource(sourceName);
+        requireConcrete(type, sourceName);
+        Domain domain = new Traversal(sourceName).domain(type, parsed, "", Position.TEMPLATE_ROOT);
+        return FactoryHelper.doCreateTemplate(type, domain::execute);
+    }
+
     private static void requireConcrete(Class<?> type, String sourceName) {
         if (type == null || type.isInterface() || Modifier.isAbstract(type.getModifiers()))
             throw new KlumModelException(sourceName + ": structured input requires an exact concrete Schema type");
@@ -115,12 +122,13 @@ public final class StructuredInputSupport {
     }
 
     private enum Position {
-        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, SCHEMA_CHILD, MAP_VALUE;
+        ROOT, DIRECT, EXPLICIT_ROOT, ACTIVE_BUILDER, TEMPLATE_ROOT, SCHEMA_CHILD, MAP_VALUE;
         boolean memberKey() { return this == ROOT || this == DIRECT; }
         String authority() {
             return switch (this) {
                 case EXPLICIT_ROOT -> "explicit rootKey argument";
                 case ACTIVE_BUILDER -> "already allocated active Builder";
+                case TEMPLATE_ROOT -> "recipient of the Template";
                 case SCHEMA_CHILD -> "Schema key provider";
                 case MAP_VALUE -> "outer Map entry key";
                 default -> throw new IllegalStateException("Position has no external key authority: " + this);
