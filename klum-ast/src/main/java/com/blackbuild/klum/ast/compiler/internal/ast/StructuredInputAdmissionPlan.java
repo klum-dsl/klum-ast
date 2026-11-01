@@ -255,7 +255,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void enrichConverter(FieldNode field, Entry entry, Name name, AnnotationNode fact) {
-        MethodNode converter = StructuredInputConverter.selected(field);
+        MethodNode converter = payloadForField(field.getType()) == null ? StructuredInputConverter.selected(field) : null;
         fact.setMember("converterCount", new ConstantExpression(converter == null ? 0 : 1));
         if (converter == null) return;
 

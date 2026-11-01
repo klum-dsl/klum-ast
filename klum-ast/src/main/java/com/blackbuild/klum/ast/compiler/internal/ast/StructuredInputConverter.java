@@ -81,23 +81,24 @@ final class StructuredInputConverter {
 
     private static boolean eligibleRoute(ClassNode domain, MethodNode source) {
         ClassNode owner = source.getDeclaringClass().redirect();
-        if (DslAstHelper.isDSLObject(domain) || (isCollection(domain) || isMap(domain))
+        if (DslAstHelper.isDSLObject(domain) || isCollection(domain) || isMap(domain)
                 || !Modifier.isPublic(domain.getModifiers()) || domain.isInterface() || domain.isEnum()
                 || domain.redirect().getGenericsTypes() != null || domain.isGenericsPlaceHolder()
                 || !Modifier.isPublic(owner.getModifiers())
                 || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC | ACC_VARARGS)) != 0
                 || source.getGenericsTypes() != null || source.hasDefaultValue()) return false;
-        if (source instanceof ConstructorNode)
-            return owner.equals(domain.redirect()) && !Modifier.isAbstract(owner.getModifiers())
-                    && owner.getDeclaredConstructors().size() == 1;
-        return source.isStatic() && source.getReturnType().redirect().equals(domain.redirect())
-                && owner.getDeclaredMethods(source.getName()).size() == 1;
+        if (source instanceof ConstructorNode) {
+            return owner.equals(domain.redirect()) && !Modifier.isAbstract(owner.getModifiers());
+        }
+        return source.isStatic() && source.getReturnType().redirect().equals(domain.redirect());
     }
 
     private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
-        return domain.redirect().isResolved()
-                && source.getDeclaringClass().redirect().equals(domain.redirect())
-                && eligibleRoute(domain, source);
+        ClassNode owner = domain.redirect();
+        if (!owner.isResolved() || !source.getDeclaringClass().redirect().equals(owner)
+                || !eligibleRoute(domain, source)) return false;
+        return source instanceof ConstructorNode ? owner.getDeclaredConstructors().size() == 1
+                : owner.getDeclaredMethods(source.getName()).size() == 1;
     }
 
     static void enrich(FieldNode field, MethodNode api) {

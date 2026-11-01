@@ -96,7 +96,7 @@ for lane in ("3", "4", "5"):
     # #952 S3a: all new origins share structural String grammar, without C1 leakage.
     # A syntactically invalid duration remains a valid schema String; conversion owns that failure.
     properties = schema["$defs"]["converterjson.Service_DSL$Builder"]["properties"]
-    for name in ("duration", "local", "adapted"):
+    for name in ("duration", "local", "adapted", "overloaded"):
         assert "allOf" not in properties[name]
         assert "x-klum-converter-constraint-source" not in properties[name]
         for value in ("PT30S", "bad", "", "1234", "unicode-✓"):
@@ -110,4 +110,4 @@ for lane in ("3", "4", "5"):
     count += len(rows) * 3 + 6
 print(f"C1 actual-output oracle: {len(rows)} JDK checks and {count} ECMA/Draft checks passed across G3/G4/G5; node={node.stdout.strip()}")
 
-print(f"S3a actual-output oracle: {structural_count} structural String checks passed across three origins and G3/G4/G5")
+print(f"S3a actual-output oracle: {structural_count} structural String checks passed across converter shapes and G3/G4/G5")

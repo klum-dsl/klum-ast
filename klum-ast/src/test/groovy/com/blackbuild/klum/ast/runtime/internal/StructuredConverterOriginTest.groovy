@@ -112,6 +112,27 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         'adapter' | '' | '@Converters([Adapter])'
     }
 
+    def 'native scalar fields retain their existing payload grammar when they also have a String converter'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @Field(converters = [{ String value -> Integer.parseInt(value) }]) int timeout
+            }
+        ''')
+
+        when:
+        def result = KlumStructuredInput.readRoot(type, [timeout: 30], 'native.yaml')
+
+        then:
+        result.timeout == 30
+
+        when:
+        KlumStructuredInput.readRoot(type, [timeout: '30'], 'native.yaml')
+
+        then:
+        thrown(KlumModelException)
+    }
+
     def 'field converter rejects typed payloads without coercion: #value'() {
         given:
         def type = schema('''
@@ -202,20 +223,23 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         if (damage == 'missing association' && annotation.endsWith('GeneratedInput$Converter;')) return null
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (!annotation.endsWith('GeneratedInput$Converter;')) return downstream
-                        new AnnotationVisitor(Opcodes.ASM9, downstream) {
-                            @Override void visit(String member, Object value) {
-                                if (damage == 'missing authority' && member == 'parameterFacts') return
-                                if (damage == 'invalid authority' && member == 'parameterFacts') value = 'false'
-                                if (damage == 'wrong descriptor' && member == 'descriptor') value = '(I)V'
-                                super.visit(member, value)
-                            }
-                        }
+                        annotation.endsWith('GeneratedInput$Converter;') ? damageAssociation(downstream, damage) : downstream
                     }
                 }
             }
         }, 0)
         file.bytes = writer.toByteArray()
+    }
+
+    private static AnnotationVisitor damageAssociation(AnnotationVisitor downstream, String damage) {
+        new AnnotationVisitor(Opcodes.ASM9, downstream) {
+            @Override void visit(String member, Object value) {
+                if (damage == 'missing authority' && member == 'parameterFacts') return
+                if (damage == 'invalid authority' && member == 'parameterFacts') value = 'false'
+                if (damage == 'wrong descriptor' && member == 'descriptor') value = '(I)V'
+                super.visit(member, value)
+            }
+        }
     }
 
     private static List<Throwable> causes(Throwable failure) {

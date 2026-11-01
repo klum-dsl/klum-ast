@@ -231,7 +231,9 @@ is the default; TEXT_ONLY describes complete constraints; OMIT suppresses their 
 cannot suppress or override parameter facts. The field retains names, exclusion, prose, examples, deprecation and its
 own domain-value constraints. See [converter Pattern projection](Json-Schema.md#compiled-converter-parameters).
 
-Overloaded/default-generated, bridge/synthetic, generic and varargs converter sources remain outside this bounded route.
+An unrelated constructor/factory overload does not remove an existing exact String projection. Such source families
+remain outside C1 parameter inspection. No new default/varargs expansion or generic inference is performed; generic,
+bridge/synthetic and varargs converter sources remain outside this bounded route.
 Collection, map and DSL-object conversions remain outside this structured-input feature. CharSequence invocation is
 separate. An unrelated authored overload does not suppress the generated String route; competing external String names
 use the [shared selection rules](Structured-Input.md#select-a-string-operation).

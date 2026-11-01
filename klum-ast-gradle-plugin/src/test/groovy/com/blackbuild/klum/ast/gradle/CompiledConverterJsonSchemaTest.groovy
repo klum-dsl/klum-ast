@@ -56,7 +56,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         new File(evidence, 'converter.schema.json').bytes = output().bytes
 
         then:
-        ['duration', 'local', 'adapted'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
+        ['duration', 'local', 'adapted', 'overloaded'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
         fields.duration.description.contains('ISO-8601 duration.')
         fields.local.description.contains('converted domain value')
@@ -267,9 +267,11 @@ class FactoryPort {
         write(producer, 'domain/src/main/groovy/converterjson/DurationAdapter.groovy', '''
 package converterjson
 import java.time.Duration
+import jakarta.validation.constraints.Pattern
 class DurationAdapter {
     static { throw new AssertionError('adapter initialized') }
-    static Duration fromString(String value) { throw new AssertionError('adapter executed') }
+    static Duration fromString(@Pattern(regexp='[0-9]{1,8}') String value) { throw new AssertionError('adapter executed') }
+    static Duration fromString(int value) { throw new AssertionError('wrong adapter overload') }
 }
 ''')
         write(producer, 'parent/src/main/groovy/converterjson/Base.groovy', '''
@@ -293,6 +295,7 @@ import java.time.Duration
     @Pattern(regexp='[A-Z]{2}') LocalValue local
     /** External adapter prose. */
     @Converters([DurationAdapter]) Duration adapted
+    @Converters(includeConstructors=true) OverloadedValue overloaded
     FactoryPort factory
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) FactoryPort fieldText
@@ -312,6 +315,10 @@ import java.time.Duration
     @Default(code={ throw new AssertionError('default executed') }) String computed
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
     @Validate void validate() { throw new AssertionError('validator executed') }
+}
+class OverloadedValue {
+    OverloadedValue(@Pattern(regexp='[0-9]{1,8}') String value) { throw new AssertionError('constructor executed') }
+    OverloadedValue(int value) { throw new AssertionError('wrong constructor overload') }
 }
 class LocalValue {
     static { throw new AssertionError('local domain initialized') }
