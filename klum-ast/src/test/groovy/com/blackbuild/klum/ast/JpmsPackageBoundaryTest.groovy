@@ -384,7 +384,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
-    @Issue(["391", "658", "954", "959", "952"])
+    @Issue(["391", "658", "954", "959", "952", "953"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -1071,6 +1071,10 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new AssertionError("Named schema could not retain the reporter diagnostic");
                     if (KlumSchemaSupport.klumValidationForObject(station).getFailLevel() != Validate.Level.ERROR)
                         throw new AssertionError("Named Java consumer could not access the validation reporter");
+                    Station template = Station.Create.Template.FromStruct(Map.of("station-name", "Java template"));
+                    Station namedTemplate = Station.Create.Template.FromStruct(Map.of("station-name", "Named template"), "template.yaml");
+                    if (!"Java template".equals(template.getName()) || !"Named template".equals(namedTemplate.getName()))
+                        throw new AssertionError("Template Factory structured input did not link");
                     Station selected = KlumStructuredInput.readRoot(Station.class, Map.of("endpoint", "Java"), "selected.json");
                     Station directSelected = factory.With(new Closure<Object>(null) {
                         @Override public Object call() {
@@ -1210,6 +1214,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
                     assert station.capacity == 4
+                    Station template = Station.Create.Template.FromStruct(['station-name': 'static template'])
+                    Station namedTemplate = Station.Create.Template.FromStruct(['station-name': 'named template'], 'template.yaml')
+                    assert template.name == 'static template'
+                    assert namedTemplate.name == 'named template'
                     Station selected = KlumStructuredInput.readRoot(Station, [endpoint: 'static'], 'selected.json')
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'

@@ -67,21 +67,33 @@ final class InputContractResolver {
     private final Map<Class<?>, Map<String, ConverterConstraints>> converterConstraints = new LinkedHashMap<>();
 
     CompiledBuilderSchema read(Class<?> model) {
+        return readModel(model, false);
+    }
+
+    CompiledBuilderSchema readTemplate(Class<?> model) {
+        return readModel(model, true);
+    }
+
+    private CompiledBuilderSchema readModel(Class<?> model, boolean template) {
         try {
             ClassLoader loader = model.getClassLoader();
             CompiledBuilderSchema schema = read(Class.forName(model.getName() + BUILDER_SUFFIX, false, loader),
-                    Class.forName(model.getName() + "_DSL$Factory", false, loader));
+                    Class.forName(model.getName() + "_DSL$Factory", false, loader), template);
             if (schema.model() != model) throw invalid("Root Model identity disagrees with Builder self bound");
             return schema;
         } catch (ClassNotFoundException | LinkageError failure) { throw failure(model.getName(), failure); }
     }
 
     CompiledBuilderSchema read(Class<?> builder, Class<?> factory) {
+        return read(builder, factory, false);
+    }
+
+    private CompiledBuilderSchema read(Class<?> builder, Class<?> factory, boolean template) {
         try {
             requirePublic(builder);
             requirePublic(factory);
             Class<?> model = modelOf(builder);
-            if (model == null || Arrays.stream(factory.getMethods()).noneMatch(method -> method.getName().equals("One") && method.getReturnType() == model))
+            if (model == null || !matchesFactoryModel(factory, model, template))
                 throw invalid("Builder self bound and Factory result disagree");
             Profile naming = resolveNaming(builder);
             Facts facts = collect(builder, new LinkedHashMap<>(), naming == Profile.KEBAB_CASE);
@@ -105,6 +117,16 @@ final class InputContractResolver {
         } catch (ReflectiveOperationException | LinkageError | IOException | RuntimeException failure) {
             throw failure(builder.getName(), failure);
         }
+    }
+
+    private static boolean matchesFactoryModel(Class<?> factory, Class<?> model, boolean template) throws ClassNotFoundException {
+        if (template && Modifier.isAbstract(model.getModifiers())) {
+            Class<?> templateFactory = Class.forName(factory.getName() + "$Template", false, factory.getClassLoader());
+            requirePublic(templateFactory);
+            return Arrays.stream(templateFactory.getMethods()).anyMatch(method -> method.getName().equals("With")
+                    && method.getParameterCount() == 0 && method.getReturnType() == model);
+        }
+        return Arrays.stream(factory.getMethods()).anyMatch(method -> method.getName().equals("One") && method.getReturnType() == model);
     }
 
     /** Select only after override, exclusion and effective hierarchy naming have been resolved. */

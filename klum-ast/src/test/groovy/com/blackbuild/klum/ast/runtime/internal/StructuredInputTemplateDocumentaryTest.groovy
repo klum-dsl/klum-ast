@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.runtime.internal
 
+import com.blackbuild.annodocimal.generator.ProjectionPolicy
+import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumStructuredInput
@@ -33,7 +35,6 @@ import spock.lang.Tag
 import javax.tools.ToolProvider
 import java.time.Duration
 
-@Issue('953')
 @Tag('documentary')
 @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#structured-input-templates')
 class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
@@ -82,6 +83,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
 
     def cleanup() { artifactLoader?.close() }
 
+    @Issue('953')
     def 'parsed keyless bodies define ordinary reusable Template recipes'() {
         given:
         def parsed = [locate: 'eu', primary: [name: 'api', image: 'api:1'],
@@ -141,6 +143,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         !first.primary.is(template.primary)
     }
 
+    @Issue('953')
     def 'reconfiguring existing Template children does not run lifecycle callbacks'() {
         when:
         def template = deployment.Create.Template.FromStruct(
@@ -201,6 +204,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         deployment.events == ['root:create', 'root:apply', 'root:tree']
     }
 
+    @Issue('953')
     def 'Java and static Groovy callers use both generated Template Factory signatures'() {
         given:
         def source = new File(tempFolder.root, 'structuredtemplate/JavaTemplateConsumer.java')
@@ -234,9 +238,18 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         def javaConsumer = artifactLoader.loadClass('structuredtemplate.JavaTemplateConsumer')
         def staticConsumer = artifactLoader.loadClass('structuredtemplate.StaticTemplateConsumer')
         def factory = artifactLoader.loadClass('structuredtemplate.Deployment_DSL$Factory$Template')
+        def mirrorRoot = tempFolder.newFolder('mirrors')
+        def namespace = new File(compilerConfiguration.targetDirectory, 'structuredtemplate/Deployment_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespace.toPath(), mirrorRoot.toPath())
+        def mirror = new File(mirrorRoot, 'structuredtemplate/Deployment_DSL.java')
+        def mirrorClasses = tempFolder.newFolder('mirror-classes')
+        int mirrorResult = ToolProvider.systemJavaCompiler.run(null, null, null, '-classpath', classpath,
+                '-d', mirrorClasses.absolutePath, mirror.absolutePath)
 
         then:
         result == 0
+        mirrorResult == 0
+        mirror.text.contains('FromStruct(')
         factory.getMethod('FromStruct', Map).returnType == deployment
         factory.getMethod('FromStruct', Map).genericParameterTypes[0].typeName == 'java.util.Map<?, ?>'
         factory.getMethod('FromStruct', Map, String).returnType == deployment
@@ -246,6 +259,30 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         }
     }
 
+    @Issue('953')
+    def 'abstract Schema Templates apply to concrete descendants'() {
+        given:
+        createSecondaryClass '''
+            package structuredtemplate
+            import com.blackbuild.klum.ast.*
+            @DSL abstract class Policy { String region }
+            @DSL class ConcretePolicy extends Policy { String name }
+        '''
+        def policy = artifactLoader.loadClass('structuredtemplate.Policy')
+        def concrete = artifactLoader.loadClass('structuredtemplate.ConcretePolicy')
+
+        when:
+        def template = policy.Create.Template.FromStruct([region: 'eu'], 'input')
+        def recipient
+        policy.Template.With(template) { recipient = concrete.Create.One() }
+
+        then:
+        TemplateManager.isTemplate(template)
+        template.region == 'eu'
+        recipient.region == 'eu'
+    }
+
+    @Issue('953')
     def 'source labels are diagnostic and explicit empty labels reject'() {
         when:
         deployment.Create.Template.FromStruct([unknown: 'bad'])
@@ -264,6 +301,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         source << [null, '']
     }
 
+    @Issue('953')
     def 'root and map identities are not accepted inside bodies and failures return no Template'() {
         when:
         deployment.Create.Template.FromStruct([name: 'forbidden'], 'input')
@@ -288,6 +326,22 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
         result == null
     }
 
+    @Issue('953')
+    def 'failure retains earlier setup effects and skips later operations'() {
+        given:
+        def result = null
+
+        when:
+        result = deployment.Create.Template.FromStruct(
+                [locate: 'eu', unknown: 'bad', useDefaultRegion: [:]], 'input')
+
+        then:
+        thrown(KlumModelException)
+        result == null
+        deployment.events == ['configure']
+    }
+
+    @Issue('953')
     def 'public Builder application rejects a Template Builder'() {
         when:
         deployment.Create.Template.With {
