@@ -1,9 +1,15 @@
 # Structured Input
 
-`KlumStructuredInput` applies caller-parsed Maps, Lists and scalars through a Schema's admitted Builder operations.
-Use [`Create.Template.FromStruct`](Templates.md#structured-input-templates) for a keyless reusable Template body.
-It belongs to `klum-ast-runtime` and adds no JSON/YAML parser dependency. Parse the format with your chosen library,
-then pass the resulting data together with an opaque source name for diagnostics.
+Structured input applies caller-parsed Maps, Lists and scalars through a Schema's admitted Builder operations.
+The supported public boundary is generated Factory creation and Builder application; the interpreter is framework
+internal. [`Create.Template.FromStruct`](Templates.md#structured-input-templates) is available for keyless reusable
+Template bodies. The remaining common/keyed Factory `FromStruct` and Builder `applyStruct` forms are accepted but
+await their separate implementation slices; see [the #953 delivery plan](../implementation/input-round-plan-4-2.md#development-api-migration--953).
+This grammar reference shows Schema declarations and parsed payloads, without presenting the development reader as a
+public construction API. Existing executable grammar tests still use that development seam pending caller migration.
+
+Parsing remains caller-owned. No JSON/YAML parser, file or URL loading is added. An optional source name is opaque
+nonempty diagnostic text, never a locator or a model key.
 
 ## Read a concrete root
 
@@ -27,32 +33,16 @@ import com.blackbuild.klum.ast.DSL
 }
 ```
 
-Java callers use the concrete Schema class:
-
-```java
-Map<String, Object> parsed = Map.of("endpoint", Map.of("host", "api", "port", "8080"));
-Application app = KlumStructuredInput.readRoot(Application.class, null, parsed, "application.yaml");
-```
-
-The same route in Groovy:
-
-(See: `StructuredInputDocumentaryTest#'one structured operation configures several root properties'`.)
+For that Schema, the parsed configuration is a Map such as:
 
 ```groovy
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
-
 def parsed = [endpoint: [host: 'api', port: '8080']]
-def app = KlumStructuredInput.readRoot(Application, null, parsed, 'application.yaml')
-assert app.host == 'api'
-assert app.port == 8080
 ```
 
-The root input must be a Map with String keys. Select an exact concrete Schema; no subtype or default implementation
-is chosen for an abstract type. Supply `null` as `rootKey` for an unkeyed Schema, or an explicit String for a keyed Schema.
-The four-argument route rejects an inner root key, even if it equals `rootKey`.
-The three-argument route below admits self-contained root identity; supplied direct children follow its key rules
-under both routes. The nonempty `sourceName` is diagnostic text and
-is never opened as a file or URL.
+The admitted `endpoint` operation sets `host` to `api` and `port` to 8080. Select an exact concrete Schema; no subtype or
+default implementation is chosen for an abstract type. Root input must be a Map with String keys. A self-contained
+keyed document supplies its actual key member; a caller-pre-keyed body omits it. Supplied direct children retain their
+own positional key rules in either form.
 
 Compile Schemas successfully with the current KlumAST compiler and distribute their generated classes together.
 Missing or inconsistent generated structured-input metadata reports recompile/package guidance. An in-memory-only
@@ -82,7 +72,6 @@ Select `@Struct.Naming` on a Schema type to use the same exact member tokens in 
 ```groovy
 import com.blackbuild.klum.ast.DSL
 import com.blackbuild.klum.ast.Struct
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
 @DSL class ServiceBase { String displayName }
 @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
@@ -93,11 +82,9 @@ import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 }
 @DSL class Details { String nativeName }
 
-def service = KlumStructuredInput.readRoot(Service,
-        ['display-name': 'Catalog', 'service-name': 'catalog', labels: ['Team/Blue': 'ops'],
-         'service-details': [nativeName: 'own policy']], 'service.yaml')
-assert service.serviceName == 'catalog'
-assert service.labels == ['Team/Blue': 'ops']
+def parsed = ['display-name': 'Catalog', 'service-name': 'catalog', labels: ['Team/Blue': 'ops'],
+              'service-details': [nativeName: 'own policy']]
+// Configures serviceName as 'catalog'; the data key 'Team/Blue' stays literal.
 ```
 
 An unannotated child inherits an explicit ancestor profile. Repeating that profile is permitted; a different explicit
@@ -136,7 +123,6 @@ case are preserved. `@Struct.Ignore` is a marker. Both have runtime retention an
 
 ```groovy
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
 @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
 @DSL class Service {
@@ -148,8 +134,7 @@ import com.blackbuild.klum.ast.runtime.KlumStructuredInput
     void configureInternally(String value) { internalNote = value }
 }
 
-def service = KlumStructuredInput.readRoot(Service, ['service.id': 'catalog'], 'service.yaml')
-assert service.serviceName == 'catalog'
+def parsed = ['service.id': 'catalog'] // Configures serviceName as 'catalog'.
 // Ordinary Groovy configuration keeps its authored names, including ignored members.
 def configured = Service.Create.With { serviceName 'groovy'; configureInternally 'private' }
 assert configured.internalNote == 'private'
@@ -175,10 +160,9 @@ There is no automatic mapper adapter. Recompile Schemas and align compiler/runti
 
 ## Construction keys
 
-Self-contained documents use `readRoot(Class<T>, Object parsed, String sourceName)`. A keyed root requires the actual
-Schema `@Key String` member. A supplied direct owned keyed child requires its key too, at any depth, unless its
+Self-contained keyed documents require the actual Schema `@Key String` member. A supplied direct owned keyed child requires its key too, at any depth, unless its
 relationship supplies identity through `@Field.key` or a fixed Cluster key. An absent optional child remains absent.
-Unkeyed roots use the same overload without a synthetic identity property.
+Unkeyed roots have no synthetic identity property.
 
 (See: `StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'`.)
 
@@ -198,30 +182,15 @@ import com.fasterxml.jackson.annotation.JsonProperty
 }
 ```
 
-Java callers pass their parsed document directly:
-
-```java
-Deployment model = KlumStructuredInput.readRoot(Deployment.class,
-        Map.of("name", "production",
-               "service", Map.of("service-id", "catalog", "image", "catalog:1.0"),
-               "services", Map.of("worker", Map.of("image", "worker:1.0"))), "deployment.yaml");
-```
-
-The corresponding Groovy call is the executable example:
-
-(See: `StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'`.)
+The self-contained parsed document includes root and direct-child identity:
 
 ```groovy
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
-
 def parsed = [name: 'production',
               service: ['service-id': 'catalog', image: 'catalog:1.0'],
               services: [worker: [image: 'worker:1.0']]]
-def model = KlumStructuredInput.readRoot(Deployment, parsed, 'deployment.yaml')
-assert model.name == 'production'
-assert model.service.name == 'catalog'
-assert model.services.worker.name == 'worker'
 ```
+
+Root identity is `production`, direct-child identity is `catalog`, and the literal Map entry supplies `worker`.
 
 This Map could come from YAML such as the following. The caller owns parsing; the source name is only diagnostic text.
 
@@ -237,9 +206,9 @@ services:
 
 | Object position | Identity authority | Actual key member in that object's payload |
 | --- | --- | --- |
-| Three-argument keyed root | Input | Required String |
-| Four-argument keyed root | Explicit `rootKey` | Forbidden, even if equal |
-| Existing `applyToBuilder` target | Allocated Builder | Forbidden, even if equal |
+| Self-contained keyed root | Input | Required String |
+| Caller-pre-keyed root body | Explicit `rootKey` | Forbidden, even if equal |
+| Active Builder body | Allocated Builder | Forbidden, even if equal |
 | Supplied direct keyed child | Input, unless Schema supplies identity | Required String |
 | Fixed/derived-key direct child, including fixed Cluster fields | Schema relationship | Forbidden, even if equal |
 | Keyed owned Map value | Outer literal Map entry | Forbidden, even if equal |
@@ -258,50 +227,35 @@ collision between that required key and an admitted operation rejects before all
 Keyless positions retain their ordinary operation admission. Use an explicit root key, a Schema key provider or a keyed
 Map where appropriate for an ignored key. A provider is never evaluated to compare an inner key.
 
-The existing explicit-root route stays available, with `null` required for an unkeyed root and a non-null String for a
-keyed root. Its nested direct children still follow the table above.
-
-```java
-Deployment model = KlumStructuredInput.readRoot(Deployment.class, "production",
-        Map.of("service", Map.of("service-id", "catalog", "image", "catalog:1.0")), "deployment.yaml");
-```
-
-(See: `StructuredInputKeyDocumentaryTest#'explicit-rootKey payloads omit root identity and still supply direct-child identity'`.)
+A caller-pre-keyed root body leaves out the root key while retaining the supplied direct child's identity:
 
 ```groovy
-def parsed = [service: ['service-id': 'catalog', image: 'catalog:1.0']]
-def model = KlumStructuredInput.readRoot(Deployment, 'production', parsed, 'deployment.yaml')
-assert model.name == 'production'
-assert model.service.name == 'catalog'
+def body = [service: ['service-id': 'catalog', image: 'catalog:1.0']]
 ```
+
+The caller supplies root identity separately. This document describes the structural distinction; delivery of the
+public keyed Factory and Builder application forms remains tracked under [#953](https://github.com/klum-dsl/klum-ast/issues/953).
 
 Compile and ship matching compiler/runtime/plugin versions with current generated key facts. Missing facts produce
 recompile/package guidance; the interpreter does not guess key names or derive identity from a filename or URL.
-`Create.FromMap` retains its separate copy/type-hint behavior. These overloads add no Factory or file/URL loading API.
+`Create.FromMap` retains its separate copy/type-hint behavior. Schema generation adds no runtime entry point or file/URL loading API.
+
+For editor/validator tooling of caller-pre-keyed bodies, explicitly select the
+[Builder-body schema artifact](Json-Schema.md#caller-pre-keyed-builder-bodies). Default root schemas continue to describe
+self-contained input; generation never derives identity from source names.
 
 ## Apply to an active Builder
 
-The second entry point configures an existing generated Builder and returns that exact Builder type and instance:
+The accepted public capability is void `applyStruct(Map<?, ?> body[, String sourceName])` on `KlumBuilder`, inherited
+by generated Builder contracts. It configures the existing receiver and does not replace or complete it. This capability
+awaits its separate implementation slice; the interpreter remains internal. See
+[the accepted signature and migration contract](../adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953).
 
-```java
-Application_DSL.Builder<Application> same =
-        KlumStructuredInput.applyToBuilder(activeApplication, parsed, "application.yaml");
-```
+A caller prepares the Builder through ordinary construction before applying a parsed body. The existing documentary
+fixture qualifies the grammar and lifecycle through the development seam:
+`StructuredInputDocumentaryTest#'Holder supplies completed LINK context for later phases after applying an already-prepared Builder'`.
 
-In Groovy, the Builder can be prepared through the ordinary enclosing construction:
-
-(See: `StructuredInputDocumentaryTest#'Holder supplies completed LINK context for later phases after applying an already-prepared Builder'`.)
-
-```groovy
-ApplicationHolder.Create.With {
-    def applicationBuilder = Application.Create.AsBuilder().One()
-    KlumStructuredInput.applyToBuilder(applicationBuilder, parsed, 'application.yaml')
-    applicationBuilder.environment(suppliedEnvironment)
-    application(applicationBuilder)
-}
-```
-
-This example assumes an owned `application` field and a completed `environment` LINK needed only by later phases.
+That fixture uses an owned `application` field and a completed `environment` LINK needed only by later phases.
 `AsBuilder().One()` has already run PostCreate and PostApply. Dependencies needed by those early callbacks must be
 provided by an appropriate Schema-specific construction path before they run; assigning a LINK afterward cannot supply
 an earlier callback. Structured input does not inject context or change lifecycle timing.
@@ -379,7 +333,6 @@ related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).)
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
 import com.blackbuild.klum.ast.Struct
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
 @DSL class Service {
     @Struct.Ignore String host
@@ -391,8 +344,7 @@ import com.blackbuild.klum.ast.runtime.KlumStructuredInput
     void backupEndpoint(String value) { host = 'backup:' + value }
 }
 
-def service = KlumStructuredInput.readRoot(Service, [endpoint: 'api.internal'], 'service.yaml')
-assert service.host == 'primary:api.internal'
+def parsed = [endpoint: 'api.internal'] // Selects endpoint; host becomes 'primary:api.internal'.
 ```
 
 Only `endpoint` is an external input name here. Ordinary Groovy/Java calls keep their normal callable methods. Exclusion,
@@ -426,16 +378,13 @@ related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).)
 ```groovy
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 
 @DSL class Service {
     int timeout = 30
     @Builder.Method void resetTimeout() { timeout = 30 }
 }
 
-def service = KlumStructuredInput.readRoot(Service,
-        [timeout: 90, resetTimeout: [:]], 'service.yaml')
-assert service.timeout == 30
+def parsed = [timeout: 90, resetTimeout: [:]] // Sets 90, then invokes resetTimeout, yielding 30.
 ```
 
 The corresponding YAML command member is:
@@ -459,8 +408,8 @@ facts; see [migration](Migration.md#structured-zero-argument-commands).
 
 Input is checked one operation at a time and execution stops at the first encountered invalid name, payload, type,
 child or invocation. Earlier operations and their ordinary side effects remain; later operations are not reached.
-There is no whole-document payload preflight or rollback. A failed `readRoot` returns no completed Model.
-A failed `applyToBuilder` can leave the caller's Builder partially configured; it does not reset or complete it,
+There is no whole-document payload preflight or rollback. A failed root construction returns no completed Model.
+A failed Builder application can leave the caller's Builder partially configured; it does not reset or complete it,
 and does not run PostApply for the failed application.
 
 Source, root Map, active same-thread unsealed target and complete static contract checks precede traversal. The full
@@ -476,20 +425,12 @@ reached; repeated acyclic shared values remain allowed. The interpreter does not
 (See: `StructuredInputRuntimeTest#'supplied operation order configures the Builder until the first invalid member'`.)
 
 ```groovy
-@DSL class Application { String host; int port }
-
-def failure
-// This caller deliberately catches the failure and continues its enclosing construction.
-def model = Application.Create.With {
-    try {
-        KlumStructuredInput.applyToBuilder(delegate,
-                [host: 'api', unknown: true, port: 8080], 'application.yaml')
-    } catch (KlumModelException caught) { failure = caught }
-}
-assert failure.message.contains('/unknown')
-assert model.host == 'api'
-assert model.port == 0
+def parsed = [host: 'api', unknown: true, port: 8080]
+// host is applied first; unknown then fails; port is not reached.
 ```
+
+A caller that catches the failure must explicitly choose whether to abandon construction or retain the partial state.
+The internal grammar test qualifies this behavior; no public reader or new construction API is introduced here.
 
 Execution follows each supplied Map's iteration order recursively and each List's element order. An insertion-ordered
 Map preserves the caller's chosen order; an unordered Map exposes its own iteration order. There is no portable parser
@@ -508,7 +449,7 @@ Schema can recover discarded duplicates.
 [Jackson integration](Jackson-Integration.md) remains an independent foreign-data binding route with its existing
 callback and codec behavior. Structured input is opt-in and does not change named-parameter configuration or Jackson.
 
-The executable examples live in
+The internal grammar qualification fixtures live in
 [`StructuredInputDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputDocumentaryTest.groovy):
 “one structured operation configures several root properties” and
 “Holder supplies completed LINK context for later phases after applying an already-prepared Builder”.
@@ -531,10 +472,9 @@ validation against the property type or runtime constraints. See [generated JSON
     @Struct.Examples(['Catalog', 'catalog.internal']) String displayName
 }
 
-def configured = KlumStructuredInput.readRoot(Service, [displayName: 'Configured'], 'service.yaml')
-def omitted = KlumStructuredInput.readRoot(Service, [:], 'service.yaml')
-assert configured.displayName == 'Configured'
-assert omitted.displayName == null
+def configured = [displayName: 'Configured']
+def omitted = [:]
+// The explicit value configures displayName; omission does not supply an example as a default.
 ```
 
 Documentation strings do not supply values or change input admission, naming/exclusion, defaults, validation or lifecycle.

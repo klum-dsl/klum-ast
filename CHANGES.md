@@ -1,5 +1,11 @@
 # Unreleased
 
+- Add explicit `klumSchema.jsonSchema.bodyRootTypes` selection for caller-pre-keyed Builder-body schemas, emitted as
+  `<Model>.builder-body.schema.json` alongside unchanged default self-contained root artifacts. Root identity is omitted;
+  positional child keys and compiled-contract inspection remain unchanged. See
+  [schema selection](docs/user/Json-Schema.md#caller-pre-keyed-builder-bodies)
+  ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S7).
+
 - Admit exact generated String Builder routes for field converter closures, same-compilation non-DSL values and external
   adapters. Preserve C1 parameter constraints on qualified routes; other origins emit String structure and field prose.
   Conversion remains invocation-only, with no coercion or new discovery. Recompile matched artifacts. See

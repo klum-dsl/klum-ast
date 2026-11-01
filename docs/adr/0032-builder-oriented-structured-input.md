@@ -2,13 +2,14 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a and zero-argument commands S4 implemented. Other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, zero-argument commands S4, Template Factory S6 and body-schema S7 implemented. Other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
 see [S2 evidence](../implementation/input-round-s2-evidence.md). S3a admits exact generated String converter origins; see
 [S3a evidence](../implementation/input-round-s3a-evidence.md). S4 admits zero-argument Builder commands with empty mappings;
 see [S4 evidence](../implementation/input-round-s4-evidence.md). CharSequence invocation remains planned.
+S7 adds explicit Gradle `bodyRootTypes` selection; see [S7 evidence](../implementation/input-round-s7-evidence.md).
 
 Authority: the maintainer's INPUT-ROUND-PLAN decisions and accepted #953 Factory/Builder clarification, reconciled in the
 [implementation and issue plan](../implementation/input-round-plan-4-2.md). The 4.2 horizon records that direction;
@@ -53,7 +54,8 @@ source visibility in development builds does not establish a released compatibil
 callers directly, with no deprecated reader alias or compatibility bridge. The
 [development-call migration table](../implementation/input-round-plan-4-2.md#development-api-migration--953) maps them.
 
-The following signatures are **accepted for implementation, not yet available**. `T` is the Factory's Model type;
+The Template Factory forms below are implemented by merged [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007).
+The remaining signatures are **accepted for implementation, not yet available**. `T` is the Factory's Model type;
 `body` and `document` are caller-parsed Maps. Wildcards avoid requiring callers to retype their parsed Maps; domain
 member names and payloads still undergo the existing strict runtime checks.
 

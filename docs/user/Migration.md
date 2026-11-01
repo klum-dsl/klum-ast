@@ -172,8 +172,8 @@ facts fail closed. The development metadata protocol remains version 1. This add
 ### Ordered structured-input failures
 
 Structured input now checks and invokes operations in the supplied Map/List iteration order, recursively. A later invalid
-name, type or child no longer prevents earlier mutations or side effects. `readRoot` returns no completed Model on failure;
-`applyToBuilder` may leave the caller's Builder partially configured. Neither route rolls back, resets or forces completion.
+name, type or child no longer prevents earlier mutations or side effects. failed root construction returns no completed Model;
+Builder application may leave the caller's Builder partially configured. Neither route rolls back, resets or forces completion.
 Review callers that catch input exceptions and previously relied on an unchanged Builder. Decide explicitly whether to
 abandon their enclosing construction or continue with the partial state.
 
@@ -186,10 +186,9 @@ See [order and failures](Structured-Input.md#order-and-failures) and
 
 ### Explicit structured construction keys
 
-[#954](https://github.com/klum-dsl/klum-ast/issues/954) adds the three-argument `KlumStructuredInput.readRoot` route for
+[#954](https://github.com/klum-dsl/klum-ast/issues/954) establishes actual key members for
 self-contained keyed documents. Use the actual key's external member name, including literal `@JsonProperty` renames.
-The existing four-argument route still requires its explicit root key and forbids an inner root key, even if equal;
-passing null does not request inference. Active Builder targets likewise retain their existing identity.
+A caller-pre-keyed root body retains its explicit key and forbids an inner root key, even if equal. Active Builder targets likewise retain their existing identity.
 
 A supplied direct caller-key child now requires its key before construction; input that previously reached construction
 with null identity rejects before that child's allocation. Omitted optional children remain legal. Fixed/derived/Cluster-key children
@@ -203,6 +202,16 @@ when generation fails. Use matching compiler/runtime/plugin versions and recompi
 See [construction-key examples](Structured-Input.md#construction-keys) and
 [position-specific JSON Schema](Json-Schema.md#construction-key-definitions). `Create.FromMap`, ordinary Groovy DSL
 construction and managed Jackson keep their independent behavior. File/URL loading and broader grammar are separate work.
+
+### Caller-pre-keyed Builder-body schemas
+
+Default `rootTypes` schemas still require a keyed root's actual external key member. For an already keyed Builder body,
+select `klumSchema.jsonSchema.bodyRootTypes` explicitly. The same Model may appear in both sets, producing independent
+`<Model>.schema.json` and `<Model>.builder-body.schema.json` artifacts. The body artifact forbids root identity while
+retaining all child key positions. Public construction uses the accepted Factory/Builder boundary, with the interpreter
+internal; delivery of those remaining entry points is separate. No runtime call or filename-key convention changes. Choose the matching artifact
+explicitly; generation does not configure editors or file discovery. See
+[the Gradle example](Json-Schema.md#caller-pre-keyed-builder-bodies) ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S7).
 
 ## To 4.1
 
