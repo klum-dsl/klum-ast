@@ -1,5 +1,11 @@
 # Unreleased
 
+- Add `@Struct.Operation` to select one exact public String Builder operation for structured input and JSON Schema.
+  Unmarked candidates require uniqueness; multiple eligible marks reject. Inherited authored overrides own their names
+  and selection intent; C1 converter override safeguards remain. Recompile matched Schema artifacts for required
+  completeness facts. See [selection](docs/user/Structured-Input.md#select-a-string-operation)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S2).
+
 - Structured input now checks and executes each operation in supplied Map/List iteration order. A later payload failure
   leaves earlier effects in place; active Builders can remain partially configured, while failed root reads return no
   Model. Static contract verification and construction-key prerequisites remain before use. See

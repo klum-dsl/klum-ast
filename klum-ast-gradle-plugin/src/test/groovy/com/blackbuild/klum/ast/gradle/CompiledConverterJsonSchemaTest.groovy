@@ -149,6 +149,62 @@ import com.blackbuild.klum.ast.*
         !new File(directory, 'executed').exists()
     }
 
+    @Issue('952')
+    def 'packaged binary selection projects only the selected String operation with Groovy #lane'() {
+        given:
+        fixture(lane)
+        write(producer, 'parent/src/main/groovy/converterjson/SelectedBase.groovy', '''
+package converterjson
+import com.blackbuild.klum.ast.*
+@DSL class SelectedBase extends Base {
+    @Struct.Name('legacy-label') @Struct.Examples(['wrong label example']) String label
+    /** Selected endpoint prose. */
+    @Struct.Operation @Struct.Name('external-endpoint') @Struct.Examples(['api.internal'])
+    @Builder.Method void endpoint(String value) { throw new AssertionError('operation executed during generation') }
+    @Struct.Name('external-endpoint') @Struct.Examples(['wrong example'])
+    @Builder.Method void alternate(String value) { throw new AssertionError('unselected operation') }
+    @Builder.Method void configureName(String value) { throw new AssertionError('inherited operation') }
+    @Struct.Name('configureName') @Builder.Method
+    void literalName(String value) { throw new AssertionError('surviving operation') }
+}
+''')
+        write(producer, 'schema/src/main/groovy/converterjson/SelectedService.groovy', '''
+package converterjson
+import com.blackbuild.klum.ast.*
+@DSL class SelectedService extends SelectedBase {
+    @Struct.Operation @Struct.Name('renamed-name') @Builder.Method
+    void configureName(String value) { throw new AssertionError('renamed operation') }
+    /** Selected label prose. */
+    @Struct.Operation @Struct.Name('current-label') @Builder.Method
+    String label(String value) { throw new AssertionError('overriding field operation executed') }
+    static { throw new AssertionError('Schema initialized during generation') }
+    /** Wrapper owns its own grammar. */
+    @Struct.Operation @Struct.Name('port-number')
+    @Builder.Method void selectedPort(String value) { throw new AssertionError('wrapper executed during generation') }
+}
+''')
+        runner(producer, ':schema:jar').build()
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['converterjson.SelectedService'])\n")
+
+        when:
+        runner(consumer, 'generateKlumJsonSchema').build()
+        def schema = new JsonSlurper().parse(new File(consumer,
+                'build/generated/klum-json-schema/converterjson.SelectedService.schema.json'))
+        def properties = schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties
+
+        then:
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name'] as Set
+        properties.configureName == [type: 'string']
+        properties.'renamed-name' == [type: 'string']
+        properties.'current-label' == [type: 'string', description: 'Selected label prose.']
+        properties.'external-endpoint' == [type: 'string', description: 'Selected endpoint prose.', examples: ['api.internal']]
+        properties.'port-number' == [type: 'string', description: 'Wrapper owns its own grammar.']
+        !new File(directory, 'executed').exists()
+
+        where:
+        lane << ['3', '4', '5']
+    }
+
     private void fixture(String lane) {
         generation = lane
         producer = new File(directory, 'producer')

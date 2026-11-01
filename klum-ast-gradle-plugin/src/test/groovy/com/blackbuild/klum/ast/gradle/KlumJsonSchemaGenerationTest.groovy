@@ -2008,7 +2008,7 @@ import com.blackbuild.klum.ast.DSL
 package example
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 class Misdirected_DSL {
-    @GeneratedInput.Schema(version=1, groupRedefined=false, namingExplicit=false, namingProfile='IDENTITY') interface Builder<SELF extends Service> {}
+    @GeneratedInput.Schema(version=1, operationCount=0, groupRedefined=false, namingExplicit=false, namingProfile='IDENTITY') interface Builder<SELF extends Service> {}
     interface Factory { Service One() }
 }
 """)

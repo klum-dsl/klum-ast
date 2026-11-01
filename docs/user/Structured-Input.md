@@ -357,9 +357,58 @@ arbitrary caller objects, helper/query/lifecycle names and zero/multi-payload au
 An ordinary unannotated property named `key` is normal domain input; actual `@Key` members follow the position-specific rules above.
 
 Names follow compiler decisions: exclusion, compatible `@Struct.Name`/`@JsonProperty` literal, effective type profile,
-then identity. See [literal names and exclusion](#literal-names-and-exclusion). Inherited or overload-name collisions reject without choosing a winner.
+then identity. See [literal names and exclusion](#literal-names-and-exclusion). String candidates follow
+[operation selection](#select-a-string-operation); unresolved collisions reject without choosing a winner.
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
+
+## Select a String operation
+
+`@Struct.Operation` marks one Schema-authored method with an existing public Builder projection. For each effective
+external name, one eligible marked String operation wins; multiple eligible marks fail. Without a mark, there must be
+exactly one candidate. Selection is fixed while reading the compiled contract, before seeing any input value.
+
+(See: `StructuredOperationSelectionTest#'select the public endpoint operation before interpreting its String payload'`,
+related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+import com.blackbuild.klum.ast.runtime.KlumStructuredInput
+
+@DSL class Service {
+    @Struct.Ignore String host
+
+    @Struct.Operation @Builder.Method
+    void endpoint(String value) { host = 'primary:' + value }
+
+    @Struct.Name('endpoint') @Builder.Method
+    void backupEndpoint(String value) { host = 'backup:' + value }
+}
+
+def service = KlumStructuredInput.readRoot(Service, [endpoint: 'api.internal'], 'service.yaml')
+assert service.host == 'primary:api.internal'
+```
+
+Only `endpoint` is an external input name here. Ordinary Groovy/Java calls keep their normal callable methods. Exclusion,
+unsupported roles and missing public projections cannot be repaired with a mark. Place the marker on a method, never a
+field: it cannot choose among several generated converters. An authored marked wrapper can expose an exact String route.
+
+Inherited String operations retain their declaring contract. A String override replaces the parent operation's name and selection
+intent, including when the override is renamed or ignored. Overriding an inherited String field's String input signature
+also excludes the parent's external field route; overriding an unrelated overload leaves that String route intact.
+Existing C1 converter routes remain excluded when a descendant
+overrides their signature; the parent's converter constraints cannot describe different code.
+
+A selected String route rejects numeric, null, GString and mutable CharSequence payloads without trying another overload.
+Competing String/CharSequence projections have no implicit specificity preference: mark the String operation.
+CharSequence invocation and broader converter origins remain deferred. The generated JSON Schema describes only the
+selected operation's String grammar, prose and examples; constraints from a superseded field/converter do not transfer.
+
+Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts
+and selection facts are required even for unmarked or excluded operations; missing or inconsistent facts fail closed.
+The development metadata protocol remains version 1. See [migration](Migration.md#structured-string-operation-selection).
 
 ## Order and failures
 

@@ -55,6 +55,17 @@ public final class Struct {
     }
 
     /**
+     * Selects this exact String-payload Builder operation for its effective external input name.
+     * Exactly one eligible marked operation wins; multiple marks reject. Without a mark the candidate must be unique.
+     * Requires an existing public Builder projection and cannot override exclusion or unsupported operation roles.
+     */
+    @Documented
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface Operation {
+    }
+
+    /**
      * Selects member spelling for structured input and generated JSON Schema.
      * Explicit choices bind Schema descendants; owned values resolve their own type hierarchy.
      * Explicit literal names and exclusions retain precedence. Data and instance keys are unchanged.

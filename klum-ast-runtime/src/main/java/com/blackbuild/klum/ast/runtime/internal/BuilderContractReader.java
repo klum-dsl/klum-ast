@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import com.blackbuild.klum.ast.Struct;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import groovyjarjarasm.asm.AnnotationVisitor;
@@ -92,9 +93,10 @@ final class BuilderContractReader {
     private static final String SELECTION = PREFIX + "Selection;";
     private static final String EXCLUSION = PREFIX + "Exclusion;";
     private static final String OPERATION = "Lcom/blackbuild/klum/ast/Builder$Method;";
+    private static final String AUTHOR_OPERATION = "Lcom/blackbuild/klum/ast/Struct$Operation;";
     private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, QUERY, DOC);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, AUTHOR_OPERATION, QUERY, DOC);
 
     private final Map<Class<?>, Metadata> declarations = new IdentityHashMap<>();
 
@@ -111,7 +113,7 @@ final class BuilderContractReader {
     /** Field/key and authored-operation names remain separate even on a shared accessor. */
     record Literals(String location, String key, String field, String selection, String role, String doc,
                     NameFacts names, NameFacts operationNames, boolean operationFact, boolean fixed,
-                    Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated,
+                    Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
                     List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter) {
@@ -137,7 +139,7 @@ final class BuilderContractReader {
     private static Literals freeze(MutableLiterals value) {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
-                value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.exclusion, value.detail,
+                value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.exclusion, value.detail,
                 value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter);
     }
 
@@ -259,6 +261,8 @@ final class BuilderContractReader {
         Boolean schemaKey;
         Boolean sourceDeprecated;
         Boolean operationDeprecated;
+        Boolean authoritative;
+        boolean authorOperation;
         String exclusion = "";
         String detail = "";
         boolean operation;
@@ -275,6 +279,7 @@ final class BuilderContractReader {
     private static final class MutableMetadata {
         boolean schema;
         int version;
+        Integer operationCount;
         Boolean namingExplicit;
         String namingProfile;
         Boolean groupRedefined;
@@ -320,6 +325,9 @@ final class BuilderContractReader {
             throw invalid("Unsupported structured-input metadata protocol version " + metadata.version + " on " + namingOrigin(owner)
                     + "; expected version 1; recompile and package the participating Schema artifacts with a matching KlumAST toolchain");
         }
+        long operations = metadata.methods.values().stream().filter(literal -> literal.operationFact).count();
+        if (metadata.operationCount == null || metadata.operationCount != operations)
+            throw invalid("Missing or inconsistent operation selection completeness on " + namingOrigin(owner));
         validateNaming(metadata, owner);
         if (metadata.groupRedefined == null) throw invalid("Missing constraint group facts on " + namingOrigin(owner));
         if (metadata.keyMember != null) validateLiteral(owner, metadata.keyMember, "construction key");
@@ -333,16 +341,25 @@ final class BuilderContractReader {
             if (literal.examples == null) throw invalid("Missing examples metadata on " + source);
             if (literal.sourceDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
         }
-        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
-        if (literal.operationFact) {
-            validateNameFacts(literal.operationNames, source);
-            if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
-            if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
-        }
+        validateOperationFacts(literal, source);
         validateConverterFacts(literal, source);
         if (literal.field != null) {
             validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
         }
+    }
+
+    private static void validateOperationFacts(MutableLiterals literal, String source) {
+        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
+        if (!literal.operationFact) return;
+        if (!literal.operation || literal.authoritative == null) {
+            throw invalid("Missing operation role or authoritative selection fact on " + source);
+        }
+        if (literal.authoritative.booleanValue() != literal.authorOperation) {
+            throw invalid("Author marker disagrees with authoritative selection fact on " + source);
+        }
+        validateNameFacts(literal.operationNames, source);
+        if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
+        if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
     }
 
     private static void validateConverterFacts(MutableLiterals literal, String source) {
@@ -405,7 +422,8 @@ final class BuilderContractReader {
     }
 
     private static void verifyAnnotationProtocol(Class<?> owner) throws ClassNotFoundException {
-        for (Class<?> protocol : List.of(GeneratedInput.Schema.class, GeneratedInput.Key.class, GeneratedInput.Field.class, GeneratedInput.Selection.class, GeneratedInput.Exclusion.class))
+        for (Class<?> protocol : List.of(GeneratedInput.Schema.class, GeneratedInput.Key.class, GeneratedInput.Field.class, GeneratedInput.Selection.class, GeneratedInput.Exclusion.class,
+                GeneratedInput.Operation.class, Struct.Operation.class))
             if (!Class.forName(protocol.getName(), false, owner.getClassLoader()).isAnnotation())
                 throw invalid("Missing annotation protocol " + protocol.getName());
     }
@@ -468,6 +486,7 @@ final class BuilderContractReader {
             if (!seen.add(member)) throw invalid("Duplicate schema member " + member);
             switch (member) {
                 case "version" -> result.version = integer(value);
+                case "operationCount" -> result.operationCount = integer(value);
                 case "namingExplicit" -> result.namingExplicit = flag(member, value);
                 case "namingProfile" -> result.namingProfile = text(member, value);
                 case "groupRedefined" -> result.groupRedefined = flag(member, value);
@@ -565,6 +584,7 @@ final class BuilderContractReader {
             if (annotation.startsWith(PREFIX) && !visible) throw invalid("Generated input annotation requires runtime retention");
             if (!seen.add(annotation)) throw invalid("Duplicate contract annotation " + annotation);
             if (annotation.equals(OPERATION)) literal.operation = true;
+            if (annotation.equals(AUTHOR_OPERATION)) literal.authorOperation = true;
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
             if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
@@ -712,7 +732,11 @@ final class BuilderContractReader {
             if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> {
-                    if (member.equals(SOURCE_DEPRECATED)) {
+                    if (member.equals("authoritative")) {
+                        if (literal.authoritative != null || !(value instanceof Boolean))
+                            throw invalid("Duplicate or invalid authoritative selection fact");
+                        literal.authoritative = (Boolean) value;
+                    } else if (member.equals(SOURCE_DEPRECATED)) {
                         literal.operationDeprecated = (Boolean) value;
                     } else if (!nameFact(literal.operationNames, member, value)) {
                         throw invalid("Unknown operation fact " + member);
