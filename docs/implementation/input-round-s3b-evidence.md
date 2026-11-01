@@ -57,29 +57,72 @@ no closure.
 | Named modules and direct generated linkage | `JpmsPackageBoundaryTest`: Java/static Groovy consumers and bytecode linkage controls |
 | Actual emitted grammar | `validate_converter_schema.py`: Draft 2020-12 structural String corpus alongside retained JDK/ECMA C1 oracle |
 
-## Local validation
+## Local qualification
 
-Focused Groovy 3 tests passed: `StructuredCharSequenceTest` (43), `StructuredConverterOriginTest` (25), and
-`StructuredOperationSelectionTest` (42): 110 cases with zero failures/errors/skips. A targeted G4 named-module consumer
-rerun passed after adding the missing `Converters` import to the expanded fixture. The initial aggregate run was stopped
-at that fixture failure and is not qualification. Final aggregate validation remains pending.
+Clean implementation/test head `9b7fdbad74b09149b89bdacca26fa4ed63fda063` passed root `check` on 2026-11-01 in
+**24m 43s**: 140 tasks, 63 executed and 77 up to date. All final JUnit XML reports were inspected:
 
-Exactly two local read-only review children inspected the S3a-base diff. Standards found no hard violations; its optional
-suggestion to share the two ASM corruption helpers is deferred because each currently owns its distinct fixture and
-signature matrix, and new fixture infrastructure is unnecessary for this narrow slice. Specification found an erased
-generic CharSequence parameter could bypass ordinary generic rejection. Marked/unmarked bounded-generic probes reproduced
-it; exact generic-type checks and compiler placeholder guards now reject it, with runtime and packaged-schema controls.
-Both reviewers renewed at `6a6adb19e873d3b10c2ecbadb53a48f06ca595ac`: zero remaining findings. Final evidence review
-will include the later fixture-only correction and completed qualification.
+| Lane | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline | 3,679 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 3,004 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 3,004 | 0 / 0 | 16 |
 
-The next aggregate run completed Groovy 4/5 successfully, then was stopped while the inherited Duration addition was
-reconciled with a shared plugin fixture's exact property-set assertion. The corrected `CompiledConverterJsonSchemaTest`
-passed all 8 cases, including the G3/G4/G5 producer matrix. The independent actual-output oracle passed 28 JDK checks,
-270 ECMA/Draft C1 checks and 270 structural String checks. All three emitted schemas have SHA-256
-`5b0e6804fd4bb63f0ced84becd8cdad587795a1a22a6fa573defb1a12a59805d`.
-Oracle tools: jsonschema 4.23.0, Node v24.19.0 and Java 17. Interrupted aggregate runs are diagnostic history only.
+The compiler contributes 2,650 / 2,652 / 2,652 cases, and the Gradle plugin contributes 653 baseline cases. The run
+includes affected module suites, binary Java/static Groovy and named-module consumers, the packaged G3/G4/G5 schema
+producer matrix, compilation, license checks, lane isolation, plugin validation and the versioned documentation renderer.
+S3b adds no suppressed test. This final evidence update changes no production code, test, fixture or build input.
 
 The merged risk-tiered policy from PR #1006 (`52b9e0d97d181e8f2ad2222c50ae3a176ea4bfb4`) governs this stacked assignment.
-A new generated-code hook spans compiler/runtime ABI, so the shared-contract tier requires root `check`; the run also
-covers affected module suites, Groovy 4/5, binary/JPMS, plugin consumers, compilation, license and documentation checks.
-No local SonarCloud upload. Hosted PR CI remains the authoritative complete-build qualification after eventual delivery.
+The new generated-code hook spans compiler/runtime ABI, requiring its shared-contract full-check tier. No local
+SonarCloud upload occurred. Hosted PR CI remains the authoritative complete-build qualification after eventual delivery.
+
+Commands used, with Java 17 selected for Gradle:
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew check --no-parallel --max-workers=2 --console=plain
+./gradlew :klum-ast:test --tests '*StructuredCharSequenceTest' --tests '*StructuredConverterOriginTest' --tests '*StructuredOperationSelectionTest' --no-parallel --max-workers=2 --console=plain
+./gradlew :klum-ast:groovy4Tests --tests '*JpmsPackageBoundaryTest.a real schema and consumer*' --no-parallel --max-workers=2 --console=plain
+./gradlew :klum-ast-gradle-plugin:test --tests '*CompiledConverterJsonSchemaTest' --no-parallel --max-workers=2 --console=plain
+```
+
+The final focused runtime suite passed 110 cases: `StructuredCharSequenceTest` (43), `StructuredConverterOriginTest` (25),
+and `StructuredOperationSelectionTest` (42), with zero failures/errors/skips. The focused G4 named-module consumer and
+all 8 packaged-schema cases passed. Root qualification above includes those controls at the final implementation head.
+
+After root success, the independent oracle was rerun against its actual emitted output:
+
+```shell
+python klum-ast-gradle-plugin/src/test/resources/validate_converter_schema.py klum-ast-gradle-plugin/build/schema-validation /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home/bin/java
+```
+
+It passed **28 JDK checks, 270 ECMA/Draft C1 checks and 270 structural String checks**. Tools: jsonschema 4.23.0,
+Node v24.19.0 and Java 17. All three emitted schemas have SHA-256
+`5b0e6804fd4bb63f0ced84becd8cdad587795a1a22a6fa573defb1a12a59805d`.
+Markdown fences, 187 relative file links, documentary anchors and `git diff --check` passed.
+
+## Reviews and commit history
+
+Exactly two local read-only review children reviewed the diff from the fixed S3a base: **Standards** and **Specification**.
+Both renewed at `9b7fdbad74b09149b89bdacca26fa4ed63fda063` with zero remaining findings.
+
+Standards found no hard violations. Its optional suggestion to share the two ASM corruption helpers was deferred:
+each small helper owns a distinct fixture/signature matrix, and new fixture infrastructure is unnecessary for this slice.
+Specification found a generic parameter erased to CharSequence could bypass ordinary generic rejection. Marked/unmarked
+bounded-generic probes reproduced it. Concrete generic-type checks and compiler placeholder guards corrected it, with
+runtime and packaged-schema negative controls. Both reviewers accepted that correction.
+
+Validation also corrected a missing `Converters` import in the expanded named-module fixture and accounted for the new
+inherited Duration property in a shared schema fixture. Earlier failed/interrupted runs are diagnostic history only;
+the successful root run includes every correction.
+
+| Commit | Reasoning step |
+| --- | --- |
+| `f0b3bb519` | Exact CharSequence scalar admission, dispatch, schema output and acceptance controls |
+| `933e92066` | Current user/migration documentation and speculative stack boundary |
+| `6a6adb19e` | Review correction: reject generic erasures; repair the named-module fixture import |
+| `9b7fdbad7` | Reconcile inherited structural schema output in the shared fixture |
+
+History was reviewed for scope and ordering. Reviewed commits are preserved; fixes are additive. The final local commit
+records completed qualification only. The worktree pauses clean, without publication or self-archive; Hive retains
+integration, tracker and eventual archive reconciliation under the single resume condition above.
