@@ -34,6 +34,7 @@ execution order or construction success.
 | Required identity before allocation, late keys do not precheck bodies | `StructuredInputKeyTest`: `late keys precede allocation while unrelated body members wait for traversal`; missing root/child identity controls |
 | External identity cannot be rebound; providers run when reached | Updated active-identity/provider tests; retained fixed/derived/Cluster, reuse, binary key tests |
 | Reverse order, recursive traversal, List order and cycles | `StructuredInputRuntimeTest` root-order, nested/population, cyclic/repeated-data tests |
+| Packaged binary relationships preserve ordered effects on G3/G4/G5 | `BinaryOwnedRelationshipsTest` interpreter controls: earlier sibling, bad child payload, untouched later sibling; projection controls retain no-execution traps |
 | Static malformed contracts fail before execution, including omitted children | Unchanged `InputLiteralTest` omitted-owned protocol controls and `StructuredInputKeyBoundaryTest` malformed/stripped metadata tests |
 | User-facing partial-state example | `StructuredInputRuntimeTest#'supplied operation order configures the Builder until the first invalid member'` (`@Issue('952')`, documentary tag and `@See`) |
 
@@ -41,14 +42,53 @@ The earlier `StructuredInputRuntimeBoundaryProbeTest` contains a deliberately fi
 #932; it is historical seam evidence, not the production interpreter's failure contract. ADR 0031 and its dated evidence
 likewise retain their historical preflight description.
 
+## Local review
+
+Exactly two read-only children reviewed base `14683b7b8` through `07fdfdfc9`, then verified implementation correction
+`a204c0447` and constraint-characterization follow-up `a5e2ea3fc`: **Standards** and **Specification**. Capacity was parent plus two local review children (3); no implementation
+or cross-project delegation occurred. Their scope was source/specification inspection, with no builds or remote changes.
+
+Standards reported no code violations or actionable smells; it identified a delivery traceability gap on #952.
+Specification found that Map lookup semantics could accept a comparator alias or reject an equal but distinct String key.
+Follow-up `a204c0447` scans the required key by exact String equality, with IdentityHashMap and case-insensitive TreeMap
+root/direct-child regressions. Both children verified that follow-up and the later Bean Validation characterization update with no remaining
+code/specification findings. The latter updates the old zero-root-creation expectation for invalid payloads;
+Bean Validation G3/G4/G5 suites passed with the new per-operation expectation.
+The final packaged-consumer follow-up updates the same retired expectation and adds an earlier/later sibling trace.
+The parent task records both reviewers' final committed-head confirmation and the issue traceability reconciliation at delivery.
+Reviewed history is preserved; corrections remain focused follow-up commits.
+
 ## Validation and delivery
 
-Focused Groovy 3 runtime/key/literal tests passed, including the final ordering/allocation assertions.
-Affected-module baseline suites passed: runtime 73 cases (1 existing skip), compiler 2,534 cases (16 existing skips).
-Compatibility and root checks are pending. Local Markdown targets (161 links) and `git diff --check` passed.
-No local SonarCloud upload is performed. CI and SonarCloud remain separate hosted evidence.
+Validation on 2026-11-01 used the final production/test source tree:
 
-Tracker impact: **Related: #952**; this S1 slice leaves the broader coordination issue open. No label, milestone,
+- Focused Groovy 3 runtime/key/literal tests, then affected runtime/compiler baseline suites: passed.
+- Exact-key review correction: focused runtime/key tests passed.
+- Bean Validation characterization correction: focused baseline plus full G3/G4/G5 suites passed.
+- Packaged binary fixture correction: all six projection/interpretation cases across G3/G4/G5 passed.
+- `./gradlew check --continue --no-parallel --max-workers=2 --console=plain`: **passed**, 140 actionable tasks.
+  Includes baseline/compatibility suites, binary/JPMS controls, schema tooling, license checks, lane isolation,
+  coverage-report generation and versioned-documentation renderer verification. Groovy 4 and 5 each ran all 11 JPMS cases.
+- Local Markdown targets (161 links across eight changed documents) and `git diff --check`: passed.
+
+| Module | G3 cases (existing skips) | G4 cases (existing skips) | G5 cases (existing skips) |
+| --- | ---: | ---: | ---: |
+| Compiler | 2540 (16) | 2542 (15) | 2542 (15) |
+| Runtime | 73 (1) | 73 (1) | 73 (1) |
+| Jackson | 121 (0) | 119 (0) | 119 (0) |
+| Bean Validation | 147 (0) | 147 (0) | 147 (0) |
+| Test support | 8 (0) | 6 (0) | 6 (0) |
+
+The plugin suite passed 650 cases; annotations passed 20. Every final suite has zero failures/errors. No test suppression
+was added. Earlier full runs exposed seven Bean Validation and three packaged-consumer assertions of the retired preflight
+contract; those expectations were updated and the final aggregate run is green. Final evidence text does not change the
+exercised production/test sources. No local SonarCloud upload was performed; hosted CI/SonarCloud remain separate evidence.
+
+Delivery authorization checks: Git SSH dedicated-branch transport **authorized** (dry run); GitHub CLI repository channel
+**authorized**. The live target remained the exact assigned base when checked before publication. No credentials or scopes
+are recorded.
+
+Tracker impact: **Related: #952**; this S1 slice leaves the broader coordination issue open. Curation impact: **none**. No label, milestone,
 dependency, release-gate or curation-index change is part of this localized runtime slice. The documentary example and
 [order/failure documentation](../user/Structured-Input.md#order-and-failures) are linked here for issue reconciliation.
 Hive owns final acceptance/archive reconciliation and cross-project notification; no Schelm qualification is claimed.
