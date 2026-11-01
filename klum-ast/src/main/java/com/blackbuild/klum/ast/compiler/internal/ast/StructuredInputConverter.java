@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.FieldType;
-import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -40,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static groovyjarjarasm.asm.Opcodes.ACC_BRIDGE;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
@@ -70,27 +71,33 @@ final class StructuredInputConverter {
     static MethodNode selected(FieldNode field) {
         List<Route> routes = field.getNodeMetaData(ROUTES);
         if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT) return null;
-        if (DslAstHelper.getBuilderClassOf(field.getOwner()).getDeclaredMethods(field.getName()).stream()
-                .anyMatch(method -> !method.getAnnotations(ClassHelper.make(Builder.Method.class)).isEmpty())) return null;
         Route route = routes.get(0);
-        if (route.generated() == null || !eligible(field.getType(), route.source())) return null;
+        if (route.generated() == null || !eligibleRoute(field.getType(), route.source())) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
         if (api == null || api.getParameters().length != 1
                 || !ClassHelper.STRING_TYPE.equals(api.getParameters()[0].getOriginType())) return null;
         return api;
     }
 
-    private static boolean eligible(ClassNode domain, MethodNode source) {
-        ClassNode owner = domain.redirect();
-        if (!owner.isResolved() || !Modifier.isPublic(owner.getModifiers()) || owner.isInterface() || owner.isEnum()
-                || owner.getGenericsTypes() != null || domain.isGenericsPlaceHolder()
-                || !source.getDeclaringClass().redirect().equals(owner)
+    private static boolean eligibleRoute(ClassNode domain, MethodNode source) {
+        ClassNode owner = source.getDeclaringClass().redirect();
+        if (DslAstHelper.isDSLObject(domain) || (isCollection(domain) || isMap(domain))
+                || !Modifier.isPublic(domain.getModifiers()) || domain.isInterface() || domain.isEnum()
+                || domain.redirect().getGenericsTypes() != null || domain.isGenericsPlaceHolder()
+                || !Modifier.isPublic(owner.getModifiers())
                 || !source.isPublic() || source.isSynthetic() || (source.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC | ACC_VARARGS)) != 0
                 || source.getGenericsTypes() != null || source.hasDefaultValue()) return false;
         if (source instanceof ConstructorNode)
-            return !Modifier.isAbstract(owner.getModifiers()) && owner.getDeclaredConstructors().size() == 1;
-        return source.isStatic() && source.getReturnType().redirect().equals(owner)
+            return owner.equals(domain.redirect()) && !Modifier.isAbstract(owner.getModifiers())
+                    && owner.getDeclaredConstructors().size() == 1;
+        return source.isStatic() && source.getReturnType().redirect().equals(domain.redirect())
                 && owner.getDeclaredMethods(source.getName()).size() == 1;
+    }
+
+    private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
+        return domain.redirect().isResolved()
+                && source.getDeclaringClass().redirect().equals(domain.redirect())
+                && eligibleRoute(domain, source);
     }
 
     static void enrich(FieldNode field, MethodNode api) {
@@ -101,6 +108,7 @@ final class StructuredInputConverter {
         fact.setMember("name", constX(source instanceof ConstructorNode ? "<init>" : source.getName()));
         fact.setMember("descriptor", constX(BytecodeHelper.getMethodDescriptor(source)));
         fact.setMember("parameter", constX(0));
+        fact.setMember("parameterFacts", constX(hasParameterAuthority(field.getType(), source)));
         api.addAnnotation(fact);
     }
 }

@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static groovyjarjarasm.asm.Type.getDescriptor;
 import static com.blackbuild.klum.ast.runtime.internal.BuilderContractReader.*;
 import static com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.*;
 
@@ -447,8 +448,13 @@ final class InputContractResolver {
                     || method.isSynthetic() || method.isBridge() || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid("Converter selection disagrees with field/overload");
+            if (!selected.parameterFacts() && !selected.descriptor().equals("(Ljava/lang/String;)"
+                    + (selected.name().equals("<init>") ? "V" : getDescriptor(domain))))
+                throw invalid("Structural converter descriptor disagrees with field/overload");
             validateSelection(Role.PROPERTY, new Payload(Kind.SCALAR, String.class, null, null, null), methods, location);
-            ConverterConstraints constraints = converterReader.read(domain, selected);
+            // Structural routes carry provenance, but only C1 owns selected-parameter inspection.
+            ConverterConstraints constraints = selected.parameterFacts() ? converterReader.read(domain, selected)
+                    : new ConverterConstraints("", "", Policy.OMIT, List.of());
             converterConstraints.computeIfAbsent(context.builder(), ignored -> new LinkedHashMap<>()).put(field, constraints);
             return constraints;
         } catch (ReflectiveOperationException | IOException | LinkageError | RuntimeException failure) {

@@ -648,7 +648,8 @@ class CompiledConverterInputTest extends Specification {
         policy << ['PROJECT', 'TEXT_ONLY', 'OMIT']
     }
 
-    def 'inherited and external domain factory ownership is not an eligible exact route: #external'() {
+    @Issue('952')
+    def 'external adapter projection admits while an undiscovered inherited factory remains excluded: #external'() {
         given:
         File domain = groovyJar('''
             package converterinput
@@ -674,8 +675,8 @@ class CompiledConverterInputTest extends Specification {
         def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
 
         then:
-        !contract.entries().containsKey('port')
-        contract.rejections().any { it.source().endsWith('#port') }
+        contract.entries().containsKey('port') == external
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
 
         cleanup:
         loader?.close()
@@ -728,7 +729,43 @@ class CompiledConverterInputTest extends Specification {
         mutation << ['domain-synthetic', 'domain-bridge']
     }
 
-    def 'same-compilation domain source remains outside the compiled route'() {
+    @Issue('952')
+    def 'separately compiled external adapter uses the same String Builder projection at runtime'() {
+        given:
+        File domain = groovyJar('''
+            package converterinput
+            class PortNumber { String raw }
+            class Adapter {
+                static PortNumber fromString(String value) { new PortNumber(raw: 'adapter:' + value) }
+            }
+        ''', [])
+        File schema = groovyJar('''
+            package converterinput
+            import com.blackbuild.klum.ast.*
+            @DSL class Service { @Converters([Adapter]) PortNumber port }
+        ''', [domain])
+        def loader = binaryLoader([schema, domain])
+        def model = Class.forName(MODEL, false, loader)
+
+        when:
+        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'adapter.yaml')
+        def direct = model.Create.With { port '1234' }
+        def contract = new InputContractResolver().read(model)
+
+        then:
+        result.port.raw == 'adapter:1234'
+        result.port.raw == direct.port.raw
+        contract.entries().port.source() == MODEL + '#port'
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
+        !new File(domain.parentFile, 'classes').exists()
+        !new File(schema.parentFile, 'classes').exists()
+
+        cleanup:
+        loader?.close()
+    }
+
+    @Issue('952')
+    def 'same-compilation domain source admits its projected String without C1 facts'() {
         given:
         File schema = groovyJar('''
             package converterinput
@@ -742,14 +779,15 @@ class CompiledConverterInputTest extends Specification {
         def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
 
         then:
-        !contract.entries().containsKey('port')
-        contract.rejections().any { it.source().endsWith('#port') }
+        contract.entries().port.payload().type() == String
+        contract.constraintProfiles().values().collectMany { it.converters().values() }.every { it.rules().isEmpty() }
 
         cleanup:
         loader?.close()
     }
 
-    def 'authored Builder input competing with the field rejects converter admission'() {
+    @Issue('952')
+    def 'unrelated authored overload does not remove the exact converter projection'() {
         given:
         File domain = domainJar('Java', 'fromString', '', true)
         File schema = groovyJar('''
@@ -766,8 +804,7 @@ class CompiledConverterInputTest extends Specification {
         def contract = new InputContractResolver().read(Class.forName(MODEL, false, loader))
 
         then:
-        !contract.entries().containsKey('port-number')
-        contract.rejections().any { it.source().endsWith('#port') && it.reason().contains('one supported public String route') }
+        contract.entries()['port-number'].payload().type() == String
         System.getProperty(TRAP) == null
 
         cleanup:

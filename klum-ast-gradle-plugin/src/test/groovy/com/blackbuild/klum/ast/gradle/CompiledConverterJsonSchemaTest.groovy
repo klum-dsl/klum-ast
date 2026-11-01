@@ -37,6 +37,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
     File consumer
     String generation
 
+    @Issue(['981', '952'])
     def 'packaged Groovy #lane producer projects exact converter parameters while preserving field ownership'() {
         given:
         fixture(lane)
@@ -55,6 +56,11 @@ class CompiledConverterJsonSchemaTest extends Specification {
         new File(evidence, 'converter.schema.json').bytes = output().bytes
 
         then:
+        ['duration', 'local', 'adapted'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
+                && !fields[it].containsKey('x-klum-converter-constraint-source') }
+        fields.duration.description.contains('ISO-8601 duration.')
+        fields.local.description.contains('converted domain value')
+        fields.adapted.description == 'External adapter prose.'
         fields.'port-number'.type == 'string'
         fields.'port-number'.allOf == [[pattern: '^[0-9]{1,8}$'], [not: [type: 'string', pattern: '[^ -~]']]]
         fields.'port-number'.'x-klum-converter-constraint-source' == 'converterjson.PortNumber#<init>(Ljava/lang/String;)V parameter[0]'
@@ -258,6 +264,14 @@ class FactoryPort {
     static FactoryPort parse(@Pattern(regexp='[0-9]{1,8}') String raw) { throw new AssertionError('converter body') }
 }
 ''')
+        write(producer, 'domain/src/main/groovy/converterjson/DurationAdapter.groovy', '''
+package converterjson
+import java.time.Duration
+class DurationAdapter {
+    static { throw new AssertionError('adapter initialized') }
+    static Duration fromString(String value) { throw new AssertionError('adapter executed') }
+}
+''')
         write(producer, 'parent/src/main/groovy/converterjson/Base.groovy', '''
 package converterjson
 import com.blackbuild.klum.ast.*
@@ -271,8 +285,14 @@ import com.blackbuild.klum.ast.*
 package converterjson
 import com.blackbuild.klum.ast.*
 import jakarta.validation.constraints.Pattern
+import java.time.Duration
 @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Service extends Base {
     static { throw new AssertionError('Schema initialized') }
+    /** ISO-8601 duration. */
+    @Field(converters = [{ String value -> throw new AssertionError('closure executed') }]) Duration duration
+    @Pattern(regexp='[A-Z]{2}') LocalValue local
+    /** External adapter prose. */
+    @Converters([DurationAdapter]) Duration adapted
     FactoryPort factory
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) FactoryPort fieldText
@@ -292,6 +312,12 @@ import jakarta.validation.constraints.Pattern
     @Default(code={ throw new AssertionError('default executed') }) String computed
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
     @Validate void validate() { throw new AssertionError('validator executed') }
+}
+class LocalValue {
+    static { throw new AssertionError('local domain initialized') }
+    static LocalValue fromString(@Pattern(regexp='[0-9]{1,8}') String value) {
+        throw new AssertionError('local converter executed')
+    }
 }
 @DSL class Child { @Converters(includeConstructors=true) ChildOnly childValue }
 class InitializationControl {

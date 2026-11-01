@@ -82,6 +82,7 @@ for (const flags of ['', 'u']) {
 console.log(process.version);
 '''
 count = 0
+structural_count = 0
 for lane in ("3", "4", "5"):
     schema = json.loads((root / ("converter-" + lane) / "converter.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
@@ -92,7 +93,21 @@ for lane in ("3", "4", "5"):
     for value in (None, 1234, True, [], {}):
         assert not validator.is_valid({"port-number": value}), (lane, value)
     assert validator.is_valid({})
+    # #952 S3a: all new origins share structural String grammar, without C1 leakage.
+    # A syntactically invalid duration remains a valid schema String; conversion owns that failure.
+    properties = schema["$defs"]["converterjson.Service_DSL$Builder"]["properties"]
+    for name in ("duration", "local", "adapted"):
+        assert "allOf" not in properties[name]
+        assert "x-klum-converter-constraint-source" not in properties[name]
+        for value in ("PT30S", "bad", "", "1234", "unicode-✓"):
+            assert validator.is_valid({name: value}), (lane, name, value)
+            structural_count += 1
+        for value in (None, 30, True, [], {}):
+            assert not validator.is_valid({name: value}), (lane, name, value)
+            structural_count += 1
     node = subprocess.run(["node", "-e", node_source], input=json.dumps({"rows": rows, "field": field}),
                           text=True, capture_output=True, check=True)
     count += len(rows) * 3 + 6
 print(f"C1 actual-output oracle: {len(rows)} JDK checks and {count} ECMA/Draft checks passed across G3/G4/G5; node={node.stdout.strip()}")
+
+print(f"S3a actual-output oracle: {structural_count} structural String checks passed across three origins and G3/G4/G5")

@@ -149,6 +149,8 @@ public final class GeneratedInput {
         String name();
         String descriptor();
         int parameter();
+        /** Explicit C1 authority; false retains provenance without inspecting the converter implementation. */
+        boolean parameterFacts();
     }
 
     /** Only sources without a surviving public declaration need a declaring-type target. */
