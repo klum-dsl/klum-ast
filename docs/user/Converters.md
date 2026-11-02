@@ -257,7 +257,9 @@ remain outside C1 parameter inspection. An existing exact String projection can 
 parameterized domain, or call a factory returning a subtype. Already-generated generic/default/bridge/synthetic source
 routes do not gain C1 authority. No new default/varargs expansion or generic inference is performed; a source with a
 String-array varargs parameter is not an exact String route.
-Collection, map and DSL-object conversions remain outside this structured-input feature. An unrelated authored overload
+Exact String element routes for `List<T>` are described under
+[converter-backed List elements](Structured-Input.md#converter-backed-list-elements). Other collection, Map-value and
+DSL-object conversions remain deferred. An unrelated authored overload
 does not suppress a generated scalar route; competing external String/CharSequence names
 use the [shared selection rules](Structured-Input.md#select-a-string-operation).
 Non-overridden binary Schema inheritance preserves the original declaring Builder and converter association;

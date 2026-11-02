@@ -472,6 +472,11 @@ member has `type: string`. Field closures, same-compilation values and external 
 they do not gain C1 parameter assertions. CharSequence routes likewise emit String structure without parameter assertions. Their destination-field constraints describe the converted domain value and
 never constrain the raw String. No converter or user initialization runs during generation.
 
+[Converter-backed List elements](Structured-Input.md#converter-backed-list-elements) emit an array with
+`items: {type: string}` for the selected exact String element route. This is structural grammar only: no element
+parameter assertions are inferred or projected, including when the element's scalar-field route would qualify for C1.
+The List retains field prose/examples and domain-value constraint attribution. Map-value converters remain deferred.
+
 For C1-qualified separately compiled declared domain routes, selected-parameter projection remains exact. A qualified Pattern appears at that same property, without a parameter object or domain
 `$defs` entry. For `@Pattern(regexp='[0-9]{1,8}')`, the existing finite recognizer emits:
 

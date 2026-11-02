@@ -341,6 +341,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Zero-argument `@Builder.Method` command | An empty Map (`operation: {}` in YAML) |
 | Ordinary List/Map operation argument | One List/Map payload, recursively typed; never spread or treated as named arguments |
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
+| Exact `List<T>` with one admitted String element converter | A List of Strings, each passed to its selected generated element adder |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
 | Concrete owned object | A domain Map interpreted against the child's Builder |
@@ -370,6 +371,46 @@ Numeric targets are primitive/boxed byte, short, int, long, float and double, pl
 Floating targets reject non-finite/overflow values. Standard numeric input values are Byte, Short, Integer, Long,
 Float, Double, BigInteger and BigDecimal; custom Number subclasses reject. Numeric/boolean strings are not coerced.
 An authored operation can interpret its own admitted String payload, as `endpoint` does above.
+
+### Converter-backed List elements
+
+An exact `List<T>` of non-DSL scalar values admits one compiler-selected, public element converter taking an exact
+String. Field closures, ordinary factories, enabled constructors and adapters use their existing generated element
+adder. Native scalar Lists retain their declared element grammar. Competing String or String/CharSequence routes,
+missing generated methods and descendant overrides reject; converter discovery and overload preferences are unchanged.
+
+(See: `StructuredListConverterTest#'converts duration List elements independently in supplied order'`.)
+
+```groovy
+import com.blackbuild.klum.ast.Converters
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Field
+import java.time.Duration
+
+@DSL class Schedule {
+    @Converters(excludeMethods = ['parse'])
+    @Field(converters = [{ String text -> Duration.parse(text) }])
+    List<Duration> intervals
+}
+
+def schedule = Schedule.Create.FromStruct(
+    [intervals: ['PT5S', 'PT2S']], 'schedule.yaml')
+assert schedule.intervals == [Duration.ofSeconds(5), Duration.ofSeconds(2)]
+```
+
+Each String converts independently in supplied List order and uses ordinary element population. Initializer/default
+entries remain, and an empty List performs no element calls. On the first malformed element or converter failure,
+earlier work remains and later elements/operations are never invoked. Diagnostics retain the source, indexed pointer
+(for example `/intervals/1`) and original converter cause. Null, numeric, boolean, GString, mutable CharSequence,
+objects, Maps and nested Lists reject as elements; the container itself must be a List.
+
+Generated JSON Schema emits `type: array` with `items: {type: string}` without running user code. Element converter
+parameter constraints are not projected in this slice; C1 scalar-field assertions retain their existing behavior.
+A String that the converter cannot interpret is still structurally valid. Import does not automatically validate JSON
+Schema. Recompile matched Schema/compiler/runtime/plugin artifacts for the authoritative element association.
+
+CharSequence-only element routes, Map-value converters, other converter-backed collection shapes and owned DSL children
+remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
 
 Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conflict with literal structured instance
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
