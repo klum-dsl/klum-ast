@@ -91,7 +91,7 @@ Structured input and JSON Schema generation require Schemas compiled with a matc
 Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.
 
 The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
-require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key and inert example-array facts.
+require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key, literal-alternative association/count and inert example-array facts.
 The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
 future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
 completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked
@@ -343,6 +343,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
 | Concrete owned object | A domain Map interpreted against the child's Builder |
 | Map of concrete keyed owned objects | A Map whose literal String keys select children, each configured by a domain Map |
+| One literal CollectionFactory alternative for an abstract keyed Map value | A closed literal alias mapping, then outer String instance keys, then concrete child bodies |
 
 Concrete owned relationships follow the same rules when their generated Builder contracts come from compatible binary
 API/Schema dependencies. Interpretation needs no Schema sources, IDE source mirrors or Javadocs.
@@ -371,7 +372,8 @@ An authored operation can interpret its own admitted String payload, as `endpoin
 Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conflict with literal structured instance
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
 explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, unkeyed relationship
-collections, polymorphic selection and CollectionFactory scopes remain outside the admitted grammar. Null at any depth,
+collections, arbitrary polymorphic selection and other CollectionFactory scopes remain outside the admitted grammar. The
+[single literal alternative](#literal-collection-alternative) below is the bounded exception. Null at any depth,
 arbitrary caller objects, helper/query/lifecycle names and multi-payload authored operations reject.
 Zero-argument domain commands have only their explicitly authored behavior; there is no implicit reset/clear operation.
 An ordinary unannotated property named `key` is normal domain input; actual `@Key` members follow the position-specific rules above.
@@ -381,6 +383,66 @@ then identity. See [literal names and exclusion](#literal-names-and-exclusion). 
 [operation selection](#select-a-string-operation); unresolved collisions reject without choosing a winner.
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
+
+## Literal collection alternative
+
+A default owned `Map<String, Element>` relationship can admit one explicitly declared literal alternative when `Element`
+is an abstract keyed DSL type and the selected subtype is concrete and nongeneric. Both use the same inherited String
+construction key, with an exact generated public alias creator. The compiler records that route; structured input cannot choose a
+Class or Factory.
+
+(See: `StructuredLiteralAlternativeTest#'configures a concrete element through its literal collection alias'`.)
+
+```groovy
+@DSL class Catalog {
+    @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+}
+@DSL abstract class Element {
+    @Key String name
+    @Owner Catalog owner
+    String value
+}
+@DSL class ConcreteElement extends Element {}
+
+// Ordinary Model authoring:
+Catalog.Create.With {
+    elements { fixed('primary') { value 'configured' } }
+}
+// The corresponding caller-parsed input:
+def catalog = Catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+assert catalog.elements.primary.name == 'primary'
+assert catalog.elements.primary instanceof ConcreteElement
+assert catalog.elements.primary.owner.is(catalog)
+```
+
+A YAML parser would supply that same Map for:
+
+```yaml
+elements:
+  fixed:
+    primary:
+      value: configured
+```
+
+`fixed` is the exact literal alias. `primary` is the authoritative outer String construction key and is available before
+child PostCreate. Omit the child's actual key member from the body: both equal and conflicting inner identities reject
+when reached. Empty relationship or alias mappings create no children; `fixed: {primary: {}}` creates a child with an
+empty body. Every actual instance key must be a String; no key is inferred from a body member.
+
+The relationship field follows ordinary external naming, exclusion and collision rules. Alias and instance keys remain
+literal. Child member names follow the concrete subtype's own input contract. Caller iteration order is preserved across
+aliases, instance entries and child members. A reached failure retains earlier effects, skips later operations and does
+not attach a failing fresh child. Reconfiguration of an existing compatible Builder retains its identity and prior
+attachment; an incompatible existing type fails through the ordinary explicit-type route. Each successful child call runs
+one PostApply inside the existing Construction session. Active Builder input shares this grammar; Template Factory
+input retains the ordinary deferred recipe lifecycle.
+
+Unknown aliases, class-name selectors, key-first wrappers, scalar/List/null envelopes and non-mapping child bodies reject.
+Multiple literal alternatives, auto-discovered names, generic targets, unkeyed collections, LINK relationships and custom
+key mapping are outside this family. Existing concrete keyed-Map syntax is unchanged. YAML duplicate-key rejection belongs
+to the parser. Recompile participating Schema artifacts to obtain complete association metadata; corruption fails during
+contract verification even when the relationship is omitted. [JSON Schema](Json-Schema.md#literal-collection-alternative)
+projects the same closed structural shape.
 
 ## Concrete virtual Builder scopes
 
@@ -413,7 +475,7 @@ Literal names, naming profiles, exclusions and external-name collision rules sti
 retains its association. Redeclared virtual sinks are excluded where ordinary virtual-setter selection is not unique.
 Keyed, generic, abstract, customized, overloaded or missing/generated-creator replacements are outside this family.
 An authored closure method does not become a mapping scope merely because it has `@DelegatesToBuilder` metadata.
-CollectionFactory, polymorphic selectors and arbitrary closure adaptation remain unsupported.
+Other CollectionFactory families, polymorphic selectors and arbitrary closure adaptation remain unsupported.
 
 Earlier siblings can already have run when a virtual child fails. A child-body failure prevents that sink and later
 operations; a sink failure keeps its original cause and identifies the source label and scope path. Lifecycle failures

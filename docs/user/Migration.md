@@ -241,6 +241,15 @@ See [construction-key examples](Structured-Input.md#construction-keys) and
 [position-specific JSON Schema](Json-Schema.md#construction-key-definitions). `Create.FromMap`, ordinary Groovy DSL
 construction and managed Jackson keep their independent behavior. File/URL loading and broader grammar are separate work.
 
+### Literal CollectionFactory alternative input
+
+One explicit compiler-literal alternative on a default owned `Map<String, abstract keyed DSL type>` now accepts
+`elements: {fixed: {primary: {value: configured}}}`. The outer String key owns construction identity; omit the inner
+key member even when equal. The existing concrete keyed-Map grammar is unchanged. Recompile matched Schema artifacts
+for the required association/count facts, including inherited artifacts. See
+[the bounded family and its exclusions](Structured-Input.md#literal-collection-alternative)
+([#952](https://github.com/klum-dsl/klum-ast/issues/952), F2-B).
+
 ### Caller-pre-keyed Builder-body schemas
 
 Default `rootTypes` schemas still require a keyed root's actual external key member. For an already keyed Builder body,
