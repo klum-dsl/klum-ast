@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedBuilderTypeSupport;
 import com.blackbuild.klum.ast.runtime.internal.DslHelper;
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper;
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
@@ -299,6 +300,27 @@ public class KlumFactory<T> {
      */
     public T FromMap(Map<String, Object> configMap) {
         return FactoryHelper.createFromMap(type, configMap);
+    }
+
+    /**
+     * Creates a completed Model from a caller-parsed structured document using a generated diagnostic label.
+     * A keyed document supplies its actual Schema key member. Input follows supplied iteration order.
+     * @param document structured domain Map; member names and payloads undergo strict Schema checks
+     * @return the Model after normal lifecycle, materialization and validation
+     */
+    public T FromStruct(Map<?, ?> document) {
+        return FromStruct(document, type.getName() + ".Create.FromStruct");
+    }
+
+    /**
+     * Creates a completed Model from a caller-parsed structured document.
+     * Failure returns no Model, but does not undo earlier operation side effects.
+     * @param document structured domain Map, including the actual Schema key for a keyed root
+     * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+     * @return the Model after normal lifecycle, materialization and validation
+     */
+    public T FromStruct(Map<?, ?> document, String sourceName) {
+        return StructuredInputSupport.readRoot(type, document, sourceName);
     }
 
     /**
