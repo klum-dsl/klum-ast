@@ -9,11 +9,14 @@ the [S5/F2 plan](input-round-plan-4-2.md#acceptance-details-that-must-not-disapp
 ## Base, outcome and integration boundary
 
 Intentional speculative base: `13fd709980fe4e4f7c0031732d83f380bc5e6e85`,
-`codex/953-structured-factory-builder`, draft [PR #1012](https://github.com/klum-dsl/klum-ast/pull/1012).
+`codex/953-structured-factory-builder`, [PR #1012](https://github.com/klum-dsl/klum-ast/pull/1012).
 S5 branch: `codex/952-nested-builder-scope-proof`.
 Worktree: `/Users/stephan/.codex/worktrees/8182/klum-ast`.
-On 2026-11-02, #1012 was verified open at that exact head. Its delivery/qualification is independent of this slice.
-A rebase after its merge is required before final PR creation/qualification.
+On 2026-11-02, #1012 was verified merged at `a162c7d3b2c864f2952b7125583fd7d2b32913ef`.
+S5 was rebased onto that verified `origin/master` after its full local check. The original base and merge have identical
+trees; `range-diff` reports all three S5 commits equivalent, and the rebased tree
+`7ccafc2ec955a256e7f56c9126834717eb8e599f` is identical to tested head
+`1a62d7000834f0753f5878c78c05d7142b62b0b2`. Integration did not change the tested inputs.
 
 S5 implements exactly one additional family: a public bare `@Field void method(ConcreteType value)` virtual sink whose
 DSL target is concrete, unkeyed and nongeneric, with one compiler-proven generated creator. The interpreter enters the
@@ -78,7 +81,7 @@ recompiled Schema requirement remains; protocol marker 1 alone is not a mixed-de
 | Sink failure versus lifecycle failure | Sink error wraps its original cause with source/scope path; ordinary child lifecycle exception stays ordinarily attributed and prevents the sink |
 | Static family and naming | Concrete association, inherited declaration, redeclared-sink rejection, literal alias/escaped nested diagnostics, external collision |
 | Negative grammar | Non-Map bodies, keyed/generic/abstract/customized/overloaded targets, raw Object, ignored scope, authored creator and closure-only scope |
-| Damaged contracts | Missing scope/operation/both/sink/creator, inconsistent creator descriptor and role; omitted scope payload cannot hide corruption |
+| Damaged contracts | Missing scope/operation/both/sink/creator, inconsistent creator descriptor and role, conflicting query marker; omitted scope payload cannot hide corruption |
 | Existing Template mode | Ordinary and structured virtual definition both run the sink without lifecycle; documentary recipe produces the same recipient values |
 | Binary and JSON Schema | `BinaryOwnedRelationshipsTest`: source-free G3/G4/G5 producer artifacts, same ordinary/interpreter trace, virtual `$ref`, closure scope absent, initialization trap silent during projection |
 | Actual emitted grammar | `validate_virtual_scope_schema.py`: Draft 2020-12 validation of all three retained emitted schemas, 12 accepted and 33 rejected instances |
@@ -102,11 +105,52 @@ Initial controls at `951f1ce46` passed 30 new G3/G4/G5 probes, six packaged case
 (16 existing skips), 113 retained focused cases per compatibility lane, license and documentation checks. These are
 historical evidence for the unchanged base, not qualification of the subsequent implementation.
 
-The implementation's focused matrix passes its scope/documentary tests on G3/G4/G5, including the expanded G4/G5 named
-module cases; packaged binary/schema projection and interpretation also pass. Final root qualification, final review
-findings and exact implementation head are recorded below when complete. Because this implementation changes shared
-compiler/runtime/generated metadata and plugin interpretation, root `check` is required under the risk-tiered policy.
-No local SonarCloud is run. Hosted CI/Sonar on a future rebased PR head remains authoritative external qualification.
+The implementation's focused matrix passed its scope/documentary tests on G3/G4/G5, including the expanded G4/G5 named
+module cases; packaged binary/schema projection and interpretation also passed. Because this implementation changes
+shared compiler/runtime/generated metadata and plugin interpretation, root `check` was required under the risk-tiered
+policy. On Java 17, `./gradlew check --continue --no-parallel --max-workers=2 --console=plain` passed at
+`1a62d7000834f0753f5878c78c05d7142b62b0b2` in 27m 3s (140 tasks). Retained JUnit counts follow; all failures/errors are zero.
+
+| Module | Groovy 3 tests / skips | Groovy 4 tests / skips | Groovy 5 tests / skips |
+| --- | --- | --- | --- |
+| Compiler | 2,764 / 16 | 2,766 / 15 | 2,766 / 15 |
+| Runtime | 73 / 1 | 73 / 1 | 73 / 1 |
+| Bean validation | 154 / 0 | 154 / 0 | 154 / 0 |
+| Jackson | 121 / 0 | 119 / 0 | 119 / 0 |
+| Test support | 8 / 0 | 6 / 0 | 6 / 0 |
+| Annotations | 20 / 0 | — | — |
+| Gradle plugin / TestKit | 664 / 0 | Included producer/consumer lanes | Included producer/consumer lanes |
+
+The remaining review corrections are additive: Standards requested braces at two multi-branch conditionals;
+Specification found that a conflicting query marker on a generated virtual sink was not rejected. An emitted-bytecode
+corruption regression reproduced that finding (one failing query case among eight); the reader now rejects it before
+any construction, including when the input omits that scope. No accepted source-language query family is added.
+
+Post-rebase code head `1df34943eadebdc1469f2d79ae58ffbabf1ddf96` passed the following combined Gradle run
+in 2m 43s (75 tasks), using Java 17 and `--no-parallel --max-workers=2 --console=plain`:
+
+```text
+:klum-ast:test --tests '*Structured*'
+:klum-ast:groovy4Tests --tests '*Structured*' --tests '*JpmsPackageBoundaryTest.a real schema*'
+:klum-ast:groovy5Tests --tests '*Structured*' --tests '*JpmsPackageBoundaryTest.a real schema*'
+:klum-ast-runtime:check
+:klum-ast-gradle-plugin:test --tests '*BinaryOwnedRelationshipsTest'
+:klum-ast:licenseTest :klum-ast-gradle-plugin:licenseTest
+```
+
+Results: 400/401/401 structured-input and named-module cases across G3/G4/G5, 73 runtime cases per lane
+(one existing skip each), and six source-free binary cases; no failures/errors. The emitted-schema oracle with pinned
+`jsonschema==4.23.0` again accepted 12 and rejected 33 instances across three generated schemas. Balanced Markdown fences,
+227 local file links and `git diff --check` passed. No new skipped tests were introduced.
+
+The same two children re-reviewed the exact-base tree diff including all corrections: **Standards: zero remaining
+violations/material smells; Specification: zero remaining findings**. Commit-history review retained the preparatory
+proof, implementation, corrected documentation and additive review fix, with only the explicitly requested integration
+rebase rewriting their IDs. The final documentation-only evidence commit does not change tested code.
+
+The full-check result remains evidence for the byte-identical integrated implementation; the localized invalid-metadata
+guard has the post-rebase regression evidence above. No local SonarCloud is run. Hosted CI/Sonar on the final PR head
+remains authoritative external qualification; local completion does not imply a hosted green result.
 
 ## Delivery and reconciliation
 
@@ -114,6 +158,6 @@ Tracker impact: **Related: #952**, never closing syntax. Curation impact: none. 
 references are synchronized locally; Hive owns issue traceability and delivery reconciliation. No remote issue update,
 merge or archive action is part of this work. No Schelm qualification is claimed.
 
-#1012 rebase is pending while that PR remains open. Do not publish this speculative branch as finally qualified before
-integration. After local work is complete, Hive must reconcile the assigned outcome and determine its next delivery step;
-this worker does not self-archive or convert execution completion into archive safety.
+#1012 integration is complete. The GitHub CLI delivery channel was verified authorized for this repository before
+publication. After delivery, Hive must reconcile the assigned outcome and issue traceability; this worker does not merge,
+self-archive, or convert an open pull request into archive safety.
