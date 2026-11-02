@@ -49,8 +49,8 @@ Exact public String Builder projections now admit field closures, same-compilati
 external adapters. Missing or colliding generated projections still reject. Recompile matched compiler/runtime/plugin and
 Schema artifacts: every converter association now explicitly records whether C1 parameter facts apply. C1 assertions and
 policies remain unchanged on qualified routes; other origins emit String structure and field prose without inferring
-constraints. Exact String List-element routes are covered by the later L1-A extension below; Map-value converters and
-DSL-object conversion remain deferred.
+constraints. Exact String List-element and Map-value routes are covered by the later L1-A/L1-B extensions below;
+DSL-object conversion remains deferred.
 See [converter authoring](Converters.md#structured-string-input) and [schema output](Json-Schema.md#compiled-converter-parameters).
 
 ### CharSequence scalar routes
@@ -81,6 +81,16 @@ converter association/completeness facts fail before execution. The unified meta
 Each element uses ordinary population, preserving defaults, order, indexed causes and earlier work on failure.
 JSON Schema emits structural String items without element-parameter constraint projection. Existing scalar C1
 projection is unchanged. See [the executable example](Structured-Input.md#converter-backed-list-elements).
+
+### String Map-value converters
+
+Exact `Map<String, T>` fields with one compiler-proven generated String value adder now accept Maps of literal String
+keys to Strings. Recompile the hierarchy with matched compiler/runtime/plugin artifacts. The existing version-1
+association/count metadata now also covers this exact shape; incomplete/corrupt facts fail before Schema initialization.
+Entry traversal follows the supplied Map, preserving ordinary defaults, replacement of an existing key and keyed partial
+failures. Non-String declared/input keys and custom key mapping are excluded from converter admission. JSON Schema emits
+String `additionalProperties` without value-parameter assertions or converter execution. This changes no whole-container
+or owned-DSL Map grammar. See [Map values](Structured-Input.md#converter-backed-map-values).
 
 ### Compiled converter String input
 

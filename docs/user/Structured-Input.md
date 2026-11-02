@@ -342,6 +342,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Ordinary List/Map operation argument | One List/Map payload, recursively typed; never spread or treated as named arguments |
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
 | Exact `List<T>` with one admitted String element converter | A List of Strings, each passed to its selected generated element adder |
+| Exact `Map<String, T>` with one admitted String value converter | A Map of literal String keys to Strings, each passed to the generated value adder |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
 | Concrete owned object | A domain Map interpreted against the child's Builder |
@@ -409,8 +410,51 @@ parameter constraints are not projected in this slice; C1 scalar-field assertion
 A String that the converter cannot interpret is still structurally valid. Import does not automatically validate JSON
 Schema. Recompile matched Schema/compiler/runtime/plugin artifacts for the authoritative element association.
 
-CharSequence-only element routes, Map-value converters, other converter-backed collection shapes and owned DSL children
+CharSequence-only element routes, other converter-backed collection shapes and owned DSL children
 remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
+
+### Converter-backed Map values
+
+An exact `Map<String, T>` of non-DSL scalar values admits one compiler-selected public value converter taking an exact
+String. Each raw String value calls the existing generated adder with its literal String data key. Field closures,
+ordinary factories, enabled constructors and adapters follow the same selection rules as
+[List elements](#converter-backed-list-elements). Native scalar Maps retain their declared value grammar.
+
+(See: `StructuredMapConverterTest#'converts duration Map values independently under literal String keys'`.)
+
+```groovy
+import com.blackbuild.klum.ast.Converters
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Field
+import java.time.Duration
+
+@DSL class Schedule {
+    @Converters(excludeMethods = ['parse'])
+    @Field(converters = [{ String text -> Duration.parse(text) }])
+    Map<String, Duration> intervals
+}
+
+def schedule = Schedule.Create.FromStruct(
+    [intervals: [primary: 'PT5S', retry: 'PT2S']], 'schedule.yaml')
+assert schedule.intervals == [primary: Duration.ofSeconds(5), retry: Duration.ofSeconds(2)]
+```
+
+Traversal follows the supplied Map's iteration order. Ordinary entry population preserves initializer/default entries,
+replaces an existing key's value according to ordinary Builder behavior, and performs no calls for an empty Map. It
+never calls a whole-container converter or replacement setter. Data keys remain literal even with an external naming
+profile or rename. Non-String keys reject without coercion. Custom `@Field.keyMapping`, non-String declared keys,
+CharSequence-only routes, ambiguous or missing generated routes, descendant overrides and owned DSL values are excluded.
+
+Each reached value must be a String: null, numeric, boolean, GString, mutable CharSequence, arbitrary Object, Map and List
+values reject. A converter failure retains its original cause, source and escaped key-specific pointer, for example
+`/intervals/bad~1~0key` for key `bad/~key`. Earlier entries and operations remain applied; later work is never invoked.
+
+JSON Schema emits `type: object` with `additionalProperties: {type: string}` without initializing the Schema or running
+converters. This describes String structure, including arbitrary String contents; successful conversion is a runtime
+concern. Value converter parameter assertions are not projected; scalar C1 behavior remains unchanged. Recompile the
+Schema hierarchy with matched compiler/runtime/plugin artifacts for authoritative route/completeness metadata.
+
+### Other relationship boundaries
 
 Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conflict with literal structured instance
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
