@@ -265,7 +265,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         @Override
                         void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
                                                     Object... bootstrapMethodArguments) {
-                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter'] })
+                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter'] })
                                 unresolvedSetters << "$name$descriptor"
                         }
 
@@ -273,7 +273,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
                                              boolean isInterface) {
                             if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
-                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter'])
+                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter'])
                                 directlyLinkedSetters << "$name$descriptor"
                         }
                     }
@@ -283,6 +283,8 @@ class JpmsPackageBoundaryTest extends Specification {
 
         assert directlyLinkedSetters.any { it.toString() == 'timeout(Ljava/lang/String;)Ljava/time/Duration;' }:
                 "Generated String converter must directly link its runtime hook: $directlyLinkedSetters"
+        assert directlyLinkedSetters.any { it.toString() == 'interval(Ljava/lang/CharSequence;)Ljava/time/Duration;' }:
+                "Generated CharSequence converter must directly link its runtime hook: $directlyLinkedSetters"
         assert unresolvedSetters.empty: "Generated setters must not use invokedynamic for \$setSingleField: $unresolvedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'name(Ljava/lang/String;)Ljava/lang/String;' }:
                 "Generated setter must directly link \$setSingleField: $directlyLinkedSetters"
@@ -782,6 +784,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.schema
 
             import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.Converters
             import com.blackbuild.klum.ast.Struct
             import com.blackbuild.klum.ast.runtime.KlumModelException
             import com.blackbuild.klum.ast.DSL
@@ -822,7 +825,9 @@ class JpmsPackageBoundaryTest extends Specification {
             class Station {
                 static final List<String> EVENTS = []
 
+                @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
+                Duration interval
                 @Struct.Name('station-name') String name = 'North'
                 @Struct.Operation @Builder.Method
                 void endpoint(String value) { name = 'selected:' + value }
@@ -1084,8 +1089,8 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
                         throw new AssertionError("Selected public String operation differs from direct Java dispatch");
-                    Station converted = KlumStructuredInput.readRoot(Station.class, Map.of("timeout", "PT30S"), "converter.json");
-                    if (converted.getTimeout().getSeconds() != 30)
+                    Station converted = KlumStructuredInput.readRoot(Station.class, Map.of("timeout", "PT30S", "interval", "PT45S"), "converter.json");
+                    if (converted.getTimeout().getSeconds() != 30 || converted.getInterval().getSeconds() != 45)
                         throw new AssertionError("Field converter failed through the public named-module contract");
                     Station commanded = KlumStructuredInput.readRoot(Station.class, Map.of("resetTimeout", Map.of()), "command.json");
                     Station directCommand = factory.With(new Closure<Object>(null) {
@@ -1222,10 +1227,12 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'
                     assert selected.name == directSelected.name
-                    Station converted = KlumStructuredInput.readRoot(Station, [timeout: 'PT30S'], 'converter.json')
-                    Station directConverted = Station.Create.With { timeout 'PT30S' }
+                    Station converted = KlumStructuredInput.readRoot(Station, [timeout: 'PT30S', interval: 'PT45S'], 'converter.json')
+                    Station directConverted = Station.Create.With { timeout 'PT30S'; interval 'PT45S' }
                     assert converted.timeout.seconds == 30
                     assert converted.timeout == directConverted.timeout
+                    assert converted.interval == directConverted.interval
+                    assert converted.interval.seconds == 45
                     Station commanded = KlumStructuredInput.readRoot(Station, [resetTimeout: [:]], 'command.json')
                     Station directCommand = Station.Create.With { resetTimeout() }
                     assert commanded.capacity == 30

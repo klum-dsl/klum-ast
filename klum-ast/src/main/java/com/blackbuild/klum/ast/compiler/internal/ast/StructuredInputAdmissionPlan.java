@@ -86,7 +86,7 @@ final class StructuredInputAdmissionPlan {
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
     private static final String KEYED_OWNERSHIP_REASON = "requires Map<String, concrete keyed DSL Object> ownership";
     private static final String POPULATION = "POPULATION";
-    private static final String CONVERTER_REASON = "unsupported converter selection; expose one supported public String route and recompile matched domain/Schema artifacts";
+    private static final String CONVERTER_REASON = "unsupported converter selection; expose one supported public String or CharSequence route and recompile matched domain/Schema artifacts";
     private static final String ABSENT_FIELD_REASON = "field is absent from the final public Builder contract";
     private static final String NUMERIC_REASON_PREFIX = "unsupported numeric type ";
     private static final String CONTAINER_REASON_PREFIX = "unsupported whole-container payload target ";
@@ -147,7 +147,7 @@ final class StructuredInputAdmissionPlan {
                 .filter(method -> method != null && method.isPublic() && !method.isStatic())
                 .anyMatch(method -> entry.operation().descriptorGroup().stream()
                         .filter(inherited -> entry.role() != Role.PROPERTY
-                                || signature(inherited).equals(entry.operation().name() + "(" + String.class.getName() + ")"))
+                                || signature(inherited).equals(entry.operation().name() + "(" + entry.payload().type() + ")"))
                         .anyMatch(inherited -> signature(inherited).equals(signature(descriptor(method)))));
     }
 
@@ -462,7 +462,7 @@ final class StructuredInputAdmissionPlan {
         if (converter != null) {
             entries.add(new Entry(name.value(), Role.PROPERTY, source,
                     new PublicOperation(converter.getDeclaringClass().getName(), converter.getName(), List.of(descriptor(converter))),
-                    payloadForValue(ClassHelper.STRING_TYPE), name.origin(), null, null, null, false));
+                    new Payload(PayloadKind.SCALAR, converter.getParameters()[0].getOriginType().getName(), null, null, null), name.origin(), null, null, null, false));
             return;
         }
         if (payload == null) {
@@ -525,8 +525,9 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         Payload payload = payloadForValue(parameters[0].getOriginType());
-        // Count a projected CharSequence competitor, but do not publish it as an admitted operation in S2.
-        if (parameters[0].getOriginType().getName().equals(CharSequence.class.getName())) {
+        // A CharSequence signature consumes the same strict String grammar, only for scalar operations.
+        if (!parameters[0].getOriginType().isGenericsPlaceHolder()
+                && parameters[0].getOriginType().getName().equals(CharSequence.class.getName())) {
             payload = new Payload(PayloadKind.SCALAR, CharSequence.class.getName(), null, null, null);
         }
         if (payload == null) {
@@ -536,7 +537,7 @@ final class StructuredInputAdmissionPlan {
         PublicOperation operation = publicOperation(method, rejections);
         if (operation == null) return;
         entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null,
-                ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
+                StructuredInputConverter.isStringInput(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
     }
 
     private static String operationRole(MethodNode method) {
@@ -754,13 +755,7 @@ final class StructuredInputAdmissionPlan {
             rejectGroup(candidates, rejected, rejections, "multiple provisional @Struct.Operation candidates for '" + name + "'");
         } else if (marked.size() == 1) {
             candidates.stream().filter(candidate -> candidate != marked.get(0)).forEach(rejected::add);
-        } else if (candidates.size() == 1) {
-            Entry unique = candidates.get(0);
-            if (unique.payload().type().equals(CharSequence.class.getName())) {
-                rejectGroup(candidates, rejected, rejections,
-                        "CharSequence scalar operations are not admitted; expose an exact String operation");
-            }
-        } else {
+        } else if (candidates.size() > 1) {
             String declarations = candidates.stream().map(Entry::source).sorted()
                     .reduce((left, right) -> left + ", " + right).orElseThrow();
             rejectGroup(candidates, rejected, rejections, "external-name collision for '" + name + "': " + declarations);

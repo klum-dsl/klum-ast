@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumPhase;
 import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import groovy.lang.Closure;
+import org.codehaus.groovy.runtime.wrappers.PojoWrapper;
 
 import java.util.Map;
 
@@ -78,6 +79,13 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
     protected final <T> T $setSingleFieldViaStringConverter(String fieldOrMethodName, Class<?> converterType,
                                                            String converterMethod, String value) {
         return super.setSingleFieldViaConverter(fieldOrMethodName, converterType, converterMethod, value);
+    }
+
+    /** Preserve the projected CharSequence signature when Groovy selects the recorded converter overload. */
+    protected final <T> T $setSingleFieldViaCharSequenceConverter(String fieldOrMethodName, Class<?> converterType,
+                                                                 String converterMethod, CharSequence value) {
+        return super.setSingleFieldViaConverter(fieldOrMethodName, converterType, converterMethod,
+                new PojoWrapper(value, CharSequence.class));
     }
 
     protected final <T> T $createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,

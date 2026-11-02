@@ -51,6 +51,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
                 @Key String name
                 String region
                 String identifier
+                @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> Deployment.events << 'converter'; Duration.parse(value) }])
                 Duration timeout
                 Service primary

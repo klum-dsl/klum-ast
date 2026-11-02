@@ -307,7 +307,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         Map<String, Object> result = new LinkedHashMap<>();
         String name = type.getName();
         String jsonType = switch (name) {
-            case "java.lang.String" -> STRING_TYPE;
+            case "java.lang.String", "java.lang.CharSequence" -> STRING_TYPE;
             case "boolean", "java.lang.Boolean" -> "boolean";
             case "float", "double", "java.lang.Float", "java.lang.Double", "java.math.BigDecimal" -> "number";
             default -> "integer";

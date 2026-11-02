@@ -453,7 +453,7 @@ public final class StructuredInputSupport {
         }
 
         private Value scalar(Entry entry, Class<?> type, Object input, String path) {
-            if (type == String.class) {
+            if (type == String.class || type == CharSequence.class) {
                 if (!(input instanceof String)) throw bad(entry, path, "String", input, null);
                 return new Scalar(input);
             }

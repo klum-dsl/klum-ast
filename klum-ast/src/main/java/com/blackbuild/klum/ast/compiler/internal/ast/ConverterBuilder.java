@@ -262,9 +262,13 @@ class ConverterBuilder {
     private ProxyMethodBuilder createRuntimeProxyMethod(Parameter[] sourceParameters) {
         ClassNode modelBuilder = getBuilderClassOf(transformation.annotatedClass);
         if (builderClass.equals(modelBuilder)) {
-            boolean scalarString = !isCollection(fieldNode.getType()) && !isMap(fieldNode.getType())
-                    && sourceParameters.length == 1 && STRING_TYPE.equals(sourceParameters[0].getOriginType());
-            return createProxyMethod(methodName, scalarString ? "setSingleFieldViaStringConverter" : getProxyMethodName());
+            if (!isCollection(fieldNode.getType()) && !isMap(fieldNode.getType()) && sourceParameters.length == 1
+                    && StructuredInputConverter.isStringInput(sourceParameters[0].getOriginType())) {
+                String hook = STRING_TYPE.equals(sourceParameters[0].getOriginType())
+                        ? "setSingleFieldViaStringConverter" : "setSingleFieldViaCharSequenceConverter";
+                return createProxyMethod(methodName, hook);
+            }
+            return createProxyMethod(methodName, getProxyMethodName());
         }
         return new ProxyMethodBuilder(org.codehaus.groovy.ast.tools.GeneralUtils.varX("rw"), methodName, getProxyMethodName())
                 .targetType(modelBuilder);

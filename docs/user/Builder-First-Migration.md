@@ -434,7 +434,7 @@ Jackson-owned composition or cross-input overwrite semantics.
 ### Structured String converter projections
 
 Field closures, same-compilation non-DSL values and external adapters can supply structured input through an exact
-public String Builder projection. This does not change DSL-object producer ownership or admit a missing/colliding
+public String or CharSequence Builder projection consuming a String scalar. This does not change DSL-object producer ownership or admit a missing/colliding
 projection. C1-qualified compiled domain parameters retain their constraint authority; other origins supply structural
-String schemas. Recompile matched artifacts; see [migration](Migration.md#string-converter-origins) and
+String schemas. Recompile matched artifacts; see [migration](Migration.md#charsequence-scalar-routes) and
 [converter authoring](Converters.md#structured-string-input).
