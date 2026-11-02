@@ -238,7 +238,6 @@ final class StructuredInputAdmissionPlan {
         if (alternative == null) return;
         MethodNode creator = literalCreator(field, alternative);
         AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
-        association.setMember("version", new ConstantExpression(1));
         association.setMember("field", new ConstantExpression(field.getName()));
         association.setMember("alias", new ConstantExpression(alternative.alias()));
         association.setMember("target", new ConstantExpression(alternative.target().getName()));

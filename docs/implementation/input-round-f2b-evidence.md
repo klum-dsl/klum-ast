@@ -32,9 +32,11 @@ existing types use the ordinary explicit-type failure. Template input retains or
 ## Implementation and inspection boundary
 
 The compiler freezes inert facts at the existing CollectionFactory generation site, then enriches the public owning
-field accessor with `GeneratedInput.LiteralAlternative` and explicit `Field.alternativeCount` (zero or one). Its version,
-field, literal alias, concrete target, inherited key/String authority and exact scope/configuration-creator descriptor are validated
-from classfiles. Missing/stripped/conflicting facts fail before construction, even if input omits the relationship.
+field accessor with `GeneratedInput.LiteralAlternative` and explicit `Field.alternativeCount` (zero or one). The unified
+`GeneratedInput.Schema.version` is the sole metadata protocol version; the alternative annotation has no independent
+version member. Its field, literal alias, concrete target, inherited key/String authority and exact scope/configuration-creator
+descriptor are validated from classfiles. Removed/unknown members, including a legacy annotation-specific `version`, reject;
+participating Schemas must be recompiled with matching compiler/runtime/plugin artifacts. Missing/stripped/conflicting facts fail before construction, even if input omits the relationship.
 Metadata extraction neither initializes Schema classes nor executes an alternatives closure or user factory. The exact
 public configuration creator also carries a field/role marker. Admission requires its implementation to be the
 owning-field-linked generated relationship creator; matching custom Factory signatures are insufficient authority. Same-class authored scope replacements and inherited
@@ -56,13 +58,13 @@ detection. The parser owns duplicate-key rejection.
 | Seam | Evidence |
 | --- | --- |
 | Runtime and documentary contract | `StructuredLiteralAlternativeTest`, including exact concrete type, key-before-create, owner/lifecycle trace and ordinary breadcrumb parity; malformed envelopes, equal/conflicting inner keys, strict body types, escaping, partial order, reuse/type mismatch, lifecycle cause, cycles/cleanup, session/thread/sealing, Templates, arbitrary String keys and custom Factory collision exclusion |
-| Source-free metadata | `LiteralAlternativeMetadataTest`, including initialization traps, exact public descriptor, count/association stripping and corruption, protocol version/type/member/visibility errors, naming/exclusion, inheritance, creator-marker corruption and compiler shadowing rejection |
+| Source-free metadata | `LiteralAlternativeMetadataTest`, including initialization traps, exact public descriptor, count/association stripping and corruption, unified Schema version/type/member/visibility errors, naming/exclusion, inheritance, creator-marker corruption and compiler shadowing rejection |
 | Compiler exclusion | `LiteralAlternativeCompilationTest`, checking admission before bytecode generation for multiple/automatic aliases, List/non-String Map/custom mapping, generic targets and unchanged concrete keyed-Map syntax; excluded generic shapes receive no ordinary DSL qualification |
 | Packaged plugin/binary consumers | `BinaryOwnedRelationshipsTest`, separate producer/API/Schema/client artifacts with sources removed, fresh runtime consumers and actual plugin emission for Groovy 3/4/5; corrupted association prevents every new output and leaves initialization traps silent |
 | JPMS | `JpmsPackageBoundaryTest` real Java and static Groovy artifact consumers on classpath for Groovy 3/4/5 and module path for Groovy 4/5, including literal key/body/owner assertions and existing descriptor/package checks |
 | Actual emitted schema | `validate_literal_alternative_schema.py`, pinned `jsonschema==4.23.0`: 3 emitted schemas, 24 valid inputs accepted and 75 invalid inputs rejected |
 
-## Validation
+## Initial F2-B qualification
 
 Java 17; progressive local checks:
 
@@ -120,3 +122,20 @@ User documentation: [Structured Input](../user/Structured-Input.md#literal-colle
 [JSON Schema](../user/Json-Schema.md#literal-collection-alternative),
 [Migration](../user/Migration.md#literal-collectionfactory-alternative-input), and
 [Alternatives](../user/Alternatives-Syntax.md#structured-input). Existing page navigation remains valid.
+
+## Unified-version simplification — PR #1017
+
+The mechanical follow-up removes only `LiteralAlternative.version`, its compiler emission and its reader validation.
+`GeneratedInput.Schema.version=1` remains unchanged and authoritative. Every remaining association fact is mandatory;
+`alternativeCount`, creator provenance and all runtime/projector behavior remain unchanged. Removed `version` members
+are rejected as unknown, with no compatibility alias or fallback. Recompile matched compiler/runtime/plugin and Schema
+artifacts.
+
+The metadata regression first failed against the previous annotation API, then passed after the simplification. Focused
+Groovy 3 and Groovy 4/5 literal-alternative tests, separate binary/plugin consumers and Java/static Groovy JPMS checks
+passed. Each missing association member is tested, alongside duplicate, unknown, empty, wrongly typed, array, nested and
+enum members; a corrupt unified Schema version still rejects. Both read-only local review axes found no findings.
+
+All three actual plugin emissions are byte-identical to the pre-change snapshots, with SHA-256
+`b2c38640dee9f2e2279595a624fd120b516112d961c4b33081b246a8b2a42be4`. The Draft 2020-12 oracle again accepted 24 valid
+and rejected 75 invalid inputs across Groovy 3/4/5. The final unfiltered root check for this follow-up is pending.

@@ -38,7 +38,8 @@ keyless body. The outer key is authoritative; equal/conflicting inner keys rejec
 zero child calls. Traversal preserves caller order and earlier effects on failure.
 
 The existing generated public field enrichment carries one inert association and an explicit zero/one count, including
-exact public CollectionFactory scope/creator, concrete target and inherited String-key facts. Version, descriptor,
+exact public CollectionFactory scope/creator, concrete target and inherited String-key facts. The unified
+`GeneratedInput.Schema.version` is authoritative; no annotation-specific version is emitted or accepted. Descriptor,
 completeness and corruption checks precede use without initializing Schema code. `CompiledBuilderSchema` supplies the
 same validated association to interpretation and projection. Runtime binds the existing explicit-type keyed-map
 configuration callback before child PostApply; JSON Schema emits a closed alias object and concrete keyless body.

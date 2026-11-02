@@ -92,6 +92,8 @@ Older or incomplete Builder contracts are rejected; recompile the participating 
 
 The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
 require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key, literal-alternative association/count and inert example-array facts.
+`Schema.version` is the sole protocol version; `LiteralAlternative` has no separate version member. Recompile participating
+Schemas with matching compiler/runtime/plugin artifacts; removed or unknown members have no compatibility decoder.
 The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
 future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
 completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked

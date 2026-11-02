@@ -629,7 +629,7 @@ final class BuilderContractReader {
     }
 
     private static final class AlternativeAnnotationVisitor extends AnnotationVisitor {
-        private static final Set<String> MEMBERS = Set.of("version", "field", "alias", "target", "key", "keyType", "scope", "creator");
+        private static final Set<String> MEMBERS = Set.of("field", "alias", "target", "key", "keyType", "scope", "creator");
         private final MutableLiterals literal;
         private final Map<String, Object> facts = new LinkedHashMap<>();
 
@@ -640,15 +640,14 @@ final class BuilderContractReader {
 
         @Override public void visit(String name, Object value) {
             if (!MEMBERS.contains(name) || facts.putIfAbsent(name, value) != null
-                    || (name.equals("version") ? !(value instanceof Integer) : !(value instanceof String text) || text.isEmpty()))
+                    || !(value instanceof String text) || text.isEmpty())
                 throw invalid("Invalid literal alternative member " + name);
         }
         @Override public AnnotationVisitor visitArray(String name) { throw invalid("Unexpected literal alternative array " + name); }
         @Override public AnnotationVisitor visitAnnotation(String name, String descriptor) { throw invalid("Unexpected nested literal alternative " + name); }
         @Override public void visitEnum(String name, String descriptor, String value) { throw invalid("Unexpected literal alternative enum " + name); }
         @Override public void visitEnd() {
-            if (!facts.keySet().equals(MEMBERS) || !Integer.valueOf(1).equals(facts.get("version"))
-                    || !String.class.getName().equals(facts.get("keyType")))
+            if (!facts.keySet().equals(MEMBERS) || !String.class.getName().equals(facts.get("keyType")))
                 throw invalid("Incomplete or unsupported literal alternative protocol");
             literal.alternative = new AlternativeFacts((String) facts.get("field"), (String) facts.get("alias"),
                     (String) facts.get("target"), (String) facts.get("key"), (String) facts.get("keyType"),

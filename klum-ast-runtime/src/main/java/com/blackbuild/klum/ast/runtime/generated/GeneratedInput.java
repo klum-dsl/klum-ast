@@ -117,7 +117,6 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface LiteralAlternative {
-        int version();
         String field();
         String alias();
         String target();
