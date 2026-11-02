@@ -2,7 +2,7 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. Factory/Builder A0–A3 have a local implementation blocked on signature-collision qualification; other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification; other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -56,7 +56,7 @@ callers directly, with no deprecated reader alias or compatibility bridge. The
 [development-call migration table](../implementation/input-round-plan-4-2.md#development-api-migration--953) maps them.
 
 The Template Factory forms below are implemented by merged [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007).
-The remaining signatures have a local A0–A3 implementation blocked on a Schema-authored `applyStruct` collision; see [implementation evidence](../implementation/input-round-api-evidence.md). `T` is the Factory's Model type;
+The remaining signatures have a local A0–A3 implementation; see [implementation evidence](../implementation/input-round-api-evidence.md). `T` is the Factory's Model type;
 `body` and `document` are caller-parsed Maps. Wildcards avoid requiring callers to retype their parsed Maps; domain
 member names and payloads still undergo the existing strict runtime checks.
 
@@ -98,6 +98,15 @@ def template = Service.Create.Template.FromStruct([host: 'api'])
 // Inside an existing session, after caller-specific context and identity have been prepared:
 builder.applyStruct([host: 'api'], 'deployment.yaml')
 ```
+
+#### Reserved Builder application signatures
+
+Maintainer clarification, 2026-11-02: reserve the exact erased Builder signatures `applyStruct(Map)` and
+`applyStruct(Map, String)`. Schema-authored operations, inherited operations, generated field configurators and default
+argument overloads must not replace either common capability. Reject collisions during compilation with rename guidance;
+keep both runtime implementations final so a stale binary override cannot bypass session/sealing guards. Recompile and
+rename colliding Schema operations when upgrading. This narrow source/binary break is accepted; unrelated overloads remain
+legal. It does not reserve the entire method name or change the separate `copyFrom` contract.
 
 #### Source diagnostics and key authority
 

@@ -1,7 +1,7 @@
 # #953 Factory and Builder structured-input API — A0–A3
 
 Date: 2026-11-02. Base: `59196e3b786d623b5649af4dd3d02f9b5bc19bb0` (master after #1010).
-Status: **Blocked by a generated Builder signature collision; no PR or publication.**
+Status: **Collision policy approved and implemented locally; final qualification/review pending. No PR or publication.**
 Branch: `codex/953-structured-factory-builder`. Related: #953; no issue closure or release qualification.
 
 ## Contract and implementation
@@ -76,7 +76,7 @@ and replace its compound `expect` reflection block with `when`/`then`. Specifica
 collision. All changes remain local. Final history review and aggregate qualification remain pending.
 No local SonarCloud analysis is run. GitHub CI/Sonar on the published head remain authoritative.
 
-## Stop condition: Schema-authored applyStruct overrides the common capability
+## Initial stop and accepted correction: Schema-authored applyStruct collisions
 
 The Specification reviewer reproduced this valid Schema shape using the built Groovy 3 production classpath:
 
@@ -96,10 +96,18 @@ The generated implementation and public Builder contract declare the overriding 
 methods at `InternalKlumBuilder.java:628–634` therefore cannot enforce structured interpretation or active/unsealed
 session guards in this collision case. This violates ADR 0032's common-capability restriction.
 
-The assignment explicitly requires stopping for unresolved generated API/lifecycle conflicts. No collision policy,
-compiler rejection, final-method change, renamed API or other workaround has been selected. Resume requires a maintainer
-choice for collisions with both exact `applyStruct` signatures, then test-first implementation and requalification.
-The two existing review agents can recheck the correction; no additional review agents were created.
+The assignment explicitly required stopping for unresolved generated API/lifecycle conflicts. The maintainer subsequently
+approved reserving both exact signatures, accepting the narrow breaking change, and instructed implementation to resume.
+The compiler now rejects matching authored/inherited/generated/default-argument signatures with rename guidance. Both
+runtime methods are final, preventing legacy binary overrides from bypassing guards. Distinct overloads remain legal.
+`StructuredBuilderCollisionTest` covers raw/generic Maps, bounded generic erasure, both signatures, default overloads,
+generated Map configurators, source inheritance in either order, an unrelated String overload, stale-Builder rejection,
+and deliberately patched legacy binary overrides. Its seven initial cases failed before the correction and passed after it.
+The two Standards observations are corrected (simple imported `CompileStatic`, `when`/`then` inspection).
+The same two review agents will recheck the correction; no additional review agents were created.
+
+The separate `copyFrom(Object)` override finding was handed to the Hive at the user's explicit request. The Hive created
+[issue #1011](https://github.com/klum-dsl/klum-ast/issues/1011); this branch makes no production change for it.
 
 Added/changed repository-relative documentation links were checked: 21, zero failures. `git diff --check` passed.
 These checks do not qualify the blocked implementation. Existing unrelated stale architecture-map links were not changed.

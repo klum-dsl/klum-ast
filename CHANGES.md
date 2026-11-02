@@ -25,7 +25,8 @@
 
 - Add generated Factory `Create.FromStruct` for self-contained documents and keyed Factory bodies, plus inherited void
   `KlumBuilder.applyStruct` for active Builders. All accept optional opaque diagnostic labels; explicit-key roots retain
-  one PostApply. Remove the unreleased public reader facade and migrate development callers. `FromMap` and managed Jackson
+  one PostApply. Reserve both exact Builder application signatures with compiler collision diagnostics and final runtime
+  guards; colliding Schema declarations must be renamed and recompiled. Remove the unreleased public reader facade and migrate development callers. `FromMap` and managed Jackson
   remain unchanged. See [Structured Input](docs/user/Structured-Input.md) and [Migration](docs/user/Migration.md).
 - Add parser-free `Create.Template.FromStruct` for keyless Template bodies, preserving ordinary Template recipe
   and lifecycle behavior. See [Templates](docs/user/Templates.md#structured-input-templates)

@@ -153,7 +153,8 @@ class StructuredFactoryTest extends AbstractDSLSpec {
         when:
         int compilation = ToolProvider.systemJavaCompiler.run(null, null, null, '-classpath', classpath,
                 '-d', compilerConfiguration.targetDirectory.absolutePath, source.absolutePath)
-        createSecondaryClass source.text.replace('public class JavaConsumer', '@groovy.transform.CompileStatic class StaticConsumer')
+        createSecondaryClass source.text.replace('import java.util.Map;', 'import java.util.Map; import groovy.transform.CompileStatic;')
+                .replace('public class JavaConsumer', '@CompileStatic class StaticConsumer')
         def consumers = ['JavaConsumer', 'StaticConsumer'].collect { artifactLoader.loadClass('structuredfactory.' + it) }
         def factory = artifactLoader.loadClass('structuredfactory.Service_DSL$Factory')
         def builder = artifactLoader.loadClass('structuredfactory.Service_DSL$Builder')
@@ -267,10 +268,10 @@ class StructuredFactoryTest extends AbstractDSLSpec {
     }
 
     def 'root creation does not project into AsBuilder or relationship factories and apply is not input'() {
-        given:
+        when:
         def unkeyedFactory = artifactLoader.loadClass('structuredfactory.Deployment_DSL$Factory')
 
-        expect:
+        then:
         unkeyedFactory.methods.findAll { it.name == 'FromStruct' }*.parameterTypes*.toList().toSet() == [[Map], [Map, String]] as Set
         !service.Create.AsBuilder().class.methods*.name.contains('FromStruct')
         !deployment.Create.AsBuilder().class.methods*.name.contains('FromStruct')

@@ -312,7 +312,9 @@ assert service.host == 'api'
 ```
 
 Each successful `applyStruct` adds one PostApply; the enclosing `With` performs its own PostApply afterward.
-The method is a framework capability, excluded from structured operations and absent from completed Models.
+The common Map signatures are framework capabilities, excluded from structured operations and absent from completed Models.
+`applyStruct(Map)` and `applyStruct(Map, String)` are reserved: a colliding Schema method, field configurator or
+default-argument overload fails compilation. Rename the conflicting declaration; distinct overloads remain legal.
 
 That fixture uses an owned `application` field and a completed `environment` LINK needed only by later phases.
 `AsBuilder().One()` has already run PostCreate and PostApply. Dependencies needed by those early callbacks must be

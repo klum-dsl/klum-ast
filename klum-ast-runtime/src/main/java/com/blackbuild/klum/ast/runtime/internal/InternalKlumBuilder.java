@@ -625,12 +625,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     @Override
-    public void applyStruct(Map<?, ?> body) {
+    public final void applyStruct(Map<?, ?> body) {
         applyStruct(body, modelType.getName() + ".Builder.applyStruct");
     }
 
     @Override
-    public void applyStruct(Map<?, ?> body, String sourceName) {
+    public final void applyStruct(Map<?, ?> body, String sourceName) {
         StructuredInputSupport.applyToBuilder(this, body, sourceName);
     }
 
