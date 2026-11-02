@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.Issue
 
@@ -55,7 +54,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def input = [name: 'production']
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, input, 'deployment.yaml')
+        def model = deployment.Create.FromStruct(input, 'deployment.yaml')
 
         then:
         model.name == 'production'
@@ -78,7 +77,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         """)
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, [(spelling): '', key: 'ordinary'], 'keys.yaml')
+        def model = deployment.Create.FromStruct([(spelling): '', key: 'ordinary'], 'keys.yaml')
 
         then:
         model.name == ''
@@ -109,7 +108,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, payload, 'bad-identity.yaml')
+        StructuredInputSupport.readRoot(deployment, payload, 'bad-identity.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -146,7 +145,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, [:], 'ignored.yaml')
+        deployment.Create.FromStruct([:], 'ignored.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -155,7 +154,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         failure.message.contains('explicit rootKey')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, 'external', [value: 'ok'], 'explicit.yaml')
+        def model = deployment.Create.FromStruct('external', [value: 'ok'], 'explicit.yaml')
 
         then:
         model.name == 'external'
@@ -179,7 +178,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, [value: 'collision'], 'collision.yaml')
+        deployment.Create.FromStruct([value: 'collision'], 'collision.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -189,7 +188,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         failure.message.contains('/value')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, 'external', [value: 'ordinary'], 'external.yaml')
+        def model = deployment.Create.FromStruct('external', [value: 'ordinary'], 'external.yaml')
 
         then:
         model.name == 'external'
@@ -211,9 +210,8 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment,
-                [service: [name: 'catalog', nested: [name: 'storage']]], 'nested.yaml')
-        def absent = KlumStructuredInput.readRoot(deployment, [:], 'absent.yaml')
+        def model = deployment.Create.FromStruct([service: [name: 'catalog', nested: [name: 'storage']]], 'nested.yaml')
+        def absent = deployment.Create.FromStruct([:], 'absent.yaml')
 
         then:
         model.service.name == 'catalog'
@@ -247,7 +245,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
         when:
         def model = deployment.Create.With('fixed') {
-            try { KlumStructuredInput.applyToBuilder(delegate, payload, 'active.yaml') }
+            try { delegate.applyStruct(payload, 'active.yaml') }
             catch (KlumModelException caught) { failure = caught }
         }
 
@@ -283,7 +281,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, 'root', payload, 'external.yaml')
+        deployment.Create.FromStruct('root', payload, 'external.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -314,7 +312,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
         when:
         def model = deployment.Create.With('fixed') {
-            try { KlumStructuredInput.applyToBuilder(delegate, [value: 'after', name: inner], 'active.yaml') }
+            try { delegate.applyStruct([value: 'after', name: inner], 'active.yaml') }
             catch (KlumModelException caught) { failure = caught }
         }
 
@@ -341,7 +339,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, [service: [:], unknown: true], 'bad.yaml')
+        deployment.Create.FromStruct([service: [:], unknown: true], 'bad.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -349,7 +347,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         deployment.events == ['provider']
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, [service: [:]], 'ok.yaml')
+        def model = deployment.Create.FromStruct([service: [:]], 'ok.yaml')
 
         then:
         model.service.name == 'derived'
@@ -382,7 +380,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def input = order.collectEntries { [(it): all[it]] }
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, input, 'ordered.yaml')
+        def model = deployment.Create.FromStruct(input, 'ordered.yaml')
 
         then:
         model.service.owner.is(model)
@@ -409,8 +407,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def failure
 
         when:
-        try { model = KlumStructuredInput.readRoot(deployment,
-                [prepare: 'before', service: [name: key, image: 'after']], 'reuse.yaml') }
+        try { model = deployment.Create.FromStruct([prepare: 'before', service: [name: key, image: 'after']], 'reuse.yaml') }
         catch (KlumModelException caught) { failure = caught }
 
         then:
@@ -446,8 +443,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment,
-                [fixed: [value: 'fixed'], services: [outer: [value: 'map']]], 'external.yaml')
+        def model = deployment.Create.FromStruct([fixed: [value: 'fixed'], services: [outer: [value: 'map']]], 'external.yaml')
 
         then:
         model.direct == null
@@ -455,7 +451,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         model.services.outer.name == 'outer'
 
         when:
-        KlumStructuredInput.readRoot(deployment, [direct: [:]], 'ignored.yaml')
+        deployment.Create.FromStruct([direct: [:]], 'ignored.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -464,7 +460,8 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         failure.message.contains('Schema derivation/keyed Map')
     }
 
-    def 'four-argument null contract remains explicit and unkeyed overload admits ordinary key properties'() {
+    @Issue('953')
+    def 'only keyed Factories accept an explicit key and unkeyed documents admit ordinary key properties'() {
         given:
         def deployment = schema('''
             package keyinput
@@ -475,19 +472,19 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def service = Class.forName('keyinput.Service', false, artifactLoader)
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, [key: 'ordinary'], 'unkeyed.yaml')
+        def model = deployment.Create.FromStruct([key: 'ordinary'], 'unkeyed.yaml')
 
         then:
         model.key == 'ordinary'
 
         when:
-        KlumStructuredInput.readRoot(deployment, 'unexpected', [:], 'unkeyed.yaml')
+        deployment.Create.FromStruct('unexpected', [:], 'unkeyed.yaml')
 
         then:
-        thrown(KlumModelException)
+        thrown(MissingMethodException)
 
         when:
-        KlumStructuredInput.readRoot(service, null, [:], 'keyed.yaml')
+        service.Create.FromStruct((String) null, [:], 'keyed.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -512,7 +509,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, [identity: 'ambiguous'], 'collision.yaml')
+        deployment.Create.FromStruct([identity: 'ambiguous'], 'collision.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -539,8 +536,8 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, [identity: 'root', name: 'ordinary'], 'alias.yaml')
-        def external = KlumStructuredInput.readRoot(deployment, 'outer', [name: 'ordinary'], 'external.yaml')
+        def model = deployment.Create.FromStruct([identity: 'root', name: 'ordinary'], 'alias.yaml')
+        def external = deployment.Create.FromStruct('outer', [name: 'ordinary'], 'external.yaml')
 
         then:
         model.name == 'root'
@@ -567,7 +564,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, [name: 'not-an-alias'], 'native.yaml')
+        StructuredInputSupport.readRoot(deployment, [name: 'not-an-alias'], 'native.yaml')
 
         then:
         def nativeFailure = thrown(KlumModelException)
@@ -575,7 +572,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         nativeFailure.message.contains('member is absent')
 
         when:
-        KlumStructuredInput.readRoot(deployment, [unknown: true], 'missing.yaml')
+        StructuredInputSupport.readRoot(deployment, [unknown: true], 'missing.yaml')
 
         then:
         def missingFailure = thrown(KlumModelException)
@@ -598,7 +595,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, [identity: 'production'], 'fallback.yaml')
+        def model = deployment.Create.FromStruct([identity: 'production'], 'fallback.yaml')
 
         then:
         model.key == 'production'
@@ -625,7 +622,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
 
         when:
         def model = TemplateManager.withTemplate(service, template) {
-            KlumStructuredInput.readRoot(deployment, [name: 'root', service: [name: 'child']], 'template.yaml')
+            deployment.Create.FromStruct([name: 'root', service: [name: 'child']], 'template.yaml')
         }
 
         then:
@@ -634,8 +631,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         model.service.observed == 'child:templated'
 
         when:
-        KlumStructuredInput.readRoot(deployment,
-                [name: 'root', service: [name: 'child', value: 'invalid']], 'validation.yaml')
+        deployment.Create.FromStruct([name: 'root', service: [name: 'child', value: 'invalid']], 'validation.yaml')
 
         then:
         def failure = thrown(KlumValidationException)
@@ -643,7 +639,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         !failure.message.contains('/service/name')
 
         when:
-        def fresh = KlumStructuredInput.readRoot(deployment, [name: 'fresh'], 'fresh.yaml')
+        def fresh = deployment.Create.FromStruct([name: 'fresh'], 'fresh.yaml')
 
         then:
         fresh.name == 'fresh'
@@ -667,7 +663,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, 'external', [name: 'ordinary'], 'ignored-body.yaml')
+        def model = deployment.Create.FromStruct('external', [name: 'ordinary'], 'ignored-body.yaml')
 
         then:
         model.name == 'external'
@@ -684,7 +680,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(deployment, input, 'inherited-error.yaml')
+        deployment.Create.FromStruct(input, 'inherited-error.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -722,7 +718,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def input = child ? [first: 'sibling', service: body, name: 'root'] : body
 
         when:
-        KlumStructuredInput.readRoot(deployment, input, 'late.yaml')
+        deployment.Create.FromStruct(input, 'late.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -758,7 +754,7 @@ class StructuredInputKeyTest extends AbstractDSLSpec {
         def failure
 
         when:
-        try { result = KlumStructuredInput.readRoot(deployment, input, 'map-key.yaml') }
+        try { result = deployment.Create.FromStruct(input, 'map-key.yaml') }
         catch (KlumModelException caught) { failure = caught }
 
         then:

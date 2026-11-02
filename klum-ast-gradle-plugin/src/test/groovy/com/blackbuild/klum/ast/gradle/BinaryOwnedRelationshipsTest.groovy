@@ -173,7 +173,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 
         writeSource('client', 'Consumer.groovy', '''
 package example
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import java.lang.reflect.ParameterizedType
 class Consumer {
@@ -199,7 +198,7 @@ class Consumer {
         }
         def nativeTrace = Trace.events.toList()
         Trace.events.clear()
-        def model = KlumStructuredInput.readRoot(Deployment, null, input, 'binary.yaml')
+        def model = Deployment.Create.FromStruct(input, 'binary.yaml')
         assert model.facts.host == nativeModel.facts.host
         assert model.inherited.host == nativeModel.inherited.host
         assert model.workloads['a/b~c'].name == 'a/b~c'
@@ -214,15 +213,14 @@ class Consumer {
         assert Trace.events == nativeTrace
         Trace.events.clear()
         def applied = Deployment.Create.With {
-            assert KlumStructuredInput.applyToBuilder(delegate, input, 'active.yaml').is(delegate)
+            delegate.applyStruct(input, 'active.yaml')
         }
         assert applied.facts.host == 'direct'
         assert applied.inheritedWorkloads.other.owner.is(applied)
         assert Trace.events == nativeTrace
         Trace.events.clear()
         try {
-            KlumStructuredInput.readRoot(Deployment, null,
-                    [facts: ['host-name': 'earlier'], workloads: [('a/b~c'): [image: 42]],
+            Deployment.Create.FromStruct([facts: ['host-name': 'earlier'], workloads: [('a/b~c'): [image: 42]],
                      inherited: ['host-name': 'never']], 'invalid.yaml')
             assert false: 'Invalid nested input must reject'
         } catch (KlumModelException failure) {
@@ -233,7 +231,7 @@ class Consumer {
         Trace.events.clear()
         for (String rejected : ['abstractFacts', 'genericFacts', 'consumeBuilder', 'mapped', 'ignored']) {
             try {
-                KlumStructuredInput.readRoot(Deployment, null, [(rejected): [:]], 'rejected.yaml')
+                Deployment.Create.FromStruct([(rejected): [:]], 'rejected.yaml')
                 assert false: "Must reject $rejected"
             } catch (KlumModelException failure) {
                 assert failure.message.contains(rejected)

@@ -2527,7 +2527,6 @@ import com.blackbuild.klum.ast.*
         writeSource('schema/src/main/groovy/example/ExampleService.groovy', """
 package example
 import com.blackbuild.klum.ast.*
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.fasterxml.jackson.annotation.*
 @DSL class ExampleOwnedBase extends ExampleBase {
     @Struct.Examples(['inherited database']) ExampleChild inheritedChild
@@ -2581,8 +2580,8 @@ import com.blackbuild.klum.ast.*
 package example
 import com.blackbuild.klum.ast.*
 import com.fasterxml.jackson.annotation.*
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport
 @DSL class LiteralBase {
     @Key @Struct.Name('Service/ID') @JsonProperty('Service/ID') String serviceId
     @Struct.Name('URL/exact') @JsonProperty('URL/exact') String URLValue
@@ -2601,7 +2600,7 @@ class LiteralControl {
         if (args.length) {
             def type = Class.forName('example.' + args[0], false, LiteralControl.classLoader)
             try {
-                KlumStructuredInput.readRoot(type, [:], 'rejected.yaml')
+                StructuredInputSupport.readRoot(type, [:], 'rejected.yaml')
                 throw new AssertionError('invalid contract accepted')
             } catch (KlumModelException expected) {
                 assert expected.message.contains('collision') || expected.message.contains('literal metadata') || expected.message.contains('@Struct.Ignore')
@@ -2610,7 +2609,7 @@ class LiteralControl {
             return
         }
         def type = Class.forName('example.LiteralService', false, LiteralControl.classLoader)
-        def result = KlumStructuredInput.readRoot(type, ['Service/ID': 'Service/Blue', 'URL/exact': 'URL', 'url-value': 'native',
+        def result = type.Create.FromStruct(['Service/ID': 'Service/Blue', 'URL/exact': 'URL', 'url-value': 'native',
                 displayName: 'literal', 'display-name': 'base', 'set/Endpoint': 'operated', details: ['child/Name': 'child'],
                 workers: ['Worker/Blue': ['Image/Name': 'worker:1']], labels: ['Team/Blue': 'ops'], 'items/exact': ['one', 'two']], 'literal.yaml')
         assert result.serviceId == 'Service/Blue' && result.URLValue == 'URL' && result.urlValue == 'operated'
@@ -2621,11 +2620,11 @@ class LiteralControl {
         assert result.hiddenValue == null && result.alsoHidden == null
         ['serviceId', 'service-id', 'URLValue', 'urlValue', 'hidden-value', 'ignored-renamed', 'hidden-operation'].each { name ->
             try {
-                KlumStructuredInput.readRoot(type, 'external', [(name): 'forbidden'], 'alias.yaml')
+                type.Create.FromStruct('external', [(name): 'forbidden'], 'alias.yaml')
                 throw new AssertionError('forbidden alias accepted: ' + name)
             } catch (KlumModelException expected) { assert expected.message.contains(name) }
         }
-        def fallback = KlumStructuredInput.readRoot(LiteralKeyFallback, ['Fallback/ID': 'fallback'], 'key.yaml')
+        def fallback = LiteralKeyFallback.Create.FromStruct(['Fallback/ID': 'fallback'], 'key.yaml')
         assert fallback.key == 'fallback'
         println 'Literal interpreter/schema agreement passed'
     }
@@ -2664,8 +2663,8 @@ import com.blackbuild.klum.ast.Struct.Naming.Profile
 package example
 import com.blackbuild.klum.ast.*
 import com.blackbuild.klum.ast.Struct.Naming.Profile
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport
 import com.fasterxml.jackson.annotation.*
 @DSL class NamingBase {
     String displayName
@@ -2685,7 +2684,7 @@ class NamingControl {
         if (args.length) {
             def type = Class.forName('example.' + args[0], false, NamingControl.classLoader)
             try {
-                KlumStructuredInput.readRoot(type, (args.length > 1 ? [:] : args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
+                StructuredInputSupport.readRoot(type, (args.length > 1 ? [:] : args[0] == 'NamingKeyCollision' ? ['url-value': 'ambiguous'] : ['service-details': [nativeName: 'test'], 'worker-instances': [instance: ['image-name': 'test']]]), 'rejected.yaml')
                 throw new AssertionError('invalid contract accepted')
             } catch (KlumModelException expected) {
                 assert expected.message.contains('input profiles') || expected.message.contains('collision') || expected.message.contains('naming metadata') || expected.message.contains('metadata protocol') || expected.message.contains('Missing constraint') || expected.message.contains('Unknown constraint projection policy') || expected.message.contains('Invalid decimal bound') || expected.message.contains('missing direct decimal facts') || expected.message.contains('construction key') || expected.message.contains('Malformed UTF-16')
@@ -2699,7 +2698,7 @@ class NamingControl {
                 URL: 'exact', 'empty-rename': 'empty', 'neutral-ignore': 'false is neutral',
                 'service-details': [nativeName: 'first'], 'other-details': [nativeName: 'second'],
                 'worker-instances': ['Worker/Blue': ['image-name': 'worker:1']], labels: ['Team/Blue': 'ops']]
-        def result = KlumStructuredInput.readRoot(type, input, 'naming.yaml')
+        def result = type.Create.FromStruct(input, 'naming.yaml')
         assert result.displayName == 'Base' && result.literalName == 'Literal'
         assert result.serviceName == 'Catalog' && result.URLValue == 'url'
         assert result.XML2Parser == 'xml' && result.version2URL == 'v2'
@@ -2710,17 +2709,17 @@ class NamingControl {
         assert result.workerInstances['Worker/Blue'].workerId == 'Worker/Blue'
         assert result.workerInstances['Worker/Blue'].imageName == 'worker:1'
         assert result.labels == ['Team/Blue': 'ops']
-        def operated = KlumStructuredInput.readRoot(type, ['configure-endpoint': 'operation', 'literal-operation': 'literal'], 'operation.yaml')
+        def operated = type.Create.FromStruct(['configure-endpoint': 'operation', 'literal-operation': 'literal'], 'operation.yaml')
         assert operated.serviceName == 'operation' && operated.neutralIgnore == 'literal'
         try {
-            KlumStructuredInput.readRoot(type, [serviceName: 'alias'], 'alias.yaml')
+            type.Create.FromStruct([serviceName: 'alias'], 'alias.yaml')
             throw new AssertionError('native alias accepted')
         } catch (KlumModelException expected) { assert expected.message.contains('serviceName') }
-        def keyed = KlumStructuredInput.readRoot(Class.forName('example.NamingKey', false, NamingControl.classLoader), ['service-id': 'Instance/Blue', 'display-name': 'Blue'], 'key.yaml')
+        def keyed = Class.forName('example.NamingKey', false, NamingControl.classLoader).Create.FromStruct(['service-id': 'Instance/Blue', 'display-name': 'Blue'], 'key.yaml')
         assert keyed.serviceId == 'Instance/Blue' && keyed.displayName == 'Blue'
-        def literalKey = KlumStructuredInput.readRoot(NamingLiteralKey, ['Service/ID': 'Instance/Red'], 'key.yaml')
+        def literalKey = NamingLiteralKey.Create.FromStruct(['Service/ID': 'Instance/Red'], 'key.yaml')
         assert literalKey.serviceId == 'Instance/Red'
-        def keyless = KlumStructuredInput.readRoot(Class.forName('example.NamingKeyCollisionOwner', false, NamingControl.classLoader), [services: [instance: ['url-value': 'property']]], 'keyless.yaml')
+        def keyless = Class.forName('example.NamingKeyCollisionOwner', false, NamingControl.classLoader).Create.FromStruct([services: [instance: ['url-value': 'property']]], 'keyless.yaml')
         assert keyless.services.instance.URLValue == 'instance' && keyless.services.instance.urlValue == 'property'
         println 'Naming interpreter/schema agreement passed'
     }
@@ -2782,8 +2781,8 @@ import jakarta.validation.*
 import jakarta.validation.constraints.*
 import java.lang.annotation.*
 import org.hibernate.validator.constraints.*
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport
 
 @Constraint(validatedBy=CompositionValidator) @Min(1L) @Max(100L)
 @Struct.ConstraintDescription(CompositionTexts.DESCRIPTION)
@@ -2857,7 +2856,7 @@ class CompositionReadControl {
     static void main(String[] args) {
         Class type = Class.forName('example.CompositionService', false, CompositionReadControl.classLoader)
         try {
-            KlumStructuredInput.readRoot(type, [:], 'composition.yaml')
+            StructuredInputSupport.readRoot(type, [:], 'composition.yaml')
             throw new AssertionError('corrupt composition metadata accepted')
         } catch (KlumModelException expected) {
             assert expected.message.contains('CompositionService')
@@ -2965,13 +2964,13 @@ class PatternConstants { public static final String TOKEN = '[a-z][a-z0-9-]{0,62
 """)
         writeSource('api/src/main/groovy/example/PatternReadControl.groovy', '''
 package example
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport
 class PatternReadControl {
     static void main(String[] args) {
         Class type = Class.forName('example.Release', false, PatternReadControl.classLoader)
         try {
-            KlumStructuredInput.readRoot(type, [:], 'pattern.yaml')
+            StructuredInputSupport.readRoot(type, [:], 'pattern.yaml')
             throw new AssertionError('corrupt Pattern metadata accepted')
         } catch (KlumModelException expected) {
             assert expected.message.contains('Pattern')
@@ -2987,10 +2986,10 @@ class PatternAdmissionControl {
             throw new AssertionError('plugin catalog leaked into interpreter classpath')
         } catch (ClassNotFoundException expected) { /* Plugin-only catalog must be absent. */ }
         Class type = Class.forName('example.PatternInputOnly', false, PatternAdmissionControl.classLoader)
-        assert KlumStructuredInput.readRoot(type, [code: 'outside pattern'], 'pattern.yaml').code == 'outside pattern'
-        assert KlumStructuredInput.readRoot(type, [:], 'pattern.yaml').code == null
+        assert type.Create.FromStruct([code: 'outside pattern'], 'pattern.yaml').code == 'outside pattern'
+        assert StructuredInputSupport.readRoot(type, [:], 'pattern.yaml').code == null
         try {
-            KlumStructuredInput.readRoot(type, [code: null], 'pattern.yaml')
+            type.Create.FromStruct([code: null], 'pattern.yaml')
             throw new AssertionError('null accepted')
         } catch (KlumModelException expected) { assert expected.message.contains('null') }
         println 'Pattern remains independent of interpreter admission'

@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -82,7 +81,7 @@ class StructuredInputDocumentaryTest extends AbstractDSLSpec {
         def parsed = [endpoint: [host: 'api', port: '8080']]
 
         when:
-        def application = KlumStructuredInput.readRoot(app, null, parsed, 'application.yaml')
+        def application = app.Create.FromStruct(parsed, 'application.yaml')
 
         then:
         application.host == 'api'
@@ -102,8 +101,7 @@ class StructuredInputDocumentaryTest extends AbstractDSLSpec {
         when:
         def model = holder.Create.With {
             def applicationBuilder = applicationType.Create.AsBuilder().One()
-            def same = KlumStructuredInput.applyToBuilder(applicationBuilder, parsed, 'application.yaml')
-            assert same.is(applicationBuilder)
+            applicationBuilder.applyStruct(parsed, 'application.yaml')
             assert !((InternalKlumBuilder) applicationBuilder).sealed
             applicationBuilder.environment(suppliedEnvironment)
             application(applicationBuilder)

@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -66,8 +65,8 @@ class InputExamplesTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def configured = KlumStructuredInput.readRoot(type, [displayName: 'Configured'], 'service.yaml')
-        def omitted = KlumStructuredInput.readRoot(type, [:], 'service.yaml')
+        def configured = type.Create.FromStruct([displayName: 'Configured'], 'service.yaml')
+        def omitted = type.Create.FromStruct([:], 'service.yaml')
 
         then:
         configured.displayName == 'Configured'
@@ -137,7 +136,7 @@ class InputExamplesTest extends AbstractDSLSpec {
         when:
         def result = type.Create.With {
             value 'before'
-            try { KlumStructuredInput.applyToBuilder(delegate, [configure: 'after'], 'active.yaml') }
+            try { delegate.applyStruct([configure: 'after'], 'active.yaml') }
             catch (KlumModelException failure) { rejected = failure }
         }
 

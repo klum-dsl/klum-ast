@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -78,7 +77,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         def type = schema()
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [timeout: 90, resetTimeout: [:]], 'service.yaml')
+        def result = type.Create.FromStruct([timeout: 90, resetTimeout: [:]], 'service.yaml')
         def events = type.events.toList()
         def direct = type.Create.With { timeout 90; resetTimeout() }
         def entry = new InputContractResolver().read(type).entries().resetTimeout
@@ -101,8 +100,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         when:
         def result = type.Create.With {
             try {
-                KlumStructuredInput.applyToBuilder(delegate,
-                        [timeout: 90, resetTimeout: payload, later: [:]], 'bad-command.yaml')
+                delegate.applyStruct([timeout: 90, resetTimeout: payload, later: [:]], 'bad-command.yaml')
             } catch (KlumModelException caught) { failure = caught }
         }
 
@@ -127,8 +125,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         when:
         def result = type.Create.With {
             try {
-                KlumStructuredInput.applyToBuilder(delegate,
-                        [timeout: 90, resetTimeout: [:], unknown: [:], later: [:]], 'ordered.yaml')
+                delegate.applyStruct([timeout: 90, resetTimeout: [:], unknown: [:], later: [:]], 'ordered.yaml')
             } catch (KlumModelException caught) { failure = caught }
         }
 
@@ -144,7 +141,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         def type = schema()
 
         when:
-        KlumStructuredInput.readRoot(type, [(name): [:], later: [:]], 'excluded.yaml')
+        type.Create.FromStruct([(name): [:], later: [:]], 'excluded.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -166,7 +163,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         """)
 
         when:
-        def ordinary = KlumStructuredInput.readRoot(type, [:], 'ordinary.yaml')
+        def ordinary = type.Create.FromStruct([:], 'ordinary.yaml')
         def entries = new InputContractResolver().read(type).entries()
 
         then:
@@ -175,7 +172,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         !entries.containsKey('callback')
 
         when:
-        KlumStructuredInput.readRoot(type, [callback: [:]], 'lifecycle.yaml')
+        type.Create.FromStruct([callback: [:]], 'lifecycle.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -201,7 +198,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         ''', 'Child')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [:], 'ordinary.yaml')
+        def result = type.Create.FromStruct([:], 'ordinary.yaml')
         def entries = new InputContractResolver().read(type).entries()
 
         then:
@@ -217,7 +214,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         def result = null
 
         when:
-        result = KlumStructuredInput.readRoot(type, [resetTimeout: [:], 'fail/~': [:], later: [:]], 'broken.yaml')
+        result = type.Create.FromStruct([resetTimeout: [:], 'fail/~': [:], later: [:]], 'broken.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -230,7 +227,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         type.events == ['created', 'reset', 'fail']
 
         when:
-        def recovered = KlumStructuredInput.readRoot(type, [resetTimeout: [:]], 'recovered.yaml')
+        def recovered = type.Create.FromStruct([resetTimeout: [:]], 'recovered.yaml')
 
         then:
         recovered.timeout == 30
@@ -253,7 +250,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         ''', 'Grandchild')
 
         when:
-        KlumStructuredInput.readRoot(type, ['reset-timeout': [:], 'current-name': [:]], 'inherited.yaml')
+        type.Create.FromStruct(['reset-timeout': [:], 'current-name': [:]], 'inherited.yaml')
         def entries = new InputContractResolver().read(type).entries()
 
         then:
@@ -273,7 +270,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [resetTimeout: [:]], 'collision.yaml')
+        type.Create.FromStruct([resetTimeout: [:]], 'collision.yaml')
 
         then:
         thrown(KlumModelException)
@@ -286,7 +283,7 @@ class StructuredCommandTest extends AbstractDSLSpec {
         mutateRole(mutation)
 
         when:
-        KlumStructuredInput.readRoot(type, [later: [:]], 'corrupt.yaml')
+        type.Create.FromStruct([later: [:]], 'corrupt.yaml')
 
         then:
         def failure = thrown(KlumModelException)

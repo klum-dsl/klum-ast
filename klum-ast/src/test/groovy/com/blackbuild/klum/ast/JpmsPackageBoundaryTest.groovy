@@ -1029,7 +1029,6 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.runtime.PhaseAction;
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
-            import com.blackbuild.klum.ast.runtime.KlumStructuredInput;
             import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
@@ -1080,7 +1079,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station namedTemplate = Station.Create.Template.FromStruct(Map.of("station-name", "Named template"), "template.yaml");
                     if (!"Java template".equals(template.getName()) || !"Named template".equals(namedTemplate.getName()))
                         throw new AssertionError("Template Factory structured input did not link");
-                    Station selected = KlumStructuredInput.readRoot(Station.class, Map.of("endpoint", "Java"), "selected.json");
+                    Station selected = Station.Create.FromStruct(Map.of("endpoint", "Java"), "selected.json");
                     Station directSelected = factory.With(new Closure<Object>(null) {
                         @Override public Object call() {
                             ((Station_DSL.Builder<Station>) getDelegate()).endpoint("Java");
@@ -1089,10 +1088,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
                         throw new AssertionError("Selected public String operation differs from direct Java dispatch");
-                    Station converted = KlumStructuredInput.readRoot(Station.class, Map.of("timeout", "PT30S", "interval", "PT45S"), "converter.json");
+                    Station converted = Station.Create.FromStruct(Map.of("timeout", "PT30S", "interval", "PT45S"), "converter.json");
                     if (converted.getTimeout().getSeconds() != 30 || converted.getInterval().getSeconds() != 45)
                         throw new AssertionError("Field converter failed through the public named-module contract");
-                    Station commanded = KlumStructuredInput.readRoot(Station.class, Map.of("resetTimeout", Map.of()), "command.json");
+                    Station commanded = Station.Create.FromStruct(Map.of("resetTimeout", Map.of()), "command.json");
                     Station directCommand = factory.With(new Closure<Object>(null) {
                         @Override public Object call() {
                             ((Station_DSL.Builder<Station>) getDelegate()).resetTimeout();
@@ -1101,17 +1100,29 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (commanded.getCapacity() != 30 || commanded.getCapacity() != directCommand.getCapacity())
                         throw new AssertionError("Command differs from direct Builder dispatch");
-                    Station structured = KlumStructuredInput.readRoot(Station.class, null,
-                            Map.of("station-name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
+                    Station structured = Station.Create.FromStruct(Map.of("station-name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
                     if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
                             || !"slot".equals(structured.getSlot().getName()))
                         throw new AssertionError("Named Java structured-input consumer did not link or populate");
-                    StructuredRoot keyed = KlumStructuredInput.readRoot(StructuredRoot.class,
-                            Map.of("name", "root", "direct", Map.of("name", "direct"),
+                    StructuredRoot keyed = StructuredRoot.Create.FromStruct(Map.of("name", "root", "direct", Map.of("name", "direct"),
                                     "slots", Map.of("outer", Map.of("description", "body"))), "keyed.json");
                     if (!"root".equals(keyed.getName()) || !"direct".equals(keyed.getDirect().getName())
                             || !"outer".equals(keyed.getSlots().get("outer").getName()))
                         throw new AssertionError("Named Java key-member consumer did not link or populate");
+                    StructuredRoot explicit = StructuredRoot.Create.FromStruct("external", Map.of("direct", Map.of("name", "child")));
+                    StructuredRoot namedExplicit = StructuredRoot.Create.FromStruct("named", Map.of(), "opaque://label");
+                    if (!"external".equals(explicit.getName()) || !"named".equals(namedExplicit.getName()))
+                        throw new AssertionError("Explicit-key Factory did not preserve identity");
+                    Station applied = factory.With(new Closure<Object>(null) {
+                        @Override public Object call() {
+                            Station_DSL.Builder<Station> builder = (Station_DSL.Builder<Station>) getDelegate();
+                            builder.applyStruct(Map.of("capacity", 7));
+                            builder.applyStruct(Map.of("station-name", "Applied Java"), "request");
+                            return null;
+                        }
+                    });
+                    if (applied.getCapacity() != 7 || !"Applied Java".equals(applied.getName()))
+                        throw new AssertionError("Inherited Java Builder application did not link");
                     Deployment deployment = Deployment.Create.One();
                     if (!"https://direct.example.test".equals(deployment.getEndpoint().getUrl()) ||
                             !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
@@ -1198,7 +1209,6 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.Station_DSL
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport
-            import com.blackbuild.klum.ast.runtime.KlumStructuredInput
             import groovy.transform.CompileStatic
             import java.util.Map
             import java.util.Set
@@ -1223,33 +1233,36 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station namedTemplate = Station.Create.Template.FromStruct(['station-name': 'named template'], 'template.yaml')
                     assert template.name == 'static template'
                     assert namedTemplate.name == 'named template'
-                    Station selected = KlumStructuredInput.readRoot(Station, [endpoint: 'static'], 'selected.json')
+                    Station selected = Station.Create.FromStruct([endpoint: 'static'], 'selected.json')
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'
                     assert selected.name == directSelected.name
-                    Station converted = KlumStructuredInput.readRoot(Station, [timeout: 'PT30S', interval: 'PT45S'], 'converter.json')
+                    Station converted = Station.Create.FromStruct([timeout: 'PT30S', interval: 'PT45S'], 'converter.json')
                     Station directConverted = Station.Create.With { timeout 'PT30S'; interval 'PT45S' }
                     assert converted.timeout.seconds == 30
                     assert converted.timeout == directConverted.timeout
                     assert converted.interval == directConverted.interval
                     assert converted.interval.seconds == 45
-                    Station commanded = KlumStructuredInput.readRoot(Station, [resetTimeout: [:]], 'command.json')
+                    Station commanded = Station.Create.FromStruct([resetTimeout: [:]], 'command.json')
                     Station directCommand = Station.Create.With { resetTimeout() }
                     assert commanded.capacity == 30
                     assert commanded.capacity == directCommand.capacity
-                    Station structured = KlumStructuredInput.readRoot(Station, null, ['station-name': 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
+                    Station structured = Station.Create.FromStruct(['station-name': 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
                     assert structured.name == 'Structured static'
                     assert structured.capacity == 6
                     assert structured.slot.name == 'slot'
-                    StructuredRoot keyed = KlumStructuredInput.readRoot(StructuredRoot,
-                            [name: 'root', direct: [name: 'direct'], slots: [outer: [description: 'body']]], 'keyed.json')
+                    StructuredRoot keyed = StructuredRoot.Create.FromStruct([name: 'root', direct: [name: 'direct'], slots: [outer: [description: 'body']]], 'keyed.json')
                     assert keyed.name == 'root'
                     assert keyed.direct.name == 'direct'
                     assert keyed.slots.get('outer').name == 'outer'
+                    StructuredRoot explicit = StructuredRoot.Create.FromStruct('external', [direct: [name: 'child']])
+                    StructuredRoot namedExplicit = StructuredRoot.Create.FromStruct('named', [:], 'opaque://label')
+                    assert explicit.name == 'external'
+                    assert namedExplicit.name == 'named'
                     Station applied = Station.Create.With {
                         Station_DSL.Builder<Station> builder = (Station_DSL.Builder<Station>) delegate
-                        Station_DSL.Builder<Station> same = KlumStructuredInput.applyToBuilder(builder, ['station-name': 'Active static', slot: [description: 'active']], 'station.json')
-                        assert same.is(builder)
+                        builder.applyStruct([capacity: 7])
+                        builder.applyStruct(['station-name': 'Active static', slot: [description: 'active']], 'station.json')
                     }
                     assert applied.name == 'Active static'
                     assert applied.slot.name == 'slot'

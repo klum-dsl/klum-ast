@@ -27,7 +27,6 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.Validate
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.Issue
 
@@ -65,7 +64,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema()
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, input, 'capacity.json')
+        def model = type.Create.FromStruct(input, 'capacity.json')
 
         then:
         model.percentage == expected
@@ -85,7 +84,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema()
 
         when:
-        KlumStructuredInput.readRoot(type, null, [percentage: value], 'capacity.json')
+        type.Create.FromStruct([percentage: value], 'capacity.json')
 
         then:
         def failure = thrown(KlumValidationException)
@@ -103,7 +102,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema()
 
         when:
-        KlumStructuredInput.readRoot(type, null, [percentage: value], 'capacity.json')
+        type.Create.FromStruct([percentage: value], 'capacity.json')
 
         then:
         def failure = thrown(KlumModelException)
@@ -121,7 +120,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema('@PostTree void replace() { percentage = 50 }')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [percentage: value], 'repair.json')
+        def model = type.Create.FromStruct([percentage: value], 'repair.json')
 
         then:
         model.percentage == 50
@@ -136,7 +135,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema('@PostTree void replace() { percentage = 101 }')
 
         when:
-        KlumStructuredInput.readRoot(type, null, [percentage: 50], 'replace.json')
+        type.Create.FromStruct([percentage: 50], 'replace.json')
 
         then:
         thrown(KlumValidationException)
@@ -152,7 +151,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, input, 'literal.json')
+        def model = type.Create.FromStruct(input, 'literal.json')
 
         then:
         model.percentage == expected
@@ -169,7 +168,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema('@NotNull String name; @Required String description')
 
         when:
-        KlumStructuredInput.readRoot(type, null, [:], 'absent.json')
+        type.Create.FromStruct([:], 'absent.json')
 
         then:
         def failure = thrown(KlumValidationException)
@@ -198,9 +197,8 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def omitted = KlumStructuredInput.readRoot(type, null, [:], 'absent.json')
-        def supplied = KlumStructuredInput.readRoot(type, null,
-                [percentage: 0, label: '', enabled: false], 'false-values.json')
+        def omitted = type.Create.FromStruct([:], 'absent.json')
+        def supplied = type.Create.FromStruct([percentage: 0, label: '', enabled: false], 'false-values.json')
 
         then:
         omitted.percentage == 75
@@ -228,13 +226,13 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [:], 'default.json')
+        def model = type.Create.FromStruct([:], 'default.json')
 
         then:
         model.percentage == 50
 
         when:
-        KlumStructuredInput.readRoot(type, null, [percentage: '50'], 'raw.json')
+        type.Create.FromStruct([percentage: '50'], 'raw.json')
 
         then:
         thrown(KlumModelException)
@@ -245,13 +243,13 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         def type = percentageSchema('@Builder.Method void fromText(String value) { percentage = Integer.valueOf(value) }')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [fromText: '50'], 'operation.json')
+        def model = type.Create.FromStruct([fromText: '50'], 'operation.json')
 
         then:
         model.percentage == 50
 
         when:
-        KlumStructuredInput.readRoot(type, null, [fromText: '101'], 'operation.json')
+        type.Create.FromStruct([fromText: '101'], 'operation.json')
 
         then:
         thrown(KlumValidationException)
@@ -266,8 +264,8 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
 
         when:
         def model = type.Create.With {
-            KlumStructuredInput.applyToBuilder(delegate, [child: [percentage: 101]], 'first.json')
-            KlumStructuredInput.applyToBuilder(delegate, [child: [percentage: 50]], 'second.json')
+            delegate.applyStruct([child: [percentage: 101]], 'first.json')
+            delegate.applyStruct([child: [percentage: 50]], 'second.json')
         }
 
         then:
@@ -275,7 +273,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         KlumObjectSupport.of(model.child).validation.result.issues.empty
 
         when:
-        KlumStructuredInput.readRoot(type, null, [child: [percentage: 101]], 'nested.json')
+        type.Create.FromStruct([child: [percentage: 101]], 'nested.json')
 
         then:
         thrown(KlumValidationException)
@@ -300,20 +298,20 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [percent: 100], 'renamed.json')
+        def model = type.Create.FromStruct([percent: 100], 'renamed.json')
 
         then:
         model.percentage == 100
         model.hidden == null
 
         when:
-        KlumStructuredInput.readRoot(type, null, [percent: 101], 'renamed.json')
+        type.Create.FromStruct([percent: 101], 'renamed.json')
 
         then:
         thrown(KlumValidationException)
 
         when:
-        KlumStructuredInput.readRoot(type, null, [(name): 50], 'excluded.json')
+        type.Create.FromStruct([(name): 50], 'excluded.json')
 
         then:
         def failure = thrown(KlumModelException)
@@ -331,7 +329,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [percentage: -1], 'group.json')
+        def model = type.Create.FromStruct([percentage: -1], 'group.json')
 
         then:
         model.percentage == -1
@@ -346,7 +344,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [percentage: -1], 'warning.json')
+        def model = type.Create.FromStruct([percentage: -1], 'warning.json')
         def result = KlumObjectSupport.of(model).validation.result
 
         then:
@@ -361,8 +359,8 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         """)
 
         when:
-        def low = KlumStructuredInput.readRoot(type, null, [percentage: 0], 'low.json')
-        def high = KlumStructuredInput.readRoot(type, null, [percentage: 100], 'high.json')
+        def low = type.Create.FromStruct([percentage: 0], 'low.json')
+        def high = type.Create.FromStruct([percentage: 100], 'high.json')
 
         then:
         low.percentage == 0
@@ -379,14 +377,14 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [label: '', enabled: false], 'values.json')
+        def model = type.Create.FromStruct([label: '', enabled: false], 'values.json')
 
         then:
         model.label == ''
         model.enabled == false
 
         when:
-        KlumStructuredInput.readRoot(type, null, [(member): null], 'null.json')
+        type.Create.FromStruct([(member): null], 'null.json')
 
         then:
         def failure = thrown(KlumModelException)
@@ -404,7 +402,7 @@ class RawInputConstraintCharacterizationTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, null, [percentage: -1], 'explicit-default.json')
+        type.Create.FromStruct([percentage: -1], 'explicit-default.json')
 
         then:
         thrown(KlumValidationException)

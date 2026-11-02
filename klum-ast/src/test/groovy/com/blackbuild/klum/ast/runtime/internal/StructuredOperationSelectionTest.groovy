@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.Struct
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -75,7 +74,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [endpoint: 'api.internal'], 'service.yaml')
+        def result = type.Create.FromStruct([endpoint: 'api.internal'], 'service.yaml')
         def direct = type.Create.With { endpoint 'api.internal' }
         def contract = new InputContractResolver().read(type)
 
@@ -98,7 +97,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'unique.yaml')
+        def result = type.Create.FromStruct([endpoint: 'api'], 'unique.yaml')
 
         then:
         result.host == 'api'
@@ -114,7 +113,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: value], 'ambiguous.yaml')
+        type.Create.FromStruct([endpoint: value], 'ambiguous.yaml')
 
         then:
         thrown(KlumModelException)
@@ -134,7 +133,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [:], 'multiple.yaml')
+        type.Create.FromStruct([:], 'multiple.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -153,8 +152,8 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def nativeValue = KlumStructuredInput.readRoot(type, ['configure-endpoint': 'api'], 'native.yaml')
-        def literalValue = KlumStructuredInput.readRoot(type, [configureEndpoint: 'api'], 'literal.yaml')
+        def nativeValue = type.Create.FromStruct(['configure-endpoint': 'api'], 'native.yaml')
+        def literalValue = type.Create.FromStruct([configureEndpoint: 'api'], 'literal.yaml')
 
         then:
         nativeValue.host == 'native:api'
@@ -173,7 +172,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
 
         when:
         def outcome
-        try { outcome = KlumStructuredInput.readRoot(type, ['url-value': 'api'], 'profile.yaml') }
+        try { outcome = type.Create.FromStruct(['url-value': 'api'], 'profile.yaml') }
         catch (KlumModelException failure) { outcome = failure }
 
         then:
@@ -200,7 +199,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [external: 'api'], 'rename.yaml')
+        def result = type.Create.FromStruct([external: 'api'], 'rename.yaml')
         def contract = new InputContractResolver().read(type)
 
         then:
@@ -208,7 +207,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         contract.entries().keySet() == ['external'] as Set
 
         when:
-        KlumStructuredInput.readRoot(type, [secondary: 'api'], 'native.yaml')
+        type.Create.FromStruct([secondary: 'api'], 'native.yaml')
 
         then:
         thrown(KlumModelException)
@@ -232,7 +231,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         def type = schema("@DSL class Service { $declaration }")
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'unsupported.yaml')
+        type.Create.FromStruct([endpoint: 'api'], 'unsupported.yaml')
 
         then:
         thrown(KlumModelException)
@@ -259,13 +258,13 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: 42], 'numeric.yaml')
+        type.Create.FromStruct([endpoint: 42], 'numeric.yaml')
 
         then:
         thrown(KlumModelException)
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [endpoint: '42'], 'string.yaml')
+        def result = type.Create.FromStruct([endpoint: '42'], 'string.yaml')
 
         then:
         result.host == '42'
@@ -285,7 +284,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
 
         when:
         def contract = new InputContractResolver().read(type)
-        def result = KlumStructuredInput.readRoot(type, [(external): 'api'], 'inheritance.yaml')
+        def result = type.Create.FromStruct([(external): 'api'], 'inheritance.yaml')
         def direct = type.Create.With { endpoint 'api' }
 
         then:
@@ -314,7 +313,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
 
         when:
         def contract = new InputContractResolver().read(type)
-        def result = KlumStructuredInput.readRoot(type, ignored ? [:] : [renamed: 'api'], 'override.yaml')
+        def result = type.Create.FromStruct(ignored ? [:] : [renamed: 'api'], 'override.yaml')
         def direct = type.Create.With { host 'api' }
 
         then:
@@ -323,7 +322,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         contract.entries().keySet() == (ignored ? [] : ['renamed']) as Set
 
         when:
-        KlumStructuredInput.readRoot(type, [original: 'api'], 'old-name.yaml')
+        type.Create.FromStruct([original: 'api'], 'old-name.yaml')
 
         then:
         thrown(KlumModelException)
@@ -344,7 +343,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [host: 'api'], 'exact-signature.yaml')
+        def result = type.Create.FromStruct([host: 'api'], 'exact-signature.yaml')
         def direct = type.Create.With { host 'api' }
 
         then:
@@ -369,8 +368,8 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
 
         when:
         def contract = new InputContractResolver().read(type)
-        def original = KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'surviving.yaml')
-        def renamed = KlumStructuredInput.readRoot(type, ignored ? [:] : [renamed: 'api'], 'renamed.yaml')
+        def original = type.Create.FromStruct([endpoint: 'api'], 'surviving.yaml')
+        def renamed = type.Create.FromStruct(ignored ? [:] : [renamed: 'api'], 'renamed.yaml')
 
         then:
         contract.entries().keySet() == (ignored ? ['endpoint'] : ['endpoint', 'renamed']) as Set
@@ -405,7 +404,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         direct.host == 'child:api'
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'unmarked-override.yaml')
+        type.Create.FromStruct([endpoint: 'api'], 'unmarked-override.yaml')
 
         then:
         thrown(KlumModelException)
@@ -421,7 +420,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'shadow.yaml')
+        type.Create.FromStruct([endpoint: 'api'], 'shadow.yaml')
 
         then:
         thrown(KlumModelException)
@@ -438,7 +437,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'ambiguous.yaml')
+        type.Create.FromStruct([endpoint: 'api'], 'ambiguous.yaml')
 
         then:
         thrown(KlumModelException)
@@ -456,7 +455,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'string.yaml')
+        def result = type.Create.FromStruct([endpoint: 'api'], 'string.yaml')
 
         then:
         result.host == 'api'
@@ -487,8 +486,8 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         when:
         def inherited = Class.forName('operationselection.Inherited', false, artifacts)
         def overridden = Class.forName('operationselection.Overridden', false, artifacts)
-        def inheritedValue = KlumStructuredInput.readRoot(inherited, [endpoint: 'api'], 'binary.yaml')
-        def overriddenValue = KlumStructuredInput.readRoot(overridden, [endpoint: 'api', renamed: 'label'], 'binary.yaml')
+        def inheritedValue = inherited.Create.FromStruct([endpoint: 'api'], 'binary.yaml')
+        def overriddenValue = overridden.Create.FromStruct([endpoint: 'api', renamed: 'label'], 'binary.yaml')
 
         then:
         inheritedValue.host == inherited.Create.With { endpoint 'api' }.host
@@ -521,7 +520,7 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         mutateContract(mutation)
 
         when:
-        KlumStructuredInput.readRoot(type, [:], 'corrupt.yaml')
+        type.Create.FromStruct([:], 'corrupt.yaml')
 
         then:
         def failure = thrown(KlumModelException)

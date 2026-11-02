@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -69,7 +68,7 @@ class StructuredInputKeyDocumentaryTest extends AbstractDSLSpec {
                       services: [worker: [image: 'worker:1.0']]]
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, parsed, 'deployment.yaml')
+        def model = deployment.Create.FromStruct(parsed, 'deployment.yaml')
 
         then:
         model.name == 'production'
@@ -84,14 +83,14 @@ class StructuredInputKeyDocumentaryTest extends AbstractDSLSpec {
         def parsed = [service: ['service-id': 'catalog', image: 'catalog:1.0']]
 
         when:
-        def model = KlumStructuredInput.readRoot(deployment, 'production', parsed, 'deployment.yaml')
+        def model = deployment.Create.FromStruct('production', parsed, 'deployment.yaml')
 
         then:
         model.name == 'production'
         model.service.name == 'catalog'
 
         when: 'even an equal inner key is a second identity authority'
-        KlumStructuredInput.readRoot(deployment, 'production', [name: 'production'], 'deployment.yaml')
+        deployment.Create.FromStruct('production', [name: 'production'], 'deployment.yaml')
 
         then:
         def failure = thrown(KlumModelException)
