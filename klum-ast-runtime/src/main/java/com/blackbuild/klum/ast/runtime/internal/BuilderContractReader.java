@@ -86,6 +86,8 @@ final class BuilderContractReader {
     private static final String SCHEMA = PREFIX + "Schema;";
     private static final String KEY_ANNOTATION = PREFIX + "Key;";
     private static final String FIELD = PREFIX + "Field;";
+    private static final String VIRTUAL_SINK = "Lcom/blackbuild/klum/ast/Field;";
+    private static final String VIRTUAL_SCOPE = PREFIX + "VirtualScope;";
     private static final String OPERATION_FACT = PREFIX + "Operation;";
     private static final String SOURCE_DEPRECATED = "sourceDeprecated";
     private static final String CONSTRAINT = PREFIX + "Constraint;";
@@ -96,7 +98,7 @@ final class BuilderContractReader {
     private static final String AUTHOR_OPERATION = "Lcom/blackbuild/klum/ast/Struct$Operation;";
     private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, AUTHOR_OPERATION, QUERY, DOC);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, VIRTUAL_SCOPE, VIRTUAL_SINK, AUTHOR_OPERATION, QUERY, DOC);
 
     private final Map<Class<?>, Metadata> declarations = new IdentityHashMap<>();
 
@@ -116,7 +118,7 @@ final class BuilderContractReader {
                     Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
-                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter) {
+                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink) {
         Literals {
             constraints = constraints == null ? null : List.copyOf(constraints);
             examples = examples == null ? null : List.copyOf(examples);
@@ -140,7 +142,7 @@ final class BuilderContractReader {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
-                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter);
+                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink);
     }
 
     private static NameFacts freeze(MutableNameFacts value) {
@@ -263,6 +265,8 @@ final class BuilderContractReader {
         Boolean operationDeprecated;
         Boolean authoritative;
         String operationRole;
+        String scopeCreator;
+        boolean plainVirtualSink;
         boolean authorOperation;
         String exclusion = "";
         String detail = "";
@@ -350,20 +354,27 @@ final class BuilderContractReader {
     }
 
     private static void validateOperationFacts(MutableLiterals literal, String source, String signature) {
-        if (literal.operation && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
+        if ((literal.operation || literal.scopeCreator != null) && !literal.operationFact) throw invalid("Missing literal operation facts on " + source);
         if (!literal.operationFact) return;
-        if (!literal.operation || literal.authoritative == null) {
+        if (literal.operation == (literal.scopeCreator != null) || literal.authoritative == null) {
             throw invalid("Missing operation role or authoritative selection fact on " + source);
         }
         if (literal.authoritative.booleanValue() != literal.authorOperation) {
             throw invalid("Author marker disagrees with authoritative selection fact on " + source);
         }
-        Set<String> expectedRoles = signature.contains("()") ? Set.of("COMMAND", "LIFECYCLE") : Set.of("OPERATION");
+        if (literal.scopeCreator != null && (!literal.plainVirtualSink || literal.authoritative || literal.query))
+            throw invalid("Virtual scope lacks a plain virtual sink on " + source);
+        Set<String> expectedRoles = expectedOperationRoles(literal, signature);
         if (literal.operationRole == null || !expectedRoles.contains(literal.operationRole))
             throw invalid("Missing or inconsistent operation role on " + source);
         validateNameFacts(literal.operationNames, source);
         if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
         if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
+    }
+
+    private static Set<String> expectedOperationRoles(MutableLiterals literal, String signature) {
+        if (literal.scopeCreator != null) return Set.of("VIRTUAL_OBJECT");
+        return signature.contains("()") ? Set.of("COMMAND", "LIFECYCLE") : Set.of("OPERATION");
     }
 
     private static void validateConverterFacts(MutableLiterals literal, String source) {
@@ -592,6 +603,15 @@ final class BuilderContractReader {
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
             if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
+            if (annotation.equals(VIRTUAL_SINK)) {
+                literal.plainVirtualSink = true;
+                return new AnnotationVisitor(Opcodes.ASM9) {
+                    @Override public void visit(String name, Object value) { literal.plainVirtualSink = false; }
+                    @Override public void visitEnum(String name, String type, String value) { literal.plainVirtualSink = false; }
+                    @Override public AnnotationVisitor visitArray(String name) { literal.plainVirtualSink = false; return null; }
+                    @Override public AnnotationVisitor visitAnnotation(String name, String type) { literal.plainVirtualSink = false; return null; }
+                };
+            }
             return new MethodAnnotationVisitor(annotation, literal);
         }
     }
@@ -737,6 +757,11 @@ final class BuilderContractReader {
             if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "expected String array");
             switch (annotation) {
                 case OPERATION_FACT -> operationFact(member, value);
+                case VIRTUAL_SCOPE -> {
+                    if (!member.equals("creator") || !(value instanceof String creator) || creator.isBlank() || literal.scopeCreator != null)
+                        throw invalid("Invalid virtual scope creator association");
+                    literal.scopeCreator = creator;
+                }
                 case KEY_ANNOTATION -> keyFact(member, value);
                 case FIELD -> fieldFact(member, value);
                 case SELECTION -> selectionFact(member, value);

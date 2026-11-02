@@ -373,6 +373,10 @@ Caller-pre-keyed bodies can explicitly select `klumSchema.jsonSchema.bodyRootTyp
 omits root identity and preserves child positions. See
 [Builder-body schema selection](Migration.md#caller-pre-keyed-builder-body-schemas).
 
+Concrete virtual-field mappings now enter their existing child configuration interval before `PostApply` and the sink.
+Use the bounded [virtual-scope contract](Structured-Input.md#concrete-virtual-builder-scopes), with matched/recompiled
+artifacts; a returned Builder is already past that interval. See [migration](Migration.md#concrete-virtual-structured-scopes).
+
 ## Templates, Serialization, and Jackson
 
 Templates remain client-facing DSL Object recipes. Every owned node created in Template mode has persistent Template

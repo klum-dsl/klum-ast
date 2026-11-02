@@ -47,6 +47,7 @@ import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import groovy.transform.Undefined;
+import groovy.lang.Closure;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ListExpression;
@@ -58,6 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
@@ -175,10 +177,92 @@ final class StructuredInputAdmissionPlan {
         StructuredInputConstraintMetadata.enrichSchema(model, schema);
         builder.addAnnotation(schema);
         restoreAuthoredFacts(transformation);
+        enrichVirtualScopes(transformation, entries, rejections);
         long operationCount = builder.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(builder))
                 .filter(method -> annotation(method, GeneratedInput.Operation.class.getName()) != null).count();
         schema.setMember("operationCount", new ConstantExpression((int) operationCount));
+    }
+
+    private static final String VIRTUAL_SCOPES = METADATA_KEY + ".virtualScopes";
+    private record VirtualScope(MethodNode source, FieldNode field) { }
+
+    static void recordVirtualScope(DSLASTTransformation transformation, MethodNode source, FieldNode field) {
+        List<VirtualScope> scopes = transformation.annotatedClass.getNodeMetaData(VIRTUAL_SCOPES);
+        if (scopes == null) {
+            scopes = new ArrayList<>();
+            transformation.annotatedClass.setNodeMetaData(VIRTUAL_SCOPES, scopes);
+        }
+        scopes.add(new VirtualScope(source, field));
+    }
+
+    /** Bind only a bare, unkeyed concrete virtual sink to its existing generated creator. */
+    @SuppressWarnings("java:S135") // Each failed proof excludes the scope; separate guards keep admission flat and fail-closed.
+    private static void enrichVirtualScopes(DSLASTTransformation transformation, List<Entry> entries, List<Rejection> rejections) {
+        List<VirtualScope> scopes = transformation.annotatedClass.getNodeMetaData(VIRTUAL_SCOPES);
+        if (scopes == null) return;
+        ClassNode builder = GeneratedDslSupport.of(transformation.annotatedClass).getBuilderInterface().redirect();
+        for (VirtualScope scope : scopes) {
+            if (!eligibleVirtualScope(transformation, scopes, scope)) continue;
+            MethodNode creator = virtualCreator(transformation, scope.source().getName());
+            if (creator == null) continue;
+            MethodNode sink = virtualSink(builder, scope.source().getName(), creator.getReturnType());
+            if (sink == null) continue;
+            enrichVirtualScope(transformation, scope, sink, creator);
+            Name name = externalName(scope.source());
+            if (name.ignored()) {
+                rejections.add(new Rejection(source(scope.source()), ignoreReason(name)));
+            } else {
+                entries.add(new Entry(name.value(), Role.VIRTUAL_OBJECT, source(scope.source()),
+                        new PublicOperation(builder.getName(), sink.getName(), List.of(descriptor(sink), descriptor(creator))),
+                        payloadForModel(scope.field().getType()), name.origin(), null, null, null, false));
+            }
+        }
+    }
+
+    private static boolean eligibleVirtualScope(DSLASTTransformation transformation, List<VirtualScope> scopes, VirtualScope scope) {
+        ClassNode target = scope.field().getType().redirect();
+        MethodNode source = scope.source();
+        AnnotationNode options = annotation(scope.field(), Field.class.getName());
+        return isDSLObject(target) && !Modifier.isAbstract(target.getModifiers()) && getKeyField(target) == null
+                && (target.getGenericsTypes() == null || target.getGenericsTypes().length == 0)
+                && source.isPublic() && !source.isStatic() && source.isVoidMethod()
+                && options != null && options.getMembers().isEmpty()
+                && annotation(source, Builder.Method.class.getName()) == null
+                && annotation(source, Struct.Operation.class.getName()) == null
+                && transformation.annotatedClass.getField(source.getName()) == null
+                && scopes.stream().filter(other -> other.source().getName().equals(source.getName())).count() == 1;
+    }
+
+    private static MethodNode virtualCreator(DSLASTTransformation transformation, String name) {
+        return transformation.builderClass.getDeclaredMethods(name).stream()
+                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
+                .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(parameter -> parameter.getType().getName()).toArray(String[]::new),
+                        new String[]{Map.class.getName(), Closure.class.getName()}))
+                .map(GeneratedDslSupport::publicProjectionOf)
+                .filter(Objects::nonNull)
+                .findFirst().orElse(null);
+    }
+
+    private static MethodNode virtualSink(ClassNode builder, String name, ClassNode targetBuilder) {
+        return builder.getDeclaredMethods(name).stream()
+                .filter(method -> method.getParameters().length == 1 && method.isVoidMethod())
+                .filter(method -> method.getParameters()[0].getType().getName().equals(targetBuilder.getName()))
+                .filter(method -> annotation(method, Field.class.getName()) != null)
+                .findFirst().orElse(null);
+    }
+
+    private static void enrichVirtualScope(DSLASTTransformation transformation, VirtualScope scope, MethodNode sink, MethodNode creator) {
+        AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.VirtualScope.class));
+        association.setMember("creator", new ConstantExpression(descriptor(creator)));
+        sink.addAnnotation(association);
+        AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
+        operation.setMember("role", new ConstantExpression(Role.VIRTUAL_OBJECT.name()));
+        operation.setMember("authoritative", ConstantExpression.FALSE);
+        enrichName(externalName(scope.source()), operation);
+        enrichDeprecation(scope.source(), operation);
+        StructuredInputExamples.enrich(scope.source(), transformation.annotatedClass, operation, source(scope.source()));
+        sink.addAnnotation(operation);
     }
 
     private static void enrichNaming(ClassNode model, AnnotationNode schema) {
@@ -776,7 +860,7 @@ final class StructuredInputAdmissionPlan {
         return (model == null ? method.getDeclaringClass() : model).getName() + "#" + descriptor(method);
     }
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, OPERATION, COMMAND }
+    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, INPUT_NAME, IGNORE, INPUT_IGNORE }
     record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }

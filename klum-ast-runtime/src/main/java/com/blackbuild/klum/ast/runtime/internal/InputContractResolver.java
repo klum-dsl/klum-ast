@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
+import groovy.lang.Closure;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -230,6 +231,7 @@ final class InputContractResolver {
             Facts inherited = collect(parent, known, nativeCandidates);
             key = inheritKey(key, inherited.key());
             rejectOverriddenFields(context, inherited.entries(), rejections);
+            rejectRedeclaredVirtualScopes(context, inherited.entries(), entries, rejections);
             inherited.entries().stream().filter(entry -> !overriddenOperation(context, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections());
             declarations.addAll(inherited.declarations());
@@ -244,9 +246,20 @@ final class InputContractResolver {
 
     /** An override owns its own names, exclusion and selection intent; parent annotations cannot select different code. */
     private static boolean overriddenOperation(BuilderContext context, Entry entry) {
-        if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
+        if (entry.role() != Role.COMMAND && entry.role() != Role.VIRTUAL_OBJECT && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
                 || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class)) return false;
         return entry.methods().stream().anyMatch(inherited -> overridden(inherited, declaredMethods(context)));
+    }
+
+    private static void rejectRedeclaredVirtualScopes(BuilderContext context, List<Entry> inherited,
+                                                      List<Entry> entries, List<Rejection> rejections) {
+        for (Entry parent : inherited) {
+            if (parent.role() != Role.VIRTUAL_OBJECT || !overridden(parent.methods().get(0), declaredMethods(context))) continue;
+            String reason = "redeclared virtual sink has no unique ordinary target; use a non-overridden virtual declaration";
+            rejections.add(new Rejection(parent.source(), reason));
+            entries.stream().filter(entry -> entry.role() == Role.VIRTUAL_OBJECT && entry.operation().equals(parent.operation()))
+                    .forEach(entry -> rejections.add(new Rejection(entry.source(), reason)));
+        }
     }
 
     private static boolean overridden(Method inherited, Method[] declared) {
@@ -362,9 +375,9 @@ final class InputContractResolver {
                 literal.names().ignored(), context.model().getName() + "#" + literal.key(), context.builder(), literal.sourceDeprecated(), ignoreReason(literal.names()), literal.examples());
     }
 
-    private static void collectDeclarations(BuilderContext context,
+    private void collectDeclarations(BuilderContext context,
                                             Map<String, Method> accessors, Map<String, List<Method>> selections,
-                                            List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) {
+                                            List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) throws IOException, ClassNotFoundException {
         Metadata metadata = context.metadata();
         for (Method method : Arrays.stream(declaredMethods(context)).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
             Literals literal = metadata.methods().get(signature(method));
@@ -374,7 +387,11 @@ final class InputContractResolver {
                     || accessors.putIfAbsent(literal.field(), method) != null))
                 throw invalid("Duplicate or invalid field accessor association " + literal.field());
             if (literal.selection() != null) selections.computeIfAbsent(literal.selection(), ignored -> new ArrayList<>()).add(method);
-            if (literal.operation() && !literal.query()) operation(method, literal, context.model(), entries, rejections);
+            if (literal.scopeCreator() != null) {
+                virtualScope(method, literal, context, entries, rejections);
+            } else if (literal.operation() && !literal.query()) {
+                operation(method, literal, context.model(), entries, rejections);
+            }
         }
     }
 
@@ -538,6 +555,28 @@ final class InputContractResolver {
 
     private static boolean containsNested(Payload payload) {
         return payload.kind() == Kind.NESTED_OBJECT || payload.item() != null && containsNested(payload.item());
+    }
+
+    private void virtualScope(Method sink, Literals literal, BuilderContext context,
+                                     List<Entry> entries, List<Rejection> rejections) throws IOException, ClassNotFoundException {
+        String source = context.model().getName() + "#" + sourceDescriptor(sink);
+        Payload nested = sink.getParameterCount() == 1 ? payload(sink.getGenericParameterTypes()[0], true) : null;
+        Method creator = Arrays.stream(declaredMethods(context))
+                .filter(method -> descriptor(method).equals(literal.scopeCreator())).findFirst()
+                .orElseThrow(() -> invalid("Missing exact virtual scope creator on " + source));
+        if (nested == null || nested.kind() != Kind.NESTED_OBJECT || sink.getReturnType() != void.class
+                || !Modifier.isPublic(sink.getModifiers()) || Modifier.isStatic(sink.getModifiers())
+                || !Modifier.isPublic(creator.getModifiers()) || Modifier.isStatic(creator.getModifiers())
+                || !creator.getName().equals(sink.getName()) || creator.getReturnType() != nested.builder()
+                || !Arrays.equals(creator.getParameterTypes(), new Class<?>[]{Map.class, Closure.class}))
+            throw invalid("Inconsistent virtual scope association on " + source);
+        if (!reader.metadata(nested.builder()).key().isEmpty() || nested.type().getTypeParameters().length != 0)
+            throw invalid("Virtual scopes require an unkeyed nongeneric concrete target on " + source);
+        NameFacts names = literal.operationNames();
+        if (names.ignored()) { rejections.add(new Rejection(source, ignoreReason(names))); return; }
+        String name = names.rename().isEmpty() ? sink.getName() : names.rename();
+        entries.add(new Entry(name, Role.VIRTUAL_OBJECT, source, sink.getDeclaringClass(), sink.getName(), List.of(sink, creator),
+                nested, null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
     }
 
     private static void operation(Method method, Literals literal, Class<?> model, List<Entry> entries, List<Rejection> rejections) {

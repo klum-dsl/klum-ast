@@ -452,6 +452,19 @@ annotation closures execute, including while diagnosing unsupported declarations
 
 An ordinary unannotated property named `key` is a normal generated property. Actual `@Key` members follow their construction position, as described below.
 
+## Concrete virtual scopes
+
+An [admitted concrete virtual field](Structured-Input.md#concrete-virtual-builder-scopes) is a reference to the target
+Builder's closed object definition, just like an unkeyed direct child. For the executable Registry example, `repository`
+accepts an object whose `url` property is a String; unknown properties, scalar bodies and null reject structurally.
+The virtual sink itself is not a completed-model property or export rule.
+
+The generator reads the compiler-owned association between the exact public virtual sink and its existing creator.
+Missing or inconsistent association facts fail generation before output replacement. An unchanged inherited scope
+retains its target; unsupported/redeclared virtual families are not advertised. Child-field constraints retain their
+own authority; no sink-parameter constraints are inferred or projected onto the mapping. Inspection does not invoke
+the creator, sink, defaults or lifecycle. Structural validity cannot guarantee successful runtime configuration.
+
 ## Compiled converter parameters
 
 For an [admitted generated String or CharSequence converter route](Converters.md#structured-string-input), the field's effective external

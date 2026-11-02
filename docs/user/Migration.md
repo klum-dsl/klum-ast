@@ -61,6 +61,17 @@ Where a String closure and an implicit CharSequence factory now compete, exclude
 one for you. C1 String parameter policies remain unchanged; CharSequence routes emit structural String grammar only.
 See [the executable Duration example](Converters.md#structured-string-input).
 
+### Concrete virtual structured scopes
+
+The bounded `@Field void method(ConcreteType value)` family now accepts nested mapping input when the target is
+unkeyed/nongeneric, the annotation has no explicit options and one exact generated creator is proven. Recompile
+Schemas, including binary parents, with matched compiler/runtime/plugin artifacts. Unchanged inherited declarations
+remain usable; redeclared/overloaded sinks and other unsupported virtual shapes remain excluded. Do not replace an
+ordinary virtual closure with a no-argument creator followed by `applyStruct`: that changes callback and sink timing.
+See [the executable scope example](Structured-Input.md#concrete-virtual-builder-scopes) and
+[schema representation](Json-Schema.md#concrete-virtual-scopes). Ordinary Groovy, Factory, Template and Jackson APIs
+are unchanged; no closure delegate inference or CollectionFactory support is added.
+
 ### Compiled converter String input
 
 Ordinary non-DSL fields with one eligible separately compiled String converter can now participate in structured input

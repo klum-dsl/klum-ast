@@ -65,8 +65,13 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert !properties.containsKey('abstractFacts')
             assert !properties.containsKey('genericFacts')
             assert !properties.containsKey('consumeBuilder')
+            assert !properties.containsKey('scoped')
+            assert properties.virtual.'$ref' == properties.facts.'$ref'
             assert !properties.containsKey('mapped')
             assert !trap.exists()
+            def retained = new File('build/schema-validation/virtual-scopes-' + generation + '.schema.json')
+            retained.parentFile.mkdirs()
+            retained.text = new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json').text
         } else {
             assert result.output.contains('BINARY-RELATIONSHIPS-OK')
             assert trap.exists()
@@ -163,6 +168,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     AbstractFacts abstractFacts
     GenericFacts<String> genericFacts
     @Builder.Method void consumeBuilder(Facts_DSL.Builder value) {}
+    @Builder.Method void scoped(@DelegatesToBuilder(Facts) Closure body) { facts(body) }
+    @Field void virtual(Facts value) {}
     @Field(keyMapping = { it.name }) Map<String, Workload> mapped
 }
 @DSL class LocalFacts { String host }
@@ -186,7 +193,7 @@ class Consumer {
         assert GenericFacts_DSL.Builder.typeParameters.length == 2
         def input = [facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
-                     local: [host: 'local'], labels: [('host-name'): 'literal']]
+                     local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual']]
         Trace.events.clear()
         def nativeModel = Deployment.Create.With {
             facts { host 'direct' }
@@ -195,6 +202,7 @@ class Consumer {
             inheritedWorkloads { inheritedWorkload('other') { image 'two' } }
             local { host 'local' }
             labels(['host-name': 'literal'])
+            virtual { host 'virtual' }
         }
         def nativeTrace = Trace.events.toList()
         Trace.events.clear()
@@ -229,7 +237,7 @@ class Consumer {
         }
         assert Trace.events == ['facts:create', 'facts:apply', 'workload:create']
         Trace.events.clear()
-        for (String rejected : ['abstractFacts', 'genericFacts', 'consumeBuilder', 'mapped', 'ignored']) {
+        for (String rejected : ['abstractFacts', 'genericFacts', 'consumeBuilder', 'mapped', 'ignored', 'scoped']) {
             try {
                 Deployment.Create.FromStruct([(rejected): [:]], 'rejected.yaml')
                 assert false: "Must reject $rejected"

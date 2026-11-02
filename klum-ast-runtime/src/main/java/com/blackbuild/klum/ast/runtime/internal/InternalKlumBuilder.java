@@ -887,6 +887,19 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     <T> InternalKlumBuilder<T> createSingleChildWithConfiguration(String fieldOrMethodName, Class<T> type,
                 boolean explicitType, String key, Consumer<InternalKlumBuilder<T>> configuration) {
+        return createSingleChildWithConfiguration(fieldOrMethodName, type, explicitType, key, configuration,
+                child -> callSetterOrMethod(fieldOrMethodName, child));
+    }
+
+    <T> InternalKlumBuilder<T> createVirtualChildWithConfiguration(String methodName, Class<T> type,
+            Consumer<InternalKlumBuilder<T>> configuration, Consumer<InternalKlumBuilder<T>> sink) {
+        return createSingleChildWithConfiguration(methodName, type, false, null, configuration,
+                child -> callSetterOrMethod(methodName, child, ignored -> sink.accept(child)));
+    }
+
+    private <T> InternalKlumBuilder<T> createSingleChildWithConfiguration(String fieldOrMethodName, Class<T> type,
+            boolean explicitType, String key, Consumer<InternalKlumBuilder<T>> configuration,
+            Consumer<InternalKlumBuilder<T>> attachment) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             ChildTarget target = resolveSingleChildTarget(fieldOrMethodName, type);
@@ -895,7 +908,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
                 return configureExistingChild(target.existingBuilder(), type, explicitType, effectiveKey, configuration);
 
             InternalKlumBuilder<T> created = FactoryHelper.prepareNestedBuilder(type, effectiveKey, template, configuration);
-            callSetterOrMethod(fieldOrMethodName, created);
+            attachment.accept(created);
             return created;
         });
     }
@@ -1002,11 +1015,15 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     private void callSetterOrMethod(String fieldOrMethodName, Object value) {
+        callSetterOrMethod(fieldOrMethodName, value, supplied -> InvokerHelper.invokeMethod(this, fieldOrMethodName, supplied));
+    }
+
+    private void callSetterOrMethod(String fieldOrMethodName, Object value, Consumer<Object> virtualSink) {
         boolean hasStorageField = DslHelper.getCachedField(getClass(), fieldOrMethodName).isPresent();
         if (hasStorageField)
             setInstanceAttribute(fieldOrMethodName, value);
         else {
-            InvokerHelper.invokeMethod(this, fieldOrMethodName, value);
+            virtualSink.accept(value);
             if (value instanceof InternalKlumBuilder)
                 virtualChildren.add((InternalKlumBuilder<?>) value);
         }
