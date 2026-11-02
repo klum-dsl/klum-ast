@@ -138,4 +138,16 @@ enum members; a corrupt unified Schema version still rejects. Both read-only loc
 
 All three actual plugin emissions are byte-identical to the pre-change snapshots, with SHA-256
 `b2c38640dee9f2e2279595a624fd120b516112d961c4b33081b246a8b2a42be4`. The Draft 2020-12 oracle again accepted 24 valid
-and rejected 75 invalid inputs across Groovy 3/4/5. The final unfiltered root check for this follow-up is pending.
+and rejected 75 invalid inputs across Groovy 3/4/5.
+
+The unfiltered root `check` passed on clean revision `00f928d91c23ac3e1e8d220c970ae96b6d158f0f`: **10,308 module
+JUnit cases, zero failures/errors, 49 existing skips**. The focused compiler/runtime/metadata suite contains **83 cases in
+each Groovy 3/4/5 lane, with no failures/errors/skips**. The full run includes affected compiler/runtime/plugin suites,
+separate binary consumers, classpath Java/static Groovy consumers in all generations and named-module consumers in
+Groovy 4/5. No local SonarCloud upload was performed.
+
+Updated documentation rendered and crawled successfully from that same clean revision with the fresh-daemon command
+above. Changed-page links/anchors and diff checks pass. Both local Standards and Specification reviews of the follow-up
+against published base `f0290838f272742cbac4723988b6bb6e52928fe9` found no findings. This evidence-only update changes no
+production, tests or user documentation beyond the qualified source tree. All F2-B guarantees are preserved for matched,
+recompiled artifacts; hosted CI/SonarCloud still belongs to the exact updated PR head.
