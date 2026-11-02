@@ -83,6 +83,7 @@ final class StructuredInputAdmissionPlan {
     private static final String JSON_IGNORE = "com.fasterxml.jackson.annotation.JsonIgnore";
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
     private static final String VALUE = "value";
+    private static final String FIELD_MEMBER = "field";
     private static final String INPUT_IGNORED = "excluded by @Struct.Ignore";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
@@ -209,7 +210,9 @@ final class StructuredInputAdmissionPlan {
     private static LiteralAlternative literalAlternative(FieldNode field) {
         LiteralAlternative candidate = field.getNodeMetaData(LITERAL_ALTERNATIVE);
         if (candidate == null) return null;
-        MethodNode outer = DslAstHelper.getBuilderClassOf(field.getOwner()).getDeclaredMethod(field.getName(),
+        ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
+        if (implementation == null) return null;
+        MethodNode outer = implementation.getDeclaredMethod(field.getName(),
                 new Parameter[]{new Parameter(ClassHelper.CLOSURE_TYPE, "body")});
         return outer != null
                 && outer.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field
@@ -238,7 +241,7 @@ final class StructuredInputAdmissionPlan {
         if (alternative == null) return;
         MethodNode creator = literalCreator(field, alternative);
         AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
-        association.setMember("field", new ConstantExpression(field.getName()));
+        association.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
         association.setMember("alias", new ConstantExpression(alternative.alias()));
         association.setMember("target", new ConstantExpression(alternative.target().getName()));
         association.setMember("key", new ConstantExpression(alternative.key()));
@@ -247,7 +250,7 @@ final class StructuredInputAdmissionPlan {
         association.setMember("creator", new ConstantExpression(descriptor(creator)));
         accessor.addAnnotation(association);
         AnnotationNode selectedCreator = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-        selectedCreator.setMember("field", new ConstantExpression(field.getName()));
+        selectedCreator.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
         selectedCreator.setMember("role", new ConstantExpression("LITERAL_ALTERNATIVE_CREATOR"));
         creator.addAnnotation(selectedCreator);
     }
@@ -416,7 +419,7 @@ final class StructuredInputAdmissionPlan {
         if (entry == null && name.ignored()) {
             // Exclusion cannot hide malformed paired-domain facts from consumers.
             AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-            selected.setMember("field", new ConstantExpression(field.getName()));
+            selected.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
             selected.setMember("role", new ConstantExpression(Role.PROPERTY.name()));
             converter.addAnnotation(selected);
         }
@@ -466,7 +469,7 @@ final class StructuredInputAdmissionPlan {
         for (MethodNode method : builder.getDeclaredMethods(entry.operation().name())) {
             if (!entry.operation().descriptorGroup().contains(descriptor(method))) continue;
             AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-            selected.setMember("field", new ConstantExpression(field.getName()));
+            selected.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
             selected.setMember("role", new ConstantExpression(entry.role().name()));
             method.addAnnotation(selected);
         }

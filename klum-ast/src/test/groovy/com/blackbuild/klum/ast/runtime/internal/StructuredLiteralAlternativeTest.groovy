@@ -206,8 +206,7 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
             catalog.Create.With {
                 element(other, 'primary') { value 'initial' }
                 try {
-                    if (structured) delegate.applyStruct([elements: [fixed: [primary: [note: 'never']]]])
-                    else elements { fixed('primary') { note 'never' } }
+                    StructuredLiteralAlternativeTest.configureExistingElement(delegate, structured)
                     assert false
                 } catch (Exception failure) { messages << failure.message }
             }
@@ -419,9 +418,19 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         trace.count('child:create:primary') == 1
     }
 
+    private static void configureExistingElement(Object builder, boolean structured) {
+        if (structured) {
+            builder.applyStruct([elements: [fixed: [primary: [note: 'never']]]])
+        } else {
+            builder.elements { fixed('primary') { note 'never' } }
+        }
+    }
+
     private static List<Throwable> causes(Throwable failure) {
         List<Throwable> result = []
-        for (Throwable current = failure; current != null; current = current.cause) result << current
+        for (Throwable current = failure; current != null; current = current.cause) {
+            result << current
+        }
         result
     }
 }

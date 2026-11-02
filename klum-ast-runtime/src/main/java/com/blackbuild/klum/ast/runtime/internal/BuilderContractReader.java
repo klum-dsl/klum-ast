@@ -69,6 +69,9 @@ final class BuilderContractReader {
     private static final Set<String> DECLARATION_ORIGINS = Set.of(DIRECT_CONSTRAINT, DOCUMENTARY_CONSTRAINT);
     private static final Set<String> CONSTRAINT_ORIGINS = Set.of(DIRECT_CONSTRAINT, DOCUMENTARY_CONSTRAINT, "COMPOSING_AND", "COMPOSING_UNSUPPORTED");
     private static final String VALUE = "value";
+    private static final String FIELD_MEMBER = "field";
+    private static final String KEY_TYPE_MEMBER = "keyType";
+    private static final String CREATOR_MEMBER = "creator";
     private static final String EXAMPLES = "examples";
     static final String IDENTITY_NAME = "IDENTITY";
     static final String KEBAB_NAME = "KEBAB_CASE";
@@ -629,7 +632,7 @@ final class BuilderContractReader {
     }
 
     private static final class AlternativeAnnotationVisitor extends AnnotationVisitor {
-        private static final Set<String> MEMBERS = Set.of("field", "alias", "target", "key", "keyType", "scope", "creator");
+        private static final Set<String> MEMBERS = Set.of(FIELD_MEMBER, "alias", "target", "key", KEY_TYPE_MEMBER, "scope", CREATOR_MEMBER);
         private final MutableLiterals literal;
         private final Map<String, Object> facts = new LinkedHashMap<>();
 
@@ -647,11 +650,11 @@ final class BuilderContractReader {
         @Override public AnnotationVisitor visitAnnotation(String name, String descriptor) { throw invalid("Unexpected nested literal alternative " + name); }
         @Override public void visitEnum(String name, String descriptor, String value) { throw invalid("Unexpected literal alternative enum " + name); }
         @Override public void visitEnd() {
-            if (!facts.keySet().equals(MEMBERS) || !String.class.getName().equals(facts.get("keyType")))
+            if (!facts.keySet().equals(MEMBERS) || !String.class.getName().equals(facts.get(KEY_TYPE_MEMBER)))
                 throw invalid("Incomplete or unsupported literal alternative protocol");
-            literal.alternative = new AlternativeFacts((String) facts.get("field"), (String) facts.get("alias"),
-                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get("keyType"),
-                    (String) facts.get("scope"), (String) facts.get("creator"));
+            literal.alternative = new AlternativeFacts((String) facts.get(FIELD_MEMBER), (String) facts.get("alias"),
+                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get(KEY_TYPE_MEMBER),
+                    (String) facts.get("scope"), (String) facts.get(CREATOR_MEMBER));
         }
     }
 
@@ -797,7 +800,7 @@ final class BuilderContractReader {
             switch (annotation) {
                 case OPERATION_FACT -> operationFact(member, value);
                 case VIRTUAL_SCOPE -> {
-                    if (!member.equals("creator") || !(value instanceof String creator) || creator.isBlank() || literal.scopeCreator != null)
+                    if (!member.equals(CREATOR_MEMBER) || !(value instanceof String creator) || creator.isBlank() || literal.scopeCreator != null)
                         throw invalid("Invalid virtual scope creator association");
                     literal.scopeCreator = creator;
                 }
@@ -870,7 +873,7 @@ final class BuilderContractReader {
 
         private void selectionFact(String member, Object value) {
             switch (member) {
-                case "field" -> literal.selection = (String) value;
+                case FIELD_MEMBER -> literal.selection = (String) value;
                 case "role" -> literal.role = (String) value;
                 default -> throw invalid("Unknown selection fact " + member);
             }

@@ -46,6 +46,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
     private static final String STRING_TYPE = "string";
     private static final String OBJECT_TYPE = "object";
+    private static final String PROPERTIES = "properties";
     private static final String ADDITIONAL_PROPERTIES = "additionalProperties";
     private static final String DESCRIPTION = "description";
     private static final String MINIMUM = "minimum";
@@ -120,7 +121,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         definitions.put(identity, object); // Reserve each position before following recursive ownership.
         Map<String, Object> properties = new TreeMap<>();
         object.put("type", OBJECT_TYPE);
-        object.put("properties", properties);
+        object.put(PROPERTIES, properties);
         object.put(ADDITIONAL_PROPERTIES, false);
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
@@ -144,7 +145,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
             Map<String, Object> aliases = new LinkedHashMap<>();
             aliases.put("type", OBJECT_TYPE);
             aliases.put(ADDITIONAL_PROPERTIES, false);
-            aliases.put("properties", Map.of(entry.alternative().alias(), map(value)));
+            aliases.put(PROPERTIES, Map.of(entry.alternative().alias(), map(value)));
             value = aliases;
         }
         if (entry.documentation() != null && !entry.documentation().isBlank())
@@ -286,7 +287,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
 
     private Map<String, Object> payload(CompiledBuilderSchema.Payload payload, KeyPosition position, String source) throws ClassNotFoundException {
         return switch (payload.kind()) {
-            case EMPTY_OBJECT -> new LinkedHashMap<>(Map.of("type", OBJECT_TYPE, "properties", Map.of(), ADDITIONAL_PROPERTIES, false));
+            case EMPTY_OBJECT -> new LinkedHashMap<>(Map.of("type", OBJECT_TYPE, PROPERTIES, Map.of(), ADDITIONAL_PROPERTIES, false));
             case SCALAR -> scalar(payload.type());
             case ENUM -> enumeration(payload.type());
             case LIST -> new LinkedHashMap<>(Map.of("type", "array", "items", payload(payload.item(), KeyPosition.MEMBER, source)));

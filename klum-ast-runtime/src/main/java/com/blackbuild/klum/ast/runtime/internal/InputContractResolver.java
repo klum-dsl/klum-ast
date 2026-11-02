@@ -273,24 +273,29 @@ final class InputContractResolver {
             throws IOException, ClassNotFoundException {
         Method[] declared = declaredMethods(context);
         for (Entry entry : inherited) {
-            Metadata origin = reader.metadata(entry.contract());
-            for (Method selected : entry.methods()) {
-                if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
-                        && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
-                        && overridden(selected, declared)) {
-                    rejections.add(new Rejection(entry.source(), "inherited literal collection scope is overridden by "
-                            + namingOrigin(context.builder()) + "; use a non-overridden generated collection scope"));
-                }
-                boolean converter = origin.methods().get(signature(selected)).converter() != null;
-                boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
-                        && entry.payload().type() == String.class
-                        && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{String.class});
-                if ((converter || stringField) && overridden(selected, declared)) {
-                    String originKind = converter ? "converter overload " : "String field operation ";
-                    rejections.add(new Rejection(entry.source(), "inherited " + originKind + selected.getName()
-                            + "(" + selected.getParameterTypes()[0].getSimpleName() + ") is overridden by " + namingOrigin(context.builder())
-                            + "; expose one supported non-overridden scalar route"));
-                }
+            rejectOverriddenField(context, entry, declared, rejections);
+        }
+    }
+
+    private void rejectOverriddenField(BuilderContext context, Entry entry, Method[] declared, List<Rejection> rejections)
+            throws IOException, ClassNotFoundException {
+        Metadata origin = reader.metadata(entry.contract());
+        for (Method selected : entry.methods()) {
+            if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
+                    && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
+                    && overridden(selected, declared)) {
+                rejections.add(new Rejection(entry.source(), "inherited literal collection scope is overridden by "
+                        + namingOrigin(context.builder()) + "; use a non-overridden generated collection scope"));
+            }
+            boolean converter = origin.methods().get(signature(selected)).converter() != null;
+            boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
+                    && entry.payload().type() == String.class
+                    && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{String.class});
+            if ((converter || stringField) && overridden(selected, declared)) {
+                String originKind = converter ? "converter overload " : "String field operation ";
+                rejections.add(new Rejection(entry.source(), "inherited " + originKind + selected.getName()
+                        + "(" + selected.getParameterTypes()[0].getSimpleName() + ") is overridden by " + namingOrigin(context.builder())
+                        + "; expose one supported non-overridden scalar route"));
             }
         }
     }

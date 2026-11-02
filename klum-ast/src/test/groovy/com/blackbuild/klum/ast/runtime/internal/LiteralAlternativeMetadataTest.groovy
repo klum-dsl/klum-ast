@@ -108,8 +108,12 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         then:
         def failure = thrown(KlumModelException)
         failure.message.contains('Schema')
-        if (mutation == 'removedVersion') assert failure.message.contains('Invalid literal alternative member version')
-        if (mutation == 'schemaVersion') assert failure.message.contains('Unsupported structured-input metadata protocol version 2')
+        if (mutation == 'removedVersion') {
+            assert failure.message.contains('Invalid literal alternative member version')
+        }
+        if (mutation == 'schemaVersion') {
+            assert failure.message.contains('Unsupported structured-input metadata protocol version 2')
+        }
         !causes(failure).any { it instanceof AssertionError }
 
         where:
@@ -141,7 +145,9 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
 
         then:
         plan.entries().keySet() == names as Set
-        if (!names.isEmpty()) assert plan.entries().get('items').alternative().alias() == 'fixed'
+        if (!names.isEmpty()) {
+            assert plan.entries().get('items').alternative().alias() == 'fixed'
+        }
 
         where:
         options                  | names
@@ -169,7 +175,9 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                 def target = super.visitAnnotation(annotation, visible)
-                if (mutation != 'schemaVersion' || !annotation.endsWith('GeneratedInput$Schema;')) return target
+                if (mutation != 'schemaVersion' || !annotation.endsWith('GeneratedInput$Schema;')) {
+                    return target
+                }
                 new AnnotationVisitor(Opcodes.ASM9, target) {
                     @Override void visit(String member, Object value) {
                         super.visit(member, member == 'version' ? 2 : value)
@@ -179,7 +187,9 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (mutation in ['stripSelection', 'stripCreator'] && annotation.endsWith('GeneratedInput$Selection;')) return null
+                        if (mutation in ['stripSelection', 'stripCreator'] && annotation.endsWith('GeneratedInput$Selection;')) {
+                            return null
+                        }
                         if (mutation in ['creatorField', 'creatorRole'] && annotation.endsWith('GeneratedInput$Selection;')) {
                             def selected = super.visitAnnotation(annotation, visible)
                             return new AnnotationVisitor(Opcodes.ASM9, selected) {
@@ -188,34 +198,62 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
                                 }
                             }
                         }
-                        if (annotation == ASSOCIATION && mutation in ['strip', 'stripAndCount']) return null
+                        if (annotation == ASSOCIATION && mutation in ['strip', 'stripAndCount']) {
+                            return null
+                        }
                         def target = super.visitAnnotation(annotation, annotation == ASSOCIATION && mutation == 'invisible' ? false : visible)
-                        if (!(annotation in [ASSOCIATION, FIELD])) return target
+                        if (!(annotation in [ASSOCIATION, FIELD])) {
+                            return target
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, target) {
                             @Override void visit(String member, Object value) {
                                 if (annotation == FIELD && member == 'alternativeCount') {
-                                    if (mutation == 'countMissing') return
-                                    if (mutation in ['countZero', 'stripAndCount']) value = 0
-                                    if (mutation == 'countTwo') value = 2
+                                    if (mutation == 'countMissing') {
+                                        return
+                                    }
+                                    if (mutation in ['countZero', 'stripAndCount']) {
+                                        value = 0
+                                    }
+                                    if (mutation == 'countTwo') {
+                                        value = 2
+                                    }
                                 }
                                 if (annotation == ASSOCIATION) {
-                                    if (mutation == 'missing-' + member) return
+                                    if (mutation == 'missing-' + member) {
+                                        return
+                                    }
                                     if (mutation == member) {
                                         value = [field: 'other', alias: 'other', target: 'literalmetadata.OtherElement', key: 'other',
                                                  keyType: 'java.lang.Object', scope: 'literalmetadata.Element_DSL$Builder', creator: 'missing(java.lang.String):void'][member]
                                     }
-                                    if (mutation == 'wrongMemberType' && member == 'alias') value = 1
-                                    if (mutation == 'emptyAlias' && member == 'alias') value = ''
+                                    if (mutation == 'wrongMemberType' && member == 'alias') {
+                                        value = 1
+                                    }
+                                    if (mutation == 'emptyAlias' && member == 'alias') {
+                                        value = ''
+                                    }
                                 }
                                 super.visit(member, value)
                             }
                             @Override void visitEnd() {
-                                if (annotation == ASSOCIATION && mutation == 'removedVersion') super.visit('version', 1)
-                                if (annotation == ASSOCIATION && mutation == 'arrayMember') super.visitArray('alias').visitEnd()
-                                if (annotation == ASSOCIATION && mutation == 'nestedMember') super.visitAnnotation('alias', ASSOCIATION).visitEnd()
-                                if (annotation == ASSOCIATION && mutation == 'enumMember') super.visitEnum('alias', 'Lbroken/Enum;', 'VALUE')
-                                if (annotation == ASSOCIATION && mutation == 'unknownMember') super.visit('unexpected', 'x')
-                                if (annotation == ASSOCIATION && mutation == 'duplicateMember') super.visit('alias', 'fixed')
+                                if (annotation == ASSOCIATION && mutation == 'removedVersion') {
+                                    super.visit('version', 1)
+                                }
+                                if (annotation == ASSOCIATION && mutation == 'arrayMember') {
+                                    super.visitArray('alias').visitEnd()
+                                }
+                                if (annotation == ASSOCIATION && mutation == 'nestedMember') {
+                                    super.visitAnnotation('alias', ASSOCIATION).visitEnd()
+                                }
+                                if (annotation == ASSOCIATION && mutation == 'enumMember') {
+                                    super.visitEnum('alias', 'Lbroken/Enum;', 'VALUE')
+                                }
+                                if (annotation == ASSOCIATION && mutation == 'unknownMember') {
+                                    super.visit('unexpected', 'x')
+                                }
+                                if (annotation == ASSOCIATION && mutation == 'duplicateMember') {
+                                    super.visit('alias', 'fixed')
+                                }
                                 super.visitEnd()
                             }
                         }
@@ -228,7 +266,9 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
 
     private static List<Throwable> causes(Throwable failure) {
         List<Throwable> result = []
-        for (Throwable current = failure; current != null; current = current.cause) result << current
+        for (Throwable current = failure; current != null; current = current.cause) {
+            result << current
+        }
         result
     }
 }

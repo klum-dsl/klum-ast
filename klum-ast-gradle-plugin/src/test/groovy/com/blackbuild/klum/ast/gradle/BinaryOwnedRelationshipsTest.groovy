@@ -105,6 +105,23 @@ class BinaryOwnedRelationshipsTest extends Specification {
         [generation, capability] << [['3', '4', '5'], ['projection', 'interpret']].combinations()
     }
 
+    private static byte[] stripLiteralAssociation(String name, byte[] bytes) {
+        if (name != 'example/Deployment_DSL$Builder.class') {
+            return bytes
+        }
+        def writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override MethodVisitor visitMethod(int access, String methodName, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, methodName, descriptor, signature, exceptions)) {
+                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                        annotation.endsWith('GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
+                    }
+                }
+            }
+        }, 0)
+        writer.toByteArray()
+    }
+
     @Issue('952')
     def 'corrupt binary literal association prevents every new schema output without initializing user code'() {
         given:
@@ -115,19 +132,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
             new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
                 archive.entries().each { entry ->
                     byte[] bytes = archive.getInputStream(entry).bytes
-                    if (entry.name == 'example/Deployment_DSL$Builder.class') {
-                        def writer = new ClassWriter(0)
-                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
-                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
-                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                                        annotation.endsWith('GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
-                                    }
-                                }
-                            }
-                        }, 0)
-                        bytes = writer.toByteArray()
-                    }
+                    bytes = stripLiteralAssociation(entry.name, bytes)
                     output.putNextEntry(new JarEntry(entry.name))
                     output.write(bytes)
                     output.closeEntry()
