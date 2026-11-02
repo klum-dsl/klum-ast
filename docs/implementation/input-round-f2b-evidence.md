@@ -83,7 +83,10 @@ python klum-ast-gradle-plugin/src/test/resources/validate_literal_alternative_sc
 Focused checks passed in all three Groovy generations (72 cases per lane after review fixes), including packaged
 producer/plugin/binary consumers. The emitted-schema oracle passed. Final full root check is pending on a fixed clean
 revision. The initial full-check attempt was interrupted after a Git-derived version change invalidated TestKit fixture
-dependency coordinates; it is not claimed as qualification.
+dependency coordinates; it is not claimed as qualification. A subsequent full run passed all completed compiler/runtime
+lanes and 644 plugin cases, but exposed 21 catalog-fixture failures from selecting the first reflective constructor.
+The fixture now selects the unique matching arity; its 21-case targeted retry passed. The unfiltered full check is
+rerun after that test-only repair.
 
 ## Local review
 

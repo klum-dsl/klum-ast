@@ -108,7 +108,10 @@ class BuiltinConstraintCatalogTest extends Specification {
     }
 
     private static Object fact(String name, List arguments) {
-        def constructor = Class.forName('com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema$' + name).declaredConstructors[0]
+        def constructors = Class.forName('com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema$' + name).declaredConstructors
+                .findAll { it.parameterCount == arguments.size() }
+        assert constructors.size() == 1
+        def constructor = constructors[0]
         constructor.accessible = true
         constructor.newInstance(arguments as Object[])
     }
