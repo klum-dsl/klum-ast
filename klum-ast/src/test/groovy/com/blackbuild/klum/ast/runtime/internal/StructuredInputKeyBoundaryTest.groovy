@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
 import groovyjarjarasm.asm.ClassVisitor
@@ -79,10 +78,9 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         def model
 
         when:
-        try { model = KlumStructuredInput.readRoot(child, [(spelling): 'root', value: 'payload'], 'binary.yaml') }
+        try { model = child.Create.FromStruct([(spelling): 'root', value: 'payload'], 'binary.yaml') }
         catch (KlumModelException caught) { failure = caught }
-        def external = KlumStructuredInput.readRoot(root,
-                [fixed: [:], children: [outer: [:]]], 'external.yaml')
+        def external = root.Create.FromStruct([fixed: [:], children: [outer: [:]]], 'external.yaml')
         def plan = new InputContractResolver().read(child)
 
         then:
@@ -97,7 +95,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
             assert failure == null
             assert model[nativeName] == 'root'
             assert model.value == 'payload'
-            assert KlumStructuredInput.readRoot(root, [direct: [(spelling): 'direct']], 'direct.yaml').direct[nativeName] == 'direct'
+            assert root.Create.FromStruct([direct: [(spelling): 'direct']], 'direct.yaml').direct[nativeName] == 'direct'
         }
 
         cleanup:
@@ -127,7 +125,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         def root = Class.forName('oldkey.Root', false, binaryLoader)
 
         when:
-        KlumStructuredInput.readRoot(root, [name: 'input'], 'old.yaml')
+        root.Create.FromStruct([name: 'input'], 'old.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -135,7 +133,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         failure.message.contains('recompile and package the Schema')
 
         when:
-        KlumStructuredInput.readRoot(root, 'external', [value: 'ok'], 'explicit.yaml')
+        root.Create.FromStruct('external', [value: 'ok'], 'explicit.yaml')
 
         then:
         def externalFailure = thrown(KlumModelException)
@@ -159,7 +157,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         def root = Class.forName('oldkey.Root', false, binaryLoader)
 
         when:
-        KlumStructuredInput.readRoot(root, [child: [name: 'input']], 'old-child.yaml')
+        root.Create.FromStruct([child: [name: 'input']], 'old-child.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -167,7 +165,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         failure.message.contains('recompile and package the Schema')
 
         when:
-        KlumStructuredInput.readRoot(root, [children: [outer: [:]]], 'map.yaml')
+        root.Create.FromStruct([children: [outer: [:]]], 'map.yaml')
 
         then:
         def mapFailure = thrown(KlumModelException)
@@ -190,7 +188,7 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         def root = Class.forName('oldkey.Root', false, binaryLoader)
 
         when:
-        KlumStructuredInput.readRoot(root, [name: 'input'], 'metadata.yaml')
+        root.Create.FromStruct([name: 'input'], 'metadata.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -221,11 +219,10 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
         def source = new File(compilerConfiguration.targetDirectory, 'JavaKeyClient.java')
         source.text = '''
             import keyclients.Deployment;
-            import com.blackbuild.klum.ast.runtime.KlumStructuredInput;
             import java.util.Map;
             public class JavaKeyClient {
                 public static Deployment read() {
-                    return KlumStructuredInput.readRoot(Deployment.class, Map.of("name", "java"), "java.yaml");
+                    return Deployment.Create.FromStruct(Map.of("name", "java"), "java.yaml");
                 }
             }
         '''
@@ -236,10 +233,9 @@ class StructuredInputKeyBoundaryTest extends AbstractDSLSpec {
                 '--release', '17', '-cp', classpath, '-d', compilerConfiguration.targetDirectory.absolutePath, source.absolutePath)
         loader.parseClass '''
             package keyclients
-            import com.blackbuild.klum.ast.runtime.KlumStructuredInput
             import groovy.transform.CompileStatic
             @CompileStatic class StaticKeyClient {
-                static Deployment read() { KlumStructuredInput.readRoot(Deployment, [name: 'groovy'], 'groovy.yaml') }
+                static Deployment read() { Deployment.Create.FromStruct([name: 'groovy'], 'groovy.yaml') }
             }
         '''
         def binaryLoader = binaryLoader()

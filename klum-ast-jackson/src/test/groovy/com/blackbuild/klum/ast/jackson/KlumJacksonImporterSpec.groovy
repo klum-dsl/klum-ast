@@ -468,7 +468,10 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
     def "applyToBuilder rejects a non-generated Builder capability"() {
         given:
         def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
-        def builder = new KlumBuilder<Object>() { }
+        def builder = new KlumBuilder<Object>() {
+            void applyStruct(Map<?, ?> body) { throw new UnsupportedOperationException() }
+            void applyStruct(Map<?, ?> body, String sourceName) { throw new UnsupportedOperationException() }
+        }
 
         when:
         importer.applyToBuilder(builder, KlumJacksonInput.map([:]))

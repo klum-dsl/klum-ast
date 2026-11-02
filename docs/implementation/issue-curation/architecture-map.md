@@ -38,7 +38,7 @@ Confirmed generated artifacts:
 
 - the DSL Object implements a keyed/unkeyed/model marker and `Serializable`;
 - a top-level public `Foo_DSL` namespace with `Factory`, self-typed `Builder<SELF extends Foo>`, and nested Collection/Cluster factory interfaces; `Foo.Create` is typed to `Foo_DSL.Factory`;
-- a hidden generated `Foo$Builder` implementation that mirrors the inherited Builder hierarchy and implements `Foo_DSL.Builder`; `KlumBuilder<T>` is its zero-operation public capability rather than a mutable implementation base;
+- a hidden generated `Foo$Builder` implementation that mirrors the inherited Builder hierarchy and implements `Foo_DSL.Builder`; `KlumBuilder<T>` is its common public capability with void structured body application rather than a mutable implementation base;
 - a hidden generated factory implementation and public static `Create` field, with keyed, unkeyed, or abstract/custom factory behavior;
 - explicit `@Builder.Query` and `@Builder.Method` operations plus `@Builder.Input`/`@Builder.Result` positions on public
   Builder contracts, while unselected Model methods and positions retain completed-state semantics;

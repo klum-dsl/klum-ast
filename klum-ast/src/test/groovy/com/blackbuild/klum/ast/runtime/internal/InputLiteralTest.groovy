@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.Struct
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
 import groovyjarjarasm.asm.ClassVisitor
@@ -89,8 +88,8 @@ class InputLiteralTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def service = KlumStructuredInput.readRoot(type, ['service.id': 'catalog'], 'service.yaml')
-        def operated = KlumStructuredInput.readRoot(type, ['configure/URL': 'operation'], 'service.yaml')
+        def service = type.Create.FromStruct(['service.id': 'catalog'], 'service.yaml')
+        def operated = type.Create.FromStruct(['configure/URL': 'operation'], 'service.yaml')
         def configured = type.Create.With { serviceName 'groovy'; configureInternally 'private' }
 
         then:
@@ -114,7 +113,7 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         when:
         def plan = new InputContractResolver().read(type)
-        def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
+        def result = type.Create.FromStruct([(external): 'catalog'], 'shared.yaml')
 
         then:
         plan.entries().keySet() == (reason == null ? [external, 'getValue'] : [external]) as Set
@@ -159,8 +158,8 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         when:
         def plan = new InputContractResolver().read(type)
-        def field = KlumStructuredInput.readRoot(type, ['field/exact': 'field'], 'shared.yaml')
-        def operation = KlumStructuredInput.readRoot(type, ['setter/exact': 'setter'], 'shared.yaml')
+        def field = type.Create.FromStruct(['field/exact': 'field'], 'shared.yaml')
+        def operation = type.Create.FromStruct(['setter/exact': 'setter'], 'shared.yaml')
 
         then:
         plan.entries().keySet() == ['field/exact', 'setter/exact'] as Set
@@ -179,7 +178,7 @@ class InputLiteralTest extends AbstractDSLSpec {
 
         when:
         def plan = new InputContractResolver().read(type)
-        def result = KlumStructuredInput.readRoot(type, [(external): 'catalog'], 'shared.yaml')
+        def result = type.Create.FromStruct([(external): 'catalog'], 'shared.yaml')
 
         then:
         plan.entries().keySet() == [external] as Set
@@ -206,7 +205,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         rewriteProtocol(target, version)
 
         when:
-        KlumStructuredInput.readRoot(type, [:], 'omitted.yaml')
+        StructuredInputSupport.readRoot(type, [:], 'omitted.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -250,7 +249,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         def result = type.Create.With {
             value 'before'
             try {
-                KlumStructuredInput.applyToBuilder(delegate, [configure: 'after'], 'active.yaml')
+                delegate.applyStruct([configure: 'after'], 'active.yaml')
             } catch (KlumModelException failure) { rejected = failure }
         }
 
@@ -272,7 +271,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         rewriteProtocol('Excluded', 2)
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [:], 'recursive.yaml')
+        def result = type.Create.FromStruct([:], 'recursive.yaml')
 
         then:
         result.middle == null
@@ -344,7 +343,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         """)
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [(' exact/URL '): 'catalog'], 'literal.yaml')
+        def result = type.Create.FromStruct([(' exact/URL '): 'catalog'], 'literal.yaml')
 
         then:
         result.serviceName == 'catalog'
@@ -398,7 +397,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [literalURL: 'base', 'url-value': 'child', stringURL: 'op', numericURL: 7], 'resolved.yaml')
+        def result = type.Create.FromStruct([literalURL: 'base', 'url-value': 'child', stringURL: 'op', numericURL: 7], 'resolved.yaml')
 
         then:
         result.URLValue == 'op'
@@ -417,16 +416,15 @@ class InputLiteralTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, ['service/id': 'forbidden'], 'key.yaml')
+        type.Create.FromStruct(['service/id': 'forbidden'], 'key.yaml')
 
         then:
         def failure = thrown(KlumModelException)
         failure.message.contains('@Struct.Ignore')
 
         when:
-        def root = KlumStructuredInput.readRoot(type, 'Root/Blue', ['display-name': 'blue'], 'key.yaml')
-        def owner = KlumStructuredInput.readRoot(Class.forName('literals.Owner', false, artifacts),
-                [services: ['Map/Red': ['display-name': 'red']]], 'map.yaml')
+        def root = type.Create.FromStruct('Root/Blue', ['display-name': 'blue'], 'key.yaml')
+        def owner = Class.forName('literals.Owner', false, artifacts).Create.FromStruct([services: ['Map/Red': ['display-name': 'red']]], 'map.yaml')
 
         then:
         root.serviceId == 'Root/Blue'
@@ -450,7 +448,7 @@ class InputLiteralTest extends AbstractDSLSpec {
         def result = type.Create.With {
             serviceName 'before'
             try {
-                KlumStructuredInput.applyToBuilder(delegate, [execute: 'trap'] + input, 'active.yaml')
+                delegate.applyStruct([execute: 'trap'] + input, 'active.yaml')
             } catch (KlumModelException failure) { rejected = failure }
             assert serviceName == 'before'
         }

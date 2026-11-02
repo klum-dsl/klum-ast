@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.Struct
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -174,7 +173,7 @@ class CompiledConverterInputTest extends Specification {
 
         when: 'structured construction must execute that same route, not a disabled peer or direct constructor'
         System.clearProperty(TRAP)
-        def structured = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'ports.yaml')
+        def structured = model.Create.FromStruct(['port-number': '1234'], 'ports.yaml')
 
         then:
         structured.port.raw == expected
@@ -212,7 +211,7 @@ class CompiledConverterInputTest extends Specification {
         contract.rejections().any { it.reason().contains('unsupported converter selection') }
 
         when:
-        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'collision.yaml')
+        model.Create.FromStruct(['port-number': '1234'], 'collision.yaml')
 
         then:
         thrown(KlumModelException)
@@ -253,7 +252,7 @@ class CompiledConverterInputTest extends Specification {
         System.getProperty(TRAP) == null
 
         when:
-        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'ports.yaml')
+        model.Create.FromStruct(['port-number': '1234'], 'ports.yaml')
 
         then:
         def rejection = thrown(KlumModelException)
@@ -297,7 +296,7 @@ class CompiledConverterInputTest extends Specification {
 
         when:
         def contract = new InputContractResolver().read(model)
-        def result = KlumStructuredInput.readRoot(model, ['port-number': 'service-id'], 'ports.yaml')
+        def result = model.Create.FromStruct(['port-number': 'service-id'], 'ports.yaml')
 
         then:
         !contract.entries().containsKey('port-number')
@@ -320,25 +319,25 @@ class CompiledConverterInputTest extends Specification {
         Class<?> model = Class.forName(MODEL, false, loader)
 
         when:
-        def port = KlumStructuredInput.readRoot(model, ['port-number': 'not digits'], 'ports.yaml')
+        def port = model.Create.FromStruct(['port-number': 'not digits'], 'ports.yaml')
 
         then:
         port.port.raw == 'not digits'
 
         when:
-        def absent = KlumStructuredInput.readRoot(model, [:], 'ports.yaml')
+        def absent = model.Create.FromStruct([:], 'ports.yaml')
 
         then:
         absent.port == null
 
         when:
-        KlumStructuredInput.readRoot(model, ['port-number': 1234], 'ports.yaml')
+        model.Create.FromStruct(['port-number': 1234], 'ports.yaml')
 
         then:
         thrown(KlumModelException)
 
         when:
-        KlumStructuredInput.readRoot(model, ['port-number': null], 'ports.yaml')
+        model.Create.FromStruct(['port-number': null], 'ports.yaml')
 
         then:
         thrown(KlumModelException)
@@ -698,7 +697,7 @@ class CompiledConverterInputTest extends Specification {
 
         when:
         def contract = new InputContractResolver().read(model)
-        def result = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'default.yaml')
+        def result = model.Create.FromStruct(['port-number': '1234'], 'default.yaml')
         def direct = model.Create.With { port '1234' }
 
         then:
@@ -744,7 +743,7 @@ class CompiledConverterInputTest extends Specification {
 
         when:
         def contract = new InputContractResolver().read(model)
-        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'overload.yaml')
+        def result = model.Create.FromStruct([port: '1234'], 'overload.yaml')
         def direct = model.Create.With { port '1234' }
 
         then:
@@ -771,7 +770,7 @@ class CompiledConverterInputTest extends Specification {
         when:
         def model = Class.forName(MODEL, false, loader)
         def contract = new InputContractResolver().read(model)
-        def result = KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'flags.yaml')
+        def result = model.Create.FromStruct(['port-number': '1234'], 'flags.yaml')
         def direct = model.Create.With { port '1234' }
 
         then:
@@ -814,7 +813,7 @@ class CompiledConverterInputTest extends Specification {
         def model = Class.forName(inherited ? 'converterinput.Child' : MODEL, false, loader)
 
         when:
-        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'adapter.yaml')
+        def result = model.Create.FromStruct([port: '1234'], 'adapter.yaml')
         def direct = model.Create.With { port '1234' }
         def peer = Class.forName('converterinput.Adapter', false, loader).parse('1234')
         def contract = new InputContractResolver().read(model)
@@ -888,14 +887,14 @@ class CompiledConverterInputTest extends Specification {
         contract.entries().containsKey('other') == !ignored
 
         when:
-        KlumStructuredInput.readRoot(model, ['port-number': '1234'], 'override.yaml')
+        model.Create.FromStruct(['port-number': '1234'], 'override.yaml')
 
         then:
         def failure = thrown(KlumModelException)
         failure.message.contains('overridden')
 
         when:
-        def structured = KlumStructuredInput.readRoot(model, ignored ? [:] : [other: '1234'], 'override.yaml')
+        def structured = model.Create.FromStruct(ignored ? [:] : [other: '1234'], 'override.yaml')
 
         then:
         structured.port?.raw == (ignored ? null : direct.port.raw)
@@ -932,7 +931,7 @@ class CompiledConverterInputTest extends Specification {
 
         when:
         def contract = new InputContractResolver().read(model)
-        def result = KlumStructuredInput.readRoot(model, [port: '1234'], 'generic.yaml')
+        def result = model.Create.FromStruct([port: '1234'], 'generic.yaml')
         def direct = model.Create.With { port '1234' }
 
         then:
@@ -968,7 +967,7 @@ class CompiledConverterInputTest extends Specification {
         when:
         def contract = new InputContractResolver().read(model)
         def direct = model.Create.With { port '1234' }
-        def structured = KlumStructuredInput.readRoot(model, [port: '1234'], 'constructor.yaml')
+        def structured = model.Create.FromStruct([port: '1234'], 'constructor.yaml')
         def peer = Class.forName(DOMAIN, false, loader).fromString('1234')
 
         then:

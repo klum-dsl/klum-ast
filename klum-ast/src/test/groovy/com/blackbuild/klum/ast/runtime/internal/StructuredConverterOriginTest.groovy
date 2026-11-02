@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -71,7 +70,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'service.yaml')
+        def result = type.Create.FromStruct([timeout: 'PT30S'], 'service.yaml')
         def direct = type.Create.With { timeout 'PT30S' }
         def entry = new InputContractResolver().read(type).entries().timeout
 
@@ -95,7 +94,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
 
         when:
         def direct = type.Create.With { timeout 'PT30S' }
-        def structured = KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'closure-route.yaml')
+        def structured = type.Create.FromStruct([timeout: 'PT30S'], 'closure-route.yaml')
         def selected = new InputContractResolver().read(type).entries().timeout.methods()[0]
                 .getAnnotation(GeneratedInput.Converter)
 
@@ -124,7 +123,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
 
         when:
         def contract = new InputContractResolver().read(type)
-        def result = KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'origin.yaml')
+        def result = type.Create.FromStruct([timeout: 'PT30S'], 'origin.yaml')
         def direct = type.Create.With { timeout 'PT30S' }
 
         then:
@@ -149,7 +148,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [location: 'config/service.yaml'], 'path.yaml')
+        def result = type.Create.FromStruct([location: 'config/service.yaml'], 'path.yaml')
         def direct = type.Create.With { location 'config/service.yaml' }
 
         then:
@@ -172,7 +171,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [adapted: 'PT30S', wrapped: 'PT30S'], 'subtype.yaml')
+        def result = type.Create.FromStruct([adapted: 'PT30S', wrapped: 'PT30S'], 'subtype.yaml')
         def direct = type.Create.With { adapted 'PT30S'; wrapped 'PT30S' }
         def entries = new InputContractResolver().read(type).entries()
 
@@ -194,13 +193,13 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [timeout: 30], 'native.yaml')
+        def result = type.Create.FromStruct([timeout: 30], 'native.yaml')
 
         then:
         result.timeout == 30
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: '30'], 'native.yaml')
+        type.Create.FromStruct([timeout: '30'], 'native.yaml')
 
         then:
         thrown(KlumModelException)
@@ -217,7 +216,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
 
         when:
         def contract = new InputContractResolver().read(type)
-        def result = KlumStructuredInput.readRoot(type, [:], 'excluded.yaml')
+        def result = type.Create.FromStruct([:], 'excluded.yaml')
 
         then:
         result != null
@@ -225,7 +224,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         contract.rejections().any { it.source().endsWith('#timeout') }
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: 'value'], 'excluded.yaml')
+        type.Create.FromStruct([timeout: 'value'], 'excluded.yaml')
 
         then:
         thrown(KlumModelException)
@@ -245,7 +244,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: value], 'typed.yaml')
+        type.Create.FromStruct([timeout: value], 'typed.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -267,7 +266,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: 'bad'], 'duration.yaml')
+        type.Create.FromStruct([timeout: 'bad'], 'duration.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -288,7 +287,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'collision.yaml')
+        type.Create.FromStruct([timeout: 'PT30S'], 'collision.yaml')
 
         then:
         thrown(KlumModelException)
@@ -325,7 +324,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         damageContract(damage)
 
         when:
-        KlumStructuredInput.readRoot(type, [:], 'damaged.yaml')
+        type.Create.FromStruct([:], 'damaged.yaml')
 
         then:
         def failure = thrown(KlumModelException)

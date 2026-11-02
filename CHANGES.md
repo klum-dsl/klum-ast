@@ -23,6 +23,11 @@
   See [commands](docs/user/Structured-Input.md#zero-argument-commands)
   ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S4).
 
+- Add generated Factory `Create.FromStruct` for self-contained documents and keyed Factory bodies, plus inherited void
+  `KlumBuilder.applyStruct` for active Builders. All accept optional opaque diagnostic labels; explicit-key roots retain
+  one PostApply. Reserve both exact Builder application signatures with compiler collision diagnostics and final runtime
+  guards; colliding Schema declarations must be renamed and recompiled. Remove the unreleased public reader facade and migrate development callers. `FromMap` and managed Jackson
+  remain unchanged. See [Structured Input](docs/user/Structured-Input.md) and [Migration](docs/user/Migration.md).
 - Add parser-free `Create.Template.FromStruct` for keyless Template bodies, preserving ordinary Template recipe
   and lifecycle behavior. See [Templates](docs/user/Templates.md#structured-input-templates)
   ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S6).
@@ -135,7 +140,8 @@
   output use and publication remain consumer-owned. See [JSON Schema generation](docs/user/Json-Schema.md)
   ([#529](https://github.com/klum-dsl/klum-ast/issues/529)); real ScHelm root/output qualification remains pending.
 
-- Added opt-in parser-free `KlumStructuredInput.readRoot` and `applyToBuilder` for caller-parsed Map/List/scalar data.
+- Added opt-in parser-free structured input for caller-parsed Map/List/scalar data; now exposed through generated
+  `Create.FromStruct` and inherited `applyStruct` (the development reader facade has been removed).
   Static contract checks precede ordered, per-operation Builder execution; concrete ownership, literal keyed maps and admitted one-payload
   operations preserve ordinary construction/lifecycle semantics. Numeric/container/keyMapping admission is bounded;
   named parameters and Jackson retain their existing behavior. Recompile Schemas and ship generated metadata. See

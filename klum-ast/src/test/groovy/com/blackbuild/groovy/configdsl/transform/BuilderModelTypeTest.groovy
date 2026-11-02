@@ -159,7 +159,8 @@ class BuilderModelTypeTest extends AbstractDSLSpec {
         thrown(KlumModelException)
     }
 
-    def 'retains targeted null and unsupported marker diagnostics and an empty marker API'() {
+    @Issue('953')
+    def 'retains targeted null and unsupported marker diagnostics and a bounded common API'() {
         when:
         KlumBuilderSupport.of(null)
 
@@ -168,11 +169,15 @@ class BuilderModelTypeTest extends AbstractDSLSpec {
         missing.message == 'builder'
 
         when:
-        KlumBuilderSupport.of(new KlumBuilder<Object>() {})
+        KlumBuilderSupport.of(new KlumBuilder<Object>() {
+            void applyStruct(Map<?, ?> body) { throw new UnsupportedOperationException() }
+            void applyStruct(Map<?, ?> body, String sourceName) { throw new UnsupportedOperationException() }
+        })
 
         then:
         KlumModelException unsupported = thrown()
         unsupported.message.contains('requires a generated Builder')
-        KlumBuilder.declaredMethods.length == 0
+        KlumBuilder.declaredMethods*.name == ['applyStruct', 'applyStruct']
+        KlumBuilder.declaredMethods.every { it.returnType == void }
     }
 }

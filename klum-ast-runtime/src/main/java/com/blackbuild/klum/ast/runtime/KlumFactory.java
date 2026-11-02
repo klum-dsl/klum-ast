@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedBuilderTypeSupport;
 import com.blackbuild.klum.ast.runtime.internal.DslHelper;
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper;
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
@@ -302,6 +303,27 @@ public class KlumFactory<T> {
     }
 
     /**
+     * Creates a completed Model from a caller-parsed structured document using a generated diagnostic label.
+     * A keyed document supplies its actual Schema key member. Input follows supplied iteration order.
+     * @param document structured domain Map; member names and payloads undergo strict Schema checks
+     * @return the Model after normal lifecycle, materialization and validation
+     */
+    public T FromStruct(Map<?, ?> document) {
+        return FromStruct(document, type.getName() + ".Create.FromStruct");
+    }
+
+    /**
+     * Creates a completed Model from a caller-parsed structured document.
+     * Failure returns no Model, but does not undo earlier operation side effects.
+     * @param document structured domain Map, including the actual Schema key for a keyed root
+     * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+     * @return the Model after normal lifecycle, materialization and validation
+     */
+    public T FromStruct(Map<?, ?> document, String sourceName) {
+        return StructuredInputSupport.readRoot(type, document, sourceName);
+    }
+
+    /**
      * Factory for keyed models.
      *
      * @param <T> The type of the model.
@@ -311,6 +333,28 @@ public class KlumFactory<T> {
 
         protected Keyed(Class<T> type) {
             super(requireKeyed(type));
+        }
+
+        /**
+         * Creates a keyed Model from a keyless structured body using a generated diagnostic label.
+         * @param rootKey explicit construction identity, available before PostCreate
+         * @param body structured domain Map that must not contain the Schema root key
+         * @return the completed Model after one ordinary root lifecycle
+         */
+        public T FromStruct(String rootKey, Map<?, ?> body) {
+            return FromStruct(rootKey, body, type.getName() + ".Create.FromStruct");
+        }
+
+        /**
+         * Creates a keyed Model from a keyless structured body through one root configuration and PostApply.
+         * Failure returns no Model, but does not undo earlier operation side effects.
+         * @param rootKey explicit construction identity, available before PostCreate
+         * @param body structured domain Map that must not contain the Schema root key, even an equal value
+         * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+         * @return the Model after normal lifecycle, materialization and validation
+         */
+        public T FromStruct(String rootKey, Map<?, ?> body, String sourceName) {
+            return StructuredInputSupport.readRoot(type, rootKey, body, sourceName);
         }
 
         @Override

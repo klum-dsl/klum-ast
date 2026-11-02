@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
 import spock.lang.Tag
 import spock.lang.See
@@ -118,8 +117,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'ordinaryscalarinput.CredentialOwner')
 
         when:
-        def owner = KlumStructuredInput.readRoot(root, null,
-                [credentialSecret: [inherited: 'shared', name: 'worker-prod-kafka-credentials', key: 'password']],
+        def owner = root.Create.FromStruct([credentialSecret: [inherited: 'shared', name: 'worker-prod-kafka-credentials', key: 'password']],
                 'credentials.yaml')
 
         then:
@@ -133,10 +131,10 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def document = documentSchema()
 
         when:
-        def first = KlumStructuredInput.readRoot(document, null, [add: 3, multiply: 4], 'first.yaml')
+        def first = document.Create.FromStruct([add: 3, multiply: 4], 'first.yaml')
         def firstEvents = new ArrayList(document.events)
         document.events.clear()
-        def second = KlumStructuredInput.readRoot(document, null, [multiply: 4, add: 3], 'second.yaml')
+        def second = document.Create.FromStruct([multiply: 4, add: 3], 'second.yaml')
 
         then:
         first.count == 20
@@ -155,7 +153,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
                 entries: ['a/b~c': [value: 'first'], '': [value: 'second']]]
 
         when:
-        def model = KlumStructuredInput.readRoot(document, null, input, 'nested.yaml')
+        def model = document.Create.FromStruct(input, 'nested.yaml')
 
         then:
         model.words == ['b', 'a']
@@ -183,12 +181,10 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def document = documentSchema()
 
         when:
-        def first = KlumStructuredInput.readRoot(document,
-                [child: [prefix: 'a', suffix: 'b'], entries: [second: [:], first: [:]], words: ['b', 'a']], 'first.yaml')
+        def first = document.Create.FromStruct([child: [prefix: 'a', suffix: 'b'], entries: [second: [:], first: [:]], words: ['b', 'a']], 'first.yaml')
         def firstEvents = new ArrayList(document.events)
         document.events.clear()
-        def second = KlumStructuredInput.readRoot(document,
-                [words: ['a', 'b'], entries: [first: [:], second: [:]], child: [suffix: 'b', prefix: 'a']], 'second.yaml')
+        def second = document.Create.FromStruct([words: ['a', 'b'], entries: [first: [:], second: [:]], child: [suffix: 'b', prefix: 'a']], 'second.yaml')
 
         then:
         first.words == ['b', 'a']
@@ -211,7 +207,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         when:
         def model = document.Create.With {
-            try { KlumStructuredInput.applyToBuilder(delegate, input, 'bad.yaml') }
+            try { delegate.applyStruct(input, 'bad.yaml') }
             catch (KlumModelException caught) { failure = caught }
             assert failure != null
             assert ((InternalKlumBuilder) delegate).getInstanceAttribute('count') == count
@@ -247,7 +243,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         when:
         def model = document.Create.With {
-            try { KlumStructuredInput.applyToBuilder(delegate, input, 'population.yaml') }
+            try { delegate.applyStruct(input, 'population.yaml') }
             catch (KlumModelException caught) { failure = caught }
         }
 
@@ -272,7 +268,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def result = null
 
         when:
-        result = KlumStructuredInput.readRoot(document, [add: 3, unknown: true, multiply: 4], 'root.yaml')
+        result = document.Create.FromStruct([add: 3, unknown: true, multiply: 4], 'root.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -281,7 +277,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         document.events == ['root:create', 'add:3']
 
         when:
-        def fresh = KlumStructuredInput.readRoot(document, [multiply: 4], 'fresh.yaml')
+        def fresh = document.Create.FromStruct([multiply: 4], 'fresh.yaml')
 
         then:
         fresh.count == 8
@@ -296,7 +292,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         document.supplied = input
 
         when:
-        def model = KlumStructuredInput.readRoot(document, null, input, 'live.yaml')
+        def model = document.Create.FromStruct(input, 'live.yaml')
 
         then:
         model.words.empty
@@ -312,7 +308,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         cycle.multiply = 4
 
         when:
-        KlumStructuredInput.readRoot(document, null, cycle, 'cycle.yaml')
+        document.Create.FromStruct(cycle, 'cycle.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -322,7 +318,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         when:
         def shared = ['a', 'b']
-        def model = KlumStructuredInput.readRoot(document, null, [rows: [shared, shared]], 'shared.yaml')
+        def model = document.Create.FromStruct([rows: [shared, shared]], 'shared.yaml')
 
         then:
         model.rows == [['a', 'b'], ['a', 'b']]
@@ -343,8 +339,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         when:
         def model = application.Create.With {
             try {
-                KlumStructuredInput.applyToBuilder(delegate,
-                        [host: 'api', unknown: true, port: 8080], 'application.yaml')
+                delegate.applyStruct([host: 'api', unknown: true, port: 8080], 'application.yaml')
             } catch (KlumModelException caught) { failure = caught }
             // The caller explicitly chooses to continue its enclosing construction.
             assert !((InternalKlumBuilder) delegate).sealed
@@ -366,15 +361,14 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def model = document.Create.With {
             captured = delegate
             def thread = new Thread({
-                try { KlumStructuredInput.applyToBuilder(captured, [add: 100], 'thread.yaml') }
+                try { captured.applyStruct([add: 100], 'thread.yaml') }
                 catch (Throwable caught) { wrongThread.set(caught) }
             })
             thread.start()
             thread.join(5000)
             assert !thread.alive
             assert wrongThread.get() instanceof KlumModelException
-            def returned = KlumStructuredInput.applyToBuilder(delegate, [add: 3], 'active.yaml')
-            assert returned.is(delegate)
+            delegate.applyStruct([add: 3], 'active.yaml')
             assert !((InternalKlumBuilder) delegate).sealed
             assert document.events == ['root:create', 'add:3', 'root:apply']
         }
@@ -384,7 +378,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         document.events == ['root:create', 'add:3', 'root:apply', 'root:apply', 'root:tree']
 
         when:
-        KlumStructuredInput.applyToBuilder(captured, [:], 'stale.yaml')
+        captured.applyStruct([:], 'stale.yaml')
 
         then:
         thrown(KlumModelException)
@@ -396,7 +390,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def document = documentSchema()
 
         when:
-        KlumStructuredInput.readRoot(document, null, [fail: 'authored failure', unknown: true, add: 1], 'failure.yaml')
+        document.Create.FromStruct([fail: 'authored failure', unknown: true, add: 1], 'failure.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -406,7 +400,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         failure.cause.message == 'authored failure'
 
         when:
-        def model = KlumStructuredInput.readRoot(document, null, [add: 1], 'fresh.yaml')
+        def model = document.Create.FromStruct([add: 1], 'fresh.yaml')
 
         then:
         model.count == 3
@@ -429,8 +423,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'numericinput.Numbers')
 
         when:
-        def model = KlumStructuredInput.readRoot(numeric, null,
-                [tiny: -128, small: 32767G, count: 2147483647G, large: 9223372036854775807G,
+        def model = numeric.Create.FromStruct([tiny: -128, small: 32767G, count: 2147483647G, large: 9223372036854775807G,
                  single: 1.5G, floating: 2.5G, whole: 123456789012345678901234567890G, precise: 0.125G], 'numbers.yaml')
 
         then:
@@ -460,7 +453,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'invalidnumericinput.Numbers')
 
         when:
-        KlumStructuredInput.readRoot(numeric, null, payload, 'numeric-error.yaml')
+        numeric.Create.FromStruct(payload, 'numeric-error.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -514,13 +507,13 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'exactinput.Choice')
 
         when:
-        def model = KlumStructuredInput.readRoot(choice, null, [inherited: 'base', primitive: 7, wrapper: 8, admitted: 9], 'choice.yaml')
+        def model = choice.Create.FromStruct([inherited: 'base', primitive: 7, wrapper: 8, admitted: 9], 'choice.yaml')
 
         then:
         model.trace == ['base', 'primitive:7', 'wrapper:8', 'admitted:9']
 
         when:
-        KlumStructuredInput.readRoot(choice, null, [choose: 1], 'native.yaml')
+        choice.Create.FromStruct([choose: 1], 'native.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -541,7 +534,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'keyedinput.Root')
 
         when:
-        def model = KlumStructuredInput.readRoot(keyed, 'root-key', [child: [value: 'payload']], 'keyed.yaml')
+        def model = keyed.Create.FromStruct('root-key', [child: [value: 'payload']], 'keyed.yaml')
 
         then:
         model.name == 'root-key'
@@ -549,7 +542,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         model.child.value == 'payload'
 
         when:
-        KlumStructuredInput.readRoot(keyed, 'root-key', [name: 'forbidden'], 'bad-key.yaml')
+        keyed.Create.FromStruct('root-key', [name: 'forbidden'], 'bad-key.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -568,7 +561,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'validatedinput.Root')
 
         when:
-        KlumStructuredInput.readRoot(validated, null, [value: 'rejected'], 'late.yaml')
+        validated.Create.FromStruct([value: 'rejected'], 'late.yaml')
 
         then:
         def failure = thrown(KlumValidationException)
@@ -592,8 +585,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'containerinput.Containers')
 
         when:
-        def model = KlumStructuredInput.readRoot(containers, null,
-                [unique: ['b', 'a', 'b'], sorted: [3, 1, 2], flags: ['DONE', 'READY', 'DONE'],
+        def model = containers.Create.FromStruct([unique: ['b', 'a', 'b'], sorted: [3, 1, 2], flags: ['DONE', 'READY', 'DONE'],
                  keyed: [b: 2, a: 1], ordinary: ['literal/a~': 'value']], 'containers.yaml')
 
         then:
@@ -604,17 +596,17 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         model.ordinary == ['literal/a~': 'value']
     }
 
-    @Issue('952')
+    @Issue(['952', '953'])
     def 'invalid root shapes reject before allocation and members reject when reached: #label'() {
         given:
         def document = documentSchema()
 
         when:
-        KlumStructuredInput.readRoot(document, null, payload, 'shape.yaml')
+        document.Create.FromStruct(payload, 'shape.yaml')
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('shape.yaml')
+        def failure = thrown(payload == null || payload instanceof Map ? KlumModelException : MissingMethodException)
+        payload != null && !(payload instanceof Map) || failure.message.contains('shape.yaml')
         document.events == (payload instanceof Map ? ['root:create'] : [])
 
         where:
@@ -637,7 +629,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         when:
         def model = document.Create.With {
-            try { KlumStructuredInput.applyToBuilder(delegate, [fail: 'after mutation'], 'partial.yaml') }
+            try { delegate.applyStruct([fail: 'after mutation'], 'partial.yaml') }
             catch (KlumModelException caught) { capturedFailure = caught }
             assert ((InternalKlumBuilder) delegate).getInstanceAttribute('count') == 99
         }
@@ -648,14 +640,14 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         document.events == ['root:create', 'root:apply', 'root:tree']
 
         when:
-        KlumStructuredInput.readRoot(document, null, [explode: 'fatal authored failure'], 'fatal.yaml')
+        document.Create.FromStruct([explode: 'fatal authored failure'], 'fatal.yaml')
 
         then:
         def error = thrown(AssertionError)
         error.message == 'fatal authored failure'
 
         when:
-        def fresh = KlumStructuredInput.readRoot(document, null, [add: 1], 'fresh.yaml')
+        def fresh = document.Create.FromStruct([add: 1], 'fresh.yaml')
 
         then:
         fresh.count == 3
@@ -667,7 +659,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         when:
         document.Create.With {
-            KlumStructuredInput.readRoot(document, null, [:], 'nested-root.yaml')
+            document.Create.FromStruct([:], 'nested-root.yaml')
         }
 
         then:
@@ -677,14 +669,14 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
         when:
         document.Create.Template.With {
-            KlumStructuredInput.applyToBuilder(delegate, [:], 'template.yaml')
+            delegate.applyStruct([:], 'template.yaml')
         }
 
         then:
         thrown(KlumModelException)
 
         when:
-        KlumStructuredInput.readRoot(document, null, [:], '')
+        document.Create.FromStruct([:], '')
 
         then:
         def emptySource = thrown(KlumModelException)
@@ -716,7 +708,7 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         ''', 'fixedruntime.FloorPlan')
 
         when:
-        def model = KlumStructuredInput.readRoot(plan, null, [cooking: [purpose: 'structured']], 'fixed.yaml')
+        def model = plan.Create.FromStruct([cooking: [purpose: 'structured']], 'fixed.yaml')
 
         then:
         model.kitchen.name == 'kitchen'

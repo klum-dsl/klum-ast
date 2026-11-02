@@ -35,7 +35,7 @@ import spock.lang.Tag
 import javax.tools.ToolProvider
 import java.lang.reflect.Modifier
 
-@Issue('856')
+@Issue(['856', '953'])
 class OwningRelationshipTracerTest extends AbstractDSLSpec {
 
     @Tag('documentary')
@@ -138,7 +138,8 @@ class OwningRelationshipTracerTest extends AbstractDSLSpec {
         expected.postTreeRuns == 1
         policy.validations == 2
         !instance.receiver.hasProperty('binding')
-        KlumBuilder.declaredMethods.length == 0
+        KlumBuilder.declaredMethods*.name == ['applyStruct', 'applyStruct']
+        KlumBuilder.declaredMethods.every { it.returnType == void }
 
         where:
         binding     | explicitOverride | staticWriter

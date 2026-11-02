@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
@@ -68,8 +67,8 @@ class InputConstraintDescriptionTest extends AbstractDSLSpec {
         !rules.first().eligible()
         rules.first().origin() == 'DOCUMENTARY'
         rules.first().owner() == ''
-        KlumStructuredInput.readRoot(Class.forName('composition.Service', false, artifacts), [traffic: -1], 'service.yaml').traffic == -1
-        KlumStructuredInput.readRoot(Class.forName('composition.Service', false, artifacts), [:], 'service.yaml').traffic == null
+        Class.forName('composition.Service', false, artifacts).Create.FromStruct([traffic: -1], 'service.yaml').traffic == -1
+        Class.forName('composition.Service', false, artifacts).Create.FromStruct([:], 'service.yaml').traffic == null
 
     }
 

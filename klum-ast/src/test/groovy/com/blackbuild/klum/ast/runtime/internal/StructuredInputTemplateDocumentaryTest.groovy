@@ -27,7 +27,6 @@ import com.blackbuild.annodocimal.generator.ProjectionPolicy
 import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -347,7 +346,7 @@ class StructuredInputTemplateDocumentaryTest extends AbstractDSLSpec {
     def 'public Builder application rejects a Template Builder'() {
         when:
         deployment.Create.Template.With {
-            KlumStructuredInput.applyToBuilder(delegate, [region: 'bad'], 'input')
+            delegate.applyStruct([region: 'bad'], 'input')
         }
 
         then:

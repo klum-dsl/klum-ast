@@ -9,11 +9,28 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Structured Factory and Builder capabilities
+
+The unreleased development reader `KlumStructuredInput` has been removed without a forwarding alias. Replace its root
+calls with `Type.Create.FromStruct(document, sourceName)` or, for an explicitly keyed body,
+`Type.Create.FromStruct(rootKey, body, sourceName)`. Unkeyed callers omit the old null root-key argument.
+Replace `applyToBuilder(builder, body, sourceName)` with `builder.applyStruct(body, sourceName)`; the method returns void.
+A generic helper needing its original typed Builder can return that same receiver after the call.
+
+The exact erased Builder signatures `applyStruct(Map)` and `applyStruct(Map, String)` are now reserved. Rename colliding
+Schema methods or fields, including inherited and default-argument-generated collisions, then recompile. Old binary
+Builders overriding either signature cannot link against the final runtime methods. Other overloads remain permitted.
+
+Both forms also offer ordinary overloads with generated diagnostic labels. Recompile and ship matched compiler/runtime
+and Schema artifacts. No released 4.1 reader compatibility is affected. `Create.FromMap` and managed Jackson remain
+unchanged. See [structured Factory roots](Structured-Input.md#factory-roots),
+[active Builders](Structured-Input.md#apply-to-an-active-builder), and [Factory navigation](Convenience-Factories.md#structured-documents-and-bodies).
+
 ### Structured input Template bodies
 
 The additive `Create.Template.FromStruct` entry point accepts a parsed keyless root body and returns a reusable Template. Supply
 identity when constructing each recipient; see [structured input Templates](Templates.md#structured-input-templates).
-Existing root and active Builder entry points retain their contracts.
+Root creation and active Builder application now use the capabilities above.
 
 ### Structured String operation selection
 

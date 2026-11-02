@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
@@ -64,7 +63,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         def type = schema('@DSL class Service { Duration timeout }')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'service.yaml')
+        def result = type.Create.FromStruct([timeout: 'PT30S'], 'service.yaml')
         def direct = type.Create.With { timeout 'PT30S' }
         def entry = new InputContractResolver().read(type).entries().timeout
         def converter = entry.methods()[0].getAnnotation(GeneratedInput.Converter)
@@ -113,7 +112,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         String input = new String('api.internal')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [endpoint: input], 'endpoint.yaml')
+        def result = type.Create.FromStruct([endpoint: input], 'endpoint.yaml')
         def method = new InputContractResolver().read(type).entries().endpoint.methods()[0]
 
         then:
@@ -138,7 +137,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [(member): value], 'typed.yaml')
+        type.Create.FromStruct([(member): value], 'typed.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -159,7 +158,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'competition.yaml')
+        type.Create.FromStruct([timeout: 'PT30S'], 'competition.yaml')
 
         then:
         thrown(KlumModelException)
@@ -177,7 +176,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def result = KlumStructuredInput.readRoot(type, [timeout: 'PT30S'], 'competition.yaml')
+        def result = type.Create.FromStruct([timeout: 'PT30S'], 'competition.yaml')
 
         then:
         result.timeout == Duration.ofSeconds(37)
@@ -213,7 +212,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
 
         when:
         def direct = type.Create.With { value((CharSequence) input) }
-        def result = KlumStructuredInput.readRoot(type, [value: input], 'exact.yaml')
+        def result = type.Create.FromStruct([value: input], 'exact.yaml')
         def entry = new InputContractResolver().read(type).entries().value
 
         then:
@@ -255,7 +254,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         def leaf = Class.forName('sequenceinput.Leaf', false, artifacts)
 
         when:
-        def result = KlumStructuredInput.readRoot(inherited, [timeout: 'PT30S', endpoint: 'api'], 'binary.yaml')
+        def result = inherited.Create.FromStruct([timeout: 'PT30S', endpoint: 'api'], 'binary.yaml')
         def inheritedEntry = new InputContractResolver().read(inherited).entries().timeout
         def leafEntries = new InputContractResolver().read(leaf).entries()
 
@@ -277,7 +276,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         def type = schema("@DSL class Service { @Builder.Method void endpoint($target value) {} }")
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: value], 'excluded.yaml')
+        type.Create.FromStruct([endpoint: value], 'excluded.yaml')
 
         then:
         thrown(KlumModelException)
@@ -307,7 +306,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         !contract.entries().containsKey('endpoint')
 
         when:
-        KlumStructuredInput.readRoot(type, [endpoint: 'api'], 'generic.yaml')
+        type.Create.FromStruct([endpoint: 'api'], 'generic.yaml')
 
         then:
         thrown(KlumModelException)
@@ -351,7 +350,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         def type = schema('@DSL class Service { Duration timeout }')
 
         when:
-        KlumStructuredInput.readRoot(type, [timeout: 'bad'], 'duration.yaml')
+        type.Create.FromStruct([timeout: 'bad'], 'duration.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -367,7 +366,7 @@ class StructuredCharSequenceTest extends AbstractDSLSpec {
         def type = Class.forName('sequenceinput.Service', false, artifacts)
 
         when:
-        KlumStructuredInput.readRoot(type, [:], 'damaged.yaml')
+        type.Create.FromStruct([:], 'damaged.yaml')
 
         then:
         def failure = thrown(KlumModelException)

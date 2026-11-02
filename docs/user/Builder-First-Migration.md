@@ -438,3 +438,10 @@ public String or CharSequence Builder projection consuming a String scalar. This
 projection. C1-qualified compiled domain parameters retain their constraint authority; other origins supply structural
 String schemas. Recompile matched artifacts; see [migration](Migration.md#charsequence-scalar-routes) and
 [converter authoring](Converters.md#structured-string-input).
+
+## Structured application during construction
+
+Generated Builder contracts inherit the two void `KlumBuilder.applyStruct(Map<?, ?> body[, String sourceName])` forms.
+Use them inside an active ordinary construction session; completed Models expose neither method. Each successful call
+runs one PostApply without completing construction or replaying PostCreate. See
+[active structured Builders](Structured-Input.md#apply-to-an-active-builder) for examples and session/key restrictions.

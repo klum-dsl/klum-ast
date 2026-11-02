@@ -36,7 +36,6 @@ import java.lang.annotation.Target
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -86,7 +85,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def service = KlumStructuredInput.readRoot(type, [
+        def service = type.Create.FromStruct([
                 'display-name': 'Catalog', 'configure-endpoint': 'catalog', 'url-value': 'link',
                 'xml2-parser': 'xml', 'version2-url': 'v2', already_snake: 'same', 'Ångström-url': 'unicode',
                 labels: ['Team/Blue': 'ops'], 'service-details': [nativeName: 'own policy'],
@@ -206,7 +205,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         """)
 
         when:
-        KlumStructuredInput.readRoot(type, ['local-name': 'value'], 'conflict.yaml')
+        type.Create.FromStruct(['local-name': 'value'], 'conflict.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -231,7 +230,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, [serviceName: 'wrong token'], 'alias.yaml')
+        type.Create.FromStruct([serviceName: 'wrong token'], 'alias.yaml')
 
         then:
         thrown(KlumModelException)
@@ -247,7 +246,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         """)
 
         when:
-        KlumStructuredInput.readRoot(type, [:], 'collision.yaml')
+        StructuredInputSupport.readRoot(type, [:], 'collision.yaml')
 
         then:
         def failure = thrown(KlumModelException)
@@ -271,8 +270,8 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         ''')
 
         when:
-        def member = KlumStructuredInput.readRoot(type, ['service-id': 'Service/Blue', 'display-name': 'Blue'], 'key.yaml')
-        def external = KlumStructuredInput.readRoot(type, 'Service/Red', ['display-name': 'Red'], 'key.yaml')
+        def member = type.Create.FromStruct(['service-id': 'Service/Blue', 'display-name': 'Blue'], 'key.yaml')
+        def external = type.Create.FromStruct('Service/Red', ['display-name': 'Red'], 'key.yaml')
 
         then:
         member.serviceId == 'Service/Blue'
@@ -287,13 +286,13 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         ''')
 
         when:
-        KlumStructuredInput.readRoot(type, ['url-value': 'ambiguous'], 'key.yaml')
+        type.Create.FromStruct(['url-value': 'ambiguous'], 'key.yaml')
 
         then:
         thrown(KlumModelException)
 
         when:
-        def result = KlumStructuredInput.readRoot(type, 'literal/key', ['url-value': 'property'], 'key.yaml')
+        def result = type.Create.FromStruct('literal/key', ['url-value': 'property'], 'key.yaml')
 
         then:
         result.URLValue == 'literal/key'
@@ -316,7 +315,7 @@ class InputNamingProfileTest extends AbstractDSLSpec {
         def result = type.Create.With {
             serviceName 'before'
             try {
-                KlumStructuredInput.applyToBuilder(delegate, ['service-name': 'after', 'configure-endpoint': 'executed'], 'active.yaml')
+                delegate.applyStruct(['service-name': 'after', 'configure-endpoint': 'executed'], 'active.yaml')
             } catch (KlumModelException failure) { rejected = failure }
             assert serviceName == 'before'
         }

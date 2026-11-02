@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import spock.lang.Issue
 
 /** Current input behavior only; no Bean provider, user callbacks, defaults or converters. */
@@ -62,7 +61,7 @@ class SchemaProjectionP2InputTest extends AbstractDSLSpec {
         BigDecimal input = new BigDecimal(literal)
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [decimal: input], 'decimal.json')
+        def model = type.Create.FromStruct([decimal: input], 'decimal.json')
 
         then:
         model.decimal == input
@@ -77,7 +76,7 @@ class SchemaProjectionP2InputTest extends AbstractDSLSpec {
         def type = schema()
 
         when:
-        KlumStructuredInput.readRoot(type, null, [decimal: value], 'decimal.json')
+        type.Create.FromStruct([decimal: value], 'decimal.json')
 
         then:
         def failure = thrown(KlumModelException)
@@ -93,7 +92,7 @@ class SchemaProjectionP2InputTest extends AbstractDSLSpec {
         BigDecimal input = new BigDecimal('0.100000000000000001')
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null, [roundedFloat: input, roundedDouble: input], 'rounding.json')
+        def model = type.Create.FromStruct([roundedFloat: input, roundedDouble: input], 'rounding.json')
 
         then:
         new BigDecimal(Float.toString(model.roundedFloat)).compareTo(input) < 0
@@ -105,8 +104,7 @@ class SchemaProjectionP2InputTest extends AbstractDSLSpec {
         def type = schema()
 
         when:
-        def model = KlumStructuredInput.readRoot(type, null,
-                [words: ['same', 'same'], distinct: ['same', 'same'], labels: [a: 'same', b: 'same'],
+        def model = type.Create.FromStruct([words: ['same', 'same'], distinct: ['same', 'same'], labels: [a: 'same', b: 'same'],
                  children: [a: [value: 'same'], b: [value: 'same']]], 'containers.json')
 
         then:
@@ -123,7 +121,7 @@ class SchemaProjectionP2InputTest extends AbstractDSLSpec {
         def type = schema()
 
         when:
-        KlumStructuredInput.readRoot(type, null, [words: value], 'containers.json')
+        type.Create.FromStruct([words: value], 'containers.json')
 
         then:
         def failure = thrown(KlumModelException)
@@ -138,7 +136,7 @@ class SchemaProjectionP2InputTest extends AbstractDSLSpec {
         def type = schema()
 
         when:
-        KlumStructuredInput.readRoot(type, null, [(field): [(1): value]], 'keys.json')
+        type.Create.FromStruct([(field): [(1): value]], 'keys.json')
 
         then:
         def failure = thrown(KlumModelException)

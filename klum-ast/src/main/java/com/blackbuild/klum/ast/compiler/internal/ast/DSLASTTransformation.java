@@ -215,6 +215,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
 
         runDelayedActions(annotatedClass);
+        diagnoseStructuredApplicationOverrides();
         OmittedProjectionCatalog.complete(builderClass);
         GeneratedDslSupport.complete(annotatedClass);
         StructuredInputAdmissionPlan.classify(this);
@@ -223,6 +224,34 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
         new VariableScopeVisitor(sourceUnit, true).visitClass(builderClass);
+    }
+
+    private void diagnoseStructuredApplicationOverrides() {
+        builderClass.getMethods("applyStruct").stream()
+                .filter(method -> !method.getDeclaringClass().redirect().equals(KLUM_BUILDER))
+                .filter(method -> !method.getDeclaringClass().redirect().equals(PUBLIC_KLUM_BUILDER))
+                .filter(DSLASTTransformation::hasReservedStructuredApplicationSignature)
+                .forEach(method -> addError("Builder signatures applyStruct(Map) and applyStruct(Map, String) are "
+                        + "reserved for structured Builder application; rename the conflicting Schema operation or field.",
+                        method.getLineNumber() > 0 ? method : annotatedClass));
+    }
+
+    private static boolean hasReservedStructuredApplicationSignature(MethodNode method) {
+        List<Parameter> parameters = new ArrayList<>(Arrays.asList(method.getParameters()));
+        if (isStructuredApplicationSignature(parameters)) return true;
+        // Groovy emits overloads by omitting default-valued parameters from right to left.
+        for (int index = parameters.size() - 1; index >= 0; index--) {
+            if (!parameters.get(index).hasInitialExpression()) continue;
+            parameters.remove(index);
+            if (isStructuredApplicationSignature(parameters)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isStructuredApplicationSignature(List<Parameter> parameters) {
+        return (parameters.size() == 1 || parameters.size() == 2
+                && parameters.get(1).getType().redirect().equals(STRING_TYPE))
+                && parameters.get(0).getType().redirect().equals(MAP_TYPE);
     }
 
     private void implementMarkerInterfaces() {

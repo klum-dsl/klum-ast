@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumStructuredInput
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.Issue
 
@@ -54,7 +53,7 @@ class ConstraintProjectionTest extends AbstractDSLSpec {
         Class type = capacity(policy)
 
         when:
-        def value = KlumStructuredInput.readRoot(type, [name: 'web', replicas: 2], 'policy input')
+        def value = type.Create.FromStruct([name: 'web', replicas: 2], 'policy input')
 
         then:
         value.name == 'web'
@@ -62,27 +61,27 @@ class ConstraintProjectionTest extends AbstractDSLSpec {
         value.label == null
 
         when:
-        KlumStructuredInput.readRoot(type, [name: 'web', replicas: 2, label: null], 'policy input')
+        type.Create.FromStruct([name: 'web', replicas: 2, label: null], 'policy input')
 
         then:
         def nullInput = thrown(KlumModelException)
         nullInput.message.contains('null')
 
         when:
-        KlumStructuredInput.readRoot(type, [name: 'web', replicas: -1], 'policy input')
+        type.Create.FromStruct([name: 'web', replicas: -1], 'policy input')
 
         then:
         thrown(KlumValidationException)
 
         when:
-        KlumStructuredInput.readRoot(type, [replicas: 2], 'policy input')
+        type.Create.FromStruct([replicas: 2], 'policy input')
 
         then:
         def missing = thrown(KlumModelException)
         missing.message.contains('name')
 
         when:
-        KlumStructuredInput.readRoot(type, [name: 'web', replicas: 2, unknown: 'bad'], 'policy input')
+        type.Create.FromStruct([name: 'web', replicas: 2, unknown: 'bad'], 'policy input')
 
         then:
         def unknown = thrown(KlumModelException)

@@ -373,4 +373,5 @@ before OWNER and throughout construction, including sealed wrappers of completed
 retain this immutable metadata after completion or abort, independently of owning-relationship queries, which still
 require the current active session and a phase after OWNER. Reading the type does not create, adopt, unseal or
 materialize anything and grants no mutation eligibility. Templates, ownership, lifecycle and materialization retain
-their existing behavior. `KlumBuilder<T>` remains a zero-operation marker.
+their existing behavior. `KlumBuilder<T>` exposes only the common void [structured application capability](Structured-Input.md#apply-to-an-active-builder);
+completed Models do not expose it.

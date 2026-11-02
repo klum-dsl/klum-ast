@@ -23,14 +23,30 @@
  */
 package com.blackbuild.klum.ast.runtime;
 
+import java.util.Map;
+
 /**
  * Public construction capability implemented by generated DSL Builders.
  *
- * <p>This interface intentionally declares no operations. Schema-specific
- * configuration is exposed only by the generated {@code Foo_DSL.Builder}
- * interface; lifecycle and materialization operations remain internal.</p>
+ * <p>Schema-specific configuration is exposed by the generated {@code Foo_DSL.Builder}
+ * interface. Structured application is a common capability; lifecycle and materialization remain internal.</p>
  *
  * @param <T> completed DSL Object type produced by the Builder
  */
 public interface KlumBuilder<T> {
+    /**
+     * Applies a caller-parsed keyless body to this active, same-thread, unsealed ordinary Builder.
+     * Uses a generated diagnostic label and runs one PostApply on success, without completing construction.
+     * @param body structured domain Map; the existing Builder identity cannot be supplied or changed
+     */
+    void applyStruct(Map<?, ?> body);
+
+    /**
+     * Applies operations in supplied iteration order, running one PostApply on success.
+     * Does not replay PostCreate or complete construction. Failure may leave earlier configuration in place.
+     * Template definition and sealed or inactive Builders are rejected.
+     * @param body structured domain Map; the existing Builder identity cannot be supplied or changed
+     * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+     */
+    void applyStruct(Map<?, ?> body, String sourceName);
 }

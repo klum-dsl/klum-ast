@@ -247,7 +247,10 @@ class BuilderRelationshipLifetimeTest extends AbstractDSLSpec {
         then:
         templateError instanceof KlumModelException
         failureOf { KlumBuilderSupport.of(null) }.with { it instanceof NullPointerException && it.message == 'builder' }
-        failureOf { KlumBuilderSupport.of(new KlumBuilder<Object>() {}) } instanceof KlumModelException
+        failureOf { KlumBuilderSupport.of(new KlumBuilder<Object>() {
+            void applyStruct(Map<?, ?> body) { throw new UnsupportedOperationException() }
+            void applyStruct(Map<?, ?> body, String sourceName) { throw new UnsupportedOperationException() }
+        }) } instanceof KlumModelException
         failureOf { templateView.owningRelationship } instanceof KlumModelException
         failureOf { templateView.getOwningRelationshipAnnotation(annotationType) } instanceof KlumModelException
         failureOf { templateView.getOwningRelationshipAnnotation(null) }.with { it instanceof NullPointerException && it.message == 'annotationType' }

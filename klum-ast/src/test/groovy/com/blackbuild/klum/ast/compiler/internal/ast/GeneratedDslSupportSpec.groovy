@@ -633,13 +633,15 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         error.type == getClass()
     }
 
-    def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
+    @Issue('953')
+    def "public Builder contracts expose the common KlumBuilder capability"() {
         given:
         Class<?> builder = getClass('sample.Child_DSL$Builder')
 
         expect:
         KlumBuilder.isAssignableFrom(builder)
-        KlumBuilder.declaredMethods.length == 0
+        KlumBuilder.declaredMethods*.name == ['applyStruct', 'applyStruct']
+        KlumBuilder.declaredMethods.every { it.returnType == void }
         builder.typeParameters*.name == ['SELF']
         builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.runtime.KlumBuilder<SELF>')
     }
