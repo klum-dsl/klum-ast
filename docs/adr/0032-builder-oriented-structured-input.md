@@ -11,6 +11,8 @@ see [S2 evidence](../implementation/input-round-s2-evidence.md). S3a admits exac
 see [S4 evidence](../implementation/input-round-s4-evidence.md). S3b admits exact CharSequence scalar signatures;
 see [S3b evidence](../implementation/input-round-s3b-evidence.md).
 S7 adds explicit Gradle `bodyRootTypes` selection; see [S7 evidence](../implementation/input-round-s7-evidence.md).
+S5 has a local implementation of one concrete unkeyed virtual-field family through the existing Consumer construction
+interval; see [S5 evidence](../implementation/input-round-s5-evidence.md). Integration and final qualification remain separate.
 
 Authority: the maintainer's INPUT-ROUND-PLAN decisions and accepted #953 Factory/Builder clarification, reconciled in the
 [implementation and issue plan](../implementation/input-round-plan-4-2.md). The 4.2 horizon records that direction;

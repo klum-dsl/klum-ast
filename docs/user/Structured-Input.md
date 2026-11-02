@@ -340,6 +340,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Ordinary List/Map operation argument | One List/Map payload, recursively typed; never spread or treated as named arguments |
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
+| Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
 | Concrete owned object | A domain Map interpreted against the child's Builder |
 | Map of concrete keyed owned objects | A Map whose literal String keys select children, each configured by a domain Map |
 
@@ -380,6 +381,49 @@ then identity. See [literal names and exclusion](#literal-names-and-exclusion). 
 [operation selection](#select-a-string-operation); unresolved collisions reject without choosing a winner.
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
+
+## Concrete virtual Builder scopes
+
+A public `@Field void method(ConcreteType value)` can accept a nested mapping when its target is an unkeyed,
+nongeneric concrete DSL type and the compiler can associate it with one ordinary generated creator. The `@Field`
+annotation must have no explicit options. The interpreter enters the existing Construction session, configures the
+child Builder, runs its ordinary `PostApply`, then invokes the virtual sink. It does not create a completed child Model
+independently. Each invocation creates a fresh virtual child, as ordinary virtual-field creation does.
+
+(See: `StructuredVirtualScopeDocumentaryTest#'a repository mapping configures its Builder before the virtual field consumes it'`.)
+
+```groovy
+@DSL class Registry {
+    List<String> urls
+    @Field void repository(Repository config) {
+        urls << config.url
+    }
+}
+@DSL class Repository { String url }
+
+def ordinary = Registry.Create.With {
+    repository { url 'https://packages.example' }
+}
+def mapped = Registry.Create.FromStruct([repository: [url: 'https://packages.example']])
+assert mapped.urls == ordinary.urls
+assert mapped.urls == ['https://packages.example']
+```
+
+Literal names, naming profiles, exclusions and external-name collision rules still apply. An unchanged inherited scope
+retains its association. Redeclared virtual sinks are excluded where ordinary virtual-setter selection is not unique.
+Keyed, generic, abstract, customized, overloaded or missing/generated-creator replacements are outside this family.
+An authored closure method does not become a mapping scope merely because it has `@DelegatesToBuilder` metadata.
+CollectionFactory, polymorphic selectors and arbitrary closure adaptation remain unsupported.
+
+Earlier siblings can already have run when a virtual child fails. A child-body failure prevents that sink and later
+operations; a sink failure keeps its original cause and identifies the source label and scope path. Lifecycle failures
+retain ordinary attribution. Calling a no-argument creator and then `applyStruct` on its result is not equivalent:
+the creator has already run `PostApply` and the sink before returning.
+
+Recompile Schemas with matched compiler/runtime/plugin artifacts for the required exact association facts. The
+[JSON Schema](Json-Schema.md#concrete-virtual-scopes) describes the closed child body, without running the sink or
+promising that construction will succeed. Existing Factory, active-Builder and Template entry modes retain their
+ordinary lifecycle rules.
 
 ## Select a String operation
 

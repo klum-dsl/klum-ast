@@ -1,5 +1,11 @@
 # Unreleased
 
+- Admit nested mappings for one concrete virtual-field family: bare public `@Field void method(ConcreteType value)`
+  with an unkeyed, nongeneric target and exact generated creator. Preserve same-session child configuration, callback
+  order and virtual sink behavior; emit closed JSON Schema. Recompile matched artifacts. See
+  [virtual scopes](docs/user/Structured-Input.md#concrete-virtual-builder-scopes)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S5).
+
 - Add explicit `klumSchema.jsonSchema.bodyRootTypes` selection for caller-pre-keyed Builder-body schemas, emitted as
   `<Model>.builder-body.schema.json` alongside unchanged default self-contained root artifacts. Root identity is omitted;
   positional child keys and compiled-contract inspection remain unchanged. See

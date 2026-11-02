@@ -1,136 +1,119 @@
-# S5 — nested Builder scope entry characterization
+# S5 — concrete virtual Builder scopes
 
 Related: #952. Authority: [ADR 0031](../adr/0031-structured-schema-input-artifacts.md),
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md#scalar-converters-scopes-and-commands),
-the [S5/F2 plan](input-round-plan-4-2.md#acceptance-details-that-must-not-disappear-inside-a-slice), and the
-assigned public/generated-entry admission gate. This is an **evidence-only stop**, not a new supported input feature.
+the [S5/F2 plan](input-round-plan-4-2.md#acceptance-details-that-must-not-disappear-inside-a-slice), and retained
+[S1](input-round-s1-evidence.md), [S2](input-round-s2-evidence.md), [S3a](input-round-s3a-evidence.md) and
+[S3b](input-round-s3b-evidence.md) evidence.
 
-## Base and outcome
+## Base, outcome and integration boundary
 
 Intentional speculative base: `13fd709980fe4e4f7c0031732d83f380bc5e6e85`,
 `codex/953-structured-factory-builder`, draft [PR #1012](https://github.com/klum-dsl/klum-ast/pull/1012).
 S5 branch: `codex/952-nested-builder-scope-proof`.
 Worktree: `/Users/stephan/.codex/worktrees/8182/klum-ast`.
-On 2026-11-02, #1012 was verified open at that exact head. Its delivery/qualification is independent of this probe.
+On 2026-11-02, #1012 was verified open at that exact head. Its delivery/qualification is independent of this slice.
+A rebase after its merge is required before final PR creation/qualification.
 
-No additional scope family is admitted. Existing concrete owned children and keyed Maps retain their mapping grammar.
-An authored closure scope has no direct public/generated callback entry. A concrete virtual field is a stronger
-candidate: the **existing package-private Consumer helper does preserve ordinary semantics** in the tested example.
-However, the generated public surface offers a completed configuration call returning a Builder, a named-parameter
-Map call, a closure call, or a Builder sink; it does not expose the Consumer configuration interval. Its structured
-contract also lacks the compiler-owned scope/dispatch association that backs the existing relationship families.
+S5 implements exactly one additional family: a public bare `@Field void method(ConcreteType value)` virtual sink whose
+DSL target is concrete, unkeyed and nongeneric, with one compiler-proven generated creator. The interpreter enters the
+existing Consumer configuration interval in the current Construction session. It does not synthesize a Closure, infer
+an arbitrary delegate, create an independent completed child, or add a public callable API.
 
-This bounded result does **not** establish that virtual mapping is impossible or that the internal helper is defective.
-It establishes an internal candidate and the public/generated contract gap under this assignment's admission rule.
-Promoting that internal candidate requires an accepted generated scope association/direct-entry contract; no such
-contract or public API is invented here. CollectionFactory and Cluster-facade exploration remain with F2.
+Ordinary direct children and keyed Maps remain controls. Keyed/generic/abstract/customized/overloaded virtual families,
+redeclared sinks with ambiguous ordinary selection, authored closure scopes, CollectionFactory/F2, polymorphic and
+Class/Factory selectors, container grammar, composition, Template implementation, #953 APIs and Jackson are unchanged.
+The bare-annotation restriction deliberately includes rejecting explicit `@Field` options; this is one bounded family,
+not general virtual-field completion.
 
-## Executable cases
+## Contract proof and implementation
 
-`StructuredNestedScopeProbeTest` carries `@Issue('952')` and compiles the following small Schema into artifacts before
-loading its generated public contracts. The complete fixture adds trace callbacks and ownership fields.
+`DSLASTTransformation.createDSLMethodsForVirtualFields` already sends a concrete virtual target and name through
+`createSingleDSLObjectFieldCreationMethods`; generated relationship-creator provenance identifies the real projection.
+Ordinary creation reaches `InternalKlumBuilder.createSingleChildWithConfiguration`. The initial probe demonstrates that
+its Consumer callback preserves the complete ordinary virtual trace, owner attachment and materialization.
 
-```groovy
-@DSL class Deployment {
-    Child child
-    Map<String, Entry> entries
-
-    @Builder.Method
-    void scoped(@DelegatesToBuilder(Child) Closure body) {
-        events << 'scope:before'
-        child(body)
-        events << 'scope:after'
-    }
-
-    @Field
-    void virtual(Child value) {
-        events << "virtual:$value.value".toString()
-    }
-}
-```
-
-The existing supported control is ordinary `child { value 'direct' }` plus
-`entry('a/b~c') { value 'mapped' }`, compared with the caller-supplied mapping
-`[child: [value: 'direct'], entries: ['a/b~c': [value: 'mapped']]]`.
-It preserves callback traces, final owner identity and the outer Map construction key.
-
-| Case | Observed contract |
-| --- | --- |
-| Concrete child and keyed Map ordinary/mapping parity | Same trace; one creation/apply callback per new child; owners attached by normal lifecycle; key visible at entry creation |
-| Reentry of existing children | Same Builder identities, one creation, one apply per configuration, unchanged key, same session and ordinary sealing |
-| Failure in a fresh Map child after a prior direct sibling | Prior sibling remains; reached child creates but does not finish apply or attach; later Map sibling never runs; escaped `/entries/a~1b~0c/unknown` diagnostic retained |
-| Inner key in a keyed-Map body | Outer key is established at creation; forbidden inner key rejects when reached; no rollback or pre-allocation rejection is claimed |
-| Nested active Builder application | Same-thread application succeeds without materialization; wrong-thread and sealed use reject; explicit application adds its own ordinary PostApply |
-| Aborted root/session | No Model returned; stale Builder rejects later application; next root succeeds |
-| Authored `scoped(Closure)` | Generated parameter has exact `Child_DSL.Builder` delegate; only closure signature exists; mapping rejects without invoking before/after wrapper effects |
-| Virtual generated public return route | `virtual()` returns the exact generated Builder, but its apply callback and sink have already run; later `applyStruct` adds a second apply and cannot reproduce ordinary sink input |
-| Virtual internal Consumer route | Package-private test call to `createSingleChildWithConfiguration` matches the ordinary virtual trace, owner and materialization; this is an internal feasibility control, not a public mapping operation |
-| Static structured admission | Only `child` and `entries` are admitted in this fixture; no virtual Selection/Operation association exists; inspection runs no configuration callback |
-
-The timing counterexample is executable, not inferred from return types:
+The public returned-Builder route is not equivalent:
 
 ```groovy
 // Ordinary: child:create, child:apply:configured, virtual:configured
 Deployment.Create.With { virtual { value 'configured' } }
 
-// Returned-Builder adapter: child:create, child:apply:null, virtual:null,
-//                          child:apply:configured
+// Too late: child:create, child:apply:null, virtual:null, child:apply:configured
 Deployment.Create.With {
     def nested = virtual()
     nested.applyStruct([value: 'configured'])
 }
 ```
 
-Both eventually run normal root/PostTree callbacks. The second route changes observable behavior before those phases.
-The named-parameter Map overload is also an ordinary completed configuration call, not a callback accepting recursive
-structured traversal; replacing structured grammar with named-map semantics is outside the slice.
+The implementation therefore uses the existing pre-PostApply interval. It shares the existing child preparation and
+attachment path; only the virtual sink invocation is supplied through the interpreter's exact public-method dispatcher.
+That keeps source/path/original-cause diagnostics on sink failures while leaving child-body and lifecycle attribution
+intact. A successful sink is followed by the ordinary virtual-child retention and model-path assignment.
 
-## Owning code and missing contract
+The compiler binds the exact public sink to its generated `(Map, Closure)` creator using the internal
+`GeneratedInput.VirtualScope` association and `Operation` role `VIRTUAL_OBJECT`. Existing operation completeness counts
+cover the new association. These are generated facts, not Schema-author annotations or a new projection SPI. The reader
+checks association presence, exact creator shape/return, bare retained virtual sink, concrete unkeyed/nongeneric target,
+role and public visibility before execution/projection. Stripped operation/association pairs still fail their count.
+Names and exclusions use the existing shared resolver. No user code executes during contract inspection or generation.
 
-- `StructuredInputAdmissionPlan.classifyOwnedObject` / `classifyOwnedMap`, `enrichField` and `enrichSelection` emit
-  the existing fixed relationship associations on public Builder declarations.
-- `StructuredInputSupport.Traversal.execute` uses those admitted associations to call
-  `InternalKlumBuilder.createSingleChildWithConfiguration` / `addNewDslElementToMapWithConfiguration`.
-- `DSLASTTransformation.createDSLMethodsForVirtualFields` creates ordinary virtual overloads from a temporary field
-  description. The retained `@Field` sink and generated return/delegate types prove a concrete candidate, but no
-  structured scope/dispatch association or public Consumer entry is emitted for that family.
-- `InternalKlumBuilder.resolveSingleChildTarget` also supports a virtual setter. `callSetterOrMethod` invokes the sink
-  and retains its virtual child for lifecycle traversal. The test calls this package-private path explicitly, with
-  static compilation so Groovy-version differences in dynamic package access cannot disguise the seam used.
-- `ClusterFactoryBuilder.createClosureForOuterClass` builds a Collection/Cluster factory closure delegate. It is not
-  an additional ordinary Builder scope admitted by this probe; F2 and generic composition are excluded.
+Unchanged inheritance preserves the association. Redeclaring the sink is rejected because the existing ordinary virtual
+setter resolver sees both declarations; this is proven by an ordinary-call control, not repaired through a new ownership
+or dispatch engine. External-name collisions do not select a virtual winner. The matched compiler/runtime/plugin and
+recompiled Schema requirement remains; protocol marker 1 alone is not a mixed-development-artifact promise.
 
-For an authored closure method, the missing contract must preserve the method's own before/after effects while entering
-its exact target at the proper configuration interval. An annotation declaring a delegate type cannot provide that.
-For the virtual candidate, the internal interval exists; what is missing at the assigned boundary is an accepted
-compiler-owned association of the exact virtual sink/family with that entry interval, including key, overload and
-inheritance authority. A public return type alone is insufficient, as the timing counterexample shows. This report
-does not choose a new annotation, generated API, or general scope framework to fill either gap.
+## Acceptance map
 
-## JSON Schema and validation
+`StructuredNestedScopeProbeTest` carries class-level `@Issue('952')` and exercises emitted artifacts. The separate
+`StructuredVirtualScopeDocumentaryTest` carries the documentary tag and a user-page `@See` link.
 
-No new nested mapping is published. The packaged `BinaryOwnedRelationshipsTest` now includes both candidate declarations
-and verifies their absence from generated properties. Its G3/G4/G5 source-free artifacts retain direct-child references,
-keyless keyed-Map value definitions, `additionalProperties: false`, construction-key exclusion, no-initialization traps
-and normal interpreter controls. A closed schema for either new candidate would be premature while runtime rejects it.
+| Requirement | Evidence |
+| --- | --- |
+| Existing concrete child and keyed Map ordinary/mapping traces | Same callbacks, final owner identity, outer key at creation; reentry retains existing Builder identities |
+| New virtual ordinary/Consumer/mapping parity | Correct pre-sink configuration, one child creation/apply per invocation, owner attachment, fresh virtual children on repeated calls |
+| Earlier sibling and nested failure | Earlier direct child remains; failed fresh Map or virtual child does not attach; later sibling/sink is not invoked; escaped input paths retained |
+| Positional key authority | Outer Map key creates identity; forbidden inner key rejects when reached, after allocation; no rollback/preflight claim |
+| Session/sealing | Same-thread active nested apply, no premature materialization, wrong-thread and stale/sealed rejection, aborted-root cleanup and next-root success |
+| Sink failure versus lifecycle failure | Sink error wraps its original cause with source/scope path; ordinary child lifecycle exception stays ordinarily attributed and prevents the sink |
+| Static family and naming | Concrete association, inherited declaration, redeclared-sink rejection, literal alias/escaped nested diagnostics, external collision |
+| Negative grammar | Non-Map bodies, keyed/generic/abstract/customized/overloaded targets, raw Object, ignored scope, authored creator and closure-only scope |
+| Damaged contracts | Missing scope/operation/both/sink/creator, inconsistent creator descriptor and role; omitted scope payload cannot hide corruption |
+| Existing Template mode | Ordinary and structured virtual definition both run the sink without lifecycle; documentary recipe produces the same recipient values |
+| Binary and JSON Schema | `BinaryOwnedRelationshipsTest`: source-free G3/G4/G5 producer artifacts, same ordinary/interpreter trace, virtual `$ref`, closure scope absent, initialization trap silent during projection |
+| Actual emitted grammar | `validate_virtual_scope_schema.py`: Draft 2020-12 validation of all three retained emitted schemas, 12 accepted and 33 rejected instances |
+| Java/static Groovy named modules | Expanded `JpmsPackageBoundaryTest` real producer/consumer case on G4/G5, using the public Factory and ordinary virtual comparison |
+| User example | `StructuredVirtualScopeDocumentaryTest#'a repository mapping configures its Builder before the virtual field consumes it'`; [Structured Input](../user/Structured-Input.md#concrete-virtual-builder-scopes) |
 
-Focused validation on 2026-11-02, with Java 17:
+The generic negative intentionally makes no generic-signature support promise. Its generated generic virtual contract
+can fail complete inspection before member traversal; it has no admitted scope association. The probe reads artifacts
+directly to avoid unrelated dynamic class-pool/JavaBeans introspection of that unsupported generic fixture.
 
-- `StructuredNestedScopeProbeTest`: 10 tests on each of Groovy 3, 4 and 5, zero failures/errors/skips.
-- `BinaryOwnedRelationshipsTest`: all six G3/G4/G5 projection/interpretation cases passed, zero failures/errors/skips.
-- Broader affected-module, compatibility and documentation checks are recorded in the final handoff below.
+## Local review and validation
 
-The first expanded probe corrected two test expectations: Groovy Map emptiness needs `isEmpty()`, and an externally
-keyed child's forbidden inner key rejects after allocation when reached. No production correction was required.
-No production/generated ABI, parser, Template, Factory, Jackson, container grammar or ownership implementation changes.
-Consequently this evidence change does not need a new public-feature documentary test, user-documentation claim or
-CHANGES entry. Existing binary/schema tests supply bounded controls, not release qualification or new ABI qualification.
-No local SonarCloud run is performed; hosted CI/Sonar remain authoritative for any eventual published revision.
+Exactly two independent read-only review children were started against the exact intentional base: **Standards** and
+**Specification**. Initial reviewed commit `951f1ce4675b7d4fb6b825d7a6ca3bd928df11c8` retained an evidence-only stop.
+Standards found no violations. Specification correctly rejected that stop: absence of a public Consumer overload or
+preexisting admission metadata does not invalidate the already proven framework callback. This successor withdraws the
+stop, adds the static proof/negative boundaries and implements the admitted route. Reviewed history is preserved.
+The returned-Builder counterexample remains valid; it rules out that adapter, not the Consumer route.
+
+Initial controls at `951f1ce46` passed 30 new G3/G4/G5 probes, six packaged cases, the 2,734-case compiler baseline
+(16 existing skips), 113 retained focused cases per compatibility lane, license and documentation checks. These are
+historical evidence for the unchanged base, not qualification of the subsequent implementation.
+
+The implementation's focused matrix passes its scope/documentary tests on G3/G4/G5, including the expanded G4/G5 named
+module cases; packaged binary/schema projection and interpretation also pass. Final root qualification, final review
+findings and exact implementation head are recorded below when complete. Because this implementation changes shared
+compiler/runtime/generated metadata and plugin interpretation, root `check` is required under the risk-tiered policy.
+No local SonarCloud is run. Hosted CI/Sonar on a future rebased PR head remains authoritative external qualification.
 
 ## Delivery and reconciliation
 
-Tracker impact: **Related: #952**; no issue state or curation change. No push or draft PR is warranted under the assignment's
-contract-proven publication condition. The probe is committed locally for maintainer/Hive review. A #1012 merge rebase
-remains pending before any future PR creation/qualification; this record stays pinned to its intentional speculative base.
-Hive must reconcile the evidence and decide whether to accept a bounded virtual-entry contract or retain the stop.
-No implementation re-entry, merge, self-archive or CollectionFactory follow-on is authorized by this result.
+Tracker impact: **Related: #952**, never closing syntax. Curation impact: none. The new documentary/user/schema/migration
+references are synchronized locally; Hive owns issue traceability and delivery reconciliation. No remote issue update,
+merge or archive action is part of this work. No Schelm qualification is claimed.
+
+#1012 rebase is pending while that PR remains open. Do not publish this speculative branch as finally qualified before
+integration. After local work is complete, Hive must reconcile the assigned outcome and determine its next delivery step;
+this worker does not self-archive or convert execution completion into archive safety.
