@@ -553,6 +553,31 @@ Real ScHelm root/output qualification remains a consumer-owned acceptance gate f
 [#529](https://github.com/klum-dsl/klum-ast/issues/529). This Gradle slice selects no ScHelm roots, packaging or publication policy.
 
 
+## Literal collection alternative
+
+For the [single compiler-literal keyed Map family](Structured-Input.md#literal-collection-alternative), the generated
+relationship is a closed object with exactly the recorded alias property. That alias is a String-keyed object whose
+values reference the concrete subtype's keyless body definition:
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "fixed": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/example.ConcreteElement_DSL%24Builder%3A%3Akeyless"}
+    }
+  }
+}
+```
+
+Neither relationship nor alias is required. Empty mappings are valid; a child body cannot supply its construction key,
+owner, unknown member or type selector. This shape promises only structural admission. Ordering, partial effects,
+existing-child reuse, lifecycle and completed validation remain runtime behavior. Unsupported alternative families remain
+omitted with diagnostics. Source-free producer/plugin/binary coverage lives in `BinaryOwnedRelationshipsTest`; the
+emitted-schema oracle is `validate_literal_alternative_schema.py`.
+
 ## Caller-pre-keyed Builder bodies
 
 A caller that supplies root identity before configuring its Builder needs a body schema that omits that identity.

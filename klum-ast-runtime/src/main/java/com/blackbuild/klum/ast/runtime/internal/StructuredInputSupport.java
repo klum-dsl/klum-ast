@@ -332,6 +332,7 @@ public final class StructuredInputSupport {
                 }
                 case VIRTUAL_OBJECT -> executeVirtualChild(entry, input, path, builder);
                 case KEYED_OWNED_MAP -> executeChildren(entry, input, path, builder);
+                case LITERAL_ALTERNATIVE_MAP -> executeAlternative(entry, input, path, builder);
                 case COMMAND -> {
                     if (!(input instanceof Map<?, ?> map) || !map.isEmpty())
                         throw bad(entry, path, "empty Map for a zero-argument command", input, null);
@@ -359,6 +360,22 @@ public final class StructuredInputSupport {
                     nested -> invocation.invoke(builder, new Object[]{nested}, path));
         }
 
+        private void executeAlternative(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            if (!(input instanceof Map<?, ?> map))
+                throw bad(entry, path, "closed literal alias Map", input, null);
+            enter(input, path, entry.contract(), entry.externalName());
+            try {
+                for (Map.Entry<?, ?> supplied : map.entrySet()) {
+                    if (!(supplied.getKey() instanceof String alias))
+                        throw bad(entry, path, "literal String alias " + entry.alternative().alias(), supplied.getKey(), null);
+                    String aliasPath = pointer(path, alias);
+                    if (!alias.equals(entry.alternative().alias()))
+                        throw bad(entry, aliasPath, "literal alias " + entry.alternative().alias(), supplied.getValue(), null);
+                    executeChildren(entry, supplied.getValue(), aliasPath, builder);
+                }
+            } finally { visiting.remove(input); }
+        }
+
         private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
             if (!(input instanceof Map<?, ?> map))
                 throw bad(entry, path, "Map of literal String instance keys to domain Maps", input, null);
@@ -369,9 +386,18 @@ public final class StructuredInputSupport {
                     if (!(supplied.getKey() instanceof String key))
                         throw bad(entry, path, "String instance key", supplied.getKey(), null);
                     Domain child = domain(entry.payload().type(), supplied.getValue(), pointer(path, key), Position.MAP_VALUE);
-                    invocation.recordInvocation(builder);
-                    builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
-                            key, child::execute);
+                    if (entry.alternative() == null) {
+                        invocation.recordInvocation(builder);
+                        builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
+                                key, child::execute);
+                    } else {
+                        BreadcrumbCollector.withInputScope(invocation.fieldName(), () -> {
+                            BuilderDispatchSupport.recordInvocation(builder, entry.alternative().alias());
+                            BreadcrumbCollector.getInstance().setVerb(entry.alternative().alias());
+                            return builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), true,
+                                    key, child::execute);
+                        });
+                    }
                 }
             } finally { visiting.remove(input); }
         }

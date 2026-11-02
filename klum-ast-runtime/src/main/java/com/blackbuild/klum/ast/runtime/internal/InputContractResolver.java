@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import groovy.lang.Closure;
+import groovy.lang.DelegatesTo;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -272,18 +273,29 @@ final class InputContractResolver {
             throws IOException, ClassNotFoundException {
         Method[] declared = declaredMethods(context);
         for (Entry entry : inherited) {
-            Metadata origin = reader.metadata(entry.contract());
-            for (Method selected : entry.methods()) {
-                boolean converter = origin.methods().get(signature(selected)).converter() != null;
-                boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
-                        && entry.payload().type() == String.class
-                        && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{String.class});
-                if ((converter || stringField) && overridden(selected, declared)) {
-                    String originKind = converter ? "converter overload " : "String field operation ";
-                    rejections.add(new Rejection(entry.source(), "inherited " + originKind + selected.getName()
-                            + "(" + selected.getParameterTypes()[0].getSimpleName() + ") is overridden by " + namingOrigin(context.builder())
-                            + "; expose one supported non-overridden scalar route"));
-                }
+            rejectOverriddenField(context, entry, declared, rejections);
+        }
+    }
+
+    private void rejectOverriddenField(BuilderContext context, Entry entry, Method[] declared, List<Rejection> rejections)
+            throws IOException, ClassNotFoundException {
+        Metadata origin = reader.metadata(entry.contract());
+        for (Method selected : entry.methods()) {
+            if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
+                    && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
+                    && overridden(selected, declared)) {
+                rejections.add(new Rejection(entry.source(), "inherited literal collection scope is overridden by "
+                        + namingOrigin(context.builder()) + "; use a non-overridden generated collection scope"));
+            }
+            boolean converter = origin.methods().get(signature(selected)).converter() != null;
+            boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
+                    && entry.payload().type() == String.class
+                    && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{String.class});
+            if ((converter || stringField) && overridden(selected, declared)) {
+                String originKind = converter ? "converter overload " : "String field operation ";
+                rejections.add(new Rejection(entry.source(), "inherited " + originKind + selected.getName()
+                        + "(" + selected.getParameterTypes()[0].getSimpleName() + ") is overridden by " + namingOrigin(context.builder())
+                        + "; expose one supported non-overridden scalar route"));
             }
         }
     }
@@ -322,7 +334,7 @@ final class InputContractResolver {
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
         return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples());
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternative());
     }
 
     private Key profileKey(Key key) throws IOException, ClassNotFoundException {
@@ -437,6 +449,13 @@ final class InputContractResolver {
         String source = context.model().getName() + "#" + field;
         Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
         ConverterConstraints converter = converter(context, field, fieldType, literal, methods);
+        if (literal.alternative() == null && methods.stream().anyMatch(method ->
+                Role.LITERAL_ALTERNATIVE_MAP.name().equals(metadata.methods().get(signature(method)).role())))
+            throw invalid("Missing literal alternative association on " + source);
+        if (literal.alternative() != null) {
+            literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
+            return;
+        }
         String reason;
         if (converter == null) {
             reason = fieldReason(fieldType, literal);
@@ -460,6 +479,63 @@ final class InputContractResolver {
         entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
+    }
+
+    /** Resolve only the compiler-recorded public route; never discover aliases or initialize a Schema. */
+    private void literalAlternative(BuilderContext context, String field, Type fieldType, Literals literal,
+                                    List<Method> methods, List<Entry> entries, List<Rejection> rejections)
+            throws IOException, ClassNotFoundException {
+        AlternativeFacts facts = literal.alternative();
+        String source = context.model().getName() + "#" + field;
+        ClassLoader loader = context.builder().getClassLoader();
+        Class<?> target = Class.forName(facts.target(), false, loader);
+        Class<?> childBuilder = Class.forName(facts.target() + BUILDER_SUFFIX, false, loader);
+        Class<?> scope = Class.forName(facts.scope(), false, loader);
+        Class<?> declaredBuilder = alternativeMapValue(fieldType, source);
+        Class<?> declaredModel = modelOf(declaredBuilder);
+        reader.scope(scope); // Verify exact public classfile resource/origin before binding its recorded descriptor.
+        Method creator = Arrays.stream(scope.getDeclaredMethods())
+                .filter(method -> descriptor(method).equals(facts.creator())).findFirst()
+                .orElseThrow(() -> invalid("Missing exact literal alternative creator on " + source));
+        Literals creatorFacts = reader.metadata(scope).methods().get(signature(creator));
+        boolean hasScope = Arrays.stream(declaredMethods(context)).anyMatch(method -> method.getName().equals(field)
+                && method.getReturnType() == void.class && Arrays.equals(method.getParameterTypes(), new Class<?>[]{Closure.class})
+                && Arrays.stream(method.getParameterAnnotations()[0]).anyMatch(annotation ->
+                        annotation instanceof DelegatesTo delegate && delegate.value() == scope));
+        if (declaredModel == null || !Modifier.isAbstract(declaredModel.getModifiers())
+                || !declaredModel.isAssignableFrom(target) || Modifier.isAbstract(target.getModifiers())
+                || target.getTypeParameters().length != 0 || declaredModel.getTypeParameters().length != 0
+                || !childBuilder.isInterface() || modelOf(childBuilder) != target || !declaredBuilder.isAssignableFrom(childBuilder)
+                || !scope.isInterface() || !Modifier.isPublic(scope.getModifiers()) || !hasScope
+                || !creator.getName().equals(facts.alias()) || !Modifier.isPublic(creator.getModifiers())
+                || Modifier.isStatic(creator.getModifiers()) || creator.getReturnType() != childBuilder
+                || !Arrays.equals(creator.getParameterTypes(), new Class<?>[]{String.class, Closure.class})
+                || creatorFacts == null || !field.equals(creatorFacts.selection())
+                || !"LITERAL_ALTERNATIVE_CREATOR".equals(creatorFacts.role())
+                || !reader.metadata(childBuilder).key().equals(facts.key())
+                || !reader.metadata(declaredBuilder).key().equals(facts.key())
+                || !literal.exclusion().isEmpty() || literal.schemaKey() != null || literal.fixed())
+            throw invalid("Literal alternative field/target/key/creator disagreement on " + source);
+        if (literal.names().ignored()) {
+            rejections.add(new Rejection(source, ignoreReason(literal.names())));
+            return;
+        }
+        if (selectedRole(context.metadata(), methods, source) != Role.LITERAL_ALTERNATIVE_MAP)
+            throw invalid("Missing literal alternative selection on " + source);
+        String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
+        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, methods,
+                new Payload(Kind.NESTED_OBJECT, target, childBuilder, null, null), String.class.getName(), facts.key(), null,
+                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(),
+                new LiteralAlternative(facts.alias(), scope, creator)));
+    }
+
+    private static Class<?> alternativeMapValue(Type fieldType, String source) {
+        if (!(fieldType instanceof ParameterizedType map) || map.getRawType() != Map.class
+                || map.getActualTypeArguments()[0] != String.class)
+            throw invalid("Literal alternative requires Map<String, abstract keyed DSL Object> on " + source);
+        Class<?> value = rawType(map.getActualTypeArguments()[1]);
+        if (value == null) throw invalid("Missing literal alternative declared Builder on " + source);
+        return value;
     }
 
     private ConverterConstraints converter(BuilderContext context, String field, Type fieldType, Literals literal,

@@ -139,6 +139,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
+        StructuredInputAdmissionPlan.recordLiteralAlternative(fieldNode, alternatives, collectionFactory);
         OmittedProjectionCatalog.complete(collectionFactory);
     }
 

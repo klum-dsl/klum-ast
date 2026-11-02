@@ -2,7 +2,7 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification; other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's single literal CollectionFactory family is implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification; other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -28,6 +28,27 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [AsBuilder](0004-asbuilder-composition-protocol.md), [public generated contracts](0005-generated-dsl-support-api.md),
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md), and
 [named-map safety](0022-conservative-named-map-safety.md).
+
+## Accepted literal CollectionFactory slice — 2026-11-02
+
+F2-A's maintainer decision accepts one explicit literal alternative on a default owned `Map<String, Element>` where
+`Element` is abstract, keyed and nongeneric and its selected concrete nongeneric DSL subtype inherits the same String
+key. F2-B implements `elements: {fixed: {primary: {value: configured}}}`: literal alias, outer String identity, concrete
+keyless body. The outer key is authoritative; equal/conflicting inner keys reject when reached. Empty mappings perform
+zero child calls. Traversal preserves caller order and earlier effects on failure.
+
+The existing generated public field enrichment carries one inert association and an explicit zero/one count, including
+exact public CollectionFactory scope/creator, concrete target and inherited String-key facts. The unified
+`GeneratedInput.Schema.version` is authoritative; no annotation-specific version is emitted or accepted. Descriptor,
+completeness and corruption checks precede use without initializing Schema code. `CompiledBuilderSchema` supplies the
+same validated association to interpretation and projection. Runtime binds the existing explicit-type keyed-map
+configuration callback before child PostApply; JSON Schema emits a closed alias object and concrete keyless body.
+No public receiver/Consumer API, private-method reflection, synthetic closure or new construction engine is added.
+
+This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral/multiple aliases,
+generic targets, custom key mapping and caller Class/Factory selectors remain deferred under #952. See the
+[user contract](../user/Structured-Input.md#literal-collection-alternative) and
+[F2-B implementation evidence](../implementation/input-round-f2b-evidence.md). Merge and hosted qualification are separate.
 
 ## Context and successor boundary
 

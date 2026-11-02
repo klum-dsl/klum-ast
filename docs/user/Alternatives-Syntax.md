@@ -145,6 +145,12 @@ Config.Create.With {
 }
 ```
 
+### Structured input
+
+The [single explicit literal alternative on an abstract keyed Map](Structured-Input.md#literal-collection-alternative)
+has a bounded structured-input form. Automatic short names, multiple alternatives and other collection families retain
+their ordinary Groovy DSL syntax; they have no structured selector grammar.
+
 ### Strip Common Suffixes
 
 `@DSL(stripSuffix = "Element")` on the common base strips the suffix from child class names when determining the

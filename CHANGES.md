@@ -1,5 +1,12 @@
 # Unreleased
 
+- Admit the single compiler-literal CollectionFactory alternative for an abstract keyed owned Map as
+  `elements: {fixed: {primary: {value: configured}}}`. Preserve outer-key authority, ordinary child lifecycle,
+  ownership, reuse and ordered partial failures; emit the closed alias schema with concrete keyless child bodies.
+  Recompile matched Schema artifacts for complete inert metadata. See
+  [structured alternatives](docs/user/Structured-Input.md#literal-collection-alternative)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), F2-B).
+
 - Correct generated CollectionFactory literal-alternative contracts to return and delegate to the selected subtype's
   public Builder, including callable overloads that omit the configuration closure. Recompile Schema artifacts and consumers,
   then refresh IDE mirrors; ordinary Groovy DSL behavior is preserved. See
