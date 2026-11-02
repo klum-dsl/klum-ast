@@ -62,6 +62,12 @@ class CompiledConverterJsonSchemaTest extends Specification {
         body == schema
         ['duration', 'natural-duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype', 'sequence'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
+        ['intervals', 'local-values', 'adapted-values', 'inherited-ports', 'generic-values'].every {
+            fields[it].type == 'array' && fields[it].items == [type: 'string']
+                    && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
+        }
+        !fields.containsKey('sequence-values')
+        !fields.containsKey('map-values')
         fields.duration.description.contains('ISO-8601 duration.')
         fields.local.description.contains('converted domain value')
         fields.adapted.description == 'External adapter prose.'
@@ -226,7 +232,9 @@ import com.blackbuild.klum.ast.*
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.required == ['name']
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties.findAll { key, value -> key != 'name' } == properties
         !body.'$defs'.'converterjson.SelectedService_DSL$Builder::keyless'.containsKey('required')
-        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'naturalDuration', 'resetTimeout', 'current-command'] as Set
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'naturalDuration', 'resetTimeout', 'current-command', 'inheritedPorts'] as Set
+        properties.inheritedPorts.type == 'array'
+        properties.inheritedPorts.items == [type: 'string']
         properties.naturalDuration.type == 'string'
         !properties.naturalDuration.containsKey('allOf')
         !properties.naturalDuration.containsKey('x-klum-converter-constraint-source')
@@ -304,7 +312,7 @@ class EndpointAdapter {
         throw new AssertionError('subtype adapter executed')
     }
 }
-class GenericValue<T> {
+class GenericValue<T extends CharSequence> {
     GenericValue(@Pattern(regexp='[0-9]{1,8}') String value) { throw new AssertionError('generic constructor executed') }
 }
 ''')
@@ -314,6 +322,7 @@ import com.blackbuild.klum.ast.*
 import java.time.Duration
 @DSL class Base {
     Duration naturalDuration
+    @Converters(includeConstructors=true) List<PortNumber> inheritedPorts
     /** Inherited port prose. */
     @Struct.Name('port-number') @Struct.Examples(['1234']) @Deprecated
     @Converters(includeConstructors=true) PortNumber port
@@ -330,6 +339,12 @@ import java.nio.file.Path
     /** ISO-8601 duration. */
     @Converters(excludeMethods=['parse'])
     @Field(converters = [{ String value -> throw new AssertionError('closure executed') }]) Duration duration
+    @Converters(excludeMethods=['parse'])
+    @Field(converters = [{ String value -> throw new AssertionError('element closure executed') }]) List<Duration> intervals
+    List<LocalValue> localValues
+    @Converters(value=[DurationAdapter], excludeMethods=['parse']) List<Duration> adaptedValues
+    List<Duration> sequenceValues
+    Map<String, LocalValue> mapValues
     @Struct.Operation @Builder.Method void sequence(CharSequence value) { throw new AssertionError('CharSequence operation executed') }
     @Builder.Method void sequence(String value) { throw new AssertionError('String peer executed') }
     @Struct.Operation @Builder.Method
@@ -340,6 +355,7 @@ import java.nio.file.Path
     @Converters(includeConstructors=true) OverloadedValue overloaded
     @Field(converters = [{ String value -> throw new AssertionError('Path closure executed') }]) Path path
     @Converters(includeConstructors=true) GenericValue<String> generic
+    @Converters(includeConstructors=true) List<GenericValue<String>> genericValues
     @Converters([EndpointAdapter]) Endpoint subtype
     FactoryPort factory
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit

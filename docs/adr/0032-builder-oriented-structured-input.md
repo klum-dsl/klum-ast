@@ -238,11 +238,20 @@ An authored marked wrapper is a viable escape from an otherwise ambiguous genera
 
 ### Scalar converters, scopes and commands
 
+L1-A extends the qualified scalar direction to exact `List<T>` fields of non-DSL scalar values with one existing
+compiler-proven public String element adder. It reuses the paired converter association/count and PROPERTY selection;
+the reflected List destination distinguishes an element route from scalar assignment. The resolver validates this exact
+shape and shares a List-of-String payload with interpretation and schema projection. Ordinary element population owns
+conversion, initializers/defaults, order and failure boundaries. No runtime converter discovery or container replacement
+is introduced. Element parameter assertions remain outside this structural-only slice; scalar C1 authority is unchanged.
+Map values (L1-B), CharSequence-only element routes, other converter-backed collection shapes and owned DSL collections
+remain deferred. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
+
 Field-declared String converters are included, using their existing generated Builder operations. Same-compilation
 values and third-party adapters are not excluded merely because they lack C1's separately compiled domain-parameter
 inspection path. They still need a real, exact, unambiguous public projection. Do not extend general converter discovery,
-default/varargs expansion or generic inference to manufacture one. Converter-backed scalar List elements and Map values
-are follow-on work after scalar qualification, not an automatic recursive extension.
+default/varargs expansion or generic inference to manufacture one. Converter-backed containers require their own
+admitted slice after scalar qualification; L1-A above admits only exact String List-element routes.
 
 A String-to-concrete-DSL route is conditional: ordinary projected Builder semantics must already preserve same-session
 unsealed ownership, key authority, callback ordering, attachment/reuse and diagnostics. A factory returning a completed

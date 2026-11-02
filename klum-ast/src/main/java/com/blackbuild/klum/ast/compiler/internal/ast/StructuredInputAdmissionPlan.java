@@ -624,9 +624,13 @@ final class StructuredInputAdmissionPlan {
         Payload payload = payloadForField(type);
         MethodNode converter = payload == null ? StructuredInputConverter.selected(field) : null;
         if (converter != null) {
+            Payload converted = new Payload(PayloadKind.SCALAR, converter.getParameters()[0].getOriginType().getName(), null, null, null);
+            if (StructuredInputConverter.isListField(field)) {
+                converted = new Payload(PayloadKind.LIST, List.class.getName(), null, null, converted);
+            }
             entries.add(new Entry(name.value(), Role.PROPERTY, source,
                     new PublicOperation(converter.getDeclaringClass().getName(), converter.getName(), List.of(descriptor(converter))),
-                    new Payload(PayloadKind.SCALAR, converter.getParameters()[0].getOriginType().getName(), null, null, null), name.origin(), null, null, null, false));
+                    converted, name.origin(), null, null, null, false));
             return;
         }
         if (payload == null) {

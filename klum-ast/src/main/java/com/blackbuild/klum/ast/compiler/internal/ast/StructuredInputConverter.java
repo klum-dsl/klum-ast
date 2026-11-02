@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForCollection;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static groovyjarjarasm.asm.Opcodes.ACC_BRIDGE;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
@@ -73,16 +74,27 @@ final class StructuredInputConverter {
 
     static MethodNode selected(FieldNode field) {
         List<Route> routes = field.getNodeMetaData(ROUTES);
+        ClassNode destination = destination(field);
         if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT
-                || !StructuredInputAdmissionPlan.supportsScalarConverterInput(field.getType())) return null;
+                || !StructuredInputAdmissionPlan.supportsScalarConverterInput(destination)) return null;
         Route route = routes.get(0);
+        // L1-A admits exact String elements only; CharSequence container routes remain separate work.
+        if (isListField(field) && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
         if (route.generated() == null) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
         if (api == null || !api.isPublic() || api.isStatic() || api.isSynthetic()
                 || (api.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC)) != 0 || api.getParameters().length != 1
                 || !api.getParameters()[0].getOriginType().equals(route.source().getParameters()[0].getOriginType())
-                || !api.getReturnType().redirect().equals(field.getType().redirect())) return null;
+                || !api.getReturnType().redirect().equals(destination.redirect())) return null;
         return api;
+    }
+
+    static boolean isListField(FieldNode field) {
+        return field.getType().redirect().getName().equals(List.class.getName());
+    }
+
+    private static ClassNode destination(FieldNode field) {
+        return isListField(field) ? getElementTypeForCollection(field.getType()) : field.getType();
     }
 
     private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
@@ -106,7 +118,7 @@ final class StructuredInputConverter {
         fact.setMember("name", constX(source instanceof ConstructorNode ? "<init>" : source.getName()));
         fact.setMember("descriptor", constX(BytecodeHelper.getMethodDescriptor(source)));
         fact.setMember("parameter", constX(0));
-        fact.setMember("parameterFacts", constX(hasParameterAuthority(field.getType(), source)));
+        fact.setMember("parameterFacts", constX(!isListField(field) && hasParameterAuthority(field.getType(), source)));
         api.addAnnotation(fact);
     }
 }

@@ -81,6 +81,12 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         return super.setSingleFieldViaConverter(fieldOrMethodName, converterType, converterMethod, value);
     }
 
+    /** Direct generated linkage to ordinary element conversion and population, including named modules. */
+    protected final <T> T $addElementToCollectionViaStringConverter(String fieldOrMethodName, Class<?> converterType,
+                                                                  String converterMethod, String value) {
+        return super.addElementToCollectionViaConverter(fieldOrMethodName, converterType, converterMethod, value);
+    }
+
     /** Preserve the projected CharSequence signature when Groovy selects the recorded converter overload. */
     protected final <T> T $setSingleFieldViaCharSequenceConverter(String fieldOrMethodName, Class<?> converterType,
                                                                  String converterMethod, CharSequence value) {

@@ -49,7 +49,8 @@ Exact public String Builder projections now admit field closures, same-compilati
 external adapters. Missing or colliding generated projections still reject. Recompile matched compiler/runtime/plugin and
 Schema artifacts: every converter association now explicitly records whether C1 parameter facts apply. C1 assertions and
 policies remain unchanged on qualified routes; other origins emit String structure and field prose without inferring
-constraints. Converter-backed containers and DSL-object conversion remain outside this slice.
+constraints. Exact String List-element routes are covered by the later L1-A extension below; Map-value converters and
+DSL-object conversion remain deferred.
 See [converter authoring](Converters.md#structured-string-input) and [schema output](Json-Schema.md#compiled-converter-parameters).
 
 ### CharSequence scalar routes
@@ -71,6 +72,15 @@ ordinary virtual closure with a no-argument creator followed by `applyStruct`: t
 See [the executable scope example](Structured-Input.md#concrete-virtual-builder-scopes) and
 [schema representation](Json-Schema.md#concrete-virtual-scopes). Ordinary Groovy, Factory, Template and Jackson APIs
 are unchanged; no closure delegate inference or CollectionFactory support is added.
+
+### String List-element converters
+
+Exact `List<T>` fields with one compiler-proven generated String element adder now accept Lists of Strings through
+structured input. Recompile the Schema hierarchy with matched compiler/runtime/plugin artifacts; missing or corrupt
+converter association/completeness facts fail before execution. The unified metadata protocol remains version 1.
+Each element uses ordinary population, preserving defaults, order, indexed causes and earlier work on failure.
+JSON Schema emits structural String items without element-parameter constraint projection. Existing scalar C1
+projection is unchanged. See [the executable example](Structured-Input.md#converter-backed-list-elements).
 
 ### Compiled converter String input
 
