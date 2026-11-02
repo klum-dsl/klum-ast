@@ -68,7 +68,8 @@ The generated `Config_DSL.Builder.CollectionFactory_elements` interface exposes 
 selected subtype's public Builder return type and closure delegate, such as `SubElement_DSL.Builder<SubElement>`.
 The supported overloads include calls with or without named values and with or without a configuration closure.
 Java and statically compiled Groovy helpers can name these public contracts; generated implementation types are internal.
-Recompile the Schema to obtain corrected public signatures in existing compiled artifacts and refresh any IDE source mirrors.
+Recompile the Schema and its consumers to obtain corrected public signatures in existing compiled artifacts, then refresh
+any IDE source mirrors.
 
 (See: `CollectionFactoryContractTest#'dynamic DSL behavior and source mirrors retain the literal alternative surface'`.)
 

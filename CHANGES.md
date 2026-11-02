@@ -1,8 +1,8 @@
 # Unreleased
 
 - Correct generated CollectionFactory literal-alternative contracts to return and delegate to the selected subtype's
-  public Builder, including callable overloads that omit the configuration closure. Recompile Schema artifacts and refresh
-  IDE mirrors; ordinary Groovy DSL behavior is preserved. See
+  public Builder, including callable overloads that omit the configuration closure. Recompile Schema artifacts and consumers,
+  then refresh IDE mirrors; ordinary Groovy DSL behavior is preserved. See
   [alternative contracts](docs/user/Alternatives-Syntax.md#public-collection-factory-contract)
   ([#952](https://github.com/klum-dsl/klum-ast/issues/952), CF-CONTRACT prerequisite).
 
