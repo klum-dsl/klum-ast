@@ -75,6 +75,11 @@ implementation. This also applies when a forward relationship target is unresolv
 models share a source file or compile from separate source files. (See:
 `GeneratedDslSupportSpec#'projects same-source forward relationship Builders into the public namespace'`.)
 
+This includes literal alternatives in generated CollectionFactory interfaces: the selected subtype owns the public
+Builder return and closure delegate, and closure-free calls remain available to static consumers. Recompile Schema
+artifacts produced with the earlier hidden-type or incomplete-overload projection. See
+[public collection factory contracts](Alternatives-Syntax.md#public-collection-factory-contract).
+
 For same-project IntelliJ source completion, refresh the IDEA-only `Foo_DSL` mirrors through the Schema plugin and reload
 the Gradle project. The refresh materializes one root-owned GDSL resource directory and registers it with every Schema
 module; the packaged contributor then supplies source-level static `Foo.Create` as `Foo_DSL.Factory` and `Foo.Template`

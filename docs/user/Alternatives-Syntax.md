@@ -62,6 +62,34 @@ Keep these constraints in mind:
 - [Convenience Factories](Convenience-Factories.md) and source-visible converter methods also work on alternative methods. For the 4.0 Builder
   boundary and opaque-producer diagnostics, see [Behind the Curtain#builder-projection-for-custom-producers](Behind-the-Curtain.md#builder-projection-for-custom-producers).
 
+## Public Collection Factory Contract
+
+The generated `Config_DSL.Builder.CollectionFactory_elements` interface exposes literal alternative creators with the
+selected subtype's public Builder return type and closure delegate, such as `SubElement_DSL.Builder<SubElement>`.
+The supported overloads include calls with or without named values and with or without a configuration closure.
+Java and statically compiled Groovy helpers can name these public contracts; generated implementation types are internal.
+Recompile the Schema to obtain corrected public signatures in existing compiled artifacts and refresh any IDE source mirrors.
+
+(See: `CollectionFactoryContractTest#'dynamic DSL behavior and source mirrors retain the literal alternative surface'`.)
+
+```groovy
+@DSL class Catalog {
+    @Field(alternatives = { [fixed: FixedElement] })
+    List<Element> elements
+}
+@DSL abstract class Element { @Key String name }
+@DSL class FixedElement extends Element { String value }
+
+Catalog.Create.With {
+    elements {
+        fixed('default')
+        fixed(value: 'named', 'named')
+        fixed('closure') { value 'delegated' }
+        fixed(value: 'initial', 'full') { value 'overridden' }
+    }
+}
+```
+
 ## Naming Strategies
 
 KlumAST chooses the first applicable strategy below. Use the most local strategy that makes the Model readable: field

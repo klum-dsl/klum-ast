@@ -1,5 +1,11 @@
 # Unreleased
 
+- Correct generated CollectionFactory literal-alternative contracts to return and delegate to the selected subtype's
+  public Builder, including callable overloads that omit the configuration closure. Recompile Schema artifacts and refresh
+  IDE mirrors; ordinary Groovy DSL behavior is preserved. See
+  [alternative contracts](docs/user/Alternatives-Syntax.md#public-collection-factory-contract)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), CF-CONTRACT prerequisite).
+
 - Admit nested mappings for one concrete virtual-field family: bare public `@Field void method(ConcreteType value)`
   with an unkeyed, nongeneric target and exact generated creator. Preserve same-session child configuration, callback
   order and virtual sink behavior; emit closed JSON Schema. Recompile matched artifacts. See
