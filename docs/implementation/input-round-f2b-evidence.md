@@ -151,3 +151,43 @@ above. Changed-page links/anchors and diff checks pass. Both local Standards and
 against published base `f0290838f272742cbac4723988b6bb6e52928fe9` found no findings. This evidence-only update changes no
 production, tests or user documentation beyond the qualified source tree. All F2-B guarantees are preserved for matched,
 recompiled artifacts; hosted CI/SonarCloud still belongs to the exact updated PR head.
+
+
+## SonarCloud follow-up — PR #1017
+
+The hosted analysis of `f75a590d583ef4b5bae385c07d0260ddf6578d48` reported 32 open findings: one
+`javabugs:S2259`, one `java:S3776`, five `java:S1192`, two `groovydre:S134`, and 23 `groovydre:S8306`.
+The reliability rating caused the quality-gate failure; there were no open security hotspots.
+
+Additive repair commit `d642d1ee259fdc8c87f058a689ddeb9eaad5ceba` guards the nullable generated-Builder lookup,
+extracts the unchanged per-field override checks, names repeated metadata/property keys, and reduces fixture nesting
+with private helpers and explicit braces at the reported sites. It introduces no suppression or accepted-finding
+disposition. The extracted DSL fixture helper uses an explicit test-class receiver so the Builder delegate cannot
+intercept it. An initial focused run caught that interception; the corrected focused run passed all 83 cases.
+
+Qualification on that clean repair commit used Java 17 and the following affected-module checks:
+
+```shell
+./gradlew :klum-ast-runtime:test :klum-ast:test :klum-ast-gradle-plugin:test \
+  :klum-ast:groovy4Tests --tests '*LiteralAlternative*Test' --tests '*JpmsPackageBoundaryTest' \
+  :klum-ast:groovy5Tests --tests '*LiteralAlternative*Test' --tests '*JpmsPackageBoundaryTest' \
+  :klum-ast-runtime:verifyTestLaneIsolation :klum-ast:verifyTestLaneIsolation \
+  licenseMain licenseTest --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --no-parallel --max-workers=2
+```
+
+The command passed: **3,913 JUnit cases, zero failures/errors, 19 existing skips**. The baseline suites contain
+73 runtime cases (one existing skip), 2,853 compiler/consumer cases (16 existing skips), and 665 plugin cases (no skips).
+Each Groovy 4/5 compiler lane passed 88 literal/JPMS cases without skips. Lane-isolation verification also ran each full
+runtime compatibility lane: 73 cases with one existing skip per generation. Binary/plugin fixtures cover fresh,
+source-free Groovy 3/4/5 interpretation/projection and corrupt associations; Java/static Groovy classpath and Groovy 4/5
+named-module consumers passed. License and diff checks passed.
+
+The three freshly emitted schemas remain byte-identical to the pre-simplification snapshots, with the SHA-256 recorded
+above. The pinned Draft 2020-12 oracle again accepted 24 valid and rejected 75 invalid inputs. Both reused read-only
+local review axes found no findings against `f75a590d583ef4b5bae385c07d0260ddf6578d48`: Standards and Specification.
+
+All F2-B guarantees remain preserved. The unified version, seven mandatory association facts, completeness/provenance,
+admission, dispatch, lifecycle, ownership, breadcrumbs and schema output are unchanged. The risk-tiered testing policy
+selects affected suites for this localized Sonar repair; the earlier root `check` is retained as dated evidence rather
+than claimed as rerun qualification. No user-documentation changes or local SonarCloud upload are needed. This final
+evidence-only update changes no qualified production/test sources; hosted CI/SonarCloud must qualify the final PR head.
