@@ -72,7 +72,7 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Field {
-        /** Explicit completeness of the selected converter association (zero or one). */
+        /** Explicit completeness of the selected scalar or exact List-element converter association (zero or one). */
         int converterCount() default -1;
         /** Explicit zero/one association count; stripping the association must fail closed. */
         int alternativeCount() default -1;

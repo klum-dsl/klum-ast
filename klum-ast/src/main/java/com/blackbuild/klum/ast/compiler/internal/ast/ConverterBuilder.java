@@ -262,6 +262,10 @@ class ConverterBuilder {
     private ProxyMethodBuilder createRuntimeProxyMethod(Parameter[] sourceParameters) {
         ClassNode modelBuilder = getBuilderClassOf(transformation.annotatedClass);
         if (builderClass.equals(modelBuilder)) {
+            if (StructuredInputConverter.isListField(fieldNode) && sourceParameters.length == 1
+                    && STRING_TYPE.equals(sourceParameters[0].getOriginType())) {
+                return createProxyMethod(methodName, "addElementToCollectionViaStringConverter");
+            }
             if (!isCollection(fieldNode.getType()) && !isMap(fieldNode.getType()) && sourceParameters.length == 1
                     && StructuredInputConverter.isStringInput(sourceParameters[0].getOriginType())) {
                 String hook = STRING_TYPE.equals(sourceParameters[0].getOriginType())

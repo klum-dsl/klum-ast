@@ -205,7 +205,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         thrown(KlumModelException)
     }
 
-    def 'String projections do not admit raw Object or converter-backed container fields: #target'() {
+    def 'String projections do not admit raw Object or unsupported converter-backed container fields: #target'() {
         given:
         def type = schema("""
             @DSL class Service {
@@ -230,7 +230,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         thrown(KlumModelException)
 
         where:
-        target << ['Object', 'List<Timeout>', 'Map<String, Timeout>', 'Timeout[]']
+        target << ['Object', 'Set<Timeout>', 'Map<String, Timeout>', 'Timeout[]']
     }
 
     def 'field converter rejects typed payloads without coercion: #value'() {

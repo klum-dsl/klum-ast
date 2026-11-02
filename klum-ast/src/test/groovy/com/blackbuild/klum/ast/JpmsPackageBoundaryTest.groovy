@@ -265,7 +265,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         @Override
                         void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
                                                     Object... bootstrapMethodArguments) {
-                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter'] })
+                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter', '$addElementToCollectionViaStringConverter'] })
                                 unresolvedSetters << "$name$descriptor"
                         }
 
@@ -273,7 +273,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
                                              boolean isInterface) {
                             if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
-                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter'])
+                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter', '$addElementToCollectionViaStringConverter'])
                                 directlyLinkedSetters << "$name$descriptor"
                         }
                     }
@@ -285,6 +285,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 "Generated String converter must directly link its runtime hook: $directlyLinkedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'interval(Ljava/lang/CharSequence;)Ljava/time/Duration;' }:
                 "Generated CharSequence converter must directly link its runtime hook: $directlyLinkedSetters"
+        assert directlyLinkedSetters.any { it.toString() == 'delay(Ljava/lang/String;)Ljava/time/Duration;' }:
+                "Generated List-element converter must directly link its runtime hook: $directlyLinkedSetters"
         assert unresolvedSetters.empty: "Generated setters must not use invokedynamic for \$setSingleField: $unresolvedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'name(Ljava/lang/String;)Ljava/lang/String;' }:
                 "Generated setter must directly link \$setSingleField: $directlyLinkedSetters"
@@ -831,6 +833,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
                 Duration interval
+                @Converters(excludeMethods=['parse'])
+                @Field(converters = [{ String value -> Duration.parse(value) }]) List<Duration> delays
                 String virtualHost
                 @Field void route(VirtualEndpoint config) { virtualHost = config.host }
                 @Struct.Name('station-name') String name = 'North'
@@ -1096,9 +1100,11 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
                         throw new AssertionError("Selected public String operation differs from direct Java dispatch");
-                    Station converted = Station.Create.FromStruct(Map.of("timeout", "PT30S", "interval", "PT45S"), "converter.json");
+                    Station converted = Station.Create.FromStruct(Map.of("timeout", "PT30S", "interval", "PT45S", "delays", List.of("PT5S", "PT2S")), "converter.json");
                     if (converted.getTimeout().getSeconds() != 30 || converted.getInterval().getSeconds() != 45)
                         throw new AssertionError("Field converter failed through the public named-module contract");
+                    if (converted.getDelays().size() != 2 || converted.getDelays().get(0).getSeconds() != 5 || converted.getDelays().get(1).getSeconds() != 2)
+                        throw new AssertionError("List-element converter lost supplied order");
                     Station commanded = Station.Create.FromStruct(Map.of("resetTimeout", Map.of()), "command.json");
                     Station directCommand = factory.With(new Closure<Object>(null) {
                         @Override public Object call() {
@@ -1253,12 +1259,14 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'
                     assert selected.name == directSelected.name
-                    Station converted = Station.Create.FromStruct([timeout: 'PT30S', interval: 'PT45S'], 'converter.json')
-                    Station directConverted = Station.Create.With { timeout 'PT30S'; interval 'PT45S' }
+                    Station converted = Station.Create.FromStruct([timeout: 'PT30S', interval: 'PT45S', delays: ['PT5S', 'PT2S']], 'converter.json')
+                    Station directConverted = Station.Create.With { timeout 'PT30S'; interval 'PT45S'; delay 'PT5S'; delay 'PT2S' }
                     assert converted.timeout.seconds == 30
                     assert converted.timeout == directConverted.timeout
                     assert converted.interval == directConverted.interval
                     assert converted.interval.seconds == 45
+                    assert converted.delays == directConverted.delays
+                    assert converted.delays*.seconds == [5L, 2L]
                     Station commanded = Station.Create.FromStruct([resetTimeout: [:]], 'command.json')
                     Station directCommand = Station.Create.With { resetTimeout() }
                     assert commanded.capacity == 30

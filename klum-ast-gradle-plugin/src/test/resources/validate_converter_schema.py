@@ -83,6 +83,7 @@ console.log(process.version);
 '''
 count = 0
 structural_count = 0
+list_count = 0
 for lane in ("3", "4", "5"):
     schema = json.loads((root / ("converter-" + lane) / "converter.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
@@ -108,6 +109,23 @@ for lane in ("3", "4", "5"):
     node = subprocess.run(["node", "-e", node_source], input=json.dumps({"rows": rows, "field": field}),
                           text=True, capture_output=True, check=True)
     count += len(rows) * 3 + 6
+    # #952 L1-A: exact String elements, no value-specific or C1 parameter assertions on items.
+    for name in ("intervals", "local-values", "adapted-values", "inherited-ports"):
+        assert properties[name]["type"] == "array"
+        assert properties[name]["items"] == {"type": "string"}
+        assert "allOf" not in properties[name]
+        assert "x-klum-converter-constraint-source" not in properties[name]
+        for value, expected in (([], True), ([""], True), (["one", "two"], True),
+                                (["bad", "unicode-✓", "\\n"], True),
+                                (None, False), ("one", False), ({}, False),
+                                ([None], False), ([1], False), ([True], False),
+                                ([["one"]], False), ([{}], False), (["one", 2, "later"], False)):
+            assert validator.is_valid({name: value}) == expected, (lane, name, value)
+            list_count += 1
+    for name in ("sequence-values", "map-values"):
+        assert not validator.is_valid({name: []}), (lane, name)
+        list_count += 1
 print(f"C1 actual-output oracle: {len(rows)} JDK checks and {count} ECMA/Draft checks passed across G3/G4/G5; node={node.stdout.strip()}")
 
 print(f"S3a/S3b actual-output oracle: {structural_count} structural String checks passed across converter shapes and G3/G4/G5")
+print(f"L1-A actual-output oracle: {list_count} List grammar checks passed across G3/G4/G5")
