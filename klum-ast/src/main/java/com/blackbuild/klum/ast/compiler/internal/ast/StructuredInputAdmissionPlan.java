@@ -59,6 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
@@ -196,6 +197,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     /** Bind only a bare, unkeyed concrete virtual sink to its existing generated creator. */
+    @SuppressWarnings("java:S135") // Each failed proof excludes the scope; separate guards keep admission flat and fail-closed.
     private static void enrichVirtualScopes(DSLASTTransformation transformation, List<Entry> entries, List<Rejection> rejections) {
         List<VirtualScope> scopes = transformation.annotatedClass.getNodeMetaData(VIRTUAL_SCOPES);
         if (scopes == null) return;
@@ -238,7 +240,7 @@ final class StructuredInputAdmissionPlan {
                 .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(parameter -> parameter.getType().getName()).toArray(String[]::new),
                         new String[]{Map.class.getName(), Closure.class.getName()}))
                 .map(GeneratedDslSupport::publicProjectionOf)
-                .filter(method -> method != null)
+                .filter(Objects::nonNull)
                 .findFirst().orElse(null);
     }
 

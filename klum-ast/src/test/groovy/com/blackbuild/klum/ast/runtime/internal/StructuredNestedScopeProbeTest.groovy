@@ -307,20 +307,12 @@ class StructuredNestedScopeProbeTest extends AbstractDSLSpec {
         given:
         def deployment = schema()
         def nested
-        def wrongThread = new AtomicReference<Throwable>()
 
         when:
         def model = deployment.Create.With {
             child {
                 nested = delegate
-                def thread = new Thread({
-                    try { nested.applyStruct([value: 'forbidden']) }
-                    catch (Throwable failure) { wrongThread.set(failure) }
-                })
-                thread.start()
-                thread.join(5000)
-                assert !thread.alive
-                assert wrongThread.get() instanceof KlumModelException
+                StructuredNestedScopeProbeTest.assertWrongThreadApplyRejected(nested)
                 delegate.applyStruct([value: 'accepted'])
                 assert !((InternalKlumBuilder) delegate).sealed
                 assert ((InternalKlumBuilder) delegate).completedModel == null
@@ -608,17 +600,35 @@ class StructuredNestedScopeProbeTest extends AbstractDSLSpec {
         mutation << ['scope', 'operation', 'both', 'sink', 'creator', 'descriptor', 'role', 'query']
     }
 
+    private static void assertWrongThreadApplyRejected(Object nested) {
+        def wrongThread = new AtomicReference<Throwable>()
+        def thread = new Thread({
+            try { nested.applyStruct([value: 'forbidden']) }
+            catch (Throwable failure) { wrongThread.set(failure) }
+        })
+        thread.start()
+        thread.join(5000)
+        assert !thread.alive
+        assert wrongThread.get() instanceof KlumModelException
+    }
+
     private void mutateScope(String mutation) {
         File contract = new File(compilerConfiguration.targetDirectory, 'nestedscope/Deployment_DSL$Builder.class')
         def writer = new ClassWriter(0)
         new ClassReader(contract.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (mutation == 'creator' && name == 'virtual' && descriptor.startsWith('(Ljava/util/Map;Lgroovy/lang/Closure;)')) return null
+                if (mutation == 'creator' && name == 'virtual' && descriptor.startsWith('(Ljava/util/Map;Lgroovy/lang/Closure;)')) {
+                    return null
+                }
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
-                if (name != 'virtual' || !descriptor.startsWith('(Lnestedscope/Child_DSL$Builder;)')) return next
+                if (name != 'virtual' || !descriptor.startsWith('(Lnestedscope/Child_DSL$Builder;)')) {
+                    return next
+                }
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override void visitEnd() {
-                        if (mutation == 'query') super.visitAnnotation('Lcom/blackbuild/klum/ast/Builder$Query;', true).visitEnd()
+                        if (mutation == 'query') {
+                            super.visitAnnotation('Lcom/blackbuild/klum/ast/Builder$Query;', true).visitEnd()
+                        }
                         super.visitEnd()
                     }
 
@@ -626,12 +636,18 @@ class StructuredNestedScopeProbeTest extends AbstractDSLSpec {
                         boolean scope = annotation.endsWith('GeneratedInput$VirtualScope;')
                         boolean operation = annotation.endsWith('GeneratedInput$Operation;')
                         if (scope && mutation in ['scope', 'both'] || operation && mutation in ['operation', 'both']
-                                || mutation == 'sink' && annotation == 'Lcom/blackbuild/klum/ast/Field;') return null
+                                || mutation == 'sink' && annotation == 'Lcom/blackbuild/klum/ast/Field;') {
+                            return null
+                        }
                         def downstream = super.visitAnnotation(annotation, visible)
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
                             @Override void visit(String member, Object value) {
-                                if (scope && mutation == 'descriptor' && member == 'creator') value = 'absent():void'
-                                if (operation && mutation == 'role' && member == 'role') value = 'OPERATION'
+                                if (scope && mutation == 'descriptor' && member == 'creator') {
+                                    value = 'absent():void'
+                                }
+                                if (operation && mutation == 'role' && member == 'role') {
+                                    value = 'OPERATION'
+                                }
                                 super.visit(member, value)
                             }
                         }

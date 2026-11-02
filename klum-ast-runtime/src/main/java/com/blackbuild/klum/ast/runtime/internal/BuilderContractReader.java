@@ -364,13 +364,17 @@ final class BuilderContractReader {
         }
         if (literal.scopeCreator != null && (!literal.plainVirtualSink || literal.authoritative || literal.query))
             throw invalid("Virtual scope lacks a plain virtual sink on " + source);
-        Set<String> expectedRoles = literal.scopeCreator != null ? Set.of("VIRTUAL_OBJECT")
-                : signature.contains("()") ? Set.of("COMMAND", "LIFECYCLE") : Set.of("OPERATION");
+        Set<String> expectedRoles = expectedOperationRoles(literal, signature);
         if (literal.operationRole == null || !expectedRoles.contains(literal.operationRole))
             throw invalid("Missing or inconsistent operation role on " + source);
         validateNameFacts(literal.operationNames, source);
         if (literal.operationExamples == null) throw invalid("Missing examples metadata on " + source);
         if (literal.operationDeprecated == null) throw invalid("Missing source deprecation fact on " + source);
+    }
+
+    private static Set<String> expectedOperationRoles(MutableLiterals literal, String signature) {
+        if (literal.scopeCreator != null) return Set.of("VIRTUAL_OBJECT");
+        return signature.contains("()") ? Set.of("COMMAND", "LIFECYCLE") : Set.of("OPERATION");
     }
 
     private static void validateConverterFacts(MutableLiterals literal, String source) {

@@ -146,17 +146,56 @@ Results: 400/401/401 structured-input and named-module cases across G3/G4/G5, 73
 The same two children re-reviewed the exact-base tree diff including all corrections: **Standards: zero remaining
 violations/material smells; Specification: zero remaining findings**. Commit-history review retained the preparatory
 proof, implementation, corrected documentation and additive review fix, with only the explicitly requested integration
-rebase rewriting their IDs. The final documentation-only evidence commit does not change tested code.
+rebase rewriting their IDs. The initial documentation-only evidence commit did not change tested code.
 
 The full-check result remains evidence for the byte-identical integrated implementation; the localized invalid-metadata
 guard has the post-rebase regression evidence above. No local SonarCloud is run. Hosted CI/Sonar on the final PR head
 remains authoritative external qualification; local completion does not imply a hosted green result.
 
+## Hosted findings and bounded consumer qualification
+
+At published head `fe87f064f93bbfc2cef2d37a78d13b216943a81b`, CI build, JUnit and both SonarCloud checks
+were verified successful on 2026-11-02. A green quality gate still reported 11 open maintainability findings.
+The follow-up addresses both Java cognitive-complexity findings (role validation and virtual-scope execution), the nested
+role-selection ternary, the `Objects::nonNull` suggestion, the probe's nested thread check and six missing-brace findings.
+The maintainer requested retaining the S135 loop shape and recording its false-positive rationale in source.
+A method-local `@SuppressWarnings("java:S135")` on `enrichVirtualScopes` documents that each independent proof failure
+skips the candidate; flat guards keep this fail-closed admission readable. Sonar already records the finding as
+resolved/false-positive. No Sonar status mutation, protocol change or feature expansion was introduced.
+The same two review children found no remaining Standards or Specification issues in the follow-up diff.
+
+Schelm's handoff reported **PASS_LOCAL_PREMERGE_CONSUMER_QUALIFICATION** for that same exact published head:
+the existing harness passed nine builds / thirteen invocations, 110 tests and all four renders; seven explicit
+virtual-scope cases also passed, with no candidate defect reported. This is external, bounded pre-merge consumer evidence
+reported through the Hive handoff, not a release result or qualification of the later Sonar follow-up head.
+
+The Sonar follow-up passed on Java 17 with `--no-parallel --max-workers=2 --console=plain`:
+
+```text
+:klum-ast:test --tests '*Structured*'
+:klum-ast:groovy4Tests --tests '*Structured*'
+:klum-ast:groovy5Tests --tests '*Structured*'
+:klum-ast-runtime:check
+:klum-ast-gradle-plugin:test --tests '*BinaryOwnedRelationshipsTest'
+:klum-ast:license :klum-ast-runtime:license
+```
+
+All 400 structured cases per compiler lane, 73 runtime cases per lane (one existing skip each) and six binary cases
+passed; the schema oracle again accepted 12 and rejected 33 instances. After adding the requested source suppression,
+a fresh compiler run passed `StructuredNestedScopeProbeTest`, `StructuredVirtualScopeDocumentaryTest` and
+`StructuredInputAdmissionPlanTest`, plus `:klum-ast:licenseMain`. Markdown fences, 227 relative file links and diff checks
+passed. The extracted thread assertion initially needed an explicit test-class receiver to avoid DSL delegation;
+that correction passed both its isolated regression and the full selected matrix.
+
+This localized maintainability follow-up does not require another full local root run under the risk policy. No local
+Sonar upload was performed. Hosted results for the prior head do not qualify this later revision; the next PR CI/Sonar
+run remains authoritative for the follow-up.
+
 ## Delivery and reconciliation
 
 Tracker impact: **Related: #952**, never closing syntax. Curation impact: none. The new documentary/user/schema/migration
 references are synchronized locally; Hive owns issue traceability and delivery reconciliation. No remote issue update,
-merge or archive action is part of this work. No Schelm qualification is claimed.
+merge or archive action is part of this work. The bounded external Schelm result above applies only to its exact head.
 
 #1012 integration is complete. The GitHub CLI delivery channel was verified authorized for this repository before
 publication. After delivery, Hive must reconcile the assigned outcome and issue traceability; this worker does not merge,

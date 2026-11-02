@@ -330,14 +330,7 @@ public final class StructuredInputSupport {
                     builder.createSingleChildWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
                             child.key() == null ? entry.fixedChildKey() : child.key(), child::execute);
                 }
-                case VIRTUAL_OBJECT -> {
-                    if (!(input instanceof Map)) throw bad(entry, path, "domain Map for " + entry.payload().type().getName(), input, null);
-                    Domain child = domain(entry.payload().type(), input, path, Position.DIRECT);
-                    Invocation invocation = new Invocation(source, path, entry, entry.methods().get(0));
-                    invocation.recordInvocation(builder);
-                    builder.createVirtualChildWithConfiguration(entry.operation(), entry.payload().type(), child::execute,
-                            nested -> invocation.invoke(builder, new Object[]{nested}, path));
-                }
+                case VIRTUAL_OBJECT -> executeVirtualChild(entry, input, path, builder);
                 case KEYED_OWNED_MAP -> executeChildren(entry, input, path, builder);
                 case COMMAND -> {
                     if (!(input instanceof Map<?, ?> map) || !map.isEmpty())
@@ -355,6 +348,15 @@ public final class StructuredInputSupport {
                     }
                 }
             }
+        }
+
+        private void executeVirtualChild(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            if (!(input instanceof Map)) throw bad(entry, path, "domain Map for " + entry.payload().type().getName(), input, null);
+            Domain child = domain(entry.payload().type(), input, path, Position.DIRECT);
+            Invocation invocation = new Invocation(source, path, entry, entry.methods().get(0));
+            invocation.recordInvocation(builder);
+            builder.createVirtualChildWithConfiguration(entry.operation(), entry.payload().type(), child::execute,
+                    nested -> invocation.invoke(builder, new Object[]{nested}, path));
         }
 
         private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
