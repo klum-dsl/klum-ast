@@ -306,3 +306,14 @@ For String values, some simple transformations are applied:
 - enums are resolved by name
 - primitive types are converted via `asType`
 - existing [Converters](Converters.md) are used to convert the string to the target type
+
+## Structured documents and bodies
+
+`Create.FromStruct(document[, sourceName])` constructs a completed root from a caller-parsed Map. Keyed Factories also
+accept `Create.FromStruct(rootKey, body[, sourceName])`; this body excludes the root key. The optional source name is
+nonempty diagnostic text, never a filename-derived identity or resource to load. See [Factory roots](Structured-Input.md#factory-roots)
+for Java/Groovy examples and lifecycle, and [active Builders](Structured-Input.md#apply-to-an-active-builder) for inherited
+void `applyStruct`. Reusable keyless recipes use [Template FromStruct](Templates.md#structured-input-templates).
+
+`FromMap` remains unchanged: its copy, type-hint, conversion and custom-Factory behavior is distinct from strict structured
+operation interpretation. No parser, file/URL overload or `AsBuilder.FromStruct` is provided.

@@ -209,3 +209,9 @@ The projected call returns the producer's original container. For a Map relation
 original keys; Collection-producing methods derive keys from the keyed Builders as usual. For a Collection relationship,
 Map values are attached in Map iteration order. Concrete container subtype, iteration order, comparator, and duplicate
 behavior are preserved.
+
+## Structured Factory creation
+
+The generated Factory exposes `FromStruct` for caller-parsed self-contained Maps, and keyed Factories add explicit-key
+body overloads. These reuse normal Factory construction and the internal structured interpreter. See
+[structured Factory roots](Structured-Input.md#factory-roots) and the [convenience API](Convenience-Factories.md#structured-documents-and-bodies).

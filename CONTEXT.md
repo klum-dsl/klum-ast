@@ -79,6 +79,10 @@ These terms are sourced from the user documentation and consolidated here. Use t
 
   A Builder is the generated, mutable construction-time counterpart of a DSL Object. It is normally reached only through generated factory methods and DSL scripts; client code consumes the resulting DSL Object. Builders are not used to apply changes to an already created DSL Object.
 
+  `KlumBuilder<T>` provides inherited void `applyStruct(Map<?, ?> body[, String sourceName])` for active, same-thread,
+  unsealed ordinary Builders. Generated Factories provide common and keyed `FromStruct` roots; Template Factories provide
+  keyless `FromStruct` recipes. Source names are diagnostic text only; the interpreter remains internal.
+
   Mutating lifecycle callbacks, including `@PostTree`, operate on the Builder. `@Validate` callbacks operate on the completed DSL Object.
 
   Closure-based child creation returns a child Builder. An already completed DSL Object is accepted only as an aggregation `LINK` target and appears during construction as a sealed Builder wrapper; it never becomes owned composition.

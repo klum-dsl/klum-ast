@@ -2,11 +2,8 @@
 
 Structured input applies caller-parsed Maps, Lists and scalars through a Schema's admitted Builder operations.
 The supported public boundary is generated Factory creation and Builder application; the interpreter is framework
-internal. [`Create.Template.FromStruct`](Templates.md#structured-input-templates) is available for keyless reusable
-Template bodies. The remaining common/keyed Factory `FromStruct` and Builder `applyStruct` forms are accepted but
-await their separate implementation slices; see [the #953 delivery plan](../implementation/input-round-plan-4-2.md#development-api-migration--953).
-This grammar reference shows Schema declarations and parsed payloads, without presenting the development reader as a
-public construction API. Existing executable grammar tests still use that development seam pending caller migration.
+internal. Use `Create.FromStruct` for completed roots, inherited `KlumBuilder.applyStruct` for an active Builder,
+and [`Create.Template.FromStruct`](Templates.md#structured-input-templates) for reusable keyless Template bodies.
 
 Parsing remains caller-owned. No JSON/YAML parser, file or URL loading is added. An optional source name is opaque
 nonempty diagnostic text, never a locator or a model key.
@@ -37,16 +34,56 @@ For that Schema, the parsed configuration is a Map such as:
 
 ```groovy
 def parsed = [endpoint: [host: 'api', port: '8080']]
+def application = Application.Create.FromStruct(parsed, 'application.yaml')
+assert application.host == 'api'
+assert application.port == 8080
 ```
 
-The admitted `endpoint` operation sets `host` to `api` and `port` to 8080. Select an exact concrete Schema; no subtype or
-default implementation is chosen for an abstract type. Root input must be a Map with String keys. A self-contained
+The admitted `endpoint` operation sets `host` to `api` and `port` to 8080. Use a Factory selecting a concrete Schema; its ordinary default-implementation selection still applies. Root input must be a Map with String keys. A self-contained
 keyed document supplies its actual key member; a caller-pre-keyed body omits it. Supplied direct children retain their
 own positional key rules in either form.
 
 Compile Schemas successfully with the current KlumAST compiler and distribute their generated classes together.
 Missing or inconsistent generated structured-input metadata reports recompile/package guidance. An in-memory-only
 Schema without packaged generated metadata cannot use this route.
+
+## Factory roots
+
+The common Factory signatures are `T FromStruct(Map<?, ?> document)` and
+`T FromStruct(Map<?, ?> document, String sourceName)`. Keyed Factories additionally expose
+`T FromStruct(String rootKey, Map<?, ?> body)` and the trailing `String sourceName` overload.
+All return completed Models after ordinary lifecycle, materialization and validation.
+
+Java callers use the generated Factory directly (for the `Service` Schema below):
+
+```java
+Service document = Service.Create.FromStruct(Map.of("service-id", "catalog", "host", "api"));
+Service explicit = Service.Create.FromStruct("catalog", Map.of("host", "api"), "request");
+```
+
+(See: `StructuredFactoryTest#'Factory documents carry their own root identity'` and
+`StructuredFactoryTest#'explicit root keys configure one ordinary lifecycle'`.)
+
+```groovy
+@DSL class Identity {
+    @Key @Struct.Name('service-id') String name
+}
+@DSL class Service extends Identity { String host }
+
+def document = Service.Create.FromStruct(['service-id': 'catalog', host: 'api'])
+def explicit = Service.Create.FromStruct('catalog', [host: 'api'], 'request')
+assert document.name == explicit.name
+```
+
+The explicit-key body forbids `service-id`, even if its value equals the argument. Both root forms run exactly one
+root PostApply, with identity available before PostCreate. `sourceName` is optional, opaque diagnostic text only;
+null and empty explicit labels reject. Ordinary calls generate a label identifying the Factory capability.
+File-like and URL-like labels are never opened, normalized or used as identity. Factory access initializes its ordinary
+`Create` field; the internal contract inspector's no-user-code guarantee is a tooling property, not a promise to suppress
+normal class initialization when accessing a Factory.
+
+`FromStruct` does not appear on `AsBuilder()` or relationship factories. `Create.FromMap` remains the separate
+copy/type-hint/conversion/custom-Factory route; [managed Jackson](Jackson-Integration.md) retains its independent contract.
 
 ## Metadata protocol
 
@@ -233,8 +270,7 @@ A caller-pre-keyed root body leaves out the root key while retaining the supplie
 def body = [service: ['service-id': 'catalog', image: 'catalog:1.0']]
 ```
 
-The caller supplies root identity separately. This document describes the structural distinction; delivery of the
-public keyed Factory and Builder application forms remains tracked under [#953](https://github.com/klum-dsl/klum-ast/issues/953).
+The caller supplies root identity separately through the keyed Factory argument or an already prepared Builder.
 
 Compile and ship matching compiler/runtime/plugin versions with current generated key facts. Missing facts produce
 recompile/package guidance; the interpreter does not guess key names or derive identity from a filename or URL.
@@ -246,14 +282,37 @@ self-contained input; generation never derives identity from source names.
 
 ## Apply to an active Builder
 
-The accepted public capability is void `applyStruct(Map<?, ?> body[, String sourceName])` on `KlumBuilder`, inherited
-by generated Builder contracts. It configures the existing receiver and does not replace or complete it. This capability
-awaits its separate implementation slice; the interpreter remains internal. See
+The public capability is void `applyStruct(Map<?, ?> body[, String sourceName])` on `KlumBuilder`, inherited
+by generated Builder contracts. It configures the existing receiver and does not replace or complete it. The interpreter remains internal. See
 [the accepted signature and migration contract](../adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953).
 
-A caller prepares the Builder through ordinary construction before applying a parsed body. The existing documentary
-fixture qualifies the grammar and lifecycle through the development seam:
+A caller prepares the Builder through ordinary construction before applying a parsed body. The documentary
+fixture qualifies the grammar and lifecycle through the public Builder capability:
 `StructuredInputDocumentaryTest#'Holder supplies completed LINK context for later phases after applying an already-prepared Builder'`.
+
+### Active Builders
+
+Java helpers can preserve their exact Builder type while calling the void capability:
+
+```java
+static <B extends KlumBuilder<?>> B configure(B target, Map<?, ?> body, String sourceName) {
+    target.applyStruct(body, sourceName);
+    return target;
+}
+```
+
+(See: `StructuredFactoryTest#'active Builders apply structured bodies without completing construction'`.)
+
+```groovy
+def service = Service.Create.With('catalog') {
+    applyStruct([host: 'first'])
+    applyStruct([host: 'api'], 'request')
+}
+assert service.host == 'api'
+```
+
+Each successful `applyStruct` adds one PostApply; the enclosing `With` performs its own PostApply afterward.
+The method is a framework capability, excluded from structured operations and absent from completed Models.
 
 That fixture uses an owned `application` field and a completed `environment` LINK needed only by later phases.
 `AsBuilder().One()` has already run PostCreate and PostApply. Dependencies needed by those early callbacks must be
