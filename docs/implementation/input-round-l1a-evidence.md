@@ -57,7 +57,52 @@ one real binary/classpath consumer) plus eight packaged-plugin cases with zero f
 actual-output oracle passed 28 JDK, 270 ECMA/Draft C1, 270 structural scalar String and 201 List grammar controls.
 The earlier compatibility run predating the review correction was stopped and is not final qualification.
 
-Full root qualification is pending. No full-check, hosted CI/SonarCloud, publication or merge result is claimed here
-until recorded below. No local SonarCloud upload is permitted or performed.
-Publication uses a draft PR with **Related: #952**, without merge authorization. Hive must reconcile eventual external
-delivery and archive readiness; the worker does not self-archive.
+## Final local qualification
+
+Qualified code revision: `3d4eefa50240d7e992874234acf3620cf7b36ce8`. Root `check` passed on Java 17; all final module
+JUnit XML reports were inspected:
+
+| Lane | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline | 3,942 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 3,255 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 3,255 | 0 / 0 | 16 |
+| Total | 10,452 | 0 / 0 | 49 |
+
+The compiler contributes 2,901 / 2,903 / 2,903 cases; all 48 L1-A controls pass in each lane without skips.
+The plugin contributes 665 passing baseline cases, including all eight packaged converter/schema producer cases.
+Qualification includes affected module suites, Java/static Groovy artifact consumers, G4/G5 named modules, generated
+bytecode linkage, source-free G3/G4/G5 producer artifacts, C1 regressions, lane isolation, plugin validation and license
+checks. No local SonarCloud upload occurred; coverage-bearing hosted analysis remains separate.
+
+Commands, with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`:
+
+```shell
+./gradlew check --no-parallel --max-workers=2 --console=plain
+./gradlew renderLocalDocumentation --no-daemon '-Dorg.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m' --no-parallel --max-workers=2 --console=plain
+PYTHONPATH=/private/tmp/l1a-jsonschema python3 klum-ast-gradle-plugin/src/test/resources/validate_converter_schema.py klum-ast-gradle-plugin/build/schema-validation /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home/bin/java
+git diff --check
+```
+
+The first combined `check renderLocalDocumentation` invocation executed the full test suites but ended after 28m 38s
+with Gradle's implicit-dependency validation for the renderer's repository-directory input. Separate root `check` then
+passed in 3s (140 tasks; 9 executed, 131 up to date) on the unchanged code, reusing the just-produced successful reports.
+The reused 512 MiB daemon subsequently exhausted its heap while snapshotting the documentation input. A fresh daemon
+with the explicit 2 GiB heap completed rendering and the site crawl in 20s (36 tasks; 3 executed). The generated heap dump
+was removed. No build configuration or unrelated source fix was introduced for these invocation/environment limits.
+
+The independent oracle was rerun after full qualification: 28 JDK + 270 ECMA/Draft C1 + 270 structural scalar String +
+201 List grammar checks passed with jsonschema 4.23.0, Node v26.12.0 and Java 17. All three emitted converter schemas are
+byte-identical, SHA-256 `e055de518cc5368b987b42fc94951b0bda5236224b8fdf15529e843bcc2cec26`.
+Markdown fences, 220 relative file links, documentary anchors, the actual rendered-site crawl and diff checks pass.
+
+The commit sequence was reviewed: one green implementation step, synchronized documentation, then additive review
+corrections. No history rewrite was needed; the final evidence-only commit changes no code, test, fixture or build input.
+
+## External delivery condition
+
+GitHub CLI repository delivery is authorized. Publication uses a draft PR with **Related: #952**; the actual transport,
+PR identity/head and current hosted checks are verified in the handoff. No merge, release, deployment, issue closure or
+curation/release-gate mutation is authorized or claimed. Hosted CI/SonarCloud must qualify the published head before
+maintainer delivery reconciliation. Hive retains eventual merge and archive reconciliation; the worker does not
+self-archive.
