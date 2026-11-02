@@ -40,7 +40,7 @@ class StructuredFactoryTest extends AbstractDSLSpec {
     private Class deployment
 
     def setup() {
-        createClass ''' 
+        createClass '''
             package structuredfactory
             import com.blackbuild.klum.ast.*
             @DSL class Identity {

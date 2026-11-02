@@ -1,7 +1,7 @@
 # #953 Factory and Builder structured-input API — A0–A3
 
 Date: 2026-11-02. Base: `59196e3b786d623b5649af4dd3d02f9b5bc19bb0` (master after #1010).
-Status: **Collision policy approved and implemented locally; final qualification/review pending. No PR or publication.**
+Status: **Locally qualified; both independent review axes clear. Hosted qualification is tracked on the draft PR.**
 Branch: `codex/953-structured-factory-builder`. Related: #953; no issue closure or release qualification.
 
 ## Contract and implementation
@@ -71,9 +71,9 @@ at method dispatch, and the unkeyed explicit-key overload is absent as required.
 Full root `./gradlew check --continue --console=plain --no-parallel --max-workers=2` was interrupted (exit 130) during
 `:klum-ast:groovy5Tests` after the Specification review found the collision below. It is not a passing aggregate gate.
 Exactly two independent read-only review agents inspected `59196e3b786d623b5649af4dd3d02f9b5bc19bb0...10c16e43bc1923f14a184463696d5a0efc7e5bf5`.
-Standards found two minor pending corrections in `StructuredFactoryTest`: import `CompileStatic` in the source template,
+That first Standards review found two minor corrections in `StructuredFactoryTest`: import `CompileStatic` in the source template,
 and replace its compound `expect` reflection block with `when`/`then`. Specification found one blocking API/lifecycle
-collision. All changes remain local. Final history review and aggregate qualification remain pending.
+collision. Those findings are corrected and aggregate qualification passed as recorded below.
 No local SonarCloud analysis is run. GitHub CI/Sonar on the published head remain authoritative.
 
 ## Initial stop and accepted correction: Schema-authored applyStruct collisions
@@ -92,9 +92,9 @@ captured.applyStruct([value: 'expected']) // Executes the authored method after 
 
 Observed result: `AFTER_COMPLETION_CALLS=1`. A second probe assigned `value = 'hijacked'` in the authored method;
 calling `applyStruct([value: 'expected'])` during construction produced `MODEL_VALUE=hijacked`.
-The generated implementation and public Builder contract declare the overriding method. The new non-final runtime
-methods at `InternalKlumBuilder.java:628–634` therefore cannot enforce structured interpretation or active/unsealed
-session guards in this collision case. This violates ADR 0032's common-capability restriction.
+The generated implementation and public Builder contract declare the overriding method. At that reviewed head, the non-final runtime
+methods at `InternalKlumBuilder.java:628–634` could not enforce structured interpretation or active/unsealed
+session guards in this collision case, violating ADR 0032's common-capability restriction.
 
 The assignment explicitly required stopping for unresolved generated API/lifecycle conflicts. The maintainer subsequently
 approved reserving both exact signatures, accepting the narrow breaking change, and instructed implementation to resume.
@@ -104,13 +104,55 @@ runtime methods are final, preventing legacy binary overrides from bypassing gua
 generated Map configurators, source inheritance in either order, an unrelated String overload, stale-Builder rejection,
 and deliberately patched legacy binary overrides. Its seven initial cases failed before the correction and passed after it.
 The two Standards observations are corrected (simple imported `CompileStatic`, `when`/`then` inspection).
-The same two review agents will recheck the correction; no additional review agents were created.
+The same two review agents independently rechecked `b30f14edf8a1015772daff0a6cafda51b8076760` against the exact base.
+Both axes report zero outstanding findings. Specification independently reran the original bypass probe and confirmed
+the targeted compiler rejection. Standards also identified a committed trailing space, now removed; the complete-base
+`git diff 59196e3b786d623b5649af4dd3d02f9b5bc19bb0 --check` passes. No additional review agents were created.
 
 The separate `copyFrom(Object)` override finding was handed to the Hive at the user's explicit request. The Hive created
 [issue #1011](https://github.com/klum-dsl/klum-ast/issues/1011); this branch makes no production change for it.
 
 Added/changed repository-relative documentation links were checked: 21, zero failures. `git diff --check` passed.
-These checks do not qualify the blocked implementation. Existing unrelated stale architecture-map links were not changed.
+Existing unrelated stale architecture-map links were not changed.
+
+## Final local qualification
+
+The clean reviewed production/user-documentation head `b30f14edf8a1015772daff0a6cafda51b8076760` passed:
+
+```shell
+./gradlew check --continue --console=plain --no-parallel --max-workers=2
+./gradlew renderLocalDocumentation --console=plain --no-parallel --max-workers=2
+```
+
+Root check completed in 20m 13s (140 actionable tasks: 51 executed, 89 up-to-date). The aggregate XML results contain
+9,920 cases, zero failures/errors and 49 existing skips. No new suppression was introduced.
+
+| Module | Groovy 3 / baseline | Groovy 4 | Groovy 5 |
+| --- | ---: | ---: | ---: |
+| Compiler | 2,724 (16 skipped) | 2,726 (15 skipped) | 2,726 (15 skipped) |
+| Annotations | 20 | — | — |
+| Bean Validation | 154 | 154 | 154 |
+| Gradle plugin / TestKit | 664 | — | — |
+| Jackson | 121 | 119 | 119 |
+| Runtime | 73 (1 skipped) | 73 (1 skipped) | 73 (1 skipped) |
+| Test support | 8 | 6 | 6 |
+
+The documentation render and rendered-site crawl completed in 14s (36 actionable tasks: 8 executed, 28 up-to-date).
+They use the committed current user documentation and module Javadocs. No publication occurred through the renderer.
+
+An intermediate aggregate attempt was stopped after evidence edits made the checkout dirty while nested TestKit fixtures
+were publishing. The outer build requested the clean version while fixtures published the `.uncommitted` version,
+causing missing-artifact failures. Those edits were saved outside the checkout, the clean reviewed tree restored, and
+both commands above completed successfully on that stable tree. This was a validation-run setup error, not a passing run.
+
+Final history review retains the ordered Factory, explicit-key, Builder, migration, documentation, collision record and
+approved collision-correction commits. Reviewed commits were preserved. The subsequent qualification-record commit
+changes this evidence and removes one trailing space in a test source string; production and user documentation remain
+identical to the qualified/reviewed head. The complete-base diff check passes.
+
+Remote delivery authorization audit: Git/SSH branch-push channel **authorized** (dry run); GitHub CLI PR channel
+**authorized** (repository capability checked). This records channel outcomes only. The user explicitly authorized draft
+publication and immediate Hive notification; hosted CI/Sonar are separate gates on the final published head.
 
 ## Delivery boundary
 
