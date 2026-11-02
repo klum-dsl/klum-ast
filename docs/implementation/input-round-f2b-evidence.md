@@ -33,9 +33,12 @@ existing types use the ordinary explicit-type failure. Template input retains or
 
 The compiler freezes inert facts at the existing CollectionFactory generation site, then enriches the public owning
 field accessor with `GeneratedInput.LiteralAlternative` and explicit `Field.alternativeCount` (zero or one). Its version,
-field, literal alias, concrete target, inherited key/String authority and exact scope/creator descriptor are validated
+field, literal alias, concrete target, inherited key/String authority and exact scope/configuration-creator descriptor are validated
 from classfiles. Missing/stripped/conflicting facts fail before construction, even if input omits the relationship.
-Metadata extraction neither initializes Schema classes nor executes an alternatives closure or user factory.
+Metadata extraction neither initializes Schema classes nor executes an alternatives closure or user factory. The exact
+public configuration creator also carries a field/role marker. Admission requires its implementation to be the
+owning-field-linked generated relationship creator; matching custom Factory signatures are insufficient authority. Same-class authored scope replacements and inherited
+collection-scope overrides are excluded so direct configuration cannot bypass their ordinary behavior.
 
 `CompiledBuilderSchema.Entry` carries the validated association alongside its existing ownership payload and key facts.
 The interpreter visits alias, instance key and concrete body in order, includes envelope containers in cycle detection,
@@ -52,8 +55,8 @@ detection. The parser owns duplicate-key rejection.
 
 | Seam | Evidence |
 | --- | --- |
-| Runtime and documentary contract | `StructuredLiteralAlternativeTest`, including exact concrete type, key-before-create, owner/lifecycle trace and ordinary breadcrumb parity; malformed envelopes, equal/conflicting inner keys, strict body types, escaping, partial order, reuse/type mismatch, lifecycle cause, cycles/cleanup, session/thread/sealing, Templates and arbitrary String keys |
-| Source-free metadata | `LiteralAlternativeMetadataTest`, including initialization traps, exact public descriptor, count/association stripping and corruption, protocol version/type/member/visibility errors, naming/exclusion, inheritance and compiler shadowing rejection |
+| Runtime and documentary contract | `StructuredLiteralAlternativeTest`, including exact concrete type, key-before-create, owner/lifecycle trace and ordinary breadcrumb parity; malformed envelopes, equal/conflicting inner keys, strict body types, escaping, partial order, reuse/type mismatch, lifecycle cause, cycles/cleanup, session/thread/sealing, Templates, arbitrary String keys and custom Factory collision exclusion |
+| Source-free metadata | `LiteralAlternativeMetadataTest`, including initialization traps, exact public descriptor, count/association stripping and corruption, protocol version/type/member/visibility errors, naming/exclusion, inheritance, creator-marker corruption and compiler shadowing rejection |
 | Compiler exclusion | `LiteralAlternativeCompilationTest`, checking admission before bytecode generation for multiple/automatic aliases, List/non-String Map/custom mapping, generic targets and unchanged concrete keyed-Map syntax; excluded generic shapes receive no ordinary DSL qualification |
 | Packaged plugin/binary consumers | `BinaryOwnedRelationshipsTest`, separate producer/API/Schema/client artifacts with sources removed, fresh runtime consumers and actual plugin emission for Groovy 3/4/5; corrupted association prevents every new output and leaves initialization traps silent |
 | JPMS | `JpmsPackageBoundaryTest` real Java and static Groovy artifact consumers on classpath for Groovy 3/4/5 and module path for Groovy 4/5, including literal key/body/owner assertions and existing descriptor/package checks |
@@ -77,7 +80,22 @@ python klum-ast-gradle-plugin/src/test/resources/validate_literal_alternative_sc
   klum-ast-gradle-plugin/build/schema-validation
 ```
 
-Focused checks and the emitted-schema oracle passed. Full root check and the two local review axes are in progress.
+Focused checks passed in all three Groovy generations (72 cases per lane after review fixes), including packaged
+producer/plugin/binary consumers. The emitted-schema oracle passed. Final full root check is pending on a fixed clean
+revision. The initial full-check attempt was interrupted after a Git-derived version change invalidated TestKit fixture
+dependency coordinates; it is not claimed as qualification.
+
+## Local review
+
+Exactly two read-only local review children ran against base `ed199e0eb319fbd4927c197121864422a08a40e9`
+through `424008ca8672c9373da5417a44f2aa78c67bfa96`, with read-only follow-ups on the resulting fix tree.
+The root plus both reviewers used three concurrency slots. Neither reviewer edited, built, tested, changed remote state
+or delegated further work.
+
+- Standards: one P3 ADR status-summary inconsistency was corrected. Final follow-up found no remaining findings.
+- Specification: P2 custom Factory creator collisions and a related P2 collection-scope override bypass were corrected
+  with owning-field provenance, an exact public configuration-creator marker, bounded override exclusion and executable
+  ordinary-versus-structured regressions. Final follow-up found no remaining substantive findings.
 No local SonarCloud upload is used. Final hosted CI/SonarCloud belongs to the exact pull-request head.
 
 User documentation: [Structured Input](../user/Structured-Input.md#literal-collection-alternative),

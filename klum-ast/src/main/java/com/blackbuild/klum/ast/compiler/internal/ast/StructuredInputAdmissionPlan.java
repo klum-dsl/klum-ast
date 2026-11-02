@@ -201,22 +201,33 @@ final class StructuredInputAdmissionPlan {
                 || declared.getGenericsTypes() != null && declared.getGenericsTypes().length != 0
                 || options != null && options.getMember("keyMapping") != null) return;
         field.setNodeMetaData(LITERAL_ALTERNATIVE,
-                new LiteralAlternative(alternatives.values().iterator().next(), target, GeneratedDslSupport.publicType(scope).redirect(), key.getName()));
+                new LiteralAlternative(alternatives.values().iterator().next(), target, scope, key.getName()));
     }
 
     private record LiteralAlternative(String alias, ClassNode target, ClassNode scope, String key) { }
 
     private static LiteralAlternative literalAlternative(FieldNode field) {
         LiteralAlternative candidate = field.getNodeMetaData(LITERAL_ALTERNATIVE);
-        return candidate != null && literalCreator(candidate) != null ? candidate : null;
+        if (candidate == null) return null;
+        MethodNode outer = DslAstHelper.getBuilderClassOf(field.getOwner()).getDeclaredMethod(field.getName(),
+                new Parameter[]{new Parameter(ClassHelper.CLOSURE_TYPE, "body")});
+        return outer != null
+                && outer.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field
+                && annotation(outer, Builder.Method.class.getName()) == null
+                && literalCreator(field, candidate) != null ? candidate : null;
     }
 
-    private static MethodNode literalCreator(LiteralAlternative alternative) {
+    /** Signature shape alone cannot distinguish a projected custom Factory from a literal relationship creator. */
+    private static MethodNode literalCreator(FieldNode field, LiteralAlternative alternative) {
         ClassNode targetBuilder = GeneratedDslSupport.builderTypeFor(alternative.target()).redirect();
         return alternative.scope().getDeclaredMethods(alternative.alias()).stream()
-                .filter(method -> method.isPublic() && !method.isStatic())
+                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
+                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
                 .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(p -> p.getType().getName()).toArray(String[]::new),
-                        new String[]{String.class.getName()}))
+                        new String[]{String.class.getName(), Closure.class.getName()}))
+                .map(GeneratedDslSupport::publicProjectionOf)
+                .filter(Objects::nonNull)
+                .filter(method -> method.isPublic() && !method.isStatic())
                 .filter(method -> method.getReturnType().getName().equals(targetBuilder.getName()))
                 .findFirst().orElse(null);
     }
@@ -225,7 +236,7 @@ final class StructuredInputAdmissionPlan {
         LiteralAlternative alternative = literalAlternative(field);
         fact.setMember("alternativeCount", new ConstantExpression(alternative == null ? 0 : 1));
         if (alternative == null) return;
-        MethodNode creator = literalCreator(alternative);
+        MethodNode creator = literalCreator(field, alternative);
         AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
         association.setMember("version", new ConstantExpression(1));
         association.setMember("field", new ConstantExpression(field.getName()));
@@ -233,9 +244,13 @@ final class StructuredInputAdmissionPlan {
         association.setMember("target", new ConstantExpression(alternative.target().getName()));
         association.setMember("key", new ConstantExpression(alternative.key()));
         association.setMember("keyType", new ConstantExpression(String.class.getName()));
-        association.setMember("scope", new ConstantExpression(alternative.scope().getName()));
+        association.setMember("scope", new ConstantExpression(GeneratedDslSupport.publicType(alternative.scope()).redirect().getName()));
         association.setMember("creator", new ConstantExpression(descriptor(creator)));
         accessor.addAnnotation(association);
+        AnnotationNode selectedCreator = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
+        selectedCreator.setMember("field", new ConstantExpression(field.getName()));
+        selectedCreator.setMember("role", new ConstantExpression("LITERAL_ALTERNATIVE_CREATOR"));
+        creator.addAnnotation(selectedCreator);
     }
 
     private static final String VIRTUAL_SCOPES = METADATA_KEY + ".virtualScopes";

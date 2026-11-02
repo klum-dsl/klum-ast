@@ -389,7 +389,8 @@ Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
 A default owned `Map<String, Element>` relationship can admit one explicitly declared literal alternative when `Element`
 is an abstract keyed DSL type and the selected subtype is concrete and nongeneric. Both use the same inherited String
 construction key, with an exact generated public alias creator. The compiler records that route; structured input cannot choose a
-Class or Factory.
+Class or Factory. Matching custom Factory methods are excluded when they occupy the literal configuration route. Authored or overridden
+collection scopes are excluded too.
 
 (See: `StructuredLiteralAlternativeTest#'configures a concrete element through its literal collection alias'`.)
 

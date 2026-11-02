@@ -156,7 +156,7 @@ public final class GeneratedInput {
         String declaration();
     }
 
-    /** Placement identifies exactly the selected public input/population group, without copied descriptors. */
+    /** Placement identifies an exact public input/population group or compiler-literal relationship creator. */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Selection {

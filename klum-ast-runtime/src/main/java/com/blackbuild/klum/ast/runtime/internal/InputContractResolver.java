@@ -275,6 +275,12 @@ final class InputContractResolver {
         for (Entry entry : inherited) {
             Metadata origin = reader.metadata(entry.contract());
             for (Method selected : entry.methods()) {
+                if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
+                        && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
+                        && overridden(selected, declared)) {
+                    rejections.add(new Rejection(entry.source(), "inherited literal collection scope is overridden by "
+                            + namingOrigin(context.builder()) + "; use a non-overridden generated collection scope"));
+                }
                 boolean converter = origin.methods().get(signature(selected)).converter() != null;
                 boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
                         && entry.payload().type() == String.class
@@ -486,6 +492,7 @@ final class InputContractResolver {
         Method creator = Arrays.stream(scope.getDeclaredMethods())
                 .filter(method -> descriptor(method).equals(facts.creator())).findFirst()
                 .orElseThrow(() -> invalid("Missing exact literal alternative creator on " + source));
+        Literals creatorFacts = reader.metadata(scope).methods().get(signature(creator));
         boolean hasScope = Arrays.stream(declaredMethods(context)).anyMatch(method -> method.getName().equals(field)
                 && method.getReturnType() == void.class && Arrays.equals(method.getParameterTypes(), new Class<?>[]{Closure.class})
                 && Arrays.stream(method.getParameterAnnotations()[0]).anyMatch(annotation ->
@@ -497,7 +504,9 @@ final class InputContractResolver {
                 || !scope.isInterface() || !Modifier.isPublic(scope.getModifiers()) || !hasScope
                 || !creator.getName().equals(facts.alias()) || !Modifier.isPublic(creator.getModifiers())
                 || Modifier.isStatic(creator.getModifiers()) || creator.getReturnType() != childBuilder
-                || !Arrays.equals(creator.getParameterTypes(), new Class<?>[]{String.class})
+                || !Arrays.equals(creator.getParameterTypes(), new Class<?>[]{String.class, Closure.class})
+                || creatorFacts == null || !field.equals(creatorFacts.selection())
+                || !"LITERAL_ALTERNATIVE_CREATOR".equals(creatorFacts.role())
                 || !reader.metadata(childBuilder).key().equals(facts.key())
                 || !reader.metadata(declaredBuilder).key().equals(facts.key())
                 || !literal.exclusion().isEmpty() || literal.schemaKey() != null || literal.fixed())

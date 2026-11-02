@@ -295,6 +295,100 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         model.elements.primary.owner.is(model)
     }
 
+    def 'custom Factory aliases cannot masquerade as generated literal creators'() {
+        given:
+        loader.parseClass '''
+            package literalcollision
+            import com.blackbuild.klum.ast.*
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+            class Trace { static List<String> events = [] }
+            @DSL abstract class Element {
+                @Key String name
+                String value
+                static class Factory extends KlumFactory.Keyed<Element> {
+                    protected Factory() { super(Element) }
+                    KlumBuilder<ConcreteElement> fixed(String key) {
+                        Trace.events << 'factory:no-body'
+                        (KlumBuilder<ConcreteElement>) (Object) ConcreteElement.Create.AsBuilder().With(key, null)
+                    }
+                    KlumBuilder<ConcreteElement> fixed(String key, @DelegatesToBuilder(ConcreteElement) Closure body) {
+                        Trace.events << 'factory:body'
+                        (KlumBuilder<ConcreteElement>) (Object) ConcreteElement.Create.AsBuilder().With(key, body)
+                    }
+                }
+            }
+            @DSL class ConcreteElement extends Element {}
+            @DSL class Catalog {
+                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+            }
+        '''
+        artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def catalog = Class.forName('literalcollision.Catalog', false, artifacts)
+        def trace = Class.forName('literalcollision.Trace', false, artifacts)
+
+        when:
+        def ordinary = catalog.Create.With { elements { fixed('primary') { value 'configured' } } }
+        def plan = new InputContractResolver().read(catalog)
+
+        then:
+        ordinary.elements.primary.value == 'configured'
+        trace.events == ['factory:body']
+        !plan.entries().containsKey('elements')
+
+        when:
+        catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('/elements')
+        trace.events == ['factory:body']
+    }
+
+    def 'authored #placement collection scope retains ordinary behavior and rejects structured bypass'() {
+        given:
+        String customScope = "@Builder.Method void elements(Closure body) { Trace.events << 'custom:scope' }"
+        String source = '''
+            package literalscope
+            import com.blackbuild.klum.ast.*
+            class Trace { static List<String> events = [] }
+            @DSL abstract class Element { @Key String name; String value }
+            @DSL class ConcreteElement extends Element {}
+        ''' + """
+            @DSL class Catalog {
+                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+                ${placement == 'same-class' ? customScope : ''}
+            }
+            @DSL class SpecializedCatalog extends Catalog {
+                ${placement == 'inherited' ? customScope : ''}
+            }
+        """
+        loader.parseClass(source)
+        artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def catalog = Class.forName('literalscope.' + (placement == 'inherited' ? 'SpecializedCatalog' : 'Catalog'), false, artifacts)
+        def trace = Class.forName('literalscope.Trace', false, artifacts)
+
+        when:
+        def ordinary = catalog.Create.With { elements { fixed('primary') { value 'configured' } } }
+        def plan = new InputContractResolver().read(catalog)
+
+        then:
+        ordinary.elements.isEmpty()
+        trace.events == ['custom:scope']
+        !plan.entries().containsKey('elements')
+
+        when:
+        catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('/elements')
+        trace.events == ['custom:scope']
+
+        where:
+        placement << ['same-class', 'inherited']
+    }
+
     def 'literal input obeys ordinary same-thread session and sealing guards'() {
         given:
         def catalog = schema()

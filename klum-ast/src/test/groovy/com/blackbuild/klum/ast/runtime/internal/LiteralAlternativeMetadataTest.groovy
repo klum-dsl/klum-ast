@@ -89,7 +89,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         entry.alternative().alias() == 'fixed'
         entry.alternative().scope().name == 'literalmetadata.Catalog_DSL$Builder$CollectionFactory_elements'
         entry.alternative().creator().name == 'fixed'
-        entry.alternative().creator().parameterTypes.toList() == [String]
+        entry.alternative().creator().parameterTypes.toList() == [String, Closure]
         !entry.contract().methods.any { it.parameterTypes.contains(Consumer) }
     }
 
@@ -109,7 +109,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
 
         where:
         mutation << ['strip', 'stripAndCount', 'countMissing', 'countZero', 'countTwo', 'version', 'field', 'alias', 'target', 'key', 'keyType',
-                     'scope', 'creator', 'missingMember', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType', 'stripSelection']
+                     'scope', 'creator', 'missingMember', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType', 'stripSelection', 'stripCreator', 'creatorField', 'creatorRole']
     }
 
     def 'field naming and inherited associations retain the literal alias: #options'() {
@@ -158,13 +158,22 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
     }
 
     private void rewrite(String mutation) {
-        File file = new File(compilerConfiguration.targetDirectory, 'literalmetadata/Catalog_DSL$Builder.class')
+        File file = new File(compilerConfiguration.targetDirectory, mutation in ['stripCreator', 'creatorField', 'creatorRole']
+                ? 'literalmetadata/Catalog_DSL$Builder$CollectionFactory_elements.class' : 'literalmetadata/Catalog_DSL$Builder.class')
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (mutation == 'stripSelection' && annotation.endsWith('GeneratedInput$Selection;')) return null
+                        if (mutation in ['stripSelection', 'stripCreator'] && annotation.endsWith('GeneratedInput$Selection;')) return null
+                        if (mutation in ['creatorField', 'creatorRole'] && annotation.endsWith('GeneratedInput$Selection;')) {
+                            def selected = super.visitAnnotation(annotation, visible)
+                            return new AnnotationVisitor(Opcodes.ASM9, selected) {
+                                @Override void visit(String member, Object value) {
+                                    super.visit(member, member == (mutation == 'creatorField' ? 'field' : 'role') ? 'other' : value)
+                                }
+                            }
+                        }
                         if (annotation == ASSOCIATION && mutation in ['strip', 'stripAndCount']) return null
                         def target = super.visitAnnotation(annotation, annotation == ASSOCIATION && mutation == 'invisible' ? false : visible)
                         if (!(annotation in [ASSOCIATION, FIELD])) return target
