@@ -335,6 +335,28 @@ public class KlumFactory<T> {
             super(requireKeyed(type));
         }
 
+        /**
+         * Creates a keyed Model from a keyless structured body using a generated diagnostic label.
+         * @param rootKey explicit construction identity, available before PostCreate
+         * @param body structured domain Map that must not contain the Schema root key
+         * @return the completed Model after one ordinary root lifecycle
+         */
+        public T FromStruct(String rootKey, Map<?, ?> body) {
+            return FromStruct(rootKey, body, type.getName() + ".Create.FromStruct");
+        }
+
+        /**
+         * Creates a keyed Model from a keyless structured body through one root configuration and PostApply.
+         * Failure returns no Model, but does not undo earlier operation side effects.
+         * @param rootKey explicit construction identity, available before PostCreate
+         * @param body structured domain Map that must not contain the Schema root key, even an equal value
+         * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+         * @return the Model after normal lifecycle, materialization and validation
+         */
+        public T FromStruct(String rootKey, Map<?, ?> body, String sourceName) {
+            return StructuredInputSupport.readRoot(type, rootKey, body, sourceName);
+        }
+
         @Override
         public KeyedBuilderFactory<T, KlumBuilder<T>> AsBuilder() {
             return new KeyedBuilderFactory<T, KlumBuilder<T>>(type);

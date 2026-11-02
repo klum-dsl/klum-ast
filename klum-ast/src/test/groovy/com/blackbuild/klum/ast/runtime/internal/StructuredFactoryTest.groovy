@@ -78,4 +78,20 @@ class StructuredFactoryTest extends AbstractDSLSpec {
         graph.services.worker.name == 'worker'
         service.events.take(4) == ['create:catalog', 'apply:catalog', 'tree:catalog', 'validate:catalog']
     }
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#factory-roots')
+    def 'explicit root keys configure one ordinary lifecycle'() {
+        when:
+        def root = service.Create.FromStruct('catalog', [host: 'api'], 'https://invalid.example/not-opened')
+        def second = service.Create.FromStruct('worker', [host: 'jobs'])
+
+        then:
+        root.class == service
+        root.name == 'catalog'
+        root.host == 'api'
+        second.name == 'worker'
+        service.events == ['create:catalog', 'apply:catalog', 'tree:catalog', 'validate:catalog',
+                           'create:worker', 'apply:worker', 'tree:worker', 'validate:worker']
+    }
+
 }
