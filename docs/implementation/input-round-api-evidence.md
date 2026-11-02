@@ -1,6 +1,7 @@
 # #953 Factory and Builder structured-input API — A0–A3
 
 Date: 2026-11-02. Base: `59196e3b786d623b5649af4dd3d02f9b5bc19bb0` (master after #1010).
+Status: **Blocked by a generated Builder signature collision; no PR or publication.**
 Branch: `codex/953-structured-factory-builder`. Related: #953; no issue closure or release qualification.
 
 ## Contract and implementation
@@ -67,9 +68,41 @@ The final focused migration run passed 496 cases with zero failures. Initial mig
 probes that must retain their internal seam; those probes were preserved, not weakened. Non-Map public roots now reject
 at method dispatch, and the unkeyed explicit-key overload is absent as required.
 
-Full root `./gradlew check --continue --console=plain --no-parallel --max-workers=2` is in progress. Aggregate qualification,
-local Standards/Specification review and final history review are pending; no complete local/hosted gate is claimed yet.
+Full root `./gradlew check --continue --console=plain --no-parallel --max-workers=2` was interrupted (exit 130) during
+`:klum-ast:groovy5Tests` after the Specification review found the collision below. It is not a passing aggregate gate.
+Exactly two independent read-only review agents inspected `59196e3b786d623b5649af4dd3d02f9b5bc19bb0...10c16e43bc1923f14a184463696d5a0efc7e5bf5`.
+Standards found two minor pending corrections in `StructuredFactoryTest`: import `CompileStatic` in the source template,
+and replace its compound `expect` reflection block with `when`/`then`. Specification found one blocking API/lifecycle
+collision. All changes remain local. Final history review and aggregate qualification remain pending.
 No local SonarCloud analysis is run. GitHub CI/Sonar on the published head remain authoritative.
+
+## Stop condition: Schema-authored applyStruct overrides the common capability
+
+The Specification reviewer reproduced this valid Schema shape using the built Groovy 3 production classpath:
+
+```groovy
+@DSL class Collision {
+    static int calls
+    @Builder.Method void applyStruct(Map body) { calls++ }
+}
+KlumBuilder captured
+Collision.Create.With { captured = delegate }
+captured.applyStruct([value: 'expected']) // Executes the authored method after construction has completed.
+```
+
+Observed result: `AFTER_COMPLETION_CALLS=1`. A second probe assigned `value = 'hijacked'` in the authored method;
+calling `applyStruct([value: 'expected'])` during construction produced `MODEL_VALUE=hijacked`.
+The generated implementation and public Builder contract declare the overriding method. The new non-final runtime
+methods at `InternalKlumBuilder.java:628–634` therefore cannot enforce structured interpretation or active/unsealed
+session guards in this collision case. This violates ADR 0032's common-capability restriction.
+
+The assignment explicitly requires stopping for unresolved generated API/lifecycle conflicts. No collision policy,
+compiler rejection, final-method change, renamed API or other workaround has been selected. Resume requires a maintainer
+choice for collisions with both exact `applyStruct` signatures, then test-first implementation and requalification.
+The two existing review agents can recheck the correction; no additional review agents were created.
+
+Added/changed repository-relative documentation links were checked: 21, zero failures. `git diff --check` passed.
+These checks do not qualify the blocked implementation. Existing unrelated stale architecture-map links were not changed.
 
 ## Delivery boundary
 

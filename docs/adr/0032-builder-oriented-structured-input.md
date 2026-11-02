@@ -2,7 +2,7 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 and Factory/Builder A0–A3 implemented. Other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. Factory/Builder A0–A3 have a local implementation blocked on signature-collision qualification; other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -56,7 +56,7 @@ callers directly, with no deprecated reader alias or compatibility bridge. The
 [development-call migration table](../implementation/input-round-plan-4-2.md#development-api-migration--953) maps them.
 
 The Template Factory forms below are implemented by merged [PR #1007](https://github.com/klum-dsl/klum-ast/pull/1007).
-The remaining signatures are implemented by A0–A3; see [implementation evidence](../implementation/input-round-api-evidence.md). `T` is the Factory's Model type;
+The remaining signatures have a local A0–A3 implementation blocked on a Schema-authored `applyStruct` collision; see [implementation evidence](../implementation/input-round-api-evidence.md). `T` is the Factory's Model type;
 `body` and `document` are caller-parsed Maps. Wildcards avoid requiring callers to retype their parsed Maps; domain
 member names and payloads still undergo the existing strict runtime checks.
 
