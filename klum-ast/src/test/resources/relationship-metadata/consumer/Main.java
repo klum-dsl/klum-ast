@@ -69,7 +69,7 @@ public class Main {
         JavaProbe.require(javaRoot.getChild().getName().equals("java"), "Java Builder setter linkage");
         JavaProbe.require(staticRoot.getChild().getName().equals("static"), "Static Builder setter linkage");
         JavaProbe.require(dynamicRoot.getChild().getName().equals("dynamic"), "Dynamic Builder setter linkage");
-        JavaProbe.require(KlumBuilder.class.getDeclaredMethods().length == 0, "Zero-operation marker");
+        JavaProbe.require(KlumBuilder.class.getDeclaredMethods().length == 2, "Structured application capability");
         for (Class<?> builder : new Class<?>[] {Root_DSL.Builder.class, Child_DSL.Builder.class}) {
             JavaProbe.require(Arrays.stream(builder.getMethods()).noneMatch(method -> Set.of("getModelType", "getStructure", "getOwningRelationship", "getOwningRelationshipAnnotation").contains(method.getName())), "Facade operations leaked onto generated Builder");
         }

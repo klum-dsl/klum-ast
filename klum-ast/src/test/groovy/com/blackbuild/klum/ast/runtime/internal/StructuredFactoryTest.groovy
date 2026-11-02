@@ -94,4 +94,28 @@ class StructuredFactoryTest extends AbstractDSLSpec {
                            'create:worker', 'apply:worker', 'tree:worker', 'validate:worker']
     }
 
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#active-builders')
+    def 'active Builders apply structured bodies without completing construction'() {
+        given:
+        def captured
+        def events = service.events
+
+        when:
+        def root = service.Create.With('catalog') {
+            captured = delegate
+            applyStruct([host: 'first'])
+            assert events == ['create:catalog', 'apply:catalog']
+            applyStruct([host: 'api'], 'request')
+            assert events == ['create:catalog', 'apply:catalog', 'apply:catalog']
+        }
+
+        then:
+        root.host == 'api'
+        captured.completedModel.is(root)
+        service.events == ['create:catalog', 'apply:catalog', 'apply:catalog', 'apply:catalog',
+                           'tree:catalog', 'validate:catalog']
+        !root.class.methods*.name.contains('applyStruct')
+    }
+
 }

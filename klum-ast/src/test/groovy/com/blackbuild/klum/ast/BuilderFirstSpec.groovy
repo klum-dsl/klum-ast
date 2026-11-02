@@ -86,7 +86,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         clazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
     }
 
-    def "Builders expose only the public zero-operation capability"() {
+    @Issue('953')
+    def "Builders expose only the public structured-application capability"() {
         given:
         createClass '''
             package pk
@@ -100,7 +101,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         expect: "the generated public Builder contract carries the public capability"
         KlumBuilder.isAssignableFrom(builderClass)
         getClass('pk.CompatibilitySurface_DSL$Builder').interfaces.contains(KlumBuilder)
-        KlumBuilder.declaredMethods.length == 0
+        KlumBuilder.declaredMethods*.name == ['applyStruct', 'applyStruct']
+        KlumBuilder.declaredMethods.every { it.returnType == void }
 
         and: "Builders do not carry legacy RW identity aliases"
         !builderClass.methods*.name.contains("getDSLInstance")

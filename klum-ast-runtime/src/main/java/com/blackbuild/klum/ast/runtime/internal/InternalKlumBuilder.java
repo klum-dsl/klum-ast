@@ -624,6 +624,16 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return applyConfiguration(builder -> builder.applyOnly(values, body));
     }
 
+    @Override
+    public void applyStruct(Map<?, ?> body) {
+        applyStruct(body, modelType.getName() + ".Builder.applyStruct");
+    }
+
+    @Override
+    public void applyStruct(Map<?, ?> body, String sourceName) {
+        StructuredInputSupport.applyToBuilder(this, body, sourceName);
+    }
+
     InternalKlumBuilder<M> applyConfiguration(Consumer<InternalKlumBuilder<M>> configuration) {
         assertMutable();
         configuration.accept(this);
