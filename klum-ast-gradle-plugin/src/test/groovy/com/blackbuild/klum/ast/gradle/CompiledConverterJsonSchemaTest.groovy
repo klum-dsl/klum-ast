@@ -67,7 +67,13 @@ class CompiledConverterJsonSchemaTest extends Specification {
                     && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
         }
         !fields.containsKey('sequence-values')
-        !fields.containsKey('map-values')
+        ['map-values', 'map-intervals', 'adapted-map', 'inherited-map', 'generic-map'].every {
+            fields[it].type == 'object' && fields[it].additionalProperties == [type: 'string']
+                    && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
+        }
+        !fields.containsKey('sequence-map')
+        !fields.containsKey('integer-key-map')
+        !fields.containsKey('mapped-values')
         fields.duration.description.contains('ISO-8601 duration.')
         fields.local.description.contains('converted domain value')
         fields.adapted.description == 'External adapter prose.'
@@ -232,9 +238,11 @@ import com.blackbuild.klum.ast.*
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.required == ['name']
         schema.'$defs'.'converterjson.SelectedService_DSL$Builder'.properties.findAll { key, value -> key != 'name' } == properties
         !body.'$defs'.'converterjson.SelectedService_DSL$Builder::keyless'.containsKey('required')
-        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'naturalDuration', 'resetTimeout', 'current-command', 'inheritedPorts'] as Set
+        properties.keySet() == ['external-endpoint', 'port-number', 'current-label', 'configureName', 'renamed-name', 'naturalDuration', 'resetTimeout', 'current-command', 'inheritedPorts', 'inheritedMap'] as Set
         properties.inheritedPorts.type == 'array'
         properties.inheritedPorts.items == [type: 'string']
+        properties.inheritedMap.type == 'object'
+        properties.inheritedMap.additionalProperties == [type: 'string']
         properties.naturalDuration.type == 'string'
         !properties.naturalDuration.containsKey('allOf')
         !properties.naturalDuration.containsKey('x-klum-converter-constraint-source')
@@ -323,6 +331,7 @@ import java.time.Duration
 @DSL class Base {
     Duration naturalDuration
     @Converters(includeConstructors=true) List<PortNumber> inheritedPorts
+    @Converters(includeConstructors=true) Map<String, PortNumber> inheritedMap
     /** Inherited port prose. */
     @Struct.Name('port-number') @Struct.Examples(['1234']) @Deprecated
     @Converters(includeConstructors=true) PortNumber port
@@ -345,6 +354,13 @@ import java.nio.file.Path
     @Converters(value=[DurationAdapter], excludeMethods=['parse']) List<Duration> adaptedValues
     List<Duration> sequenceValues
     Map<String, LocalValue> mapValues
+    @Converters(excludeMethods=['parse'])
+    @Field(converters = [{ String value -> throw new AssertionError('Map closure executed') }]) Map<String, Duration> mapIntervals
+    @Converters(value=[DurationAdapter], excludeMethods=['parse']) Map<String, Duration> adaptedMap
+    Map<String, Duration> sequenceMap
+    Map<Integer, LocalValue> integerKeyMap
+    @Field(keyMapping={ LocalValue value -> throw new AssertionError('key mapping executed') }) Map<String, LocalValue> mappedValues
+    @Converters(includeConstructors=true) Map<String, GenericValue<String>> genericMap
     @Struct.Operation @Builder.Method void sequence(CharSequence value) { throw new AssertionError('CharSequence operation executed') }
     @Builder.Method void sequence(String value) { throw new AssertionError('String peer executed') }
     @Struct.Operation @Builder.Method

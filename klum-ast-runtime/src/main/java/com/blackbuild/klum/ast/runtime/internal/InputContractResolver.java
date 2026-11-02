@@ -556,7 +556,7 @@ final class InputContractResolver {
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid(CONVERTER_SIGNATURE_MISMATCH);
             Class<?> domain = converterDomain(field, fieldType, method, selected);
-            if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, method.getParameterTypes()[0]))
+            if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, converterParameter(fieldType, method)))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
             validateSelection(Role.PROPERTY, converterPayload(fieldType, method), methods, location);
             // Structural routes carry provenance, but only C1 owns selected-parameter inspection.
@@ -571,30 +571,40 @@ final class InputContractResolver {
     }
 
     private static Payload converterPayload(Type fieldType, Method method) {
-        Payload scalar = new Payload(Kind.SCALAR, method.getParameterTypes()[0], null, null, null);
-        return rawType(fieldType) == List.class ? new Payload(Kind.LIST, List.class, null, null, scalar) : scalar;
+        Payload scalar = new Payload(Kind.SCALAR, converterParameter(fieldType, method), null, null, null);
+        if (rawType(fieldType) == List.class) return new Payload(Kind.LIST, List.class, null, null, scalar);
+        if (rawType(fieldType) == Map.class) return new Payload(Kind.MAP, Map.class, null, String.class.getName(), scalar);
+        return scalar;
     }
 
     private static Class<?> converterDomain(String field, Type fieldType, Method method, ConverterSelection selected) {
-        boolean list = rawType(fieldType) == List.class;
-        Class<?> domain = list ? listConverterDomain(fieldType) : rawType(fieldType);
+        boolean container = rawType(fieldType) == List.class || rawType(fieldType) == Map.class;
+        Class<?> domain = container ? containerConverterDomain(fieldType) : rawType(fieldType);
         if (domain == null || method.getReturnType() != domain || method.isSynthetic() || method.isBridge()
-                || !list && !method.getName().equals(field) || !validConverterParameter(fieldType, method, selected))
+                || !container && !method.getName().equals(field) || !validConverterParameter(fieldType, method, selected))
             throw invalid(CONVERTER_SIGNATURE_MISMATCH);
         return domain;
     }
 
     private static boolean validConverterParameter(Type fieldType, Method method, ConverterSelection selected) {
-        if (method.getParameterCount() != 1) return false;
-        Class<?> parameter = method.getParameterTypes()[0];
+        int valueIndex = rawType(fieldType) == Map.class ? 1 : 0;
+        if (method.getParameterCount() != valueIndex + 1) return false;
+        if (valueIndex == 1 && (method.getParameterTypes()[0] != String.class || method.getGenericParameterTypes()[0] != String.class)) return false;
+        Class<?> parameter = method.getParameterTypes()[valueIndex];
         if (parameter != String.class && parameter != CharSequence.class) return false;
-        if (method.getGenericParameterTypes()[0] != parameter) return false;
-        if (rawType(fieldType) == List.class && parameter != String.class) return false;
+        if (method.getGenericParameterTypes()[valueIndex] != parameter) return false;
+        if ((rawType(fieldType) == List.class || valueIndex == 1) && parameter != String.class) return false;
         return !selected.parameterFacts() || fieldType instanceof Class<?> && parameter == String.class;
     }
 
-    /** Only an exact List of non-native scalar values may reuse the compiler-selected element converter. */
-    private static Class<?> listConverterDomain(Type fieldType) {
+    private static Class<?> converterParameter(Type fieldType, Method method) {
+        return method.getParameterTypes()[rawType(fieldType) == Map.class ? 1 : 0];
+    }
+
+    /** Exact List elements and String-keyed Map values share the non-native scalar destination boundary. */
+    private static Class<?> containerConverterDomain(Type fieldType) {
+        if (rawType(fieldType) == Map.class && (!(fieldType instanceof ParameterizedType map)
+                || map.getActualTypeArguments()[0] != String.class)) return null;
         Type element = containerValue(fieldType);
         Class<?> domain = rawType(element);
         if (domain == null || domain == Object.class || domain.isArray() || domain.isPrimitive()
