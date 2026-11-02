@@ -74,6 +74,8 @@ public final class GeneratedInput {
     public @interface Field {
         /** Explicit completeness of the selected converter association (zero or one). */
         int converterCount() default -1;
+        /** Explicit zero/one association count; stripping the association must fail closed. */
+        int alternativeCount() default -1;
         String value();
         /** Compiler-folded origin; explicitly emitted by current producers. */
         String nameOrigin() default "";
@@ -109,6 +111,20 @@ public final class GeneratedInput {
         String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;
+    }
+
+    /** One compiler-literal keyed Map alternative on its owning public field accessor. Never executable. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface LiteralAlternative {
+        int version();
+        String field();
+        String alias();
+        String target();
+        String key();
+        String keyType();
+        String scope();
+        String creator();
     }
 
     /** Internal association with the exact existing creator of an unkeyed concrete virtual sink; not for Schema authors. */

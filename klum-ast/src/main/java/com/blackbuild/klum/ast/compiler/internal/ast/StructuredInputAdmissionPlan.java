@@ -184,6 +184,60 @@ final class StructuredInputAdmissionPlan {
         schema.setMember("operationCount", new ConstantExpression((int) operationCount));
     }
 
+    private static final String LITERAL_ALTERNATIVE = METADATA_KEY + ".literalAlternative";
+
+    /** Freeze only explicit literal facts at the existing CollectionFactory generation site. */
+    static void recordLiteralAlternative(FieldNode field, Map<ClassNode, String> alternatives, ClassNode scope) {
+        if (alternatives.size() != 1 || !field.getType().redirect().getName().equals(Map.class.getName())) return;
+        ClassNode declared = getElementTypeForMap(field.getType()).redirect();
+        ClassNode target = alternatives.keySet().iterator().next().redirect();
+        AnnotationNode options = annotation(field, Field.class.getName());
+        FieldNode key = getKeyField(target);
+        if (!Modifier.isAbstract(declared.getModifiers()) || getFieldType(field) != FieldType.DEFAULT
+                || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))
+                || !isDSLObject(target) || Modifier.isAbstract(target.getModifiers()) || key == null
+                || !ClassHelper.STRING_TYPE.equals(key.getType()) || !key.equals(getKeyField(declared))
+                || target.getGenericsTypes() != null && target.getGenericsTypes().length != 0
+                || declared.getGenericsTypes() != null && declared.getGenericsTypes().length != 0
+                || options != null && options.getMember("keyMapping") != null) return;
+        field.setNodeMetaData(LITERAL_ALTERNATIVE,
+                new LiteralAlternative(alternatives.values().iterator().next(), target, GeneratedDslSupport.publicType(scope).redirect(), key.getName()));
+    }
+
+    private record LiteralAlternative(String alias, ClassNode target, ClassNode scope, String key) { }
+
+    private static LiteralAlternative literalAlternative(FieldNode field) {
+        LiteralAlternative candidate = field.getNodeMetaData(LITERAL_ALTERNATIVE);
+        return candidate != null && literalCreator(candidate) != null ? candidate : null;
+    }
+
+    private static MethodNode literalCreator(LiteralAlternative alternative) {
+        ClassNode targetBuilder = GeneratedDslSupport.builderTypeFor(alternative.target()).redirect();
+        return alternative.scope().getDeclaredMethods(alternative.alias()).stream()
+                .filter(method -> method.isPublic() && !method.isStatic())
+                .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(p -> p.getType().getName()).toArray(String[]::new),
+                        new String[]{String.class.getName()}))
+                .filter(method -> method.getReturnType().getName().equals(targetBuilder.getName()))
+                .findFirst().orElse(null);
+    }
+
+    private static void enrichLiteralAlternative(FieldNode field, AnnotationNode fact, MethodNode accessor) {
+        LiteralAlternative alternative = literalAlternative(field);
+        fact.setMember("alternativeCount", new ConstantExpression(alternative == null ? 0 : 1));
+        if (alternative == null) return;
+        MethodNode creator = literalCreator(alternative);
+        AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
+        association.setMember("version", new ConstantExpression(1));
+        association.setMember("field", new ConstantExpression(field.getName()));
+        association.setMember("alias", new ConstantExpression(alternative.alias()));
+        association.setMember("target", new ConstantExpression(alternative.target().getName()));
+        association.setMember("key", new ConstantExpression(alternative.key()));
+        association.setMember("keyType", new ConstantExpression(String.class.getName()));
+        association.setMember("scope", new ConstantExpression(alternative.scope().getName()));
+        association.setMember("creator", new ConstantExpression(descriptor(creator)));
+        accessor.addAnnotation(association);
+    }
+
     private static final String VIRTUAL_SCOPES = METADATA_KEY + ".virtualScopes";
     private record VirtualScope(MethodNode source, FieldNode field) { }
 
@@ -318,6 +372,7 @@ final class StructuredInputAdmissionPlan {
         }
         StructuredInputConstraintMetadata.enrichField(field, fact);
         enrichConverter(field, entry, name, fact);
+        enrichLiteralAlternative(field, fact, accessor);
         accessor.addAnnotation(fact);
         if (entry != null) {
             enrichSelection(builder, field, entry);
@@ -509,6 +564,14 @@ final class StructuredInputAdmissionPlan {
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
         ClassNode type = field.getType();
         ClassNode child = getElementTypeForMap(type);
+        LiteralAlternative alternative = literalAlternative(field);
+        if (alternative != null) {
+            PublicOperation operation = publicOperation(field, rejections);
+            if (operation != null)
+                entries.add(new Entry(name.value(), Role.LITERAL_ALTERNATIVE_MAP, source(field), operation,
+                        payloadForModel(alternative.target()), name.origin(), String.class.getName(), alternative.key(), null, false));
+            return;
+        }
         String source = source(field);
         if (child == null || getFieldType(field) != FieldType.DEFAULT
                 || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(type))
@@ -860,7 +923,7 @@ final class StructuredInputAdmissionPlan {
         return (model == null ? method.getDeclaringClass() : model).getName() + "#" + descriptor(method);
     }
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
+    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, INPUT_NAME, IGNORE, INPUT_IGNORE }
     record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }

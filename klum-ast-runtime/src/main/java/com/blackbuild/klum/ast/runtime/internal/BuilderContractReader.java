@@ -87,6 +87,7 @@ final class BuilderContractReader {
     private static final String KEY_ANNOTATION = PREFIX + "Key;";
     private static final String FIELD = PREFIX + "Field;";
     private static final String VIRTUAL_SINK = "Lcom/blackbuild/klum/ast/Field;";
+    private static final String LITERAL_ALTERNATIVE = PREFIX + "LiteralAlternative;";
     private static final String VIRTUAL_SCOPE = PREFIX + "VirtualScope;";
     private static final String OPERATION_FACT = PREFIX + "Operation;";
     private static final String SOURCE_DEPRECATED = "sourceDeprecated";
@@ -98,7 +99,7 @@ final class BuilderContractReader {
     private static final String AUTHOR_OPERATION = "Lcom/blackbuild/klum/ast/Struct$Operation;";
     private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, VIRTUAL_SCOPE, VIRTUAL_SINK, AUTHOR_OPERATION, QUERY, DOC);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, LITERAL_ALTERNATIVE, VIRTUAL_SCOPE, VIRTUAL_SINK, AUTHOR_OPERATION, QUERY, DOC);
 
     private final Map<Class<?>, Metadata> declarations = new IdentityHashMap<>();
 
@@ -118,13 +119,15 @@ final class BuilderContractReader {
                     Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
-                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink) {
+                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, AlternativeFacts alternative) {
         Literals {
             constraints = constraints == null ? null : List.copyOf(constraints);
             examples = examples == null ? null : List.copyOf(examples);
             operationExamples = operationExamples == null ? null : List.copyOf(operationExamples);
         }
     }
+
+    record AlternativeFacts(String field, String alias, String target, String key, String keyType, String scope, String creator) { }
 
     record ConverterSelection(String owner, String name, String descriptor, int parameter, boolean parameterFacts) { }
 
@@ -142,7 +145,7 @@ final class BuilderContractReader {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
-                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink);
+                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternative);
     }
 
     private static NameFacts freeze(MutableNameFacts value) {
@@ -265,6 +268,8 @@ final class BuilderContractReader {
         Boolean operationDeprecated;
         Boolean authoritative;
         String operationRole;
+        AlternativeFacts alternative;
+        Integer alternativeCount;
         String scopeCreator;
         boolean plainVirtualSink;
         boolean authorOperation;
@@ -348,6 +353,12 @@ final class BuilderContractReader {
         }
         validateOperationFacts(literal, source, signature);
         validateConverterFacts(literal, source);
+        if (literal.field != null && (literal.alternativeCount == null
+                || literal.alternativeCount != (literal.alternative == null ? 0 : 1)))
+            throw invalid("Missing or inconsistent literal alternative completeness on " + source);
+        if (literal.alternative != null && (!literal.alternative.field().equals(literal.field)
+                || literal.converterCount == null || literal.converterCount != 0))
+            throw invalid("Literal alternative lacks its exact owning field on " + source);
         if (literal.field != null) {
             validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
         }
@@ -438,7 +449,7 @@ final class BuilderContractReader {
 
     private static void verifyAnnotationProtocol(Class<?> owner) throws ClassNotFoundException {
         for (Class<?> protocol : List.of(GeneratedInput.Schema.class, GeneratedInput.Key.class, GeneratedInput.Field.class, GeneratedInput.Selection.class, GeneratedInput.Exclusion.class,
-                GeneratedInput.Operation.class, Struct.Operation.class))
+                GeneratedInput.Operation.class, GeneratedInput.LiteralAlternative.class, Struct.Operation.class))
             if (!Class.forName(protocol.getName(), false, owner.getClassLoader()).isAnnotation())
                 throw invalid("Missing annotation protocol " + protocol.getName());
     }
@@ -602,6 +613,7 @@ final class BuilderContractReader {
             if (annotation.equals(AUTHOR_OPERATION)) literal.authorOperation = true;
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
+            if (annotation.equals(LITERAL_ALTERNATIVE)) return new AlternativeAnnotationVisitor(literal);
             if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
             if (annotation.equals(VIRTUAL_SINK)) {
                 literal.plainVirtualSink = true;
@@ -613,6 +625,34 @@ final class BuilderContractReader {
                 };
             }
             return new MethodAnnotationVisitor(annotation, literal);
+        }
+    }
+
+    private static final class AlternativeAnnotationVisitor extends AnnotationVisitor {
+        private static final Set<String> MEMBERS = Set.of("version", "field", "alias", "target", "key", "keyType", "scope", "creator");
+        private final MutableLiterals literal;
+        private final Map<String, Object> facts = new LinkedHashMap<>();
+
+        AlternativeAnnotationVisitor(MutableLiterals literal) {
+            super(Opcodes.ASM9);
+            this.literal = literal;
+        }
+
+        @Override public void visit(String name, Object value) {
+            if (!MEMBERS.contains(name) || facts.putIfAbsent(name, value) != null
+                    || (name.equals("version") ? !(value instanceof Integer) : !(value instanceof String text) || text.isEmpty()))
+                throw invalid("Invalid literal alternative member " + name);
+        }
+        @Override public AnnotationVisitor visitArray(String name) { throw invalid("Unexpected literal alternative array " + name); }
+        @Override public AnnotationVisitor visitAnnotation(String name, String descriptor) { throw invalid("Unexpected nested literal alternative " + name); }
+        @Override public void visitEnum(String name, String descriptor, String value) { throw invalid("Unexpected literal alternative enum " + name); }
+        @Override public void visitEnd() {
+            if (!facts.keySet().equals(MEMBERS) || !Integer.valueOf(1).equals(facts.get("version"))
+                    || !String.class.getName().equals(facts.get("keyType")))
+                throw invalid("Incomplete or unsupported literal alternative protocol");
+            literal.alternative = new AlternativeFacts((String) facts.get("field"), (String) facts.get("alias"),
+                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get("keyType"),
+                    (String) facts.get("scope"), (String) facts.get("creator"));
         }
     }
 
@@ -804,6 +844,11 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case "alternativeCount" -> {
+                    if (!(value instanceof Integer) || literal.alternativeCount != null)
+                        throw invalid("Invalid literal alternative count");
+                    literal.alternativeCount = (Integer) value;
+                }
                 case "converterCount" -> {
                     if (!(value instanceof Integer) || literal.converterCount != null)
                         throw invalid("Invalid converter selection count");

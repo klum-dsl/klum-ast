@@ -51,16 +51,29 @@ final class CompiledBuilderSchema {
     private final List<Rejection> rejections;
     private final List<Declaration> declarations;
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
+    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
 
     /** Owned types use stable Class references; data-container items are finite, recursively immutable shapes. */
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
 
+    /**
+     * Validated one-literal creator route. The owning field is Entry.source; target and inherited String key
+     * are Entry.payload and Entry.excludedKey. Scope/creator are integrity evidence, never invoked by inspection.
+     * Execution binds the existing internal explicit-type keyed Map callback before child PostApply.
+     */
+    record LiteralAlternative(String alias, Class<?> scope, Method creator) { }
+
     /** A selected input use; source identity stays distinct from its effective external name and dispatch handle. */
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) {
+                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, LiteralAlternative alternative) {
+        Entry(String externalName, Role role, String source, Class<?> contract, String operation,
+              List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
+              String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) {
+            this(externalName, role, source, contract, operation, methods, payload, keyType, excludedKey, fixedChildKey,
+                    nameOrigin, documentation, schemaKey, sourceDeprecated, examples, null);
+        }
         Entry {
             methods = List.copyOf(methods);
             examples = List.copyOf(examples);

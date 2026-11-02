@@ -791,6 +791,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.layer3.Cluster
             import com.blackbuild.klum.ast.RelationshipConstraint
             import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
             import com.blackbuild.klum.ast.PostCreate
             import com.blackbuild.klum.ast.PostTree
             import com.blackbuild.klum.ast.Field
@@ -870,10 +871,13 @@ class JpmsPackageBoundaryTest extends Specification {
             }
 
             @DSL class StationSlot { @Key String name; String description }
+            @DSL abstract class Element { @Key String name; @Owner Object owner; String value }
+            @DSL class ConcreteElement extends Element {}
             @DSL class StructuredRoot {
                 @Key String name
                 StationSlot direct
                 Map<String, StationSlot> slots
+                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
             }
 
             @DSL
@@ -1116,6 +1120,11 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (!"root".equals(keyed.getName()) || !"direct".equals(keyed.getDirect().getName())
                             || !"outer".equals(keyed.getSlots().get("outer").getName()))
                         throw new AssertionError("Named Java key-member consumer did not link or populate");
+                    StructuredRoot literal = StructuredRoot.Create.FromStruct("literal", Map.of("elements", Map.of("fixed", Map.of("primary", Map.of("value", "configured")))));
+                    if (!"primary".equals(literal.getElements().get("primary").getName())
+                            || !"configured".equals(literal.getElements().get("primary").getValue())
+                            || literal.getElements().get("primary").getOwner() != literal)
+                        throw new AssertionError("Literal alternative input did not preserve key/body/owner");
                     StructuredRoot explicit = StructuredRoot.Create.FromStruct("external", Map.of("direct", Map.of("name", "child")));
                     StructuredRoot namedExplicit = StructuredRoot.Create.FromStruct("named", Map.of(), "opaque://label");
                     if (!"external".equals(explicit.getName()) || !"named".equals(namedExplicit.getName()))
@@ -1266,6 +1275,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     assert keyed.name == 'root'
                     assert keyed.direct.name == 'direct'
                     assert keyed.slots.get('outer').name == 'outer'
+                    StructuredRoot literal = StructuredRoot.Create.FromStruct('literal', [elements: [fixed: [primary: [value: 'configured']]]])
+                    assert literal.elements.primary.name == 'primary'
+                    assert literal.elements.primary.value == 'configured'
+                    assert literal.elements.primary.owner.is(literal)
                     StructuredRoot explicit = StructuredRoot.Create.FromStruct('external', [direct: [name: 'child']])
                     StructuredRoot namedExplicit = StructuredRoot.Create.FromStruct('named', [:], 'opaque://label')
                     assert explicit.name == 'external'

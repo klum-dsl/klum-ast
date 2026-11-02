@@ -25,6 +25,15 @@ package com.blackbuild.klum.ast.gradle
 
 import groovy.io.FileType
 import groovy.json.JsonSlurper
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.AnnotationVisitor
+import groovyjarjarasm.asm.Opcodes
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+import java.util.jar.JarEntry
 import org.gradle.testkit.runner.GradleRunner
 import spock.lang.Issue
 import spock.lang.Specification
@@ -50,6 +59,13 @@ class BinaryOwnedRelationshipsTest extends Specification {
         if (capability == 'projection') {
             def schema = new JsonSlurper().parse(new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json'))
             def properties = schema.'$defs'.'example.Deployment_DSL$Builder'.properties
+            assert properties.elements.additionalProperties == false
+            assert properties.elements.properties.keySet() == ['fixed'] as Set
+            assert properties.elements.properties.fixed.additionalProperties.'$ref' == '#/$defs/example.ConcreteElement_DSL%24Builder%3A%3Akeyless'
+            def element = schema.'$defs'.'example.ConcreteElement_DSL$Builder::keyless'
+            assert element.properties.keySet() == ['value'] as Set
+            assert element.additionalProperties == false
+            assert !element.containsKey('required')
             assert properties.containsKey('facts')
             assert properties.facts.'$ref' == '#/$defs/example.Facts_DSL%24Builder'
             assert properties.inherited.'$ref' == properties.facts.'$ref'
@@ -87,6 +103,48 @@ class BinaryOwnedRelationshipsTest extends Specification {
 
         where:
         [generation, capability] << [['3', '4', '5'], ['projection', 'interpret']].combinations()
+    }
+
+    @Issue('952')
+    def 'corrupt binary literal association prevents every new schema output without initializing user code'() {
+        given:
+        fixture('3')
+        File artifact = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
+        File changed = new File(directory, 'corrupted.jar')
+        new JarFile(artifact).withCloseable { archive ->
+            new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
+                archive.entries().each { entry ->
+                    byte[] bytes = archive.getInputStream(entry).bytes
+                    if (entry.name == 'example/Deployment_DSL$Builder.class') {
+                        def writer = new ClassWriter(0)
+                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                                        annotation.endsWith('GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
+                                    }
+                                }
+                            }
+                        }, 0)
+                        bytes = writer.toByteArray()
+                    }
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        artifact.bytes = changed.bytes
+        new File(consumer, 'build.gradle') << "\nklumSchema.jsonSchema.rootTypes.add('example.LocalFacts')\n"
+
+        when:
+        def result = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+
+        then:
+        result.output.contains('literal alternative completeness')
+        !new File(consumer, 'build/generated/klum-json-schema/example.LocalFacts.schema.json').exists()
+        !new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json').exists()
+        !trap.exists()
     }
 
     private void fixture(String generation) {
@@ -161,6 +219,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 }
 @DSL class Deployment extends DeploymentBase {
     Facts facts
+    @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
     Map<String, Workload> workloads
     LocalFacts local
     Map<String, String> labels
@@ -173,6 +232,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     @Field(keyMapping = { it.name }) Map<String, Workload> mapped
 }
 @DSL class LocalFacts { String host }
+@DSL abstract class Element {
+    @Key String name
+    @Owner Object owner
+    String value
+}
+@DSL class ConcreteElement extends Element {}
 ''')
         runner(producer, ':schema:jar').build()
         publish('schema', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -193,13 +258,14 @@ class Consumer {
         assert GenericFacts_DSL.Builder.typeParameters.length == 2
         def input = [facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
-                     local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual']]
+                     elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual']]
         Trace.events.clear()
         def nativeModel = Deployment.Create.With {
             facts { host 'direct' }
             inherited { host 'base' }
             workloads { workload('a/b~c') { image 'one' } }
             inheritedWorkloads { inheritedWorkload('other') { image 'two' } }
+            elements { fixed('primary') { value 'configured' } }
             local { host 'local' }
             labels(['host-name': 'literal'])
             virtual { host 'virtual' }
@@ -216,6 +282,10 @@ class Consumer {
         assert model.inherited.owner.is(model)
         assert model.workloads['a/b~c'].owner.is(model)
         assert model.inheritedWorkloads.other.owner.is(model)
+        assert model.elements.primary instanceof ConcreteElement
+        assert model.elements.primary.name == 'primary'
+        assert model.elements.primary.value == 'configured'
+        assert model.elements.primary.owner.is(model)
         assert model.local.host == 'local'
         assert model.labels == ['host-name': 'literal']
         assert Trace.events == nativeTrace

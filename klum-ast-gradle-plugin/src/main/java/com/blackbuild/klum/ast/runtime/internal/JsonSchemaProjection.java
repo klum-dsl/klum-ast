@@ -140,6 +140,13 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
         if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
             value = map(value);
+        if (entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP) {
+            Map<String, Object> aliases = new LinkedHashMap<>();
+            aliases.put("type", OBJECT_TYPE);
+            aliases.put(ADDITIONAL_PROPERTIES, false);
+            aliases.put("properties", Map.of(entry.alternative().alias(), map(value)));
+            value = aliases;
+        }
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
@@ -253,6 +260,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
 
     private static KeyPosition keyPosition(CompiledBuilderSchema.Entry entry) {
         if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP
+                || entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP
                 || entry.schemaKey())
             return KeyPosition.KEYLESS;
         return KeyPosition.MEMBER;

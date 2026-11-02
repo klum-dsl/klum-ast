@@ -62,6 +62,16 @@ public class BreadcrumbCollector {
         }
     }
 
+    /**
+     * Enters a compiler-bound structured relationship scope. Its source field owns the verb, including
+     * when Groovy instrumentation has left the public applyStruct call as the pending verb.
+     */
+    public static <T> T withInputScope(String field, Supplier<T> action) {
+        BreadcrumbCollector collector = getInstance();
+        collector.clearCurrentCrumb();
+        return withBreadcrumb(field, null, null, action);
+    }
+
     public static <T> T withBreadcrumb(String verb, String type, String qualifier, Supplier<T> action) {
         BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
         try {
