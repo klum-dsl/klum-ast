@@ -110,7 +110,7 @@ for lane in ("3", "4", "5"):
                           text=True, capture_output=True, check=True)
     count += len(rows) * 3 + 6
     # #952 L1-A: exact String elements, no value-specific or C1 parameter assertions on items.
-    for name in ("intervals", "local-values", "adapted-values", "inherited-ports"):
+    for name in ("intervals", "local-values", "adapted-values", "inherited-ports", "generic-values"):
         assert properties[name]["type"] == "array"
         assert properties[name]["items"] == {"type": "string"}
         assert "allOf" not in properties[name]

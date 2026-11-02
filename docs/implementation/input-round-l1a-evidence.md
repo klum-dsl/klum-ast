@@ -45,7 +45,19 @@ User contract: [converter-backed List elements](../user/Structured-Input.md#conv
 
 ## Qualification and delivery
 
-Qualification and the two read-only local review axes are in progress. No full-check, hosted CI/SonarCloud, publication
-or merge result is claimed here until recorded below. No local SonarCloud upload is permitted or performed.
+Exactly two local read-only reviewers performed Standards and Specification review. Standards requested braces in the
+ASM corruption helper and one constant for a repeated stable diagnostic; both are corrected. Specification reproduced
+a compiler/resolver mismatch: an ordinary non-DSL `Value<T extends CharSequence>` was mistaken for a Builder SELF type.
+The resolver now recognizes generated Builder interfaces explicitly, with runtime ordinary/structured parity and
+packaged G3/G4/G5 bounded-generic List controls. Both axes report zero remaining findings in the corrected tree.
+Reviewed commits are preserved; corrections are additive.
+
+The corrected focused Java 17 run passed 120 baseline compiler cases (48 List, 27 String-origin, 44 CharSequence,
+one real binary/classpath consumer) plus eight packaged-plugin cases with zero failures/errors/skips. The independent
+actual-output oracle passed 28 JDK, 270 ECMA/Draft C1, 270 structural scalar String and 201 List grammar controls.
+The earlier compatibility run predating the review correction was stopped and is not final qualification.
+
+Full root qualification is pending. No full-check, hosted CI/SonarCloud, publication or merge result is claimed here
+until recorded below. No local SonarCloud upload is permitted or performed.
 Publication uses a draft PR with **Related: #952**, without merge authorization. Hive must reconcile eventual external
 delivery and archive readiness; the worker does not self-archive.

@@ -62,7 +62,7 @@ class CompiledConverterJsonSchemaTest extends Specification {
         body == schema
         ['duration', 'natural-duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype', 'sequence'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
-        ['intervals', 'local-values', 'adapted-values', 'inherited-ports'].every {
+        ['intervals', 'local-values', 'adapted-values', 'inherited-ports', 'generic-values'].every {
             fields[it].type == 'array' && fields[it].items == [type: 'string']
                     && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
         }
@@ -312,7 +312,7 @@ class EndpointAdapter {
         throw new AssertionError('subtype adapter executed')
     }
 }
-class GenericValue<T> {
+class GenericValue<T extends CharSequence> {
     GenericValue(@Pattern(regexp='[0-9]{1,8}') String value) { throw new AssertionError('generic constructor executed') }
 }
 ''')
@@ -355,6 +355,7 @@ import java.nio.file.Path
     @Converters(includeConstructors=true) OverloadedValue overloaded
     @Field(converters = [{ String value -> throw new AssertionError('Path closure executed') }]) Path path
     @Converters(includeConstructors=true) GenericValue<String> generic
+    @Converters(includeConstructors=true) List<GenericValue<String>> genericValues
     @Converters([EndpointAdapter]) Endpoint subtype
     FactoryPort factory
     @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) FactoryPort fieldOmit

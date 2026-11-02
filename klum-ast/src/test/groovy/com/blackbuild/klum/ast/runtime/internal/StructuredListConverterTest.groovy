@@ -417,6 +417,30 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         !entry.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
     }
 
+    def 'bounded generic domain values are scalar List elements rather than Builder self types'() {
+        given:
+        def type = schema('''
+            @DSL class Schedule {
+                @Converters(includeConstructors=true) List<Interval<String>> intervals
+            }
+            class Interval<T extends CharSequence> {
+                final String value
+                Interval(String raw) { value = 'generic:' + raw }
+            }
+        ''')
+
+        when:
+        def result = type.Create.FromStruct([intervals: ['one', 'two']])
+        def ordinary = type.Create.With { interval 'one'; interval 'two' }
+        def entry = new InputContractResolver().read(type).entries().intervals
+
+        then:
+        result.intervals*.value == ['generic:one', 'generic:two']
+        result.intervals*.value == ordinary.intervals*.value
+        result.intervals.every { it.class == entry.methods()[0].returnType }
+        !entry.methods()[0].getAnnotation(GeneratedInput.Converter).parameterFacts()
+    }
+
     def 'incomplete or corrupt List element metadata fails before Schema initialization: #damage'() {
         given:
         def type = inertSchema()
@@ -453,8 +477,12 @@ class StructuredListConverterTest extends AbstractDSLSpec {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith('(Ljava/lang/String;)')) return null
                 if (name == 'getIntervals') {
-                    if (damage == 'wrong element type') signature = '()Ljava/util/List<Ljava/lang/Object;>;'
-                    if (damage == 'raw List') signature = null
+                    if (damage == 'wrong element type') {
+                        signature = '()Ljava/util/List<Ljava/lang/Object;>;'
+                    }
+                    if (damage == 'raw List') {
+                        signature = null
+                    }
                 }
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, next) {
@@ -462,8 +490,9 @@ class StructuredListConverterTest extends AbstractDSLSpec {
                         if (damage == 'missing association' && annotation.endsWith('GeneratedInput$Converter;')) return null
                         if (damage == 'missing selection' && annotation.endsWith('GeneratedInput$Selection;')) return null
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (annotation.endsWith('GeneratedInput$Converter;') || annotation.endsWith('GeneratedInput$Field;'))
+                        if (annotation.endsWith('GeneratedInput$Converter;') || annotation.endsWith('GeneratedInput$Field;')) {
                             return damageAssociation(downstream, damage)
+                        }
                         downstream
                     }
                 }

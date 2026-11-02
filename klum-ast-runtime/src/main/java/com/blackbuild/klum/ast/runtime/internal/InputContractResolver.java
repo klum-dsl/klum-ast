@@ -64,6 +64,7 @@ final class InputContractResolver {
             "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
     private static final Set<String> COLLECTIONS = Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet", "java.util.EnumSet");
     private static final Set<String> MAPS = Set.of("java.util.Map", "java.util.SortedMap", "java.util.NavigableMap");
+    private static final String CONVERTER_SIGNATURE_MISMATCH = "Converter selection disagrees with field/overload";
     private final BuilderContractReader reader = new BuilderContractReader();
     private final SelectedConverterParameterReader converterReader = new SelectedConverterParameterReader();
     private final Map<Class<?>, Map<String, ConverterConstraints>> converterConstraints = new LinkedHashMap<>();
@@ -553,7 +554,7 @@ final class InputContractResolver {
         try {
             if (methods.size() != 1 || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
-                throw invalid("Converter selection disagrees with field/overload");
+                throw invalid(CONVERTER_SIGNATURE_MISMATCH);
             Class<?> domain = converterDomain(field, fieldType, method, selected);
             if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, method.getParameterTypes()[0]))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
@@ -579,7 +580,7 @@ final class InputContractResolver {
         Class<?> domain = list ? listConverterDomain(fieldType) : rawType(fieldType);
         if (domain == null || method.getReturnType() != domain || method.isSynthetic() || method.isBridge()
                 || !list && !method.getName().equals(field) || !validConverterParameter(fieldType, method, selected))
-            throw invalid("Converter selection disagrees with field/overload");
+            throw invalid(CONVERTER_SIGNATURE_MISMATCH);
         return domain;
     }
 
@@ -598,7 +599,8 @@ final class InputContractResolver {
         Class<?> domain = rawType(element);
         if (domain == null || domain == Object.class || domain.isArray() || domain.isPrimitive()
                 || Collection.class.isAssignableFrom(domain) || Map.class.isAssignableFrom(domain)
-                || Number.class.isAssignableFrom(domain) || leafPayload(domain) != null || modelOf(domain) != null) return null;
+                || Number.class.isAssignableFrom(domain) || leafPayload(domain) != null
+                || domain.isInterface() && domain.getName().endsWith(BUILDER_SUFFIX)) return null;
         return domain;
     }
 
