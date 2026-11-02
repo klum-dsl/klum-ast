@@ -65,6 +65,8 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert !properties.containsKey('abstractFacts')
             assert !properties.containsKey('genericFacts')
             assert !properties.containsKey('consumeBuilder')
+            assert !properties.containsKey('scoped')
+            assert !properties.containsKey('virtual')
             assert !properties.containsKey('mapped')
             assert !trap.exists()
         } else {
@@ -163,6 +165,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     AbstractFacts abstractFacts
     GenericFacts<String> genericFacts
     @Builder.Method void consumeBuilder(Facts_DSL.Builder value) {}
+    @Builder.Method void scoped(@DelegatesToBuilder(Facts) Closure body) { facts(body) }
+    @Field void virtual(Facts value) {}
     @Field(keyMapping = { it.name }) Map<String, Workload> mapped
 }
 @DSL class LocalFacts { String host }

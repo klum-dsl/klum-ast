@@ -219,6 +219,11 @@ contract proves direct entry. Reading `@DelegatesTo` and manufacturing a closure
 If no additional family has the required seam, report the proof boundary and return to the maintainer instead of making
 the supported matrix dishonest. F2 owns the separate CollectionFactory question.
 
+The [S5 characterization](input-round-s5-evidence.md) records an evidence-only stop at the exact speculative #1012 base.
+Direct-child/keyed-Map controls pass. A virtual-field internal Consumer candidate preserves the tested ordinary trace,
+but no additional public/generated scope-entry contract is admitted; the public returned-Builder route changes callback
+and sink timing. The maintainer owns any contract admission and implementation re-entry. This does not mark S5 implemented.
+
 S6 treats the root as a Template body: no serialized root identity; recipients supply their own keys. Preserve ordinary
 Template nested key and recipe rules, including keyed-Map identity. Compare existing `Create.Template.With` behavior,
 not Jackson's separate value-only import mode. Definition may invoke admitted operations/converters to configure the
