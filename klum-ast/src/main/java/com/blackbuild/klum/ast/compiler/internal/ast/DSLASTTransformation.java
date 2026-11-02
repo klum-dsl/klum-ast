@@ -919,6 +919,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleDSLObjectFieldCreationMethods(virtualField, methodName);
 
         createConverterMethods(virtualField, methodName, false);
+        StructuredInputAdmissionPlan.recordVirtualScope(this, methodNode, virtualField);
     }
 
     private boolean hasDefaultImpl(FieldNode field) {

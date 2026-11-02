@@ -99,7 +99,7 @@ public final class GeneratedInput {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Operation {
-        /** Compiler-owned OPERATION, COMMAND or excluded LIFECYCLE role; must agree with the exact public signature. */
+        /** Compiler-owned OPERATION, COMMAND, VIRTUAL_OBJECT or excluded LIFECYCLE role; must agree with the exact public signature. */
         String role();
         /** Explicit author selection intent on this exact public projection, including false. */
         boolean authoritative();
@@ -109,6 +109,13 @@ public final class GeneratedInput {
         String nameOrigin() default "";
         String rename() default "";
         boolean ignored() default false;
+    }
+
+    /** Internal association with the exact existing creator of an unkeyed concrete virtual sink; not for Schema authors. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface VirtualScope {
+        String creator();
     }
 
     /** Internal compiler facts; not an annotation for Schema authors or a projection SPI. */

@@ -821,6 +821,8 @@ class JpmsPackageBoundaryTest extends Specification {
             @Target(ElementType.FIELD)
             public @interface EndpointBounds { int minimum() }
 
+            @DSL class VirtualEndpoint { String host }
+
             @DSL
             class Station {
                 static final List<String> EVENTS = []
@@ -828,6 +830,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
                 Duration interval
+                String virtualHost
+                @Field void route(VirtualEndpoint config) { virtualHost = config.host }
                 @Struct.Name('station-name') String name = 'North'
                 @Struct.Operation @Builder.Method
                 void endpoint(String value) { name = 'selected:' + value }
@@ -1100,6 +1104,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (commanded.getCapacity() != 30 || commanded.getCapacity() != directCommand.getCapacity())
                         throw new AssertionError("Command differs from direct Builder dispatch");
+                    Station scoped = Station.Create.FromStruct(Map.of("route", Map.of("host", "scope")), "scope.json");
+                    if (!"scope".equals(scoped.getVirtualHost()))
+                        throw new AssertionError("Virtual scope failed through the public named-module contract");
                     Station structured = Station.Create.FromStruct(Map.of("station-name", "Structured Java", "capacity", 6, "slot", Map.of("description", "named")), "station.json");
                     if (!"Structured Java".equals(structured.getName()) || structured.getCapacity() != 6
                             || !"slot".equals(structured.getSlot().getName()))
@@ -1247,6 +1254,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directCommand = Station.Create.With { resetTimeout() }
                     assert commanded.capacity == 30
                     assert commanded.capacity == directCommand.capacity
+                    Station scoped = Station.Create.FromStruct([route: [host: 'scope']], 'scope.json')
+                    Station directScope = Station.Create.With { route { host 'scope' } }
+                    assert scoped.virtualHost == 'scope'
+                    assert scoped.virtualHost == directScope.virtualHost
                     Station structured = Station.Create.FromStruct(['station-name': 'Structured static', capacity: 6, slot: [description: 'static']], 'station.json')
                     assert structured.name == 'Structured static'
                     assert structured.capacity == 6

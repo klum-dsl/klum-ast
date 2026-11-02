@@ -162,7 +162,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     private void constrain(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined) {
-        if (entry.role() == CompiledBuilderSchema.Role.OPERATION || entry.role() == CompiledBuilderSchema.Role.COMMAND) return;
+        if (entry.role() == CompiledBuilderSchema.Role.OPERATION || entry.role() == CompiledBuilderSchema.Role.COMMAND
+                || entry.role() == CompiledBuilderSchema.Role.VIRTUAL_OBJECT) return;
         CompiledBuilderSchema.ConstraintProfile profile = constraintProfiles.get(entry.contract());
         String field = entry.source().substring(entry.source().lastIndexOf('#') + 1);
         CompiledBuilderSchema.FieldConstraints constraints = profile.fields().get(field);
