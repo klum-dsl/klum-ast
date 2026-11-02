@@ -605,7 +605,7 @@ class StructuredNestedScopeProbeTest extends AbstractDSLSpec {
         deployment.events.empty
 
         where:
-        mutation << ['scope', 'operation', 'both', 'sink', 'creator', 'descriptor', 'role']
+        mutation << ['scope', 'operation', 'both', 'sink', 'creator', 'descriptor', 'role', 'query']
     }
 
     private void mutateScope(String mutation) {
@@ -617,6 +617,11 @@ class StructuredNestedScopeProbeTest extends AbstractDSLSpec {
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 if (name != 'virtual' || !descriptor.startsWith('(Lnestedscope/Child_DSL$Builder;)')) return next
                 new MethodVisitor(Opcodes.ASM9, next) {
+                    @Override void visitEnd() {
+                        if (mutation == 'query') super.visitAnnotation('Lcom/blackbuild/klum/ast/Builder$Query;', true).visitEnd()
+                        super.visitEnd()
+                    }
+
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         boolean scope = annotation.endsWith('GeneratedInput$VirtualScope;')
                         boolean operation = annotation.endsWith('GeneratedInput$Operation;')

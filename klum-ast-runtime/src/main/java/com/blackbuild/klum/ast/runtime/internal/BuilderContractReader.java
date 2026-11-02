@@ -362,7 +362,7 @@ final class BuilderContractReader {
         if (literal.authoritative.booleanValue() != literal.authorOperation) {
             throw invalid("Author marker disagrees with authoritative selection fact on " + source);
         }
-        if (literal.scopeCreator != null && (!literal.plainVirtualSink || literal.authoritative))
+        if (literal.scopeCreator != null && (!literal.plainVirtualSink || literal.authoritative || literal.query))
             throw invalid("Virtual scope lacks a plain virtual sink on " + source);
         Set<String> expectedRoles = literal.scopeCreator != null ? Set.of("VIRTUAL_OBJECT")
                 : signature.contains("()") ? Set.of("COMMAND", "LIFECYCLE") : Set.of("OPERATION");

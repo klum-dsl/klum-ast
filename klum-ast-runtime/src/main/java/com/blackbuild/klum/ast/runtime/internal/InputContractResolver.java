@@ -387,8 +387,11 @@ final class InputContractResolver {
                     || accessors.putIfAbsent(literal.field(), method) != null))
                 throw invalid("Duplicate or invalid field accessor association " + literal.field());
             if (literal.selection() != null) selections.computeIfAbsent(literal.selection(), ignored -> new ArrayList<>()).add(method);
-            if (literal.scopeCreator() != null) virtualScope(method, literal, context, entries, rejections);
-            else if (literal.operation() && !literal.query()) operation(method, literal, context.model(), entries, rejections);
+            if (literal.scopeCreator() != null) {
+                virtualScope(method, literal, context, entries, rejections);
+            } else if (literal.operation() && !literal.query()) {
+                operation(method, literal, context.model(), entries, rejections);
+            }
         }
     }
 

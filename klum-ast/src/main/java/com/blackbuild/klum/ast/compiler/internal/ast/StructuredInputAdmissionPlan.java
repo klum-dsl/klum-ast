@@ -208,10 +208,13 @@ final class StructuredInputAdmissionPlan {
             if (sink == null) continue;
             enrichVirtualScope(transformation, scope, sink, creator);
             Name name = externalName(scope.source());
-            if (name.ignored()) rejections.add(new Rejection(source(scope.source()), ignoreReason(name)));
-            else entries.add(new Entry(name.value(), Role.VIRTUAL_OBJECT, source(scope.source()),
-                    new PublicOperation(builder.getName(), sink.getName(), List.of(descriptor(sink), descriptor(creator))),
-                    payloadForModel(scope.field().getType()), name.origin(), null, null, null, false));
+            if (name.ignored()) {
+                rejections.add(new Rejection(source(scope.source()), ignoreReason(name)));
+            } else {
+                entries.add(new Entry(name.value(), Role.VIRTUAL_OBJECT, source(scope.source()),
+                        new PublicOperation(builder.getName(), sink.getName(), List.of(descriptor(sink), descriptor(creator))),
+                        payloadForModel(scope.field().getType()), name.origin(), null, null, null, false));
+            }
         }
     }
 
