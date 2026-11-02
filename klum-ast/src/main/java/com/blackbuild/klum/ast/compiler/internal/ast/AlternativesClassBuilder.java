@@ -287,16 +287,17 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
             return;
 
         String methodName = getShortNameFor(subclass);
-        ClassNode subclassBuilder = getBuilderClassOf(subclass);
+        // The subtype transformation may not have run yet; use its linked public Builder placeholder.
+        ClassNode subclassBuilder = GeneratedDslSupport.builderTypeFor(subclass);
         ClassNode subClassSafe = newClass(subclass);
-        ClassNode subclassBuilderSafe = subclassBuilder.getPlainNodeReference();
 
         new ProxyMethodBuilder(varX("rw"), methodName, memberName)
+                .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                 .optional()
                 .targetType(builderClass)
                 .linkToField(fieldNode)
                 .mod(ACC_PUBLIC)
-                .returning(subclassBuilderSafe)
+                .returning(subclassBuilder)
                 .namedParams("values", null)
                 .constantClassParam(subClassSafe)
                 .conditionalParam(STRING_TYPE, "key", keyType != null, null)

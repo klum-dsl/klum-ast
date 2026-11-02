@@ -489,6 +489,7 @@ class SubElement extends Element {
         '{[b: String]}'     || 'value is no subclass of type'
     }
 
+    @Issue("952")
     def "DelegatesTo annotations for collection factory methods are created"() {
         given:
         createClass('''
@@ -525,7 +526,7 @@ class ChildElement extends Element {
         Annotation[] elementAnnotations = factory.getMethod("subElement", String, Closure).parameterAnnotations[1]
 
         then:
-        delegatesToPointsTo(elementAnnotations, 'pk.SubElement.Builder')
+        delegatesToPointsTo(elementAnnotations, 'pk.SubElement_DSL.Builder')
     }
 
     def "common suffixes can be stripped from grand child alternatives as well"() {
