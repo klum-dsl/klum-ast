@@ -2,7 +2,7 @@
 
 Date: 2026-11-02. Related: #952. Authoritative base: `ed199e0eb319fbd4927c197121864422a08a40e9`.
 
-Status: implemented locally. Validation and review are recorded below; hosted checks and merge are separate delivery
+Status: implemented and locally qualified. Validation and review are recorded below; hosted checks and merge are separate delivery
 conditions. This slice leaves the broader grammar coordination issue open.
 
 ## Accepted behavior
@@ -80,18 +80,33 @@ python klum-ast-gradle-plugin/src/test/resources/validate_literal_alternative_sc
   klum-ast-gradle-plugin/build/schema-validation
 ```
 
-Focused checks passed in all three Groovy generations (72 cases per lane after review fixes), including packaged
-producer/plugin/binary consumers. The emitted-schema oracle passed. Final full root check is pending on a fixed clean
-revision. The initial full-check attempt was interrupted after a Git-derived version change invalidated TestKit fixture
-dependency coordinates; it is not claimed as qualification. A subsequent full run passed all completed compiler/runtime
-lanes and 644 plugin cases, but exposed 21 catalog-fixture failures from selecting the first reflective constructor.
-The fixture now selects the unique matching arity; its 21-case targeted retry passed. The unfiltered full check is
-rerun after that test-only repair.
+Focused checks passed in all three Groovy generations: **72 cases per lane, no failures/errors/skips** after review fixes.
+The final unfiltered root `check` passed on clean revision `1af87607fa0d004e1ed181fb36b286c0ea2844fd`:
+**10,275 module JUnit cases, zero failures/errors, 49 existing skips**. This includes the affected compiler/runtime/plugin
+suites, packaged binary consumers and Java/static Groovy JPMS qualification. The emitted-schema oracle accepted 24 valid
+and rejected 75 invalid inputs across three actual plugin emissions; the existing virtual-scope oracle also passed.
+
+Current user documentation rendered and crawled successfully at that same revision using:
+
+```shell
+./gradlew renderLocalDocumentation -PdocumentationVersion=4.2.0-tracer \
+  --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --no-parallel --max-workers=2
+```
+
+The verified local tree contains 447 HTML files. Changed-page local links/anchors and `git diff --check` pass. The final
+evidence-only commit leaves production, tests and the rendered user-documentation tree unchanged.
+
+Earlier attempts are not counted as qualification: a mid-run Git-derived version change invalidated TestKit fixture
+coordinates, and the next full run exposed 21 catalog-fixture failures from choosing the first reflective constructor.
+The fixture now selects the unique matching arity; its targeted retry and the final unfiltered full run pass. A warmed
+Gradle daemon exhausted its heap after the first documentation command; a fresh 2 GiB single-use daemon completed the
+render/crawl with exit status zero. The generated heap dump was removed.
 
 ## Local review
 
 Exactly two read-only local review children ran against base `ed199e0eb319fbd4927c197121864422a08a40e9`
-through `424008ca8672c9373da5417a44f2aa78c67bfa96`, with read-only follow-ups on the resulting fix tree.
+through `424008ca8672c9373da5417a44f2aa78c67bfa96`, with read-only follow-ups on the resulting fix tree and the catalog-fixture repair through
+`1af87607fa0d004e1ed181fb36b286c0ea2844fd`.
 The root plus both reviewers used three concurrency slots. Neither reviewer edited, built, tested, changed remote state
 or delegated further work.
 
