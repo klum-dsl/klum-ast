@@ -331,6 +331,7 @@ public final class StructuredInputSupport {
                             child.key() == null ? entry.fixedChildKey() : child.key(), child::execute);
                 }
                 case VIRTUAL_OBJECT -> executeVirtualChild(entry, input, path, builder);
+                case OWNED_SEQUENCE -> executeSequence(entry, input, path, builder);
                 case KEYED_OWNED_MAP -> executeChildren(entry, input, path, builder);
                 case LITERAL_ALTERNATIVE_MAP -> executeAlternative(entry, input, path, builder);
                 case COMMAND -> {
@@ -372,6 +373,25 @@ public final class StructuredInputSupport {
                     if (!alias.equals(entry.alternative().alias()))
                         throw bad(entry, aliasPath, "literal alias " + entry.alternative().alias(), supplied.getValue(), null);
                     executeChildren(entry, supplied.getValue(), aliasPath, builder);
+                }
+            } finally { visiting.remove(input); }
+        }
+
+        private void executeSequence(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            if (!(input instanceof List<?> list)) throw bad(entry, path, "List of child-body Maps", input, null);
+            enter(input, path, entry.contract(), entry.externalName());
+            try {
+                Invocation invocation = new Invocation(source, path, entry, null);
+                for (int index = 0; index < list.size(); index++) {
+                    String location = pointer(path, Integer.toString(index));
+                    Domain child = domain(entry.payload().type(), list.get(index), location, Position.DIRECT);
+                    invocation.recordInvocation(builder);
+                    try {
+                        builder.addNewDslElementToCollectionWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
+                                null, child::execute);
+                    } catch (RuntimeException failure) {
+                        throw bad(entry, location, "successful ordinary child preparation and attachment", list.get(index), failure);
+                    }
                 }
             } finally { visiting.remove(input); }
         }

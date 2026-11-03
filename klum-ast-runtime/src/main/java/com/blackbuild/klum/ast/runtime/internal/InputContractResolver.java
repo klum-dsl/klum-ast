@@ -457,6 +457,8 @@ final class InputContractResolver {
             literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
             return;
         }
+        Role role = methods.isEmpty() ? null : selectedRole(metadata, methods, source);
+        if (role == Role.OWNED_SEQUENCE) validateOwnedSequence(fieldPayload(fieldType, role, source), methods, source);
         String reason;
         if (converter == null) {
             reason = fieldReason(fieldType, literal);
@@ -467,7 +469,7 @@ final class InputContractResolver {
             rejections.add(new Rejection(source, reason));
             return;
         }
-        Role role = selectedRole(metadata, methods, source);
+        if (role == null) role = selectedRole(metadata, methods, source);
         if (role == Role.OWNED_OBJECT && literal.schemaKey() == null)
             throw invalid("Missing direct relationship key-authority metadata on " + source);
         if (literal.schemaKey() != null && (role != Role.OWNED_OBJECT || literal.fixed() && !literal.schemaKey()))
@@ -635,14 +637,28 @@ final class InputContractResolver {
 
     private static Payload fieldPayload(Type fieldType, Role role, String source) {
         Payload payload = payload(fieldType, true);
+        if (role == Role.OWNED_SEQUENCE) {
+            if (payload == null || payload.kind() != Kind.LIST || payload.type().getName().equals("java.util.EnumSet")
+                    || payload.item().kind() != Kind.NESTED_OBJECT)
+                throw invalid("Owned sequence getter mismatch: " + source);
+            payload = payload.item();
+        }
         if (role == Role.KEYED_OWNED_MAP) {
             if (payload == null || payload.kind() != Kind.MAP || payload.item().kind() != Kind.NESTED_OBJECT)
                 throw invalid("Keyed relationship getter mismatch: " + source);
             payload = payload.item();
         }
-        if (payload == null || ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT)))
+        if (payload == null || ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP || role == Role.OWNED_SEQUENCE) != (payload.kind() == Kind.NESTED_OBJECT)))
             throw invalid("Field role/payload mismatch: " + source);
         return payload;
+    }
+
+    private void validateOwnedSequence(Payload payload, List<Method> methods, String source)
+            throws IOException, ClassNotFoundException {
+        if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0
+                || methods.size() != 1 || methods.get(0).getReturnType() != payload.builder()
+                || !Arrays.equals(methods.get(0).getParameterTypes(), new Class<?>[]{Map.class, Closure.class}))
+            throw invalid("Owned sequence requires one exact unkeyed ordinary creator: " + source);
     }
 
     private String childKey(Payload payload, Role role, Literals literal, String source)
@@ -776,8 +792,8 @@ final class InputContractResolver {
         if ((!list && !map) || args.length != (map ? 2 : 1) || (map && args[0] != String.class)) return null;
         Type itemType = args[map ? 1 : 0];
         Payload item = payload(itemType, false);
-        // Owned-map eligibility comes only from compiler selection; no generic Builder collection admission.
-        if (item == null && field && map) item = payload(itemType, true);
+        // Owned eligibility comes only from exact relationship selection; ordinary data payloads cannot contain Builders.
+        if (item == null && field && (map || list)) item = payload(itemType, true);
         if (item == null) return null;
         return new Payload(map ? Kind.MAP : Kind.LIST, raw, null, map ? String.class.getName() : null, item);
     }

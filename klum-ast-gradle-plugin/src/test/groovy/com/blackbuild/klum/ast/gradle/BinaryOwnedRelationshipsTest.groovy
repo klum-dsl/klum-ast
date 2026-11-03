@@ -77,6 +77,13 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert !workload.containsKey('required')
             assert properties.local.'$ref' == '#/$defs/example.LocalFacts_DSL%24Builder'
             assert properties.labels.additionalProperties.type == 'string'
+            ['factList', 'factSet', 'sortedFacts', 'navigableFacts', 'inheritedFacts'].each { member ->
+                assert properties[member].type == 'array'
+                assert properties[member].items.'$ref' == properties.facts.'$ref'
+                assert !properties[member].containsKey('uniqueItems')
+                assert !properties[member].containsKey('minItems')
+                assert !properties[member].containsKey('maxItems')
+            }
             assert !properties.containsKey('ignored')
             assert !properties.containsKey('abstractFacts')
             assert !properties.containsKey('genericFacts')
@@ -88,6 +95,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
             def retained = new File('build/schema-validation/virtual-scopes-' + generation + '.schema.json')
             retained.parentFile.mkdirs()
             retained.text = new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json').text
+            new File(retained.parentFile, 'owned-sequences-' + generation + '.schema.json').text = retained.text
         } else {
             assert result.output.contains('BINARY-RELATIONSHIPS-OK')
             assert trap.exists()
@@ -221,9 +229,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 @DSL class DeploymentBase extends DeploymentApi {
     Facts inherited
     Map<String, Workload> inheritedWorkloads
+    List<Facts> inheritedFacts
 }
 @DSL class Deployment extends DeploymentBase {
     Facts facts
+    @Field(members="listedFact") List<Facts> factList
+    @Field(members="setFact") Set<Facts> factSet
+    SortedSet<Facts> sortedFacts = new TreeSet(new FactOrder())
+    NavigableSet<Facts> navigableFacts = new TreeSet(new FactOrder())
     @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
     Map<String, Workload> workloads
     LocalFacts local
@@ -235,6 +248,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     @Builder.Method void scoped(@DelegatesToBuilder(Facts) Closure body) { facts(body) }
     @Field void virtual(Facts value) {}
     @Field(keyMapping = { it.name }) Map<String, Workload> mapped
+}
+class FactOrder implements Comparator<Object> {
+    int compare(Object first, Object second) { first.host <=> second.host }
 }
 @DSL class LocalFacts { String host }
 @DSL abstract class Element {
@@ -263,7 +279,11 @@ class Consumer {
         assert GenericFacts_DSL.Builder.typeParameters.length == 2
         def input = [facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
-                     elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual']]
+                     elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual'], inheritedFacts: [['host-name': 'inherited']],
+                     factList: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
+                     factSet: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
+                     sortedFacts: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
+                     navigableFacts: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']]]
         Trace.events.clear()
         def nativeModel = Deployment.Create.With {
             facts { host 'direct' }
@@ -274,6 +294,11 @@ class Consumer {
             local { host 'local' }
             labels(['host-name': 'literal'])
             virtual { host 'virtual' }
+            inheritedFact { host 'inherited' }
+            ['z', 'a', 'a'].each { value -> listedFact { host value } }
+            ['z', 'a', 'a'].each { value -> setFact { host value } }
+            ['z', 'a', 'a'].each { value -> sortedFact { host value } }
+            ['z', 'a', 'a'].each { value -> navigableFact { host value } }
         }
         def nativeTrace = Trace.events.toList()
         Trace.events.clear()
@@ -293,6 +318,14 @@ class Consumer {
         assert model.elements.primary.owner.is(model)
         assert model.local.host == 'local'
         assert model.labels == ['host-name': 'literal']
+        assert model.factList*.host == ['z', 'a', 'a']
+        assert model.factSet*.host == ['z', 'a']
+        assert model.sortedFacts*.host == ['a', 'z']
+        assert model.navigableFacts*.host == ['a', 'z']
+        assert model.inheritedFacts*.host == ['inherited']
+        [model.factList, model.factSet, model.sortedFacts, model.navigableFacts, model.inheritedFacts].each { children ->
+            assert children.every { it.owner.is(model) }
+        }
         assert Trace.events == nativeTrace
         Trace.events.clear()
         def applied = Deployment.Create.With {

@@ -839,6 +839,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 @Field(converters = [{ String value -> Duration.parse(value) }]) List<Duration> delays
                 @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Map<String, Duration> durations
+                List<VirtualEndpoint> routeSequence
+                Set<VirtualEndpoint> routeSet
                 String virtualHost
                 @Field void route(VirtualEndpoint config) { virtualHost = config.host }
                 @Struct.Name('station-name') String name = 'North'
@@ -1121,6 +1123,11 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (commanded.getCapacity() != 30 || commanded.getCapacity() != directCommand.getCapacity())
                         throw new AssertionError("Command differs from direct Builder dispatch");
+                    Station sequences = Station.Create.FromStruct(Map.of("routeSequence", List.of(Map.of("host", "z"), Map.of("host", "a")),
+                            "routeSet", List.of(Map.of("host", "same"), Map.of("host", "same"))), "sequence.json");
+                    if (sequences.getRouteSequence().size() != 2 || !sequences.getRouteSequence().get(0).getHost().equals("z")
+                            || sequences.getRouteSet().size() != 1)
+                        throw new AssertionError("Owned sequence failed through named-module Factory contract");
                     Station scoped = Station.Create.FromStruct(Map.of("route", Map.of("host", "scope")), "scope.json");
                     if (!"scope".equals(scoped.getVirtualHost()))
                         throw new AssertionError("Virtual scope failed through the public named-module contract");
@@ -1281,6 +1288,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directCommand = Station.Create.With { resetTimeout() }
                     assert commanded.capacity == 30
                     assert commanded.capacity == directCommand.capacity
+                    Station sequences = Station.Create.FromStruct([routeSequence: [[host: 'z'], [host: 'a']], routeSet: [[host: 'same'], [host: 'same']]], 'sequence.json')
+                    assert sequences.routeSequence*.host == ['z', 'a']
+                    assert sequences.routeSet*.host == ['same']
                     Station scoped = Station.Create.FromStruct([route: [host: 'scope']], 'scope.json')
                     Station directScope = Station.Create.With { route { host 'scope' } }
                     assert scoped.virtualHost == 'scope'

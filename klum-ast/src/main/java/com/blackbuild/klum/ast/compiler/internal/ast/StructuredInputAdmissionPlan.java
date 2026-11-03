@@ -550,6 +550,8 @@ final class StructuredInputAdmissionPlan {
             classifyOwnedObject(model, field, name, entries, rejections);
         } else if (isMap(type) && isDSLObject(getElementTypeForMap(type))) {
             classifyOwnedMap(field, name, entries, rejections);
+        } else if (isCollection(type) && isDSLObject(getElementTypeForCollection(type))) {
+            classifyOwnedSequence(field, name, entries, rejections);
         } else {
             classifyProperty(field, name, entries, rejections);
         }
@@ -576,6 +578,36 @@ final class StructuredInputAdmissionPlan {
         if (operation != null)
             entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
                     payloadForModel(type), name.origin(), null, null, fixedKey, false));
+    }
+
+    private static void classifyOwnedSequence(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
+        ClassNode child = getElementTypeForCollection(field.getType()).redirect();
+        if (!Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet")
+                .contains(field.getType().redirect().getName()) || getFieldType(field) != FieldType.DEFAULT
+                || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) != null
+                || child.getGenericsTypes() != null && child.getGenericsTypes().length != 0) {
+            rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
+            return;
+        }
+        String element = DslAstHelper.getElementNameForCollectionField(field);
+        ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
+        List<MethodNode> creators = implementation.getDeclaredMethods(element).stream()
+                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
+                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
+                .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(p -> p.getType().getName()).toArray(String[]::new),
+                        new String[]{Map.class.getName(), Closure.class.getName()}))
+                .map(GeneratedDslSupport::publicProjectionOf).filter(Objects::nonNull)
+                .filter(method -> method.isPublic() && !method.isStatic()
+                        && method.getReturnType().getName().equals(GeneratedDslSupport.builderTypeFor(child).getName()))
+                .toList();
+        if (creators.size() != 1) {
+            rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
+            return;
+        }
+        MethodNode creator = creators.get(0);
+        entries.add(new Entry(name.value(), Role.OWNED_SEQUENCE, source(field),
+                new PublicOperation(creator.getDeclaringClass().getName(), element, List.of(descriptor(creator))),
+                payloadForModel(child), name.origin(), null, null, null, false));
     }
 
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
@@ -946,7 +978,7 @@ final class StructuredInputAdmissionPlan {
         return (model == null ? method.getDeclaringClass() : model).getName() + "#" + descriptor(method);
     }
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
+    enum Role { PROPERTY, OWNED_OBJECT, OWNED_SEQUENCE, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, INPUT_NAME, IGNORE, INPUT_IGNORE }
     record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }

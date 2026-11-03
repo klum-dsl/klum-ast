@@ -141,6 +141,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
         if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
             value = map(value);
+        if (entry.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE)
+            value = new LinkedHashMap<>(Map.of("type", "array", "items", value));
         if (entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP) {
             Map<String, Object> aliases = new LinkedHashMap<>();
             aliases.put("type", OBJECT_TYPE);
