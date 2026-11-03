@@ -213,7 +213,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.rejections().collectEntries { [it.source(), it.reason()] }.with {
             get('rejection.Parent#abstractChild') == 'requires one concrete owned relationship'
             get('rejection.Parent#numberedChildren') == 'requires Map<String, concrete keyed DSL Object> ownership'
-            get('rejection.Parent#unkeyedChildren') == 'has no admitted scalar, enum, List, or Map payload'
+            get('rejection.Parent#unkeyedChildren') == 'requires one concrete owned relationship'
             get('rejection.Parent#marker') == 'has no admitted scalar, enum, List, or Map payload'
             get('rejection.Parent#firstOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#secondOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")

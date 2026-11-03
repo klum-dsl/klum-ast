@@ -321,7 +321,7 @@ final class CompiledInputExpectedContracts {
                             [source: 'rejection.Parent#replace(java.lang.String, java.lang.String):void', reason: '@Builder.Method must declare zero arguments or exactly one payload'],
                             [source: 'rejection.Parent#second', reason: 'external-name collision for \'duplicate\': rejection.Parent#first, rejection.Parent#second'],
                             [source: 'rejection.Parent#secondOperation(java.lang.String):void', reason: 'external-name collision for \'operation\': rejection.Parent#firstOperation(java.lang.String):void, rejection.Parent#secondOperation(java.lang.String):void'],
-                            [source: 'rejection.Parent#unkeyedChildren', reason: 'has no admitted scalar, enum, List, or Map payload']
+                            [source: 'rejection.Parent#unkeyedChildren', reason: 'requires one concrete owned relationship']
                     ]],
             'restrictedarguments-ArrayList': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [

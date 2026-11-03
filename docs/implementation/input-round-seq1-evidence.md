@@ -109,3 +109,9 @@ Reviewed commits are preserved, with one additive correction before a fresh fixe
 The corrected focused run passes 606 Struct cases plus the real binary/module consumer and seven packaged G3/G4/G5
 cases, with zero failures/errors/skips. License checks pass. The documentary example now shows the public Factory call
 directly. The final corrected production tree still requires the fixed-head full root and documentation checks below.
+
+The next root attempt found one stale fixed rejection reason in `CompiledInputExpectedContracts`: despite its
+`unkeyedChildren` field name, that fixture's Child has a Key. It remains excluded; its reason now follows owned
+relationship classification. Compiler-plan and source-free reader expectations are synchronized. The focused compiler/
+reader checks and sequence controls pass on G3/G4/G5. That failed root attempt is not counted as qualification; a clean
+fixed-head root run follows the expectation-only correction. No production behavior changed in this follow-up.
