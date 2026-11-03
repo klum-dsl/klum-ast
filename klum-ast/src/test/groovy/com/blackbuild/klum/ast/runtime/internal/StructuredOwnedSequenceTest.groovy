@@ -105,7 +105,6 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
     private Map run(Class service, boolean stream, List<Map> items) {
         service.events.clear()
         service.children.clear()
-        Class childType = artifacts.loadClass('setprobe.Route')
         def model = stream ? service.Create.FromStruct([routes: items], 'service.yaml') : service.Create.With {
             items.each { item -> route(item) }
         }

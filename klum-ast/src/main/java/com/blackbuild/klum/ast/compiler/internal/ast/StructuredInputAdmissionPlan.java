@@ -581,7 +581,12 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void classifyOwnedSequence(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
-        ClassNode child = getElementTypeForCollection(field.getType()).redirect();
+        ClassNode elementType = getElementTypeForCollection(field.getType());
+        if (elementType == null) {
+            rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
+            return;
+        }
+        ClassNode child = elementType.redirect();
         if (!Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet")
                 .contains(field.getType().redirect().getName()) || getFieldType(field) != FieldType.DEFAULT
                 || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) != null

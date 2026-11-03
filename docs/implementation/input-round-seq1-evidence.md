@@ -167,3 +167,44 @@ The authorized delivery is a dedicated-branch draft PR with **Related: #952**, w
 Actual transport, PR identity/head and hosted check state are verified in the worker callback. Hosted CI/SonarCloud,
 maintainer review/merge and Hive delivery/archive reconciliation remain separate; no release or merge is claimed.
 The worker retains the open-PR state and requests Hive reconciliation rather than self-archiving.
+
+## SonarCloud follow-up — PR #1020
+
+Hosted analysis of published head `3e692d2bc803cae7f185079b77e1037613b264a0` reported four open findings.
+The build/JUnit checks passed, while the SonarCloud analysis gate failed only its new-code reliability rating;
+new-code coverage was 89.1% and the other gate conditions passed.
+
+- `javabugs:S2259`: retain the collection element ClassNode in a local variable and reject a missing type before
+  calling `redirect()`. This makes the private classifier's fail-closed ownership boundary explicit.
+- `java:S1872`: compare the reflected destination Class directly with imported `EnumSet.class`, rather than its name.
+- `java:S2589`: remove `map || list` after the earlier container-shape guard has already established it.
+- `groovydre:S1481`: remove the unused `childType` local in the ordinary/Struct test runner.
+
+All four findings are addressed in source; none is intentionally retained or suppressed. No issue dismissal or
+Sonar status mutation is used. Public/generated signatures, metadata, grammar, ownership, lifecycle, Template and
+collection semantics are unchanged. Existing reviewed/published commits remain frozen; this correction is additive.
+
+The focused Java 17 run passes 175 compiler/reader/sequence cases and all 73 runtime baseline cases (one existing skip).
+The subsequent affected-module checks and targeted packaged consumer run pass in 14m 37s:
+
+| Scope | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Compiler, Groovy 3/4/5 | 9,073 | 0 / 0 | 46 |
+| Runtime, Groovy 3/4/5 | 219 | 0 / 0 | 3 |
+| Packaged binary/schema consumers | 7 | 0 / 0 | 0 |
+| Total | 9,299 | 0 / 0 | 49 |
+
+All 66 sequence cases pass per lane. The complete compiler lanes include binary/JPMS consumers; module checks include
+licenses and lane isolation. Repeated actual-output oracles pass 45/225 owned-sequence, 12/33 virtual-scope and 24/75
+literal-alternative accepted/rejected controls. Diff and evidence-document checks pass.
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast:test --tests '*StructuredOwnedSequenceTest' --tests '*StructuredInputAdmissionPlanTest' --tests '*CompiledBuilderSchemaTest' :klum-ast-runtime:test --no-parallel --max-workers=2 --console=plain
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast:check :klum-ast-runtime:check :klum-ast-gradle-plugin:test --tests '*BinaryOwnedRelationshipsTest' --no-parallel --max-workers=2 --console=plain
+```
+
+The affected-module tier is appropriate for this local guard/identity/tautology/test cleanup. No generated ABI, build
+configuration, module descriptor or user grammar changes require another full root run. The prior root result remains
+historical evidence for its exact qualified revision; it is not claimed for this follow-up. User-facing pages require
+no behavioral update; only this implementation evidence changes. Local SonarCloud upload is not performed. The
+consolidated PR follow-up records review disposition and the new revision's hosted CI/SonarCloud state separately.

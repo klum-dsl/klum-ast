@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -642,7 +643,7 @@ final class InputContractResolver {
     private static Payload fieldPayload(Type fieldType, Role role, String source) {
         Payload payload = payload(fieldType, true);
         if (role == Role.OWNED_SEQUENCE) {
-            if (payload == null || payload.kind() != Kind.LIST || payload.type().getName().equals("java.util.EnumSet")
+            if (payload == null || payload.kind() != Kind.LIST || payload.type() == EnumSet.class
                     || payload.item().kind() != Kind.NESTED_OBJECT)
                 throw invalid("Owned sequence getter mismatch: " + source);
             payload = payload.item();
@@ -798,7 +799,7 @@ final class InputContractResolver {
         Type itemType = args[map ? 1 : 0];
         Payload item = payload(itemType, false);
         // Owned eligibility comes only from exact relationship selection; ordinary data payloads cannot contain Builders.
-        if (item == null && field && (map || list)) item = payload(itemType, true);
+        if (item == null && field) item = payload(itemType, true);
         if (item == null) return null;
         return new Payload(map ? Kind.MAP : Kind.LIST, raw, null, map ? String.class.getName() : null, item);
     }
