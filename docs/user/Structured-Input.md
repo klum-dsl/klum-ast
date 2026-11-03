@@ -457,7 +457,8 @@ Schema hierarchy with matched compiler/runtime/plugin artifacts for authoritativ
 ## Owned child sequences
 
 Ordinary owned relationship fields declared as `List<T>`, `Set<T>`, `SortedSet<T>` or `NavigableSet<T>` admit a supplied
-List of child-body Maps when `T` is a concrete, nongeneric, unkeyed DSL type with its ordinary generated creator.
+List of child-body Maps when `T` is a concrete, nongeneric, unkeyed DSL type with its complete ordinary generated creator family. Same-Schema replacements or descendant overrides of any
+ordinary creator spelling exclude that relationship from sequence input.
 Each mapping creates a fresh child in the parent's Construction session. Normal preparation applies initializers and
 child Templates, runs PostCreate, interprets the body, runs PostApply, then attaches through the ordinary collection path.
 An empty sequence makes no child calls; existing/default entries remain.

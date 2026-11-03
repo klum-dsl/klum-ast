@@ -141,7 +141,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static boolean overriddenInputCandidate(DSLASTTransformation transformation, Entry entry) {
-        if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
+        if (entry.role() != Role.COMMAND && entry.role() != Role.OWNED_SEQUENCE && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
                 || entry.payload().kind() != PayloadKind.SCALAR
                 || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type()))) return false;
         return transformation.builderClass.getMethods().stream()
@@ -591,23 +591,42 @@ final class StructuredInputAdmissionPlan {
         }
         String element = DslAstHelper.getElementNameForCollectionField(field);
         ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
-        List<MethodNode> creators = implementation.getDeclaredMethods(element).stream()
-                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
-                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
-                .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(p -> p.getType().getName()).toArray(String[]::new),
-                        new String[]{Map.class.getName(), Closure.class.getName()}))
-                .map(GeneratedDslSupport::publicProjectionOf).filter(Objects::nonNull)
-                .filter(method -> method.isPublic() && !method.isStatic()
-                        && method.getReturnType().getName().equals(GeneratedDslSupport.builderTypeFor(child).getName()))
-                .toList();
-        if (creators.size() != 1) {
+        List<MethodNode> creators = sequenceCreators(field, child, element, implementation);
+        if (creators.size() != 4) {
             rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
             return;
         }
         MethodNode creator = creators.get(0);
         entries.add(new Entry(name.value(), Role.OWNED_SEQUENCE, source(field),
-                new PublicOperation(creator.getDeclaringClass().getName(), element, List.of(descriptor(creator))),
+                new PublicOperation(creator.getDeclaringClass().getName(), element,
+                        creators.stream().map(StructuredInputAdmissionPlan::descriptor).sorted().toList()),
                 payloadForModel(child), name.origin(), null, null, null, false));
+    }
+
+    /** Closure omissions are public projections; their implementations are synthesized later by Groovy. */
+    private static List<MethodNode> sequenceCreators(FieldNode field, ClassNode child, String element, ClassNode implementation) {
+        List<MethodNode> originals = implementation.getDeclaredMethods(element).stream()
+                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
+                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
+                .filter(method -> Set.of(List.of(Closure.class.getName()), List.of(Map.class.getName(), Closure.class.getName()))
+                        .contains(Arrays.stream(method.getParameters()).map(parameter -> parameter.getType().getName()).toList()))
+                .toList();
+        if (originals.size() != 2) return List.of();
+        ClassNode builder = GeneratedDslSupport.of(field.getOwner()).getBuilderInterface().redirect();
+        List<MethodNode> result = new ArrayList<>();
+        for (MethodNode original : originals) {
+            MethodNode creator = GeneratedDslSupport.publicProjectionOf(original);
+            if (creator == null) return List.of();
+            Parameter[] omission = Arrays.copyOf(creator.getParameters(), creator.getParameters().length - 1);
+            if (implementation.getDeclaredMethod(element, omission) != null) return List.of();
+            MethodNode omitted = builder.getDeclaredMethod(element, omission);
+            if (omitted == null) return List.of();
+            result.add(creator);
+            result.add(omitted);
+        }
+        String target = GeneratedDslSupport.builderTypeFor(child).getName();
+        return result.stream().allMatch(method -> method.isPublic() && !method.isStatic()
+                && method.getReturnType().getName().equals(target)) ? result : List.of();
     }
 
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {

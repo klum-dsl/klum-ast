@@ -461,8 +461,9 @@ emitted. The schema describes Struct input, not every Groovy expression or the c
 Structural validity cannot guarantee successful insertion, lifecycle or materialization. The destination collection
 remains authoritative at runtime, including native comparison failures.
 
-The compiler records the exact ordinary public `(Map, Closure)` child creator and owning field using existing complete
-selection facts. Source-free inspection checks the field/child type, role and exact creator without invoking initializers,
+The compiler records the complete ordinary public child-creator family, including `(Map, Closure)` and its
+convenience overloads, with its owning field using existing complete selection facts. Same-Schema replacement or
+descendant override excludes the sequence route; the interpreter cannot silently bypass the effective ordinary creator. Source-free inspection checks the field/child type, role and exact creator without invoking initializers,
 comparators or other user code. Missing/corrupt required facts fail before output replacement. Compatible binary and
 inherited declarations use the same grammar; keyed, abstract, generic, custom/specialized and aggregation forms do not
 acquire sequence admission. `BinaryOwnedRelationshipsTest` and `validate_owned_sequence_schema.py` exercise the actual

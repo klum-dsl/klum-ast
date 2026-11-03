@@ -32,6 +32,7 @@ import groovyjarjarasm.asm.ClassVisitor
 import groovyjarjarasm.asm.ClassWriter
 import groovyjarjarasm.asm.MethodVisitor
 import groovyjarjarasm.asm.Opcodes
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -357,18 +358,24 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
 
         when:
         def ordinary = run(service, false, [[path: '/health'], [path: '/metrics'], [path: '/health']])
-        def structured = run(service, true, [[path: '/health'], [path: '/metrics'], [path: '/health']])
+        service.events.clear()
+        service.children.clear()
+        def model = service.Create.FromStruct([
+                routes: [[path: '/health'], [path: '/metrics'], [path: '/health']]
+        ])
 
         then:
-        structured.model.routes*.path == ['/health', '/metrics', '/health']
-        structured.events == ordinary.events
-        structured.paths == ordinary.paths
-        structured.model.routes.every { it.owner.is(structured.model) }
+        model.routes*.path == ['/health', '/metrics', '/health']
+        service.events == ordinary.events
+        service.children*.modelPath == ordinary.paths
+        model.routes.every { it.owner.is(model) }
     }
 
     def 'Template definition and fresh recipients preserve ordinary recipe semantics for #declaration'() {
         given:
         def service = schema(declaration)
+
+        when:
         def ordinary = service.Create.Template.With {
             route { path '/z' }
             route { path '/a' }
@@ -376,7 +383,7 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         }
         def structured = service.Create.Template.FromStruct([routes: [[path: '/z'], [path: '/a'], [path: '/a']]], 'template.yaml')
 
-        expect:
+        then:
         service.events.empty
         service.children.empty
         structured.routes*.path == ordinary.routes*.path
@@ -536,8 +543,8 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         contract.entries().routes.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE
         contract.entries().routes.payload().type().name == 'setprobe.Route'
         contract.entries().routes.operation() == 'route'
-        contract.entries().routes.methods().size() == 1
-        contract.entries().routes.methods().first().parameterTypes.toList() == [Map, Closure]
+        contract.entries().routes.methods().size() == 4
+        contract.entries().routes.methods().any { it.parameterTypes.toList() == [Map, Closure] }
 
         where:
         kind << ['List', 'Set', 'SortedSet', 'NavigableSet']
@@ -557,7 +564,76 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         !(deepest(failure) instanceof AssertionError)
 
         where:
-        damage << ['missing creator', 'missing selection', 'raw getter', 'wrong item', 'wrong role']
+        damage << ['missing creator', 'missing convenience creator', 'missing selection', 'raw getter', 'wrong item', 'wrong role']
+    }
+
+    def 'descendant creator replacements exclude inherited sequence input: #parameters'() {
+        given:
+        def service = schema('List<Route> routes')
+        loader.parseClass """
+            package setprobe
+            import com.blackbuild.klum.ast.*
+            @DSL class Derived extends Service {
+                @Builder.Method Route_DSL.Builder route($parameters) {
+                    Service.events << 'override'
+                    null
+                }
+            }
+            @DSL class Leaf extends Derived {}
+        """
+        def leaf = artifacts.loadClass('setprobe.Leaf')
+
+        when:
+        leaf.Create.With {
+            switch (parameters) {
+                case 'Map values, Closure body': route([:], {}); break
+                case 'Closure body': route({}); break
+                case 'Map values': route([:]); break
+                default: route()
+            }
+        }
+        def contract = new InputContractResolver().read(leaf)
+
+        then:
+        service.events.contains('override')
+        !contract.entries().containsKey('routes')
+        contract.rejections().any { it.reason().contains('overridden') }
+
+        when:
+        leaf.Create.FromStruct([routes: [[path: '/must-not-bypass']]])
+
+        then:
+        thrown(KlumModelException)
+        service.children.empty
+
+        where:
+        parameters << ['Map values, Closure body', 'Closure body', 'Map values', '']
+    }
+
+    def 'same-Schema creator replacements exclude sequence input: #parameters'() {
+        given:
+        def service = schema('List<Route> routes; @Builder.Method Object route(' + parameters + ') { null }')
+
+        when:
+        def contract = new InputContractResolver().read(service)
+
+        then:
+        !contract.entries().containsKey('routes')
+
+        where:
+        parameters << ['Map values, Closure body', 'Closure body']
+    }
+
+    def 'same-Schema default-argument collisions remain ordinary compilation failures: #parameters'() {
+        when:
+        schema('List<Route> routes; @Builder.Method Object route(' + parameters + ') { null }')
+
+        then:
+        def failure = thrown(MultipleCompilationErrorsException)
+        failure.message.contains('already defined')
+
+        where:
+        parameters << ['Map values', '']
     }
 
     private void damageContract(String damage) {
@@ -566,6 +642,9 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 if (damage == 'missing creator' && name == 'route' && descriptor.startsWith('(Ljava/util/Map;Lgroovy/lang/Closure;)')) {
+                    return null
+                }
+                if (damage == 'missing convenience creator' && name == 'route' && descriptor.startsWith('()')) {
                     return null
                 }
                 if (name == 'getRoutes' && damage == 'raw getter') { signature = null }

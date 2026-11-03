@@ -62,7 +62,8 @@ comparison/initializer repair or Builder placement-path repair is added. Struct 
 Template definition/application preserve ordinary retained-recipe semantics. JSON Schema emits an array of closed child
 bodies without uniqueness, cardinality, final-order or inferred comparator rules; it describes Struct grammar.
 
-Existing complete field/creator selection facts carry the exact ordinary public `(Map, Closure)` creator. The resolver
+Existing complete field/creator selection facts carry the ordinary public creator family, including `(Map, Closure)`
+and its convenience overloads. Same-Schema replacement or descendant override excludes the route. The resolver
 validates field/target/role/signature without executing user code; matched compiler/runtime/plugin and Schema recompilation
 remain required. Keyed children, maps, abstract/subtype alternatives, CollectionFactory creators, custom/specialized
 containers, EnumSet, aggregation, scalar converters and general recursive collection grammar are excluded from this slice.

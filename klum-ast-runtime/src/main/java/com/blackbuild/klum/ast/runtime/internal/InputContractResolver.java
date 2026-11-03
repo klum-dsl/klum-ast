@@ -248,7 +248,7 @@ final class InputContractResolver {
 
     /** An override owns its own names, exclusion and selection intent; parent annotations cannot select different code. */
     private static boolean overriddenOperation(BuilderContext context, Entry entry) {
-        if (entry.role() != Role.COMMAND && entry.role() != Role.VIRTUAL_OBJECT && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
+        if (entry.role() != Role.COMMAND && entry.role() != Role.VIRTUAL_OBJECT && entry.role() != Role.OWNED_SEQUENCE && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
                 || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class)) return false;
         return entry.methods().stream().anyMatch(inherited -> overridden(inherited, declaredMethods(context)));
     }
@@ -282,6 +282,10 @@ final class InputContractResolver {
             throws IOException, ClassNotFoundException {
         Metadata origin = reader.metadata(entry.contract());
         for (Method selected : entry.methods()) {
+            if (entry.role() == Role.OWNED_SEQUENCE && overridden(selected, declared)) {
+                rejections.add(new Rejection(entry.source(), "inherited ordinary sequence creator is overridden by "
+                        + namingOrigin(context.builder()) + "; use non-overridden ordinary child creators"));
+            }
             if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
                     && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
                     && overridden(selected, declared)) {
@@ -656,9 +660,10 @@ final class InputContractResolver {
     private void validateOwnedSequence(Payload payload, List<Method> methods, String source)
             throws IOException, ClassNotFoundException {
         if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0
-                || methods.size() != 1 || methods.get(0).getReturnType() != payload.builder()
-                || !Arrays.equals(methods.get(0).getParameterTypes(), new Class<?>[]{Map.class, Closure.class}))
-            throw invalid("Owned sequence requires one exact unkeyed ordinary creator: " + source);
+                || methods.size() != 4 || methods.stream().anyMatch(method -> method.getReturnType() != payload.builder())
+                || !methods.stream().map(method -> List.of(method.getParameterTypes())).collect(Collectors.toSet())
+                        .equals(Set.of(List.of(), List.of(Map.class), List.of(Closure.class), List.of(Map.class, Closure.class))))
+            throw invalid("Owned sequence requires the complete unkeyed ordinary creator family: " + source);
     }
 
     private String childKey(Payload payload, Role role, Literals literal, String source)

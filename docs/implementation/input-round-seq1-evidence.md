@@ -8,8 +8,10 @@ milestones, curation or release-gate changes. Hive owns delivery/archive reconci
 ## Accepted contract and implementation
 
 One supplied List of child-body Maps configures ordinary owned concrete nongeneric unkeyed DSL children in exact
-`List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields. The compiler selects only an actual ordinary generated
-public `(Map, Closure)` creator associated with that field. Existing Selection facts and schema completeness counts
+`List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields. The compiler selects only the complete ordinary generated
+public creator family associated with that field: `(Map, Closure)`, `(Closure)`, `(Map)` and `()`. The two closure-omission
+projections derive from existing generated creators. Authored same-Schema replacements and descendant overrides of
+any spelling exclude sequence admission, rather than silently bypassing the effective ordinary creator. Existing Selection facts and schema completeness counts
 carry the role; no new metadata carrier, public API, parser or construction engine is introduced.
 The resolver validates destination, child/key/generic facts and exact creator signature before interpreting input or
 projecting schema, without user initialization. Matched compiler/runtime/plugin and Schema hierarchy recompilation
@@ -88,3 +90,22 @@ rejected** instances against three emitted schemas using pinned jsonschema 4.23.
 
 The later source-free child initialization traps and all 597 Struct regressions pass, together with affected license checks. Full root qualification, documentation render/crawl and the exactly two read-only local review axes remain
 required before publication. No local SonarCloud upload is performed; hosted CI/Sonar on a published head is separate.
+
+## Initial local review corrections
+
+Exactly two declared read-only children reviewed base `097b0d5619a5f3cac0c05a5956fda530ff34bf0d` through
+`4602c99334013491fe0d3b0432ecced08acbd056`. Standards requested a `when`/`then` block for the Template's multiple
+assertions. Specification found inherited creator overrides could be bypassed by the internal callback. All four
+replacement spellings reproduced the missing exclusion before the correction.
+
+The compiler now proves both original closure-bearing creators and their existing public closure-omission projections,
+records all four exact selections, and excludes authored same-Schema replacements. The resolver requires this complete
+family and rejects descendant overrides through inherited descendants. The ordinary override remains callable while
+Struct rejects its route. Same-Schema Map/no-argument collisions retain ordinary default-argument compilation errors;
+no compiler or runtime creation semantics are repaired. An absent convenience projection also fails integrity checks.
+The initial full-root attempt at the prior head was intentionally stopped for this correction; it is not qualification.
+Reviewed commits are preserved, with one additive correction before a fresh fixed-head root run.
+
+The corrected focused run passes 606 Struct cases plus the real binary/module consumer and seven packaged G3/G4/G5
+cases, with zero failures/errors/skips. License checks pass. The documentary example now shows the public Factory call
+directly. The final corrected production tree still requires the fixed-head full root and documentation checks below.
