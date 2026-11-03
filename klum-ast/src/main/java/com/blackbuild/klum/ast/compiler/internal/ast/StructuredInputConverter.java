@@ -104,9 +104,9 @@ final class StructuredInputConverter {
     }
 
     private static boolean literalStringKeys(FieldNode field) {
+        if (!ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))) return false;
         AnnotationNode options = getAnnotation(field, DSL_FIELD_ANNOTATION);
-        return ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))
-                && (options == null || options.getMember("keyMapping") == null);
+        return options == null || options.getMember("keyMapping") == null;
     }
 
     private static boolean matchesParameters(FieldNode field, MethodNode api, MethodNode source) {

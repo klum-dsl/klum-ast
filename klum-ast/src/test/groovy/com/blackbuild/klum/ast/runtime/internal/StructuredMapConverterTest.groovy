@@ -560,7 +560,9 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith('(Ljava/lang/String;Ljava/lang/String;)')) return null
+                if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith('(Ljava/lang/String;Ljava/lang/String;)')) {
+                    return null
+                }
                 if (name == 'getIntervals') {
                     if (damage == 'wrong value type') {
                         signature = '()Ljava/util/Map<Ljava/lang/String;Ljava/lang/Object;>;'
@@ -575,8 +577,12 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (damage == 'missing association' && annotation.endsWith('GeneratedInput$Converter;')) return null
-                        if (damage == 'missing selection' && annotation.endsWith('GeneratedInput$Selection;')) return null
+                        if (damage == 'missing association' && annotation.endsWith('GeneratedInput$Converter;')) {
+                            return null
+                        }
+                        if (damage == 'missing selection' && annotation.endsWith('GeneratedInput$Selection;')) {
+                            return null
+                        }
                         def downstream = super.visitAnnotation(annotation, visible)
                         if (annotation.endsWith('GeneratedInput$Converter;') || annotation.endsWith('GeneratedInput$Field;')) {
                             return damageAssociation(downstream, damage)
@@ -592,11 +598,21 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
     private static AnnotationVisitor damageAssociation(AnnotationVisitor downstream, String damage) {
         new AnnotationVisitor(Opcodes.ASM9, downstream) {
             @Override void visit(String member, Object value) {
-                if (damage == 'missing authority' && member == 'parameterFacts') return
-                if (damage == 'wrong authority' && member == 'parameterFacts') value = true
-                if (damage == 'wrong descriptor' && member == 'descriptor') value = '(I)V'
-                if (damage == 'wrong parameter' && member == 'parameter') value = 1
-                if (damage == 'wrong count' && member == 'converterCount') value = 0
+                if (damage == 'missing authority' && member == 'parameterFacts') {
+                    return
+                }
+                if (damage == 'wrong authority' && member == 'parameterFacts') {
+                    value = true
+                }
+                if (damage == 'wrong descriptor' && member == 'descriptor') {
+                    value = '(I)V'
+                }
+                if (damage == 'wrong parameter' && member == 'parameter') {
+                    value = 1
+                }
+                if (damage == 'wrong count' && member == 'converterCount') {
+                    value = 0
+                }
                 super.visit(member, value)
             }
         }
@@ -604,7 +620,9 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
 
     private static List<Throwable> causes(Throwable failure) {
         List<Throwable> result = []
-        for (Throwable cause = failure; cause != null; cause = cause.cause) result.add(cause)
+        for (Throwable cause = failure; cause != null; cause = cause.cause) {
+            result.add(cause)
+        }
         result
     }
 }

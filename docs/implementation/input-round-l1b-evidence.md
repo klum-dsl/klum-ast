@@ -126,3 +126,33 @@ Authorized delivery is a draft **Related: #952** PR. Its actual transport result
 verified in the handoff. Merge remains outside the assignment; no release, issue closure or curation/release-gate change
 is claimed. Hosted CI/SonarCloud qualification is separate from local evidence. Hive reconciliation is required after
 delivery; the worker does not set archive-safe state or self-archive.
+
+## SonarCloud follow-up — PR #1019
+
+Hosted analysis of published head `d5b8037a246889702d2a31b5a4910e4dc2a84579` reported ten open findings:
+one `javabugs:S2259` null-flow warning in `StructuredInputConverter.literalStringKeys`, and nine
+`groovydre:S8306` brace findings in `StructuredMapConverterTest`'s metadata-corruption/cause helpers.
+The hosted build and JUnit report passed; the SonarCloud quality gate failed its new-code reliability condition.
+
+The key-type guard now precedes the optional field-annotation lookup. The private helper retains its existing non-null
+FieldNode precondition and exact String-key/custom-key-mapping admission rules; no field dereference follows the
+nullable-target annotation helper. No shared helper contract, metadata, generated signature or user grammar changes.
+The nine flagged test branches/loop now have braces. This is a local correction to those sites, with no suppression,
+issue dismissal or repository-wide brace-policy change. All ten findings are addressed; none is intentionally retained.
+
+The 131 focused baseline controls (57 Map, 47 List, 27 converter-origin) pass without failures/errors/skips. The complete
+compiler-module check passed across Groovy 3/4/5 in 13m 34s: 8,875 cases, zero failures/errors and 46 existing
+skips. The lanes contribute 2957 / 2959 / 2959 cases. All 57 Map controls pass in each lane without skips, as do the
+binary/JPMS consumer tests, licenses and lane isolation. The new PR head's hosted analysis remains a separate check
+recorded in the PR handoff. Existing reviewed/published commits remain frozen; the correction is additive.
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast:test --tests '*StructuredMapConverterTest' --tests '*StructuredListConverterTest' --tests '*StructuredConverterOriginTest' --no-parallel --max-workers=2 --console=plain
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast:check --no-parallel --max-workers=2 --console=plain
+```
+
+The affected-module check is selected for this localized guard-order/test-formatting repair; it includes the ordinary
+compiler suite, compatibility lanes, binary/JPMS consumers, licenses and lane isolation. No public/generated contract,
+shared runtime, Gradle plugin or user-documentation behavior changes, so the previously qualified full-root/plugin results
+retain their original scope. No local SonarCloud upload is performed; coverage-bearing hosted analysis must qualify
+the new PR head.
