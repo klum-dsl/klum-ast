@@ -50,6 +50,24 @@ generic targets, custom key mapping and caller Class/Factory selectors remain de
 [user contract](../user/Structured-Input.md#literal-collection-alternative) and
 [F2-B implementation evidence](../implementation/input-round-f2b-evidence.md). Merge and hosted qualification are separate.
 
+## Accepted ordinary owned sequence slice — 2026-11-03
+
+SEQ-1 admits one List-of-child-body operation stream for exact ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>` and
+`NavigableSet<T>` fields of concrete nongeneric unkeyed DSL children. Every reached mapping prepares/configures one fresh
+child through `FactoryHelper.prepareNestedBuilder` before ordinary collection attachment. The existing Consumer interval
+is shared with ordinary creation; there is no returned-Builder reconfiguration, synthetic Closure, new public API or
+second engine. Supplied order and first-failure partial state are authoritative for operations; destination equality,
+comparators and ordinary graph lifecycle remain authoritative for collection outcomes. No preflight, rollback,
+comparison/initializer repair or Builder placement-path repair is added. Struct diagnostics retain supplied indices.
+Template definition/application preserve ordinary retained-recipe semantics. JSON Schema emits an array of closed child
+bodies without uniqueness, cardinality, final-order or inferred comparator rules; it describes Struct grammar.
+
+Existing complete field/creator selection facts carry the exact ordinary public `(Map, Closure)` creator. The resolver
+validates field/target/role/signature without executing user code; matched compiler/runtime/plugin and Schema recompilation
+remain required. Keyed children, maps, abstract/subtype alternatives, CollectionFactory creators, custom/specialized
+containers, EnumSet, aggregation, scalar converters and general recursive collection grammar are excluded from this slice.
+See [SEQ-1 evidence](../implementation/input-round-seq1-evidence.md) for implementation and qualification status.
+
 ## Context and successor boundary
 
 The delivered interpreter has useful concrete-child, keyed-Map, scalar and authored-operation support. However, an
@@ -244,8 +262,8 @@ the reflected List destination distinguishes an element route from scalar assign
 shape and shares a List-of-String payload with interpretation and schema projection. Ordinary element population owns
 conversion, initializers/defaults, order and failure boundaries. No runtime converter discovery or container replacement
 is introduced. Element parameter assertions remain outside this structural-only slice; scalar C1 authority is unchanged.
-L1-B below separately admits scalar Map values. CharSequence-only element routes, other converter-backed collection shapes
-and owned DSL collections remain deferred. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
+L1-B below separately admits scalar Map values. CharSequence-only element routes and other converter-backed collection
+shapes remain deferred; the owned unkeyed sequence slice above is independent. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
 
 L1-B extends that same compiler association/count to exact `Map<String, T>` fields of non-DSL scalar values with one
 existing public `(String key, String value)` adder. The declared key must be String and custom key mapping is excluded;
@@ -348,7 +366,7 @@ required/type facts. Arbitrary Map payloads retain their own typed data semantic
 No multi-argument spreading or invocation redesign follows.
 
 Explicit null, raw Object containers, generic File/URL loading, generic LINK/reference registries, repeated-call grammar,
-non-String Map keys and broad polymorphism remain excluded/deferred. Owned DSL List/Set and custom key mapping remain
+non-String Map keys and broad polymorphism remain excluded/deferred. Owned DSL sequence forms outside SEQ-1 and custom key mapping remain
 conditional/deferred, with a quick-win revisit after higher-tier implementation and Schelm qualification. A bounded 4.2
 CollectionFactory probe may inspect existing generated contracts, literal alternatives and keys; it may not design
 generic subtype selection or composition. Composition remains a separate 4.3-oriented track.

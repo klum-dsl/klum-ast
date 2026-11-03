@@ -742,6 +742,11 @@ Builders keep mutable construction collections. Materialization publishes indepe
 Builder collection nor an input collection can mutate the completed model afterward. Sorted collections preserve their
 comparator. `EnumSet` getters return defensive copies.
 
+For caller-parsed Struct/YAML input, ordinary concrete unkeyed owned List/Set/SortedSet/NavigableSet fields accept
+[child-body sequences](Structured-Input.md#owned-child-sequences). Supplied mappings run in input order; the declared
+collection retains its ordinary equality, comparator and final iteration behavior. The input schema makes no uniqueness
+or completed-order promise.
+
 **Be careful when using a simple `Set`.** Since Klum creates barebone hashcode implementations
  (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted)`Set` of
  non-Keyed model objects might result in a severe degradation of performance of that Set.

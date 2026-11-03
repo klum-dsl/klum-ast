@@ -1,5 +1,12 @@
 # Unreleased
 
+- Admit ordinary owned unkeyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML body sequences.
+  Configure each supplied mapping before ordinary attachment, retaining collection equality/comparator behavior,
+  Template semantics and indexed first-failure diagnostics. Emit array-of-body JSON Schema without uniqueness or
+  completed-order/cardinality promises. Recompile matched Schema artifacts. See
+  [owned child sequences](docs/user/Structured-Input.md#owned-child-sequences)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), SEQ-1).
+
 - Admit exact compiler-selected String converter routes for scalar `Map<String, T>` values in structured input. Preserve
   literal String keys, supplied traversal order, ordinary entry population/defaults and keyed partial failures; emit
   structural String JSON Schema values without running user code or projecting value-parameter assertions. Recompile

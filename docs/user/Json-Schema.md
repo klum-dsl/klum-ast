@@ -452,6 +452,22 @@ annotation closures execute, including while diagnosing unsupported declarations
 
 An ordinary unannotated property named `key` is a normal generated property. Actual `@Key` members follow their construction position, as described below.
 
+## Owned child sequences
+
+[Admitted ordinary unkeyed owned sequences](Structured-Input.md#owned-child-sequences) emit `type: array` with `items`
+referencing the concrete child's closed Builder-body grammar. List, Set, SortedSet and NavigableSet use this same input
+shape. Duplicate mappings are valid input operations: no `uniqueItems`, cardinality, final-order or comparator rules are
+emitted. The schema describes Struct input, not every Groovy expression or the completed collection's contents.
+Structural validity cannot guarantee successful insertion, lifecycle or materialization. The destination collection
+remains authoritative at runtime, including native comparison failures.
+
+The compiler records the exact ordinary public `(Map, Closure)` child creator and owning field using existing complete
+selection facts. Source-free inspection checks the field/child type, role and exact creator without invoking initializers,
+comparators or other user code. Missing/corrupt required facts fail before output replacement. Compatible binary and
+inherited declarations use the same grammar; keyed, abstract, generic, custom/specialized and aggregation forms do not
+acquire sequence admission. `BinaryOwnedRelationshipsTest` and `validate_owned_sequence_schema.py` exercise the actual
+G3/G4/G5 emitted outputs and accepted/rejected inputs independently of runtime success.
+
 ## Concrete virtual scopes
 
 An [admitted concrete virtual field](Structured-Input.md#concrete-virtual-builder-scopes) is a reference to the target

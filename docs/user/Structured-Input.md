@@ -345,6 +345,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Exact `Map<String, T>` with one admitted String value converter | A Map of literal String keys to Strings, each passed to the generated value adder |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
+| Ordinary owned unkeyed `List<T>`, `Set<T>`, `SortedSet<T>`, `NavigableSet<T>` | A List of concrete child-body Maps, executed in supplied order |
 | Concrete owned object | A domain Map interpreted against the child's Builder |
 | Map of concrete keyed owned objects | A Map whose literal String keys select children, each configured by a domain Map |
 | One literal CollectionFactory alternative for an abstract keyed Map value | A closed literal alias mapping, then outer String instance keys, then concrete child bodies |
@@ -410,8 +411,7 @@ parameter constraints are not projected in this slice; C1 scalar-field assertion
 A String that the converter cannot interpret is still structurally valid. Import does not automatically validate JSON
 Schema. Recompile matched Schema/compiler/runtime/plugin artifacts for the authoritative element association.
 
-CharSequence-only element routes, other converter-backed collection shapes and owned DSL children
-remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
+CharSequence-only element routes and other converter-backed collection shapes remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
 
 ### Converter-backed Map values
 
@@ -454,12 +454,66 @@ converters. This describes String structure, including arbitrary String contents
 concern. Value converter parameter assertions are not projected; scalar C1 behavior remains unchanged. Recompile the
 Schema hierarchy with matched compiler/runtime/plugin artifacts for authoritative route/completeness metadata.
 
-### Other relationship boundaries
+## Owned child sequences
+
+Ordinary owned relationship fields declared as `List<T>`, `Set<T>`, `SortedSet<T>` or `NavigableSet<T>` admit a supplied
+List of child-body Maps when `T` is a concrete, nongeneric, unkeyed DSL type with its ordinary generated creator.
+Each mapping creates a fresh child in the parent's Construction session. Normal preparation applies initializers and
+child Templates, runs PostCreate, interprets the body, runs PostApply, then attaches through the ordinary collection path.
+An empty sequence makes no child calls; existing/default entries remain.
+
+(See: `StructuredOwnedSequenceTest#'creates ordinary owned children from supplied body sequences'`.)
+
+```groovy
+@DSL class Service { List<Route> routes }
+@DSL class Route { String path }
+
+def service = Service.Create.FromStruct([
+    routes: [[path: '/health'], [path: '/metrics'], [path: '/health']]
+])
+assert service.routes*.path == ['/health', '/metrics', '/health']
+```
+
+The corresponding caller-parsed YAML form is:
+
+```yaml
+routes:
+  - path: /health
+  - path: /metrics
+  - path: /health
+```
+
+The supplied sequence is an operation stream. Every reached mapping runs in supplied order, including equal mappings.
+The destination collection owns insertion, equality, comparator behavior, final cardinality and iteration order. For
+example, a Set can collapse equal completed children; a sorted Set can reject a comparator-equivalent Builder after its
+PostApply, so only retained children receive later graph lifecycle work. No deduplication, sorting or comparator
+preflight is performed by Struct. Ordinary natural-order insertion can fail because generated Builders do not inherit
+Model Comparable behavior. A comparator must already work with the ordinary Builder and completed Model stages;
+Struct does not repair initializer typing or infer comparator eligibility.
+
+The first reached body, lifecycle or insertion failure stops later entries and operations, retaining earlier effects.
+Diagnostics identify the zero-based **supplied input index**, even if a Set has collapsed earlier entries or changes
+iteration order. Existing Builder placement paths keep their ordinary size-based behavior and are not input indices.
+No rollback occurs: an insertion failure can leave the failed Builder claimed without a placement path, exactly as in
+ordinary Groovy. Materialization failures keep their normal lifecycle attribution.
+
+`Create.Template.FromStruct` can define these sequences through ordinary Template construction. Applying a Template
+copies its retained recipe into fresh recipients; it does not replay the original supplied sequence or entries already
+collapsed while defining that Template. Initial/default/template semantics and recipient ownership remain ordinary.
+See `StructuredOwnedSequenceTest#'Template definition and fresh recipients preserve ordinary recipe semantics for #declaration'`.
+
+This route excludes keyed children, abstract/subtype alternatives, CollectionFactory creators, custom/specialized
+collection declarations, EnumSet, LINK/OPTIONAL_LINK and scalar converter elements. Unknown child members, invented keys,
+null, scalar and sequence child bodies reject. Nested child members can use their independently admitted grammar; this
+adds no arbitrary recursive collection language. The [JSON Schema](Json-Schema.md#owned-child-sequences) describes the
+Struct body grammar rather than every expression available in Groovy or the destination collection's final semantics.
+
+## Other relationship boundaries
 
 Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conflict with literal structured instance
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
-explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, unkeyed relationship
-collections, arbitrary polymorphic selection and other CollectionFactory scopes remain outside the admitted grammar. The
+explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, keyed relationship
+sequences, arbitrary polymorphic selection and other CollectionFactory scopes remain outside the admitted grammar. The
 [single literal alternative](#literal-collection-alternative) below is the bounded exception. Null at any depth,
 arbitrary caller objects, helper/query/lifecycle names and multi-payload authored operations reject.
 Zero-argument domain commands have only their explicitly authored behavior; there is no implicit reset/clear operation.
