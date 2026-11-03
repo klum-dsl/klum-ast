@@ -88,8 +88,9 @@ The first combined focused run passed 57 sequence cases, one real binary/module-
 packaged cases, with zero failures/errors/skips. Independent actual-output validation passed **45 accepted and 225
 rejected** instances against three emitted schemas using pinned jsonschema 4.23.0.
 
-The later source-free child initialization traps and all 597 Struct regressions pass, together with affected license checks. Full root qualification, documentation render/crawl and the exactly two read-only local review axes remain
-required before publication. No local SonarCloud upload is performed; hosted CI/Sonar on a published head is separate.
+The intermediate source-free child initialization traps and 597 Struct regressions passed with affected licenses.
+The completed final qualification below supersedes that intermediate scope. No local SonarCloud upload was performed;
+hosted CI/Sonar on a published head remains separate.
 
 ## Initial local review corrections
 
@@ -108,10 +109,61 @@ Reviewed commits are preserved, with one additive correction before a fresh fixe
 
 The corrected focused run passes 606 Struct cases plus the real binary/module consumer and seven packaged G3/G4/G5
 cases, with zero failures/errors/skips. License checks pass. The documentary example now shows the public Factory call
-directly. The final corrected production tree still requires the fixed-head full root and documentation checks below.
+directly. The fixed-head full root and documentation checks below qualify the corrected production tree.
 
 The next root attempt found one stale fixed rejection reason in `CompiledInputExpectedContracts`: despite its
 `unkeyedChildren` field name, that fixture's Child has a Key. It remains excluded; its reason now follows owned
 relationship classification. Compiler-plan and source-free reader expectations are synchronized. The focused compiler/
-reader checks and sequence controls pass on G3/G4/G5. That failed root attempt is not counted as qualification; a clean
-fixed-head root run follows the expectation-only correction. No production behavior changed in this follow-up.
+reader checks and sequence controls pass on G3/G4/G5. That failed root attempt is not counted as qualification; the clean
+fixed-head root run below follows the expectation-only correction. No production behavior changed in this follow-up.
+
+
+## Completed local qualification
+
+Qualified implementation, tests and user documentation: `0f5f03ab5108bd549be4d3ef59f454da4f1f40d0`.
+The clean, fixed-head Java 17 root `check` passed in **28m 51s**, 140 tasks (82 executed, 58 up to date).
+No source, test, build-input, HEAD or dirty-state change occurred during that run.
+
+| Lane | Cases | Failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 baseline | 4,064 | 0 / 0 | 17 |
+| Groovy 4 compatibility | 3,377 | 0 / 0 | 16 |
+| Groovy 5 compatibility | 3,377 | 0 / 0 | 16 |
+| Total | 10,818 | 0 / 0 | 49 |
+
+All **66 owned-sequence cases per lane** pass without skips. Full compiler suites contribute 3,023 / 3,025 / 3,025
+cases; all 665 plugin cases pass, including seven source-free binary/projection cases and the existing packaged producer
+matrix. Qualification covers affected module suites, real Java/static Groovy binary consumers, G4/G5 JPMS Schemas,
+source mirrors, license checks, plugin validation and lane isolation. No new ignored/pending tests were introduced.
+
+The repeated actual-output oracle passes **45 accepted / 225 rejected** sequence instances against G3/G4/G5 emitted
+schemas with pinned jsonschema 4.23.0. Retained virtual-scope (12 / 33) and literal-alternative (24 / 75) oracles also pass.
+All three owned-sequence schema files have SHA-256
+`64d806ddde252c12d3f4a16f1f2e6b51dfdfc5909e0337a82d3cf07127f79abe`.
+The clean-revision documentation render and site crawl pass (28s, 36 tasks). All 251 relative targets in changed
+Markdown files, balanced fences, documentary annotation/heading alignment and `git diff --check` pass.
+
+Exactly two local read-only children cumulatively reviewed the full base-to-qualified-head diff:
+**Standards: zero remaining findings. Specification: zero remaining findings.** They also checked both additive
+corrections; neither edited files, ran builds/tests, spawned children, performed remote actions or changed task lifecycle.
+The final qualification-record commit changes prose only; its final documentation render/diff check is verified before
+publication. Commit-history review preserves the original implementation/docs and additive review/expectation fixes,
+ordered by reasoning and dependency. No reviewed commit is rewritten.
+
+Commands (Java 17):
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew check --no-parallel --max-workers=2 --console=plain
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew renderLocalDocumentation --no-daemon '-Dorg.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m' --no-parallel --max-workers=2 --console=plain
+PYTHONPATH=/private/tmp/l1b-jsonschema-423 /Users/stephan/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 klum-ast-gradle-plugin/src/test/resources/validate_owned_sequence_schema.py klum-ast-gradle-plugin/build/schema-validation
+PYTHONPATH=/private/tmp/l1b-jsonschema-423 /Users/stephan/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 klum-ast-gradle-plugin/src/test/resources/validate_virtual_scope_schema.py klum-ast-gradle-plugin/build/schema-validation
+PYTHONPATH=/private/tmp/l1b-jsonschema-423 /Users/stephan/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 klum-ast-gradle-plugin/src/test/resources/validate_literal_alternative_schema.py klum-ast-gradle-plugin/build/schema-validation
+```
+
+## Delivery boundary
+
+GitHub CLI repository delivery capability was verified **authorized**, without recording credentials or scopes.
+The authorized delivery is a dedicated-branch draft PR with **Related: #952**, with documentary/issue traceability.
+Actual transport, PR identity/head and hosted check state are verified in the worker callback. Hosted CI/SonarCloud,
+maintainer review/merge and Hive delivery/archive reconciliation remain separate; no release or merge is claimed.
+The worker retains the open-PR state and requests Hive reconciliation rather than self-archiving.
