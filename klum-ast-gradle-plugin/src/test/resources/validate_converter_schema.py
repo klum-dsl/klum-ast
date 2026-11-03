@@ -84,6 +84,7 @@ console.log(process.version);
 count = 0
 structural_count = 0
 list_count = 0
+map_count = 0
 for lane in ("3", "4", "5"):
     schema = json.loads((root / ("converter-" + lane) / "converter.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
@@ -122,10 +123,29 @@ for lane in ("3", "4", "5"):
                                 ([["one"]], False), ([{}], False), (["one", 2, "later"], False)):
             assert validator.is_valid({name: value}) == expected, (lane, name, value)
             list_count += 1
-    for name in ("sequence-values", "map-values"):
+    for name in ("sequence-values",):
         assert not validator.is_valid({name: []}), (lane, name)
         list_count += 1
+    # #952 L1-B: literal data keys, exact String values and a closed root.
+    for name in ("map-values", "map-intervals", "adapted-map", "inherited-map", "generic-map"):
+        assert properties[name]["type"] == "object"
+        assert properties[name]["additionalProperties"] == {"type": "string"}
+        assert "allOf" not in properties[name]
+        assert "x-klum-converter-constraint-source" not in properties[name]
+        for value, expected in (({}, True), ({"": ""}, True), ({"first": "one", "second": "two"}, True),
+                                ({"a/b~c": "bad", "unicode-✓": "\\n"}, True),
+                                (None, False), ("one", False), ([], False),
+                                ({"bad": None}, False), ({"bad": 1}, False), ({"bad": True}, False),
+                                ({"bad": ["one"]}, False), ({"bad": {}}, False),
+                                ({"first": "one", "second": 2, "later": "three"}, False)):
+            assert validator.is_valid({name: value}) == expected, (lane, name, value)
+            map_count += 1
+    for name in ("sequence-map", "integer-key-map", "mapped-values", "unknown"):
+        assert not validator.is_valid({name: {}}), (lane, name)
+        map_count += 1
 print(f"C1 actual-output oracle: {len(rows)} JDK checks and {count} ECMA/Draft checks passed across G3/G4/G5; node={node.stdout.strip()}")
 
 print(f"S3a/S3b actual-output oracle: {structural_count} structural String checks passed across converter shapes and G3/G4/G5")
 print(f"L1-A actual-output oracle: {list_count} List grammar checks passed across G3/G4/G5")
+
+print(f"L1-B actual-output oracle: {map_count} Map grammar checks passed across G3/G4/G5")

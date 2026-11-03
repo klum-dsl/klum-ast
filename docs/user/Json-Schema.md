@@ -475,7 +475,11 @@ never constrain the raw String. No converter or user initialization runs during 
 [Converter-backed List elements](Structured-Input.md#converter-backed-list-elements) emit an array with
 `items: {type: string}` for the selected exact String element route. This is structural grammar only: no element
 parameter assertions are inferred or projected, including when the element's scalar-field route would qualify for C1.
-The List retains field prose/examples and domain-value constraint attribution. Map-value converters remain deferred.
+The List retains field prose/examples and domain-value constraint attribution.
+[Converter-backed Map values](Structured-Input.md#converter-backed-map-values) similarly emit an object with
+`additionalProperties: {type: string}` for exact `Map<String, T>` value routes. Keys are literal data; root/Builder members
+remain closed. Map values carry no converter parameter assertions, including for C1-qualified domain constructors.
+Neither shape initializes Schemas or runs converters; a structurally valid String may still fail during conversion.
 
 For C1-qualified separately compiled declared domain routes, selected-parameter projection remains exact. A qualified Pattern appears at that same property, without a parameter object or domain
 `$defs` entry. For `@Pattern(regexp='[0-9]{1,8}')`, the existing finite recognizer emits:

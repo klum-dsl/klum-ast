@@ -244,8 +244,16 @@ the reflected List destination distinguishes an element route from scalar assign
 shape and shares a List-of-String payload with interpretation and schema projection. Ordinary element population owns
 conversion, initializers/defaults, order and failure boundaries. No runtime converter discovery or container replacement
 is introduced. Element parameter assertions remain outside this structural-only slice; scalar C1 authority is unchanged.
-Map values (L1-B), CharSequence-only element routes, other converter-backed collection shapes and owned DSL collections
-remain deferred. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
+L1-B below separately admits scalar Map values. CharSequence-only element routes, other converter-backed collection shapes
+and owned DSL collections remain deferred. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
+
+L1-B extends that same compiler association/count to exact `Map<String, T>` fields of non-DSL scalar values with one
+existing public `(String key, String value)` adder. The declared key must be String and custom key mapping is excluded;
+literal data keys remain authoritative. The reflected getter and selected signature validate the value destination.
+Interpretation reuses ordinary per-entry population in supplied Map order, preserving defaults and keyed partial failures.
+Projection emits String `additionalProperties` without executing user code or inspecting value-parameter constraints.
+No new metadata carrier/version, general Map reinterpretation, whole-container invocation or owned-DSL admission follows.
+See [L1-B evidence](../implementation/input-round-l1b-evidence.md) for qualification/delivery status.
 
 Field-declared String converters are included, using their existing generated Builder operations. Same-compilation
 values and third-party adapters are not excluded merely because they lack C1's separately compiled domain-parameter

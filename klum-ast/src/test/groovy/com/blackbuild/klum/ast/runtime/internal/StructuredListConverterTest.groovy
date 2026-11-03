@@ -213,7 +213,7 @@ class StructuredListConverterTest extends AbstractDSLSpec {
 
         where:
         target << ['List<Object>', 'List<Child>', 'List<List<Interval>>', 'Set<Interval>',
-                   'Map<String, Interval>', 'Interval[]']
+                   'Interval[]']
     }
 
     def 'ordinary compiler rejection of unsupported collection declarations is retained: #target'() {

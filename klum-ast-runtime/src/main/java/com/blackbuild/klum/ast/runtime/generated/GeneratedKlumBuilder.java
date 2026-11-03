@@ -87,6 +87,12 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         return super.addElementToCollectionViaConverter(fieldOrMethodName, converterType, converterMethod, value);
     }
 
+    /** Direct generated linkage preserving the literal key and ordinary Map value conversion/population. */
+    protected final <T> T $addElementToMapViaStringConverter(String fieldOrMethodName, Class<?> converterType,
+                                                           String converterMethod, String key, String value) {
+        return super.addElementToMapViaConverter(fieldOrMethodName, converterType, converterMethod, key, value);
+    }
+
     /** Preserve the projected CharSequence signature when Groovy selects the recorded converter overload. */
     protected final <T> T $setSingleFieldViaCharSequenceConverter(String fieldOrMethodName, Class<?> converterType,
                                                                  String converterMethod, CharSequence value) {

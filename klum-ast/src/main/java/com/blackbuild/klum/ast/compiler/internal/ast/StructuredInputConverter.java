@@ -37,9 +37,14 @@ import org.codehaus.groovy.classgen.asm.BytecodeHelper;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForCollection;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForMap;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getKeyTypeForMap;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getAnnotation;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static groovyjarjarasm.asm.Opcodes.ACC_BRIDGE;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
@@ -78,13 +83,14 @@ final class StructuredInputConverter {
         if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT
                 || !StructuredInputAdmissionPlan.supportsScalarConverterInput(destination)) return null;
         Route route = routes.get(0);
-        // L1-A admits exact String elements only; CharSequence container routes remain separate work.
-        if (isListField(field) && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
+        // Container routes admit exact String values only.
+        if ((isListField(field) || isMapField(field)) && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
+        if (isMapField(field) && !literalStringKeys(field)) return null;
         if (route.generated() == null) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
         if (api == null || !api.isPublic() || api.isStatic() || api.isSynthetic()
-                || (api.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC)) != 0 || api.getParameters().length != 1
-                || !api.getParameters()[0].getOriginType().equals(route.source().getParameters()[0].getOriginType())
+                || (api.getModifiers() & (ACC_BRIDGE | ACC_SYNTHETIC)) != 0
+                || !matchesParameters(field, api, route.source())
                 || !api.getReturnType().redirect().equals(destination.redirect())) return null;
         return api;
     }
@@ -93,8 +99,28 @@ final class StructuredInputConverter {
         return field.getType().redirect().getName().equals(List.class.getName());
     }
 
+    static boolean isMapField(FieldNode field) {
+        return field.getType().redirect().getName().equals(Map.class.getName());
+    }
+
+    private static boolean literalStringKeys(FieldNode field) {
+        if (!ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))) return false;
+        AnnotationNode options = getAnnotation(field, DSL_FIELD_ANNOTATION);
+        return options == null || options.getMember("keyMapping") == null;
+    }
+
+    private static boolean matchesParameters(FieldNode field, MethodNode api, MethodNode source) {
+        Parameter[] parameters = api.getParameters();
+        int valueIndex = isMapField(field) ? 1 : 0;
+        return parameters.length == valueIndex + 1
+                && (valueIndex == 0 || ClassHelper.STRING_TYPE.equals(parameters[0].getOriginType()))
+                && parameters[valueIndex].getOriginType().equals(source.getParameters()[0].getOriginType());
+    }
+
     private static ClassNode destination(FieldNode field) {
-        return isListField(field) ? getElementTypeForCollection(field.getType()) : field.getType();
+        if (isListField(field)) return getElementTypeForCollection(field.getType());
+        if (isMapField(field)) return getElementTypeForMap(field.getType());
+        return field.getType();
     }
 
     private static boolean hasParameterAuthority(ClassNode domain, MethodNode source) {
@@ -118,7 +144,7 @@ final class StructuredInputConverter {
         fact.setMember("name", constX(source instanceof ConstructorNode ? "<init>" : source.getName()));
         fact.setMember("descriptor", constX(BytecodeHelper.getMethodDescriptor(source)));
         fact.setMember("parameter", constX(0));
-        fact.setMember("parameterFacts", constX(!isListField(field) && hasParameterAuthority(field.getType(), source)));
+        fact.setMember("parameterFacts", constX(!isListField(field) && !isMapField(field) && hasParameterAuthority(field.getType(), source)));
         api.addAnnotation(fact);
     }
 }

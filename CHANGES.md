@@ -1,9 +1,15 @@
 # Unreleased
 
+- Admit exact compiler-selected String converter routes for scalar `Map<String, T>` values in structured input. Preserve
+  literal String keys, supplied traversal order, ordinary entry population/defaults and keyed partial failures; emit
+  structural String JSON Schema values without running user code or projecting value-parameter assertions. Recompile
+  matched Schema artifacts. See [Map values](docs/user/Structured-Input.md#converter-backed-map-values)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), L1-B).
+
 - Admit exact compiler-selected String converter routes for scalar `List<T>` elements in structured input. Convert
   each element through ordinary Builder population, preserving order, defaults and indexed partial failures; emit
   structural String JSON Schema items without element-parameter constraint projection. Recompile matched Schema
-  artifacts. Map-value converters remain deferred. See
+  artifacts. See
   [List elements](docs/user/Structured-Input.md#converter-backed-list-elements)
   ([#952](https://github.com/klum-dsl/klum-ast/issues/952), L1-A).
 
