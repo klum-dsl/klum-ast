@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
-import groovy.yaml.YamlSlurper
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -52,16 +51,13 @@ class StructuredYamlDocumentaryTest extends AbstractDSLSpec {
             }
         '''
         def service = packagedSchema('yamlroot.Service')
-        def yamlParser = new YamlSlurper()
-        String documentYaml = '''
+        Map document = parseYaml '''
 service-id: catalog
 host: api
 '''
-        String bodyYaml = '''
+        Map body = parseYaml '''
 host: api
 '''
-        Map document = yamlParser.parseText(documentYaml)
-        Map body = yamlParser.parseText(bodyYaml)
 
         when:
         def root = service.Create.FromStruct(document, 'service.yaml')
@@ -97,12 +93,11 @@ host: api
             }
         '''
         def application = packagedSchema('yamloperation.Application')
-        String yaml = '''
+        Map parsed = parseYaml '''
 endpoint:
   host: api
   port: "8080"
 '''
-        Map parsed = new YamlSlurper().parseText(yaml)
 
         when:
         def mapped = application.Create.FromStruct(parsed, 'application.yaml')
@@ -137,7 +132,7 @@ endpoint:
             }
         '''
         def deployment = packagedSchema('yamlkeys.Deployment')
-        String yaml = '''
+        Map parsed = parseYaml '''
 name: production
 service:
   service-id: catalog
@@ -146,7 +141,6 @@ services:
   worker:
     image: worker:1.0
 '''
-        Map parsed = new YamlSlurper().parseText(yaml)
 
         when:
         def model = deployment.Create.FromStruct(parsed, 'deployment.yaml')
@@ -171,13 +165,12 @@ services:
             @DSL class Route { String path }
         '''
         def service = packagedSchema('yamlsequence.Service')
-        String yaml = '''
+        Map parsed = parseYaml '''
 routes:
   - path: /health
   - path: /metrics
   - path: /health
 '''
-        Map parsed = new YamlSlurper().parseText(yaml)
 
         when:
         def mapped = service.Create.FromStruct(parsed, 'routes.yaml')
@@ -214,7 +207,7 @@ routes:
             @DSL class Service { @Key String name; String image }
         '''
         def deployment = packagedSchema('yamltemplate.Deployment')
-        String yaml = '''
+        Map parsed = parseYaml '''
 locate: eu
 primary:
   name: api
@@ -223,7 +216,6 @@ services:
   worker:
     image: worker:1
 '''
-        Map parsed = new YamlSlurper().parseText(yaml)
 
         when:
         def template = deployment.Create.Template.FromStruct(parsed, 'template.yaml')

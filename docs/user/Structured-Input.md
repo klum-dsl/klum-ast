@@ -21,7 +21,7 @@ member names before they collapse into a Map. KlumAST neither reads the YAML nor
 
 Representative YAML examples are executable in
 [`StructuredYamlDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredYamlDocumentaryTest.groovy).
-They use caller-owned `new YamlSlurper().parseText(yaml)` to obtain data before calling public Struct entry points.
+They parse YAML with caller-owned `YamlSlurper` before calling public Struct entry points.
 The parser is an example choice; KlumAST adds no YAML loader or managed Jackson binding to this path.
 
 | What you want to configure | Groovy/Struct examples and identity rule |

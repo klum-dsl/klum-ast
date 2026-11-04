@@ -108,6 +108,13 @@ class AbstractDSLSpec extends Specification {
         return this.clazz
     }
 
+    Object parseYaml(@Language("yaml") String text) {
+        // groovy-yaml stays optional for modules sharing these fixture sources.
+        Class<?> slurperType = getClass().classLoader.loadClass('groovy.yaml.YamlSlurper')
+        def slurper = slurperType.getDeclaredConstructor().newInstance()
+        return slurper.parseText(text)
+    }
+
     private Class parseClass(String code) {
         def clazz = loader.parseClass(code)
         updateClassPool()
