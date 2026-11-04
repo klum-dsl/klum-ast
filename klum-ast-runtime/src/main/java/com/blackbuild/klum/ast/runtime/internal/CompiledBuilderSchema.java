@@ -40,7 +40,6 @@ import java.util.Map;
  * Consumers validate referenced ownership contracts separately, registering identities before following cycles.
  */
 final class CompiledBuilderSchema {
-    static final String DEFAULT_STATUS = "UNAVAILABLE_WITHOUT_EXECUTION";
     private final Class<?> contract;
     private final Class<?> model;
     private final Key key;
@@ -49,7 +48,6 @@ final class CompiledBuilderSchema {
     private final String keyName;
     private final Map<String, Entry> entries;
     private final List<Rejection> rejections;
-    private final List<Declaration> declarations;
 
     enum Role { PROPERTY, OWNED_OBJECT, OWNED_SEQUENCE, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
@@ -121,7 +119,7 @@ final class CompiledBuilderSchema {
     }
 
     CompiledBuilderSchema(Class<?> contract, Class<?> model, Map<String, Entry> entries,
-                          List<Rejection> rejections, List<Declaration> declarations, Key key, String keyName,
+                          List<Rejection> rejections, Key key, String keyName,
                           List<String> keyCollisions, Map<Class<?>, ConstraintProfile> constraintProfiles) {
         this.keyCollisions = List.copyOf(keyCollisions);
         this.constraintProfiles = Collections.unmodifiableMap(new LinkedHashMap<>(constraintProfiles));
@@ -131,7 +129,6 @@ final class CompiledBuilderSchema {
         this.model = model;
         this.entries = Collections.unmodifiableMap(new LinkedHashMap<>(entries));
         this.rejections = List.copyOf(rejections);
-        this.declarations = List.copyOf(declarations);
     }
 
     Key key() { return key; }
@@ -141,7 +138,6 @@ final class CompiledBuilderSchema {
     Class<?> model() { return model; }
     Map<String, Entry> entries() { return entries; }
     List<Rejection> rejections() { return rejections; }
-    List<Declaration> declarations() { return declarations; }
 
     Map<Class<?>, ConstraintProfile> constraintProfiles() { return constraintProfiles; }
 }

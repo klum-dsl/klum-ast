@@ -441,7 +441,6 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         def actual = assertContract(binaries, fixture)
 
         then:
-        actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
         System.getProperty('wire.schema.executed') == null
         !binaries.resolved.any { it.endsWith('$WirePlan') || it.endsWith('$Builder') && !it.contains('_DSL') }
 
@@ -862,24 +861,27 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         System.clearProperty('wire.schema.executed')
     }
 
+    @Issue('1021')
     def 'production replacement rejects a shadow resource or missing dependency without ambient fallback: #damage'() {
         given:
         def jar = compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING)
         File other = unpackContract(compileJar([trapped(StructuredInputContractFixtures.ADMISSION)] + NAMING))
         def urls = (runtimeFiles() + [jar])*.toURI()*.toURL() as URL[]
-        String contractResource = 'admission/Parent_DSL$Builder.class'
+        String contractResource = damage == 'missing factory resource' ?
+                'admission/Parent_DSL$Factory.class' : 'admission/Parent_DSL$Builder.class'
         String resourceDamage = damage
+        boolean missingResource = damage in ['missing resource', 'missing factory resource']
         def binaries = damage == 'protocol' ? new SchemaReflectionProbe.IsolatedLoader(urls,
                 'com.blackbuild.klum.ast.runtime.generated.GeneratedInput$Field') : new URLClassLoader(urls, ClassLoader.platformClassLoader) {
             @Override URL getResource(String name) {
-                if (name == contractResource && resourceDamage == 'missing resource') {
+                if (name == contractResource && missingResource) {
                     return null
                 }
                 name == contractResource && resourceDamage == 'shadow resource' ?
                         new URL('file:' + other.absolutePath + '/' + name) : super.getResource(name)
             }
             @Override InputStream getResourceAsStream(String name) {
-                name == contractResource && resourceDamage == 'missing resource' ? null : super.getResourceAsStream(name)
+                name == contractResource && missingResource ? null : super.getResourceAsStream(name)
             }
         }
 
@@ -898,7 +900,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         System.clearProperty('wire.schema.executed')
 
         where:
-        damage << ['shadow resource', 'missing resource', 'protocol']
+        damage << ['shadow resource', 'missing resource', 'missing factory resource', 'protocol']
     }
 
     @Issue('959')
@@ -1148,7 +1150,6 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         assert actual.builder == expected.builder
         assert actual.entries == expected.entries
         assert actual.rejections as Set == expected.rejections as Set
-        assert actual.defaults == 'UNAVAILABLE_WITHOUT_EXECUTION'
         actual.entries.each { entry ->
             def scope = CompiledBuilderSchemaReplacementProbe.scope(Class.forName(entry.owner, false, binaries))
             String field = entry.source.substring(entry.source.indexOf('#') + 1)
