@@ -34,6 +34,7 @@ import java.util.function.Consumer
 
 @Issue('932')
 class StructuredInputDirectKeyBoundaryTest extends AbstractDSLSpec {
+    @Issue(['932', '1021'])
     def 'compiler fixed key reaches ordinary Consumer preparation: separately compiled parent=#separateParent'() {
         given:
         String imports = '''
@@ -103,7 +104,8 @@ class StructuredInputDirectKeyBoundaryTest extends AbstractDSLSpec {
         plan.entries().get('pantry').fixedChildKey() == null
         entry.keyType() == null
         entry.excludedKey() == null
-        entry.methods().any { it.parameterCount == 0 }
+        entry.methods().empty
+        entry.dispatch() == null
         !declaringType.getDeclaredField('kitchen').isAnnotationPresent(Field)
         ordinary.kitchen.name == 'kitchen'
         ordinary.kitchen.purpose == 'ordinary'

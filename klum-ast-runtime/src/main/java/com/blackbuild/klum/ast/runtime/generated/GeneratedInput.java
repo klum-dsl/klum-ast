@@ -157,7 +157,7 @@ public final class GeneratedInput {
         String declaration();
     }
 
-    /** Placement identifies an exact public input/population group or compiler-literal relationship creator. */
+    /** Placement identifies an exact public input/population group, owned field accessor or compiler-literal relationship creator. */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public @interface Selection {

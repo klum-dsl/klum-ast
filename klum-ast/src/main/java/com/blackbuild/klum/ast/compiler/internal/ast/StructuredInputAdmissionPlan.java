@@ -393,6 +393,8 @@ final class StructuredInputAdmissionPlan {
         accessor.addAnnotation(fact);
         if (entry != null && entry.role() == Role.OWNED_SEQUENCE) {
             fact.setMember("sequenceElement", new ConstantExpression(entry.operation().name()));
+        } else if (entry != null && (entry.role() == Role.OWNED_OBJECT || entry.role() == Role.KEYED_OWNED_MAP)) {
+            enrichSelection(accessor, field, entry.role());
         } else if (entry != null) {
             enrichSelection(builder, field, entry);
         }
@@ -470,11 +472,15 @@ final class StructuredInputAdmissionPlan {
     private static void enrichSelection(ClassNode builder, FieldNode field, Entry entry) {
         for (MethodNode method : builder.getDeclaredMethods(entry.operation().name())) {
             if (!entry.operation().descriptorGroup().contains(descriptor(method))) continue;
-            AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-            selected.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
-            selected.setMember("role", new ConstantExpression(entry.role().name()));
-            method.addAnnotation(selected);
+            enrichSelection(method, field, entry.role());
         }
+    }
+
+    private static void enrichSelection(MethodNode declaration, FieldNode field, Role role) {
+        AnnotationNode selected = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
+        selected.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
+        selected.setMember("role", new ConstantExpression(role.name()));
+        declaration.addAnnotation(selected);
     }
 
     private static void restoreAuthoredFacts(DSLASTTransformation transformation) {
@@ -574,12 +580,11 @@ final class StructuredInputAdmissionPlan {
             rejections.add(new Rejection(source, OWNERSHIP_REASON));
             return;
         }
-        PublicOperation operation = publicOperation(field, rejections);
+        PublicOperation operation = fieldRelationship(field, field.getName());
         String fixedKey = getKeyField(type) != null && ClusterFactoryBuilder.isFixedKeysClusterMember(model, field)
                 ? field.getName() : null;
-        if (operation != null)
-            entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
-                    payloadForModel(type), name.origin(), null, null, fixedKey, false));
+        entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
+                payloadForModel(type), name.origin(), null, null, fixedKey, false));
     }
 
     private static void classifyOwnedSequence(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
@@ -598,7 +603,7 @@ final class StructuredInputAdmissionPlan {
         }
         String element = DslAstHelper.getElementNameForCollectionField(field);
         entries.add(new Entry(name.value(), Role.OWNED_SEQUENCE, source(field),
-                new PublicOperation(GeneratedDslSupport.of(field.getOwner()).getBuilderInterface().getName(), element, List.of()),
+                fieldRelationship(field, element),
                 payloadForModel(child), name.origin(), null, null, null, false));
     }
 
@@ -626,10 +631,8 @@ final class StructuredInputAdmissionPlan {
                     "literal structured instance keys conflict with @Field.keyMapping-derived keys"));
             return;
         }
-        PublicOperation operation = publicOperation(field, rejections);
-        if (operation != null)
-            entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, operation,
-                    payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null, false));
+        entries.add(new Entry(name.value(), Role.KEYED_OWNED_MAP, source, fieldRelationship(field, field.getName()),
+                payloadForModel(child), name.origin(), ClassHelper.STRING_TYPE.getName(), getKeyField(child).getName(), null, false));
     }
 
     private static void classifyProperty(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
@@ -842,6 +845,11 @@ final class StructuredInputAdmissionPlan {
         }
         MethodNode operation = candidates.get(0);
         return new PublicOperation(operation.getDeclaringClass().redirect().getName(), name, List.of(descriptor(operation)));
+    }
+
+    /** Internal preparation/attachment uses the field relationship, never a public creator group. */
+    private static PublicOperation fieldRelationship(FieldNode field, String invocation) {
+        return new PublicOperation(GeneratedDslSupport.of(field.getOwner()).getBuilderInterface().getName(), invocation, List.of());
     }
 
     private static PublicOperation publicOperation(FieldNode field, List<Rejection> rejections) {

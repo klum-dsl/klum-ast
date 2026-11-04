@@ -455,7 +455,7 @@ final class InputContractResolver {
             literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
             return;
         }
-        Role role = fieldRole(metadata, literal, methods, fieldType, source);
+        Role role = fieldRole(metadata, literal, accessor, methods, fieldType, source);
         String reason;
         if (converter == null) {
             reason = fieldReason(fieldType, literal);
@@ -474,10 +474,16 @@ final class InputContractResolver {
         Payload payload = converter == null ? fieldPayload(fieldType, role, source)
                 : converterPayload(fieldType, methods.get(0));
         String key = childKey(payload, role, literal, source);
+        boolean relationship = role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP;
+        List<Method> calls = relationship ? List.of() : methods;
         Method dispatch = resolveDispatch(role, payload, methods, source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        String operation = role == Role.OWNED_SEQUENCE ? literal.sequenceElement() : methods.get(0).getName();
-        entries.add(new Entry(name, role, source, context.builder(), operation, methods, dispatch, payload,
+        String operation = switch (role) {
+            case OWNED_SEQUENCE -> literal.sequenceElement();
+            case OWNED_OBJECT, KEYED_OWNED_MAP -> field;
+            default -> methods.get(0).getName();
+        };
+        entries.add(new Entry(name, role, source, context.builder(), operation, calls, dispatch, payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
@@ -652,12 +658,12 @@ final class InputContractResolver {
         return payload;
     }
 
-    /** Sequence execution selects the declared relationship, not any public creator overload. */
-    private Role fieldRole(Metadata metadata, Literals literal, List<Method> methods, Type fieldType, String source)
+    /** Relationship execution uses field facts, not public creator overloads. */
+    private Role fieldRole(Metadata metadata, Literals literal, Method accessor, List<Method> methods, Type fieldType, String source)
             throws IOException, ClassNotFoundException {
         if (literal.sequenceElement() == null) {
             Role role = methods.isEmpty() ? null : selectedRole(metadata, methods, source);
-            if (role == Role.OWNED_SEQUENCE) throw invalid("Missing owned sequence field relationship on " + source);
+            validateFieldRelationship(role, literal, accessor, methods, fieldType, source);
             return role;
         }
         if (literal.sequenceElement().isBlank() || !methods.isEmpty())
@@ -666,6 +672,17 @@ final class InputContractResolver {
         if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0)
             throw invalid("Owned sequence requires an unkeyed nongeneric concrete child: " + source);
         return Role.OWNED_SEQUENCE;
+    }
+
+    private static void validateFieldRelationship(Role role, Literals literal, Method accessor,
+                                                   List<Method> methods, Type fieldType, String source) {
+        if (role == Role.OWNED_SEQUENCE) throw invalid("Missing owned sequence field relationship on " + source);
+        if (role != Role.OWNED_OBJECT && role != Role.KEYED_OWNED_MAP) return;
+        if (!methods.equals(List.of(accessor)) || !literal.field().equals(literal.selection()))
+            throw invalid("Owned input requires its exact field relationship association: " + source);
+        if (role == Role.KEYED_OWNED_MAP && (!(fieldType instanceof ParameterizedType map)
+                || !MAPS.contains(rawType(fieldType).getName()) || map.getActualTypeArguments()[0] != String.class))
+            throw invalid("Keyed relationship getter mismatch: " + source);
     }
 
     private String childKey(Payload payload, Role role, Literals literal, String source)
