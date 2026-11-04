@@ -659,8 +659,7 @@ final class InputContractResolver {
     }
 
     /** Relationship execution uses field facts, not public creator overloads. */
-    private Role fieldRole(Metadata metadata, Literals literal, Method accessor, List<Method> methods, Type fieldType, String source)
-            throws IOException, ClassNotFoundException {
+    private static Role fieldRole(Metadata metadata, Literals literal, Method accessor, List<Method> methods, Type fieldType, String source) {
         if (literal.sequenceElement() == null) {
             Role role = methods.isEmpty() ? null : selectedRole(metadata, methods, source);
             validateFieldRelationship(role, literal, accessor, methods, fieldType, source);

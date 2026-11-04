@@ -186,6 +186,7 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         'constructor' | '@Converters(includeConstructors=true)' | "Interval(String raw) { value = 'constructor:' + raw }" | ['constructor:one', 'constructor:two']
     }
 
+    @Issue('1026')
     def 'unsupported container or element shapes remain excluded: #target'() {
         given:
         def type = schema("""
@@ -212,8 +213,27 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         thrown(KlumModelException)
 
         where:
-        target << ['List<Object>', 'List<Child>', 'List<List<Interval>>', 'Set<Interval>',
+        target << ['List<Object>', 'List<List<Interval>>', 'Set<Interval>',
                    'Interval[]']
+    }
+
+    @Issue('1026')
+    def 'owned keyed child sequences use child bodies instead of scalar converter selection'() {
+        given:
+        def type = schema("""
+            @DSL class Child { @Key String name }
+            @DSL class Schedule {
+                @Field(converters=[{ String raw -> throw new AssertionError('scalar converter selected') }])
+                List<Child> intervals
+            }
+        """)
+
+        when:
+        def result = type.Create.FromStruct([intervals: [[name: 'morning'], [name: 'morning']]])
+
+        then:
+        result.intervals*.name == ['morning', 'morning']
+        !result.intervals[0].is(result.intervals[1])
     }
 
     def 'ordinary compiler rejection of unsupported collection declarations is retained: #target'() {

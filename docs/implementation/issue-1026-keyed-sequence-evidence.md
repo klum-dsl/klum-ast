@@ -46,13 +46,18 @@ The existing projector needs no production change: member-key position yields th
 
 Exactly two task-limited subagents reviewed the fixed-base diff: Standards and Specification. Standards found one stale
 JSON Schema exclusion sentence; removing `keyed` addressed it. Specification found no actionable mismatch. Both agents
-also reviewed the independent schema-validator addition and confirmed zero unresolved findings.
+also reviewed the independent schema-validator addition and the later compiler/reflection/converter regression updates;
+both confirmed zero unresolved findings. The private resolver helper became static and dropped checked exceptions
+whose sole source was the removed keyed exclusion.
 
 ## Validation
 
 - Pre-change Groovy 3 characterization: 13 cases passed.
 - Final focused keyed/unkeyed sequence regression run: 43 keyed and 62 unkeyed cases passed in each of Groovy 3/4/5
   (315 cases total), including corruption and comparator failures. Each Gradle task received its own test filters.
+- Expanded six-class compiler/reflection/converter/sequence regression run: 272 cases passed in each Groovy lane
+  (816 total). Four old keyed-List exclusion expectations found by the broad compiler run were replaced with explicit
+  admission facts; all remaining exclusions stay covered.
 - Source-free binary fixture: all seven cases passed, including interpretation and JSON Schema projection on Groovy 3/4/5.
 - Independent `jsonschema==4.23.0` validator: 36 accepted / 72 rejected keyed cases and 45 accepted / 225 rejected
   unkeyed cases passed against the actual emitted Groovy 3/4/5 schemas.

@@ -81,7 +81,7 @@ class StructuredInputContractFixtures {
             }
 
             @DSL class Parent {
-                List<Child> unkeyedChildren
+                List<Child> keyedChildren
                 AbstractChild abstractChild
                 Map<Integer, Child> numberedChildren
                 char marker

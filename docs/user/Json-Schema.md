@@ -455,7 +455,7 @@ An ordinary unannotated property named `key` is a normal generated property. Act
 ## Owned child sequences
 
 [Admitted ordinary owned sequences](Structured-Input.md#owned-child-sequences) emit `type: array` with `items`
-referencing the concrete child's closed Builder-body grammar. List, Set, SortedSet and NavigableSet use this same input
+referencing the concrete child's closed input grammar. List, Set, SortedSet and NavigableSet use this same input
 shape. Duplicate mappings are valid input operations: no `uniqueItems`, cardinality, final-order or comparator rules are
 emitted. The schema describes Struct input, not every Groovy expression or the completed collection's contents.
 Structural validity cannot guarantee successful insertion, lifecycle or materialization. The destination collection

@@ -431,7 +431,7 @@ class CompiledBuilderSchemaTest extends AbstractDSLSpec {
         result
     }
 
-    @Issue(['529', '952'])
+    @Issue(['529', '952', '1026'])
     def 'compiled public contract matches every expected fact: #fixture'() {
         given:
         def jar = compileJar([trapped(source)] + NAMING)
