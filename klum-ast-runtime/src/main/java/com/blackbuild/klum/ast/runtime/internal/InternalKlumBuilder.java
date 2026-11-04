@@ -1067,11 +1067,18 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      * @return the newly created Builder
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        return (T) addNewDslElementToCollectionWithConfiguration(collectionName, type, explicitType, key,
+                builder -> builder.applyOnly(namedParams, body));
+    }
+
+    /** Shares ordinary preparation through PostApply, then ordinary claim, insertion and placement. */
+    <T> InternalKlumBuilder<T> addNewDslElementToCollectionWithConfiguration(String collectionName, Class<T> type,
+            boolean explicitType, String key, Consumer<InternalKlumBuilder<T>> configuration) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
-            InternalKlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
+            InternalKlumBuilder<T> created = FactoryHelper.prepareNestedBuilder(type, key, template, configuration);
             addElementToCollection(collectionName, created);
-            return (T) created;
+            return created;
         });
     }
 
@@ -1083,10 +1090,6 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         assertMutable();
         return addNewDslElementToCollection(namedParams, collectionName,
                 selectedModelType(factory), true, key, (Closure) body);
-    }
-
-    private InternalKlumBuilder<?> createNewBuilderFromParamsAndClosure(Class<?> type, String key, Map<String, Object> namedParams, Closure<?> body) {
-        return FactoryHelper.prepareNestedBuilder(type, key, template, builder -> builder.applyOnly(namedParams, body));
     }
 
     /**

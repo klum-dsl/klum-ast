@@ -150,7 +150,8 @@ at that base; the ordered slice rows and linked evidence below track subsequent 
 | Explicit keyless root-body schema | Private positional definitions only | Accepted useful additive S7; caller supplies identity, editor association and source parsing. |
 | CollectionFactory scope | One literal alternative only | F2-B admits the accepted abstract keyed Map family; other shapes remain deferred. See [evidence](input-round-f2b-evidence.md). |
 | One-Map NamedParams/NamedParam shape | Ordinary typed Map only | Later contained L2: declared keys and proven required/type facts only. |
-| Owned DSL List/Set, custom key mapping | No | Deferred/conditional R1 revisit after higher-tier acceptance. |
+| Ordinary concrete unkeyed owned List/Set/SortedSet/NavigableSet | SEQ-1 local implementation | Body-sequence operations through ordinary preparation/attachment; [evidence](input-round-seq1-evidence.md). |
+| Other owned sequences, custom key mapping | No | Deferred/conditional R1 revisit after higher-tier acceptance. |
 | Descriptions and documentary Struct.Examples strings | Yes | Retain; do not parse examples or infer enforceable defaults. |
 | Managed Jackson | Independent supported path | ADR 0009 mapper/property semantics; generated input schema does not describe Jackson/export. |
 
@@ -271,7 +272,7 @@ Rows 1–16 match the original accepted assignment; the #953 row records the lat
 | 10. Structural schema, no execution/success promise | All new grammar slices paired with projection, initialization traps and actual emitted Draft 2020-12 controls. Existing #959/#981 assertions retained, new constraints later. | KlumAST plugin |
 | 11. NamedParams one Map later | L2 closed declared keys and proven required/type facts; no broad Map reinterpretation. | KlumAST later assignment |
 | 12. Fail closed and exclusions | Each slice negative corpus: unknown names, null, raw Object, exact enums, non-String keys, references, selectors/repeated-call syntax. | KlumAST; parser duplicates Schelm |
-| 13. Owned List/Set and keyMapping conditional | R1 per-shape disposition after Q1; no current support claim. | Maintainer/Hive |
+| 13. Owned List/Set and keyMapping conditional | SEQ-1 separately implements ordinary unkeyed body sequences; other R1 forms retain per-shape decisions. | Maintainer/Hive |
 | 14. CollectionFactory bounded probe | F2 generated alternatives/key/direct-entry evidence and stop conditions; no composition prerequisite. | KlumAST probe; maintainer |
 | 15. Jackson separate | D0 reciprocal import-path table, unchanged ADR 0009 modes, language versus export examples. | KlumAST docs |
 | #953. Factory/Builder public boundary | A0 common root, A1 explicit key/one PostApply, A2 void inherited capability, S6 Template Factory, A3 development migration; eight signatures/labels, unchanged FromMap/Jackson and retargeted #1007. | KlumAST; Hive retarget/delivery; Schelm qualification |

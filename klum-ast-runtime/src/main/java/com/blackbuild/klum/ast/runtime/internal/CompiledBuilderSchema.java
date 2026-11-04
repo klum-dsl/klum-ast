@@ -51,7 +51,7 @@ final class CompiledBuilderSchema {
     private final List<Rejection> rejections;
     private final List<Declaration> declarations;
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
+    enum Role { PROPERTY, OWNED_OBJECT, OWNED_SEQUENCE, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum Kind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
 
     /** Owned types use stable Class references; data-container items are finite, recursively immutable shapes. */

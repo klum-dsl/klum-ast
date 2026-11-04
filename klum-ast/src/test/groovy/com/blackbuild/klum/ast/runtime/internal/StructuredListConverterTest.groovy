@@ -190,7 +190,7 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         given:
         def type = schema("""
             class Interval {}
-            @DSL class Child {}
+            @DSL class Child { @Key String name }
             @DSL class Schedule {
                 @Field(converters=[{ String raw -> throw new AssertionError('excluded converter') }])
                 $target intervals

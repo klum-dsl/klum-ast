@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -457,6 +458,7 @@ final class InputContractResolver {
             literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
             return;
         }
+        Role role = fieldRole(metadata, literal, methods, fieldType, source);
         String reason;
         if (converter == null) {
             reason = fieldReason(fieldType, literal);
@@ -467,7 +469,7 @@ final class InputContractResolver {
             rejections.add(new Rejection(source, reason));
             return;
         }
-        Role role = selectedRole(metadata, methods, source);
+        if (role == null) role = selectedRole(metadata, methods, source);
         if (role == Role.OWNED_OBJECT && literal.schemaKey() == null)
             throw invalid("Missing direct relationship key-authority metadata on " + source);
         if (literal.schemaKey() != null && (role != Role.OWNED_OBJECT || literal.fixed() && !literal.schemaKey()))
@@ -477,7 +479,8 @@ final class InputContractResolver {
         String key = childKey(payload, role, literal, source);
         validateSelection(role, payload, methods, source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
+        String operation = role == Role.OWNED_SEQUENCE ? literal.sequenceElement() : methods.get(0).getName();
+        entries.add(new Entry(name, role, source, context.builder(), operation, List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
@@ -635,14 +638,36 @@ final class InputContractResolver {
 
     private static Payload fieldPayload(Type fieldType, Role role, String source) {
         Payload payload = payload(fieldType, true);
+        if (role == Role.OWNED_SEQUENCE) {
+            if (payload == null || payload.kind() != Kind.LIST || payload.type() == EnumSet.class
+                    || payload.item().kind() != Kind.NESTED_OBJECT)
+                throw invalid("Owned sequence getter mismatch: " + source);
+            payload = payload.item();
+        }
         if (role == Role.KEYED_OWNED_MAP) {
             if (payload == null || payload.kind() != Kind.MAP || payload.item().kind() != Kind.NESTED_OBJECT)
                 throw invalid("Keyed relationship getter mismatch: " + source);
             payload = payload.item();
         }
-        if (payload == null || ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP) != (payload.kind() == Kind.NESTED_OBJECT)))
+        if (payload == null || ((role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP || role == Role.OWNED_SEQUENCE) != (payload.kind() == Kind.NESTED_OBJECT)))
             throw invalid("Field role/payload mismatch: " + source);
         return payload;
+    }
+
+    /** Sequence execution selects the declared relationship, not any public creator overload. */
+    private Role fieldRole(Metadata metadata, Literals literal, List<Method> methods, Type fieldType, String source)
+            throws IOException, ClassNotFoundException {
+        if (literal.sequenceElement() == null) {
+            Role role = methods.isEmpty() ? null : selectedRole(metadata, methods, source);
+            if (role == Role.OWNED_SEQUENCE) throw invalid("Missing owned sequence field relationship on " + source);
+            return role;
+        }
+        if (literal.sequenceElement().isBlank() || !methods.isEmpty())
+            throw invalid("Owned sequence requires its field relationship association: " + source);
+        Payload payload = fieldPayload(fieldType, Role.OWNED_SEQUENCE, source);
+        if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0)
+            throw invalid("Owned sequence requires an unkeyed nongeneric concrete child: " + source);
+        return Role.OWNED_SEQUENCE;
     }
 
     private String childKey(Payload payload, Role role, Literals literal, String source)
@@ -776,8 +801,8 @@ final class InputContractResolver {
         if ((!list && !map) || args.length != (map ? 2 : 1) || (map && args[0] != String.class)) return null;
         Type itemType = args[map ? 1 : 0];
         Payload item = payload(itemType, false);
-        // Owned-map eligibility comes only from compiler selection; no generic Builder collection admission.
-        if (item == null && field && map) item = payload(itemType, true);
+        // Owned eligibility comes only from exact relationship selection; ordinary data payloads cannot contain Builders.
+        if (item == null && field) item = payload(itemType, true);
         if (item == null) return null;
         return new Payload(map ? Kind.MAP : Kind.LIST, raw, null, map ? String.class.getName() : null, item);
     }

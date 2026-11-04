@@ -391,7 +391,9 @@ final class StructuredInputAdmissionPlan {
         enrichConverter(field, entry, name, fact);
         enrichLiteralAlternative(field, fact, accessor);
         accessor.addAnnotation(fact);
-        if (entry != null) {
+        if (entry != null && entry.role() == Role.OWNED_SEQUENCE) {
+            fact.setMember("sequenceElement", new ConstantExpression(entry.operation().name()));
+        } else if (entry != null) {
             enrichSelection(builder, field, entry);
         }
     }
@@ -550,6 +552,8 @@ final class StructuredInputAdmissionPlan {
             classifyOwnedObject(model, field, name, entries, rejections);
         } else if (isMap(type) && isDSLObject(getElementTypeForMap(type))) {
             classifyOwnedMap(field, name, entries, rejections);
+        } else if (isCollection(type) && isDSLObject(getElementTypeForCollection(type))) {
+            classifyOwnedSequence(field, name, entries, rejections);
         } else {
             classifyProperty(field, name, entries, rejections);
         }
@@ -576,6 +580,26 @@ final class StructuredInputAdmissionPlan {
         if (operation != null)
             entries.add(new Entry(name.value(), Role.OWNED_OBJECT, source, operation,
                     payloadForModel(type), name.origin(), null, null, fixedKey, false));
+    }
+
+    private static void classifyOwnedSequence(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
+        ClassNode elementType = getElementTypeForCollection(field.getType());
+        if (elementType == null) {
+            rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
+            return;
+        }
+        ClassNode child = elementType.redirect();
+        if (!Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet")
+                .contains(field.getType().redirect().getName()) || getFieldType(field) != FieldType.DEFAULT
+                || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) != null
+                || child.getGenericsTypes() != null && child.getGenericsTypes().length != 0) {
+            rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
+            return;
+        }
+        String element = DslAstHelper.getElementNameForCollectionField(field);
+        entries.add(new Entry(name.value(), Role.OWNED_SEQUENCE, source(field),
+                new PublicOperation(GeneratedDslSupport.of(field.getOwner()).getBuilderInterface().getName(), element, List.of()),
+                payloadForModel(child), name.origin(), null, null, null, false));
     }
 
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
@@ -946,7 +970,7 @@ final class StructuredInputAdmissionPlan {
         return (model == null ? method.getDeclaringClass() : model).getName() + "#" + descriptor(method);
     }
 
-    enum Role { PROPERTY, OWNED_OBJECT, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
+    enum Role { PROPERTY, OWNED_OBJECT, OWNED_SEQUENCE, KEYED_OWNED_MAP, LITERAL_ALTERNATIVE_MAP, VIRTUAL_OBJECT, OPERATION, COMMAND }
     enum PayloadKind { SCALAR, ENUM, LIST, MAP, NESTED_OBJECT, EMPTY_OBJECT }
     enum NameOrigin { IDENTITY, JSON_PROPERTY, INPUT_NAME, IGNORE, INPUT_IGNORE }
     record Payload(PayloadKind kind, String type, String builder, String keyType, Payload item) { }

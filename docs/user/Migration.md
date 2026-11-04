@@ -881,3 +881,13 @@ Recompile and package root, inherited and participating owned Schemas with match
 The shared [metadata protocol](#structured-input-metadata-protocol) requires explicitly retained field policies and numeric
 facts. Older or incomplete contracts are rejected; no mixed-version fallback remains. See the
 [field policy example and limits](Json-Schema.md#field-constraint-projection).
+
+## Owned sequence structured input
+
+Ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields of concrete unkeyed DSL children now accept
+[sequences of child-body mappings](Structured-Input.md#owned-child-sequences). Recompile participating Schema hierarchies
+with matched compiler/runtime/plugin artifacts to carry the exact creator selection. Protocol version 1 alone does not
+establish compatibility with older development output. Existing Groovy attachment, Template and collection semantics
+are preserved; the new input index in Struct diagnostics is separate from ordinary Builder placement paths.
+JSON Schema emits array grammar without uniqueness, cardinality or final-order guarantees. Keyed, abstract, generic,
+custom/specialized, CollectionFactory and aggregation forms retain their existing boundaries.

@@ -647,3 +647,10 @@ returns no Template, but earlier configuration side effects are not rolled back.
 
 See [`StructuredInputTemplateDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputTemplateDocumentaryTest.groovy),
 “parsed keyless bodies define ordinary reusable Template recipes” ([#953](https://github.com/klum-dsl/klum-ast/issues/953)).
+
+### Owned child sequences in structured Templates
+
+[Owned child sequences](Structured-Input.md#owned-child-sequences) use ordinary Template definition and recipient copying.
+Definition runs no ordinary child lifecycle. Equal entries may collapse in a Template's destination Set; application
+copies the retained recipe into fresh recipient Builders with normal ownership and lifecycle, without replaying discarded
+input operations. List and comparator-backed SortedSet/NavigableSet retain their ordinary supported recipe behavior.
