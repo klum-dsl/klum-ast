@@ -64,12 +64,12 @@ final class CompiledBuilderSchema {
 
     /** A selected input use; source identity stays distinct from its effective external name and dispatch handle. */
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
-                 List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
+                 List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, LiteralAlternative alternative) {
         Entry(String externalName, Role role, String source, Class<?> contract, String operation,
-              List<Method> methods, Payload payload, String keyType, String excludedKey, String fixedChildKey,
+              List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
               String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) {
-            this(externalName, role, source, contract, operation, methods, payload, keyType, excludedKey, fixedChildKey,
+            this(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey, fixedChildKey,
                     nameOrigin, documentation, schemaKey, sourceDeprecated, examples, null);
         }
         Entry {

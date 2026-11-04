@@ -93,6 +93,33 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
 
     def cleanup() { artifactLoader?.close() }
 
+    @Issue('1021')
+    def 'resolved scalar and collection population methods are the handles used by structured execution'() {
+        given:
+        def document = documentSchema()
+        def entries = new InputContractResolver().read(document).entries()
+
+        expect:
+        ['summary', 'words', 'prices', 'add', 'settings'].every { name ->
+            entries[name].dispatch().is(entries[name].methods().find { method ->
+                method.name == entries[name].dispatch().name &&
+                        method.parameterTypes == entries[name].dispatch().parameterTypes
+            })
+        }
+        entries.child.dispatch() == null
+
+        when:
+        def result = document.Create.FromStruct(
+                [summary: 'ready', words: ['one', 'two'], prices: [east: 2G], add: 3, settings: [host: 'api']],
+                'dispatch.yaml')
+
+        then:
+        result.summary == 'api'
+        result.words == ['one', 'two']
+        result.prices == [east: 2G]
+        result.count == 5
+    }
+
     @Issue('950')
     def 'ordinary scalar properties including key remain available through nested structured input'() {
         given:

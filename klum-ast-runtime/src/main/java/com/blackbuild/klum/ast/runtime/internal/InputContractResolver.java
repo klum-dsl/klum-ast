@@ -331,7 +331,7 @@ final class InputContractResolver {
     private static Entry profileEntry(Entry entry) {
         if (!entry.nameOrigin().equals(IDENTITY_NAME)) return entry;
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
-        return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(),
+        return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(), entry.dispatch(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
                 KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternative());
     }
@@ -474,10 +474,10 @@ final class InputContractResolver {
         Payload payload = converter == null ? fieldPayload(fieldType, role, source)
                 : converterPayload(fieldType, methods.get(0));
         String key = childKey(payload, role, literal, source);
-        validateSelection(role, payload, methods, source);
+        Method dispatch = resolveDispatch(role, payload, methods, source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
         String operation = role == Role.OWNED_SEQUENCE ? literal.sequenceElement() : methods.get(0).getName();
-        entries.add(new Entry(name, role, source, context.builder(), operation, List.copyOf(methods), payload,
+        entries.add(new Entry(name, role, source, context.builder(), operation, methods, dispatch, payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
@@ -524,7 +524,7 @@ final class InputContractResolver {
         if (selectedRole(context.metadata(), methods, source) != Role.LITERAL_ALTERNATIVE_MAP)
             throw invalid("Missing literal alternative selection on " + source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, methods,
+        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, methods, null,
                 new Payload(Kind.NESTED_OBJECT, target, childBuilder, null, null), String.class.getName(), facts.key(), null,
                 literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(),
                 new LiteralAlternative(facts.alias(), scope, creator)));
@@ -558,7 +558,6 @@ final class InputContractResolver {
             Class<?> domain = converterDomain(field, fieldType, method, selected);
             if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, converterParameter(fieldType, method)))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
-            validateSelection(Role.PROPERTY, converterPayload(fieldType, method), methods, location);
             // Structural routes carry provenance, but only C1 owns selected-parameter inspection.
             ConverterConstraints constraints = selected.parameterFacts() ? converterReader.read(domain, selected)
                     : new ConverterConstraints("", "", Policy.OMIT, List.of());
@@ -676,18 +675,20 @@ final class InputContractResolver {
         return key;
     }
 
-    private static void validateSelection(Role role, Payload payload, List<Method> methods, String source) {
+    private static Method resolveDispatch(Role role, Payload payload, List<Method> methods, String source) {
         if (methods.stream().anyMatch(method -> !Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())))
             throw invalid("Non-public input selection: " + source);
-        if (role != Role.PROPERTY) return;
+        if (role != Role.PROPERTY) return null;
         if (payload.item() != null && containsNested(payload.item())) throw invalid("Owned input requires a relationship role: " + source);
         Class<?>[] parameters = switch (payload.kind()) {
             case LIST -> new Class<?>[]{payload.item().type()};
             case MAP -> new Class<?>[]{String.class, payload.item().type()};
             default -> new Class<?>[]{payload.type()};
         };
-        if (methods.stream().filter(method -> Arrays.equals(method.getParameterTypes(), parameters)).count() != 1)
+        List<Method> selected = methods.stream().filter(method -> Arrays.equals(method.getParameterTypes(), parameters)).toList();
+        if (selected.size() != 1)
             throw invalid("Missing exact field payload/population signature: " + source);
+        return selected.get(0);
     }
 
     private static boolean containsNested(Payload payload) {
@@ -712,7 +713,7 @@ final class InputContractResolver {
         NameFacts names = literal.operationNames();
         if (names.ignored()) { rejections.add(new Rejection(source, ignoreReason(names))); return; }
         String name = names.rename().isEmpty() ? sink.getName() : names.rename();
-        entries.add(new Entry(name, Role.VIRTUAL_OBJECT, source, sink.getDeclaringClass(), sink.getName(), List.of(sink, creator),
+        entries.add(new Entry(name, Role.VIRTUAL_OBJECT, source, sink.getDeclaringClass(), sink.getName(), List.of(sink, creator), sink,
                 nested, null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
     }
 
@@ -724,7 +725,7 @@ final class InputContractResolver {
         else if (literal.operationRole().equals("LIFECYCLE")) reason = "lifecycle methods are not structured commands";
         else if (method.getParameterCount() == 0) {
             String name = names.rename().isEmpty() ? method.getName() : names.rename();
-            entries.add(new Entry(name, Role.COMMAND, source, method.getDeclaringClass(), method.getName(), List.of(method),
+            entries.add(new Entry(name, Role.COMMAND, source, method.getDeclaringClass(), method.getName(), List.of(method), method,
                     new Payload(Kind.EMPTY_OBJECT, Map.class, null, null, null), null, null, null, names.origin(),
                     literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
             return;
@@ -737,7 +738,7 @@ final class InputContractResolver {
         if (reason == null && payload == null) reason = unsupportedReason(method.getGenericParameterTypes()[0]);
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = names.rename().isEmpty() ? method.getName() : names.rename();
-        entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), payload,
+        entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), method, payload,
                 null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
     }
 
