@@ -401,7 +401,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Exact `Map<String, T>` with one admitted String value converter | A Map of literal String keys to Strings, each passed to the generated value adder |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
-| Ordinary owned unkeyed `List<T>`, `Set<T>`, `SortedSet<T>`, `NavigableSet<T>` | A List of concrete child-body Maps, executed in supplied order |
+| Ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>`, `NavigableSet<T>` | A List of concrete child-body Maps, executed in supplied order |
 | Concrete owned object | A domain Map interpreted against the child's Builder |
 | Map of concrete keyed owned objects | A Map whose literal String keys select children, each configured by a domain Map |
 | One literal CollectionFactory alternative for an abstract keyed Map value | A closed literal alias mapping, then outer String instance keys, then concrete child bodies |
@@ -528,7 +528,7 @@ Schema hierarchy with matched compiler/runtime/plugin artifacts for authoritativ
 ## Owned child sequences
 
 Ordinary owned relationship fields declared as `List<T>`, `Set<T>`, `SortedSet<T>` or `NavigableSet<T>` admit a supplied
-List of child-body Maps when `T` is a concrete, nongeneric, unkeyed DSL type. The compiler records the owned field
+List of child-body Maps when `T` is a concrete, nongeneric DSL type, either unkeyed or keyed. The compiler records the owned field
 relationship. Struct uses its normal preparation and attachment path directly, so customized or absent public creator
 overloads do not exclude the relationship. Their authored behavior remains available through ordinary Builder calls.
 Each mapping creates a fresh child in the parent's Construction session. Normal preparation applies initializers and
@@ -584,11 +584,50 @@ copies its retained recipe into fresh recipients; it does not replay the origina
 collapsed while defining that Template. Initial/default/template semantics and recipient ownership remain ordinary.
 See `StructuredOwnedSequenceTest#'Template definition and fresh recipients preserve ordinary recipe semantics for #declaration'`.
 
-This route excludes keyed children, abstract/subtype alternatives, CollectionFactory creators, custom/specialized
+This route excludes abstract/subtype alternatives, CollectionFactory creators, custom/specialized
 collection declarations, EnumSet, LINK/OPTIONAL_LINK and scalar converter elements. Unknown child members, invented keys,
 null, scalar and sequence child bodies reject. Nested child members can use their independently admitted grammar; this
 adds no arbitrary recursive collection language. The [JSON Schema](Json-Schema.md#owned-child-sequences) describes the
 Struct body grammar rather than every expression available in Groovy or the destination collection's final semantics.
+
+### Keyed child sequences
+
+For a keyed child, each item supplies its actual externally named construction key. Struct uses the same key rules as
+[self-contained roots and direct children](#construction-keys): `@Struct.Name`, inherited key declarations and the
+selected naming profile apply. The key is required as a String before that child is allocated or configured, so
+PostCreate sees its identity. Empty Strings are valid; absent, null and non-String keys reject without coercion.
+An ignored or externally ambiguous key cannot establish item identity. Renaming does not admit the native spelling.
+
+(See: `StructuredKeyedSequenceTest#'creates keyed routes from structured sequence items'`.)
+
+```groovy
+@DSL class Service { List<Route> routes }
+@DSL class Route {
+    @Key String routeName
+    String path
+}
+
+def service = Service.Create.FromStruct([
+    routes: [[routeName: 'health', path: '/health'], [routeName: 'metrics', path: '/metrics']]
+], 'routes.yaml')
+assert service.routes*.routeName == ['health', 'metrics']
+```
+
+The equivalent caller-parsed YAML is:
+
+```yaml
+routes:
+  - routeName: health
+    path: /health
+  - routeName: metrics
+    path: /metrics
+```
+
+Repeated keys still create fresh children, just as repeated ordinary `route('health') { ... }` calls do. A List keeps
+them; Set equality and sorted comparators determine the destination result. Keyed sequences never reuse an earlier
+child by key. Supplied traversal order, lifecycle, partial failures and Template recipe behavior follow the sequence
+rules above. A key inside a keyed sequence item is required even inside a keyless root Template recipe: the recipe
+supplies those child identities. This does not change keyless Template roots or outer-keyed Map bodies.
 
 ## Other relationship boundaries
 
@@ -614,7 +653,7 @@ make an entry available. In particular:
 
 | Ordinary Groovy capability | Struct boundary and workaround |
 | --- | --- |
-| Keyed child Lists/Sets and subtype collection creators | Owned sequences currently require concrete nongeneric **unkeyed** children. Use Groovy for keyed sequences; a keyed Map changes the collection semantics. Only the [single literal keyed Map alternative](#literal-collection-alternative) supplies subtype selection. |
+| Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [single literal keyed Map alternative](#literal-collection-alternative) supplies subtype selection. |
 | `@Field.keyMapping` value-only adders | No derived-key value sequence is admitted for scalar or owned Maps. Use ordinary Groovy or an eligible domain List operation; writing literal outer keys does not enable the derived-key route. |
 | String converters for owned DSL values, converter-backed Sets, or CharSequence-only List/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
 | Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |

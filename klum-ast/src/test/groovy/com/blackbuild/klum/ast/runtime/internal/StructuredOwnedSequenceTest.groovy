@@ -513,6 +513,7 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         service.active.routes*.path == ['/first']
     }
 
+    @Issue('1026')
     def 'excluded relationship families never gain sequence admission: #declaration'() {
         given:
         def service = schema(declaration)
@@ -526,7 +527,6 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         where:
         declaration << ['@Field(FieldType.LINK) List<Route> routes',
                         '@Field(FieldType.OPTIONAL_LINK) Set<Route> routes',
-                        'List<Keyed> routes; @DSL static class Keyed { @Key String name }',
                         'List<Abstract> routes; @DSL abstract static class Abstract { String value }']
     }
 

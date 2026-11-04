@@ -25,6 +25,12 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
+import groovyjarjarasm.asm.AnnotationVisitor
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.Opcodes
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -57,11 +63,15 @@ class StructuredKeyedSequenceTest extends AbstractDSLSpec {
                 }
                 @PostApply void applied() {
                     Service.events << "apply:\$routeName:\$path:\${Service.activeRoutes?.size()}".toString()
+                    if (path == 'fail') { throw new IllegalStateException('child failed') }
                 }
                 @PostTree void tree() { Service.events << "tree:\$routeName:\${owner != null}".toString() }
             }
             @CompileDynamic class RouteOrder implements Comparator<Object> {
-                int compare(Object a, Object b) { a.routeName <=> b.routeName }
+                int compare(Object a, Object b) {
+                    if (a.routeName == 'bad' || b.routeName == 'bad') { throw new IllegalArgumentException('comparison failed') }
+                    a.routeName <=> b.routeName
+                }
             }
         """
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
@@ -103,16 +113,226 @@ class StructuredKeyedSequenceTest extends AbstractDSLSpec {
         'NavigableSet' | ['a', 'z']      | 2
     }
 
-    def 'current Struct rejects keyed sequence before child allocation'() {
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#keyed-child-sequences')
+    def 'creates keyed routes from structured sequence items'() {
+        given:
+        def service = schema()
+        def input = [routes: [[routeName: 'health', path: '/health'], [routeName: 'metrics', path: '/metrics']]]
+
+        when:
+        def model = service.Create.FromStruct(input, 'routes.yaml')
+
+        then:
+        model.routes*.routeName == ['health', 'metrics']
+        model.routes*.path == ['/health', '/metrics']
+        service.events.take(4) == ['create:health', 'apply:health:/health:0', 'create:metrics', 'apply:metrics:/metrics:1']
+        input.routes[0] == [routeName: 'health', path: '/health']
+    }
+
+    def 'Struct matches ordinary fresh identities lifecycle and destination semantics for #container'() {
+        given:
+        def service = schema(container)
+        def items = [[routeName: 'z', path: '/z'], [routeName: 'a', path: '/a'],
+                     [routeName: 'a', path: '/a'], [routeName: 'a', path: '/other']]
+
+        when:
+        def ordinary = run(service, false, items)
+        def structured = run(service, true, items)
+
+        then:
+        structured.model == ordinary.model
+        structured.events == ordinary.events
+        structured.children.size() == 4
+        !structured.children[1].is(structured.children[2])
+        structured.children*.modelPath == ordinary.children*.modelPath
+        structured.model.routes.every { it.owner.is(structured.model) }
+        structured.model.routes*.path == expected
+
+        where:
+        container      | expected
+        'List'         | ['/z', '/a', '/a', '/other']
+        'Set'          | ['/z', '/a', '/other']
+        'SortedSet'    | ['/a', '/z']
+        'NavigableSet' | ['/a', '/z']
+    }
+
+    def 'sequence identities reuse external key naming: #annotation #profile'() {
+        given:
+        def service = schema('List', annotation, profile)
+
+        when:
+        def model = service.Create.FromStruct([routes: [[(spelling): '', path: '/empty'], [(spelling): 'health']]])
+
+        then:
+        model.routes*.routeName == ['', 'health']
+        service.events.take(2) == ['create:', 'apply::/empty:0']
+
+        where:
+        annotation                 | profile                                            | spelling
+        ''                         | ''                                                 | 'routeName'
+        '@Struct.Name("id/~")'     | ''                                                 | 'id/~'
+        ''                         | '@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)'   | 'route-name'
+        '@Struct.Name("id/~")'     | '@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)'   | 'id/~'
+    }
+
+    def 'missing malformed or native renamed keys reject at input index before allocating reached child: #body'() {
+        given:
+        def service = schema('List', '@Struct.Name("id/~")')
+
+        when:
+        service.Create.FromStruct([routes: [[('id/~'): 'first'], body, [('id/~'): 'later']], marker: 'later'], 'bad.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('bad.yaml')
+        failure.message.contains('/routes/1/id~1~0')
+        failure.message.contains('keyedsequence.Route#routeName')
+        service.children*.routeName == ['first']
+        service.active.routes*.routeName == ['first']
+        service.active.marker == null
+
+        where:
+        body << [[:], [routeName: 'native'], [('id/~'): null], [('id/~'): 42],
+                 [('id/~'): true], [('id/~'): []], [('id/~'): [:]], [('id/~'): "${'gstring'}"]]
+    }
+
+    def 'excluded or colliding external child key cannot establish sequence identity: #annotation'() {
+        given:
+        def service = schema('List', annotation)
+
+        when:
+        service.Create.FromStruct([routes: [[(spelling): 'health']]], 'key.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('/routes/0/' + spelling)
+        failure.message.contains(reason)
+        service.children.empty
+
+        where:
+        annotation             | spelling    | reason
+        '@Struct.Ignore'       | 'routeName' | '@Struct.Ignore'
+        '@Struct.Name("path")' | 'path'      | 'external-name collision'
+    }
+
+    def 'reached body or lifecycle failure preserves earlier work and source index: #body'() {
         given:
         def service = schema()
 
         when:
-        service.Create.FromStruct([routes: [[routeName: 'health', path: '/health']]], 'routes.yaml')
+        service.Create.FromStruct([routes: [[routeName: 'first'], body, [routeName: 'later']]], 'body.yaml')
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('/routes')
+        failure.message.contains('body.yaml')
+        failure.message.contains('/routes/1')
+        service.active.routes*.routeName == ['first']
+        !service.events.any { it.startsWith('tree:') || it.contains('later') }
+        service.children.size() == allocated
+
+        where:
+        body                                         | allocated
+        [routeName: 'bad', unknown: true]              | 2
+        [routeName: 'bad', path: 'fail']               | 2
+        null                                         | 1
+        'text'                                       | 1
+        []                                           | 1
+    }
+
+    def 'structured Template recipes and child Template defaults preserve ordinary behavior for #container'() {
+        given:
+        def service = schema(container)
+        def routeType = artifacts.loadClass('keyedsequence.Route')
+        def childRecipe = routeType.Create.Template.With { path '/template' }
+        def ordinary
+        def structured
+
+        when:
+        routeType.Template.With(childRecipe) {
+            ordinary = service.Create.Template.With { route('z'); route('a'); route('a') }
+            structured = service.Create.Template.FromStruct([routes: [[routeName: 'z'], [routeName: 'a'], [routeName: 'a']]])
+        }
+
+        then:
+        service.events.empty
+        service.children.empty
+        structured.routes*.routeName == ordinary.routes*.routeName
+        structured.routes*.path == ordinary.routes*.path
+
+        when:
+        def outcomes = []
+        [ordinary, structured, structured].each { recipe ->
+            service.events.clear()
+            service.activeRoutes = null
+            service.Template.With(recipe) {
+                outcomes << [model: service.Create.With(), events: service.events.toList()]
+            }
+        }
+
+        then:
+        outcomes[1].model == outcomes[0].model
+        outcomes[1].events == outcomes[0].events
+        outcomes[2].events == outcomes[0].events
+        outcomes.every { result -> result.model.routes.every { it.owner.is(result.model) && it.path == '/template' } }
+        !outcomes[1].model.routes.first().is(outcomes[2].model.routes.first())
+
+        where:
+        container << ['List', 'Set', 'SortedSet', 'NavigableSet']
+    }
+
+    def 'sorted attachment failures retain supplied index after comparator duplicates for #container'() {
+        given:
+        def service = schema(container)
+        def outcomes = []
+
+        when:
+        [false, true].each { structured ->
+            try {
+                run(service, structured, [[routeName: 'a'], [routeName: 'a'], [routeName: 'bad'], [routeName: 'later']])
+                assert false: 'Comparator must reject the reached child'
+            } catch (Exception failure) {
+                if (structured) {
+                    assert failure.message.contains('routes.yaml')
+                    assert failure.message.contains('/routes/2')
+                }
+                outcomes << [events: service.events.toList(), values: service.active.routes*.routeName]
+            }
+        }
+
+        then:
+        outcomes[0] == outcomes[1]
+        outcomes[0].values == ['a']
+        outcomes[0].events == ['create:a', 'apply:a:/default:0', 'create:a', 'apply:a:/default:1', 'create:bad', 'apply:bad:/default:1']
+
+        where:
+        container << ['SortedSet', 'NavigableSet']
+    }
+
+    def 'missing child key metadata fails before root allocation'() {
+        given:
+        def service = schema()
+        def file = new File(compilerConfiguration.targetDirectory, 'keyedsequence/Route_DSL$Builder.class')
+        def writer = new ClassWriter(0)
+        new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                        annotation.endsWith('GeneratedInput$Key;') ? null : super.visitAnnotation(annotation, visible)
+                    }
+                }
+            }
+        }, 0)
+        file.bytes = writer.toByteArray()
+
+        when:
+        service.Create.FromStruct([routes: [[routeName: 'health']]], 'metadata.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('metadata.yaml')
+        failure.message.contains('recompile')
+        service.active == null
         service.children.empty
     }
 

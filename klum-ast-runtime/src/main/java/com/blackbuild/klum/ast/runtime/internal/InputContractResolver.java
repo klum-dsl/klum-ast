@@ -669,8 +669,8 @@ final class InputContractResolver {
         if (literal.sequenceElement().isBlank() || !methods.isEmpty())
             throw invalid("Owned sequence requires its field relationship association: " + source);
         Payload payload = fieldPayload(fieldType, Role.OWNED_SEQUENCE, source);
-        if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0)
-            throw invalid("Owned sequence requires an unkeyed nongeneric concrete child: " + source);
+        if (payload.type().getTypeParameters().length != 0)
+            throw invalid("Owned sequence requires a nongeneric concrete child: " + source);
         return Role.OWNED_SEQUENCE;
     }
 

@@ -71,6 +71,18 @@ user code; matched compiler/runtime/plugin and Schema recompilation remain requi
 containers, EnumSet, aggregation, scalar converters and general recursive collection grammar are excluded from this slice.
 See [SEQ-1 evidence](../implementation/input-round-seq1-evidence.md) for implementation and qualification status.
 
+## Keyed owned sequence extension — #1026
+
+The separately accepted #1026 slice extends SEQ-1 to concrete nongeneric keyed children in the same four ordinary
+owned collection declarations. Each reached item uses the existing externally named member-key contract and strict
+String payload policy before allocation, then the ordinary fresh-child preparation/configuration/attachment seam.
+No new identity conversion, child reuse, metadata shape, public signature or construction engine is introduced.
+Repeated identities, destination equality/comparators, lifecycle and Template recipes retain ordinary semantics.
+The source-free projector emits arrays of closed self-contained child definitions with the actual required key.
+Ignored/colliding key admission and corrupt contract metadata remain fail-closed. All other SEQ-1 exclusions remain.
+See [implementation evidence](../implementation/issue-1026-keyed-sequence-evidence.md); merged and hosted qualification
+are separate from the branch implementation.
+
 ## Owned field relationship admission cleanup — #1021 cut 3
 
 Direct concrete owned children and String-keyed owned Maps use the same normal internal preparation/attachment

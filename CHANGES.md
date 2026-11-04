@@ -1,5 +1,11 @@
 # Unreleased
 
+- Admit concrete nongeneric owned keyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML sequences.
+  Each item supplies its externally named String construction key before child allocation; normal fresh-child,
+  lifecycle, duplicate, collection and Template semantics apply. JSON Schema requires the item key. Recompile matched
+  Schema artifacts. See [keyed child sequences](docs/user/Structured-Input.md#keyed-child-sequences)
+  ([#1026](https://github.com/klum-dsl/klum-ast/issues/1026)).
+
 - Admit ordinary owned unkeyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML body sequences.
   Configure each supplied mapping before ordinary attachment, retaining collection equality/comparator behavior,
   Template semantics and indexed first-failure diagnostics. Emit array-of-body JSON Schema without uniqueness or
