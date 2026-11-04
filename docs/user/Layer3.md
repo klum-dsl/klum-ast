@@ -205,6 +205,10 @@ with an explicit `@Field(key = ...)` are rejected at Schema compilation. Unselec
 methods. The option changes neither ownership nor lifecycle behavior and can also be useful for Clusters outside a Layer
 3 architecture.
 
+Struct addresses independently admitted concrete Schema fields directly, including these fixed-key child bodies;
+the Schema supplies their identity, so an inner key is forbidden. See [construction keys](Structured-Input.md#construction-keys).
+The ordinary Cluster closure is not a generic YAML wrapper, and Struct adds no Domain API discovery or type selector.
+
 ## Evolve a Schema behind the Domain API
 
 Suppose Shipping now needs monitoring, but Model Writers should not have to repeat its baseline configuration. Add an

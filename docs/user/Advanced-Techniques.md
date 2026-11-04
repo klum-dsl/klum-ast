@@ -40,6 +40,12 @@ For a domain-named relationship helper that combines `@Builder.Method`, `@Builde
 [Tips and Tricks](Tips-and-Tricks.md#name-a-builder-helper-for-a-seeded-relationship). This keeps a seeded-child shortcut
 distinct from an existing domain converter.
 
+For caller-parsed Struct input, an eligible zero-argument Builder method is invoked with an
+[empty mapping](Structured-Input.md#zero-argument-commands), and an eligible one-payload method receives that value as
+one argument. See [the Groovy/Map/YAML operation example](Structured-Input.md#read-a-concrete-root).
+Multiple arguments, arbitrary closure adaptation, queries and Builder input/result chaining have no general Struct
+call syntax; use an admitted data operation or ordinary Groovy.
+
 ## Sharing a Pure Query with Builders
 
 Ordinary Model methods execute on completed DSL Objects. If a side-effect-free query is also meaningful during

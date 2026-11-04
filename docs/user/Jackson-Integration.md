@@ -19,6 +19,11 @@ native durable representation of a Klum model.
 interoperability contract and supersedes ADR 0007's persistence framing. [Issues #439](https://github.com/klum-dsl/klum-ast/issues/439) and [#440](https://github.com/klum-dsl/klum-ast/issues/440) provide the existing
 resolved-property, Builder, identity, and customization groundwork.
 
+For data authored against the Schema's admitted Builder language, [Struct input](Structured-Input.md#relate-groovy-and-yaml)
+offers generated Factory/Builder entry points taking caller-parsed Maps. It does not invoke this managed importer or
+inherit its codecs, reference binding, mapper coercion or export behavior. YAML parsing remains caller-owned in either
+workflow; sharing a literal property spelling does not make the two input contracts interchangeable.
+
 ## Responsibilities by Role
 
 - A **Client Developer** supplies a configured mapper, invokes managed import, and writes completed models through normal

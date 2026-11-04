@@ -632,6 +632,21 @@ Deployment template = Deployment.Create.Template.FromStruct(parsed, "deployment.
 (See: `StructuredInputTemplateDocumentaryTest#'parsed keyless bodies define ordinary reusable Template recipes'`.)
 
 ```groovy
+// Relevant Schema members (as in the documentary fixture):
+@DSL class Deployment {
+    @Key String name
+    String region
+    Service primary
+    Map<String, Service> services
+    @Builder.Method void locate(String value) { region = value }
+}
+@DSL class Service { @Key String name; String image }
+
+def ordinary = Deployment.Create.Template.With {
+    locate 'eu'
+    primary('api') { image 'api:1' }
+    service('worker') { image 'worker:1' }
+}
 def parsed = [locate: 'eu', primary: [name: 'api', image: 'api:1'],
               services: [worker: [image: 'worker:1']]]
 def template = Deployment.Create.Template.FromStruct(parsed, 'deployment.yaml')
@@ -640,6 +655,23 @@ Deployment.Template.With(template) {
 }
 ```
 
+For the same keyless root recipe, caller-parsed YAML supplies:
+
+(See: `StructuredYamlDocumentaryTest#'caller parsed keyless YAML defines a reusable Template recipe'`.)
+
+```yaml
+locate: eu
+primary:
+  name: api
+  image: api:1
+services:
+  worker:
+    image: worker:1
+```
+
+The direct child `primary` carries its own key; the Map child gets `worker` from the outer entry. The root key belongs
+to the eventual recipient. Selecting the Template and entering `Template.With` remain caller code, with no YAML keyword.
+
 Definition executes admitted operations and converters to configure the recipe, but runs no lifecycle callbacks or
 phases. Applying it creates fresh recipient Builders and runs the normal lifecycle. Input is processed in order; a failure
 returns no Template, but earlier configuration side effects are not rolled back. The ordinary Builder application route still requires an active ordinary Builder. See [structured input](Structured-Input.md) for admitted forms and
@@ -647,6 +679,10 @@ returns no Template, but earlier configuration side effects are not rolled back.
 
 See [`StructuredInputTemplateDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputTemplateDocumentaryTest.groovy),
 “parsed keyless bodies define ordinary reusable Template recipes” ([#953](https://github.com/klum-dsl/klum-ast/issues/953)).
+
+The inline YAML path is exercised by
+[`StructuredYamlDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredYamlDocumentaryTest.groovy),
+“caller parsed keyless YAML defines a reusable Template recipe” ([#1015](https://github.com/klum-dsl/klum-ast/issues/1015)).
 
 ### Owned child sequences in structured Templates
 
