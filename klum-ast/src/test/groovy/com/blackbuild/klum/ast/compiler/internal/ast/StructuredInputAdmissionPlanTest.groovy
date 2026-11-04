@@ -77,7 +77,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.rejections().empty
     }
 
-    def "classifies direct and inherited WIRE-PLAN entries from compiler provenance"() {
+    @Issue('1021')
+    def "classifies direct and inherited entries from compiler provenance"() {
         given:
         def unit = compilationUnit(StructuredInputContractFixtures.ADMISSION)
 
@@ -107,7 +108,10 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.entries().find { it.externalName() == 'children' }.with {
             mapKeyType() == 'java.lang.String' && excludedChildKeyMember() == 'name' && payload().builder() == 'admission.Child_DSL$Builder'
         }
-        plan.entries()*.operation().every { it.declaringBuilder().endsWith('_DSL$Builder') && it.descriptorGroup() }
+        plan.entries().every { entry ->
+            entry.operation().declaringBuilder().endsWith('_DSL$Builder') &&
+                    (entry.operation().descriptorGroup().empty == (entry.role().name() in ['OWNED_OBJECT', 'KEYED_OWNED_MAP']))
+        }
         plan.rejections()*.reason() == ['excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)', 'excluded by @JsonIgnore(true)']
     }
 
@@ -325,6 +329,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         plan.rejections().any { it.source().contains('filtered(java.lang.Integer)') && it.reason() == 'excluded by @JsonIgnore(true)' }
     }
 
+    @Issue('1021')
     def "minimal public Builder annotations retain field selection and source facts"() {
         given:
         def unit = compilationUnit('''
@@ -365,7 +370,7 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         then:
         plan.entries()*.role()*.name().containsAll(['PROPERTY', 'OWNED_OBJECT', 'KEYED_OWNED_MAP', 'OPERATION'])
         annotations.findAll { it.annotation == 'Lcom/blackbuild/klum/ast/Builder$Method;' }*.method == ['rename']
-        annotations.findAll { it.annotation == 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Selection;' }*.method.containsAll(['title', 'child', 'children'])
+        annotations.findAll { it.annotation == 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Selection;' }*.method.containsAll(['title', 'getChild', 'getChildren'])
         annotations.findAll { it.annotation == 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Field;' }*.method.containsAll(['getTitle', 'getChild', 'getChildren'])
         !new File(compilerConfiguration.targetDirectory, 'annotationcandidate/Parent_DSL$WirePlan.class').exists()
     }

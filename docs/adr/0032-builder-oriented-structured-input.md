@@ -71,6 +71,24 @@ user code; matched compiler/runtime/plugin and Schema recompilation remain requi
 containers, EnumSet, aggregation, scalar converters and general recursive collection grammar are excluded from this slice.
 See [SEQ-1 evidence](../implementation/input-round-seq1-evidence.md) for implementation and qualification status.
 
+## Owned field relationship admission cleanup — #1021 cut 3
+
+Direct concrete owned children and String-keyed owned Maps use the same normal internal preparation/attachment
+mechanics as before. Their existing `GeneratedInput.Selection` field/role association is recorded once on the owning
+field accessor, alongside the existing field, exclusion and child-key-authority facts. The accessor signature supplies
+the declared child Builder type or Map key/value types. Compiler classification and the immutable runtime entry retain
+no public sibling overload group for these relationships; construction invocation names remain the original field names.
+Missing, contradictory or incompatible relationship/type/key facts still reject before interpretation or projection.
+No annotation members, protocol version, public signatures or input shapes change; matched artifact recompilation remains
+required, without a mixed-toolchain promise.
+
+The ordinary internal seams authoritatively enforce active Construction ownership, mutability, fresh/reused child
+configuration, key handling, attachment and lifecycle. Public creator overloads are unused by these Struct paths, so
+their presence and customization do not establish admission. Ordinary Groovy calls continue dispatching normally.
+Executable scalar/population/operation selections, the virtual callable sink and literal CollectionFactory association
+checks retain their existing requirements. Cut 4 and the deferred Factory/CollectionFactory/collision questions remain
+separate. This cleanup changes no JSON Schema, Jackson, naming, diagnostic or public Factory/Builder behavior.
+
 ## Context and successor boundary
 
 The delivered interpreter has useful concrete-child, keyed-Map, scalar and authored-operation support. However, an
