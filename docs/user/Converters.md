@@ -240,7 +240,7 @@ class PortNumber {
 
 // The Model Writer supplies a String scalar, not a nested parameter object.
 def parsed = ['port-number': '1234'] // Structured input selects the compiled String converter.
-// The converter receives '1234'; root/Builder entry-point delivery is separate.
+// The converter receives '1234' through Create.FromStruct(parsed) or active-Builder applyStruct(parsed).
 ```
 
 Quote numeric YAML values: `port-number: "1234"`. Numbers, null and other non-String values reject structurally; an

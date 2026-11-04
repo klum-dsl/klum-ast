@@ -218,6 +218,12 @@ def deployment = Deployment.Create.With('catalog') {
 
 (See: `FactoryConstructionTest#'builds a completed deployment configuration with Create.With'`.)
 
+For caller-parsed YAML/JSON data, use [Struct Factory creation](Structured-Input.md#factory-roots) or
+[active-Builder application](Structured-Input.md#apply-to-an-active-builder). The
+[Groovy/YAML guide](Structured-Input.md#relate-groovy-and-yaml) links the admitted nested, keyed, operation and collection
+forms. Ordinary named-map calls and `Create.FromMap` keep their separate contracts; a Map accepted by one route is not
+automatically a Struct document.
+
 There are also a couple of [Convenience Factories](Convenience-Factories.md) to load a model into client code.
 
 ## Lifecycle Methods
@@ -381,6 +387,10 @@ Foo.Create.With {
     values(["bli", "blu"])
 } 
 ```
+
+The value-only `keyMapping` form above has no Struct/YAML equivalent. Struct Maps use literal String entry keys;
+derived-key population is not inferred from a value sequence. Use Groovy or an eligible Schema-authored List operation.
+See [Struct boundaries](Structured-Input.md#groovy-forms-without-a-struct-equivalent).
 
 ### Setters and closures for DSL-Object Fields
     
@@ -679,6 +689,9 @@ Config.Create.With {
 #### Automatic Key determination for DSL-Map entries
 In case of a keyed Map-Element, the key is automatically used as key for the map entry.
 This can be overridden using `@Field.keyMapping`, which also allows using unkeyed elements in Maps.
+
+That derived-key override remains a Groovy capability. Struct's [keyed owned Maps](Structured-Input.md#construction-keys)
+accept literal outer construction keys and exclude custom `keyMapping`; neither a literal Map nor a sequence enables it.
 
 (See: `BasicsKeyMappingDocumentaryTest#'uses default and configured keys for DSL map entries'`.)
 

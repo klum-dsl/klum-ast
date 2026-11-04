@@ -632,6 +632,21 @@ Deployment template = Deployment.Create.Template.FromStruct(parsed, "deployment.
 (See: `StructuredInputTemplateDocumentaryTest#'parsed keyless bodies define ordinary reusable Template recipes'`.)
 
 ```groovy
+// Relevant Schema members (as in the documentary fixture):
+@DSL class Deployment {
+    @Key String name
+    String region
+    Service primary
+    Map<String, Service> services
+    @Builder.Method void locate(String value) { region = value }
+}
+@DSL class Service { @Key String name; String image }
+
+def ordinary = Deployment.Create.Template.With {
+    locate 'eu'
+    primary('api') { image 'api:1' }
+    service('worker') { image 'worker:1' }
+}
 def parsed = [locate: 'eu', primary: [name: 'api', image: 'api:1'],
               services: [worker: [image: 'worker:1']]]
 def template = Deployment.Create.Template.FromStruct(parsed, 'deployment.yaml')
@@ -639,6 +654,21 @@ Deployment.Template.With(template) {
     def production = Deployment.Create.With('production')
 }
 ```
+
+For the same keyless root recipe, caller-parsed YAML supplies:
+
+```yaml
+locate: eu
+primary:
+  name: api
+  image: api:1
+services:
+  worker:
+    image: worker:1
+```
+
+The direct child `primary` carries its own key; the Map child gets `worker` from the outer entry. The root key belongs
+to the eventual recipient. Selecting the Template and entering `Template.With` remain caller code, with no YAML keyword.
 
 Definition executes admitted operations and converters to configure the recipe, but runs no lifecycle callbacks or
 phases. Applying it creates fresh recipient Builders and runs the normal lifecycle. Input is processed in order; a failure

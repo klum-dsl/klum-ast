@@ -8,6 +8,29 @@ and [`Create.Template.FromStruct`](Templates.md#structured-input-templates) for 
 Parsing remains caller-owned. No JSON/YAML parser, file or URL loading is added. An optional source name is opaque
 nonempty diagnostic text, never a locator or a model key.
 
+## Relate Groovy and YAML
+
+Struct is a data language for the Schema's admitted construction operations. A YAML mapping member names an input
+entry; its value supplies that entry's payload. A nested owned body configures a child, while an ordinary typed Map
+operation receives one Map argument. A sequence populates an admitted collection. These shapes follow the Schema;
+they are not a serialization of arbitrary Groovy calls.
+
+The examples on this page start after parsing. For each YAML block, supply the equivalent String-keyed Map to the
+chosen Factory or active Builder. The caller chooses the parser, preserves any required order and rejects duplicate
+member names before they collapse into a Map. KlumAST neither reads the YAML nor automatically validates JSON Schema.
+
+| What you want to configure | Groovy/Struct examples and identity rule |
+| --- | --- |
+| A completed root | [Factory roots](#factory-roots): `Create.FromStruct(document)`; keyed roots either carry their actual key or receive an explicit key with a keyless body. |
+| An existing active Builder | [Builder application](#apply-to-an-active-builder): `applyStruct(body)` configures the receiver; it never returns a replacement or completes construction. |
+| Direct children and keyed Maps | [Construction keys](#construction-keys): direct keyed children normally carry their own key; keyed Map entries supply identity outside the child body. |
+| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements) and [converter Map values](#converter-backed-map-values): each has its own declared target and input restrictions. |
+| A domain operation or command | [The endpoint example](#read-a-concrete-root), [String selection](#select-a-string-operation) and [zero-argument commands](#zero-argument-commands): one payload or an empty command mapping, without argument spreading. |
+| A reusable Template | [Structured Templates](Templates.md#structured-input-templates): a keyless root recipe; caller code chooses how to apply it. |
+
+Ordinary Groovy remains available for forms outside this language. See [other relationship boundaries](#other-relationship-boundaries)
+and [Groovy forms without a Struct equivalent](#groovy-forms-without-a-struct-equivalent) before assuming parity.
+
 ## Read a concrete root
 
 A Schema can expose domain operations that configure several properties:
@@ -33,10 +56,22 @@ import com.blackbuild.klum.ast.DSL
 For that Schema, the parsed configuration is a Map such as:
 
 ```groovy
+def ordinary = Application.Create.With {
+    endpoint(host: 'api', port: '8080')
+}
 def parsed = [endpoint: [host: 'api', port: '8080']]
 def application = Application.Create.FromStruct(parsed, 'application.yaml')
 assert application.host == 'api'
 assert application.port == 8080
+```
+
+The corresponding YAML supplies one Map payload to `endpoint`; `port` is quoted because the operation declares
+`Map<String, String>`, even though its body produces an integer property:
+
+```yaml
+endpoint:
+  host: api
+  port: "8080"
 ```
 
 The admitted `endpoint` operation sets `host` to `api` and `port` to 8080. Use a Factory selecting a concrete Schema; its ordinary default-implementation selection still applies. Root input must be a Map with String keys. A self-contained
@@ -74,6 +109,10 @@ def document = Service.Create.FromStruct(['service-id': 'catalog', host: 'api'])
 def explicit = Service.Create.FromStruct('catalog', [host: 'api'], 'request')
 assert document.name == explicit.name
 ```
+
+For the self-contained document, YAML includes `service-id: catalog` alongside `host: api`. For the explicit-key
+Factory call, YAML contains only `host: api`; caller code supplies `'catalog'`. The same keyless host body can be
+applied inside `Service.Create.With('catalog')` using `applyStruct([host: 'api'])`.
 
 The explicit-key body forbids `service-id`, even if its value equals the argument. Both root forms run exactly one
 root PostApply, with identity available before PostCreate. `sourceName` is optional, opaque diagnostic text only;
@@ -227,6 +266,7 @@ The self-contained parsed document includes root and direct-child identity:
 def parsed = [name: 'production',
               service: ['service-id': 'catalog', image: 'catalog:1.0'],
               services: [worker: [image: 'worker:1.0']]]
+def deployment = Deployment.Create.FromStruct(parsed)
 ```
 
 Root identity is `production`, direct-child identity is `catalog`, and the literal Map entry supplies `worker`.
@@ -400,6 +440,12 @@ def schedule = Schedule.Create.FromStruct(
 assert schedule.intervals == [Duration.ofSeconds(5), Duration.ofSeconds(2)]
 ```
 
+Ordinary Groovy uses `Schedule.Create.With { interval 'PT5S'; interval 'PT2S' }`. The corresponding YAML is:
+
+```yaml
+intervals: [PT5S, PT2S]
+```
+
 Each String converts independently in supplied List order and uses ordinary element population. Initializer/default
 entries remain, and an empty List performs no element calls. On the first malformed element or converter failure,
 earlier work remains and later elements/operations are never invoked. Diagnostics retain the source, indexed pointer
@@ -439,6 +485,15 @@ def schedule = Schedule.Create.FromStruct(
 assert schedule.intervals == [primary: Duration.ofSeconds(5), retry: Duration.ofSeconds(2)]
 ```
 
+Ordinary Groovy uses `Schedule.Create.With { interval 'primary', 'PT5S'; interval 'retry', 'PT2S' }`.
+The corresponding YAML keeps those literal data keys:
+
+```yaml
+intervals:
+  primary: PT5S
+  retry: PT2S
+```
+
 Traversal follows the supplied Map's iteration order. Ordinary entry population preserves initializer/default entries,
 replaces an existing key's value according to ordinary Builder behavior, and performs no calls for an empty Map. It
 never calls a whole-container converter or replacement setter. Data keys remain literal even with an external naming
@@ -470,6 +525,13 @@ An empty sequence makes no child calls; existing/default entries remain.
 @DSL class Service { List<Route> routes }
 @DSL class Route { String path }
 
+def ordinary = Service.Create.With {
+    routes {
+        route { path '/health' }
+        route { path '/metrics' }
+        route { path '/health' }
+    }
+}
 def service = Service.Create.FromStruct([
     routes: [[path: '/health'], [path: '/metrics'], [path: '/health']]
 ])
@@ -526,6 +588,29 @@ then identity. See [literal names and exclusion](#literal-names-and-exclusion). 
 [operation selection](#select-a-string-operation); unresolved collisions reject without choosing a winner.
 An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
 Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
+
+## Groovy forms without a Struct equivalent
+
+Availability belongs to each admitted family. A working Groovy overload or a YAML-compatible value alone does not
+make an entry available. In particular:
+
+| Ordinary Groovy capability | Struct boundary and workaround |
+| --- | --- |
+| Keyed child Lists/Sets and subtype collection creators | Owned sequences currently require concrete nongeneric **unkeyed** children. Use Groovy for keyed sequences; a keyed Map changes the collection semantics. Only the [single literal keyed Map alternative](#literal-collection-alternative) supplies subtype selection. |
+| `@Field.keyMapping` value-only adders | No derived-key value sequence is admitted for scalar or owned Maps. Use ordinary Groovy or an eligible domain List operation; writing literal outer keys does not enable the derived-key route. |
+| String converters for owned DSL values, converter-backed Sets, or CharSequence-only List/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
+| Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |
+| Repeated or interleaved calls with the same name | A Map cannot retain duplicate member names. Use a domain List operation or Groovy. Normal Map traversal order does not introduce a general event-sequence language. |
+| Implicit clear/replace and null setters | Null is rejected at every depth; empty containers make no population calls and do not clear a field. An eligible authored `clearRoutes()` command can be called as `clearRoutes: {}`; its body owns the effect. |
+| Caller Class/Factory tokens, existing LINK targets and reference lookup | No type name, `$ref` or object token is interpreted. Caller-established context and ordinary Schema linking phases can still be used. Managed Jackson has its [own binding contract](Jackson-Integration.md). |
+| Arbitrary closure/SAM scopes, Builder queries/results and Cluster grouping | No generic closure adaptation, query invocation or result chaining. Use admitted fields/operations directly; fixed Cluster keys retain [Schema authority](#construction-keys). The concrete virtual family below is a bounded exception. |
+| Template selection, `copyFrom`, `applyLater` and multi-source composition | Caller code owns Template scopes, donors and scheduling. A [Struct Template](Templates.md#structured-input-templates) is a recipe definition, not a YAML selector. Applying bodies does not define merge/reset/precedence policy. |
+
+Schema-defined [defaults](Default-Values.md), [phases](Model-Phases.md), [validation](Validation.md) and inheritance retain
+their ordinary behavior without extra YAML directives. Struct population is separate from [copy strategies](Copy-Strategies.md).
+Generated [JSON Schema](Json-Schema.md) describes the admitted input shapes; it neither promises every Groovy expression
+nor exports a completed Model. Jackson codecs, aliases, mapper coercion and import/export behavior do not follow from
+Struct's compatible literal naming annotations.
 
 ## Literal collection alternative
 
