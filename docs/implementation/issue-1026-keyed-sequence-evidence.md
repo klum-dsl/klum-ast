@@ -61,10 +61,24 @@ whose sole source was the removed keyed exclusion.
 - Source-free binary fixture: all seven cases passed, including interpretation and JSON Schema projection on Groovy 3/4/5.
 - Independent `jsonschema==4.23.0` validator: 36 accepted / 72 rejected keyed cases and 45 accepted / 225 rejected
   unkeyed cases passed against the actual emitted Groovy 3/4/5 schemas.
-- Markdown fence and relative-file checks passed (156 links); final diff and renderer checks are recorded after completion.
+- Complete `./gradlew check --continue --max-workers=4` passed at implementation commit
+  `2e26fdfefead4455b90e50279efeb5a0b29e493a`: 11,007 cases, zero failures/errors, 49 existing skips; 14m 31s.
+  This includes the full Groovy 3/4/5 compiler/runtime/adapter suites, 665 Gradle plugin cases, lane isolation,
+  license/static checks and aggregate coverage reports.
+- `renderVersionedDocumentation verifyRenderedDocumentationSite` passed from the same exact source and renderer
+  revision with version `4.2.0-tracer`, status `tracer`, and `docs/branding/season-4-klumast.json`. Verification used
+  a fresh empty output tree and a single-use daemon (`--no-daemon -Dorg.gradle.jvmargs=-Xmx2g --max-workers=2`).
+- Markdown fences, relative-file links and the final diff check passed. The final evidence-record commit changes
+  no production, test or user-page inputs relative to the fully validated implementation above.
+- Commit-history review retained the characterization, bounded implementation and explicit legacy-regression update
+  as separate reasoning steps. Exactly two review subagents covered the implementation and every follow-up.
+- Delivery authorization: Git SSH channel authorized by dedicated-branch push dry run; gh CLI channel authorized by
+  repository permission preflight. No GitHub App write authority is inferred from either result.
 
 The first combined build/render invocation omitted the renderer's required explicit immutable-revision properties.
 That attempt was cancelled after the rendering setup error and is not counted as passing validation; root check and
-rendering are rerun separately on committed artifacts.
+rendering were rerun separately on committed artifacts. The reused Gradle daemon later exhausted its default heap
+during the documentation crawl; the fresh 2 GiB run above passed. Its retry used a new empty output directory as
+required by the immutable renderer. The task-generated heap dump was removed without inspecting its contents.
  Hosted CI/SonarCloud and merge state
 are separate delivery evidence. Tracker impact is neutral `Related: #1026`; #1026 remains open for Hive reconciliation.
