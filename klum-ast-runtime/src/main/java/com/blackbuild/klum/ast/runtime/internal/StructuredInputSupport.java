@@ -337,10 +337,10 @@ public final class StructuredInputSupport {
                 case COMMAND -> {
                     if (!(input instanceof Map<?, ?> map) || !map.isEmpty())
                         throw bad(entry, path, "empty Map for a zero-argument command", input, null);
-                    new Invocation(source, path, entry, method(entry, path)).invoke(builder, new Object[0], path);
+                    new Invocation(source, path, entry, entry.dispatch()).invoke(builder, new Object[0], path);
                 }
                 case PROPERTY, OPERATION -> {
-                    Invocation invocation = new Invocation(source, path, entry, method(entry, path));
+                    Invocation invocation = new Invocation(source, path, entry, entry.dispatch());
                     if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST) {
                         populateList(invocation, input, builder);
                     } else if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.MAP) {
@@ -355,7 +355,7 @@ public final class StructuredInputSupport {
         private void executeVirtualChild(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
             if (!(input instanceof Map)) throw bad(entry, path, "domain Map for " + entry.payload().type().getName(), input, null);
             Domain child = domain(entry.payload().type(), input, path, Position.DIRECT);
-            Invocation invocation = new Invocation(source, path, entry, entry.methods().get(0));
+            Invocation invocation = new Invocation(source, path, entry, entry.dispatch());
             invocation.recordInvocation(builder);
             builder.createVirtualChildWithConfiguration(entry.operation(), entry.payload().type(), child::execute,
                     nested -> invocation.invoke(builder, new Object[]{nested}, path));
@@ -454,21 +454,6 @@ public final class StructuredInputSupport {
         private static Position directPosition(Entry entry) {
             if (entry.schemaKey()) return Position.SCHEMA_CHILD;
             return Position.DIRECT;
-        }
-
-        private Method method(Entry entry, String path) {
-            Class<?>[] signature;
-            if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST)
-                signature = new Class<?>[]{entry.payload().item().type()};
-            else if (entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.MAP)
-                signature = new Class<?>[]{String.class, entry.payload().item().type()};
-            else if (entry.role() == Role.COMMAND) signature = new Class<?>[0];
-            else signature = new Class<?>[]{entry.payload().type()};
-            List<Method> candidates = entry.methods().stream()
-                    .filter(method -> Arrays.equals(method.getParameterTypes(), signature)).toList();
-            if (candidates.size() != 1)
-                throw bad(entry, path, "one compiler-recorded exact payload/population signature; recompile the Schema", null, null);
-            return candidates.get(0);
         }
 
         private Value value(Entry entry, Payload payload, Object input, String path) {
