@@ -77,6 +77,8 @@ public final class GeneratedInput {
         /** Explicit zero/one association count; stripping the association must fail closed. */
         int alternativeCount() default -1;
         String value();
+        /** Owned sequence relationship; element invocation name for ordinary construction attribution, not an overload selection. */
+        String sequenceElement() default "";
         /** Compiler-folded origin; explicitly emitted by current producers. */
         String nameOrigin() default "";
         String rename() default "";

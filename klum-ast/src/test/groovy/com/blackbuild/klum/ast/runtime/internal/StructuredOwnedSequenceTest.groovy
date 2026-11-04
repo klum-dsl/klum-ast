@@ -32,7 +32,6 @@ import groovyjarjarasm.asm.ClassVisitor
 import groovyjarjarasm.asm.ClassWriter
 import groovyjarjarasm.asm.MethodVisitor
 import groovyjarjarasm.asm.Opcodes
-import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -542,11 +541,24 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         contract.entries().routes.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE
         contract.entries().routes.payload().type().name == 'setprobe.Route'
         contract.entries().routes.operation() == 'route'
-        contract.entries().routes.methods().size() == 4
-        contract.entries().routes.methods().any { it.parameterTypes.toList() == [Map, Closure] }
+        contract.entries().routes.methods().empty
 
         where:
         kind << ['List', 'Set', 'SortedSet', 'NavigableSet']
+    }
+
+    def 'sequence execution needs no public creator overload'() {
+        given:
+        def service = schema('List<Route> routes')
+        damageContract('no creator overloads')
+
+        when:
+        def model = service.Create.FromStruct([routes: [[path: '/direct-relationship']]])
+
+        then:
+        model.routes*.path == ['/direct-relationship']
+        service.children.size() == 1
+        service.events.contains('apply:/direct-relationship:0')
     }
 
     def 'corrupt sequence projection fails before user initialization: #damage'() {
@@ -563,10 +575,10 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         !(deepest(failure) instanceof AssertionError)
 
         where:
-        damage << ['missing creator', 'missing convenience creator', 'missing selection', 'raw getter', 'wrong item', 'wrong role']
+        damage << ['missing relationship', 'raw getter', 'wrong item', 'empty element']
     }
 
-    def 'descendant creator replacements exclude inherited sequence input: #parameters'() {
+    def 'descendant creator customizations retain inherited relationship input: #parameters'() {
         given:
         def service = schema('List<Route> routes')
         loader.parseClass """
@@ -595,21 +607,21 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
 
         then:
         service.events.contains('override')
-        !contract.entries().containsKey('routes')
-        contract.rejections().any { it.reason().contains('overridden') }
+        contract.entries().routes.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE
 
         when:
-        leaf.Create.FromStruct([routes: [[path: '/must-not-bypass']]])
+        def model = leaf.Create.FromStruct([routes: [[path: '/direct-relationship']]])
 
         then:
-        thrown(KlumModelException)
-        service.children.empty
+        model.routes*.path == ['/direct-relationship']
+        service.children.size() == 1
+        service.events.count('override') == 1
 
         where:
         parameters << ['Map values, Closure body', 'Closure body', 'Map values', '']
     }
 
-    def 'same-Schema creator replacements exclude sequence input: #parameters'() {
+    def 'same-Schema creator customizations retain relationship input: #parameters'() {
         given:
         def service = schema('List<Route> routes; @Builder.Method Object route(' + parameters + ') { null }')
 
@@ -617,22 +629,16 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         def contract = new InputContractResolver().read(service)
 
         then:
-        !contract.entries().containsKey('routes')
+        contract.entries().routes.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE
+
+        when:
+        def model = service.Create.FromStruct([routes: [[path: '/direct-relationship']]])
+
+        then:
+        model.routes*.path == ['/direct-relationship']
 
         where:
         parameters << ['Map values, Closure body', 'Closure body']
-    }
-
-    def 'same-Schema default-argument collisions remain ordinary compilation failures: #parameters'() {
-        when:
-        schema('List<Route> routes; @Builder.Method Object route(' + parameters + ') { null }')
-
-        then:
-        def failure = thrown(MultipleCompilationErrorsException)
-        failure.message.contains('already defined')
-
-        where:
-        parameters << ['Map values', '']
     }
 
     private void damageContract(String damage) {
@@ -640,23 +646,18 @@ class StructuredOwnedSequenceTest extends AbstractDSLSpec {
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (damage == 'missing creator' && name == 'route' && descriptor.startsWith('(Ljava/util/Map;Lgroovy/lang/Closure;)')) {
-                    return null
-                }
-                if (damage == 'missing convenience creator' && name == 'route' && descriptor.startsWith('()')) {
-                    return null
-                }
+                if (damage == 'no creator overloads' && name == 'route') { return null }
                 if (name == 'getRoutes' && damage == 'raw getter') { signature = null }
                 if (name == 'getRoutes' && damage == 'wrong item') { signature = '()Ljava/util/List<Ljava/lang/String;>;' }
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (damage == 'missing selection' && annotation.endsWith('GeneratedInput$Selection;')) { return null }
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (damage == 'wrong role' && annotation.endsWith('GeneratedInput$Selection;')) {
+                        if (annotation.endsWith('GeneratedInput$Field;')) {
                             return new AnnotationVisitor(Opcodes.ASM9, downstream) {
                                 @Override void visit(String member, Object value) {
-                                    super.visit(member, member == 'role' ? 'PROPERTY' : value)
+                                    if (damage == 'missing relationship' && member == 'sequenceElement') { return }
+                                    super.visit(member, damage == 'empty element' && member == 'sequenceElement' ? '' : value)
                                 }
                             }
                         }

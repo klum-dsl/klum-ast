@@ -249,7 +249,7 @@ final class InputContractResolver {
 
     /** An override owns its own names, exclusion and selection intent; parent annotations cannot select different code. */
     private static boolean overriddenOperation(BuilderContext context, Entry entry) {
-        if (entry.role() != Role.COMMAND && entry.role() != Role.VIRTUAL_OBJECT && entry.role() != Role.OWNED_SEQUENCE && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
+        if (entry.role() != Role.COMMAND && entry.role() != Role.VIRTUAL_OBJECT && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
                 || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class)) return false;
         return entry.methods().stream().anyMatch(inherited -> overridden(inherited, declaredMethods(context)));
     }
@@ -283,10 +283,6 @@ final class InputContractResolver {
             throws IOException, ClassNotFoundException {
         Metadata origin = reader.metadata(entry.contract());
         for (Method selected : entry.methods()) {
-            if (entry.role() == Role.OWNED_SEQUENCE && overridden(selected, declared)) {
-                rejections.add(new Rejection(entry.source(), "inherited ordinary sequence creator is overridden by "
-                        + namingOrigin(context.builder()) + "; use non-overridden ordinary child creators"));
-            }
             if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
                     && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
                     && overridden(selected, declared)) {
@@ -462,8 +458,7 @@ final class InputContractResolver {
             literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
             return;
         }
-        Role role = methods.isEmpty() ? null : selectedRole(metadata, methods, source);
-        if (role == Role.OWNED_SEQUENCE) validateOwnedSequence(fieldPayload(fieldType, role, source), methods, source);
+        Role role = fieldRole(metadata, literal, methods, fieldType, source);
         String reason;
         if (converter == null) {
             reason = fieldReason(fieldType, literal);
@@ -484,7 +479,8 @@ final class InputContractResolver {
         String key = childKey(payload, role, literal, source);
         validateSelection(role, payload, methods, source);
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        entries.add(new Entry(name, role, source, context.builder(), methods.get(0).getName(), List.copyOf(methods), payload,
+        String operation = role == Role.OWNED_SEQUENCE ? literal.sequenceElement() : methods.get(0).getName();
+        entries.add(new Entry(name, role, source, context.builder(), operation, List.copyOf(methods), payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
@@ -658,13 +654,20 @@ final class InputContractResolver {
         return payload;
     }
 
-    private void validateOwnedSequence(Payload payload, List<Method> methods, String source)
+    /** Sequence execution selects the declared relationship, not any public creator overload. */
+    private Role fieldRole(Metadata metadata, Literals literal, List<Method> methods, Type fieldType, String source)
             throws IOException, ClassNotFoundException {
-        if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0
-                || methods.size() != 4 || methods.stream().anyMatch(method -> method.getReturnType() != payload.builder())
-                || !methods.stream().map(method -> List.of(method.getParameterTypes())).collect(Collectors.toSet())
-                        .equals(Set.of(List.of(), List.of(Map.class), List.of(Closure.class), List.of(Map.class, Closure.class))))
-            throw invalid("Owned sequence requires the complete unkeyed ordinary creator family: " + source);
+        if (literal.sequenceElement() == null) {
+            Role role = methods.isEmpty() ? null : selectedRole(metadata, methods, source);
+            if (role == Role.OWNED_SEQUENCE) throw invalid("Missing owned sequence field relationship on " + source);
+            return role;
+        }
+        if (literal.sequenceElement().isBlank() || !methods.isEmpty())
+            throw invalid("Owned sequence requires its field relationship association: " + source);
+        Payload payload = fieldPayload(fieldType, Role.OWNED_SEQUENCE, source);
+        if (!reader.metadata(payload.builder()).key().isEmpty() || payload.type().getTypeParameters().length != 0)
+            throw invalid("Owned sequence requires an unkeyed nongeneric concrete child: " + source);
+        return Role.OWNED_SEQUENCE;
     }
 
     private String childKey(Payload payload, Role role, Literals literal, String source)

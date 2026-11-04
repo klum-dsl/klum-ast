@@ -118,7 +118,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
 
         where:
         mutation << ['strip', 'stripAndCount', 'countMissing', 'countZero', 'countTwo', 'removedVersion', 'schemaVersion', 'field', 'alias', 'target', 'key', 'keyType',
-                     'scope', 'creator', 'missing-field', 'missing-alias', 'missing-target', 'missing-key', 'missing-keyType', 'missing-scope', 'missing-creator', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType', 'emptyAlias', 'arrayMember', 'nestedMember', 'enumMember', 'stripSelection', 'stripCreator', 'creatorField', 'creatorRole']
+                     'scope', 'creator', 'missing-field', 'missing-alias', 'missing-target', 'missing-key', 'missing-keyType', 'missing-scope', 'missing-creator', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType', 'emptyAlias', 'arrayMember', 'nestedMember', 'enumMember', 'stripSelection', 'stripCreator', 'creatorField', 'creatorRole', 'sequenceRelationship']
     }
 
     def 'field naming and inherited associations retain the literal alias: #options'() {
@@ -236,6 +236,9 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
                                 super.visit(member, value)
                             }
                             @Override void visitEnd() {
+                                if (annotation == FIELD && mutation == 'sequenceRelationship') {
+                                    super.visit('sequenceElement', 'element')
+                                }
                                 if (annotation == ASSOCIATION && mutation == 'removedVersion') {
                                     super.visit('version', 1)
                                 }

@@ -122,7 +122,7 @@ final class BuilderContractReader {
                     Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
-                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, AlternativeFacts alternative) {
+                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, AlternativeFacts alternative, String sequenceElement) {
         Literals {
             constraints = constraints == null ? null : List.copyOf(constraints);
             examples = examples == null ? null : List.copyOf(examples);
@@ -148,7 +148,7 @@ final class BuilderContractReader {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
-                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternative);
+                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternative, value.sequenceElement);
     }
 
     private static NameFacts freeze(MutableNameFacts value) {
@@ -260,6 +260,7 @@ final class BuilderContractReader {
         String key;
         String field;
         String selection;
+        String sequenceElement;
         String role;
         String doc;
         final MutableNameFacts names = new MutableNameFacts();
@@ -362,6 +363,8 @@ final class BuilderContractReader {
         if (literal.alternative != null && (!literal.alternative.field().equals(literal.field)
                 || literal.converterCount == null || literal.converterCount != 0))
             throw invalid("Literal alternative lacks its exact owning field on " + source);
+        if (literal.alternative != null && literal.sequenceElement != null)
+            throw invalid("Conflicting owned sequence and literal alternative relationships on " + source);
         if (literal.field != null) {
             validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
         }
@@ -846,6 +849,7 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case "sequenceElement" -> literal.sequenceElement = (String) value;
                 case "alternativeCount" -> {
                     if (!(value instanceof Integer) || literal.alternativeCount != null)
                         throw invalid("Invalid literal alternative count");

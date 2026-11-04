@@ -8,13 +8,14 @@ milestones, curation or release-gate changes. Hive owns delivery/archive reconci
 ## Accepted contract and implementation
 
 One supplied List of child-body Maps configures ordinary owned concrete nongeneric unkeyed DSL children in exact
-`List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields. The compiler selects only the complete ordinary generated
-public creator family associated with that field: `(Map, Closure)`, `(Closure)`, `(Map)` and `()`. The two closure-omission
-projections derive from existing generated creators. Authored same-Schema replacements and descendant overrides of
-any spelling exclude sequence admission, rather than silently bypassing the effective ordinary creator. Existing Selection facts and schema completeness counts
-carry the role; no new metadata carrier, public API, parser or construction engine is introduced.
-The resolver validates destination, child/key/generic facts and exact creator signature before interpreting input or
-projecting schema, without user initialization. Matched compiler/runtime/plugin and Schema hierarchy recompilation
+`List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields. Compiler-owned `sequenceElement` on the public
+field accessor records the relationship and its element invocation name for ordinary construction attribution. The
+accessor's generic type supplies the container and child Builder/DSL type; no creator overload is selected or required.
+The resolver validates destination, concrete child/key/generic facts before interpreting input or projecting schema,
+without user initialization. Same-Schema customization, inherited override or absence of unused public creator overloads
+leaves this direct relationship operation usable. Struct is an alternative input language, not a separate security boundary.
+No public API, parser or construction engine is introduced.
+Matched compiler/runtime/plugin and Schema hierarchy recompilation
 remain required; the existing development protocol marker alone does not establish mixed-artifact compatibility.
 
 `InternalKlumBuilder.addNewDslElementToCollectionWithConfiguration` extracts the existing ordinary Consumer interval:
@@ -52,8 +53,8 @@ Its returned-Builder timing counterexample is retained. No duplicate probe frame
   identity; natural-order/typed-comparator/materialization failures; ownership, placement and partial state;
   initial children, empty sequences, initial/default and child Template values; Template definition/fresh recipient
   parity; malformed containers/bodies, source/escaped supplied-index diagnostics and skipped later operations;
-  excluded keyed/abstract/aggregation families; source-free positive inspection and stripped/corrupt creator, selection,
-  role and getter controls before Schema initialization.
+  excluded keyed/abstract/aggregation families; source-free positive inspection and missing/incompatible relationship
+  and getter controls before Schema initialization; direct execution with absent public creators and customized overloads.
 - `BinaryOwnedRelationshipsTest`: source-free separately packaged G3/G4/G5 APIs/Schemas and consumers, inherited sequence
   fields, renamed child member bodies, runtime ownership/order/equality parity and actual schema generation.
   Sources/classes/mirrors are unavailable to the consumer; initialization traps distinguish inspection from execution.
@@ -76,7 +77,7 @@ selector semantics, comparison/initializer repairs, parser/Jackson/copy/composit
 collection grammar. Nested declared child members retain their independently admitted grammar. This is a Related slice
 of #952; no broader grammar, adopter release qualification or issue completion follows.
 
-Review the exact generated creator selection and reflected integrity before exclusion, then the shared preparation
+Review the declared relationship/type facts and reflected integrity before exclusion, then the shared preparation
 interval, indexed exception wrapper and unchanged target insertion. For Sets, separate operation order from retained
 representatives, graph lifecycle and completed iteration. Check Template retained-recipe behavior rather than promising
 replay of original input. Existing ordinary size-based placement behavior is deliberately preserved.
@@ -92,14 +93,18 @@ The intermediate source-free child initialization traps and 597 Struct regressio
 The completed final qualification below supersedes that intermediate scope. No local SonarCloud upload was performed;
 hosted CI/Sonar on a published head remains separate.
 
-## Initial local review corrections
+## Initial local review corrections (creator-family restriction superseded)
+
+The complete-family exclusion recorded below was later rejected by the maintainer as over-verification. The reduced
+relationship invariant in the accepted contract above and the follow-up below supersedes that admission restriction;
+this section preserves the qualification history of the earlier revision.
 
 Exactly two declared read-only children reviewed base `097b0d5619a5f3cac0c05a5956fda530ff34bf0d` through
 `4602c99334013491fe0d3b0432ecced08acbd056`. Standards requested a `when`/`then` block for the Template's multiple
 assertions. Specification found inherited creator overrides could be bypassed by the internal callback. All four
 replacement spellings reproduced the missing exclusion before the correction.
 
-The compiler now proves both original closure-bearing creators and their existing public closure-omission projections,
+At that revision, the compiler proved both original closure-bearing creators and their existing public closure-omission projections,
 records all four exact selections, and excludes authored same-Schema replacements. The resolver requires this complete
 family and rejects descendant overrides through inherited descendants. The ordinary override remains callable while
 Struct rejects its route. Same-Schema Map/no-argument collisions retain ordinary default-argument compilation errors;
@@ -208,3 +213,34 @@ configuration, module descriptor or user grammar changes require another full ro
 historical evidence for its exact qualified revision; it is not claimed for this follow-up. User-facing pages require
 no behavioral update; only this implementation evidence changes. Local SonarCloud upload is not performed. The
 consolidated PR follow-up records review disposition and the new revision's hosted CI/SonarCloud state separately.
+
+## Maintainer correction: reduced relationship invariant
+
+The maintainer rejected the complete-four-method proof because execution does not invoke those methods. This additive
+follow-up preserves every reviewed commit and removes compiler family discovery, reflected signature-family validation
+and inherited creator-override exclusions for owned sequences. It does not replace them with another capability verifier.
+
+The reduced invariant is one compiler-recorded owned field relationship on its public accessor, a nonblank element
+invocation name for attribution, and an exact List/Set/SortedSet/NavigableSet declaration whose child Builder resolves to
+a concrete nongeneric unkeyed DSL type. Missing relationship metadata, an erased/raw getter, a scalar item or incompatible
+relationship facts fail closed before user initialization. Existing ownership/shape exclusions remain compiler facts.
+The runtime still executes the same internal preparation + ordinary attachment path. No signature, lifecycle, comparator,
+ownership, partial-failure, Template or schema grammar behavior is changed by overload customization.
+
+The earlier tests whose sole purpose was requiring the unused family have been removed. Replacement acceptance controls
+exercise same-Schema closure overload customization, all four inherited override shapes through a descendant, and actual
+Struct execution after all public element creator declarations are removed from the packaged Builder interface. The
+ordinary customized call remains callable; Struct maps the declared relationship independently. No tested compatibility
+case needs a maintainer decision. Same-Schema Groovy default-argument signature collisions remain ordinary compilation
+behavior outside this change; the redundant tests of that unrelated compiler rule were deleted.
+
+The updated admission tests first reproduced the rejected customization cases. The conflicting relationship mutation
+also reproduced a missing rejection before a local mutual-exclusion guard was added; no capability proof was introduced.
+The final focused Groovy 3 run passes 212 compiler/reader/sequence/literal-metadata cases, zero failures/errors/skips:
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast:test --tests '*StructuredOwnedSequenceTest' --tests '*StructuredInputAdmissionPlanTest' --tests '*CompiledBuilderSchemaTest' --tests '*LiteralAlternativeMetadataTest' --no-parallel --max-workers=2 --console=plain
+```
+
+The preliminary root attempt was stopped for that metadata correction and is not qualification. A new fixed-revision
+root check and documentation render qualify the final source in the follow-up record below. No local Sonar upload is used.
