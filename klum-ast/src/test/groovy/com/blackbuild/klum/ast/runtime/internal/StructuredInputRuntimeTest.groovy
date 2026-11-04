@@ -99,7 +99,12 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
         def document = documentSchema()
         def entries = new InputContractResolver().read(document).entries()
 
-        expect:
+        when:
+        def result = document.Create.FromStruct(
+                [summary: 'ready', words: ['one', 'two'], prices: [east: 2G], add: 3, settings: [host: 'api']],
+                'dispatch.yaml')
+
+        then:
         ['summary', 'words', 'prices', 'add', 'settings'].every { name ->
             entries[name].dispatch().is(entries[name].methods().find { method ->
                 method.name == entries[name].dispatch().name &&
@@ -107,13 +112,6 @@ class StructuredInputRuntimeTest extends AbstractDSLSpec {
             })
         }
         entries.child.dispatch() == null
-
-        when:
-        def result = document.Create.FromStruct(
-                [summary: 'ready', words: ['one', 'two'], prices: [east: 2G], add: 3, settings: [host: 'api']],
-                'dispatch.yaml')
-
-        then:
         result.summary == 'api'
         result.words == ['one', 'two']
         result.prices == [east: 2G]

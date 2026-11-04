@@ -555,6 +555,8 @@ final class InputContractResolver {
             if (methods.size() != 1 || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid(CONVERTER_SIGNATURE_MISMATCH);
+            // Ignored converter fields return before entry dispatch is resolved; their selected method still needs this check.
+            validateVisibility(methods, location);
             Class<?> domain = converterDomain(field, fieldType, method, selected);
             if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, converterParameter(fieldType, method)))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
@@ -676,8 +678,7 @@ final class InputContractResolver {
     }
 
     private static Method resolveDispatch(Role role, Payload payload, List<Method> methods, String source) {
-        if (methods.stream().anyMatch(method -> !Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())))
-            throw invalid("Non-public input selection: " + source);
+        validateVisibility(methods, source);
         if (role != Role.PROPERTY) return null;
         if (payload.item() != null && containsNested(payload.item())) throw invalid("Owned input requires a relationship role: " + source);
         Class<?>[] parameters = switch (payload.kind()) {
@@ -689,6 +690,11 @@ final class InputContractResolver {
         if (selected.size() != 1)
             throw invalid("Missing exact field payload/population signature: " + source);
         return selected.get(0);
+    }
+
+    private static void validateVisibility(List<Method> methods, String source) {
+        if (methods.stream().anyMatch(method -> !Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())))
+            throw invalid("Non-public input selection: " + source);
     }
 
     private static boolean containsNested(Payload payload) {
