@@ -179,7 +179,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue("890")
+    @Issue(["890", "1015"])
     def "Groovy 4 and 5 activate local transformations from the named compiler module"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -390,7 +390,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
-    @Issue(["391", "658", "954", "959", "952", "953"])
+    @Issue(["391", "658", "954", "959", "952", "953", "1015"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -1428,7 +1428,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     'groovy-3.', 'groovy-4.', 'groovy-5.',
                     'anno-docimal-annotations-', 'anno-docimal-ast-', 'anno-docimal-global-ast-',
                     'klum-cast-annotations-', 'klum-cast-compile-', 'klum-cast-spi-', 'jspecify-',
-                    'jackson-', 'jakarta.validation-api-', 'hibernate-validator-', 'jboss-logging-', 'classmate-'
+                    // Only the shipped adapter's Jackson modules belong to this fixture, not the test YAML backend.
+                    'jackson-core-', 'jackson-databind-', 'jackson-annotations-',
+                    'jakarta.validation-api-', 'hibernate-validator-', 'jboss-logging-', 'classmate-'
             ].any { marker -> name.startsWith(marker) }
         })
         paths.unique()

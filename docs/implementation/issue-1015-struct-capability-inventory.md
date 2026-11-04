@@ -49,8 +49,15 @@ universal Groovy-to-YAML translation. All current user prose stays under `docs/u
 | [JSON Schema](../user/Json-Schema.md), [Jackson Integration](../user/Jackson-Integration.md) | Keep schema projection tied to admitted input and Jackson foreign-data binding/export separate. Add a reciprocal route pointer, without promising parser behavior, codecs, reference lookup or round trips for Struct. |
 
 No new user page or API is added, so sidebar/migration changes are unnecessary. No new feature/fix is delivered, so
-`CHANGES.md` keeps its existing grammar entries. No new documentary test is needed: this pass explains already covered
-guarantees and links their fixtures; it does not introduce a new language guarantee or a YAML parser fixture.
+`CHANGES.md` keeps its existing grammar entries. Per the maintainer's clarified acceptance contract, five dedicated
+`StructuredYamlDocumentaryTest` examples parse plain inline YAML with caller-owned `YamlSlurper` before invoking public
+Struct Factory/Builder entry points. They cover keyed root/explicit-key/active-Builder bodies, an authored Map operation,
+direct and Map child identity, owned sequence order/duplicates and reusable Templates. Each links its relevant user
+section through `@See`; the class carries `@Issue('1015')` and `@Tag('documentary')`. Existing grammar fixtures remain
+unchanged except that the JPMS fixture now selects only the shipped adapter's Jackson core/databind/annotations modules
+instead of sweeping in an unrelated YAML backend from the test classpath. Lane-matched `groovy-yaml` dependencies are
+test-only; its transitive Jackson backend is parser implementation, not Klum managed import. No production loader or
+parser API is added.
 
 ## Remaining collection and key forms
 
@@ -119,11 +126,13 @@ explicit literals (F2.1). The other bounded candidates remain selectable indepen
 none is excluded solely because current Schelm documents have a workaround. The generic mechanisms marked reject
 would force awkward syntax or disproportionate machinery for parity. Maintainer acceptance/revision remains outstanding.
 
-No production/compiler/runtime/plugin/test changes, new issues, issue closure, labels, milestones or curation changes
-belong to this pass. The draft PR relationship is **Related: #1015**. Hive must reconcile the maintainer decisions and
+No production/compiler/runtime/plugin changes, new issues, issue closure, labels, milestones or curation changes
+belong to this pass. Documentary tests and their lane-specific parser dependencies are the only executable additions.
+The draft PR relationship is **Related: #1015**. Hive must reconcile the maintainer decisions and
 merged delivery before closing the issue; this inventory alone establishes neither completion nor archive safety.
 
-Validation for this prose-only pass: documentation rendering and rendered link crawl, Markdown relative file/heading
-links and balanced fences, plus `git diff --check`. Groovy 3/4/5 lanes are omitted under the documentation-only testing
-rule. Exactly two independent review subagents, Standards and Specification, review only this branch delta; results and
-any corrections are reported in the delivery handoff. No new consumer run, release qualification or Sonar analysis is claimed.
+Validation includes the focused YAML documentary examples, the repository's required checks for executable tests and
+build dependencies, documentation rendering and rendered link crawl, Markdown relative file/heading links and balanced
+fences, plus `git diff --check`. Exact results and scope are reported in the delivery handoff. The same two independent
+review subagents, Standards and Specification, review the follow-up; no additional review agents are introduced.
+No new consumer run, release qualification or local Sonar analysis is claimed.

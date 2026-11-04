@@ -657,6 +657,8 @@ Deployment.Template.With(template) {
 
 For the same keyless root recipe, caller-parsed YAML supplies:
 
+(See: `StructuredYamlDocumentaryTest#'caller parsed keyless YAML defines a reusable Template recipe'`.)
+
 ```yaml
 locate: eu
 primary:
@@ -677,6 +679,10 @@ returns no Template, but earlier configuration side effects are not rolled back.
 
 See [`StructuredInputTemplateDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputTemplateDocumentaryTest.groovy),
 “parsed keyless bodies define ordinary reusable Template recipes” ([#953](https://github.com/klum-dsl/klum-ast/issues/953)).
+
+The inline YAML path is exercised by
+[`StructuredYamlDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredYamlDocumentaryTest.groovy),
+“caller parsed keyless YAML defines a reusable Template recipe” ([#1015](https://github.com/klum-dsl/klum-ast/issues/1015)).
 
 ### Owned child sequences in structured Templates
 

@@ -75,6 +75,10 @@ dependencies {
 
     sharedTests libs.annodocimal.gradle.plugin
     sharedTests 'org.apache.ivy:ivy:2.5.3'
+    // Caller-owned YAML parsing for Struct documentary examples, aligned with each Groovy lane.
+    testImplementation "org.codehaus.groovy:groovy-yaml:${libs.versions.groovy.v3.get()}"
+    groovy4TestsImplementation "org.apache.groovy:groovy-yaml:${libs.versions.groovy.v4.get()}"
+    groovy5TestsImplementation "org.apache.groovy:groovy-yaml:${libs.versions.groovy.v5.get()}"
     testImplementation project(':klum-ast-test-support')
     groovy4TestsImplementation project(':klum-ast-test-support')
     groovy5TestsImplementation project(':klum-ast-test-support')

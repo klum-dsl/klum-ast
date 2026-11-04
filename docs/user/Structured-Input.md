@@ -19,6 +19,11 @@ The examples on this page start after parsing. For each YAML block, supply the e
 chosen Factory or active Builder. The caller chooses the parser, preserves any required order and rejects duplicate
 member names before they collapse into a Map. KlumAST neither reads the YAML nor automatically validates JSON Schema.
 
+Representative YAML examples are executable in
+[`StructuredYamlDocumentaryTest`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredYamlDocumentaryTest.groovy).
+They use caller-owned `new YamlSlurper().parseText(yaml)` to obtain data before calling public Struct entry points.
+The parser is an example choice; KlumAST adds no YAML loader or managed Jackson binding to this path.
+
 | What you want to configure | Groovy/Struct examples and identity rule |
 | --- | --- |
 | A completed root | [Factory roots](#factory-roots): `Create.FromStruct(document)`; keyed roots either carry their actual key or receive an explicit key with a keyless body. |
@@ -68,6 +73,8 @@ assert application.port == 8080
 The corresponding YAML supplies one Map payload to `endpoint`; `port` is quoted because the operation declares
 `Map<String, String>`, even though its body produces an integer property:
 
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML supplies one nested Map payload to an authored operation'`.)
+
 ```yaml
 endpoint:
   host: api
@@ -113,6 +120,13 @@ assert document.name == explicit.name
 For the self-contained document, YAML includes `service-id: catalog` alongside `host: api`. For the explicit-key
 Factory call, YAML contains only `host: api`; caller code supplies `'catalog'`. The same keyless host body can be
 applied inside `Service.Create.With('catalog')` using `applyStruct([host: 'api'])`.
+
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'`.)
+
+```yaml
+service-id: catalog
+host: api
+```
 
 The explicit-key body forbids `service-id`, even if its value equals the argument. Both root forms run exactly one
 root PostApply, with identity available before PostCreate. `sourceName` is optional, opaque diagnostic text only;
@@ -272,6 +286,8 @@ def deployment = Deployment.Create.FromStruct(parsed)
 Root identity is `production`, direct-child identity is `catalog`, and the literal Map entry supplies `worker`.
 
 This Map could come from YAML such as the following. The caller owns parsing; the source name is only diagnostic text.
+
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML supplies direct child identity and literal Map entry identity'`.)
 
 ```yaml
 name: production
@@ -539,6 +555,8 @@ assert service.routes*.path == ['/health', '/metrics', '/health']
 ```
 
 The corresponding caller-parsed YAML form is:
+
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML preserves owned sequence order and duplicate child bodies'`.)
 
 ```yaml
 routes:
