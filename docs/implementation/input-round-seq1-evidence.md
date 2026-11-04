@@ -244,3 +244,40 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew 
 
 The preliminary root attempt was stopped for that metadata correction and is not qualification. A new fixed-revision
 root check and documentation render qualify the final source in the follow-up record below. No local Sonar upload is used.
+
+
+### Final reduced-contract qualification
+
+Qualified source revision: `3c0b28d5b9f53f6e31efce5bc57d61e2f5ef70c9`, preserving the reviewed parent
+`d7fefc409657ad77ed0daa6376ce78b7e3b4b658`. Java 17 root `check` passed in **27m 45s**, 140 tasks (71 executed,
+69 up to date). This supersedes the prior revision's complete-family qualification for current admission behavior.
+
+| Lane | Cases | Failures/errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 | 4,062 | 0 | 17 |
+| Groovy 4 | 3,375 | 0 | 16 |
+| Groovy 5 | 3,375 | 0 | 16 |
+| Total | **10,812** | **0** | **49** |
+
+All 63 owned-sequence cases and all 40 literal-metadata controls pass independently in each lane with no skips.
+Compiler suites pass 3,021/3,023/3,023 cases; runtime suites pass 73 each, including one existing skip per lane.
+All 665 plugin cases pass, including source-free packaged G3/G4/G5 consumers, custom element invocation names and
+actual schema generation. Binary/JPMS consumer tests and lane-isolation/license checks pass through root `check`.
+No source or revision changed during qualification.
+
+The three freshly emitted owned-sequence schemas pass the independent oracle with **45 accepted / 225 rejected**
+instances. Fresh virtual-scope controls pass **12 / 33**, and literal-alternative controls pass **24 / 75**. All three
+owned-sequence schemas retain SHA-256 `64d806ddde252c12d3f4a16f1f2e6b51dfdfc5909e0337a82d3cf07127f79abe`:
+metadata reduction does not change their grammar. The same oracle commands recorded above were used.
+
+Documentation render and crawl pass in 30s on the qualified source revision; the changed Markdown passes 71 relative
+link targets and fence checks. `git diff --check` passes. The final follow-up record changes this evidence document only;
+user pages and production/test sources retain the qualified content. Both existing read-only reviewers report zero
+remaining Standards/Specification findings after correcting the schema documentation and incompatible-marker guard.
+Neither reviewer edited files, ran builds/tests, spawned children, performed remote actions or changed task lifecycle.
+
+GitHub CLI delivery capability is **authorized**, and the existing issue traceability note is owned by that same account.
+Publication updates the draft PR and existing note to the reduced invariant and current evidence; issue state, labels,
+milestones, curation and release gates remain unchanged. The previous Sonar-only head was hosted-CI/Sonar green; fresh
+hosted checks for this changed metadata revision remain a separate qualification. No local Sonar upload, merge, release
+or self-archive occurs. Hive reconciliation remains required for delivery/archive acceptance.
