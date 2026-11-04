@@ -555,8 +555,8 @@ final class InputContractResolver {
             if (methods.size() != 1 || !literal.exclusion().isEmpty()
                     || selectedRole(context.metadata(), methods, location) != Role.PROPERTY)
                 throw invalid(CONVERTER_SIGNATURE_MISMATCH);
-            // Ignored converter fields return before entry dispatch is resolved; their selected method still needs this check.
-            validateVisibility(methods, location);
+            // Ignored converter fields return before entry dispatch is resolved; admitted fields are checked there.
+            if (literal.names().ignored()) validateVisibility(methods, location);
             Class<?> domain = converterDomain(field, fieldType, method, selected);
             if (!selected.parameterFacts() && !validStructuralConverterDescriptor(selected, converterParameter(fieldType, method)))
                 throw invalid("Structural converter descriptor disagrees with field/overload");
