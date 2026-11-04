@@ -55,7 +55,8 @@ Struct Factory/Builder entry points. They cover keyed root/explicit-key/active-B
 direct and Map child identity, owned sequence order/duplicates and reusable Templates. Each links its relevant user
 section through `@See`; the class carries `@Issue('1015')` and `@Tag('documentary')`. Existing grammar fixtures remain
 unchanged except that the JPMS fixture now selects only the shipped adapter's Jackson core/databind/annotations modules
-instead of sweeping in an unrelated YAML backend from the test classpath. Lane-matched `groovy-yaml` dependencies are
+from its production runtime classpath, instead of sweeping in a YAML backend or newer Jackson versions from the parser's
+test dependencies. Lane-matched `groovy-yaml` dependencies are
 test-only; its transitive Jackson backend is parser implementation, not Klum managed import. No production loader or
 parser API is added.
 

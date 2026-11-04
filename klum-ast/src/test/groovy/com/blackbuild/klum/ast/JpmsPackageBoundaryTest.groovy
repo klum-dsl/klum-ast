@@ -1421,9 +1421,12 @@ class JpmsPackageBoundaryTest extends Specification {
 
     private static List<String> modulePathEntries() {
         List<String> paths = artifacts().values()*.toString()
+        Set<String> adapterPaths = System.getProperty('jpmsAdapterModulePath').split(File.pathSeparator) as Set
         paths.addAll((System.getProperty('java.class.path') + File.pathSeparator +
                 System.getProperty('jpmsAdapterModulePath')).split(File.pathSeparator).findAll { entry ->
             String name = Path.of(entry).fileName.toString()
+            // Parser transitives must not choose a different Jackson version for adapter qualification.
+            if (name.startsWith('jackson-') && !adapterPaths.contains(entry)) return false
             [
                     'groovy-3.', 'groovy-4.', 'groovy-5.',
                     'anno-docimal-annotations-', 'anno-docimal-ast-', 'anno-docimal-global-ast-',
