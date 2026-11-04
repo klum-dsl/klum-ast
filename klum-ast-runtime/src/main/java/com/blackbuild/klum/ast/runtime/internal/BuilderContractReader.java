@@ -50,6 +50,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.*;
@@ -194,6 +195,13 @@ final class BuilderContractReader {
                 method.getGenericReturnType().getTypeName(), literal.doc());
     }
 
+    /** Keep exact metadata and generic signature checks without retaining a description. */
+    static void validateDeclaration(Method method, Literals literal) {
+        if (literal == null) throw invalid("Missing exact contract method " + method);
+        Arrays.stream(method.getGenericParameterTypes()).forEach(Type::getTypeName);
+        method.getGenericReturnType().getTypeName();
+    }
+
     static String descriptor(Method method) {
         return method.getName() + "(" + Arrays.stream(method.getParameterTypes()).map(Class::getTypeName).collect(Collectors.joining(", "))
                 + "):" + method.getReturnType().getTypeName();
@@ -235,15 +243,25 @@ final class BuilderContractReader {
     }
 
     List<Declaration> scope(Class<?> contract) throws IOException, ClassNotFoundException {
+        List<Declaration> result = new ArrayList<>();
+        visitScope(contract, (method, literal) -> result.add(declaration(method, literal)));
+        return List.copyOf(result);
+    }
+
+    void validateScope(Class<?> contract) throws IOException, ClassNotFoundException {
+        visitScope(contract, BuilderContractReader::validateDeclaration);
+    }
+
+    private void visitScope(Class<?> contract, BiConsumer<Method, Literals> visitor) throws IOException, ClassNotFoundException {
         requirePublic(contract);
         Map<Class<?>, Metadata> owners = new LinkedHashMap<>();
-        List<Declaration> result = new ArrayList<>();
         for (Method method : Arrays.stream(contract.getMethods()).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
             Class<?> owner = method.getDeclaringClass();
             if (!owners.containsKey(owner)) owners.put(owner, metadata(owner));
-            result.add(declaration(method, owners.get(owner).methods().get(signature(method))));
+            Literals literal = owners.get(owner).methods().get(signature(method));
+            if (literal == null) throw invalid("Missing exact contract method " + method);
+            visitor.accept(method, literal);
         }
-        return List.copyOf(result);
     }
 
     /** Names belong to selected source declarations, which can share one public accessor signature. */

@@ -102,8 +102,7 @@ final class InputContractResolver {
             Profile naming = resolveNaming(builder);
             Facts facts = collect(builder, new LinkedHashMap<>(), naming == Profile.KEBAB_CASE);
             List<Rejection> rejected = new ArrayList<>(facts.rejections());
-            List<Declaration> declarations = new ArrayList<>(facts.declarations());
-            declarations.addAll(reader.scope(factory));
+            reader.validateScope(factory);
             Map<String, Entry> entries = new LinkedHashMap<>();
             Key key = facts.key();
             if (naming == Profile.KEBAB_CASE) {
@@ -117,7 +116,7 @@ final class InputContractResolver {
             }
             return new CompiledBuilderSchema(builder, model, entries, rejected.stream().distinct()
                     .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(),
-                    declarations, key, reader.metadata(builder).key(), keyCollisions(key, entries, rejected), constraintProfiles(builder));
+                    key, reader.metadata(builder).key(), keyCollisions(key, entries, rejected), constraintProfiles(builder));
         } catch (ReflectiveOperationException | LinkageError | IOException | RuntimeException failure) {
             throw failure(builder.getName(), failure);
         }
@@ -200,7 +199,7 @@ final class InputContractResolver {
         }
     }
 
-    private record Facts(List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations, Key key) { }
+    private record Facts(List<Entry> entries, List<Rejection> rejections, Key key) { }
     private record BuilderContext(Class<?> builder, Class<?> model, Metadata metadata, boolean kebab) { }
 
     private Facts collect(Class<?> builder, Map<Class<?>, Facts> known, boolean nativeCandidates) throws IOException, ClassNotFoundException {
@@ -208,7 +207,6 @@ final class InputContractResolver {
         if (existing != null) return existing;
         List<Entry> entries = new ArrayList<>();
         List<Rejection> rejections = new ArrayList<>();
-        List<Declaration> declarations = new ArrayList<>();
         requirePublic(builder);
         Class<?> model = modelOf(builder);
         if (model == null) throw invalid("Missing Builder self bound: " + builder.getName());
@@ -219,7 +217,7 @@ final class InputContractResolver {
         Map<String, Method> accessors = new LinkedHashMap<>();
         Map<String, List<Method>> selections = new LinkedHashMap<>();
         BuilderContext context = new BuilderContext(builder, model, metadata, nativeCandidates);
-        collectDeclarations(context, accessors, selections, entries, rejections, declarations);
+        collectDeclarations(context, accessors, selections, entries, rejections);
         Key key = declaredKey(context);
         for (Map.Entry<String, Method> field : accessors.entrySet()) {
             List<Method> methods = selections.remove(field.getKey());
@@ -237,12 +235,11 @@ final class InputContractResolver {
             rejectRedeclaredVirtualScopes(context, inherited.entries(), entries, rejections);
             inherited.entries().stream().filter(entry -> !overriddenOperation(context, entry)).forEach(entries::add);
             rejections.addAll(inherited.rejections());
-            declarations.addAll(inherited.declarations());
         }
         validateKeyMetadata(metadata, key, builder);
         if (!nativeCandidates) retainUnmarkedCollisions(entries, rejections);
         List<Entry> resolved = List.copyOf(entries);
-        Facts facts = new Facts(resolved, List.copyOf(rejections), declarations.stream().distinct().toList(), key);
+        Facts facts = new Facts(resolved, List.copyOf(rejections), key);
         known.put(builder, facts);
         return facts;
     }
@@ -391,12 +388,12 @@ final class InputContractResolver {
 
     private void collectDeclarations(BuilderContext context,
                                             Map<String, Method> accessors, Map<String, List<Method>> selections,
-                                            List<Entry> entries, List<Rejection> rejections, List<Declaration> declarations) throws IOException, ClassNotFoundException {
+                                            List<Entry> entries, List<Rejection> rejections) throws IOException, ClassNotFoundException {
         Metadata metadata = context.metadata();
         for (Method method : Arrays.stream(declaredMethods(context)).sorted(Comparator.comparing(BuilderContractReader::descriptor)).toList()) {
             Literals literal = metadata.methods().get(signature(method));
             if (literal == null) throw invalid("Missing exact public declaration " + method);
-            declarations.add(declaration(method, literal));
+            validateDeclaration(method, literal);
             if (literal.field() != null && (!fieldAccessor(method, literal.field())
                     || accessors.putIfAbsent(literal.field(), method) != null))
                 throw invalid("Duplicate or invalid field accessor association " + literal.field());
@@ -497,7 +494,7 @@ final class InputContractResolver {
         Class<?> scope = Class.forName(facts.scope(), false, loader);
         Class<?> declaredBuilder = alternativeMapValue(fieldType, source);
         Class<?> declaredModel = modelOf(declaredBuilder);
-        reader.scope(scope); // Verify exact public classfile resource/origin before binding its recorded descriptor.
+        reader.validateScope(scope); // Verify exact public classfile resource/origin before binding its recorded descriptor.
         Method creator = Arrays.stream(scope.getDeclaredMethods())
                 .filter(method -> descriptor(method).equals(facts.creator())).findFirst()
                 .orElseThrow(() -> invalid("Missing exact literal alternative creator on " + source));
