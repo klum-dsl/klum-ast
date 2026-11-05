@@ -5,7 +5,7 @@ Date: 2026-11-05. Related: [#1030](https://github.com/klum-dsl/klum-ast/issues/1
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md#finite-explicit-literal-groups--1030-2026-11-05).
 Fetched master/base: `91b803b4efbcdb44d4c75f64e82e177eb433abc3`.
 
-Status: implementation and local code qualification complete; documentation rendering and final review follow-ups pending. Hosted CI/SonarCloud and merge
+Status: implemented and locally qualified; both local review axes and documentation rendering/crawl complete. Hosted CI/SonarCloud and merge
 are separate delivery conditions. The issue remains open for Hive reconciliation.
 
 ## Characterization before admission
@@ -126,8 +126,19 @@ JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew \
   --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --no-parallel --max-workers=2
 ```
 
-Both original review children will inspect the committed cleanup; documentation rendering/crawl will run from that clean
-revision. The changed Markdown paths/anchors and balanced fences passed (258 local references), as did `git diff --check`.
+Both original review children inspected the committed cleanup at `33af67f70ac1e14d0b3731b1bbe87d302dcbdfc8`:
+**Standards: zero unresolved findings; Specification: zero actionable findings.** No additional reviewers were created.
+
+Current user documentation rendered and the rendered site crawl passed from that same clean revision:
+
+```shell
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew renderLocalDocumentation \
+  -PdocumentationVersion=4.2.0-tracer --no-daemon -Dorg.gradle.jvmargs=-Xmx2g \
+  --no-parallel --max-workers=2
+```
+
+The changed Markdown paths/anchors and balanced fences also passed (258 local references), as did `git diff --check`.
+This final evidence-only commit changes no production code, tests or current user pages from the qualified source tree.
 The commit sequence is reviewed as characterization, bounded implementation, synchronized documentation, and an additive
 review cleanup; the reviewed commits are preserved.
 
