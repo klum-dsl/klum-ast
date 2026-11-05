@@ -36,13 +36,13 @@ import java.util.function.Consumer
 import spock.lang.Issue
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
-@Issue('952')
+@Issue(['952', '1030'])
 class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
     private URLClassLoader artifacts
     private static final String ASSOCIATION = 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$LiteralAlternative;'
     private static final String FIELD = 'Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Field;'
 
-    private void compile(String rootOptions = '', String fieldOptions = '', String extra = '') {
+    private void compile(String rootOptions = '', String fieldOptions = '', String extra = '', String aliases = '[fixed: ConcreteElement]') {
         loader.parseClass '''
             package literalmetadata
             import com.blackbuild.klum.ast.*
@@ -60,7 +60,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
             @DSL class Catalog {
                 static { throw new AssertionError('Catalog initialized') }
                 $fieldOptions
-                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+                @Field(alternatives = { $aliases }) Map<String, Element> elements
             }
             $extra
         """
@@ -86,13 +86,13 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         new BuilderContractReader().metadata(plan.contract()).version() == 1
         entry.role().name() == 'LITERAL_ALTERNATIVE_MAP'
         entry.source() == 'literalmetadata.Catalog#elements'
-        entry.payload().type().name == 'literalmetadata.ConcreteElement'
+        entry.alternatives().fixed.payload().type().name == 'literalmetadata.ConcreteElement'
         entry.excludedKey() == 'name'
         entry.keyType() == String.name
-        entry.alternative().alias() == 'fixed'
-        entry.alternative().scope().name == 'literalmetadata.Catalog_DSL$Builder$CollectionFactory_elements'
-        entry.alternative().creator().name == 'fixed'
-        entry.alternative().creator().parameterTypes.toList() == [String, Closure]
+        entry.alternatives().fixed.alias() == 'fixed'
+        entry.alternatives().fixed.scope().name == 'literalmetadata.Catalog_DSL$Builder$CollectionFactory_elements'
+        entry.alternatives().fixed.creator().name == 'fixed'
+        entry.alternatives().fixed.creator().parameterTypes.toList() == [String, Closure]
         !entry.contract().methods.any { it.parameterTypes.contains(Consumer) }
     }
 
@@ -129,7 +129,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         def plan = new InputContractResolver().read(binary('Derived'))
 
         then:
-        plan.entries().get('elements').alternative().alias() == 'fixed'
+        plan.entries().get('elements').alternatives().fixed.alias() == 'fixed'
         plan.entries().get('elements').source() == 'literalmetadata.Catalog#elements'
 
         where:
@@ -146,7 +146,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         then:
         plan.entries().keySet() == names as Set
         if (!names.isEmpty()) {
-            assert plan.entries().get('items').alternative().alias() == 'fixed'
+            assert plan.entries().get('items').alternatives().fixed.alias() == 'fixed'
         }
 
         where:
@@ -166,6 +166,108 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         then:
         def failure = thrown(MultipleCompilationErrorsException)
         failure.message.contains('shadows')
+    }
+
+    @Issue('1030')
+    def 'finite aliases canonicalize independently of source order and inherit without initialization'() {
+        given:
+        compile('', '', '@DSL class Derived extends Catalog {}', '[rolling: OtherElement, fixed: ConcreteElement]')
+
+        when:
+        def plan = new InputContractResolver().read(binary('Derived'))
+        def entry = plan.entries().elements
+
+        then:
+        entry.alternatives().keySet().toList() == ['fixed', 'rolling']
+        entry.alternatives().values()*.payload()*.type()*.simpleName == ['ConcreteElement', 'OtherElement']
+        entry.alternatives().values()*.creator()*.name == ['fixed', 'rolling']
+        entry.source() == 'literalmetadata.Catalog#elements'
+        entry.excludedKey() == 'name'
+    }
+
+    @Issue('1030')
+    def 'incomplete or ambiguous multi-alias metadata fails before Schema initialization: #mutation'() {
+        given:
+        compile('', '', '', '[rolling: OtherElement, fixed: ConcreteElement]')
+        rewriteGroup(mutation)
+
+        when:
+        StructuredInputSupport.readRoot(binary(), [:], 'groups.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('Schema')
+        !causes(failure).any { it instanceof AssertionError }
+
+        where:
+        mutation << ['strip', 'stripSecond', 'countOne', 'duplicateAlias', 'duplicateTarget', 'wrongField', 'wrongKey',
+                     'wrongCreator', 'unknownMember', 'unknownArray', 'missingArray', 'invisible', 'stripCreator', 'wrongCreatorRole']
+    }
+
+    private void rewriteGroup(String mutation) {
+        File file = new File(compilerConfiguration.targetDirectory,
+                mutation in ['stripCreator', 'wrongCreatorRole'] ?
+                        'literalmetadata/Catalog_DSL$Builder$CollectionFactory_elements.class' : 'literalmetadata/Catalog_DSL$Builder.class')
+        def writer = new ClassWriter(0)
+        new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                        if (mutation == 'strip' && annotation.endsWith('GeneratedInput$LiteralAlternatives;')) { return null }
+                        if (mutation == 'stripCreator' && name == 'rolling' && annotation.endsWith('GeneratedInput$Selection;')) { return null }
+                        def target = super.visitAnnotation(annotation, mutation == 'invisible' && annotation.endsWith('GeneratedInput$LiteralAlternatives;') ? false : visible)
+                        LiteralAlternativeMetadataTest.groupAnnotation(target, annotation, name, mutation)
+                    }
+                }
+            }
+        }, 0)
+        file.bytes = writer.toByteArray()
+    }
+
+    private static AnnotationVisitor groupAnnotation(AnnotationVisitor target, String annotation, String method, String mutation) {
+        if (method == 'rolling' && annotation.endsWith('GeneratedInput$Selection;') && mutation == 'wrongCreatorRole') {
+            return changedMember(target, 'role', 'WRONG')
+        }
+        if (annotation == FIELD && mutation == 'countOne') { return changedMember(target, 'alternativeCount', 1) }
+        if (!annotation.endsWith('GeneratedInput$LiteralAlternatives;')) { return target }
+        new AnnotationVisitor(Opcodes.ASM9, target) {
+            @Override AnnotationVisitor visitArray(String member) {
+                if (mutation == 'missingArray') { return null }
+                LiteralAlternativeMetadataTest.groupArray(super.visitArray(mutation == 'unknownArray' ? 'unknown' : member), mutation)
+            }
+        }
+    }
+
+    private static AnnotationVisitor changedMember(AnnotationVisitor target, String selected, Object replacement) {
+        new AnnotationVisitor(Opcodes.ASM9, target) {
+            @Override void visit(String member, Object value) {
+                super.visit(member, member == selected ? replacement : value)
+            }
+        }
+    }
+
+    private static AnnotationVisitor groupArray(AnnotationVisitor target, String mutation) {
+        new AnnotationVisitor(Opcodes.ASM9, target) {
+            int index
+            @Override AnnotationVisitor visitAnnotation(String element, String type) {
+                index++
+                if (index == 2 && mutation == 'stripSecond') { return null }
+                def association = super.visitAnnotation(element, type)
+                index == 2 ? LiteralAlternativeMetadataTest.groupFacts(association, mutation) : association
+            }
+        }
+    }
+
+    private static AnnotationVisitor groupFacts(AnnotationVisitor target, String mutation) {
+        Map<String, List<String>> changes = [duplicateAlias: ['alias', 'fixed'], duplicateTarget: ['target', 'literalmetadata.ConcreteElement'],
+                                             wrongField: ['field', 'other'], wrongKey: ['key', 'other'], wrongCreator: ['creator', 'missing']]
+        if (changes.containsKey(mutation)) { return changedMember(target, changes[mutation][0], changes[mutation][1]) }
+        new AnnotationVisitor(Opcodes.ASM9, target) {
+            @Override void visitEnd() {
+                if (mutation == 'unknownMember') { super.visit('unknown', 'value') }
+                super.visitEnd()
+            }
+        }
     }
 
     private void rewrite(String mutation) {

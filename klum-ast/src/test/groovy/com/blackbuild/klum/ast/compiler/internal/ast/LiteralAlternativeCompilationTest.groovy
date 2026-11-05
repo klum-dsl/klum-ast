@@ -30,6 +30,7 @@ import spock.lang.Issue
 
 @Issue('952')
 class LiteralAlternativeCompilationTest extends AbstractDSLSpec {
+    @Issue('1030')
     def 'does not infer structured alternatives outside the compiler-literal family: #type #aliases #options'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
@@ -64,7 +65,9 @@ class LiteralAlternativeCompilationTest extends AbstractDSLSpec {
 
         where:
         type                                  | aliases                                               | options
-        'Map<String, Element>'                | '[fixed: ConcreteElement, other: OtherElement]'        | ''
+        'Map<String, Element>'                | '[fixed: ConcreteElement, generic: GenericConcrete]'     | ''
+        'List<Element>'                       | '[fixed: ConcreteElement, other: OtherElement]'          | ''
+        'Set<Element>'                        | '[fixed: ConcreteElement, other: OtherElement]'          | ''
         'Map<String, Element>'                | '[:]'                                                 | ''
         'Map<String, Element>'                | '[fixed: ConcreteElement]'                             | ', keyMapping = { it.name }'
         'List<Element>'                       | '[fixed: ConcreteElement]'                             | ''

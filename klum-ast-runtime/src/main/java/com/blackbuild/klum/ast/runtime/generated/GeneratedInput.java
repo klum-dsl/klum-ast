@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.runtime.generated;
 
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -74,7 +75,7 @@ public final class GeneratedInput {
     public @interface Field {
         /** Explicit completeness of the selected scalar, exact List-element or String-keyed Map-value converter association (zero or one). */
         int converterCount() default -1;
-        /** Explicit zero/one association count; stripping the association must fail closed. */
+        /** Explicit finite association count; stripping the association must fail closed. */
         int alternativeCount() default -1;
         String value();
         /** Owned sequence relationship; element invocation name for ordinary construction attribution, not an overload selection. */
@@ -115,9 +116,10 @@ public final class GeneratedInput {
         boolean ignored() default false;
     }
 
-    /** One compiler-literal keyed Map alternative on its owning public field accessor. Never executable. */
+    /** A compiler-literal keyed Map alternative on its owning public field accessor. Never executable. */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
+    @Repeatable(LiteralAlternatives.class)
     public @interface LiteralAlternative {
         String field();
         String alias();
@@ -126,6 +128,13 @@ public final class GeneratedInput {
         String keyType();
         String scope();
         String creator();
+    }
+
+    /** Complete finite set of compiler-literal associations, in canonical alias order. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface LiteralAlternatives {
+        LiteralAlternative[] value();
     }
 
     /** Internal association with the exact existing creator of an unkeyed concrete virtual sink; not for Schema authors. */

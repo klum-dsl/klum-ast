@@ -294,6 +294,7 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         model.elements.primary.owner.is(model)
     }
 
+    @Issue('1030')
     def 'custom Factory aliases cannot masquerade as generated literal creators'() {
         given:
         loader.parseClass '''
@@ -318,10 +319,11 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
                 }
             }
             @DSL class ConcreteElement extends Element {}
+            @DSL class OtherElement extends Element {}
             @DSL class Catalog {
                 @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
             }
-        '''
+        '''.replace('[fixed: ConcreteElement]', aliases)
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         def catalog = Class.forName('literalcollision.Catalog', false, artifacts)
         def trace = Class.forName('literalcollision.Trace', false, artifacts)
@@ -342,6 +344,9 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         def failure = thrown(KlumModelException)
         failure.message.contains('/elements')
         trace.events == ['factory:body']
+
+        where:
+        aliases << ['[fixed: ConcreteElement]', '[fixed: ConcreteElement, rolling: OtherElement]']
     }
 
     def 'authored #placement collection scope retains ordinary behavior and rejects structured bypass'() {

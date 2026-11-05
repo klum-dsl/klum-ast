@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 
-"""Issue #952 / F2-B: the actual emitted single-literal keyed Map grammar."""
+"""Issues #952 / #1030: actual emitted single- and multiple-literal keyed Map grammar."""
 import importlib.metadata
 import json
 import sys
@@ -51,6 +51,19 @@ rejected += [{"elements": {"fixed": {"primary": body}}} for body in [
     {"name": "primary"}, {"name": "conflict"}, {"owner": {}}, {"@type": "ConcreteElement"},
     {"unknown": "value"}, {"value": 42}, {"value": None},
 ]]
+accepted += [
+    {"groupedElements": {}},
+    {"groupedElements": {"fixed": {}, "rolling": {}}},
+    {"groupedElements": {"rolling": {"b": {"window": "daily"}}, "fixed": {"a": {"value": "configured"}}}},
+    {"groupedElements": {"fixed": {"a": {}}, "rolling": {"b": {}, "z": {}}}},
+    {"groupedElements": {"fixed": {"same": {}}, "rolling": {"same": {}}}},  # Collision success is runtime policy.
+]
+rejected += [{"groupedElements": {name: {}}} for name in ["unknown", "RollingElement", "ConcreteElement"]]
+rejected += [{"groupedElements": {"rolling": {"b": body}}} for body in [
+    {"name": "b"}, {"window": 42}, {"window": None}, {"owner": {}}, {"@type": "RollingElement"},
+]]
+rejected += [{"groupedElements": {"fixed": {"a": {"window": "wrong subtype"}}}}]
+rejected += [{"groupedElements": {"fixed": {}, "rolling": value}} for value in [None, [], "text", 42, True]]
 for generation in (3, 4, 5):
     path = root / f"virtual-scopes-{generation}.schema.json"
     document = json.loads(path.read_text())

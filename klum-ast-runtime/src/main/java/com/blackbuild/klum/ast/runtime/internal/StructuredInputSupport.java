@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Entry;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Key;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.LiteralAlternative;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Payload;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Kind;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Role;
@@ -254,7 +255,11 @@ public final class StructuredInputSupport {
                         ? resolver.readTemplate(model) : resolver.read(model);
                 plans.put(model, decoded); // Register before following ownership so recursive contracts terminate.
                 for (Entry entry : decoded.entries().values()) {
-                    if (entry.payload().kind() == Kind.NESTED_OBJECT) {
+                    if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP) {
+                        for (LiteralAlternative alternative : entry.alternatives().values()) {
+                            plan(alternative.payload().type(), pointer(pointer(path, entry.externalName()), alternative.alias()));
+                        }
+                    } else if (entry.payload().kind() == Kind.NESTED_OBJECT) {
                         plan(entry.payload().type(), pointer(path, entry.externalName()));
                     }
                 }
@@ -368,11 +373,12 @@ public final class StructuredInputSupport {
             try {
                 for (Map.Entry<?, ?> supplied : map.entrySet()) {
                     if (!(supplied.getKey() instanceof String alias))
-                        throw bad(entry, path, "literal String alias " + entry.alternative().alias(), supplied.getKey(), null);
+                        throw bad(entry, path, "literal String alias from " + entry.alternatives().keySet(), supplied.getKey(), null);
                     String aliasPath = pointer(path, alias);
-                    if (!alias.equals(entry.alternative().alias()))
-                        throw bad(entry, aliasPath, "literal alias " + entry.alternative().alias(), supplied.getValue(), null);
-                    executeChildren(entry, supplied.getValue(), aliasPath, builder);
+                    LiteralAlternative alternative = entry.alternatives().get(alias);
+                    if (alternative == null)
+                        throw bad(entry, aliasPath, "literal alias from " + entry.alternatives().keySet(), supplied.getValue(), null);
+                    executeChildren(entry, supplied.getValue(), aliasPath, builder, alternative);
                 }
             } finally { visiting.remove(input); }
         }
@@ -397,6 +403,10 @@ public final class StructuredInputSupport {
         }
 
         private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            executeChildren(entry, input, path, builder, null);
+        }
+
+        private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder, LiteralAlternative alternative) {
             if (!(input instanceof Map<?, ?> map))
                 throw bad(entry, path, "Map of literal String instance keys to domain Maps", input, null);
             enter(input, path, entry.contract(), entry.externalName());
@@ -405,16 +415,17 @@ public final class StructuredInputSupport {
                 for (Map.Entry<?, ?> supplied : map.entrySet()) {
                     if (!(supplied.getKey() instanceof String key))
                         throw bad(entry, path, "String instance key", supplied.getKey(), null);
-                    Domain child = domain(entry.payload().type(), supplied.getValue(), pointer(path, key), Position.MAP_VALUE);
-                    if (entry.alternative() == null) {
+                    Class<?> target = alternative == null ? entry.payload().type() : alternative.payload().type();
+                    Domain child = domain(target, supplied.getValue(), pointer(path, key), Position.MAP_VALUE);
+                    if (alternative == null) {
                         invocation.recordInvocation(builder);
                         builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
                                 key, child::execute);
                     } else {
                         BreadcrumbCollector.withInputScope(invocation.fieldName(), () -> {
-                            BuilderDispatchSupport.recordInvocation(builder, entry.alternative().alias());
-                            BreadcrumbCollector.getInstance().setVerb(entry.alternative().alias());
-                            return builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), true,
+                            BuilderDispatchSupport.recordInvocation(builder, alternative.alias());
+                            BreadcrumbCollector.getInstance().setVerb(alternative.alias());
+                            return builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), target, true,
                                     key, child::execute);
                         });
                     }
