@@ -587,9 +587,9 @@ Real ScHelm root/output qualification remains a consumer-owned acceptance gate f
 
 ## Literal collection alternative
 
-For the [single compiler-literal keyed Map family](Structured-Input.md#literal-collection-alternative), the generated
-relationship is a closed object with exactly the recorded alias property. That alias is a String-keyed object whose
-values reference the concrete subtype's keyless body definition:
+For the [compiler-literal keyed Map family](Structured-Input.md#literal-collection-alternative), the generated
+relationship is a closed object with exactly the recorded alias properties, sorted by literal name. Each alias is a
+String-keyed object whose values reference its concrete subtype's keyless body definition:
 
 ```json
 {
@@ -604,7 +604,11 @@ values reference the concrete subtype's keyless body definition:
 }
 ```
 
-Neither relationship nor alias is required. Empty mappings are valid; a child body cannot supply its construction key,
+Multiple explicit aliases add one property each, referencing their own concrete keyless body. Schema property order
+does not prescribe runtime group order, and the schema does not predict cross-alias key collisions. See the
+[multiple-group example](Structured-Input.md#multiple-literal-alias-groups).
+
+Neither relationship nor any alias is required. Empty mappings are valid; a child body cannot supply its construction key,
 owner, unknown member or type selector. This shape promises only structural admission. Ordering, partial effects,
 existing-child reuse, lifecycle and completed validation remain runtime behavior. Unsupported alternative families remain
 omitted with diagnostics. Source-free producer/plugin/binary coverage lives in `BinaryOwnedRelationshipsTest`; the

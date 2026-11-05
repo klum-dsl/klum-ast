@@ -635,7 +635,7 @@ Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conf
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
 explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, keyed relationship
 sequences, arbitrary polymorphic selection and other CollectionFactory scopes remain outside the admitted grammar. The
-[single literal alternative](#literal-collection-alternative) below is the bounded exception. Null at any depth,
+[explicit literal alias groups](#literal-collection-alternative) below is the bounded exception. Null at any depth,
 arbitrary caller objects, helper/query/lifecycle names and multi-payload authored operations reject.
 Zero-argument domain commands have only their explicitly authored behavior; there is no implicit reset/clear operation.
 An ordinary unannotated property named `key` is normal domain input; actual `@Key` members follow the position-specific rules above.
@@ -653,7 +653,7 @@ make an entry available. In particular:
 
 | Ordinary Groovy capability | Struct boundary and workaround |
 | --- | --- |
-| Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [single literal keyed Map alternative](#literal-collection-alternative) supplies subtype selection. |
+| Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [explicit literal keyed Map family](#literal-collection-alternative) supplies subtype selection. |
 | `@Field.keyMapping` value-only adders | No derived-key value sequence is admitted for scalar or owned Maps. Use ordinary Groovy or an eligible domain List operation; writing literal outer keys does not enable the derived-key route. |
 | String converters for owned DSL values, converter-backed Sets, or CharSequence-only List/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
 | Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |
@@ -671,9 +671,9 @@ Struct's compatible literal naming annotations.
 
 ## Literal collection alternative
 
-A default owned `Map<String, Element>` relationship can admit one explicitly declared literal alternative when `Element`
-is an abstract keyed DSL type and the selected subtype is concrete and nongeneric. Both use the same inherited String
-construction key, with an exact generated public alias creator. The compiler records that route; structured input cannot choose a
+A default owned `Map<String, Element>` relationship can admit a finite set of explicitly declared literal alternatives when
+`Element` is abstract, keyed and nongeneric, and every selected subtype is concrete and nongeneric. All use the same
+inherited String construction key, with an exact generated public creator for each alias. The compiler records those routes; structured input cannot choose a
 Class or Factory. Matching custom Factory methods are excluded when they occupy the literal configuration route. Authored or overridden
 collection scopes are excluded too.
 
@@ -724,11 +724,62 @@ one PostApply inside the existing Construction session. Active Builder input sha
 input retains the ordinary deferred recipe lifecycle.
 
 Unknown aliases, class-name selectors, key-first wrappers, scalar/List/null envelopes and non-mapping child bodies reject.
-Multiple literal alternatives, auto-discovered names, generic targets, unkeyed collections, LINK relationships and custom
-key mapping are outside this family. Existing concrete keyed-Map syntax is unchanged. YAML duplicate-key rejection belongs
+Auto-discovered names, generic targets, List/Set alternatives, concrete-base plus alias coexistence, LINK relationships and
+custom key mapping are outside this family. Existing concrete keyed-Map syntax is unchanged. YAML duplicate-key rejection belongs
 to the parser. Recompile participating Schema artifacts to obtain complete association metadata; corruption fails during
 contract verification even when the relationship is omitted. [JSON Schema](Json-Schema.md#literal-collection-alternative)
 projects the same closed structural shape.
+
+### Multiple literal alias groups
+
+Declare every alias explicitly on the same qualified abstract keyed Map relationship. Each supplied alias contains a
+String-keyed Map of concrete child bodies; omitted and empty groups perform zero child calls.
+
+(See: `StructuredLiteralGroupsTest#'configures closed literal alias groups in supplied order'`.)
+
+```groovy
+@DSL class Catalog {
+    @Field(alternatives = { [fixed: ConcreteElement, rolling: OtherElement] }) Map<String, Element> elements
+}
+@DSL abstract class Element { @Key String name; @Owner Catalog owner; String value }
+@DSL class ConcreteElement extends Element {}
+@DSL class OtherElement extends Element { String window }
+
+// Ordinary Groovy and the corresponding caller-parsed Struct body:
+Catalog.Create.With {
+    elements {
+        rolling('b') { value 'rolling'; window 'daily' }
+        fixed('z') { value 'last' }
+        fixed('a') { value 'first' }
+    }
+}
+def catalog = Catalog.Create.FromStruct([
+    elements: [rolling: [b: [value: 'rolling', window: 'daily']],
+               fixed: [z: [value: 'last'], a: [value: 'first']]]
+])
+assert catalog.elements.keySet().toList() == ['b', 'z', 'a']
+```
+
+```yaml
+elements:
+  rolling:
+    b: {value: rolling, window: daily}
+  fixed:
+    z: {value: last}
+    a: {value: first}
+```
+
+Execution follows the supplied outer Map's alias-group iteration order and then each inner Map's entry order. Metadata
+and JSON Schema property order are canonical and do not determine execution. This promises no parser-order portability:
+the caller owns parsing, Map iteration order and duplicate-key rejection. A mapping does not encode repeated or interleaved
+alias events; use ordinary Groovy for those calls.
+
+Groups share the ordinary keyed destination. A compatible existing child is reconfigured in place; a later alias selecting
+an incompatible type for the same key fails before that body's operations. Earlier groups and partial effects remain,
+with no rollback. Every concrete body retains its own exact member contract and outer-key authority. Templates use the
+same groups with ordinary retained-recipe semantics. The entire explicit alias set must have complete, unambiguous
+compiler-owned associations; a custom creator occupying any selected route prevents admission of the relationship.
+See [#1030](https://github.com/klum-dsl/klum-ast/issues/1030).
 
 ## Concrete virtual Builder scopes
 

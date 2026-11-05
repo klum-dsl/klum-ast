@@ -1,5 +1,11 @@
 # Unreleased
 
+- Admit multiple explicit literal alias groups for the qualified abstract keyed Map Struct/YAML family. Preserve
+  supplied group/entry order, exact subtype bodies and ordinary keyed reuse/collision/lifecycle/Template behavior;
+  emit deterministic closed JSON Schema for each alias. Recompile matched Schema artifacts. See
+  [literal alias groups](docs/user/Structured-Input.md#multiple-literal-alias-groups)
+  ([#1030](https://github.com/klum-dsl/klum-ast/issues/1030)).
+
 - Admit concrete nongeneric owned keyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML sequences.
   Each item supplies its externally named String construction key before child allocation; normal fresh-child,
   lifecycle, duplicate, collection and Template semantics apply. JSON Schema requires the item key. Recompile matched

@@ -2,7 +2,7 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's single literal CollectionFactory family is implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B and #1030's finite explicit literal CollectionFactory family are implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -45,10 +45,25 @@ same validated association to interpretation and projection. Runtime binds the e
 configuration callback before child PostApply; JSON Schema emits a closed alias object and concrete keyless body.
 No public receiver/Consumer API, private-method reflection, synthetic closure or new construction engine is added.
 
-This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral/multiple aliases,
+This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral aliases,
 generic targets, custom key mapping and caller Class/Factory selectors remain deferred under #952. See the
 [user contract](../user/Structured-Input.md#literal-collection-alternative) and
 [F2-B implementation evidence](../implementation/input-round-f2b-evidence.md). Merge and hosted qualification are separate.
+
+## Finite explicit literal groups — #1030, 2026-11-05
+
+The maintainer-selected F2.1 follow-up extends F2-B to a complete finite set of explicit literal aliases on the same
+qualified abstract keyed Map family. Every target and exact generated creator must satisfy the original checks; admission
+is all-or-nothing. The compiler emits canonical alias order and an explicit association count; multiple rows use the
+internal `GeneratedInput.LiteralAlternatives` container. The shared Schema protocol remains the version authority.
+The reader rejects missing, duplicate, conflicting or malformed rows before use without initializing Schema code.
+
+The interpreter traverses supplied outer alias groups and inner keyed entries in their Map iteration order, independently
+of canonical metadata/JSON Schema order. Each alias selects its concrete keyless body and the existing explicit-type
+keyed callback. Ordinary identity, collisions, ownership, lifecycle, Templates and first-failure effects remain authoritative.
+No parser-order portability, repeated/interleaved event grammar, scanning, automatic names, List/Set alternatives,
+concrete-base coexistence, generic alternatives, producer/CollectionFactory expansion or composition is added.
+See [#1030 evidence](../implementation/issue-1030-literal-groups-evidence.md). Hosted qualification and merge remain separate.
 
 ## Accepted ordinary owned sequence slice — 2026-11-03
 
