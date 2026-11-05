@@ -336,6 +336,32 @@ class StructuredKeyedSequenceTest extends AbstractDSLSpec {
         service.children.empty
     }
 
+    def 'generic child contract corruption rejects before root allocation'() {
+        given:
+        def service = schema()
+        def file = new File(compilerConfiguration.targetDirectory, 'keyedsequence/Route.class')
+        def writer = new ClassWriter(0)
+        new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override void visit(int version, int access, String name, String signature, String parent, String[] interfaces) {
+                // Preserve the valid relationship facts while making its concrete Model unexpectedly generic.
+                String hierarchy = signature ?: 'L' + parent + ';' + interfaces.collect { 'L' + it + ';' }.join()
+                super.visit(version, access, name, '<T:Ljava/lang/Object;>' + hierarchy, parent, interfaces)
+            }
+        }, 0)
+        file.bytes = writer.toByteArray()
+
+        when:
+        service.Create.FromStruct([routes: [[routeName: 'health']]], 'generic-contract.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('generic-contract.yaml')
+        failure.message.contains('Owned sequence requires a nongeneric concrete child: keyedsequence.Service#routes')
+        failure.message.contains('recompile')
+        service.active == null
+        service.children.empty
+    }
+
     def 'ordinary construction uses positional String identity independently of external key annotation #annotation'() {
         given:
         def service = schema('List', annotation)

@@ -68,7 +68,7 @@ whose sole source was the removed keyed exclusion.
 - `renderVersionedDocumentation verifyRenderedDocumentationSite` passed from the same exact source and renderer
   revision with version `4.2.0-tracer`, status `tracer`, and `docs/branding/season-4-klumast.json`. Verification used
   a fresh empty output tree and a single-use daemon (`--no-daemon -Dorg.gradle.jvmargs=-Xmx2g --max-workers=2`).
-- Markdown fences, relative-file links and the final diff check passed. The final evidence-record commit changes
+- Markdown fences, relative-file links and the final diff check passed. The initial evidence-record commit `e1441371a` changed
   no production, test or user-page inputs relative to the fully validated implementation above.
 - Commit-history review retained the characterization, bounded implementation and explicit legacy-regression update
   as separate reasoning steps. Exactly two review subagents covered the implementation and every follow-up.
@@ -82,3 +82,35 @@ during the documentation crawl; the fresh 2 GiB run above passed. Its retry used
 required by the immutable renderer. The task-generated heap dump was removed without inspecting its contents.
  Hosted CI/SonarCloud and merge state
 are separate delivery evidence. Tracker impact is neutral `Related: #1026`; #1026 remains open for Hive reconciliation.
+
+
+## Coverage follow-up — 2026-11-05
+
+SonarCloud at initial PR head `e1441371a7c9403956369c4c606bd78439fb3b91` reported 75% new-code coverage
+against the 80% gate. All other gate conditions passed and there were zero unresolved Sonar issues. The missing
+coverage was one executable line and one branch outcome: the generic-child rejection in `InputContractResolver`
+(lines 671–672). Local Groovy 3/4/5 reports agreed; this was neither an import mismatch nor compatibility-only coverage.
+
+Normal compiler rejection of generic children never reaches this runtime corruption guard. The new regression
+`StructuredKeyedSequenceTest#'generic child contract corruption rejects before root allocation'` adds a generic
+parameter only to an otherwise valid compiled child Model signature, preserving relationship facts. It calls the real
+Struct Factory and asserts the precise generic-child/source diagnostic, recompile guidance and no root/child allocation.
+The existing class-level `@Issue('1026')` supplies traceability. Production code, user grammar, the gate and report
+configuration are unchanged. This locks down the runtime boundary independently of compiler admission.
+
+Validation for this additive follow-up:
+
+- Focused Groovy 3 keyed-sequence tests: 44 cases passed, no skips.
+- `:klum-ast:test`: 3,087 cases, zero failures/errors, 16 existing skips.
+- Focused `:klum-ast:groovy4Tests` and `:klum-ast:groovy5Tests`: 44 keyed-sequence cases passed in each, no skips.
+- `:klum-ast:license`, `:klum-ast:verifyTestLaneIsolation` and `git diff --check` passed.
+- `:code-coverage-report:testCodeCoverageReport -x test` regenerated the local baseline XML from completed test
+  executions. A diagnostic matching Sonar's four executable new lines and four branch outcomes reproduced 75% before
+  the change and passed at 100% afterward (4/4 lines, 4/4 outcomes). The rejection branch now has both outcomes covered
+  and its diagnostic line is hit. No Sonar upload or coverage configuration change was used for this local check.
+- The same Standards and Specification agents reviewed the regression, both with zero findings.
+
+The risk-based follow-up validation is the affected module baseline plus focused compatibility and actual coverage
+counters; the prior full root result above remains initial-delivery evidence. New hosted CI/Sonar qualification is
+required for the pushed follow-up. Reviewed commits remain frozen; this repair is an additive commit, with one
+consolidated PR follow-up comment. Tracker impact remains neutral `Related: #1026` with no issue mutation.
