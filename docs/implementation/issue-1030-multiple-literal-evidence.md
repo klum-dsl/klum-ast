@@ -260,3 +260,39 @@ Two local review passes, **Standards** and **Specification**, are performed agai
 The prior no-subworkers instruction is retained; no additional reviewer agents are created. Remaining general metadata
 validation and the representative payload in the shared Entry shape are outside the creator-completeness question;
 neither gates unused convenience methods. There is no remaining creator-completeness registry or validation mechanism.
+
+
+### Final creator-independence qualification
+
+Committed implementation/test/user-documentation revision:
+`eababff1a564691cc7aa0db597554a73b74e97dc` (`Use field associations for literal Struct alternatives`).
+The unfiltered Java 17 root `check` passed at this revision: **11,296 module JUnit cases**, **zero failures/errors**,
+**49 existing skips**. Core totals: Groovy 3 **3,181 / 16 existing skips**; Groovy 4 and 5 each
+**3,183 / 15 existing skips**. The complete plugin suite passes **669 cases**, including all eleven packaged relationship
+cases. Runtime, annotations, Jackson, Bean Validation, test support, JPMS, lane isolation, coverage, license and applicable
+renderer/workflow fixtures also pass. The root invocation used the normal unfiltered `check`, Java 17, a 2 GiB daemon,
+`--no-parallel --max-workers=2`; an ephemeral init script logged test progress without changing task selection or filters.
+
+Documentation rendering and crawling pass at the same committed revision, with **448 HTML files** across the local-review
+site. Source and renderer manifests both identify `eababff1a564691cc7aa0db597554a73b74e97dc`; the recorded user tree is
+`3740135e372980fdf173adadf860ce21eae90f95`. Markdown fences, **200 relative file links** and diff checks pass.
+The fresh full-check emissions still accept **36 valid** and reject **195 invalid** oracle instances, with unchanged
+cross-Groovy schema SHA-256 `e8507be8deeb8f30d28157f9d0379b3f1e7bb6e873baac3f44220c5bb5b9b3bb`.
+
+Final local reviews against published comparison point `6f04620f5013a2662c2def2c61919e8636b75ac9`:
+
+- **Standards:** zero findings. Removed machinery is local to literal alternatives; public types use imports, existing
+  accessor association logic is reused, tests carry their driving issues, and reviewed history is preserved.
+- **Specification:** zero findings. Real absent/customized/overridden convenience-method cases execute; alias/type/key/
+  ownership/order/lifecycle/Template/failure and secondary-contract controls remain active; no additional grammar,
+  runtime dispatch policy, registry or validation framework is added. Byte-identical schema output is proven both before/
+  after method stripping and against the previously qualified emissions.
+
+These are two local review passes by this worker, not additional independent reviewer agents. #1021's separate
+virtual-child descriptor cleanup (cut 4) remains outside this reassessment. No other creator-completeness concern remains
+in F2.1. The final evidence-only commit changes no qualified production, tests or rendered user pages.
+
+Delivery channels were checked separately: Git SSH dedicated-branch update **authorized** by dry run; GitHub App PR
+update/comment capability **authorized**. No local SonarCloud upload or hosted final-head result is claimed here.
+Publish the additive commits to the existing draft PR #1032, then report exact-head CI/Sonar in its consolidated follow-up.
+Issue #1030 remains open; no merge or self-archive is performed. Request Hive reconciliation after this delivery update.
