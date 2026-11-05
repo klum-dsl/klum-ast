@@ -410,8 +410,9 @@ public class CopyHandler {
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
-            assertCorrectType(field, value, valueType);
-            currentValues.computeIfAbsent(key, k -> copyFieldValue(field, valueType, value, key, appendInputPath(memberPath(field.getName()), key)));
+            String location = appendInputPath(memberPath(field.getName()), key);
+            assertCorrectType(field, value, valueType, location);
+            currentValues.computeIfAbsent(key, k -> copyFieldValue(field, valueType, value, key, location));
         }
     }
 
@@ -421,12 +422,13 @@ public class CopyHandler {
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
-            assertCorrectType(field, value, valueType);
+            String location = appendInputPath(memberPath(field.getName()), key);
+            assertCorrectType(field, value, valueType, location);
             Object currentValue = currentValues.get(key);
             if (currentValue == null)
-                currentValues.put(key, copyFieldValue(field, valueType, value, key, appendInputPath(memberPath(field.getName()), key)));
+                currentValues.put(key, copyFieldValue(field, valueType, value, key, location));
             else
-                copyNested(currentValue, value, appendInputPath(memberPath(field.getName()), key));
+                copyNested(currentValue, value, location);
         }
     }
 
@@ -435,8 +437,9 @@ public class CopyHandler {
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
-            assertCorrectType(field, value, valueType);
-            currentValues.put(key, copyFieldValue(field, valueType, value, key, appendInputPath(memberPath(field.getName()), key)));
+            String location = appendInputPath(memberPath(field.getName()), key);
+            assertCorrectType(field, value, valueType, location);
+            currentValues.put(key, copyFieldValue(field, valueType, value, key, location));
         }
     }
 
@@ -507,7 +510,7 @@ public class CopyHandler {
         int index = 0;
         for (Object value : templateValue) {
             String location = appendInputPath(memberPath(field.getName()), index++);
-            assertCorrectType(field, value, elementType);
+            assertCorrectType(field, value, elementType, location);
             currentValue.add(copyFieldValue(field, elementType, value, null, location));
         }
     }
@@ -582,9 +585,9 @@ public class CopyHandler {
         return null;
     }
 
-    private static void assertCorrectType(Field field, Object value, Class<?> elementType) {
+    private void assertCorrectType(Field field, Object value, Class<?> elementType, String location) {
         if (value != null && !(value instanceof Map) && !isInstance(elementType, value))
-            throw new KlumModelException("Element " + value + " in " + field + " is not of expected type " + elementType);
+            throw new KlumModelException("Element " + value + " in " + field + " is not of expected type " + elementType + inputContext(location));
     }
 
     private OverwriteStrategy.Collection getCollectionStrategy(Field field) {

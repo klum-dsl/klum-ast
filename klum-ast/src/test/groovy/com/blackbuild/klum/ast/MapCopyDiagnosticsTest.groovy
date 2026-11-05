@@ -48,6 +48,8 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
             class Endpoint {
                 @Key String name
                 Integer port
+                List<Integer> retries
+                Map<String, Integer> limits
             }
         '''
     }
@@ -85,6 +87,28 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
         failure.message.contains('/services/eu~1west~0blue/endpoints/0/port')
         !(failure.message =~ /Builder@[0-9a-fA-F]+/)
         failure.breadCrumbPath == '$/d.Deployment.With'
+    }
+
+
+    def 'incompatible container item reports its supplied #kind location'() {
+        when:
+        clazz.Create.With {
+            copyFrom([services: ['eu/west~blue': [endpoints: [[name: 'edge', (field): value]]]]])
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.class == KlumModelException
+        failure.cause == null
+        failure.message.contains('diagnostics.Endpoint')
+        failure.message.contains("key 'edge'")
+        failure.message.contains('/services/eu~1west~0blue/endpoints/0/' + location)
+        !(failure.message =~ /Builder@[0-9a-fA-F]+/)
+
+        where:
+        kind         | field     | value                          | location
+        'List index' | 'retries' | [1, 'bad']                     | 'retries/1'
+        'Map key'    | 'limits'  | ['eu/west~blue': 'bad']         | 'limits/eu~1west~0blue'
     }
 
 }
