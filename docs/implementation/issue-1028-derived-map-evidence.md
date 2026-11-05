@@ -76,7 +76,8 @@ lifecycle or validators. K2/K3/K4, non-String declared keys, CollectionFactory, 
   their branch counts are 17/18 and 10/10 respectively. The compiler derivation-presence helper has 10/12 covered
   branches; source/inherited-candidate filtering has 18/18. These are local counters, not a SonarCloud gate result.
 - Changed Markdown fences, relative file links, reciprocal documentary linkage and `git diff --check` passed.
-  Immutable documentation rendering/crawl: pending.
+  `renderLocalDocumentation -PdocumentationVersion=4.2.0-tracer --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --max-workers=2`
+  passed from immutable source/renderer `c0b250578c3cdabceba5d6126d9fcc6f89cfac1a`: 447 HTML files rendered and crawled; 1m 6s.
 - An initial full-root run was deliberately stopped after self-review identified the inherited-adder case;
   it is not counted as passing final qualification.
 - Exactly two task-limited local review agents: Standards and Specification. Both returned zero unresolved findings
@@ -88,6 +89,12 @@ lifecycle or validators. K2/K3/K4, non-String declared keys, CollectionFactory, 
 ## Delivery boundary
 
 User documentation, #1015 inventory, ADR 0032 and `CHANGES.md` describe only this native K1 slice. Existing navigation
-and public entry points remain sufficient. Tracker impact is `Related: #1028`; no issue is closed or changed by the
+and public entry points remain sufficient. Delivery channels: Git SSH dedicated-branch push dry run and gh CLI repository-permission preflight both returned
+`authorized`; no GitHub App write capability is inferred. Master was refreshed after validation and remains at the
+original #1027 base; no rebase was required. Commit-history review retained characterization, bounded implementation,
+synchronized documentation and this evidence update as distinct reasoning steps. Final evidence-only edits do not
+change the qualified production/test or rendered user-page inputs.
+
+Tracker impact is `Related: #1028`; no issue is closed or changed by the
 worker. Hosted CI/SonarCloud and merge state are separate from local qualification. Hive reconciliation is requested
 for final delivery and acceptance; no worker self-archival follows.
