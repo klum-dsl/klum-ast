@@ -296,3 +296,34 @@ Delivery channels were checked separately: Git SSH dedicated-branch update **aut
 update/comment capability **authorized**. No local SonarCloud upload or hosted final-head result is claimed here.
 Publish the additive commits to the existing draft PR #1032, then report exact-head CI/Sonar in its consolidated follow-up.
 Issue #1030 remains open; no merge or self-archive is performed. Request Hive reconciliation after this delivery update.
+
+
+## SonarCloud maintainability repair — PR #1032
+
+The completed hosted analysis at `9bc8246914e50e4a599faa58daea80f9e7817f34` passed its quality gate but reported six
+new maintainability issues. All six are addressed without suppressions or behavior changes:
+
+| Sonar issue | Repair |
+| --- | --- |
+| `AaGr4JbYFZ2Ki6HCUYq-` — repeated `keyMapping` literal | One `KEY_MAPPING_MEMBER` constant supplies the existing three annotation-member lookups. |
+| `AaGr4JlkFZ2Ki6HCUYq_` — nested ordinary collision setup | Extract `addRollingCollision`; the same generated collection scope and alias operation execute. |
+| `AaGr4JsVFZ2Ki6HCUYrC` — complex method-annotation visitor | Extract literal-alternative annotation dispatch/conflict handling into `alternativeAnnotation`; retention, duplicate and conflict checks are unchanged. |
+| `AaGsI6Jp887SUh04PCyc` — eight resolver parameters | Derive the field name from the already-associated `Literals` record instead of passing the same name separately. |
+| `AaGr4JllFZ2Ki6HCUYrA` — nested cross-alias comparison setup | Extract `configureCrossAliasCollision`, retaining one ordinary collection scope and the same structured input, both alias orders and error comparison. |
+| `AaGr4JsVFZ2Ki6HCUYrB` — repeated `value` literal | Reuse the reader's existing `VALUE` constant. |
+
+Java 17 affected compiler/runtime/relationship/JPMS selection passes **158 cases per Groovy 3/4/5 lane**, without
+failures/errors/skips. Runtime baseline passes **73 cases**, with one existing skip. All **11 packaged relationship
+cases** pass. License and diff checks pass. The fresh emitted-schema oracle again accepts **36 valid** and rejects
+**195 invalid** instances.
+
+This is a localized maintainability refactor: the metadata carrier, generated signatures, interpreter, construction
+engine, projector and build topology are unchanged. The prior unfiltered local/hosted full checks remain historical
+qualification; risk-based local validation here targets the extracted visitor/resolver/test seams and all supported
+Groovy generations rather than repeating the full root check. User behavior, user pages, migration and changelog need
+no further change. No local SonarCloud upload is used.
+
+Local Standards and Specification passes find no remaining findings in this four-file repair. Reviewed commits are
+preserved, and no reviewer subworkers are created. The repair is published as an additive commit; a fresh hosted analysis
+must confirm the result on its exact head. The consolidated PR follow-up records that final CI/Sonar outcome. No merge,
+issue closure or self-archive is authorized by this repair.

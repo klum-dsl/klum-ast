@@ -646,12 +646,8 @@ final class BuilderContractReader {
             if (annotation.equals(AUTHOR_OPERATION)) literal.authorOperation = true;
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
-            if (annotation.equals(LITERAL_ALTERNATIVE) || annotation.equals(LITERAL_ALTERNATIVES)) {
-                if (seen.contains(annotation.equals(LITERAL_ALTERNATIVE) ? LITERAL_ALTERNATIVES : LITERAL_ALTERNATIVE))
-                    throw invalid("Conflicting literal alternative annotations");
-                return annotation.equals(LITERAL_ALTERNATIVE) ? new AlternativeAnnotationVisitor(literal)
-                        : new AlternativesAnnotationVisitor(literal);
-            }
+            if (annotation.equals(LITERAL_ALTERNATIVE) || annotation.equals(LITERAL_ALTERNATIVES))
+                return alternativeAnnotation(annotation);
             if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
             if (annotation.equals(VIRTUAL_SINK)) {
                 literal.plainVirtualSink = true;
@@ -663,6 +659,13 @@ final class BuilderContractReader {
                 };
             }
             return new MethodAnnotationVisitor(annotation, literal);
+        }
+
+        private AnnotationVisitor alternativeAnnotation(String annotation) {
+            boolean single = annotation.equals(LITERAL_ALTERNATIVE);
+            if (seen.contains(single ? LITERAL_ALTERNATIVES : LITERAL_ALTERNATIVE))
+                throw invalid("Conflicting literal alternative annotations");
+            return single ? new AlternativeAnnotationVisitor(literal) : new AlternativesAnnotationVisitor(literal);
         }
     }
 
@@ -679,7 +682,7 @@ final class BuilderContractReader {
         @Override public void visitEnum(String name, String descriptor, String value) { throw invalid("Unexpected literal alternatives enum " + name); }
         @Override public AnnotationVisitor visitAnnotation(String name, String descriptor) { throw invalid("Unexpected literal alternatives annotation " + name); }
         @Override public AnnotationVisitor visitArray(String name) {
-            if (!"value".equals(name) || valueSeen) throw invalid("Invalid literal alternatives array " + name);
+            if (!VALUE.equals(name) || valueSeen) throw invalid("Invalid literal alternatives array " + name);
             valueSeen = true;
             return new AnnotationVisitor(Opcodes.ASM9) {
                 @Override public void visit(String member, Object value) { throw invalid("Unexpected literal alternatives value"); }

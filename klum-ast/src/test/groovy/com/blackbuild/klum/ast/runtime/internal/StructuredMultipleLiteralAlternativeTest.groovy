@@ -133,7 +133,7 @@ class StructuredMultipleLiteralAlternativeTest extends AbstractDSLSpec {
         def model = catalog.Create.With {
             elements { fixed('same') { value 'retained' } }
             captured = delegate.getElements().same
-            try { elements { rolling('same') { note 'never' } } }
+            try { StructuredMultipleLiteralAlternativeTest.addRollingCollision(delegate) }
             catch (Exception failure) { message = failure.message }
         }
 
@@ -309,13 +309,7 @@ class StructuredMultipleLiteralAlternativeTest extends AbstractDSLSpec {
         [false, true].each { structured ->
             catalog.Create.With {
                 try {
-                    if (structured) {
-                        delegate.applyStruct([elements: [(firstAlias): [same: [value: 'retained']], (secondAlias): [same: [note: 'never'], later: [:]]]])
-                    } else if (firstAlias == 'fixed') {
-                        elements { fixed('same') { value 'retained' }; rolling('same') { note 'never' } }
-                    } else {
-                        elements { rolling('same') { value 'retained' }; fixed('same') { note 'never' } }
-                    }
+                    StructuredMultipleLiteralAlternativeTest.configureCrossAliasCollision(delegate, structured, firstAlias, secondAlias)
                     assert false
                 } catch (Exception failure) { messages << failure.message }
                 retained = delegate.getElements().same
@@ -405,6 +399,27 @@ class StructuredMultipleLiteralAlternativeTest extends AbstractDSLSpec {
         message.contains('/elements/rolling/b')
         message.contains('cyclic container')
         model.elements.keySet().toList() == ['a', 'b']
+    }
+
+    private static void addRollingCollision(InternalKlumBuilder builder) {
+        builder.elements { rolling('same') { note 'never' } }
+    }
+
+    private static void configureCrossAliasCollision(InternalKlumBuilder builder, boolean structured,
+                                                     String firstAlias, String secondAlias) {
+        if (structured) {
+            builder.applyStruct([elements: [(firstAlias): [same: [value: 'retained']], (secondAlias): [same: [note: 'never'], later: [:]]]])
+            return
+        }
+        builder.elements {
+            if (firstAlias == 'fixed') {
+                fixed('same') { value 'retained' }
+                rolling('same') { note 'never' }
+            } else {
+                rolling('same') { value 'retained' }
+                fixed('same') { note 'never' }
+            }
+        }
     }
 
     private static List<Throwable> causes(Throwable failure) {

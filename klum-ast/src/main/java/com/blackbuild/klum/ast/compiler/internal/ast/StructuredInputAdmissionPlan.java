@@ -84,6 +84,7 @@ final class StructuredInputAdmissionPlan {
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
     private static final String VALUE = "value";
     private static final String FIELD_MEMBER = "field";
+    private static final String KEY_MAPPING_MEMBER = "keyMapping";
     private static final String INPUT_IGNORED = "excluded by @Struct.Ignore";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
@@ -195,7 +196,7 @@ final class StructuredInputAdmissionPlan {
         if (!Modifier.isAbstract(declared.getModifiers()) || getFieldType(field) != FieldType.DEFAULT
                 || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))
                 || declared.getGenericsTypes() != null && declared.getGenericsTypes().length != 0
-                || options != null && options.getMember("keyMapping") != null
+                || options != null && options.getMember(KEY_MAPPING_MEMBER) != null
                 || alternatives.values().stream().distinct().count() != alternatives.size()) return;
         List<LiteralAlternative> candidates = new ArrayList<>();
         for (Map.Entry<ClassNode, String> selected : alternatives.entrySet()) {
@@ -611,7 +612,7 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         AnnotationNode fieldOptions = annotation(field, Field.class.getName());
-        if (fieldOptions != null && fieldOptions.getMember("keyMapping") != null) {
+        if (fieldOptions != null && fieldOptions.getMember(KEY_MAPPING_MEMBER) != null) {
             rejections.add(new Rejection(source,
                     "literal structured instance keys conflict with @Field.keyMapping-derived keys"));
             return;
@@ -838,7 +839,7 @@ final class StructuredInputAdmissionPlan {
     private static boolean nativeDerivedMap(FieldNode field) {
         if (!isMap(field.getType())) return false;
         AnnotationNode options = annotation(field, Field.class.getName());
-        if (options == null || options.getMember("keyMapping") == null) return false;
+        if (options == null || options.getMember(KEY_MAPPING_MEMBER) == null) return false;
         Payload payload = payloadForField(field.getType());
         return payload != null && (payload.item().kind() == PayloadKind.SCALAR || payload.item().kind() == PayloadKind.ENUM);
     }

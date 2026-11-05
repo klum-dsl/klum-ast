@@ -446,7 +446,7 @@ final class InputContractResolver {
                 Role.LITERAL_ALTERNATIVE_MAP.name().equals(metadata.methods().get(signature(method)).role())))
             throw invalid("Missing literal alternative association on " + source);
         if (!literal.alternatives().isEmpty()) {
-            literalAlternative(context, field, fieldType, literal, accessor, methods, entries, rejections);
+            literalAlternative(context, fieldType, literal, accessor, methods, entries, rejections);
             return;
         }
         Role role = fieldRole(metadata, literal, accessor, methods, fieldType, source);
@@ -485,9 +485,10 @@ final class InputContractResolver {
     }
 
     /** Resolve only compiler-recorded field/target associations; construction uses the internal owned Map route. */
-    private void literalAlternative(BuilderContext context, String field, Type fieldType, Literals literal, Method accessor,
+    private void literalAlternative(BuilderContext context, Type fieldType, Literals literal, Method accessor,
                                     List<Method> methods, List<Entry> entries, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
+        String field = literal.field();
         String source = context.model().getName() + "#" + field;
         Map<String, LiteralAlternative> alternatives = new TreeMap<>();
         for (AlternativeFacts facts : literal.alternatives()) {
