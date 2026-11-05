@@ -129,3 +129,49 @@ Draft PR relationship: **Related: #1030**. Neither #1030 nor #1015 is closed or 
 only this branch's bounded implementation; its other dispositions and release gates remain with Hive. User pages,
 existing migration navigation, ADR 0032 and `CHANGES.md` describe the extension; no new page navigation is required.
 Request Hive reconciliation after delivery; this worker does not self-archive.
+
+
+## Recovery integration before publication — 2026-11-05
+
+Recovered the existing branch at `dd9f29c97`; no replacement implementation,
+branch or worktree was created. The original full-check and two-axis review results above remain evidence for that
+original tree, not a full check of the integration tree.
+
+Before publication, `master` advanced to `669418b0d30a235d951165a05e4bd741094a99d9` (merged PR #1029 / issue #1028).
+Rebased this same branch onto that exact revision. Production merged automatically. Mechanical conflicts retained both
+changelog entries, both bounded inventory/user-guide contracts, both binary-fixture inputs and both driving issue
+annotations. `git range-diff` confirms that these are the only adaptations to the recovered #1030 patch. No substantive
+#1030 production repair, new design or additional review children were required.
+
+The integrated implementation/test/user-documentation revision is
+`0c3f35c7b526b514f9b68ea05b97125bf4f8367c`. At that revision, Java 17 validation passed:
+
+```shell
+./gradlew :klum-ast:test --tests '*LiteralAlternative*Test' --tests '*StructuredDerivedMap*Test' --tests '*JpmsPackageBoundaryTest' \
+  :klum-ast:groovy4Tests --tests '*LiteralAlternative*Test' --tests '*StructuredDerivedMap*Test' --tests '*JpmsPackageBoundaryTest' \
+  :klum-ast:groovy5Tests --tests '*LiteralAlternative*Test' --tests '*StructuredDerivedMap*Test' --tests '*JpmsPackageBoundaryTest' \
+  :klum-ast-runtime:test :klum-ast-gradle-plugin:test --tests '*BinaryOwnedRelationshipsTest' license \
+  --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --no-parallel --max-workers=2
+./gradlew renderLocalDocumentation -PdocumentationVersion=4.2.0-tracer \
+  --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --no-parallel --max-workers=2
+```
+
+- Core integration: **197 cases in each Groovy 3/4/5 lane**, no failures/errors/skips. This includes literal alternatives,
+  native derived Maps and Java/static Groovy JPMS consumers.
+- Runtime baseline: **73 cases**, no failures/errors, one existing skip.
+- Source-free combined binary fixture: **8 cases**, no failures/errors/skips; interpretation, projection and corruption
+  checks retain both #1028 and #1030 inputs. License checks pass.
+- The pinned `jsonschema==4.23.0` oracle, run with system Python matching its retained native dependency, accepts
+  **36 valid instances** and rejects **195 invalid instances** across the three fresh emissions. Their common SHA-256 is
+  `e8507be8deeb8f30d28157f9d0379b3f1e7bb6e873baac3f44220c5bb5b9b3bb`.
+- Documentation rendering/crawl passes with **448 HTML files** across the local-review site. Source and renderer
+  manifests both identify `0c3f35c7b526b514f9b68ea05b97125bf4f8367c`.
+
+An initially broader recovery rerun was deliberately interrupted to select this integration scope; it supplies no
+qualification. The original full root check is preserved separately above. Hosted CI/SonarCloud remain pending remote
+qualification. This final recovery-evidence update changes no production, tests or rendered user documentation.
+
+Delivery preflight: Git SSH dedicated-branch push **authorized** by dry run; GitHub App repository write capability
+**authorized**, checked independently from the GitHub CLI repository capability (**authorized**). Tracker relationship
+remains **Related: #1030**. The feature PR retains the repository F2.1 inventory update; no additional release gate,
+issue state or curation disposition is selected. Request Hive reconciliation once the draft delivery is open.
