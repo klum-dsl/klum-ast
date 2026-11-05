@@ -68,4 +68,23 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
         !(failure.message =~ /Builder@[0-9a-fA-F]+/)
         failure.breadCrumbPath == '$/d.Deployment.With'
     }
+
+    def 'nested incompatible Map value identifies Schema key and input location'() {
+        when:
+        clazz.Create.With {
+            copyFrom([services: ['eu/west~blue': [endpoints: [[name: 'edge', port: [443]]]]]])
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.class == KlumModelException
+        failure.cause == null
+        failure.message.contains('diagnostics.Endpoint')
+        failure.message.contains("key 'edge'")
+        failure.message.contains('java.lang.Integer')
+        failure.message.contains('/services/eu~1west~0blue/endpoints/0/port')
+        !(failure.message =~ /Builder@[0-9a-fA-F]+/)
+        failure.breadCrumbPath == '$/d.Deployment.With'
+    }
+
 }

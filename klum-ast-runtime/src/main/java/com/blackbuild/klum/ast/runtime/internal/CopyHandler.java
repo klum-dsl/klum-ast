@@ -72,11 +72,11 @@ public class CopyHandler {
      * @param donor the object to copy from
      */
     public static void copyToFrom(Object target, Object donor) {
-        new CopyHandler(target, donor, new IdentityHashMap<>(), null, null).doCopy();
+        new CopyHandler(target, donor).doCopy();
     }
 
     public CopyHandler(Object target, Object donor) {
-        this(target, donor, new IdentityHashMap<>(), null, null);
+        this(target, donor, new IdentityHashMap<>(), null, donor instanceof Map ? "" : null);
     }
 
     private CopyHandler(Object target, Object donor, Map<Object, InternalKlumBuilder<?>> rehydratedRecipes,
@@ -87,7 +87,7 @@ public class CopyHandler {
             throw new KlumModelException("Copy donor must not be null");
         this.target = (InternalKlumBuilder<?>) target;
         this.donor = donor;
-        this.inputPath = inputPath != null ? inputPath : donor instanceof Map ? "" : null;
+        this.inputPath = inputPath;
         this.rehydratedRecipes = rehydratedRecipes;
         this.donorBreadcrumbRoot = donorBreadcrumbRoot != null
                 ? donorBreadcrumbRoot
@@ -264,9 +264,9 @@ public class CopyHandler {
             result = DslHelper.getAttributeValue(fieldName, donor);
         if (result != null && !(result instanceof Map) && !isInstance(type, result)) {
             if (result instanceof String)
-                return coerceString((String) result, type);
+                return coerceString((String) result, type, memberPath(fieldName));
 
-            throw new KlumModelException("Field " + fieldName + " is not of expected type " + type);
+            throw new KlumModelException("Field " + fieldName + " is not of expected type " + type + inputContext(memberPath(fieldName)));
         }
         return (T) result;
     }
@@ -291,7 +291,7 @@ public class CopyHandler {
         return false;
     }
 
-    private <T> T coerceString(String result, Class<T> type) {
+    private <T> T coerceString(String result, Class<T> type, String location) {
         try {
             return StringGroovyMethods.asType(result, type);
         } catch (Exception e) {
@@ -300,7 +300,7 @@ public class CopyHandler {
 
         List<Executable> converterMethods = ConverterHelper.getAllMatchingConverterMethods(type, String.class);
         if (converterMethods.isEmpty())
-            throw new KlumModelException("Field is not of expected type " + type);
+            throw new KlumModelException("Field is not of expected type " + type + inputContext(location));
 
         Executable converterMethod = converterMethods.get(0);
         if (converterMethod instanceof Method)
@@ -308,7 +308,7 @@ public class CopyHandler {
         if (converterMethod instanceof Constructor)
             return (T) InvokerHelper.invokeConstructorOf(type, new Object[]{ result });
 
-        throw new KlumModelException("String cannot be coerced to " + type);
+        throw new KlumModelException("String cannot be coerced to " + type + inputContext(location));
     }
 
     private void replaceValue(Field field, Object templateValue) {
