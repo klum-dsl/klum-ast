@@ -253,14 +253,20 @@ public final class StructuredInputSupport {
                 CompiledBuilderSchema decoded = templateRoot && path.isEmpty()
                         ? resolver.readTemplate(model) : resolver.read(model);
                 plans.put(model, decoded); // Register before following ownership so recursive contracts terminate.
-                for (Entry entry : decoded.entries().values()) {
-                    if (entry.payload().kind() == Kind.NESTED_OBJECT) {
-                        plan(entry.payload().type(), pointer(path, entry.externalName()));
-                    }
-                }
+                for (Entry entry : decoded.entries().values()) planEntry(entry, path);
                 return decoded;
             } catch (KlumModelException failure) {
                 throw new KlumModelException(source + " at '" + (path.isEmpty() ? "/" : path) + "': " + failure.getMessage(), failure);
+            }
+        }
+
+        private void planEntry(Entry entry, String path) {
+            String entryPath = pointer(path, entry.externalName());
+            if (!entry.alternatives().isEmpty()) {
+                for (CompiledBuilderSchema.LiteralAlternative alternative : entry.alternatives().values())
+                    plan(alternative.payload().type(), pointer(entryPath, alternative.alias()));
+            } else if (entry.payload().kind() == Kind.NESTED_OBJECT) {
+                plan(entry.payload().type(), entryPath);
             }
         }
 
@@ -366,15 +372,23 @@ public final class StructuredInputSupport {
                 throw bad(entry, path, "closed literal alias Map", input, null);
             enter(input, path, entry.contract(), entry.externalName());
             try {
-                for (Map.Entry<?, ?> supplied : map.entrySet()) {
-                    if (!(supplied.getKey() instanceof String alias))
-                        throw bad(entry, path, "literal String alias " + entry.alternative().alias(), supplied.getKey(), null);
-                    String aliasPath = pointer(path, alias);
-                    if (!alias.equals(entry.alternative().alias()))
-                        throw bad(entry, aliasPath, "literal alias " + entry.alternative().alias(), supplied.getValue(), null);
-                    executeChildren(entry, supplied.getValue(), aliasPath, builder);
-                }
+                BreadcrumbCollector.withInputScope(new Invocation(source, path, entry, null).fieldName(), () -> {
+                    executeAliasGroups(entry, map, path, builder);
+                    return null;
+                });
             } finally { visiting.remove(input); }
+        }
+
+        private void executeAliasGroups(Entry entry, Map<?, ?> map, String path, InternalKlumBuilder<?> builder) {
+            for (Map.Entry<?, ?> supplied : map.entrySet()) {
+                if (!(supplied.getKey() instanceof String alias))
+                    throw bad(entry, path, "literal String alias in " + entry.alternatives().keySet(), supplied.getKey(), null);
+                String aliasPath = pointer(path, alias);
+                var alternative = entry.alternatives().get(alias);
+                if (alternative == null)
+                    throw bad(entry, aliasPath, "literal alias in " + entry.alternatives().keySet(), supplied.getValue(), null);
+                executeChildren(entry, supplied.getValue(), aliasPath, builder, alternative);
+            }
         }
 
         private void executeSequence(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
@@ -397,6 +411,11 @@ public final class StructuredInputSupport {
         }
 
         private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            executeChildren(entry, input, path, builder, null);
+        }
+
+        private void executeChildren(Entry entry, Object input, String path, InternalKlumBuilder<?> builder,
+                                     CompiledBuilderSchema.LiteralAlternative alternative) {
             if (!(input instanceof Map<?, ?> map))
                 throw bad(entry, path, "Map of literal String instance keys to domain Maps", input, null);
             enter(input, path, entry.contract(), entry.externalName());
@@ -405,18 +424,17 @@ public final class StructuredInputSupport {
                 for (Map.Entry<?, ?> supplied : map.entrySet()) {
                     if (!(supplied.getKey() instanceof String key))
                         throw bad(entry, path, "String instance key", supplied.getKey(), null);
-                    Domain child = domain(entry.payload().type(), supplied.getValue(), pointer(path, key), Position.MAP_VALUE);
-                    if (entry.alternative() == null) {
+                    Domain child = domain(alternative == null ? entry.payload().type() : alternative.payload().type(),
+                            supplied.getValue(), pointer(path, key), Position.MAP_VALUE);
+                    if (alternative == null) {
                         invocation.recordInvocation(builder);
                         builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
                                 key, child::execute);
                     } else {
-                        BreadcrumbCollector.withInputScope(invocation.fieldName(), () -> {
-                            BuilderDispatchSupport.recordInvocation(builder, entry.alternative().alias());
-                            BreadcrumbCollector.getInstance().setVerb(entry.alternative().alias());
-                            return builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), entry.payload().type(), true,
-                                    key, child::execute);
-                        });
+                        BuilderDispatchSupport.recordInvocation(builder, alternative.alias());
+                        BreadcrumbCollector.getInstance().setVerb(alternative.alias());
+                        builder.addNewDslElementToMapWithConfiguration(invocation.fieldName(), alternative.payload().type(), true,
+                                key, child::execute);
                     }
                 }
             } finally { visiting.remove(input); }

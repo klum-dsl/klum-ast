@@ -74,7 +74,7 @@ public final class GeneratedInput {
     public @interface Field {
         /** Explicit completeness of the selected scalar, exact List-element or String-keyed Map-value converter association (zero or one). */
         int converterCount() default -1;
-        /** Explicit zero/one association count; stripping the association must fail closed. */
+        /** Explicit finite association count; stripping the association must fail closed. */
         int alternativeCount() default -1;
         String value();
         /** Owned sequence relationship; element invocation name for ordinary construction attribution, not an overload selection. */
@@ -126,6 +126,13 @@ public final class GeneratedInput {
         String keyType();
         String scope();
         String creator();
+    }
+
+    /** Complete finite set of compiler-literal keyed Map associations, in canonical alias order. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface LiteralAlternatives {
+        LiteralAlternative[] value();
     }
 
     /** Internal association with the exact existing creator of an unkeyed concrete virtual sink; not for Schema authors. */

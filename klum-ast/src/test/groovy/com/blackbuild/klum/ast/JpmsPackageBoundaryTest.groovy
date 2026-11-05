@@ -390,7 +390,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
-    @Issue(["391", "658", "954", "959", "952", "953", "1015"])
+    @Issue(["391", "658", "954", "959", "952", "953", "1015", "1030"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -883,11 +883,12 @@ class JpmsPackageBoundaryTest extends Specification {
             @DSL class StationSlot { @Key String name; String description }
             @DSL abstract class Element { @Key String name; @Owner Object owner; String value }
             @DSL class ConcreteElement extends Element {}
+            @DSL class RollingElement extends Element {}
             @DSL class StructuredRoot {
                 @Key String name
                 StationSlot direct
                 Map<String, StationSlot> slots
-                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+                @Field(alternatives = { [fixed: ConcreteElement, rolling: RollingElement] }) Map<String, Element> elements
             }
 
             @DSL
@@ -1140,7 +1141,10 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (!"root".equals(keyed.getName()) || !"direct".equals(keyed.getDirect().getName())
                             || !"outer".equals(keyed.getSlots().get("outer").getName()))
                         throw new AssertionError("Named Java key-member consumer did not link or populate");
-                    StructuredRoot literal = StructuredRoot.Create.FromStruct("literal", Map.of("elements", Map.of("fixed", Map.of("primary", Map.of("value", "configured")))));
+                    StructuredRoot literal = StructuredRoot.Create.FromStruct("literal", Map.of("elements", Map.of("fixed", Map.of("primary", Map.of("value", "configured")), "rolling", Map.of("secondary", Map.of("value", "rolling")))));
+                    if (!"rolling".equals(literal.getElements().get("secondary").getValue())
+                            || literal.getElements().get("secondary").getOwner() != literal)
+                        throw new AssertionError("Java multi-alias structured input failed");
                     if (!"primary".equals(literal.getElements().get("primary").getName())
                             || !"configured".equals(literal.getElements().get("primary").getValue())
                             || literal.getElements().get("primary").getOwner() != literal)
@@ -1303,7 +1307,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     assert keyed.name == 'root'
                     assert keyed.direct.name == 'direct'
                     assert keyed.slots.get('outer').name == 'outer'
-                    StructuredRoot literal = StructuredRoot.Create.FromStruct('literal', [elements: [fixed: [primary: [value: 'configured']]]])
+                    StructuredRoot literal = StructuredRoot.Create.FromStruct('literal', [elements: [fixed: [primary: [value: 'configured']], rolling: [secondary: [value: 'rolling']]]])
+                    assert literal.elements.secondary.value == 'rolling'
+                    assert literal.elements.secondary.owner.is(literal)
                     assert literal.elements.primary.name == 'primary'
                     assert literal.elements.primary.value == 'configured'
                     assert literal.elements.primary.owner.is(literal)

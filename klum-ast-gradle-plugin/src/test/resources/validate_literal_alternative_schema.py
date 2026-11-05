@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 
-"""Issue #952 / F2-B: the actual emitted single-literal keyed Map grammar."""
+"""Issues #952 / #1030: the actual emitted finite literal keyed Map grammar."""
 import importlib.metadata
 import json
 import sys
@@ -34,6 +34,10 @@ assert importlib.metadata.version("jsonschema") == "4.23.0"
 root = Path(sys.argv[1])
 accepted = [
     {},
+    {"multiElements": {}},
+    {"multiElements": {"fixed": {}, "rolling": {}}},
+    {"multiElements": {"rolling": {"b": {"rollingValue": "rolling"}, "c": {}}, "fixed": {"a": {"value": "fixed"}}}},
+    {"multiElements": {"fixed": {"same": {}}, "rolling": {"same": {}}}},
     {"elements": {}},
     {"elements": {"fixed": {}}},
     {"elements": {"fixed": {"primary": {}}}},
@@ -51,6 +55,16 @@ rejected += [{"elements": {"fixed": {"primary": body}}} for body in [
     {"name": "primary"}, {"name": "conflict"}, {"owner": {}}, {"@type": "ConcreteElement"},
     {"unknown": "value"}, {"value": 42}, {"value": None},
 ]]
+rejected += [{"multiElements": value} for value in [None, [], "text", 42, True]]
+rejected += [{"multiElements": {"unknown": {}}},
+             {"multiElements": {"RollingElement": {}}},
+             {"multiElements": {"fixed": {"a": {"rollingValue": "wrong subtype"}}}}]
+for alias in ("fixed", "rolling"):
+    rejected += [{"multiElements": {alias: value}} for value in [None, [], "text", 42, True]]
+    rejected += [{"multiElements": {alias: {"a": body}}} for body in [
+        None, [], "text", 42, True, {"name": "a"}, {"owner": {}}, {"@type": "RollingElement"},
+        {"unknown": "value"}, {"value": 42}, {"value": None},
+    ]]
 for generation in (3, 4, 5):
     path = root / f"virtual-scopes-{generation}.schema.json"
     document = json.loads(path.read_text())

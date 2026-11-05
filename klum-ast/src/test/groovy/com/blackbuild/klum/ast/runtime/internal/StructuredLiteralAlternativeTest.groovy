@@ -294,6 +294,7 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         model.elements.primary.owner.is(model)
     }
 
+    @Issue('1030')
     def 'custom Factory aliases cannot masquerade as generated literal creators'() {
         given:
         loader.parseClass '''
@@ -318,10 +319,11 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
                 }
             }
             @DSL class ConcreteElement extends Element {}
+            @DSL class OtherElement extends Element {}
             @DSL class Catalog {
                 @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
             }
-        '''
+        '''.replace('[fixed: ConcreteElement]', multiple ? '[fixed: ConcreteElement, rolling: OtherElement]' : '[fixed: ConcreteElement]')
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         def catalog = Class.forName('literalcollision.Catalog', false, artifacts)
         def trace = Class.forName('literalcollision.Trace', false, artifacts)
@@ -342,8 +344,12 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         def failure = thrown(KlumModelException)
         failure.message.contains('/elements')
         trace.events == ['factory:body']
+
+        where:
+        multiple << [false, true]
     }
 
+    @Issue('1030')
     def 'authored #placement collection scope retains ordinary behavior and rejects structured bypass'() {
         given:
         String customScope = "@Builder.Method void elements(Closure body) { Trace.events << 'custom:scope' }"
@@ -353,9 +359,10 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
             class Trace { static List<String> events = [] }
             @DSL abstract class Element { @Key String name; String value }
             @DSL class ConcreteElement extends Element {}
+            @DSL class OtherElement extends Element {}
         ''' + """
             @DSL class Catalog {
-                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+                @Field(alternatives = { ${multiple ? '[fixed: ConcreteElement, rolling: OtherElement]' : '[fixed: ConcreteElement]'} }) Map<String, Element> elements
                 ${placement == 'same-class' ? customScope : ''}
             }
             @DSL class SpecializedCatalog extends Catalog {
@@ -385,7 +392,7 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         trace.events == ['custom:scope']
 
         where:
-        placement << ['same-class', 'inherited']
+        [placement, multiple] << [['same-class', 'inherited'], [false, true]].combinations()
     }
 
     def 'literal input obeys ordinary same-thread session and sealing guards'() {

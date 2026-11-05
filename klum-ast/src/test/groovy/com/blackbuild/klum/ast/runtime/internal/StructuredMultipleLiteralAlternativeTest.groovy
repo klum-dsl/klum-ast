@@ -27,6 +27,8 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import spock.lang.Issue
+import spock.lang.See
+import spock.lang.Tag
 
 @Issue('1030')
 class StructuredMultipleLiteralAlternativeTest extends AbstractDSLSpec {
@@ -158,17 +160,203 @@ class StructuredMultipleLiteralAlternativeTest extends AbstractDSLSpec {
         catalog.events == ['root:create', 'create:first', 'apply:first:null', 'create:a/~', 'note:a/~:kept']
     }
 
-    def 'current multi-literal Struct admission rejects the relationship before child creation'() {
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#literal-collection-alternative')
+    def 'multiple explicit literal groups preserve supplied group and keyed entry order'() {
+        given:
+        def catalog = schema()
+        def ordinary = catalog.Create.With {
+            elements {
+                rolling('b') { rollingValue 'rolling' }
+                rolling('c') {}
+                fixed('a') { fixedValue 'fixed' }
+            }
+        }
+        def trace = catalog.events.toList()
+        catalog.events.clear()
+
+        when:
+        def model = catalog.Create.FromStruct([elements: [
+            rolling: [b: [rollingValue: 'rolling'], c: [:]],
+            fixed: [a: [fixedValue: 'fixed']]
+        ]], 'catalog.yaml')
+
+        then:
+        model.elements.keySet().toList() == ['b', 'c', 'a']
+        model.elements.b.class.name == 'multipliteral.RollingElement'
+        model.elements.a.class.name == 'multipliteral.FixedElement'
+        model.elements.b.rollingValue == 'rolling'
+        model.elements.a.fixedValue == 'fixed'
+        model.elements.every { key, child -> child.name == key && child.owner.is(model) }
+        catalog.events == trace
+        model.elements.every { key, child ->
+            KlumObjectSupport.of(child).constructionPath.replace('.FromStruct/', '.With/') ==
+                KlumObjectSupport.of(ordinary.elements[key]).constructionPath
+        }
+        new InputContractResolver().read(catalog).entries().get('elements').alternatives().keySet().toList() == ['fixed', 'rolling']
+    }
+
+    def 'each alias alone and empty groups remain valid: #groups'() {
         given:
         def catalog = schema()
 
         when:
-        catalog.Create.FromStruct([elements: [fixed: [a: [:]], rolling: [b: [:]]]], 'catalog.yaml')
+        def model = catalog.Create.FromStruct([elements: groups])
+
+        then:
+        model.elements.keySet().toList() == keys
+        catalog.events.count('root:apply') == 1
+
+        where:
+        groups                                        | keys
+        [:]                                           | []
+        [rolling: [:], fixed: [:]]                     | []
+        [rolling: [b: [:]]]                            | ['b']
+        [fixed: [a: [:]]]                              | ['a']
+        [fixed: [(''): [:], fixed: [:]], rolling: [:]]  | ['', 'fixed']
+    }
+
+    def 'multi-alias active Builder reuse and Template recipes retain keyed identity'() {
+        given:
+        def catalog = schema()
+        def first
+        def reused
+
+        when:
+        def recipe = catalog.Create.Template.FromStruct([elements: [rolling: [b: [value: 'recipe']], fixed: [a: [:]]]])
+        catalog.events.clear()
+        def model = catalog.Create.With {
+            copyFrom(recipe)
+            first = delegate.getElements().b
+            delegate.applyStruct([elements: [rolling: [b: [value: 'changed']], fixed: [a: [value: 'fixed']]]])
+            reused = delegate.getElements().b
+        }
+
+        then:
+        first.is(reused)
+        model.elements.keySet().toList() == ['b', 'a']
+        model.elements.b.value == 'changed'
+        model.elements.a.value == 'fixed'
+        model.elements.every { key, child -> child.name == key && child.owner.is(model) }
+        catalog.events.count('apply:b:changed') == 1
+        catalog.events.count('apply:a:fixed') == 1
+        catalog.events.count('root:apply') == 2
+        catalog.events.findAll { it.startsWith('tree:') } == ['tree:b:true', 'tree:a:true']
+    }
+
+    def 'a cross-alias repeated key has the ordinary explicit-type collision in #firstAlias order'() {
+        given:
+        def catalog = schema()
+        def retained
+        List<String> messages = []
+
+        when:
+        [false, true].each { structured ->
+            catalog.Create.With {
+                try {
+                    if (structured) {
+                        delegate.applyStruct([elements: [(firstAlias): [same: [value: 'retained']], (secondAlias): [same: [note: 'never'], later: [:]]]])
+                    } else if (firstAlias == 'fixed') {
+                        elements { fixed('same') { value 'retained' }; rolling('same') { note 'never' } }
+                    } else {
+                        elements { rolling('same') { value 'retained' }; fixed('same') { note 'never' } }
+                    }
+                    assert false
+                } catch (Exception failure) { messages << failure.message }
+                retained = delegate.getElements().same
+            }
+        }
+
+        then:
+        messages.size() == 2
+        messages[0] == messages[1]
+        retained.value == 'retained'
+        catalog.events.count('create:same') == 2
+        !catalog.events.any { it.startsWith('note:') || it == 'create:later' }
+
+        where:
+        firstAlias | secondAlias
+        'fixed'    | 'rolling'
+        'rolling'  | 'fixed'
+    }
+
+    def 'a reached second group failure keeps earlier effects and the exact pointer: #groups'() {
+        given:
+        def catalog = schema()
+        InternalKlumBuilder captured
+
+        when:
+        catalog.Create.With {
+            captured = (InternalKlumBuilder) delegate
+            delegate.applyStruct([elements: [fixed: [a: [:]]] + groups, after: 'never'], 'catalog.yaml')
+        }
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('/elements')
-        catalog.events == ['root:create']
-        !new InputContractResolver().read(catalog).entries().containsKey('elements')
+        failure.message.contains('catalog.yaml')
+        failure.message.contains(pointer)
+        captured.getInstanceAttributeOrGetter('elements').keySet().toList() == ['a']
+        catalog.events.take(3) == ['root:create', 'create:a', 'apply:a:null']
+        !catalog.events.any { it == 'create:later' || it == 'root:apply' || it.startsWith('after:') }
+
+        where:
+        groups                                                    | pointer
+        [unknown: [:]]                                            | '/elements/unknown'
+        [RollingElement: [:]]                                     | '/elements/RollingElement'
+        [rolling: null]                                           | '/elements/rolling'
+        [rolling: []]                                             | '/elements/rolling'
+        [rolling: [(42): [:]]]                                    | '/elements/rolling'
+        [rolling: ['a/~': [note: 'kept', name: 'a/~'], later: [:]]]  | '/elements/rolling/a~1~0/name'
+        [rolling: ['a/~': [name: 'conflict'], later: [:]]]           | '/elements/rolling/a~1~0/name'
+        [rolling: [b: [fixedValue: 'wrong subtype'], later: [:]]]    | '/elements/rolling/b/fixedValue'
+        [rolling: [b: [value: 42], later: [:]]]                     | '/elements/rolling/b/value'
+        [rolling: [b: [owner: [:]], later: [:]]]                    | '/elements/rolling/b/owner'
+        [rolling: [b: ['@type': 'FixedElement'], later: [:]]]        | '/elements/rolling/b/@type'
+    }
+
+    def 'second alias lifecycle failure preserves cause and stops attachment'() {
+        given:
+        def catalog = schema()
+        InternalKlumBuilder captured
+
+        when:
+        catalog.Create.With {
+            captured = (InternalKlumBuilder) delegate
+            delegate.applyStruct([elements: [fixed: [a: [:]], rolling: [b: [value: 'explode'], later: [:]]], after: 'never'])
+        }
+
+        then:
+        def failure = thrown(Exception)
+        causes(failure).any { it instanceof IllegalStateException && it.message == 'lifecycle trap' }
+        captured.getInstanceAttributeOrGetter('elements').keySet().toList() == ['a']
+        catalog.events == ['root:create', 'create:a', 'apply:a:null', 'create:b', 'apply:b:explode']
+    }
+
+    def 'second alias cyclic input rejects and cleanup permits later reuse'() {
+        given:
+        def catalog = schema()
+        Map groups = [fixed: [a: [:]], rolling: [:]]
+        groups.rolling.b = groups
+        String message
+
+        when:
+        def model = catalog.Create.With {
+            try { delegate.applyStruct([elements: groups]) }
+            catch (KlumModelException failure) { message = failure.message }
+            delegate.applyStruct([elements: [rolling: [b: [:]]]])
+        }
+
+        then:
+        message.contains('/elements/rolling/b')
+        message.contains('cyclic container')
+        model.elements.keySet().toList() == ['a', 'b']
+    }
+
+    private static List<Throwable> causes(Throwable failure) {
+        List<Throwable> result = []
+        for (Throwable current = failure; current != null; current = current.cause) {
+            result << current
+        }
+        result
     }
 }

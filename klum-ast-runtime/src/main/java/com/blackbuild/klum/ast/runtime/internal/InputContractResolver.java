@@ -35,6 +35,8 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.util.HashSet;
+import java.util.TreeMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,6 +67,7 @@ final class InputContractResolver {
             "java.lang.Double", "java.math.BigInteger", "java.math.BigDecimal");
     private static final Set<String> COLLECTIONS = Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet", "java.util.EnumSet");
     private static final Set<String> MAPS = Set.of("java.util.Map", "java.util.SortedMap", "java.util.NavigableMap");
+    private static final String LITERAL_ALTERNATIVE_CREATOR = "LITERAL_ALTERNATIVE_CREATOR";
     private static final String CONVERTER_SIGNATURE_MISMATCH = "Converter selection disagrees with field/overload";
     private final BuilderContractReader reader = new BuilderContractReader();
     private final SelectedConverterParameterReader converterReader = new SelectedConverterParameterReader();
@@ -333,7 +336,7 @@ final class InputContractResolver {
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
         return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(), entry.dispatch(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternative());
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternatives());
     }
 
     private Key profileKey(Key key) throws IOException, ClassNotFoundException {
@@ -448,10 +451,10 @@ final class InputContractResolver {
         String source = context.model().getName() + "#" + field;
         Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
         ConverterConstraints converter = converter(context, field, fieldType, literal, methods);
-        if (literal.alternative() == null && methods.stream().anyMatch(method ->
+        if (literal.alternatives().isEmpty() && methods.stream().anyMatch(method ->
                 Role.LITERAL_ALTERNATIVE_MAP.name().equals(metadata.methods().get(signature(method)).role())))
             throw invalid("Missing literal alternative association on " + source);
-        if (literal.alternative() != null) {
+        if (!literal.alternatives().isEmpty()) {
             literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
             return;
         }
@@ -494,7 +497,45 @@ final class InputContractResolver {
     private void literalAlternative(BuilderContext context, String field, Type fieldType, Literals literal,
                                     List<Method> methods, List<Entry> entries, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
-        AlternativeFacts facts = literal.alternative();
+        String source = context.model().getName() + "#" + field;
+        Map<String, LiteralAlternative> alternatives = new TreeMap<>();
+        for (AlternativeFacts facts : literal.alternatives()) {
+            alternatives.put(facts.alias(), resolveAlternative(context, field, fieldType, literal, facts));
+        }
+        validateAlternativeCompleteness(field, alternatives, source);
+        if (literal.names().ignored()) {
+            rejections.add(new Rejection(source, ignoreReason(literal.names())));
+            return;
+        }
+        if (selectedRole(context.metadata(), methods, source) != Role.LITERAL_ALTERNATIVE_MAP)
+            throw invalid("Missing literal alternative selection on " + source);
+        LiteralAlternative first = alternatives.values().iterator().next();
+        String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
+        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, methods, null,
+                first.payload(), String.class.getName(), literal.alternatives().get(0).key(), null,
+                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(), alternatives));
+    }
+
+    private void validateAlternativeCompleteness(String field, Map<String, LiteralAlternative> alternatives, String source)
+            throws IOException, ClassNotFoundException {
+        Class<?> scope = alternatives.values().iterator().next().scope();
+        Set<String> recorded = new HashSet<>();
+        for (LiteralAlternative alternative : alternatives.values()) {
+            if (alternative.scope() != scope) throw invalid("Conflicting literal alternative scopes on " + source);
+            recorded.add(descriptor(alternative.creator()));
+        }
+        Set<String> generated = new HashSet<>();
+        Metadata metadata = reader.metadata(scope);
+        for (Method method : scope.getDeclaredMethods()) {
+            Literals facts = metadata.methods().get(signature(method));
+            if (facts != null && field.equals(facts.selection()) && LITERAL_ALTERNATIVE_CREATOR.equals(facts.role()))
+                generated.add(descriptor(method));
+        }
+        if (!recorded.equals(generated)) throw invalid("Incomplete literal alternative creator associations on " + source);
+    }
+
+    private LiteralAlternative resolveAlternative(BuilderContext context, String field, Type fieldType, Literals literal,
+                                                  AlternativeFacts facts) throws IOException, ClassNotFoundException {
         String source = context.model().getName() + "#" + field;
         ClassLoader loader = context.builder().getClassLoader();
         Class<?> target = Class.forName(facts.target(), false, loader);
@@ -520,22 +561,13 @@ final class InputContractResolver {
                 || Modifier.isStatic(creator.getModifiers()) || creator.getReturnType() != childBuilder
                 || !Arrays.equals(creator.getParameterTypes(), new Class<?>[]{String.class, Closure.class})
                 || creatorFacts == null || !field.equals(creatorFacts.selection())
-                || !"LITERAL_ALTERNATIVE_CREATOR".equals(creatorFacts.role())
+                || !LITERAL_ALTERNATIVE_CREATOR.equals(creatorFacts.role())
                 || !reader.metadata(childBuilder).key().equals(facts.key())
                 || !reader.metadata(declaredBuilder).key().equals(facts.key())
                 || !literal.exclusion().isEmpty() || literal.schemaKey() != null || literal.fixed())
             throw invalid("Literal alternative field/target/key/creator disagreement on " + source);
-        if (literal.names().ignored()) {
-            rejections.add(new Rejection(source, ignoreReason(literal.names())));
-            return;
-        }
-        if (selectedRole(context.metadata(), methods, source) != Role.LITERAL_ALTERNATIVE_MAP)
-            throw invalid("Missing literal alternative selection on " + source);
-        String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, methods, null,
-                new Payload(Kind.NESTED_OBJECT, target, childBuilder, null, null), String.class.getName(), facts.key(), null,
-                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(),
-                new LiteralAlternative(facts.alias(), scope, creator)));
+        return new LiteralAlternative(facts.alias(), scope, creator,
+                new Payload(Kind.NESTED_OBJECT, target, childBuilder, null, null));
     }
 
     private static Class<?> alternativeMapValue(Type fieldType, String source) {

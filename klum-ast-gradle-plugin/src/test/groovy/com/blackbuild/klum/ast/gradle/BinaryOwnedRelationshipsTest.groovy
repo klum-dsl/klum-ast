@@ -47,7 +47,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     File repository
     File trap
 
-    @Issue(['957', '954', '952', '1026', '1028'])
+    @Issue(['957', '954', '952', '1026', '1028', '1030'])
     def 'binary owned relationships support #capability with Groovy #generation'() {
         given:
         fixture(generation)
@@ -59,6 +59,14 @@ class BinaryOwnedRelationshipsTest extends Specification {
         if (capability == 'projection') {
             def schema = new JsonSlurper().parse(new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json'))
             def properties = schema.'$defs'.'example.Deployment_DSL$Builder'.properties
+            assert properties.multiElements.additionalProperties == false
+            assert properties.multiElements.properties.keySet().toList() == ['fixed', 'rolling']
+            assert properties.multiElements.properties.fixed == properties.elements.properties.fixed
+            assert properties.multiElements.properties.rolling.additionalProperties.'$ref' == '#/$defs/example.RollingElement_DSL%24Builder%3A%3Akeyless'
+            def rolling = schema.'$defs'.'example.RollingElement_DSL$Builder::keyless'
+            assert rolling.properties.keySet() == ['value', 'rollingValue'] as Set
+            assert rolling.additionalProperties == false
+            assert !rolling.containsKey('required')
             assert properties.elements.additionalProperties == false
             assert properties.elements.properties.keySet() == ['fixed'] as Set
             assert properties.elements.properties.fixed.additionalProperties.'$ref' == '#/$defs/example.ConcreteElement_DSL%24Builder%3A%3Akeyless'
@@ -131,7 +139,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
         [generation, capability] << [['3', '4', '5'], ['projection', 'interpret']].combinations()
     }
 
-    private static byte[] stripLiteralAssociation(String name, byte[] bytes) {
+    private static byte[] stripLiteralAssociation(String name, byte[] bytes, boolean multiple) {
         if (name != 'example/Deployment_DSL$Builder.class') {
             return bytes
         }
@@ -140,7 +148,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
             @Override MethodVisitor visitMethod(int access, String methodName, String descriptor, String signature, String[] exceptions) {
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, methodName, descriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        annotation.endsWith('GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
+                        annotation.endsWith(multiple ? 'GeneratedInput$LiteralAlternatives;' : 'GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
                     }
                 }
             }
@@ -148,7 +156,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
         writer.toByteArray()
     }
 
-    @Issue('952')
+    @Issue(['952', '1030'])
     def 'corrupt binary literal association prevents every new schema output without initializing user code'() {
         given:
         fixture('3')
@@ -158,7 +166,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
             new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
                 archive.entries().each { entry ->
                     byte[] bytes = archive.getInputStream(entry).bytes
-                    bytes = stripLiteralAssociation(entry.name, bytes)
+                    bytes = stripLiteralAssociation(entry.name, bytes, multiple)
                     output.putNextEntry(new JarEntry(entry.name))
                     output.write(bytes)
                     output.closeEntry()
@@ -176,6 +184,9 @@ class BinaryOwnedRelationshipsTest extends Specification {
         !new File(consumer, 'build/generated/klum-json-schema/example.LocalFacts.schema.json').exists()
         !new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json').exists()
         !trap.exists()
+
+        where:
+        multiple << [false, true]
     }
 
     private void fixture(String generation) {
@@ -263,6 +274,7 @@ enum Shade { BLUE, RED }
     SortedSet<Facts> sortedFacts = new TreeSet(new FactOrder())
     NavigableSet<Facts> navigableFacts = new TreeSet(new FactOrder())
     @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+    @Field(alternatives = { [rolling: RollingElement, fixed: ConcreteElement] }) Map<String, Element> multiElements
     Map<String, Workload> workloads
     @Field(members="listedWorkload") List<Workload> workloadList
     @Field(members="setWorkload") Set<Workload> workloadSet
@@ -298,6 +310,7 @@ class FactOrder implements Comparator<Object> {
     String value
 }
 @DSL class ConcreteElement extends Element {}
+@DSL class RollingElement extends Element { String rollingValue }
 ''')
         runner(producer, ':schema:jar').build()
         publish('schema', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -319,6 +332,7 @@ class Consumer {
         def sequenceItems = [['workload-id': 'z', image: 'last'], ['workload-id': 'a', image: 'first'], ['workload-id': 'a', image: 'first']]
         def input = [workloadList: sequenceItems, workloadSet: sequenceItems, inheritedSequence: sequenceItems, facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
+                     multiElements: [rolling: [b: [rollingValue: 'rolling'], c: [:]], fixed: [a: [value: 'fixed']]],
                      elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], derivedLabels: ['BLUE', 'RED', 'blue'], inheritedShades: ['BLUE', 'RED'], virtual: ['host-name': 'virtual'], inheritedFacts: [['host-name': 'inherited']],
                      factList: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
                      factSet: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
@@ -333,6 +347,7 @@ class Consumer {
             inherited { host 'base' }
             workloads { workload('a/b~c') { image 'one' } }
             inheritedWorkloads { inheritedWorkload('other') { image 'two' } }
+            multiElements { rolling('b') { rollingValue 'rolling' }; rolling('c') {}; fixed('a') { value 'fixed' } }
             elements { fixed('primary') { value 'configured' } }
             local { host 'local' }
             labels(['host-name': 'literal'])
@@ -357,6 +372,11 @@ class Consumer {
         assert model.inherited.owner.is(model)
         assert model.workloads['a/b~c'].owner.is(model)
         assert model.inheritedWorkloads.other.owner.is(model)
+        assert model.multiElements.keySet().toList() == ['b', 'c', 'a']
+        assert model.multiElements.b instanceof RollingElement
+        assert model.multiElements.a instanceof ConcreteElement
+        assert model.multiElements.b.rollingValue == 'rolling'
+        assert model.multiElements.every { key, child -> child.name == key && child.owner.is(model) }
         assert model.elements.primary instanceof ConcreteElement
         assert model.elements.primary.name == 'primary'
         assert model.elements.primary.value == 'configured'

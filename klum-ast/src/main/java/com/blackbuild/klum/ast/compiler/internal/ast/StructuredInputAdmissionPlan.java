@@ -53,8 +53,8 @@ import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -189,35 +189,40 @@ final class StructuredInputAdmissionPlan {
 
     /** Freeze only explicit literal facts at the existing CollectionFactory generation site. */
     static void recordLiteralAlternative(FieldNode field, Map<ClassNode, String> alternatives, ClassNode scope) {
-        if (alternatives.size() != 1 || !field.getType().redirect().getName().equals(Map.class.getName())) return;
+        if (alternatives.isEmpty() || !field.getType().redirect().getName().equals(Map.class.getName())) return;
         ClassNode declared = getElementTypeForMap(field.getType()).redirect();
-        ClassNode target = alternatives.keySet().iterator().next().redirect();
         AnnotationNode options = annotation(field, Field.class.getName());
-        FieldNode key = getKeyField(target);
         if (!Modifier.isAbstract(declared.getModifiers()) || getFieldType(field) != FieldType.DEFAULT
                 || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))
-                || !isDSLObject(target) || Modifier.isAbstract(target.getModifiers()) || key == null
-                || !ClassHelper.STRING_TYPE.equals(key.getType()) || !key.equals(getKeyField(declared))
-                || target.getGenericsTypes() != null && target.getGenericsTypes().length != 0
                 || declared.getGenericsTypes() != null && declared.getGenericsTypes().length != 0
-                || options != null && options.getMember("keyMapping") != null) return;
-        field.setNodeMetaData(LITERAL_ALTERNATIVE,
-                new LiteralAlternative(alternatives.values().iterator().next(), target, scope, key.getName()));
+                || options != null && options.getMember("keyMapping") != null
+                || alternatives.values().stream().distinct().count() != alternatives.size()) return;
+        List<LiteralAlternative> candidates = new ArrayList<>();
+        for (Map.Entry<ClassNode, String> selected : alternatives.entrySet()) {
+            ClassNode target = selected.getKey().redirect();
+            FieldNode key = getKeyField(target);
+            if (!isDSLObject(target) || Modifier.isAbstract(target.getModifiers()) || key == null
+                    || !ClassHelper.STRING_TYPE.equals(key.getType()) || !key.equals(getKeyField(declared))
+                    || target.getGenericsTypes() != null && target.getGenericsTypes().length != 0) return;
+            candidates.add(new LiteralAlternative(selected.getValue(), target, scope, key.getName()));
+        }
+        candidates.sort(Comparator.comparing(LiteralAlternative::alias));
+        field.setNodeMetaData(LITERAL_ALTERNATIVE, List.copyOf(candidates));
     }
 
     private record LiteralAlternative(String alias, ClassNode target, ClassNode scope, String key) { }
 
-    private static LiteralAlternative literalAlternative(FieldNode field) {
-        LiteralAlternative candidate = field.getNodeMetaData(LITERAL_ALTERNATIVE);
-        if (candidate == null) return null;
+    private static List<LiteralAlternative> literalAlternatives(FieldNode field) {
+        List<LiteralAlternative> candidates = field.getNodeMetaData(LITERAL_ALTERNATIVE);
+        if (candidates == null) return List.of();
         ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
-        if (implementation == null) return null;
+        if (implementation == null) return List.of();
         MethodNode outer = implementation.getDeclaredMethod(field.getName(),
                 new Parameter[]{new Parameter(ClassHelper.CLOSURE_TYPE, "body")});
         return outer != null
                 && outer.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field
                 && annotation(outer, Builder.Method.class.getName()) == null
-                && literalCreator(field, candidate) != null ? candidate : null;
+                && candidates.stream().allMatch(candidate -> literalCreator(field, candidate) != null) ? candidates : List.of();
     }
 
     /** Signature shape alone cannot distinguish a projected custom Factory from a literal relationship creator. */
@@ -236,9 +241,19 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void enrichLiteralAlternative(FieldNode field, AnnotationNode fact, MethodNode accessor) {
-        LiteralAlternative alternative = literalAlternative(field);
-        fact.setMember("alternativeCount", new ConstantExpression(alternative == null ? 0 : 1));
-        if (alternative == null) return;
+        List<LiteralAlternative> alternatives = literalAlternatives(field);
+        fact.setMember("alternativeCount", new ConstantExpression(alternatives.size()));
+        if (alternatives.size() == 1) {
+            accessor.addAnnotation(literalAssociation(field, alternatives.get(0)));
+        } else if (!alternatives.isEmpty()) {
+            AnnotationNode associations = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternatives.class));
+            associations.setMember(VALUE, new ListExpression(alternatives.stream()
+                    .map(alternative -> (Expression) new AnnotationConstantExpression(literalAssociation(field, alternative))).toList()));
+            accessor.addAnnotation(associations);
+        }
+    }
+
+    private static AnnotationNode literalAssociation(FieldNode field, LiteralAlternative alternative) {
         MethodNode creator = literalCreator(field, alternative);
         AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
         association.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
@@ -248,11 +263,11 @@ final class StructuredInputAdmissionPlan {
         association.setMember("keyType", new ConstantExpression(String.class.getName()));
         association.setMember("scope", new ConstantExpression(GeneratedDslSupport.publicType(alternative.scope()).redirect().getName()));
         association.setMember("creator", new ConstantExpression(descriptor(creator)));
-        accessor.addAnnotation(association);
         AnnotationNode selectedCreator = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
         selectedCreator.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
         selectedCreator.setMember("role", new ConstantExpression("LITERAL_ALTERNATIVE_CREATOR"));
         creator.addAnnotation(selectedCreator);
+        return association;
     }
 
     private static final String VIRTUAL_SCOPES = METADATA_KEY + ".virtualScopes";
@@ -610,8 +625,9 @@ final class StructuredInputAdmissionPlan {
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
         ClassNode type = field.getType();
         ClassNode child = getElementTypeForMap(type);
-        LiteralAlternative alternative = literalAlternative(field);
-        if (alternative != null) {
+        List<LiteralAlternative> alternatives = literalAlternatives(field);
+        if (!alternatives.isEmpty()) {
+            LiteralAlternative alternative = alternatives.get(0);
             PublicOperation operation = publicOperation(field, rejections);
             if (operation != null)
                 entries.add(new Entry(name.value(), Role.LITERAL_ALTERNATIVE_MAP, source(field), operation,
