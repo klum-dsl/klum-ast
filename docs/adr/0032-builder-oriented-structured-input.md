@@ -2,7 +2,7 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's single literal CollectionFactory family is implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's literal CollectionFactory family and #1030's finite explicit alias groups are implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -45,10 +45,30 @@ same validated association to interpretation and projection. Runtime binds the e
 configuration callback before child PostApply; JSON Schema emits a closed alias object and concrete keyless body.
 No public receiver/Consumer API, private-method reflection, synthetic closure or new construction engine is added.
 
-This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral/multiple aliases,
+This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral aliases,
 generic targets, custom key mapping and caller Class/Factory selectors remain deferred under #952. See the
 [user contract](../user/Structured-Input.md#literal-collection-alternative) and
 [F2-B implementation evidence](../implementation/input-round-f2b-evidence.md). Merge and hosted qualification are separate.
+
+## Multiple explicit literal alias groups — #1030
+
+The maintainer-selected F2.1 extension admits finite multiple explicit aliases in the existing F2-B abstract keyed Map
+family: `elements: {fixed: {a: {}}, rolling: {b: {}}}`. Every target and exact generated creator must independently satisfy
+the original admission checks; one unsupported or ambiguous route excludes the relationship. No subtype-name inference,
+public selector policy or operation-event grammar is added. Other collection shapes, concrete-base/alias coexistence,
+generic alternatives, automatic names and producers remain excluded.
+
+Single associations retain their existing metadata shape. Multiple associations use an inert `LiteralAlternatives`
+container of the same seven-fact records with an exact finite `Field.alternativeCount`. The unified Schema version stays
+authoritative. Inspection checks every row, duplicate aliases/targets, and complete agreement with the generated creator
+markers without initializing Schema code. Metadata and JSON Schema alias properties use canonical alias order. Runtime
+traverses supplied outer and inner Maps in their own iteration order within one collection scope; this is neither
+metadata execution order nor a portable parser-order guarantee. Ordinary key reuse/type collisions, source paths,
+ownership, lifecycle, Template recipes and partial failure remain authoritative. JSON Schema gives each optional alias
+its concrete keyless body and adds no cross-alias identity, ordering or lifecycle constraint.
+
+See [#1030 evidence](../implementation/issue-1030-multiple-literal-evidence.md) and the
+[user contract](../user/Structured-Input.md#literal-collection-alternative). Merge and hosted qualification remain separate.
 
 ## Accepted ordinary owned sequence slice — 2026-11-03
 

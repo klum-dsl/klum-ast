@@ -595,9 +595,9 @@ Real ScHelm root/output qualification remains a consumer-owned acceptance gate f
 
 ## Literal collection alternative
 
-For the [single compiler-literal keyed Map family](Structured-Input.md#literal-collection-alternative), the generated
-relationship is a closed object with exactly the recorded alias property. That alias is a String-keyed object whose
-values reference the concrete subtype's keyless body definition:
+For the [finite compiler-literal keyed Map family](Structured-Input.md#literal-collection-alternative), the generated
+relationship is a closed object with exactly the recorded alias properties, emitted in deterministic alias order. Each
+alias is a String-keyed object whose values reference that concrete subtype's keyless body definition:
 
 ```json
 {
@@ -607,13 +607,17 @@ values reference the concrete subtype's keyless body definition:
     "fixed": {
       "type": "object",
       "additionalProperties": {"$ref": "#/$defs/example.ConcreteElement_DSL%24Builder%3A%3Akeyless"}
+    },
+    "rolling": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/example.RollingElement_DSL%24Builder%3A%3Akeyless"}
     }
   }
 }
 ```
 
-Neither relationship nor alias is required. Empty mappings are valid; a child body cannot supply its construction key,
-owner, unknown member or type selector. This shape promises only structural admission. Ordering, partial effects,
+Neither relationship nor any alias is required. One or several groups may be present. Empty mappings are valid; a child
+body cannot supply its construction key, owner, unknown member or type selector. This shape promises only structural admission. Ordering, partial effects,
 existing-child reuse, lifecycle and completed validation remain runtime behavior. Unsupported alternative families remain
 omitted with diagnostics. Source-free producer/plugin/binary coverage lives in `BinaryOwnedRelationshipsTest`; the
 emitted-schema oracle is `validate_literal_alternative_schema.py`.
