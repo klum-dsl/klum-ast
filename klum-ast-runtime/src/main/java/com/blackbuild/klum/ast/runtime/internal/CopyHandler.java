@@ -63,7 +63,7 @@ public class CopyHandler {
     private final Object donor;
     private final Map<Object, InternalKlumBuilder<?>> rehydratedRecipes;
     private final String donorBreadcrumbRoot;
-    private final String inputPath;
+    private final InputPath inputPath;
 
     /**
      * Copies properties from the donor to the target object. Copying is done according to the annotations on the target object's class and
@@ -76,11 +76,11 @@ public class CopyHandler {
     }
 
     public CopyHandler(Object target, Object donor) {
-        this(target, donor, new IdentityHashMap<>(), null, donor instanceof Map ? "" : null);
+        this(target, donor, new IdentityHashMap<>(), null, donor instanceof Map ? new InputPath(null, null) : null);
     }
 
     private CopyHandler(Object target, Object donor, Map<Object, InternalKlumBuilder<?>> rehydratedRecipes,
-                        String donorBreadcrumbRoot, String inputPath) {
+                        String donorBreadcrumbRoot, InputPath inputPath) {
         if (!(target instanceof InternalKlumBuilder))
             throw new KlumModelException("Copy targets must be Builders; completed models are immutable");
         if (donor == null)
@@ -150,22 +150,39 @@ public class CopyHandler {
     }
 
     // Diagnostic input locations are relative to this Map copy, independent of retained construction paths.
-    private String memberPath(Object token) {
+    private InputPath memberPath(Object token) {
         return appendInputPath(inputPath, token);
     }
 
-    private static String appendInputPath(String parent, Object token) {
+    private static InputPath appendInputPath(InputPath parent, Object token) {
         if (parent == null)
             return null;
-        return parent + "/" + String.valueOf(token).replace("~", "~0").replace("/", "~1");
+        return new InputPath(parent, token);
     }
 
-    private String inputContext(String location) {
+    private record InputPath(InputPath parent, Object token) {
+        private String render() {
+            if (parent == null)
+                return "";
+            return parent.render() + "/" + renderToken().replace("~", "~0").replace("/", "~1");
+        }
+
+        private String renderToken() {
+            try {
+                return String.valueOf(token);
+            } catch (RuntimeException ignored) {
+                // A diagnostic must not replace the copy failure if a caller's key cannot be rendered.
+                return "<" + token.getClass().getName() + ">";
+            }
+        }
+    }
+
+    private String inputContext(InputPath location) {
         if (location == null)
             return "";
         Object key = target.getNullableKey();
         return " in target Schema " + target.getModelType().getName()
-                + (key == null ? "" : " with key '" + key + "'") + " (input member " + location + ")";
+                + (key == null ? "" : " with key '" + key + "'") + " (input member " + location.render() + ")";
     }
 
     @SuppressWarnings("java:S1126")
@@ -291,7 +308,7 @@ public class CopyHandler {
         return false;
     }
 
-    private <T> T coerceString(String result, Class<T> type, String location) {
+    private <T> T coerceString(String result, Class<T> type, InputPath location) {
         try {
             return StringGroovyMethods.asType(result, type);
         } catch (Exception e) {
@@ -410,7 +427,7 @@ public class CopyHandler {
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
-            String location = appendInputPath(memberPath(field.getName()), key);
+            InputPath location = appendInputPath(memberPath(field.getName()), key);
             assertCorrectType(field, value, valueType, location);
             currentValues.computeIfAbsent(key, k -> copyFieldValue(field, valueType, value, key, location));
         }
@@ -422,7 +439,7 @@ public class CopyHandler {
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
-            String location = appendInputPath(memberPath(field.getName()), key);
+            InputPath location = appendInputPath(memberPath(field.getName()), key);
             assertCorrectType(field, value, valueType, location);
             Object currentValue = currentValues.get(key);
             if (currentValue == null)
@@ -437,7 +454,7 @@ public class CopyHandler {
         for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
             Object key = entry.getKey();
             Object value = entry.getValue();
-            String location = appendInputPath(memberPath(field.getName()), key);
+            InputPath location = appendInputPath(memberPath(field.getName()), key);
             assertCorrectType(field, value, valueType, location);
             currentValues.put(key, copyFieldValue(field, valueType, value, key, location));
         }
@@ -509,13 +526,13 @@ public class CopyHandler {
         Class<?> elementType = DslHelper.getClassFromType(getCopyElementType(field));
         int index = 0;
         for (Object value : templateValue) {
-            String location = appendInputPath(memberPath(field.getName()), index++);
+            InputPath location = appendInputPath(memberPath(field.getName()), index++);
             assertCorrectType(field, value, elementType, location);
             currentValue.add(copyFieldValue(field, elementType, value, null, location));
         }
     }
 
-    private Object copyFieldValue(Field field, Class<?> declaredType, Object value, Object keyHint, String location) {
+    private Object copyFieldValue(Field field, Class<?> declaredType, Object value, Object keyHint, InputPath location) {
         if (value == null)
             return null;
         if (DslHelper.isLink(field)
@@ -527,7 +544,7 @@ public class CopyHandler {
         return copyValue(value);
     }
 
-    private Object rehydrateDslRecipe(Class<?> declaredType, Object recipe, Object keyHint, String location) {
+    private Object rehydrateDslRecipe(Class<?> declaredType, Object recipe, Object keyHint, InputPath location) {
         InternalKlumBuilder<?> existing = rehydratedRecipes.get(recipe);
         if (existing != null)
             return existing;
@@ -556,7 +573,7 @@ public class CopyHandler {
         return builder;
     }
 
-    private void copyNested(Object nestedTarget, Object nestedDonor, String location) {
+    private void copyNested(Object nestedTarget, Object nestedDonor, InputPath location) {
         new CopyHandler(
                 nestedTarget,
                 nestedDonor,
@@ -585,7 +602,7 @@ public class CopyHandler {
         return null;
     }
 
-    private void assertCorrectType(Field field, Object value, Class<?> elementType, String location) {
+    private void assertCorrectType(Field field, Object value, Class<?> elementType, InputPath location) {
         if (value == null || value instanceof Map || isInstance(elementType, value))
             return;
         Object description = location != null && value instanceof InternalKlumBuilder

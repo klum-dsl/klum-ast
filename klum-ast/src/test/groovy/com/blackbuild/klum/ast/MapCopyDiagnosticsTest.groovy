@@ -222,4 +222,48 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
         !(failure.message =~ /Builder@[0-9a-fA-F]+/)
     }
 
+
+    def 'successful Map copying does not render arbitrary scalar Map keys for diagnostics'() {
+        given:
+        def key = new Object() {
+            boolean renderingAllowed
+
+            @Override
+            String toString() {
+                if (!renderingAllowed) throw new IllegalStateException('copy must not render the key')
+                'key'
+            }
+        }
+
+        when:
+        def result = clazz.Create.With {
+            copyFrom([services: [catalog: [endpoints: [[name: 'edge', limits: [(key): 7]]]]]])
+            key.renderingAllowed = true // Ordinary later lifecycle traversal may render keys.
+        }
+
+        then:
+        result.services.catalog.endpoints[0].limits[key] == 7
+    }
+
+
+    def 'unrenderable Map keys do not replace an incompatible-value exception'() {
+        given:
+        def key = new Object() {
+            @Override
+            String toString() { throw new IllegalStateException('key must not replace failure') }
+        }
+
+        when:
+        clazz.Create.With {
+            copyFrom([services: [catalog: [endpoints: [[name: 'edge', limits: [(key): 'bad']]]]]])
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.cause == null
+        failure.message.contains('diagnostics.Endpoint')
+        failure.message.contains('/services/catalog/endpoints/0/limits/<')
+        failure.message.contains(key.class.name)
+    }
+
 }
