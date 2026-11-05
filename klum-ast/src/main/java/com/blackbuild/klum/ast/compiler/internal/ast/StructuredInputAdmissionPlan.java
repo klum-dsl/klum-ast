@@ -53,8 +53,8 @@ import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -84,6 +84,7 @@ final class StructuredInputAdmissionPlan {
     private static final String JSON_PROPERTY = "com.fasterxml.jackson.annotation.JsonProperty";
     private static final String VALUE = "value";
     private static final String FIELD_MEMBER = "field";
+    private static final String KEY_MAPPING_MEMBER = "keyMapping";
     private static final String INPUT_IGNORED = "excluded by @Struct.Ignore";
     private static final String IGNORED_INPUT = "excluded by @JsonIgnore(true)";
     private static final String OWNERSHIP_REASON = "requires one concrete owned relationship";
@@ -188,71 +189,56 @@ final class StructuredInputAdmissionPlan {
     private static final String LITERAL_ALTERNATIVE = METADATA_KEY + ".literalAlternative";
 
     /** Freeze only explicit literal facts at the existing CollectionFactory generation site. */
-    static void recordLiteralAlternative(FieldNode field, Map<ClassNode, String> alternatives, ClassNode scope) {
-        if (alternatives.size() != 1 || !field.getType().redirect().getName().equals(Map.class.getName())) return;
+    static void recordLiteralAlternative(FieldNode field, Map<ClassNode, String> alternatives) {
+        if (alternatives.isEmpty() || !field.getType().redirect().getName().equals(Map.class.getName())) return;
         ClassNode declared = getElementTypeForMap(field.getType()).redirect();
-        ClassNode target = alternatives.keySet().iterator().next().redirect();
         AnnotationNode options = annotation(field, Field.class.getName());
-        FieldNode key = getKeyField(target);
         if (!Modifier.isAbstract(declared.getModifiers()) || getFieldType(field) != FieldType.DEFAULT
                 || !ClassHelper.STRING_TYPE.equals(getKeyTypeForMap(field.getType()))
-                || !isDSLObject(target) || Modifier.isAbstract(target.getModifiers()) || key == null
-                || !ClassHelper.STRING_TYPE.equals(key.getType()) || !key.equals(getKeyField(declared))
-                || target.getGenericsTypes() != null && target.getGenericsTypes().length != 0
                 || declared.getGenericsTypes() != null && declared.getGenericsTypes().length != 0
-                || options != null && options.getMember("keyMapping") != null) return;
-        field.setNodeMetaData(LITERAL_ALTERNATIVE,
-                new LiteralAlternative(alternatives.values().iterator().next(), target, scope, key.getName()));
+                || options != null && options.getMember(KEY_MAPPING_MEMBER) != null
+                || alternatives.values().stream().distinct().count() != alternatives.size()) return;
+        List<LiteralAlternative> candidates = new ArrayList<>();
+        for (Map.Entry<ClassNode, String> selected : alternatives.entrySet()) {
+            ClassNode target = selected.getKey().redirect();
+            FieldNode key = getKeyField(target);
+            if (!isDSLObject(target) || Modifier.isAbstract(target.getModifiers()) || key == null
+                    || !ClassHelper.STRING_TYPE.equals(key.getType()) || !key.equals(getKeyField(declared))
+                    || target.getGenericsTypes() != null && target.getGenericsTypes().length != 0) return;
+            candidates.add(new LiteralAlternative(selected.getValue(), target, key.getName()));
+        }
+        candidates.sort(Comparator.comparing(LiteralAlternative::alias));
+        field.setNodeMetaData(LITERAL_ALTERNATIVE, List.copyOf(candidates));
     }
 
-    private record LiteralAlternative(String alias, ClassNode target, ClassNode scope, String key) { }
+    private record LiteralAlternative(String alias, ClassNode target, String key) { }
 
-    private static LiteralAlternative literalAlternative(FieldNode field) {
-        LiteralAlternative candidate = field.getNodeMetaData(LITERAL_ALTERNATIVE);
-        if (candidate == null) return null;
-        ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
-        if (implementation == null) return null;
-        MethodNode outer = implementation.getDeclaredMethod(field.getName(),
-                new Parameter[]{new Parameter(ClassHelper.CLOSURE_TYPE, "body")});
-        return outer != null
-                && outer.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field
-                && annotation(outer, Builder.Method.class.getName()) == null
-                && literalCreator(field, candidate) != null ? candidate : null;
-    }
-
-    /** Signature shape alone cannot distinguish a projected custom Factory from a literal relationship creator. */
-    private static MethodNode literalCreator(FieldNode field, LiteralAlternative alternative) {
-        ClassNode targetBuilder = GeneratedDslSupport.builderTypeFor(alternative.target()).redirect();
-        return alternative.scope().getDeclaredMethods(alternative.alias()).stream()
-                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
-                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
-                .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(p -> p.getType().getName()).toArray(String[]::new),
-                        new String[]{String.class.getName(), Closure.class.getName()}))
-                .map(GeneratedDslSupport::publicProjectionOf)
-                .filter(Objects::nonNull)
-                .filter(method -> method.isPublic() && !method.isStatic())
-                .filter(method -> method.getReturnType().getName().equals(targetBuilder.getName()))
-                .findFirst().orElse(null);
+    private static List<LiteralAlternative> literalAlternatives(FieldNode field) {
+        List<LiteralAlternative> candidates = field.getNodeMetaData(LITERAL_ALTERNATIVE);
+        return candidates == null ? List.of() : candidates;
     }
 
     private static void enrichLiteralAlternative(FieldNode field, AnnotationNode fact, MethodNode accessor) {
-        LiteralAlternative alternative = literalAlternative(field);
-        fact.setMember("alternativeCount", new ConstantExpression(alternative == null ? 0 : 1));
-        if (alternative == null) return;
-        MethodNode creator = literalCreator(field, alternative);
+        List<LiteralAlternative> alternatives = literalAlternatives(field);
+        fact.setMember("alternativeCount", new ConstantExpression(alternatives.size()));
+        if (alternatives.size() == 1) {
+            accessor.addAnnotation(literalAssociation(field, alternatives.get(0)));
+        } else if (!alternatives.isEmpty()) {
+            AnnotationNode associations = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternatives.class));
+            associations.setMember(VALUE, new ListExpression(alternatives.stream()
+                    .map(alternative -> (Expression) new AnnotationConstantExpression(literalAssociation(field, alternative))).toList()));
+            accessor.addAnnotation(associations);
+        }
+    }
+
+    private static AnnotationNode literalAssociation(FieldNode field, LiteralAlternative alternative) {
         AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
         association.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
         association.setMember("alias", new ConstantExpression(alternative.alias()));
         association.setMember("target", new ConstantExpression(alternative.target().getName()));
         association.setMember("key", new ConstantExpression(alternative.key()));
         association.setMember("keyType", new ConstantExpression(String.class.getName()));
-        association.setMember("scope", new ConstantExpression(GeneratedDslSupport.publicType(alternative.scope()).redirect().getName()));
-        association.setMember("creator", new ConstantExpression(descriptor(creator)));
-        accessor.addAnnotation(association);
-        AnnotationNode selectedCreator = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-        selectedCreator.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
-        selectedCreator.setMember("role", new ConstantExpression("LITERAL_ALTERNATIVE_CREATOR"));
-        creator.addAnnotation(selectedCreator);
+        return association;
     }
 
     private static final String VIRTUAL_SCOPES = METADATA_KEY + ".virtualScopes";
@@ -393,7 +379,8 @@ final class StructuredInputAdmissionPlan {
         accessor.addAnnotation(fact);
         if (entry != null && entry.role() == Role.OWNED_SEQUENCE) {
             fact.setMember("sequenceElement", new ConstantExpression(entry.operation().name()));
-        } else if (entry != null && (entry.role() == Role.OWNED_OBJECT || entry.role() == Role.KEYED_OWNED_MAP)) {
+        } else if (entry != null && (entry.role() == Role.OWNED_OBJECT || entry.role() == Role.KEYED_OWNED_MAP
+                || entry.role() == Role.LITERAL_ALTERNATIVE_MAP)) {
             enrichSelection(accessor, field, entry.role());
         } else if (entry != null) {
             enrichSelection(builder, field, entry);
@@ -610,12 +597,11 @@ final class StructuredInputAdmissionPlan {
     private static void classifyOwnedMap(FieldNode field, Name name, List<Entry> entries, List<Rejection> rejections) {
         ClassNode type = field.getType();
         ClassNode child = getElementTypeForMap(type);
-        LiteralAlternative alternative = literalAlternative(field);
-        if (alternative != null) {
-            PublicOperation operation = publicOperation(field, rejections);
-            if (operation != null)
-                entries.add(new Entry(name.value(), Role.LITERAL_ALTERNATIVE_MAP, source(field), operation,
-                        payloadForModel(alternative.target()), name.origin(), String.class.getName(), alternative.key(), null, false));
+        List<LiteralAlternative> alternatives = literalAlternatives(field);
+        if (!alternatives.isEmpty()) {
+            LiteralAlternative alternative = alternatives.get(0);
+            entries.add(new Entry(name.value(), Role.LITERAL_ALTERNATIVE_MAP, source(field), fieldRelationship(field, field.getName()),
+                    payloadForModel(alternative.target()), name.origin(), String.class.getName(), alternative.key(), null, false));
             return;
         }
         String source = source(field);
@@ -626,7 +612,7 @@ final class StructuredInputAdmissionPlan {
             return;
         }
         AnnotationNode fieldOptions = annotation(field, Field.class.getName());
-        if (fieldOptions != null && fieldOptions.getMember("keyMapping") != null) {
+        if (fieldOptions != null && fieldOptions.getMember(KEY_MAPPING_MEMBER) != null) {
             rejections.add(new Rejection(source,
                     "literal structured instance keys conflict with @Field.keyMapping-derived keys"));
             return;
@@ -853,7 +839,7 @@ final class StructuredInputAdmissionPlan {
     private static boolean nativeDerivedMap(FieldNode field) {
         if (!isMap(field.getType())) return false;
         AnnotationNode options = annotation(field, Field.class.getName());
-        if (options == null || options.getMember("keyMapping") == null) return false;
+        if (options == null || options.getMember(KEY_MAPPING_MEMBER) == null) return false;
         Payload payload = payloadForField(field.getType());
         return payload != null && (payload.item().kind() == PayloadKind.SCALAR || payload.item().kind() == PayloadKind.ENUM);
     }

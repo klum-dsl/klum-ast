@@ -27,7 +27,6 @@ import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import groovy.lang.Closure;
-import groovy.lang.DelegatesTo;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -35,6 +34,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.util.TreeMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -280,12 +280,6 @@ final class InputContractResolver {
             throws IOException, ClassNotFoundException {
         Metadata origin = reader.metadata(entry.contract());
         for (Method selected : entry.methods()) {
-            if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
-                    && Arrays.equals(selected.getParameterTypes(), new Class<?>[]{Closure.class})
-                    && overridden(selected, declared)) {
-                rejections.add(new Rejection(entry.source(), "inherited literal collection scope is overridden by "
-                        + namingOrigin(context.builder()) + "; use a non-overridden generated collection scope"));
-            }
             boolean converter = origin.methods().get(signature(selected)).converter() != null;
             boolean stringField = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.SCALAR
                     && entry.payload().type() == String.class
@@ -333,7 +327,7 @@ final class InputContractResolver {
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
         return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(), entry.dispatch(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternative());
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternatives());
     }
 
     private Key profileKey(Key key) throws IOException, ClassNotFoundException {
@@ -448,11 +442,11 @@ final class InputContractResolver {
         String source = context.model().getName() + "#" + field;
         Type fieldType = accessor.getParameterCount() == 0 ? accessor.getGenericReturnType() : accessor.getGenericParameterTypes()[0];
         ConverterConstraints converter = converter(context, field, fieldType, literal, methods);
-        if (literal.alternative() == null && methods.stream().anyMatch(method ->
+        if (literal.alternatives().isEmpty() && methods.stream().anyMatch(method ->
                 Role.LITERAL_ALTERNATIVE_MAP.name().equals(metadata.methods().get(signature(method)).role())))
             throw invalid("Missing literal alternative association on " + source);
-        if (literal.alternative() != null) {
-            literalAlternative(context, field, fieldType, literal, methods, entries, rejections);
+        if (!literal.alternatives().isEmpty()) {
+            literalAlternative(context, fieldType, literal, accessor, methods, entries, rejections);
             return;
         }
         Role role = fieldRole(metadata, literal, accessor, methods, fieldType, source);
@@ -490,52 +484,49 @@ final class InputContractResolver {
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
 
-    /** Resolve only the compiler-recorded public route; never discover aliases or initialize a Schema. */
-    private void literalAlternative(BuilderContext context, String field, Type fieldType, Literals literal,
+    /** Resolve only compiler-recorded field/target associations; construction uses the internal owned Map route. */
+    private void literalAlternative(BuilderContext context, Type fieldType, Literals literal, Method accessor,
                                     List<Method> methods, List<Entry> entries, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
-        AlternativeFacts facts = literal.alternative();
+        String field = literal.field();
         String source = context.model().getName() + "#" + field;
-        ClassLoader loader = context.builder().getClassLoader();
-        Class<?> target = Class.forName(facts.target(), false, loader);
-        Class<?> childBuilder = Class.forName(facts.target() + BUILDER_SUFFIX, false, loader);
-        Class<?> scope = Class.forName(facts.scope(), false, loader);
-        Class<?> declaredBuilder = alternativeMapValue(fieldType, source);
-        Class<?> declaredModel = modelOf(declaredBuilder);
-        reader.validateScope(scope); // Verify exact public classfile resource/origin before binding its recorded descriptor.
-        Method creator = Arrays.stream(scope.getDeclaredMethods())
-                .filter(method -> descriptor(method).equals(facts.creator())).findFirst()
-                .orElseThrow(() -> invalid("Missing exact literal alternative creator on " + source));
-        Literals creatorFacts = reader.metadata(scope).methods().get(signature(creator));
-        boolean hasScope = Arrays.stream(declaredMethods(context)).anyMatch(method -> method.getName().equals(field)
-                && method.getReturnType() == void.class && Arrays.equals(method.getParameterTypes(), new Class<?>[]{Closure.class})
-                && Arrays.stream(method.getParameterAnnotations()[0]).anyMatch(annotation ->
-                        annotation instanceof DelegatesTo delegate && delegate.value() == scope));
-        if (declaredModel == null || !Modifier.isAbstract(declaredModel.getModifiers())
-                || !declaredModel.isAssignableFrom(target) || Modifier.isAbstract(target.getModifiers())
-                || target.getTypeParameters().length != 0 || declaredModel.getTypeParameters().length != 0
-                || !childBuilder.isInterface() || modelOf(childBuilder) != target || !declaredBuilder.isAssignableFrom(childBuilder)
-                || !scope.isInterface() || !Modifier.isPublic(scope.getModifiers()) || !hasScope
-                || !creator.getName().equals(facts.alias()) || !Modifier.isPublic(creator.getModifiers())
-                || Modifier.isStatic(creator.getModifiers()) || creator.getReturnType() != childBuilder
-                || !Arrays.equals(creator.getParameterTypes(), new Class<?>[]{String.class, Closure.class})
-                || creatorFacts == null || !field.equals(creatorFacts.selection())
-                || !"LITERAL_ALTERNATIVE_CREATOR".equals(creatorFacts.role())
-                || !reader.metadata(childBuilder).key().equals(facts.key())
-                || !reader.metadata(declaredBuilder).key().equals(facts.key())
-                || !literal.exclusion().isEmpty() || literal.schemaKey() != null || literal.fixed())
-            throw invalid("Literal alternative field/target/key/creator disagreement on " + source);
+        Map<String, LiteralAlternative> alternatives = new TreeMap<>();
+        for (AlternativeFacts facts : literal.alternatives()) {
+            alternatives.put(facts.alias(), resolveAlternative(context, field, fieldType, literal, facts));
+        }
         if (literal.names().ignored()) {
             rejections.add(new Rejection(source, ignoreReason(literal.names())));
             return;
         }
-        if (selectedRole(context.metadata(), methods, source) != Role.LITERAL_ALTERNATIVE_MAP)
+        Role role = selectedRole(context.metadata(), methods, source);
+        if (role != Role.LITERAL_ALTERNATIVE_MAP)
             throw invalid("Missing literal alternative selection on " + source);
+        validateFieldRelationship(role, literal, accessor, methods, fieldType, source);
+        LiteralAlternative first = alternatives.values().iterator().next();
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
-        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, methods, null,
-                new Payload(Kind.NESTED_OBJECT, target, childBuilder, null, null), String.class.getName(), facts.key(), null,
-                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(),
-                new LiteralAlternative(facts.alias(), scope, creator)));
+        entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, List.of(), null,
+                first.payload(), String.class.getName(), literal.alternatives().get(0).key(), null,
+                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(), alternatives));
+    }
+
+    private LiteralAlternative resolveAlternative(BuilderContext context, String field, Type fieldType, Literals literal,
+                                                  AlternativeFacts facts) throws IOException, ClassNotFoundException {
+        String source = context.model().getName() + "#" + field;
+        ClassLoader loader = context.builder().getClassLoader();
+        Class<?> target = Class.forName(facts.target(), false, loader);
+        Class<?> childBuilder = Class.forName(facts.target() + BUILDER_SUFFIX, false, loader);
+        Class<?> declaredBuilder = alternativeMapValue(fieldType, source);
+        Class<?> declaredModel = modelOf(declaredBuilder);
+        if (declaredModel == null || !Modifier.isAbstract(declaredModel.getModifiers())
+                || !declaredModel.isAssignableFrom(target) || Modifier.isAbstract(target.getModifiers())
+                || target.getTypeParameters().length != 0 || declaredModel.getTypeParameters().length != 0
+                || !childBuilder.isInterface() || modelOf(childBuilder) != target || !declaredBuilder.isAssignableFrom(childBuilder)
+                || !facts.key().equals(reader.metadata(childBuilder).key())
+                || !facts.key().equals(reader.metadata(declaredBuilder).key())
+                || !literal.exclusion().isEmpty() || literal.schemaKey() != null || literal.fixed())
+            throw invalid("Literal alternative field/target/key disagreement on " + source);
+        return new LiteralAlternative(facts.alias(),
+                new Payload(Kind.NESTED_OBJECT, target, childBuilder, null, null));
     }
 
     private static Class<?> alternativeMapValue(Type fieldType, String source) {
@@ -678,7 +669,7 @@ final class InputContractResolver {
     private static void validateFieldRelationship(Role role, Literals literal, Method accessor,
                                                    List<Method> methods, Type fieldType, String source) {
         if (role == Role.OWNED_SEQUENCE) throw invalid("Missing owned sequence field relationship on " + source);
-        if (role != Role.OWNED_OBJECT && role != Role.KEYED_OWNED_MAP) return;
+        if (role != Role.OWNED_OBJECT && role != Role.KEYED_OWNED_MAP && role != Role.LITERAL_ALTERNATIVE_MAP) return;
         if (!methods.equals(List.of(accessor)) || !literal.field().equals(literal.selection()))
             throw invalid("Owned input requires its exact field relationship association: " + source);
         if (role == Role.KEYED_OWNED_MAP && (!(fieldType instanceof ParameterizedType map)

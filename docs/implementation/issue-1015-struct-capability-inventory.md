@@ -6,7 +6,7 @@ Related: [#1015](https://github.com/klum-dsl/klum-ast/issues/1015),
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md).
 The original inventory was prepared for the maintainer's decision round; the #1026 branch reconciliation below records
 the separately authorized keyed-sequence follow-up.
-**The original dispositions below are proposals; #1026 separately authorizes the bounded keyed-sequence follow-up.**
+**The original dispositions below are proposals; #1026 and #1030 separately authorize their bounded follow-ups.**
 Issue #1015 remains open for Hive reconciliation and the maintainer decision round.
 
 ## Authority and reconciliation
@@ -25,9 +25,10 @@ Current source, not the dated status prose in ADR 0032, determines what this pas
 | C1 concrete unkeyed List; C3 unkeyed Set and sorted Set variants | Delivered by SEQ-1. `List`, `Set`, `SortedSet` and `NavigableSet` accept child-body sequences for concrete nongeneric unkeyed children. Remove these from the missing-feature list. [SEQ-1 evidence](input-round-seq1-evidence.md) and `StructuredOwnedSequenceTest` cover operation order, equality/comparators, partial failure and Template recipes. The separately authorized #1026 follow-up now adds concrete nongeneric keyed variants; see the reconciliation row below. |
 | C2 / keyed C3 | Implemented on the #1026 branch for concrete nongeneric owned List/Set/sorted Set child sequences. Each item requires its actual externally named String construction key before allocation and uses normal fresh-child preparation/attachment. `StructuredKeyedSequenceTest` and `BinaryOwnedRelationshipsTest` cover naming, duplicates, lifecycle, Templates, source-free projection and interpretation. Merge/hosted qualification remain separate; see [#1026 evidence](issue-1026-keyed-sequence-evidence.md). |
 | F2.0 single explicit literal alternative | Delivered only for the exact abstract keyed `Map<String, Element>` family. `StructuredLiteralAlternativeTest` and [F2-B evidence](input-round-f2b-evidence.md) retain the one-alias, concrete nongeneric subtype and inherited String-key restrictions. |
+| F2.1 multiple explicit literal alternatives | Implemented on the #1030 branch for the same qualified abstract keyed Map family. Complete compiler-owned field/target associations and concrete bodies remain mandatory; public convenience creators are not required; supplied Map traversal order is independent of canonical metadata order. `StructuredMultipleLiteralAlternativeTest`, multi-alias corruption coverage, source-free plugin and JPMS consumers qualify the bounded groups. Merge/hosted qualification remain separate; see [#1030 evidence](issue-1030-multiple-literal-evidence.md). |
 | L1-A/B exact String converter List/Map | Delivered for exact `List<T>` and `Map<String, T>` of non-DSL values. `StructuredListConverterTest`, `StructuredMapConverterTest` and [L1-B evidence](input-round-l1b-evidence.md) retain literal Map keys and exclude CharSequence-only container converters. |
 | Direct children, keyed Maps and C1/C3 admission machinery | #1021 cut 3 removes unused public creator-overload requirements for direct concrete owned children and String-keyed owned Maps. Like sequences, these use normal internal relationship preparation/attachment. `StructuredOwnedRelationTest` and ADR 0032's [cleanup](../adr/0032-builder-oriented-structured-input.md#owned-field-relationship-admission-cleanup--1021-cut-3) supersede R1's broad public-creator premise for these relationships. Executable scalar/operation selections, virtual sinks and literal CollectionFactory provenance still need their exact associations. |
-| Remaining R1 candidates | No admission found in current `StructuredInputAdmissionPlan`, `StructuredInputConverter`, `InputContractResolver` or their tests. Retained and split where different semantics need different decisions below. No R1 candidate is implemented by this pass. |
+| Remaining R1 candidates | No admission found in current `StructuredInputAdmissionPlan`, `StructuredInputConverter`, `InputContractResolver` or their tests. Retained and split where different semantics need different decisions below. This inventory pass itself authorizes no implementation; separately authorized #1026 and #1030 branch results are recorded explicitly. |
 
 Implementation was inspected together with `CompiledBuilderSchema`, `StructuredInputSupport` and the plugin's
 `JsonSchemaProjection`. Compiler classification, runtime interpretation and generated schema must agree. A structurally
@@ -43,7 +44,7 @@ universal Groovy-to-YAML translation. All current user prose stays under `docs/u
 | User pages reviewed | Documentation treatment and existing executable authority |
 | --- | --- |
 | [Basics](../user/Basics.md), [Convenience Factories](../user/Convenience-Factories.md), [Factory Classes](../user/Factory-Classes.md) | Link Factory/Builder forms, distinguish named-map calls and `FromMap`, and expose key-mapping boundaries. `StructuredFactoryTest` covers common/explicit-key roots and void active-Builder application. |
-| [Structured Input](../user/Structured-Input.md) | Canonical linked-example guide, operation Groovy/YAML pair, positional construction keys, native/converter collections, concrete virtual scopes, one literal alternative, zero-argument commands and ordered failure. `StructuredInputDocumentaryTest`, `StructuredInputKeyDocumentaryTest`, `StructuredOwnedSequenceTest`, converter tests and `StructuredCommandTest` already make these guarantees executable. |
+| [Structured Input](../user/Structured-Input.md) | Canonical linked-example guide, operation Groovy/YAML pair, positional construction keys, native/converter collections, concrete virtual scopes, finite explicit literal alternatives, zero-argument commands and ordered failure. `StructuredInputDocumentaryTest`, `StructuredInputKeyDocumentaryTest`, `StructuredOwnedSequenceTest`, converter tests and `StructuredCommandTest` already make these guarantees executable. |
 | [Templates](../user/Templates.md) | Pair the existing keyless recipe with ordinary Template creation and YAML; retain recipient/lifecycle semantics. `StructuredInputTemplateDocumentaryTest` already compares the ordinary and structured recipes. Template objects and `Template.With` orchestration are not YAML selectors. |
 | [Converters](../user/Converters.md), [Alternatives Syntax](../user/Alternatives-Syntax.md) | Retain exact scalar and bounded collection/literal examples; explicitly distinguish owned producers, extra alternatives and automatic names. Existing converter-origin, CharSequence, List/Map and literal-alternative tests supply authority. |
 | [Advanced Techniques](../user/Advanced-Techniques.md), [Layer 3](../user/Layer3.md), [Inheritance](../user/Inheritance.md) | Link supported Builder operations; explain closure/query/result and Cluster-scope boundaries. Inheritance changes the compiled contract rather than adding a YAML keyword. `StructuredOperationSelectionTest`, `StructuredInputRuntimeTest` fixed-Cluster-key case and binary relationship tests supply authority. |
@@ -64,7 +65,7 @@ parser API is added.
 
 ## Remaining collection and key forms
 
-**All YAML forms in the remaining inventory are unavailable comparisons, not syntax users may rely on.**
+**YAML forms in the remaining inventory are unavailable comparisons unless a row explicitly records a separately authorized branch implementation.**
 An “implement in 4.2” proposal still requires a separate maintainer decision and implementation/qualification.
 “Defer” means retain the option pending the stated contract/proof, not reject it for lack of Schelm demand.
 Groovy fragments assume the Schema declaration described in the same row.
@@ -84,7 +85,7 @@ each have a compact single-input form. Each still needs a separately selected ex
 
 | Item and ordinary Groovy form | Missing/rejected Struct/YAML form | Natural representation | Complexity and viable workaround | Proposed disposition |
 | --- | --- | --- | --- | --- |
-| F2.1: explicit `fixed` and `rolling` alternatives on the F2-B keyed Map family; `elements { fixed('a') {}; rolling('b') {} }` | `elements: {fixed: {a: {}}, rolling: {b: {}}}` is unavailable. | Yes: closed alias groups, without claiming arbitrary repeated/interleaved alias calls. | Medium: complete finite associations, counts, collisions, group order and concrete keyless schemas. Groovy works; one alias reduces expressiveness. | **Implement in 4.2** as the bounded multi-literal extension after acceptance. |
+| F2.1 (authorized by #1030): explicit `fixed` and `rolling` alternatives on the F2-B keyed Map family; `elements { fixed('a') {}; rolling('b') {} }` | `elements: {fixed: {a: {}}, rolling: {b: {}}}` is implemented on the #1030 branch. | Yes: closed alias groups, without claiming arbitrary repeated/interleaved alias calls. | Medium: complete finite associations, counts, collisions, group order and concrete keyless schemas. Groovy works; one alias reduces expressiveness. | **Implemented on #1030 branch**; final delivery and issue disposition remain with Hive. |
 | F2.2: alternatives on owned List/Set; `elements { fixed('a') { value 'x' } }` | Possible `elements: [{fixed: {name: a, value: x}}]` is not admitted. | Yes, but per-item wrappers versus grouped arrays need a decision; groups lose cross-alias order. | Medium: concrete body/identity selection, sequence order and Set outcomes. Groovy works. | **Defer** pending wrapper/identity contract; unkeyed SEQ-1 does not supply subtype selection. |
 | F2.3a: concrete declared keyed base with literal subtype; `elements { fixed('a') {} }` | An alias mapping for that base is outside F2-B's abstract-base restriction. | Yes: existing alias shape, but whether base bodies coexist is undecided. | Low–medium admission relaxation plus collision/schema checks. Groovy or a concrete direct relationship works. | **Defer** until base-versus-alias language is selected; a bounded 4.2 option. |
 | F2.3b: unkeyed or keyMapping alternative target; `elements { fixed { secondary 'a' } }` | Literal outer-key bodies cannot supply this contract; a value sequence is unadmitted. | Yes, contingent on K3/K4 and F2.2 choices. | Medium: derived key versus child identity and alias envelope. Use Groovy. | **Defer** with the corresponding derived-key/sequence contract. |
@@ -123,7 +124,9 @@ general generic-polymorphism engine.
 
 ## Maintainer decision round and delivery boundary
 
-Native derived-key population (K1) is implemented by the bounded #1028 branch; hosted and merge reconciliation remain separate. The remaining concrete proposed 4.2 addition is multiple explicit literals (F2.1). The maintainer selected keyed sequences first through #1026; its implementation is reconciled above. The other bounded candidates remain selectable independently after their listed contract/proof;
+Native derived-key population (K1) is implemented by #1028. #1030 separately authorizes and implements multiple
+explicit literals (F2.1) on this branch. The maintainer selected keyed sequences first through #1026; its implementation
+is reconciled above. The other bounded candidates remain selectable independently after their listed contract/proof;
 none is excluded solely because current Schelm documents have a workaround. The generic mechanisms marked reject
 would force awkward syntax or disproportionate machinery for parity. Maintainer acceptance/revision remains outstanding.
 

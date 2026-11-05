@@ -91,6 +91,7 @@ final class BuilderContractReader {
     private static final String KEY_ANNOTATION = PREFIX + "Key;";
     private static final String FIELD = PREFIX + "Field;";
     private static final String VIRTUAL_SINK = "Lcom/blackbuild/klum/ast/Field;";
+    private static final String LITERAL_ALTERNATIVES = PREFIX + "LiteralAlternatives;";
     private static final String LITERAL_ALTERNATIVE = PREFIX + "LiteralAlternative;";
     private static final String VIRTUAL_SCOPE = PREFIX + "VirtualScope;";
     private static final String OPERATION_FACT = PREFIX + "Operation;";
@@ -103,7 +104,7 @@ final class BuilderContractReader {
     private static final String AUTHOR_OPERATION = "Lcom/blackbuild/klum/ast/Struct$Operation;";
     private static final String QUERY = "Lcom/blackbuild/klum/ast/Builder$Query;";
     private static final String DOC = "Lcom/blackbuild/annodocimal/annotations/AnnoDoc;";
-    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, LITERAL_ALTERNATIVE, VIRTUAL_SCOPE, VIRTUAL_SINK, AUTHOR_OPERATION, QUERY, DOC);
+    private static final Set<String> PROTOCOL = Set.of(SCHEMA, KEY_ANNOTATION, FIELD, SELECTION, CONVERTER, EXCLUSION, OPERATION, OPERATION_FACT, LITERAL_ALTERNATIVE, LITERAL_ALTERNATIVES, VIRTUAL_SCOPE, VIRTUAL_SINK, AUTHOR_OPERATION, QUERY, DOC);
 
     private final Map<Class<?>, Metadata> declarations = new IdentityHashMap<>();
 
@@ -123,15 +124,16 @@ final class BuilderContractReader {
                     Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
-                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, AlternativeFacts alternative, String sequenceElement) {
+                    List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, List<AlternativeFacts> alternatives, String sequenceElement) {
         Literals {
+            alternatives = List.copyOf(alternatives);
             constraints = constraints == null ? null : List.copyOf(constraints);
             examples = examples == null ? null : List.copyOf(examples);
             operationExamples = operationExamples == null ? null : List.copyOf(operationExamples);
         }
     }
 
-    record AlternativeFacts(String field, String alias, String target, String key, String keyType, String scope, String creator) { }
+    record AlternativeFacts(String field, String alias, String target, String key, String keyType) { }
 
     record ConverterSelection(String owner, String name, String descriptor, int parameter, boolean parameterFacts) { }
 
@@ -149,7 +151,7 @@ final class BuilderContractReader {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
-                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternative, value.sequenceElement);
+                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternatives, value.sequenceElement);
     }
 
     private static NameFacts freeze(MutableNameFacts value) {
@@ -290,7 +292,7 @@ final class BuilderContractReader {
         Boolean operationDeprecated;
         Boolean authoritative;
         String operationRole;
-        AlternativeFacts alternative;
+        final List<AlternativeFacts> alternatives = new ArrayList<>();
         Integer alternativeCount;
         String scopeCreator;
         boolean plainVirtualSink;
@@ -375,17 +377,24 @@ final class BuilderContractReader {
         }
         validateOperationFacts(literal, source, signature);
         validateConverterFacts(literal, source);
-        if (literal.field != null && (literal.alternativeCount == null
-                || literal.alternativeCount != (literal.alternative == null ? 0 : 1)))
-            throw invalid("Missing or inconsistent literal alternative completeness on " + source);
-        if (literal.alternative != null && (!literal.alternative.field().equals(literal.field)
-                || literal.converterCount == null || literal.converterCount != 0))
-            throw invalid("Literal alternative lacks its exact owning field on " + source);
-        if (literal.alternative != null && literal.sequenceElement != null)
-            throw invalid("Conflicting owned sequence and literal alternative relationships on " + source);
+        validateAlternativeFacts(literal, source);
         if (literal.field != null) {
             validateFieldFacts(literal, schemaName(owner) + "#" + literal.field);
         }
+    }
+
+    private static void validateAlternativeFacts(MutableLiterals literal, String source) {
+        if (literal.field != null && (literal.alternativeCount == null
+                || literal.alternativeCount != literal.alternatives.size()))
+            throw invalid("Missing or inconsistent literal alternative completeness on " + source);
+        if (literal.alternatives.stream().anyMatch(alternative -> !alternative.field().equals(literal.field))
+                || !literal.alternatives.isEmpty() && (literal.converterCount == null || literal.converterCount != 0))
+            throw invalid("Literal alternative lacks its exact owning field on " + source);
+        if (!literal.alternatives.isEmpty() && literal.sequenceElement != null)
+            throw invalid("Conflicting owned sequence and literal alternative relationships on " + source);
+        if (literal.alternatives.stream().map(AlternativeFacts::alias).distinct().count() != literal.alternatives.size()
+                || literal.alternatives.stream().map(AlternativeFacts::target).distinct().count() != literal.alternatives.size())
+            throw invalid("Duplicate literal alternative association on " + source);
     }
 
     private static void validateOperationFacts(MutableLiterals literal, String source, String signature) {
@@ -473,7 +482,7 @@ final class BuilderContractReader {
 
     private static void verifyAnnotationProtocol(Class<?> owner) throws ClassNotFoundException {
         for (Class<?> protocol : List.of(GeneratedInput.Schema.class, GeneratedInput.Key.class, GeneratedInput.Field.class, GeneratedInput.Selection.class, GeneratedInput.Exclusion.class,
-                GeneratedInput.Operation.class, GeneratedInput.LiteralAlternative.class, Struct.Operation.class))
+                GeneratedInput.Operation.class, GeneratedInput.LiteralAlternative.class, GeneratedInput.LiteralAlternatives.class, Struct.Operation.class))
             if (!Class.forName(protocol.getName(), false, owner.getClassLoader()).isAnnotation())
                 throw invalid("Missing annotation protocol " + protocol.getName());
     }
@@ -637,7 +646,8 @@ final class BuilderContractReader {
             if (annotation.equals(AUTHOR_OPERATION)) literal.authorOperation = true;
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
-            if (annotation.equals(LITERAL_ALTERNATIVE)) return new AlternativeAnnotationVisitor(literal);
+            if (annotation.equals(LITERAL_ALTERNATIVE) || annotation.equals(LITERAL_ALTERNATIVES))
+                return alternativeAnnotation(annotation);
             if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
             if (annotation.equals(VIRTUAL_SINK)) {
                 literal.plainVirtualSink = true;
@@ -650,10 +660,47 @@ final class BuilderContractReader {
             }
             return new MethodAnnotationVisitor(annotation, literal);
         }
+
+        private AnnotationVisitor alternativeAnnotation(String annotation) {
+            boolean single = annotation.equals(LITERAL_ALTERNATIVE);
+            if (seen.contains(single ? LITERAL_ALTERNATIVES : LITERAL_ALTERNATIVE))
+                throw invalid("Conflicting literal alternative annotations");
+            return single ? new AlternativeAnnotationVisitor(literal) : new AlternativesAnnotationVisitor(literal);
+        }
+    }
+
+    private static final class AlternativesAnnotationVisitor extends AnnotationVisitor {
+        private final MutableLiterals literal;
+        private boolean valueSeen;
+
+        AlternativesAnnotationVisitor(MutableLiterals literal) {
+            super(Opcodes.ASM9);
+            this.literal = literal;
+        }
+
+        @Override public void visit(String name, Object value) { throw invalid("Unexpected literal alternatives member " + name); }
+        @Override public void visitEnum(String name, String descriptor, String value) { throw invalid("Unexpected literal alternatives enum " + name); }
+        @Override public AnnotationVisitor visitAnnotation(String name, String descriptor) { throw invalid("Unexpected literal alternatives annotation " + name); }
+        @Override public AnnotationVisitor visitArray(String name) {
+            if (!VALUE.equals(name) || valueSeen) throw invalid("Invalid literal alternatives array " + name);
+            valueSeen = true;
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                @Override public void visit(String member, Object value) { throw invalid("Unexpected literal alternatives value"); }
+                @Override public void visitEnum(String member, String descriptor, String value) { throw invalid("Unexpected literal alternatives enum value"); }
+                @Override public AnnotationVisitor visitArray(String member) { throw invalid("Unexpected literal alternatives nested array"); }
+                @Override public AnnotationVisitor visitAnnotation(String member, String descriptor) {
+                    if (!LITERAL_ALTERNATIVE.equals(descriptor)) throw invalid("Invalid literal alternative descriptor");
+                    return new AlternativeAnnotationVisitor(literal);
+                }
+            };
+        }
+        @Override public void visitEnd() {
+            if (!valueSeen || literal.alternatives.size() < 2) throw invalid("Incomplete literal alternatives");
+        }
     }
 
     private static final class AlternativeAnnotationVisitor extends AnnotationVisitor {
-        private static final Set<String> MEMBERS = Set.of(FIELD_MEMBER, "alias", "target", "key", KEY_TYPE_MEMBER, "scope", CREATOR_MEMBER);
+        private static final Set<String> MEMBERS = Set.of(FIELD_MEMBER, "alias", "target", "key", KEY_TYPE_MEMBER);
         private final MutableLiterals literal;
         private final Map<String, Object> facts = new LinkedHashMap<>();
 
@@ -673,9 +720,8 @@ final class BuilderContractReader {
         @Override public void visitEnd() {
             if (!facts.keySet().equals(MEMBERS) || !String.class.getName().equals(facts.get(KEY_TYPE_MEMBER)))
                 throw invalid("Incomplete or unsupported literal alternative protocol");
-            literal.alternative = new AlternativeFacts((String) facts.get(FIELD_MEMBER), (String) facts.get("alias"),
-                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get(KEY_TYPE_MEMBER),
-                    (String) facts.get("scope"), (String) facts.get(CREATOR_MEMBER));
+            literal.alternatives.add(new AlternativeFacts((String) facts.get(FIELD_MEMBER), (String) facts.get("alias"),
+                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get(KEY_TYPE_MEMBER)));
         }
     }
 

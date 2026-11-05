@@ -294,7 +294,8 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         model.elements.primary.owner.is(model)
     }
 
-    def 'custom Factory aliases cannot masquerade as generated literal creators'() {
+    @Issue('1030')
+    def 'custom Factory aliases keep ordinary behavior while Struct uses the declared target'() {
         given:
         loader.parseClass '''
             package literalcollision
@@ -318,10 +319,11 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
                 }
             }
             @DSL class ConcreteElement extends Element {}
+            @DSL class OtherElement extends Element {}
             @DSL class Catalog {
                 @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
             }
-        '''
+        '''.replace('[fixed: ConcreteElement]', multiple ? '[fixed: ConcreteElement, rolling: OtherElement]' : '[fixed: ConcreteElement]')
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         def catalog = Class.forName('literalcollision.Catalog', false, artifacts)
         def trace = Class.forName('literalcollision.Trace', false, artifacts)
@@ -333,18 +335,22 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         then:
         ordinary.elements.primary.value == 'configured'
         trace.events == ['factory:body']
-        !plan.entries().containsKey('elements')
+        plan.entries().get('elements').alternatives().keySet() == (multiple ? ['fixed', 'rolling'] : ['fixed']) as Set
 
         when:
-        catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+        def structured = catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'structured']]]])
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('/elements')
+        structured.elements.primary.class.name == 'literalcollision.ConcreteElement'
+        structured.elements.primary.value == 'structured'
         trace.events == ['factory:body']
+
+        where:
+        multiple << [false, true]
     }
 
-    def 'authored #placement collection scope retains ordinary behavior and rejects structured bypass'() {
+    @Issue('1030')
+    def 'authored #placement collection scope keeps ordinary behavior while Struct uses the relationship'() {
         given:
         String customScope = "@Builder.Method void elements(Closure body) { Trace.events << 'custom:scope' }"
         String source = '''
@@ -353,9 +359,10 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
             class Trace { static List<String> events = [] }
             @DSL abstract class Element { @Key String name; String value }
             @DSL class ConcreteElement extends Element {}
+            @DSL class OtherElement extends Element {}
         ''' + """
             @DSL class Catalog {
-                @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+                @Field(alternatives = { ${multiple ? '[fixed: ConcreteElement, rolling: OtherElement]' : '[fixed: ConcreteElement]'} }) Map<String, Element> elements
                 ${placement == 'same-class' ? customScope : ''}
             }
             @DSL class SpecializedCatalog extends Catalog {
@@ -374,18 +381,18 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         then:
         ordinary.elements.isEmpty()
         trace.events == ['custom:scope']
-        !plan.entries().containsKey('elements')
+        plan.entries().get('elements').alternatives().keySet() == (multiple ? ['fixed', 'rolling'] : ['fixed']) as Set
 
         when:
-        catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+        def structured = catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'structured']]]])
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('/elements')
+        structured.elements.primary.class.name == 'literalscope.ConcreteElement'
+        structured.elements.primary.value == 'structured'
         trace.events == ['custom:scope']
 
         where:
-        placement << ['same-class', 'inherited']
+        [placement, multiple] << [['same-class', 'inherited'], [false, true]].combinations()
     }
 
     def 'literal input obeys ordinary same-thread session and sealing guards'() {

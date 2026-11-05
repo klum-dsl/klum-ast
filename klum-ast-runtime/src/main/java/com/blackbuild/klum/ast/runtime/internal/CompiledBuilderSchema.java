@@ -56,23 +56,24 @@ final class CompiledBuilderSchema {
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
 
     /**
-     * Validated one-literal creator route. The owning field is Entry.source; target and inherited String key
-     * are Entry.payload and Entry.excludedKey. Scope/creator are integrity evidence, never invoked by inspection.
+     * Validated compiler-literal field/target association. The owning field is Entry.source; the inherited String key
+     * is Entry.excludedKey. Each alias retains its exact concrete payload.
      * Execution binds the existing internal explicit-type keyed Map callback before child PostApply.
      */
-    record LiteralAlternative(String alias, Class<?> scope, Method creator) { }
+    record LiteralAlternative(String alias, Payload payload) { }
 
     /** A selected input use; source identity stays distinct from its effective external name and dispatch handle. */
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, LiteralAlternative alternative) {
+                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, Map<String, LiteralAlternative> alternatives) {
         Entry(String externalName, Role role, String source, Class<?> contract, String operation,
               List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
               String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples) {
             this(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey, fixedChildKey,
-                    nameOrigin, documentation, schemaKey, sourceDeprecated, examples, null);
+                    nameOrigin, documentation, schemaKey, sourceDeprecated, examples, Map.of());
         }
         Entry {
+            alternatives = Collections.unmodifiableMap(new LinkedHashMap<>(alternatives));
             methods = List.copyOf(methods);
             examples = List.copyOf(examples);
         }

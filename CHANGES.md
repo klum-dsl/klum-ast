@@ -1,5 +1,12 @@
 # Unreleased
 
+- Support multiple explicit literal alternative groups for the qualified abstract keyed owned Map family. Traverse alias
+  groups and keyed entries in supplied Map order, retaining exact subtype/key selection, ordinary lifecycle, Templates
+  and partial failure. Struct uses the recorded field/target directly, independently of absent or customized public
+  creator methods. Emit every declared alias with its concrete keyless JSON Schema body; other alternative families
+  remain excluded. See [structured alternatives](docs/user/Structured-Input.md#literal-collection-alternative)
+  ([#1030](https://github.com/klum-dsl/klum-ast/issues/1030)).
+
 - Admit native scalar/enum value sequences for String-keyed Struct/YAML Maps with `@Field.keyMapping`. Each item
   uses its exact ordinary Builder adder, preserving runtime key derivation, replacement, ordering, lifecycle, Templates
   and indexed partial failures. Compatible descendant adder overrides use ordinary Builder dispatch. JSON Schema

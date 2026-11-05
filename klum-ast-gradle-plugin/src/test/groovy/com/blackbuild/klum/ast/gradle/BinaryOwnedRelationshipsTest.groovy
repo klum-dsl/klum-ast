@@ -47,7 +47,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     File repository
     File trap
 
-    @Issue(['957', '954', '952', '1026', '1028'])
+    @Issue(['957', '954', '952', '1026', '1028', '1030'])
     def 'binary owned relationships support #capability with Groovy #generation'() {
         given:
         fixture(generation)
@@ -59,6 +59,14 @@ class BinaryOwnedRelationshipsTest extends Specification {
         if (capability == 'projection') {
             def schema = new JsonSlurper().parse(new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json'))
             def properties = schema.'$defs'.'example.Deployment_DSL$Builder'.properties
+            assert properties.multiElements.additionalProperties == false
+            assert properties.multiElements.properties.keySet().toList() == ['fixed', 'rolling']
+            assert properties.multiElements.properties.fixed == properties.elements.properties.fixed
+            assert properties.multiElements.properties.rolling.additionalProperties.'$ref' == '#/$defs/example.RollingElement_DSL%24Builder%3A%3Akeyless'
+            def rolling = schema.'$defs'.'example.RollingElement_DSL$Builder::keyless'
+            assert rolling.properties.keySet() == ['value', 'rollingValue'] as Set
+            assert rolling.additionalProperties == false
+            assert !rolling.containsKey('required')
             assert properties.elements.additionalProperties == false
             assert properties.elements.properties.keySet() == ['fixed'] as Set
             assert properties.elements.properties.fixed.additionalProperties.'$ref' == '#/$defs/example.ConcreteElement_DSL%24Builder%3A%3Akeyless'
@@ -131,7 +139,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
         [generation, capability] << [['3', '4', '5'], ['projection', 'interpret']].combinations()
     }
 
-    private static byte[] stripLiteralAssociation(String name, byte[] bytes) {
+    private static byte[] stripLiteralAssociation(String name, byte[] bytes, boolean multiple) {
         if (name != 'example/Deployment_DSL$Builder.class') {
             return bytes
         }
@@ -140,7 +148,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
             @Override MethodVisitor visitMethod(int access, String methodName, String descriptor, String signature, String[] exceptions) {
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, methodName, descriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        annotation.endsWith('GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
+                        annotation.endsWith(multiple ? 'GeneratedInput$LiteralAlternatives;' : 'GeneratedInput$LiteralAlternative;') ? null : super.visitAnnotation(annotation, visible)
                     }
                 }
             }
@@ -148,24 +156,11 @@ class BinaryOwnedRelationshipsTest extends Specification {
         writer.toByteArray()
     }
 
-    @Issue('952')
+    @Issue(['952', '1030'])
     def 'corrupt binary literal association prevents every new schema output without initializing user code'() {
         given:
         fixture('3')
-        File artifact = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
-        File changed = new File(directory, 'corrupted.jar')
-        new JarFile(artifact).withCloseable { archive ->
-            new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
-                archive.entries().each { entry ->
-                    byte[] bytes = archive.getInputStream(entry).bytes
-                    bytes = stripLiteralAssociation(entry.name, bytes)
-                    output.putNextEntry(new JarEntry(entry.name))
-                    output.write(bytes)
-                    output.closeEntry()
-                }
-            }
-        }
-        artifact.bytes = changed.bytes
+        rewriteSchemaArtifact { name, bytes -> stripLiteralAssociation(name, bytes, multiple) }
         new File(consumer, 'build.gradle') << "\nklumSchema.jsonSchema.rootTypes.add('example.LocalFacts')\n"
 
         when:
@@ -176,6 +171,71 @@ class BinaryOwnedRelationshipsTest extends Specification {
         !new File(consumer, 'build/generated/klum-json-schema/example.LocalFacts.schema.json').exists()
         !new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json').exists()
         !trap.exists()
+
+        where:
+        multiple << [false, true]
+    }
+
+    @Issue('1030')
+    def 'binary literal relationships execute and project unchanged without public creators with Groovy #generation'() {
+        given:
+        fixture(generation)
+        runner(consumer, 'generateKlumJsonSchema').build()
+        def original = ['Deployment', 'OverrideDeployment'].collectEntries { name ->
+            [(name): new File(consumer, "build/generated/klum-json-schema/example.${name}.schema.json").text]
+        }
+        assert !trap.exists()
+        rewriteSchemaArtifact { name, bytes ->
+            if (!(name == 'example/Deployment_DSL$Builder.class' ||
+                    name.startsWith('example/Deployment_DSL$Builder$CollectionFactory_'))) {
+                return bytes
+            }
+            def writer = new ClassWriter(0)
+            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                @Override MethodVisitor visitMethod(int access, String method, String descriptor, String signature, String[] exceptions) {
+                    method in ['elements', 'element', 'multiElements', 'multiElement', 'fixed', 'rolling'] ? null :
+                        super.visitMethod(access, method, descriptor, signature, exceptions)
+                }
+            }, 0)
+            writer.toByteArray()
+        }
+        new File(consumer, 'build.gradle') << """
+ tasks.register('interpretWithoutCreators', JavaExec) {
+     classpath = files(configurations.clientBinary, klumSchema.jsonSchema.classpath)
+     mainClass = 'example.CreatorIndependentConsumer'
+ }
+"""
+
+        when:
+        def result = runner(consumer, 'generateKlumJsonSchema', 'interpretWithoutCreators').build()
+
+        then:
+        result.output.contains('BINARY-WITHOUT-CREATORS-OK')
+        original.every { name, text -> new File(consumer, "build/generated/klum-json-schema/example.${name}.schema.json").text == text }
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(producer, 'client/src').exists()
+        !new File(consumer, 'src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    private void rewriteSchemaArtifact(Closure<byte[]> transform) {
+        File artifact = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
+        File changed = new File(directory, 'corrupted.jar')
+        new JarFile(artifact).withCloseable { archive ->
+            new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
+                archive.entries().each { entry ->
+                    byte[] bytes = archive.getInputStream(entry).bytes
+                    bytes = transform(entry.name, bytes)
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        artifact.bytes = changed.bytes
     }
 
     private void fixture(String generation) {
@@ -263,6 +323,7 @@ enum Shade { BLUE, RED }
     SortedSet<Facts> sortedFacts = new TreeSet(new FactOrder())
     NavigableSet<Facts> navigableFacts = new TreeSet(new FactOrder())
     @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
+    @Field(alternatives = { [rolling: RollingElement, fixed: ConcreteElement] }) Map<String, Element> multiElements
     Map<String, Workload> workloads
     @Field(members="listedWorkload") List<Workload> workloadList
     @Field(members="setWorkload") Set<Workload> workloadSet
@@ -298,6 +359,7 @@ class FactOrder implements Comparator<Object> {
     String value
 }
 @DSL class ConcreteElement extends Element {}
+@DSL class RollingElement extends Element { String rollingValue }
 ''')
         runner(producer, ':schema:jar').build()
         publish('schema', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
@@ -319,6 +381,7 @@ class Consumer {
         def sequenceItems = [['workload-id': 'z', image: 'last'], ['workload-id': 'a', image: 'first'], ['workload-id': 'a', image: 'first']]
         def input = [workloadList: sequenceItems, workloadSet: sequenceItems, inheritedSequence: sequenceItems, facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
+                     multiElements: [rolling: [b: [rollingValue: 'rolling'], c: [:]], fixed: [a: [value: 'fixed']]],
                      elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], derivedLabels: ['BLUE', 'RED', 'blue'], inheritedShades: ['BLUE', 'RED'], virtual: ['host-name': 'virtual'], inheritedFacts: [['host-name': 'inherited']],
                      factList: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
                      factSet: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
@@ -333,6 +396,7 @@ class Consumer {
             inherited { host 'base' }
             workloads { workload('a/b~c') { image 'one' } }
             inheritedWorkloads { inheritedWorkload('other') { image 'two' } }
+            multiElements { rolling('b') { rollingValue 'rolling' }; rolling('c') {}; fixed('a') { value 'fixed' } }
             elements { fixed('primary') { value 'configured' } }
             local { host 'local' }
             labels(['host-name': 'literal'])
@@ -357,6 +421,11 @@ class Consumer {
         assert model.inherited.owner.is(model)
         assert model.workloads['a/b~c'].owner.is(model)
         assert model.inheritedWorkloads.other.owner.is(model)
+        assert model.multiElements.keySet().toList() == ['b', 'c', 'a']
+        assert model.multiElements.b instanceof RollingElement
+        assert model.multiElements.a instanceof ConcreteElement
+        assert model.multiElements.b.rollingValue == 'rolling'
+        assert model.multiElements.every { key, child -> child.name == key && child.owner.is(model) }
         assert model.elements.primary instanceof ConcreteElement
         assert model.elements.primary.name == 'primary'
         assert model.elements.primary.value == 'configured'
@@ -423,6 +492,34 @@ class Consumer {
         assert Trace.events == overriddenTrace
         assert Trace.events == ['override-label:BLUE', 'label:BLUE', 'override-shade:BLUE', 'shade:BLUE']
         println 'BINARY-RELATIONSHIPS-OK'
+    }
+}
+class CreatorIndependentConsumer {
+    static void main(String[] args) {
+        def input = [elements: [fixed: [one: [value: 'single']]],
+                     multiElements: [rolling: [b: [rollingValue: 'rolling'], c: [:]], fixed: [a: [value: 'fixed']]]]
+        assert !Deployment_DSL.Builder.declaredMethods.any { it.name in ['elements', 'element', 'multiElements', 'multiElement'] }
+        assert !Deployment_DSL.Builder.CollectionFactory_multiElements.declaredMethods.any { it.name in ['fixed', 'rolling'] }
+        def model = Deployment.Create.FromStruct(input)
+        assert model.elements.one.value == 'single'
+        assert model.multiElements.keySet().toList() == ['b', 'c', 'a']
+        assert model.multiElements.b.class == RollingElement
+        assert model.multiElements.a.class == ConcreteElement
+        assert model.multiElements.b.rollingValue == 'rolling'
+        assert model.multiElements.every { key, child -> child.name == key && child.owner.is(model) }
+        def recipe = Deployment.Create.Template.FromStruct(input)
+        def first
+        def reused
+        def applied = Deployment.Create.With {
+            copyFrom(recipe)
+            first = delegate.getMultiElements().b
+            delegate.applyStruct([multiElements: [rolling: [b: [value: 'updated']]]])
+            reused = delegate.getMultiElements().b
+        }
+        assert first.is(reused)
+        assert applied.multiElements.b.value == 'updated'
+        assert applied.multiElements.every { key, child -> child.owner.is(applied) }
+        println 'BINARY-WITHOUT-CREATORS-OK'
     }
 }
 ''')

@@ -2,7 +2,7 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's single literal CollectionFactory family is implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
+Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's literal CollectionFactory family and #1030's finite explicit alias groups are implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -37,18 +37,43 @@ key. F2-B implements `elements: {fixed: {primary: {value: configured}}}`: litera
 keyless body. The outer key is authoritative; equal/conflicting inner keys reject when reached. Empty mappings perform
 zero child calls. Traversal preserves caller order and earlier effects on failure.
 
-The existing generated public field enrichment carries one inert association and an explicit zero/one count, including
-exact public CollectionFactory scope/creator, concrete target and inherited String-key facts. The unified
+The generated public field enrichment carries the inert field/alias/target/inherited String-key association and an
+explicit finite count. F2.1's creator-independence reassessment below removes the earlier public scope/creator evidence. The unified
 `GeneratedInput.Schema.version` is authoritative; no annotation-specific version is emitted or accepted. Descriptor,
 completeness and corruption checks precede use without initializing Schema code. `CompiledBuilderSchema` supplies the
 same validated association to interpretation and projection. Runtime binds the existing explicit-type keyed-map
 configuration callback before child PostApply; JSON Schema emits a closed alias object and concrete keyless body.
 No public receiver/Consumer API, private-method reflection, synthetic closure or new construction engine is added.
 
-This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral/multiple aliases,
+This is a bounded implementation, not general polymorphism: other collection shapes, nonliteral aliases,
 generic targets, custom key mapping and caller Class/Factory selectors remain deferred under #952. See the
 [user contract](../user/Structured-Input.md#literal-collection-alternative) and
 [F2-B implementation evidence](../implementation/input-round-f2b-evidence.md). Merge and hosted qualification are separate.
+
+## Multiple explicit literal alias groups — #1030
+
+The maintainer-selected F2.1 extension admits finite multiple explicit aliases in the existing F2-B abstract keyed Map
+family: `elements: {fixed: {a: {}}, rolling: {b: {}}}`. Every concrete target must independently satisfy the qualified
+owned Map family; one unsupported or ambiguous target excludes the relationship. No subtype-name inference,
+public selector policy or operation-event grammar is added. Other collection shapes, concrete-base/alias coexistence,
+generic alternatives, automatic names and producers remain excluded.
+
+Single associations use `LiteralAlternative`; multiple associations use an inert `LiteralAlternatives` container of the
+same five-fact records: field, alias, concrete target, inherited key member and String key type. An exact finite
+`Field.alternativeCount` detects incomplete rows. The unified Schema version stays authoritative. Inspection checks the
+owning accessor's field/role selection, each target and inherited key, and duplicate aliases/targets without initializing
+Schema code. The owning field/role selection uses the same accessor association as #1021 cut 3; no public creator method
+is selected or invoked. Public creator descriptors, CollectionFactory-scope provenance and whole-creator-set equality
+are unnecessary authority and are removed. Missing, customized or overridden convenience methods do not change Struct's
+internal explicit-type preparation/attachment route; ordinary Groovy retains its method behavior. No additional
+CollectionFactory family, subtype discovery, registry or dispatch policy is admitted. Recompile matched Schema artifacts. Metadata and JSON Schema alias properties use canonical alias order. Runtime
+traverses supplied outer and inner Maps in their own iteration order within one collection scope; this is neither
+metadata execution order nor a portable parser-order guarantee. Ordinary key reuse/type collisions, source paths,
+ownership, lifecycle, Template recipes and partial failure remain authoritative. JSON Schema gives each optional alias
+its concrete keyless body and adds no cross-alias identity, ordering or lifecycle constraint.
+
+See [#1030 evidence](../implementation/issue-1030-multiple-literal-evidence.md) and the
+[user contract](../user/Structured-Input.md#literal-collection-alternative). Merge and hosted qualification remain separate.
 
 ## Accepted ordinary owned sequence slice — 2026-11-03
 

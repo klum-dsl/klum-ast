@@ -137,19 +137,24 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         return identity;
     }
 
+    private Map<String, Object> literalAlternatives(CompiledBuilderSchema.Entry entry) throws ClassNotFoundException {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        for (CompiledBuilderSchema.LiteralAlternative alternative : entry.alternatives().values())
+            properties.put(alternative.alias(), map(payload(alternative.payload(), keyPosition(entry), entry.source())));
+        Map<String, Object> aliases = new LinkedHashMap<>();
+        aliases.put("type", OBJECT_TYPE);
+        aliases.put(ADDITIONAL_PROPERTIES, false);
+        aliases.put(PROPERTIES, properties);
+        return aliases;
+    }
+
     private Map<String, Object> property(CompiledBuilderSchema.Entry entry, boolean groupRedefined) throws ClassNotFoundException {
-        Map<String, Object> value = payload(entry.payload(), keyPosition(entry), entry.source());
+        Map<String, Object> value = entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP
+                ? literalAlternatives(entry) : payload(entry.payload(), keyPosition(entry), entry.source());
         if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)
             value = map(value);
         if (entry.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE)
             value = new LinkedHashMap<>(Map.of("type", "array", "items", value));
-        if (entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP) {
-            Map<String, Object> aliases = new LinkedHashMap<>();
-            aliases.put("type", OBJECT_TYPE);
-            aliases.put(ADDITIONAL_PROPERTIES, false);
-            aliases.put(PROPERTIES, Map.of(entry.alternative().alias(), map(value)));
-            value = aliases;
-        }
         if (entry.documentation() != null && !entry.documentation().isBlank())
             value.put(DESCRIPTION, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
