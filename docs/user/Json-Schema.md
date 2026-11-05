@@ -454,19 +454,24 @@ An ordinary unannotated property named `key` is a normal generated property. Act
 
 ## Owned child sequences
 
-[Admitted ordinary unkeyed owned sequences](Structured-Input.md#owned-child-sequences) emit `type: array` with `items`
-referencing the concrete child's closed Builder-body grammar. List, Set, SortedSet and NavigableSet use this same input
+[Admitted ordinary owned sequences](Structured-Input.md#owned-child-sequences) emit `type: array` with `items`
+referencing the concrete child's closed input grammar. List, Set, SortedSet and NavigableSet use this same input
 shape. Duplicate mappings are valid input operations: no `uniqueItems`, cardinality, final-order or comparator rules are
 emitted. The schema describes Struct input, not every Groovy expression or the completed collection's contents.
 Structural validity cannot guarantee successful insertion, lifecycle or materialization. The destination collection
 remains authoritative at runtime, including native comparison failures.
 
 The compiler records the owned field relationship and its element invocation name on the public field accessor.
-Source-free inspection checks the declared container and concrete unkeyed child Builder/DSL type without invoking
+Keyed sequence items use the child's closed self-contained definition, including its required externally named String
+construction key. Key renaming and naming profiles match Struct interpretation. This differs from outer-keyed Map
+values, whose bodies omit their construction key. Repeated keys remain permitted by the input schema; destination
+collection equality and comparator behavior still determine the completed result.
+
+Source-free inspection checks the declared container and concrete nongeneric child Builder/DSL type without invoking
 initializers, comparators or other user code. Public creator overloads are not selected by this route; customized,
 overridden or absent overloads do not exclude an otherwise usable relationship. Missing/corrupt required relationship
 facts fail before output replacement. Compatible binary and
-inherited declarations use the same grammar; keyed, abstract, generic, custom/specialized and aggregation forms do not
+inherited declarations use the same grammar; abstract, generic, custom/specialized and aggregation forms do not
 acquire sequence admission. `BinaryOwnedRelationshipsTest` and `validate_owned_sequence_schema.py` exercise the actual
 G3/G4/G5 emitted outputs and accepted/rejected inputs independently of runtime success.
 

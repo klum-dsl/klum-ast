@@ -47,7 +47,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     File repository
     File trap
 
-    @Issue(['957', '954', '952'])
+    @Issue(['957', '954', '952', '1026'])
     def 'binary owned relationships support #capability with Groovy #generation'() {
         given:
         fixture(generation)
@@ -75,6 +75,16 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert workload.additionalProperties == false
             assert !workload.properties.containsKey('name')
             assert !workload.containsKey('required')
+            ['workloadList', 'workloadSet', 'inheritedSequence'].each { member ->
+                assert properties[member].type == 'array'
+                assert properties[member].items.'$ref' == '#/$defs/example.Workload_DSL%24Builder'
+                assert !properties[member].containsKey('uniqueItems')
+            }
+            def sequenceChild = schema.'$defs'.'example.Workload_DSL$Builder'
+            assert sequenceChild.required == ['workload-id']
+            assert sequenceChild.properties.'workload-id'.type == 'string'
+            assert sequenceChild.additionalProperties == false
+            assert !sequenceChild.properties.containsKey('name')
             assert properties.local.'$ref' == '#/$defs/example.LocalFacts_DSL%24Builder'
             assert properties.labels.additionalProperties.type == 'string'
             ['factList', 'factSet', 'sortedFacts', 'navigableFacts', 'inheritedFacts'].each { member ->
@@ -195,7 +205,7 @@ class Trace { static final List<String> events = [] }
     @PostTree void tree() { Trace.events.add('facts:tree') }
 }
 @DSL class Workload {
-    @Key String name
+    @Key @Struct.Name("workload-id") String name
     String image
     @Owner Object owner
     @PostCreate void created() { Trace.events.add('workload:create') }
@@ -230,6 +240,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     Facts inherited
     Map<String, Workload> inheritedWorkloads
     List<Facts> inheritedFacts
+    @Field(members="inheritedItem") List<Workload> inheritedSequence
 }
 @DSL class Deployment extends DeploymentBase {
     Facts facts
@@ -239,6 +250,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     NavigableSet<Facts> navigableFacts = new TreeSet(new FactOrder())
     @Field(alternatives = { [fixed: ConcreteElement] }) Map<String, Element> elements
     Map<String, Workload> workloads
+    @Field(members="listedWorkload") List<Workload> workloadList
+    @Field(members="setWorkload") Set<Workload> workloadSet
     LocalFacts local
     Map<String, String> labels
     @JsonIgnore Facts ignored
@@ -277,7 +290,8 @@ class Consumer {
         assert Deployment_DSL.Builder.getMethod('getInherited').genericReturnType == direct
         assert Deployment_DSL.Builder.getMethod('getWorkloads').genericReturnType.actualTypeArguments[1] == Workload_DSL.Builder
         assert GenericFacts_DSL.Builder.typeParameters.length == 2
-        def input = [facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
+        def sequenceItems = [['workload-id': 'z', image: 'last'], ['workload-id': 'a', image: 'first'], ['workload-id': 'a', image: 'first']]
+        def input = [workloadList: sequenceItems, workloadSet: sequenceItems, inheritedSequence: sequenceItems, facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
                      elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual'], inheritedFacts: [['host-name': 'inherited']],
                      factList: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
@@ -286,6 +300,9 @@ class Consumer {
                      navigableFacts: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']]]
         Trace.events.clear()
         def nativeModel = Deployment.Create.With {
+            sequenceItems.each { item -> listedWorkload(item['workload-id']) { image item.image } }
+            sequenceItems.each { item -> setWorkload(item['workload-id']) { image item.image } }
+            sequenceItems.each { item -> inheritedItem(item['workload-id']) { image item.image } }
             facts { host 'direct' }
             inherited { host 'base' }
             workloads { workload('a/b~c') { image 'one' } }
@@ -318,6 +335,13 @@ class Consumer {
         assert model.elements.primary.owner.is(model)
         assert model.local.host == 'local'
         assert model.labels == ['host-name': 'literal']
+        assert model.workloadList*.name == ['z', 'a', 'a']
+        assert model.workloadSet*.name == ['z', 'a']
+        assert model.inheritedSequence*.name == ['z', 'a', 'a']
+        assert model.workloadList == nativeModel.workloadList
+        [model.workloadList, model.workloadSet, model.inheritedSequence].each { children ->
+            assert children.every { it.owner.is(model) }
+        }
         assert model.factList*.host == ['z', 'a', 'a']
         assert model.factSet*.host == ['z', 'a']
         assert model.sortedFacts*.host == ['a', 'z']

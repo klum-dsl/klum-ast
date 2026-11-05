@@ -1,11 +1,12 @@
 # #1015 — Struct capability inventory and documentation reconciliation
 
-Date: 2026-11-04. Inspected master: `912f56682` (merged #1024).
+Original inventory: 2026-11-04. Inspected master: `912f56682` (merged #1024).
 Related: [#1015](https://github.com/klum-dsl/klum-ast/issues/1015),
 [#952](https://github.com/klum-dsl/klum-ast/issues/952) and
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md).
-This is the final inventory for this documentation pass, prepared for the maintainer's decision round.
-**Every disposition is a proposal; none authorizes implementation or changes release placement.**
+The original inventory was prepared for the maintainer's decision round; the #1026 branch reconciliation below records
+the separately authorized keyed-sequence follow-up.
+**The original dispositions below are proposals; #1026 separately authorizes the bounded keyed-sequence follow-up.**
 Issue #1015 remains open for Hive reconciliation and the maintainer decision round.
 
 ## Authority and reconciliation
@@ -21,7 +22,8 @@ Current source, not the dated status prose in ADR 0032, determines what this pas
 
 | R1 item | Current reconciliation and evidence |
 | --- | --- |
-| C1 concrete unkeyed List; C3 unkeyed Set and sorted Set variants | Delivered by SEQ-1. `List`, `Set`, `SortedSet` and `NavigableSet` accept child-body sequences for concrete nongeneric unkeyed children. Remove these from the missing-feature list. [SEQ-1 evidence](input-round-seq1-evidence.md) and `StructuredOwnedSequenceTest` cover operation order, equality/comparators, partial failure and Template recipes. Keyed variants remain below. |
+| C1 concrete unkeyed List; C3 unkeyed Set and sorted Set variants | Delivered by SEQ-1. `List`, `Set`, `SortedSet` and `NavigableSet` accept child-body sequences for concrete nongeneric unkeyed children. Remove these from the missing-feature list. [SEQ-1 evidence](input-round-seq1-evidence.md) and `StructuredOwnedSequenceTest` cover operation order, equality/comparators, partial failure and Template recipes. The separately authorized #1026 follow-up now adds concrete nongeneric keyed variants; see the reconciliation row below. |
+| C2 / keyed C3 | Implemented on the #1026 branch for concrete nongeneric owned List/Set/sorted Set child sequences. Each item requires its actual externally named String construction key before allocation and uses normal fresh-child preparation/attachment. `StructuredKeyedSequenceTest` and `BinaryOwnedRelationshipsTest` cover naming, duplicates, lifecycle, Templates, source-free projection and interpretation. Merge/hosted qualification remain separate; see [#1026 evidence](issue-1026-keyed-sequence-evidence.md). |
 | F2.0 single explicit literal alternative | Delivered only for the exact abstract keyed `Map<String, Element>` family. `StructuredLiteralAlternativeTest` and [F2-B evidence](input-round-f2b-evidence.md) retain the one-alias, concrete nongeneric subtype and inherited String-key restrictions. |
 | L1-A/B exact String converter List/Map | Delivered for exact `List<T>` and `Map<String, T>` of non-DSL values. `StructuredListConverterTest`, `StructuredMapConverterTest` and [L1-B evidence](input-round-l1b-evidence.md) retain literal Map keys and exclude CharSequence-only container converters. |
 | Direct children, keyed Maps and C1/C3 admission machinery | #1021 cut 3 removes unused public creator-overload requirements for direct concrete owned children and String-keyed owned Maps. Like sequences, these use normal internal relationship preparation/attachment. `StructuredOwnedRelationTest` and ADR 0032's [cleanup](../adr/0032-builder-oriented-structured-input.md#owned-field-relationship-admission-cleanup--1021-cut-3) supersede R1's broad public-creator premise for these relationships. Executable scalar/operation selections, virtual sinks and literal CollectionFactory provenance still need their exact associations. |
@@ -69,7 +71,6 @@ Groovy fragments assume the Schema declaration described in the same row.
 
 | Item and ordinary Groovy form | Missing/rejected Struct/YAML form | Natural representation | Complexity and viable workaround | Proposed disposition |
 | --- | --- | --- | --- | --- |
-| C2 / keyed C3: `List<Route>` or `Set<Route>` with `@Key String name`; `route('health') { path '/health' }` | `routes: [{name: health, path: /health}]` is not admitted. SEQ-1 excludes keyed children, including sorted variants. | Yes: use each child's actual externally named construction key. | Medium increment on SEQ-1: prepare local identity before child allocation, prove duplicates, key exclusion/renaming and Set behavior. Ordinary Groovy works; a keyed Map is an option only if changing the Schema's collection semantics is acceptable. | **Implement in 4.2** for the bounded keyed sequence family after acceptance; do not infer it from unkeyed support. |
 | K1: `@Field(keyMapping = { it.toLowerCase() }) Map<String, String> values`; `value 'BLUE'` | `values: [BLUE]` is unavailable; literal entry population does not select the value-only derived-key adder. | Yes: a value sequence avoids duplicated derived keys. | Small–medium: inert derivation-presence fact, exact value-only population, replacement/null-key and indexed failure semantics. Groovy or an eligible typed List operation validating its own body works. | **Implement in 4.2**, preserving ordinary derivation without inspecting/executing the closure during schema generation. |
 | K2: converter-backed derived-key `Map<String, Duration>`; `wait 'PT1S'` | `waits: [PT1S]` is not L1-B's literal-key Map shape. | Yes: sequence of converter inputs. | Medium: combine K1 with an exact value-only converter association; prove order, derivation and failures. Groovy or an authored List operation works. | **Defer** until K1's value-sequence contract and the converter association are proven; eligible for a bounded 4.2 decision. |
 | K3: `@Field(keyMapping = { it.secondary }) Map<String, Bar> bars`, unkeyed `Bar`; `bar { secondary 'blue' }` | `bars: [{secondary: blue}]` is unavailable. | Yes: configure each body, then derive the stored key. | Medium: normal fresh-child/replacement behavior differs from outer-keyed reuse; prove null keys, ownership and diagnostics. Groovy works without a Schema change. | **Defer** pending acceptance/proof of the value-sequence semantics. |
@@ -122,13 +123,13 @@ general generic-polymorphism engine.
 
 ## Maintainer decision round and delivery boundary
 
-The concrete proposed 4.2 additions are keyed sequences (C2/keyed C3), native derived-key population (K1) and multiple
-explicit literals (F2.1). The other bounded candidates remain selectable independently after their listed contract/proof;
+The remaining concrete proposed 4.2 additions are native derived-key population (K1) and multiple explicit literals
+(F2.1). The maintainer selected keyed sequences first through #1026; its implementation is reconciled above. The other bounded candidates remain selectable independently after their listed contract/proof;
 none is excluded solely because current Schelm documents have a workaround. The generic mechanisms marked reject
 would force awkward syntax or disproportionate machinery for parity. Maintainer acceptance/revision remains outstanding.
 
 No production/compiler/runtime/plugin changes, new issues, issue closure, labels, milestones or curation changes
-belong to this pass. Documentary tests and their lane-specific parser dependencies are the only executable additions.
+belonged to the original #1015 documentation pass. The #1026 follow-up changes only keyed-sequence admission and its tests/docs. Documentary tests and their lane-specific parser dependencies are the only executable additions.
 The draft PR relationship is **Related: #1015**. Hive must reconcile the maintainer decisions and
 merged delivery before closing the issue; this inventory alone establishes neither completion nor archive safety.
 

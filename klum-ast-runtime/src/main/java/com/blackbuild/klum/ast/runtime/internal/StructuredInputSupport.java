@@ -388,7 +388,7 @@ public final class StructuredInputSupport {
                     invocation.recordInvocation(builder);
                     try {
                         builder.addNewDslElementToCollectionWithConfiguration(invocation.fieldName(), entry.payload().type(), false,
-                                null, child::execute);
+                                child.key(), child::execute);
                     } catch (RuntimeException failure) {
                         throw bad(entry, location, "successful ordinary child preparation and attachment", list.get(index), failure);
                     }

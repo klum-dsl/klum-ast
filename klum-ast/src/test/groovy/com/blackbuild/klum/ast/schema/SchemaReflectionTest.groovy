@@ -124,6 +124,7 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         @interface JsonIgnore { boolean value() default true }
     ''']
 
+    @Issue('1026')
     def 'isolated binary reflection and final facade expose contracts docs and source provenance'() {
         given:
         def artifacts = fixture()
@@ -176,7 +177,9 @@ class SchemaReflectionTest extends AbstractDSLSpec {
         entries['components'].excludedChildKeyMember == 'name'
         entries['main-slot'].fixedChildKey == 'primary'
         plan.rejections.any { it.source.endsWith('#secret') }
-        plan.rejections.any { it.source.endsWith('#children') }
+        entries['children'].role == 'OWNED_SEQUENCE'
+        entries['children'].payload.type == 'schemar.schema.Component'
+        !plan.rejections.any { it.source.endsWith('#children') }
         plan.rejections.any { it.source.endsWith('#reserved') && it.reason.contains('absent') }
         !methods.any { it.name == 'reserved' }
         System.getProperty('schema.r.executed') == null

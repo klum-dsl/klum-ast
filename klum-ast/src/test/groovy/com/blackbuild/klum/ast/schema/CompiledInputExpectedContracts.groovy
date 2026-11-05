@@ -250,6 +250,10 @@ final class CompiledInputExpectedContracts {
                     ]],
             'rejection': [model: 'rejection.Parent', builder: 'rejection.Parent_DSL$Builder',
                     entries: [
+                            [externalName: 'keyedChildren', role: 'OWNED_SEQUENCE', source: 'rejection.Parent#keyedChildren',
+                             owner: 'rejection.Parent_DSL$Builder', operation: 'keyedChildren', descriptors: [],
+                             nameOrigin: 'IDENTITY', mapKeyType: null, excludedChildKeyMember: null,
+                             payload: [kind: 'NESTED_OBJECT', type: 'rejection.Child', builder: 'rejection.Child_DSL$Builder', keyType: null, item: null], fixedChildKey: null],
                             [externalName: 'reset', role: 'COMMAND', source: 'rejection.Parent#reset():void',
                              owner: 'rejection.Parent_DSL$Builder', operation: 'reset', descriptors: ['reset():void'],
                              nameOrigin: 'IDENTITY', mapKeyType: null, excludedChildKeyMember: null,
@@ -264,7 +268,6 @@ final class CompiledInputExpectedContracts {
                             [source: 'rejection.Parent#replace(java.lang.String, java.lang.String):void', reason: '@Builder.Method must declare zero arguments or exactly one payload'],
                             [source: 'rejection.Parent#second', reason: 'external-name collision for \'duplicate\': rejection.Parent#first, rejection.Parent#second'],
                             [source: 'rejection.Parent#secondOperation(java.lang.String):void', reason: 'external-name collision for \'operation\': rejection.Parent#firstOperation(java.lang.String):void, rejection.Parent#secondOperation(java.lang.String):void'],
-                            [source: 'rejection.Parent#unkeyedChildren', reason: 'requires one concrete owned relationship']
                     ]],
             'restrictedarguments-ArrayList': [model: 'restrictedarguments.Configuration', builder: 'restrictedarguments.Configuration_DSL$Builder',
                     entries: [

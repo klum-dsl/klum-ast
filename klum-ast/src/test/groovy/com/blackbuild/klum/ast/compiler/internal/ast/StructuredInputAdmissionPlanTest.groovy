@@ -201,8 +201,8 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         }
     }
 
-    @Issue("952")
-    def "rejects unsupported operations and relationships while admitting a zero-argument command"() {
+    @Issue(["952", "1026"])
+    def "rejects unsupported operations and relationships while admitting commands and keyed sequences"() {
         given:
         def unit = compilationUnit(StructuredInputContractFixtures.REJECTIONS)
 
@@ -211,13 +211,14 @@ class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
         def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'rejection.Parent' })
 
         then:
-        plan.entries()*.externalName() == ['reset']
-        plan.entries()[0].role().name() == 'COMMAND'
+        plan.entries()*.externalName() == ['keyedChildren', 'reset']
+        plan.entries()*.role()*.name() == ['OWNED_SEQUENCE', 'COMMAND']
+        plan.entries()[0].payload().type() == 'rejection.Child'
+        !plan.rejections()*.source().contains('rejection.Parent#keyedChildren')
         plan.rejections()*.source() == plan.rejections()*.source().sort()
         plan.rejections().collectEntries { [it.source(), it.reason()] }.with {
             get('rejection.Parent#abstractChild') == 'requires one concrete owned relationship'
             get('rejection.Parent#numberedChildren') == 'requires Map<String, concrete keyed DSL Object> ownership'
-            get('rejection.Parent#unkeyedChildren') == 'requires one concrete owned relationship'
             get('rejection.Parent#marker') == 'has no admitted scalar, enum, List, or Map payload'
             get('rejection.Parent#firstOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")
             get('rejection.Parent#secondOperation(java.lang.String):void').startsWith("external-name collision for 'operation':")

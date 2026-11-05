@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 
-"""Issue #952 / SEQ-1: validate emitted body-sequence grammar, not collection outcomes."""
+"""Issues #952 / SEQ-1 and #1026: validate emitted body-sequence grammar, not collection outcomes."""
 import importlib.metadata
 import json
 import sys
@@ -52,4 +52,17 @@ for generation in (3, 4, 5):
             assert validator.is_valid({member: items}), (path, member, items)
         for items in rejected:
             assert not validator.is_valid({member: items}), (path, member, items)
+    for member in ("workloadList", "workloadSet", "inheritedSequence"):
+        grammar = properties[member]
+        assert grammar["type"] == "array"
+        assert grammar["items"]["$ref"] == "#/$defs/example.Workload_DSL%24Builder"
+        assert not {"uniqueItems", "minItems", "maxItems", "default"}.intersection(grammar)
+        for items in ([], [{"workload-id": ""}], [{"workload-id": "a"}, {"workload-id": "a"}],
+                      [{"workload-id": "health", "image": "service"}]):
+            assert validator.is_valid({member: items}), (path, member, items)
+        for items in ([{}], [{"name": "native"}], [{"workload-id": None}], [{"workload-id": 42}],
+                      [{"workload-id": True}], [{"workload-id": []}], [{"workload-id": {}}],
+                      [{"workload-id": "health", "unknown": "x"}]):
+            assert not validator.is_valid({member: items}), (path, member, items)
+print("Keyed sequence grammar: 36 accepted and 72 rejected instances across 3 emitted schemas")
 print(f"3 emitted schemas: {15 * len(accepted)} accepted and {15 * len(rejected)} rejected instances")

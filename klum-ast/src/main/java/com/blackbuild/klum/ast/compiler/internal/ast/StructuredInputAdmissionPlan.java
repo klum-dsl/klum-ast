@@ -596,7 +596,7 @@ final class StructuredInputAdmissionPlan {
         ClassNode child = elementType.redirect();
         if (!Set.of("java.util.List", "java.util.Set", "java.util.SortedSet", "java.util.NavigableSet")
                 .contains(field.getType().redirect().getName()) || getFieldType(field) != FieldType.DEFAULT
-                || Modifier.isAbstract(child.getModifiers()) || getKeyField(child) != null
+                || Modifier.isAbstract(child.getModifiers())
                 || child.getGenericsTypes() != null && child.getGenericsTypes().length != 0) {
             rejections.add(new Rejection(source(field), OWNERSHIP_REASON));
             return;
