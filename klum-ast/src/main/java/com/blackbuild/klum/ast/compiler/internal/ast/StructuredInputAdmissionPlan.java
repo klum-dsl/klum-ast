@@ -141,9 +141,7 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static boolean overriddenInputCandidate(DSLASTTransformation transformation, Entry entry) {
-        boolean derivedMap = entry.role() == Role.PROPERTY && entry.payload().kind() == PayloadKind.LIST
-                && String.class.getName().equals(entry.mapKeyType());
-        if (!derivedMap && entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
+        if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
                 || entry.payload().kind() != PayloadKind.SCALAR
                 || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type()))) return false;
         return transformation.builderClass.getMethods().stream()
@@ -151,7 +149,7 @@ final class StructuredInputAdmissionPlan {
                 .map(GeneratedDslSupport::publicProjectionOf)
                 .filter(method -> method != null && method.isPublic() && !method.isStatic())
                 .anyMatch(method -> entry.operation().descriptorGroup().stream()
-                        .filter(inherited -> entry.role() != Role.PROPERTY || derivedMap
+                        .filter(inherited -> entry.role() != Role.PROPERTY
                                 || signature(inherited).equals(entry.operation().name() + "(" + entry.payload().type() + ")"))
                         .anyMatch(inherited -> signature(inherited).equals(signature(descriptor(method)))));
     }
@@ -671,12 +669,10 @@ final class StructuredInputAdmissionPlan {
         }
         PublicOperation operation = isCollection(type) || isMap(type)
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
-        boolean derivedMap = nativeDerivedMap(field);
-        if (derivedMap)
+        if (nativeDerivedMap(field))
             payload = new Payload(PayloadKind.LIST, List.class.getName(), null, null, payload.item());
         if (operation != null)
-            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(),
-                    derivedMap ? String.class.getName() : null, null, null, false));
+            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null, false));
     }
 
     /** Existing scalar exclusions apply before considering an already-generated String projection. */

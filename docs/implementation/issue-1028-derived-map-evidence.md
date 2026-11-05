@@ -38,9 +38,10 @@ No closure body is inspected or evaluated for admission.
 Runtime resolution validates the reflected String-keyed supported Map type and the one compiler-selected method's
 exact native generic parameter/return type, rejecting synthetic/bridge methods and mixed selections. It normalizes to
 the existing LIST payload. No annotation members, roles, metadata versions or callable signatures change; no Model
-annotation reflection fallback or method search by guessed names is introduced. Missing selection still fails closed. The normalized internal entry retains the declared String destination key type
-so inherited native Map selections can reject authored descendant adder overrides, without affecting ordinary Lists.
-That declaration fact is not a guarantee about runtime mapping output; a regression preserves ordinary output-key behavior.
+annotation reflection fallback or method search by guessed names is introduced. Missing selection still fails closed.
+Execution uses the exact recorded signature to select and validate the effective Builder method, including compatible
+descendant overrides. It invokes that method through the existing Groovy metaclass seam. A regression also preserves
+ordinary runtime output-key behavior without adding output validation/coercion.
 Matched Schema recompilation replaces the old exclusion with the exact selection.
 
 The existing interpreter validates and invokes each item in supplied order through that method. Ordinary
@@ -64,7 +65,7 @@ lifecycle or validators. K2/K3/K4, non-String declared keys, CollectionFactory, 
   with derived String values and inherited enum values, exact array schemas and ordinary/Struct event parity.
   Initialization traps include mapping-referenced user code; generation must leave them untouched.
 
-## Validation and local review
+## Initial delivery validation and local review — `211072695`
 
 - Pre-change characterization: 12 cases per Groovy lane, no skips.
 - Final `./gradlew check --continue --max-workers=4` passed: 11,121 cases, zero failures/errors, 49 existing skips;
@@ -72,7 +73,7 @@ lifecycle or validators. K2/K3/K4, non-String declared keys, CollectionFactory, 
   license/static checks and aggregate coverage. Its exact production/test source is captured by `a31144448`.
 - All 37 focused compiler/runtime K1 cases passed in each Groovy lane (111 total), with no skips. The seven
   source-free binary fixture cases passed, including actual interpretation and inert schema projection in all lanes.
-- Baseline coverage reports show all lines in the new native-population and inherited-override helpers covered;
+- Initial-head baseline coverage reports show all lines in the then-present native-population and inherited-override helpers covered;
   their branch counts are 17/18 and 10/10 respectively. The compiler derivation-presence helper has 10/12 covered
   branches; source/inherited-candidate filtering has 18/18. These are local counters, not a SonarCloud gate result.
 - Changed Markdown fences, relative file links, reciprocal documentary linkage and `git diff --check` passed.
@@ -84,7 +85,67 @@ lifecycle or validators. K2/K3/K4, non-String declared keys, CollectionFactory, 
   on the final implementation, inherited-adder correction and documentation follow-ups.
   Specification identified that the existing exact Selection mechanism suffices, avoiding an unnecessary metadata
   blocker. Its mixed-selection observation is addressed by rejecting groups that combine value-only and other routes.
-  Final self-review added the K1-specific inherited override fence, verified by both reviewers.
+  Initial self-review added a K1-specific inherited override fence. The focused review below supersedes that decision.
+
+## Focused admission and dispatch review — PR #1029
+
+The follow-up review starts at `2110726959be81bc8644eac44bbc5ae15791af45` and follows the maintainer's bounded
+correctness request, #1021 and #1006. The existing selected operation is sufficient admission authority. An ordinary
+native value-only adder is generated only when the field has key mapping; `populationOperation` additionally requires
+the exact source FieldNode and surviving public projection. Authored collisions do not acquire that association.
+Invalid mapping declarations fail compilation. No valid compiler-generated counterexample was found. Deliberately
+forged selection annotations are distinct corruption controls, not evidence that another carrier fact is required.
+
+The inherited-override fence was overconstrained. `StructuredInputSupport.Invocation` already picks the effective
+method by the recorded exact name/parameters, checks public visibility and return compatibility, and invokes it.
+A same-signature descendant override has deterministic normal Builder dispatch. The correction removes only that
+runtime rejection, its compiler-side exclusion and the internal declared-key marker used solely for those checks.
+No new dispatch infrastructure, metadata, public API, key policy, grammar or projector change is introduced.
+
+Executable evidence:
+
+- The two revised same-compilation/binary inheritance expectations failed on the old implementation, then passed after
+  removing the fence. The inherited field selection stays associated with its original generated public declaration.
+- `StructuredDerivedMapDispatchTest` separately compiles descendants against binary parent artifacts. String and enum
+  cases compare exact `adder:`/`map:` event traces with ordinary typed Builder calls, seeded Map defaults, replacement
+  and insertion order. Competing overloads/converters deliberately throw, proving Struct invokes the native route.
+- Mapping-failure cases preserve the original exception object, reached index `/values/1`, source label, seeded entries
+  and prior replacement, while preventing later values from running. The explicit ordinary enum converter control
+  preserves its original converter exception and remains outside Struct K1 admission.
+- `BinaryOwnedRelationshipsTest` adds packaged String/enum overrides and matching schema shape assertions to its
+  existing Groovy 3/4/5 source-free consumer fixture. Existing corruption, lifecycle, Template and exclusion tests remain.
+
+Follow-up qualification passed in 19m 8s, with zero failures/errors:
+
+| Check | Cases | Existing skips |
+| --- | ---: | ---: |
+| `:klum-ast:test` full baseline | 3,128 | 16 |
+| `:klum-ast-runtime:test` full baseline | 73 | 1 |
+| `:klum-ast:groovy4Tests` selected regressions | 153 | 0 |
+| `:klum-ast:groovy5Tests` selected regressions | 153 | 0 |
+| `:klum-ast-gradle-plugin:test --tests '*BinaryOwnedRelationshipsTest'` | 7 | 0 |
+
+The selected compatibility regressions are `StructuredDerivedMap*Test`, `StructuredInputCollectionContractTest`,
+`StructuredListConverterTest` and `StructuredOperationSelectionTest`; each task receives its own test filters.
+All 41 K1 cases passed in each Groovy lane (123 total, no skips). License checks passed in all three affected modules.
+Reproduction command:
+
+```shell
+./gradlew :klum-ast:test :klum-ast-runtime:test \
+  :klum-ast:groovy4Tests --tests '*StructuredDerivedMap*Test' --tests '*StructuredInputCollectionContractTest' --tests '*StructuredListConverterTest' --tests '*StructuredOperationSelectionTest' \
+  :klum-ast:groovy5Tests --tests '*StructuredDerivedMap*Test' --tests '*StructuredInputCollectionContractTest' --tests '*StructuredListConverterTest' --tests '*StructuredOperationSelectionTest' \
+  :klum-ast-gradle-plugin:test --tests '*BinaryOwnedRelationshipsTest' \
+  :klum-ast:license :klum-ast-runtime:license :klum-ast-gradle-plugin:license --max-workers=4
+```
+
+Standards review found zero actionable findings. Specification found the inherited-override overconstraint; the
+follow-up review confirms it is corrected, with zero unresolved findings. Changed Markdown/link/diff checks passed.
+Updated immutable documentation render/crawl: pending.
+
+The bounded correction removes two admission exclusions and unused marker data;
+it changes no public/generated signatures, metadata version, parser, payload shape or projection implementation.
+Those focused and affected-module checks qualify this correction; a new full root `check` was not warranted by this
+removal of redundant exclusions. No build topology, generated callable or shared payload contract changes. The initial full-root result above is historical evidence, not qualification of this follow-up.
 
 ## Delivery boundary
 

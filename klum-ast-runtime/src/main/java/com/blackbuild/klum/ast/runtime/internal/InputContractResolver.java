@@ -278,7 +278,6 @@ final class InputContractResolver {
 
     private void rejectOverriddenField(BuilderContext context, Entry entry, Method[] declared, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
-        rejectOverriddenNativeMap(context, entry, declared, rejections);
         Metadata origin = reader.metadata(entry.contract());
         for (Method selected : entry.methods()) {
             if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
@@ -298,14 +297,6 @@ final class InputContractResolver {
                         + "; expose one supported non-overridden scalar route"));
             }
         }
-    }
-
-    private static void rejectOverriddenNativeMap(BuilderContext context, Entry entry, Method[] declared, List<Rejection> rejections) {
-        boolean nativeMap = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST
-                && String.class.getName().equals(entry.keyType());
-        if (nativeMap && entry.methods().stream().anyMatch(method -> overridden(method, declared)))
-            rejections.add(new Rejection(entry.source(), "inherited native Map population is overridden by "
-                    + namingOrigin(context.builder()) + "; use a non-overridden generated value adder"));
     }
 
     /** Declaring public contracts are the sole authority, including explicit absence and source/artifact identity. */
@@ -494,10 +485,8 @@ final class InputContractResolver {
             case OWNED_OBJECT, KEYED_OWNED_MAP -> field;
             default -> methods.get(0).getName();
         };
-        // Retain the declared destination key type, never a guarantee about mapping output at runtime.
-        boolean derivedMap = role == Role.PROPERTY && payload.kind() == Kind.LIST && MAPS.contains(rawType(fieldType).getName());
         entries.add(new Entry(name, role, source, context.builder(), operation, calls, dispatch, payload,
-                role == Role.KEYED_OWNED_MAP || derivedMap ? String.class.getName() : null, key, literal.fixed() ? field : null,
+                role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
 

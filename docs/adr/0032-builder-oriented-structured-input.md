@@ -89,7 +89,9 @@ The separately accepted K1 slice admits value sequences for supported String-key
 scalar/enum values and `@Field.keyMapping`. Exact compiler source-field provenance selects the existing public
 value-only adder; existing `GeneratedInput.Selection(field, PROPERTY)` persists that association. The runtime validates
 one exact native value parameter/return signature against the reflected Map value type and interprets the existing
-LIST payload. Mixed, missing and incompatible selections fail closed. No carrier member, role, protocol version,
+LIST payload. Mixed, missing and incompatible selections fail closed. Its existing execution seam selects the effective
+Builder method using that exact signature, checks dispatch agreement and invokes it. Compatible descendant overrides
+therefore retain ordinary Builder behavior; no second operation selection is needed. No carrier member, role, protocol version,
 public callable signature, generic key coercion or second key policy is introduced.
 
 Interpretation calls ordinary Builder population in supplied order. Runtime mapping owns stored keys, replacement,

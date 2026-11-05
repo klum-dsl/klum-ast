@@ -198,7 +198,6 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
         then:
         contract.rejections().isEmpty()
         entry.role() == CompiledBuilderSchema.Role.PROPERTY
-        entry.keyType() == String.name
         entry.payload().kind() == CompiledBuilderSchema.Kind.LIST
         entry.payload().item().type() == String
         entry.dispatch() == adder
@@ -348,7 +347,7 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
         failure.message.contains('/labels~1~0/1')
     }
 
-    def 'separately compiled descendants retain only non overridden native Map population'() {
+    def 'separately compiled descendants invoke the effective overridden native Map operation'() {
         given:
         schema('Audit.key(it)')
         def compiler = new GroovyClassLoader(artifacts, compilerConfiguration)
@@ -367,23 +366,22 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
 
         when:
         def result = inherited.Create.FromStruct([values: ['BLUE']])
-        def rejected = new InputContractResolver().read(leaf)
+        def contract = new InputContractResolver().read(leaf)
         def ordinary = leaf.Create.With { value 'RED' }
 
         then:
         result.values == [blue: 'BLUE']
         ordinary.values.isEmpty()
-        !rejected.entries().containsKey('values')
-        rejected.rejections().any { it.source() == 'derivedmap.Palette#values' && it.reason().contains('overridden') }
+        contract.entries().containsKey('values')
         audit().events.contains('override:RED')
 
         when:
-        leaf.Create.FromStruct([values: ['GREEN']], 'inherited.yaml')
+        def structured = leaf.Create.FromStruct([values: ['GREEN']], 'inherited.yaml')
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('/values')
-        !audit().events.contains('override:GREEN')
+        structured.values == ordinary.values
+        audit().events.contains('override:GREEN')
+        !audit().events.contains('key:GREEN')
 
         cleanup:
         compiler?.close()

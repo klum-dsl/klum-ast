@@ -664,8 +664,9 @@ Struct still rejects explicit null values. Normal lifecycle and Template recipe 
 maps its supplied values without lifecycle callbacks; recipients copy the resulting entries before normal configuration.
 
 JSON Schema describes an array of the declared scalar/enum inputs. Generation never evaluates the mapping or predicts
-its runtime keys. Authored adder overrides, converter-backed values, owned DSL values and non-String declared Map keys
-remain excluded. Literal input Maps do not select this value-only route. Recompile matched Schema artifacts to emit the
+its runtime keys. A compatible descendant override of the selected public adder follows ordinary Builder dispatch.
+An authored replacement at the field declaration that prevents the generated association remains excluded, as do
+converter-backed values, owned DSL values and non-String declared Map keys. Literal input Maps do not select this value-only route. Recompile matched Schema artifacts to emit the
 exact field/adder selection; no new public signature or metadata annotation member is required.
 
 ## Other relationship boundaries

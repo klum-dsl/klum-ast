@@ -60,11 +60,10 @@ class StructuredDerivedMapContractTest extends AbstractDSLSpec {
         plan.rejections().empty
         plan.entries().size() == 1
         plan.entries()[0].role().name() == 'PROPERTY'
-        plan.entries()[0].mapKeyType() == String.name
         plan.entries()[0].payload().kind().name() == 'LIST'
         plan.entries()[0].operation().descriptorGroup() == ['value(java.lang.String):java.lang.String']
     }
-    def 'same compilation override drops inherited native Map selection'() {
+    def 'same compilation override retains exact inherited native Map selection'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
         unit.addSource('Palette.groovy', '''
@@ -84,7 +83,9 @@ class StructuredDerivedMapContractTest extends AbstractDSLSpec {
         def plan = StructuredInputAdmissionPlan.planOf(model)
 
         then:
-        plan.entries().empty
+        plan.entries()*.externalName() == ['values']
+        plan.entries()[0].operation().descriptorGroup() == ['value(java.lang.String):java.lang.String']
+        plan.entries()[0].source() == 'derivedcontract.Palette#values'
     }
 
 }

@@ -89,6 +89,10 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert properties.labels.additionalProperties.type == 'string'
             assert properties.derivedLabels.type == 'array'
             assert properties.derivedLabels.items == [type: 'string']
+            def overriddenSchema = new JsonSlurper().parse(new File(consumer, 'build/generated/klum-json-schema/example.OverrideDeployment.schema.json'))
+            def overriddenProperties = overriddenSchema.'$defs'.'example.OverrideDeployment_DSL$Builder'.properties
+            assert overriddenProperties.derivedLabels == properties.derivedLabels
+            assert overriddenProperties.inheritedShades == properties.inheritedShades
             assert properties.inheritedShades.type == 'array'
             assert properties.inheritedShades.items == [type: 'string', enum: ['BLUE', 'RED']]
             ['factList', 'factSet', 'sortedFacts', 'navigableFacts', 'inheritedFacts'].each { member ->
@@ -274,6 +278,16 @@ enum Shade { BLUE, RED }
     @Field void virtual(Facts value) {}
     @Field(keyMapping = { it.name }) Map<String, Workload> mapped
 }
+@DSL class OverrideDeployment extends Deployment {
+    @Struct.Ignore @Builder.Method String mappedLabel(String value) {
+        Trace.events.add('override-label:' + value)
+        super.mappedLabel(value)
+    }
+    @Struct.Ignore @Builder.Method Shade inheritedShade(Shade value) {
+        Trace.events.add('override-shade:' + value)
+        super.inheritedShade(value)
+    }
+}
 class FactOrder implements Comparator<Object> {
     int compare(Object first, Object second) { first.host <=> second.host }
 }
@@ -397,6 +411,17 @@ class Consumer {
             }
         }
         assert Trace.events.empty
+        def ordinaryOverride = OverrideDeployment.Create.With {
+            mappedLabel 'BLUE'
+            inheritedShade Shade.BLUE
+        }
+        def overriddenTrace = Trace.events.toList()
+        Trace.events.clear()
+        def structuredOverride = OverrideDeployment.Create.FromStruct([derivedLabels: ['BLUE'], inheritedShades: ['BLUE']])
+        assert structuredOverride.derivedLabels == ordinaryOverride.derivedLabels
+        assert structuredOverride.inheritedShades == ordinaryOverride.inheritedShades
+        assert Trace.events == overriddenTrace
+        assert Trace.events == ['override-label:BLUE', 'label:BLUE', 'override-shade:BLUE', 'shade:BLUE']
         println 'BINARY-RELATIONSHIPS-OK'
     }
 }
@@ -416,6 +441,7 @@ dependencies {
 }
 klumSchema.jsonSchema {
     rootTypes.add('example.Deployment')
+    rootTypes.add('example.OverrideDeployment')
     classpath.setFrom(configurations.schemaBinary, files($runtime, $groovy))
 }
 tasks.register('interpret', JavaExec) {
