@@ -358,7 +358,7 @@ import com.blackbuild.klum.ast.runtime.KlumFactory
         person.lastName == 'Müller'
     }
 
-    @Issue("359")
+    @Issue(["359", "992"])
     def "nested maps do not start an independent child factory lifecycle"() {
         given:
         createClass '''
@@ -395,7 +395,8 @@ import com.blackbuild.klum.ast.runtime.KlumFactory
 
         then:
         KlumModelException error = thrown()
-        error.message.contains("Field number is missing in target object")
+        error.message.contains("Field number is missing in target Schema Address")
+        error.message.contains("(input member /address/number)")
     }
 
 }
