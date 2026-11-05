@@ -29,7 +29,7 @@ import spock.lang.Issue
 
 @Issue('1028')
 class StructuredDerivedMapContractTest extends AbstractDSLSpec {
-    def 'compiler has exact source provenance but freezes only a population exclusion for derived Map'() {
+    def 'compiler persists the exact native derived Map adder through its existing selection'() {
         given:
         def unit = new CompilationUnit(compilerConfiguration, null, loader)
         unit.addSource('Palette.groovy', '''
@@ -56,9 +56,35 @@ class StructuredDerivedMapContractTest extends AbstractDSLSpec {
         adder.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY).is(field)
         projection != null
         projection.parameters*.originType*.name == ['java.lang.String']
-        !projection.annotations.any { it.classNode.name.endsWith('GeneratedInput$Selection') }
-        plan.entries().empty
-        plan.rejections()*.source() == ['derivedcontract.Palette#values']
-        plan.rejections()[0].reason().contains('value(java.lang.String, java.lang.String)')
+        projection.annotations.any { it.classNode.name.endsWith('GeneratedInput$Selection') }
+        plan.rejections().empty
+        plan.entries().size() == 1
+        plan.entries()[0].role().name() == 'PROPERTY'
+        plan.entries()[0].mapKeyType() == String.name
+        plan.entries()[0].payload().kind().name() == 'LIST'
+        plan.entries()[0].operation().descriptorGroup() == ['value(java.lang.String):java.lang.String']
     }
+    def 'same compilation override drops inherited native Map selection'() {
+        given:
+        def unit = new CompilationUnit(compilerConfiguration, null, loader)
+        unit.addSource('Palette.groovy', '''
+            package derivedcontract
+            import com.blackbuild.klum.ast.*
+            @DSL class Palette {
+                @Field(keyMapping = { it.toLowerCase() }) Map<String, String> values
+            }
+            @DSL class Child extends Palette {
+                @Struct.Ignore @Builder.Method String value(String raw) { raw }
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def model = unit.AST.classes.find { it.name == 'derivedcontract.Child' }
+        def plan = StructuredInputAdmissionPlan.planOf(model)
+
+        then:
+        plan.entries().empty
+    }
+
 }

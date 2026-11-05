@@ -26,6 +26,12 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput
+import groovyjarjarasm.asm.AnnotationVisitor
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.Opcodes
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -34,7 +40,7 @@ import spock.lang.Tag
 class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
     private URLClassLoader artifacts
 
-    private Class schema(String mapping = 'it.toLowerCase()', String destination = 'Map') {
+    private Class schema(String mapping = 'it.toLowerCase()', String destination = 'Map', String valueType = 'String') {
         createSecondaryClass """
             package derivedmap
             import com.blackbuild.klum.ast.*
@@ -49,7 +55,7 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
             }
             @DSL class Palette {
                 @Field(keyMapping = { $mapping })
-                $destination<String, String> values
+                $destination<String, $valueType> values
                 @PostCreate void created() { Audit.events.add('create') }
                 @PostApply void applied() { Audit.events.add('apply') }
                 @PostTree void tree() { Audit.events.add('tree') }
@@ -64,24 +70,19 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
     def cleanup() { artifacts?.close() }
 
     @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#groovy-forms-without-a-struct-equivalent')
-    def 'Groovy derives Map keys while the proposed Struct value sequence is not admitted'() {
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#derived-key-map-values')
+    def 'derives Map keys from structured values through the ordinary Builder adder'() {
         given:
         def palette = schema()
 
         when:
         def ordinary = palette.Create.With { value 'BLUE' }
 
-        then:
-        ordinary.values == [blue: 'BLUE']
-
-        when:
-        palette.Create.FromStruct([values: ['BLUE']], 'palette.yaml')
+        def structured = palette.Create.FromStruct([values: ['BLUE']], 'palette.yaml')
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('palette.yaml')
-        failure.message.contains('/values')
+        structured.values == [blue: 'BLUE']
+        structured.values == ordinary.values
     }
 
     def 'ordinary #destination traverses values before destination ordering and replacement'() {
@@ -95,7 +96,13 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
             values('GREEN', 'RED')
         }
 
+        def ordinaryEvents = audit().events.toList()
+        audit().events.clear()
+        def structured = type.Create.FromStruct([values: ['BLUE', 'RED', 'blue', 'GREEN', 'RED']])
+
         then:
+        structured.values == result.values
+        audit().events == ordinaryEvents
         result.values == [blue: 'blue', red: 'RED', green: 'GREEN']
         result.values.keySet().toList() == keys
         audit().events == ['create', 'key:BLUE', 'key:RED', 'key:blue', 'key:GREEN', 'key:RED', 'apply', 'tree']
@@ -178,7 +185,7 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
         audit().events == ['create', 'key:GREEN', 'apply', 'tree', 'create', 'apply', 'tree']
     }
 
-    def 'public derived value adder has no persisted field selection and Struct rejects either input shape: #payload'() {
+    def 'exact native Map selection is a List payload with one ordinary value-only adder'() {
         given:
         def type = schema('Audit.key(it)')
         def builder = Class.forName('derivedmap.Palette_DSL$Builder', false, artifacts)
@@ -186,32 +193,310 @@ class StructuredDerivedMapCharacterizationTest extends AbstractDSLSpec {
         when:
         def contract = new InputContractResolver().read(type)
         def adder = builder.getMethod('value', String)
-        def field = builder.getMethod('getValues').getAnnotation(GeneratedInput.Field)
+        def entry = contract.entries().values
 
         then:
-        !contract.entries().containsKey('values')
-        contract.rejections().any {
-            it.source() == 'derivedmap.Palette#values' &&
-                    it.reason().contains('value(java.lang.String, java.lang.String)')
-        }
-        adder.getAnnotation(GeneratedInput.Selection) == null
-        field.value() == 'values'
-        field.exclusion() == 'POPULATION'
-        field.detail() == 'value'
-        builder.methods.findAll { it.getAnnotation(GeneratedInput.Selection)?.field() == 'values' }.empty
-        audit().events.empty
+        contract.rejections().isEmpty()
+        entry.role() == CompiledBuilderSchema.Role.PROPERTY
+        entry.keyType() == String.name
+        entry.payload().kind() == CompiledBuilderSchema.Kind.LIST
+        entry.payload().item().type() == String
+        entry.dispatch() == adder
+        adder.getAnnotation(GeneratedInput.Selection).field() == 'values'
+        adder.getAnnotation(GeneratedInput.Selection).role() == 'PROPERTY'
+        builder.getMethod('getValues').getAnnotation(GeneratedInput.Field).exclusion() == ''
+        audit().events.isEmpty()
+    }
+
+    def 'Struct validates and invokes reached items without preflight or rollback: #bad'() {
+        given:
+        def type = schema('Audit.key(it)')
+        Throwable observed
+        Map partial
 
         when:
-        type.Create.FromStruct([values: payload], 'palette.yaml')
+        def result = type.Create.With {
+            try {
+                applyStruct([values: ['BLUE', bad, 'RED']], 'palette.yaml')
+            } catch (KlumModelException failure) {
+                observed = failure
+                partial = new LinkedHashMap(values)
+            }
+        }
+
+        then:
+        observed != null
+        observed.message.contains('palette.yaml')
+        observed.message.contains('/values/1')
+        observed.message.contains('derivedmap.Palette_DSL$Builder')
+        partial == [blue: 'BLUE']
+        result.values == partial
+        audit().events == ['create', 'key:BLUE'] + mapped + ['apply', 'tree']
+        (bad == 'FAIL') == causes(observed).contains(audit().failure)
+
+        where:
+        bad    | mapped
+        'NULL' | ['key:NULL']
+        'FAIL' | ['key:FAIL']
+        null   | []
+        12     | []
+        true   | []
+        [:]    | []
+        []     | []
+    }
+
+    def 'native #valueType values use existing strict scalar conversion before mapping'() {
+        given:
+        def type = schema('it.toString().toLowerCase()', 'Map', valueType)
+
+        when:
+        def result = type.Create.FromStruct([values: supplied])
+        def ordinary = type.Create.With { supplied.each { value(it) } }
+
+        then:
+        result.values == expected
+        result.values == ordinary.values
+
+        where:
+        valueType | supplied      | expected
+        'Boolean' | [true, false] | ['true': true, 'false': false]
+        'Integer' | [7, 3, 7]     | ['7': 7, '3': 3]
+    }
+
+    def 'actual mapped keys retain ordinary runtime behavior without added output key coercion'() {
+        given:
+        def type = schema('it.length()')
+
+        when:
+        def structured = type.Create.FromStruct([values: ['BLUE', 'RED']])
+        def ordinary = type.Create.With { value 'BLUE'; value 'RED' }
+
+        then:
+        structured.values == [(4): 'BLUE', (3): 'RED']
+        structured.values == ordinary.values
+        structured.values.keySet().every { it instanceof Integer }
+    }
+
+    def 'empty sequences preserve initial entries and literal Map payloads reject'() {
+        given:
+        def type = schema('Audit.key(it)')
+        Throwable observed
+
+        when:
+        def result = type.Create.With {
+            value 'BLUE'
+            applyStruct([values: []])
+            try { applyStruct([values: [red: 'RED']], 'palette.yaml') } catch (KlumModelException failure) { observed = failure }
+        }
+
+        then:
+        result.values == [blue: 'BLUE']
+        observed.message.contains('/values')
+        audit().events == ['create', 'key:BLUE', 'apply', 'apply', 'tree']
+    }
+
+    def 'Struct Templates derive entries during definition and copy them into fresh recipients'() {
+        given:
+        def type = schema('Audit.key(it)')
+
+        when:
+        def recipe = type.Create.Template.FromStruct([values: ['BLUE', 'RED', 'blue']])
+        def definitionEvents = audit().events.toList()
+        audit().events.clear()
+        def result
+        type.Template.With(recipe) { result = type.Create.FromStruct([values: ['GREEN']]) }
+
+        then:
+        recipe.values == [blue: 'blue', red: 'RED']
+        definitionEvents == ['key:BLUE', 'key:RED', 'key:blue']
+        result.values == [blue: 'blue', red: 'RED', green: 'GREEN']
+        audit().events == ['create', 'key:GREEN', 'apply', 'tree']
+    }
+
+    def 'renamed inherited enum Map uses the selected custom member without mutating input'() {
+        given:
+        createSecondaryClass '''
+            package derivedmap
+            import com.blackbuild.klum.ast.*
+            enum Shade { BLUE, RED }
+            @DSL class Base {
+                @Struct.Name('labels/~')
+                @Field(members = 'putShade', keyMapping = { it.name().toLowerCase() })
+                Map<String, Shade> shades
+            }
+            @DSL class Palette extends Base { }
+        '''
+        artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def type = Class.forName('derivedmap.Palette', false, artifacts)
+        def input = [('labels/~'): ['BLUE', 'RED', 'BLUE']]
+
+        when:
+        def result = type.Create.FromStruct(input)
+        def entry = new InputContractResolver().read(type).entries()['labels/~']
+
+        then:
+        result.shades.collectEntries { key, value -> [(key): value.name()] } == [blue: 'BLUE', red: 'RED']
+        entry.operation() == 'putShade'
+        entry.payload().item().kind() == CompiledBuilderSchema.Kind.ENUM
+        input == [('labels/~'): ['BLUE', 'RED', 'BLUE']]
+
+        when:
+        type.Create.FromStruct([('labels/~'): ['BLUE', 'blue']], 'shades.yaml')
 
         then:
         def failure = thrown(KlumModelException)
-        failure.message.contains('palette.yaml')
+        failure.message.contains('/labels~1~0/1')
+    }
+
+    def 'separately compiled descendants retain only non overridden native Map population'() {
+        given:
+        schema('Audit.key(it)')
+        def compiler = new GroovyClassLoader(artifacts, compilerConfiguration)
+        compiler.parseClass('''
+            package derivedmap
+            import com.blackbuild.klum.ast.*
+            @DSL class Inherited extends Palette { }
+            @DSL class Overridden extends Palette {
+                @Struct.Name('replacement') @Struct.Ignore @Builder.Method
+                String value(String raw) { Audit.events.add('override:' + raw); raw }
+            }
+            @DSL class Leaf extends Overridden { }
+        ''')
+        def inherited = Class.forName('derivedmap.Inherited', false, artifacts)
+        def leaf = Class.forName('derivedmap.Leaf', false, artifacts)
+
+        when:
+        def result = inherited.Create.FromStruct([values: ['BLUE']])
+        def rejected = new InputContractResolver().read(leaf)
+        def ordinary = leaf.Create.With { value 'RED' }
+
+        then:
+        result.values == [blue: 'BLUE']
+        ordinary.values.isEmpty()
+        !rejected.entries().containsKey('values')
+        rejected.rejections().any { it.source() == 'derivedmap.Palette#values' && it.reason().contains('overridden') }
+        audit().events.contains('override:RED')
+
+        when:
+        leaf.Create.FromStruct([values: ['GREEN']], 'inherited.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
         failure.message.contains('/values')
-        !audit().events.any { it.startsWith('key:') }
+        !audit().events.contains('override:GREEN')
+
+        cleanup:
+        compiler?.close()
+    }
+
+    def 'non K1 family remains excluded: #declaration'() {
+        given:
+        createSecondaryClass """
+            package derivedmap
+            import com.blackbuild.klum.ast.*
+            import java.time.Duration
+            @DSL class Child { String text }
+            @DSL class KeyedChild { @Key String name }
+            @DSL class Palette {
+                @Field(keyMapping = { it.toString() }) $declaration values
+            }
+        """
+        artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def type = Class.forName('derivedmap.Palette', false, artifacts)
+
+        when:
+        def contract = new InputContractResolver().read(type)
+
+        then:
+        !contract.entries().containsKey('values')
+
+        when:
+        type.Create.FromStruct([values: []])
+
+        then:
+        thrown(KlumModelException)
 
         where:
-        payload << [['BLUE'], [blue: 'BLUE']]
+        declaration << ['Map<String, Duration>', 'Map<String, Child>', 'Map<String, KeyedChild>', 'Map<Integer, String>']
+    }
+
+    def 'authored value adder cannot acquire generated field provenance'() {
+        given:
+        createSecondaryClass '''
+            package derivedmap
+            import com.blackbuild.klum.ast.*
+            @DSL class Palette {
+                @Field(keyMapping = { it.toLowerCase() }) Map<String, String> values
+                @Struct.Ignore @Builder.Method String value(String raw) { throw new AssertionError('authored adder executed') }
+            }
+        '''
+        artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def type = Class.forName('derivedmap.Palette', false, artifacts)
+
+        when:
+        def contract = new InputContractResolver().read(type)
+
+        then:
+        !contract.entries().containsKey('values')
+        contract.rejections().any { it.source() == 'derivedmap.Palette#values' && it.reason().contains('authored overrides') }
+    }
+
+    def 'corrupt exact Map selection fails before root allocation: #mode'() {
+        given:
+        def type = schema('Audit.key(it)')
+        corruptSelection(mode)
+
+        when:
+        type.Create.FromStruct([values: ['BLUE']], 'metadata.yaml')
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('metadata.yaml')
+        failure.message.contains('recompile')
+        failure.message.contains(reason)
+        audit().events.isEmpty()
+
+        where:
+        mode          | reason
+        'missing'     | 'Missing compiler input/population selection'
+        'extra'       | 'one exact selection'
+        'return'      | 'signature mismatch'
+        'parameter'   | 'signature mismatch'
+        'synthetic'   | 'signature mismatch'
+        'bridge'      | 'signature mismatch'
+    }
+
+    private void corruptSelection(String mode) {
+        def file = new File(compilerConfiguration.targetDirectory, 'derivedmap/Palette_DSL$Builder.class')
+        def writer = new ClassWriter(0)
+        new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                boolean adder = name == 'value' && descriptor == '(Ljava/lang/String;)Ljava/lang/String;'
+                if (adder && mode == 'return') signature = '(Ljava/lang/String;)Ljava/lang/Object;'
+                if (adder && mode == 'parameter') signature = '(Ljava/lang/Integer;)Ljava/lang/String;'
+                if (adder && mode == 'synthetic') access |= Opcodes.ACC_SYNTHETIC
+                if (adder && mode == 'bridge') access |= Opcodes.ACC_BRIDGE
+                new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+                    @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                        adder && mode == 'missing' && annotation.endsWith('GeneratedInput$Selection;') ? null : super.visitAnnotation(annotation, visible)
+                    }
+                }
+            }
+
+            @Override void visitEnd() {
+                if (mode == 'extra') {
+                    def method = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, 'value',
+                            '(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;', null, null)
+                    def selection = method.visitAnnotation('Lcom/blackbuild/klum/ast/runtime/generated/GeneratedInput$Selection;', true)
+                    selection.visit('field', 'values')
+                    selection.visit('role', 'PROPERTY')
+                    selection.visitEnd()
+                    method.visitEnd()
+                }
+                super.visitEnd()
+            }
+        }, 0)
+        file.bytes = writer.toByteArray()
     }
 
     private static List<Throwable> causes(Throwable failure) {

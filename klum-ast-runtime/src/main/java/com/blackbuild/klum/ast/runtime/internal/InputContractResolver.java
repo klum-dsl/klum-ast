@@ -278,6 +278,7 @@ final class InputContractResolver {
 
     private void rejectOverriddenField(BuilderContext context, Entry entry, Method[] declared, List<Rejection> rejections)
             throws IOException, ClassNotFoundException {
+        rejectOverriddenNativeMap(context, entry, declared, rejections);
         Metadata origin = reader.metadata(entry.contract());
         for (Method selected : entry.methods()) {
             if (entry.role() == Role.LITERAL_ALTERNATIVE_MAP
@@ -297,6 +298,14 @@ final class InputContractResolver {
                         + "; expose one supported non-overridden scalar route"));
             }
         }
+    }
+
+    private static void rejectOverriddenNativeMap(BuilderContext context, Entry entry, Method[] declared, List<Rejection> rejections) {
+        boolean nativeMap = entry.role() == Role.PROPERTY && entry.payload().kind() == Kind.LIST
+                && String.class.getName().equals(entry.keyType());
+        if (nativeMap && entry.methods().stream().anyMatch(method -> overridden(method, declared)))
+            rejections.add(new Rejection(entry.source(), "inherited native Map population is overridden by "
+                    + namingOrigin(context.builder()) + "; use a non-overridden generated value adder"));
     }
 
     /** Declaring public contracts are the sole authority, including explicit absence and source/artifact identity. */
@@ -473,6 +482,8 @@ final class InputContractResolver {
             throw invalid("Schema child-key authority requires OWNED_OBJECT and agrees with fixed key: " + source);
         Payload payload = converter == null ? fieldPayload(fieldType, role, source)
                 : converterPayload(fieldType, methods.get(0));
+        if (converter == null && role == Role.PROPERTY)
+            payload = nativePopulationPayload(payload, methods, source);
         String key = childKey(payload, role, literal, source);
         boolean relationship = role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP;
         List<Method> calls = relationship ? List.of() : methods;
@@ -483,8 +494,10 @@ final class InputContractResolver {
             case OWNED_OBJECT, KEYED_OWNED_MAP -> field;
             default -> methods.get(0).getName();
         };
+        // Retain the declared destination key type, never a guarantee about mapping output at runtime.
+        boolean derivedMap = role == Role.PROPERTY && payload.kind() == Kind.LIST && MAPS.contains(rawType(fieldType).getName());
         entries.add(new Entry(name, role, source, context.builder(), operation, calls, dispatch, payload,
-                role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
+                role == Role.KEYED_OWNED_MAP || derivedMap ? String.class.getName() : null, key, literal.fixed() ? field : null,
                 literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
     }
 
@@ -706,6 +719,21 @@ final class InputContractResolver {
         if (selected.size() != 1)
             throw invalid("Missing exact field payload/population signature: " + source);
         return selected.get(0);
+    }
+
+    /** Existing exact field selection carries the value-only native Map route, without a second key policy. */
+    private static Payload nativePopulationPayload(Payload payload, List<Method> methods, String source) {
+        if (payload.kind() != Kind.MAP || methods.stream().noneMatch(method -> method.getParameterCount() == 1))
+            return payload;
+        if (methods.size() != 1)
+            throw invalid("Native value-only Map population requires one exact selection: " + source);
+        Payload item = payload.item();
+        Method method = methods.get(0);
+        if (item.kind() != Kind.SCALAR && item.kind() != Kind.ENUM
+                || method.getGenericParameterTypes()[0] != item.type() || method.getGenericReturnType() != item.type()
+                || method.isSynthetic() || method.isBridge())
+            throw invalid("Native value-only Map population signature mismatch: " + source);
+        return new Payload(Kind.LIST, List.class, null, null, item);
     }
 
     private static void validateVisibility(List<Method> methods, String source) {

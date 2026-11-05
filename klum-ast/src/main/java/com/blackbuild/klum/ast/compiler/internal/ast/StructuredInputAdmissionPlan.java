@@ -141,7 +141,9 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static boolean overriddenInputCandidate(DSLASTTransformation transformation, Entry entry) {
-        if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
+        boolean derivedMap = entry.role() == Role.PROPERTY && entry.payload().kind() == PayloadKind.LIST
+                && String.class.getName().equals(entry.mapKeyType());
+        if (!derivedMap && entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
                 || entry.payload().kind() != PayloadKind.SCALAR
                 || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type()))) return false;
         return transformation.builderClass.getMethods().stream()
@@ -149,7 +151,7 @@ final class StructuredInputAdmissionPlan {
                 .map(GeneratedDslSupport::publicProjectionOf)
                 .filter(method -> method != null && method.isPublic() && !method.isStatic())
                 .anyMatch(method -> entry.operation().descriptorGroup().stream()
-                        .filter(inherited -> entry.role() != Role.PROPERTY
+                        .filter(inherited -> entry.role() != Role.PROPERTY || derivedMap
                                 || signature(inherited).equals(entry.operation().name() + "(" + entry.payload().type() + ")"))
                         .anyMatch(inherited -> signature(inherited).equals(signature(descriptor(method)))));
     }
@@ -669,8 +671,12 @@ final class StructuredInputAdmissionPlan {
         }
         PublicOperation operation = isCollection(type) || isMap(type)
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
+        boolean derivedMap = nativeDerivedMap(field);
+        if (derivedMap)
+            payload = new Payload(PayloadKind.LIST, List.class.getName(), null, null, payload.item());
         if (operation != null)
-            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null, false));
+            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(),
+                    derivedMap ? String.class.getName() : null, null, null, false));
     }
 
     /** Existing scalar exclusions apply before considering an already-generated String projection. */
@@ -827,8 +833,8 @@ final class StructuredInputAdmissionPlan {
     private static PublicOperation populationOperation(FieldNode field, List<Rejection> rejections) {
         String name = DslAstHelper.getElementNameForCollectionField(field);
         ClassNode type = field.getType();
-        List<String> parameters = isCollection(type)
-                ? List.of(getElementTypeForCollection(type).redirect().getName())
+        List<String> parameters = isCollection(type) || nativeDerivedMap(field)
+                ? List.of(fieldValueType(type).redirect().getName())
                 : List.of(ClassHelper.STRING_TYPE.getName(), getElementTypeForMap(type).redirect().getName());
         ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
         List<MethodNode> candidates = implementation.getDeclaredMethods(name).stream()
@@ -845,6 +851,15 @@ final class StructuredInputAdmissionPlan {
         }
         MethodNode operation = candidates.get(0);
         return new PublicOperation(operation.getDeclaringClass().redirect().getName(), name, List.of(descriptor(operation)));
+    }
+
+    /** Presence and exact generated provenance suffice; never inspect or execute the mapping body. */
+    private static boolean nativeDerivedMap(FieldNode field) {
+        if (!isMap(field.getType())) return false;
+        AnnotationNode options = annotation(field, Field.class.getName());
+        if (options == null || options.getMember("keyMapping") == null) return false;
+        Payload payload = payloadForField(field.getType());
+        return payload != null && (payload.item().kind() == PayloadKind.SCALAR || payload.item().kind() == PayloadKind.ENUM);
     }
 
     /** Internal preparation/attachment uses the field relationship, never a public creator group. */
