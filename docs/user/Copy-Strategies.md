@@ -371,3 +371,20 @@ object. The default is `OverwriteStrategy.Missing.FAIL`. The `missing` member ca
 setting `singles`, `collections`, or `maps`.
 
 Note that `Overwrite.Missing` itself can only be used on annotation types. Since the missing-strategy is checked on the target class, it is resolved from the target class (including its `@Overwrite`, package and superclasses), not from a field.
+
+## Map-copy diagnostics
+
+For `copyFrom(Map)`, unknown-member and framework type-check failures identify the target Schema type, its key when
+available, and the relative input member. Locations start at the supplied Map, include enclosing Map keys and supplied
+collection indices, and escape `~` as `~0` and `/` as `~1`. Indices describe input iteration order, even when an overwrite
+strategy appends to an existing collection. Default generated Builder identities are omitted from these diagnostics.
+
+For example, copying `services: ['eu/west~blue': [endpoints: [[name: 'edge', port: [443]]]]]` into a deployment with keyed
+services and endpoints reports the endpoint Schema, key `edge`, and input member
+`/services/eu~1west~0blue/endpoints/0/port` when `port` expects an Integer.
+Executable examples are in `MapCopyDiagnosticsTest` ([#992](https://github.com/klum-dsl/klum-ast/issues/992)).
+
+The exception's construction-path getter and retained object paths keep their existing meaning, including public
+Factory and relationship steps already recorded. These relative input locations add no file, URI or parser position.
+User converter exceptions keep their existing types and cause chains. [Structured Input](Structured-Input.md) and
+managed Jackson imports retain their own source and path diagnostics.

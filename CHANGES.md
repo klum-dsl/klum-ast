@@ -1,5 +1,10 @@
 # Unreleased
 
+- Identify target Schema types, available keys and escaped relative input members in Map-copy unknown-member and
+  framework type-check diagnostics, including nested Map keys and supplied collection indices. Preserve exception
+  chains, construction paths and copy strategies. See [Map-copy diagnostics](docs/user/Copy-Strategies.md#map-copy-diagnostics)
+  ([#992](https://github.com/klum-dsl/klum-ast/issues/992)).
+
 - Support multiple explicit literal alternative groups for the qualified abstract keyed owned Map family. Traverse alias
   groups and keyed entries in supplied Map order, retaining exact subtype/key selection, ordinary lifecycle, Templates
   and partial failure. Struct uses the recorded field/target directly, independently of absent or customized public
