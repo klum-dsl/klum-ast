@@ -140,7 +140,10 @@ Reproduction command:
 
 Standards review found zero actionable findings. Specification found the inherited-override overconstraint; the
 follow-up review confirms it is corrected, with zero unresolved findings. Changed Markdown/link/diff checks passed.
-Updated immutable documentation render/crawl: pending.
+Updated `renderLocalDocumentation -PdocumentationVersion=4.2.0-tracer --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --max-workers=2`
+passed from immutable source/renderer `e6e71ea1edbf1080c3a34aae0de87e4bc148ff89`: 447 HTML files rendered and crawled; 1m 56s.
+The correction is additive commit `e6e71ea1edbf1080c3a34aae0de87e4bc148ff89`; a later evidence-only commit changes no qualified production/test or
+rendered user-page inputs. Previously reviewed history is preserved.
 
 The bounded correction removes two admission exclusions and unused marker data;
 it changes no public/generated signatures, metadata version, parser, payload shape or projection implementation.
