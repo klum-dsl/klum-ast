@@ -188,7 +188,7 @@ final class StructuredInputAdmissionPlan {
     private static final String LITERAL_ALTERNATIVE = METADATA_KEY + ".literalAlternative";
 
     /** Freeze only explicit literal facts at the existing CollectionFactory generation site. */
-    static void recordLiteralAlternative(FieldNode field, Map<ClassNode, String> alternatives, ClassNode scope) {
+    static void recordLiteralAlternative(FieldNode field, Map<ClassNode, String> alternatives) {
         if (alternatives.isEmpty() || !field.getType().redirect().getName().equals(Map.class.getName())) return;
         ClassNode declared = getElementTypeForMap(field.getType()).redirect();
         AnnotationNode options = annotation(field, Field.class.getName());
@@ -204,40 +204,17 @@ final class StructuredInputAdmissionPlan {
             if (!isDSLObject(target) || Modifier.isAbstract(target.getModifiers()) || key == null
                     || !ClassHelper.STRING_TYPE.equals(key.getType()) || !key.equals(getKeyField(declared))
                     || target.getGenericsTypes() != null && target.getGenericsTypes().length != 0) return;
-            candidates.add(new LiteralAlternative(selected.getValue(), target, scope, key.getName()));
+            candidates.add(new LiteralAlternative(selected.getValue(), target, key.getName()));
         }
         candidates.sort(Comparator.comparing(LiteralAlternative::alias));
         field.setNodeMetaData(LITERAL_ALTERNATIVE, List.copyOf(candidates));
     }
 
-    private record LiteralAlternative(String alias, ClassNode target, ClassNode scope, String key) { }
+    private record LiteralAlternative(String alias, ClassNode target, String key) { }
 
     private static List<LiteralAlternative> literalAlternatives(FieldNode field) {
         List<LiteralAlternative> candidates = field.getNodeMetaData(LITERAL_ALTERNATIVE);
-        if (candidates == null) return List.of();
-        ClassNode implementation = DslAstHelper.getBuilderClassOf(field.getOwner());
-        if (implementation == null) return List.of();
-        MethodNode outer = implementation.getDeclaredMethod(field.getName(),
-                new Parameter[]{new Parameter(ClassHelper.CLOSURE_TYPE, "body")});
-        return outer != null
-                && outer.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field
-                && annotation(outer, Builder.Method.class.getName()) == null
-                && candidates.stream().allMatch(candidate -> literalCreator(field, candidate) != null) ? candidates : List.of();
-    }
-
-    /** Signature shape alone cannot distinguish a projected custom Factory from a literal relationship creator. */
-    private static MethodNode literalCreator(FieldNode field, LiteralAlternative alternative) {
-        ClassNode targetBuilder = GeneratedDslSupport.builderTypeFor(alternative.target()).redirect();
-        return alternative.scope().getDeclaredMethods(alternative.alias()).stream()
-                .filter(method -> Boolean.TRUE.equals(method.getNodeMetaData(GeneratedDslSupport.RELATIONSHIP_CREATOR_METADATA_KEY)))
-                .filter(method -> method.getNodeMetaData(AbstractMethodBuilder.SOURCE_FIELD_METADATA_KEY) == field)
-                .filter(method -> Arrays.equals(Arrays.stream(method.getParameters()).map(p -> p.getType().getName()).toArray(String[]::new),
-                        new String[]{String.class.getName(), Closure.class.getName()}))
-                .map(GeneratedDslSupport::publicProjectionOf)
-                .filter(Objects::nonNull)
-                .filter(method -> method.isPublic() && !method.isStatic())
-                .filter(method -> method.getReturnType().getName().equals(targetBuilder.getName()))
-                .findFirst().orElse(null);
+        return candidates == null ? List.of() : candidates;
     }
 
     private static void enrichLiteralAlternative(FieldNode field, AnnotationNode fact, MethodNode accessor) {
@@ -254,19 +231,12 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static AnnotationNode literalAssociation(FieldNode field, LiteralAlternative alternative) {
-        MethodNode creator = literalCreator(field, alternative);
         AnnotationNode association = new AnnotationNode(ClassHelper.make(GeneratedInput.LiteralAlternative.class));
         association.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
         association.setMember("alias", new ConstantExpression(alternative.alias()));
         association.setMember("target", new ConstantExpression(alternative.target().getName()));
         association.setMember("key", new ConstantExpression(alternative.key()));
         association.setMember("keyType", new ConstantExpression(String.class.getName()));
-        association.setMember("scope", new ConstantExpression(GeneratedDslSupport.publicType(alternative.scope()).redirect().getName()));
-        association.setMember("creator", new ConstantExpression(descriptor(creator)));
-        AnnotationNode selectedCreator = new AnnotationNode(ClassHelper.make(GeneratedInput.Selection.class));
-        selectedCreator.setMember(FIELD_MEMBER, new ConstantExpression(field.getName()));
-        selectedCreator.setMember("role", new ConstantExpression("LITERAL_ALTERNATIVE_CREATOR"));
-        creator.addAnnotation(selectedCreator);
         return association;
     }
 
@@ -408,7 +378,8 @@ final class StructuredInputAdmissionPlan {
         accessor.addAnnotation(fact);
         if (entry != null && entry.role() == Role.OWNED_SEQUENCE) {
             fact.setMember("sequenceElement", new ConstantExpression(entry.operation().name()));
-        } else if (entry != null && (entry.role() == Role.OWNED_OBJECT || entry.role() == Role.KEYED_OWNED_MAP)) {
+        } else if (entry != null && (entry.role() == Role.OWNED_OBJECT || entry.role() == Role.KEYED_OWNED_MAP
+                || entry.role() == Role.LITERAL_ALTERNATIVE_MAP)) {
             enrichSelection(accessor, field, entry.role());
         } else if (entry != null) {
             enrichSelection(builder, field, entry);
@@ -628,10 +599,8 @@ final class StructuredInputAdmissionPlan {
         List<LiteralAlternative> alternatives = literalAlternatives(field);
         if (!alternatives.isEmpty()) {
             LiteralAlternative alternative = alternatives.get(0);
-            PublicOperation operation = publicOperation(field, rejections);
-            if (operation != null)
-                entries.add(new Entry(name.value(), Role.LITERAL_ALTERNATIVE_MAP, source(field), operation,
-                        payloadForModel(alternative.target()), name.origin(), String.class.getName(), alternative.key(), null, false));
+            entries.add(new Entry(name.value(), Role.LITERAL_ALTERNATIVE_MAP, source(field), fieldRelationship(field, field.getName()),
+                    payloadForModel(alternative.target()), name.origin(), String.class.getName(), alternative.key(), null, false));
             return;
         }
         String source = source(field);

@@ -26,6 +26,11 @@ package com.blackbuild.klum.ast.runtime.internal
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.Opcodes
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -194,6 +199,56 @@ class StructuredMultipleLiteralAlternativeTest extends AbstractDSLSpec {
                 KlumObjectSupport.of(ordinary.elements[key]).constructionPath
         }
         new InputContractResolver().read(catalog).entries().get('elements').alternatives().keySet().toList() == ['fixed', 'rolling']
+    }
+
+    def 'structured aliases execute without public creator or collection scope methods'() {
+        given:
+        schema()
+        artifacts.close()
+        ['multipliteral/Catalog_DSL$Builder.class',
+         'multipliteral/Catalog_DSL$Builder$CollectionFactory_elements.class'].each { name ->
+            File file = new File(compilerConfiguration.targetDirectory, name)
+            def writer = new ClassWriter(0)
+            new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                @Override MethodVisitor visitMethod(int access, String method, String descriptor, String signature, String[] exceptions) {
+                    method in ['elements', 'element', 'fixed', 'rolling'] ? null :
+                        super.visitMethod(access, method, descriptor, signature, exceptions)
+                }
+            }, 0)
+            file.bytes = writer.toByteArray()
+        }
+        artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
+        def catalog = Class.forName('multipliteral.Catalog', false, artifacts)
+        def builder = artifacts.loadClass('multipliteral.Catalog_DSL$Builder')
+        def scope = artifacts.loadClass('multipliteral.Catalog_DSL$Builder$CollectionFactory_elements')
+        Map input = [elements: [rolling: [b: [rollingValue: 'rolling'], c: [:]], fixed: [a: [fixedValue: 'fixed']]]]
+        def first
+        def reused
+
+        when:
+        def model = catalog.Create.FromStruct(input)
+        def recipe = catalog.Create.Template.FromStruct(input)
+        def applied = catalog.Create.With {
+            copyFrom(recipe)
+            first = delegate.getElements().b
+            delegate.applyStruct([elements: [rolling: [b: [value: 'updated']]]])
+            reused = delegate.getElements().b
+        }
+
+        then:
+        !builder.declaredMethods.any { it.name in ['elements', 'element'] }
+        !scope.declaredMethods.any { it.name in ['fixed', 'rolling'] }
+        model.elements.keySet().toList() == ['b', 'c', 'a']
+        model.elements.b.class.name == 'multipliteral.RollingElement'
+        model.elements.a.class.name == 'multipliteral.FixedElement'
+        model.elements.b.rollingValue == 'rolling'
+        model.elements.a.fixedValue == 'fixed'
+        model.elements.every { key, child -> child.name == key && child.owner.is(model) }
+        applied.elements.every { key, child -> child.name == key && child.owner.is(applied) }
+        first.is(reused)
+        applied.elements.b.value == 'updated'
+        catalog.events.contains('tree:b:true')
+        catalog.events.contains('tree:a:true')
     }
 
     def 'each alias alone and empty groups remain valid: #groups'() {

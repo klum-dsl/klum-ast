@@ -133,7 +133,7 @@ final class BuilderContractReader {
         }
     }
 
-    record AlternativeFacts(String field, String alias, String target, String key, String keyType, String scope, String creator) { }
+    record AlternativeFacts(String field, String alias, String target, String key, String keyType) { }
 
     record ConverterSelection(String owner, String name, String descriptor, int parameter, boolean parameterFacts) { }
 
@@ -697,7 +697,7 @@ final class BuilderContractReader {
     }
 
     private static final class AlternativeAnnotationVisitor extends AnnotationVisitor {
-        private static final Set<String> MEMBERS = Set.of(FIELD_MEMBER, "alias", "target", "key", KEY_TYPE_MEMBER, "scope", CREATOR_MEMBER);
+        private static final Set<String> MEMBERS = Set.of(FIELD_MEMBER, "alias", "target", "key", KEY_TYPE_MEMBER);
         private final MutableLiterals literal;
         private final Map<String, Object> facts = new LinkedHashMap<>();
 
@@ -718,8 +718,7 @@ final class BuilderContractReader {
             if (!facts.keySet().equals(MEMBERS) || !String.class.getName().equals(facts.get(KEY_TYPE_MEMBER)))
                 throw invalid("Incomplete or unsupported literal alternative protocol");
             literal.alternatives.add(new AlternativeFacts((String) facts.get(FIELD_MEMBER), (String) facts.get("alias"),
-                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get(KEY_TYPE_MEMBER),
-                    (String) facts.get("scope"), (String) facts.get(CREATOR_MEMBER)));
+                    (String) facts.get("target"), (String) facts.get("key"), (String) facts.get(KEY_TYPE_MEMBER)));
         }
     }
 

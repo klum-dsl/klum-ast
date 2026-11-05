@@ -5,8 +5,9 @@ Related: [#1030](https://github.com/klum-dsl/klum-ast/issues/1030), F2.1;
 Base: `91b803b4efbcdb44d4c75f64e82e177eb433abc3`, verified against fetched `origin/master` on 2026-11-05.
 Issue #1029 is independent and absent from this base.
 
-Status: implemented and locally qualified at `83eb2a11cd05075f8b9e4077cdb24bccd0601830`.
-Hosted qualification, publication, merge and parent-issue reconciliation remain separate delivery conditions.
+Original qualification: implemented and locally qualified at `83eb2a11cd05075f8b9e4077cdb24bccd0601830`.
+The creator-independence reassessment below supersedes the initial creator-provenance policy.
+Hosted qualification, merge and parent-issue reconciliation remain separate delivery conditions.
 
 ## Characterization and association gate
 
@@ -16,11 +17,11 @@ escaped source diagnostics and partial failure, plus the original multi-literal 
 run passed 89 cases, including the existing compiler/metadata/runtime literal-alternative suites. Existing packaged
 schema assertions retain the original closed one-alias shape alongside the extension.
 
-The existing compiler-owned alternatives map associates each distinct concrete target with its explicit literal alias.
-Each generated CollectionFactory configuration creator has exact owning-field provenance and a public subtype-Builder
-return type. No class scan or factory-choice policy is needed. The extension admits the entire finite set only when
-every target and generated creator satisfies the original F2-B checks. Unsupported/custom/ambiguous routes exclude the
-whole relationship. The compiler's existing duplicate-target rejection is unchanged.
+The compiler-owned literal alternatives map associates each distinct concrete target with its explicit alias and owning
+field. Only the complete finite set of qualified concrete nongeneric targets sharing the abstract base's String key is
+admitted. No public creator or collection-closure method is selected for Struct execution; customizations of those
+convenience APIs do not exclude the field relationship. Unsupported or ambiguous target facts exclude the whole
+relationship. The compiler's existing duplicate-target rejection is unchanged.
 
 ## Delivered branch behavior
 
@@ -43,10 +44,9 @@ is introduced. List/Set alternatives, concrete-base/alias coexistence, automatic
 remain outside this slice.
 
 Single associations retain `GeneratedInput.LiteralAlternative`; multiple associations use an inert
-`GeneratedInput.LiteralAlternatives` container of those same seven-fact records. The explicit field count equals the
-complete finite set. The unified `GeneratedInput.Schema.version` remains authoritative. Validation rejects missing,
-corrupt, duplicate or incompatible rows, contradictory annotations and incomplete agreement with exact generated
-creator markers, including a removed row with an altered count. Inspection never initializes Schema classes or
+`GeneratedInput.LiteralAlternatives` container of the same five-fact field/alias/target/key/key-type records. The explicit
+field count equals the complete finite set. The unified `GeneratedInput.Schema.version` remains authoritative.
+Validation rejects missing, corrupt, duplicate or incompatible rows and contradictory field/role/key associations. Inspection never initializes Schema classes or
 executes user code. Use matched compiler/runtime/plugin artifacts and recompile participating Schemas; no mixed-toolchain
 qualification is claimed.
 
@@ -60,11 +60,10 @@ existing-child type compatibility, partial effects and lifecycle are runtime beh
   parity, keyed identity, cross-alias collisions in both orders, Factory/active Builder/Template input, empty groups,
   precise second-group failures, lifecycle causes and cyclic-input cleanup. The linked documentary example carries
   `@Issue('1030')`, `@Tag('documentary')` and `@See`.
-- Existing single-alias suites remain active; custom Factory and authored/inherited scope exclusions now also exercise
-  multiple aliases. Compiler exclusions retain List/Set/generic and other unsupported families.
+- Existing single-alias suites remain active; custom Factory and authored/inherited scope cases now prove that ordinary
+  Groovy keeps its method behavior while Struct uses the declared field/target, for one or multiple aliases. Compiler exclusions retain List/Set/generic and other unsupported families.
 - `LiteralAlternativeMetadataTest`: source-free initialization traps, inherited/named canonical associations, each exact
-  creator and concrete payload, corrupt finite counts/containers/rows, stripped creator provenance and missing-row/count
-  corruption. Existing single-record corruption coverage remains.
+  field association and concrete payload, and corrupt finite counts/containers/rows. Existing single-record corruption coverage remains.
 - `BinaryOwnedRelationshipsTest`: separate producer/API/Schema/client artifacts with sources removed, interpretation and
   actual plugin projection across Groovy 3/4/5; both single and multiple association stripping prevent new output.
 - `JpmsPackageBoundaryTest`: actual Java/static Groovy multi-alias consumers in the existing classpath and named-module
@@ -175,3 +174,89 @@ Delivery preflight: Git SSH dedicated-branch push **authorized** by dry run; Git
 **authorized**, checked independently from the GitHub CLI repository capability (**authorized**). Tracker relationship
 remains **Related: #1030**. The feature PR retains the repository F2.1 inventory update; no additional release gate,
 issue state or curation disposition is selected. Request Hive reconciliation once the draft delivery is open.
+
+
+## Creator-independence reassessment — PR #1032
+
+Authority: the maintainer's focused reassessment of #1032/#1030 under #1021 and ADR 0032, following merged PRs
+[#1020](https://github.com/klum-dsl/klum-ast/pull/1020), [#1023](https://github.com/klum-dsl/klum-ast/pull/1023),
+[#1024](https://github.com/klum-dsl/klum-ast/pull/1024) and [#1029](https://github.com/klum-dsl/klum-ast/pull/1029).
+Comparison point: published head `6f04620f5013a2662c2def2c61919e8636b75ac9`. Reviewed history is preserved; this is an
+additive follow-up on the same branch.
+
+### Minimal executable contract
+
+| Decision | Authority and execution use |
+| --- | --- |
+| Alias | The exact compiler-owned alias in the field's association map; `executeAliasGroups` looks up the supplied String, without class or method-name discovery. |
+| Concrete child type | Each record's target and its validated generated Builder self type, assignable to the declared abstract Map value. |
+| Construction key | The supplied inner Map String key; the recorded inherited key member agrees with both target and base contracts. Child bodies exclude that key. |
+| Destination relationship | The owning accessor's existing `Field` plus `Selection(field, LITERAL_ALTERNATIVE_MAP)` association. `Entry.source` retains the original field despite input renaming. |
+| Runtime construction | `executeChildren` calls `addNewDslElementToMapWithConfiguration(field, target, true, key, child::execute)` directly. No public CollectionFactory or outer closure method is invoked. |
+
+`addNewDslElementToMapWithConfiguration` either reuses a compatible existing Builder and applies configuration, or calls
+`FactoryHelper.prepareNestedBuilder` and then normal `doAddElementToMap`. The existing engine owns identity/type
+collisions, configuration/PostApply timing, attachment/ownership, Construction-session fences, Template recipes and
+first-failure partial state. `StructuredInputSupport.planEntry` still plans every alias and its nested contracts before
+construction, including omitted secondary groups. Interpretation and projection retain the same validated concrete
+payloads. Neither execution nor the projector changes in this follow-up.
+
+### Removed convenience-API dependencies
+
+- `validateAlternativeCompleteness`: creator-set equality supplied no execution authority. A removed unrelated creator
+  only made a valid field fail; it could not select a wrong alias or subtype. The closed alias map already makes selection
+  unambiguous.
+- Per-creator descriptor lookup, signature/return checks, creator selection markers, CollectionFactory class/scope
+  validation and outer `DelegatesTo` checks. Those methods are never called by Struct.
+- Compiler `literalCreator` and generated/outer-method admission gates, including the inherited closure-override
+  exclusion. Literal association capture now depends on the declared alternatives and qualified field/target facts.
+- Unused `scope`/`creator` members in `GeneratedInput.LiteralAlternative`, their reader/internal-record fields and the
+  retained reflective creator handles. There is no replacement registry or compatibility layer. Matched artifacts and
+  Schema recompilation retain their existing requirement.
+
+The existing owning-field/role association is emitted on the accessor, as for #1021 cut 3; runtime entries retain no
+unused public methods. Required checks remain: exact public field declaration and classfile origin, field/role agreement,
+finite row count, distinct aliases/targets, qualified Map shape, concrete nongeneric subtype/Builder agreement, shared
+String-key identity, and eager child-contract validity. Without them, Struct could bind a different field, select a
+wrong/incompatible child or construction key, or perform lifecycle effects before discovering a corrupt secondary
+contract. Compiler provenance is carried by the field and literal rows; a second proof via unused methods is redundant.
+
+The old test that deleted a row *and* changed its count to match is removed: that coherently rewrites the authoritative
+alias vocabulary rather than introducing an execution ambiguity. Ordinary missing-row/count mismatches and stripped
+associations still reject. A coherently changed single alias is likewise not compared with an unrelated method name;
+multiple contradictory aliases/targets still reject. No adversarial-metadata validation framework is substituted.
+
+### Concrete regressions and bounded qualification
+
+The unchanged production implementation first failed seven regression cases: absent generated public creators/outer
+methods caused `Missing exact literal alternative creator`, and real customized Factory or authored/inherited outer
+methods excluded the declared relationship. They pass after the simplification.
+
+- `StructuredMultipleLiteralAlternativeTest#'structured aliases execute without public creator or collection scope methods'`
+  removes real compiled public methods, then proves concrete selection, input order, identity reuse, ownership, lifecycle
+  and Factory/active Builder/Template execution.
+- `StructuredLiteralAlternativeTest` compares ordinary custom Factory and same-class/inherited closure behavior against
+  Struct's declared field/target route, for both one and multiple aliases. Ordinary method markers run only on Groovy calls.
+- `LiteralAlternativeMetadataTest` retains source-free initialization traps, duplicate/incompatible records, wrong field
+  and key, incomplete counts/rows, contradictory sequence facts and the secondary-alias nested corruption regression.
+  Obsolete creator/provenance-only corruption cases are removed.
+- `BinaryOwnedRelationshipsTest#'binary literal relationships execute and project unchanged without public creators with Groovy #generation'`
+  strips public methods from a packaged Schema JAR with sources absent, executes Factory/Builder/Template consumers and
+  compares both generated schema files byte-for-byte before and after stripping, separately for Groovy 3/4/5.
+
+Java 17 focused compiler/runtime/relationship/JPMS matrix: **158 cases per Groovy lane**, no failures/errors/skips.
+Runtime baseline: **73 cases**, no failures/errors, one existing skip. Packaged binary suite: **11 cases**, no
+failures/errors/skips. License and diff checks pass. The fresh `jsonschema==4.23.0` oracle accepts **36 valid** and rejects
+**195 invalid** instances. All three schema emissions retain SHA-256
+`e8507be8deeb8f30d28157f9d0379b3f1e7bb6e873baac3f44220c5bb5b9b3bb`.
+
+The focused run exposed an ignored-field selection-order regression during development; restoring the previous ignored
+selection boundary repaired it. A new packaged-test filename interpolation error was corrected before the passing run.
+Neither failed attempt is qualification. The removed annotation members span compiler/runtime/plugin consumers, so the
+risk matrix warrants a full root `check` on the committed follow-up; its result and final documentation rendering are
+recorded in the final qualification update.
+
+Two local review passes, **Standards** and **Specification**, are performed against the published comparison point.
+The prior no-subworkers instruction is retained; no additional reviewer agents are created. Remaining general metadata
+validation and the representative payload in the shared Entry shape are outside the creator-completeness question;
+neither gates unused convenience methods. There is no remaining creator-completeness registry or validation mechanism.

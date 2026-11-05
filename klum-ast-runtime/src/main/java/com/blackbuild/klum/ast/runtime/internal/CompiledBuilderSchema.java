@@ -56,11 +56,11 @@ final class CompiledBuilderSchema {
     record Payload(Kind kind, Class<?> type, Class<?> builder, String keyType, Payload item) { }
 
     /**
-     * Validated literal creator route. The owning field is Entry.source; the inherited String key
-     * is Entry.excludedKey. Each alias retains its exact concrete payload. Scope/creator are integrity evidence, never invoked by inspection.
+     * Validated compiler-literal field/target association. The owning field is Entry.source; the inherited String key
+     * is Entry.excludedKey. Each alias retains its exact concrete payload.
      * Execution binds the existing internal explicit-type keyed Map callback before child PostApply.
      */
-    record LiteralAlternative(String alias, Class<?> scope, Method creator, Payload payload) { }
+    record LiteralAlternative(String alias, Payload payload) { }
 
     /** A selected input use; source identity stays distinct from its effective external name and dispatch handle. */
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,

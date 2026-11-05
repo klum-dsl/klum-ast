@@ -160,20 +160,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     def 'corrupt binary literal association prevents every new schema output without initializing user code'() {
         given:
         fixture('3')
-        File artifact = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
-        File changed = new File(directory, 'corrupted.jar')
-        new JarFile(artifact).withCloseable { archive ->
-            new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
-                archive.entries().each { entry ->
-                    byte[] bytes = archive.getInputStream(entry).bytes
-                    bytes = stripLiteralAssociation(entry.name, bytes, multiple)
-                    output.putNextEntry(new JarEntry(entry.name))
-                    output.write(bytes)
-                    output.closeEntry()
-                }
-            }
-        }
-        artifact.bytes = changed.bytes
+        rewriteSchemaArtifact { name, bytes -> stripLiteralAssociation(name, bytes, multiple) }
         new File(consumer, 'build.gradle') << "\nklumSchema.jsonSchema.rootTypes.add('example.LocalFacts')\n"
 
         when:
@@ -187,6 +174,68 @@ class BinaryOwnedRelationshipsTest extends Specification {
 
         where:
         multiple << [false, true]
+    }
+
+    @Issue('1030')
+    def 'binary literal relationships execute and project unchanged without public creators with Groovy #generation'() {
+        given:
+        fixture(generation)
+        runner(consumer, 'generateKlumJsonSchema').build()
+        def original = ['Deployment', 'OverrideDeployment'].collectEntries { name ->
+            [(name): new File(consumer, "build/generated/klum-json-schema/example.${name}.schema.json").text]
+        }
+        assert !trap.exists()
+        rewriteSchemaArtifact { name, bytes ->
+            if (!(name == 'example/Deployment_DSL$Builder.class' ||
+                    name.startsWith('example/Deployment_DSL$Builder$CollectionFactory_'))) {
+                return bytes
+            }
+            def writer = new ClassWriter(0)
+            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                @Override MethodVisitor visitMethod(int access, String method, String descriptor, String signature, String[] exceptions) {
+                    method in ['elements', 'element', 'multiElements', 'multiElement', 'fixed', 'rolling'] ? null :
+                        super.visitMethod(access, method, descriptor, signature, exceptions)
+                }
+            }, 0)
+            writer.toByteArray()
+        }
+        new File(consumer, 'build.gradle') << """
+ tasks.register('interpretWithoutCreators', JavaExec) {
+     classpath = files(configurations.clientBinary, klumSchema.jsonSchema.classpath)
+     mainClass = 'example.CreatorIndependentConsumer'
+ }
+"""
+
+        when:
+        def result = runner(consumer, 'generateKlumJsonSchema', 'interpretWithoutCreators').build()
+
+        then:
+        result.output.contains('BINARY-WITHOUT-CREATORS-OK')
+        original.every { name, text -> new File(consumer, "build/generated/klum-json-schema/example.${name}.schema.json").text == text }
+        !new File(producer, 'api/src').exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(producer, 'client/src').exists()
+        !new File(consumer, 'src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    private void rewriteSchemaArtifact(Closure<byte[]> transform) {
+        File artifact = new File(repository, 'fixture/schema/1.0/schema-1.0.jar')
+        File changed = new File(directory, 'corrupted.jar')
+        new JarFile(artifact).withCloseable { archive ->
+            new JarOutputStream(new FileOutputStream(changed)).withCloseable { output ->
+                archive.entries().each { entry ->
+                    byte[] bytes = archive.getInputStream(entry).bytes
+                    bytes = transform(entry.name, bytes)
+                    output.putNextEntry(new JarEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        artifact.bytes = changed.bytes
     }
 
     private void fixture(String generation) {
@@ -443,6 +492,34 @@ class Consumer {
         assert Trace.events == overriddenTrace
         assert Trace.events == ['override-label:BLUE', 'label:BLUE', 'override-shade:BLUE', 'shade:BLUE']
         println 'BINARY-RELATIONSHIPS-OK'
+    }
+}
+class CreatorIndependentConsumer {
+    static void main(String[] args) {
+        def input = [elements: [fixed: [one: [value: 'single']]],
+                     multiElements: [rolling: [b: [rollingValue: 'rolling'], c: [:]], fixed: [a: [value: 'fixed']]]]
+        assert !Deployment_DSL.Builder.declaredMethods.any { it.name in ['elements', 'element', 'multiElements', 'multiElement'] }
+        assert !Deployment_DSL.Builder.CollectionFactory_multiElements.declaredMethods.any { it.name in ['fixed', 'rolling'] }
+        def model = Deployment.Create.FromStruct(input)
+        assert model.elements.one.value == 'single'
+        assert model.multiElements.keySet().toList() == ['b', 'c', 'a']
+        assert model.multiElements.b.class == RollingElement
+        assert model.multiElements.a.class == ConcreteElement
+        assert model.multiElements.b.rollingValue == 'rolling'
+        assert model.multiElements.every { key, child -> child.name == key && child.owner.is(model) }
+        def recipe = Deployment.Create.Template.FromStruct(input)
+        def first
+        def reused
+        def applied = Deployment.Create.With {
+            copyFrom(recipe)
+            first = delegate.getMultiElements().b
+            delegate.applyStruct([multiElements: [rolling: [b: [value: 'updated']]]])
+            reused = delegate.getMultiElements().b
+        }
+        assert first.is(reused)
+        assert applied.multiElements.b.value == 'updated'
+        assert applied.multiElements.every { key, child -> child.owner.is(applied) }
+        println 'BINARY-WITHOUT-CREATORS-OK'
     }
 }
 ''')

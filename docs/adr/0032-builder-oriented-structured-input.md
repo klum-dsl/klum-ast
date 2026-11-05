@@ -37,8 +37,8 @@ key. F2-B implements `elements: {fixed: {primary: {value: configured}}}`: litera
 keyless body. The outer key is authoritative; equal/conflicting inner keys reject when reached. Empty mappings perform
 zero child calls. Traversal preserves caller order and earlier effects on failure.
 
-The existing generated public field enrichment carries one inert association and an explicit zero/one count, including
-exact public CollectionFactory scope/creator, concrete target and inherited String-key facts. The unified
+The generated public field enrichment carries the inert field/alias/target/inherited String-key association and an
+explicit finite count. F2.1's creator-independence reassessment below removes the earlier public scope/creator evidence. The unified
 `GeneratedInput.Schema.version` is authoritative; no annotation-specific version is emitted or accepted. Descriptor,
 completeness and corruption checks precede use without initializing Schema code. `CompiledBuilderSchema` supplies the
 same validated association to interpretation and projection. Runtime binds the existing explicit-type keyed-map
@@ -53,15 +53,20 @@ generic targets, custom key mapping and caller Class/Factory selectors remain de
 ## Multiple explicit literal alias groups — #1030
 
 The maintainer-selected F2.1 extension admits finite multiple explicit aliases in the existing F2-B abstract keyed Map
-family: `elements: {fixed: {a: {}}, rolling: {b: {}}}`. Every target and exact generated creator must independently satisfy
-the original admission checks; one unsupported or ambiguous route excludes the relationship. No subtype-name inference,
+family: `elements: {fixed: {a: {}}, rolling: {b: {}}}`. Every concrete target must independently satisfy the qualified
+owned Map family; one unsupported or ambiguous target excludes the relationship. No subtype-name inference,
 public selector policy or operation-event grammar is added. Other collection shapes, concrete-base/alias coexistence,
 generic alternatives, automatic names and producers remain excluded.
 
-Single associations retain their existing metadata shape. Multiple associations use an inert `LiteralAlternatives`
-container of the same seven-fact records with an exact finite `Field.alternativeCount`. The unified Schema version stays
-authoritative. Inspection checks every row, duplicate aliases/targets, and complete agreement with the generated creator
-markers without initializing Schema code. Metadata and JSON Schema alias properties use canonical alias order. Runtime
+Single associations use `LiteralAlternative`; multiple associations use an inert `LiteralAlternatives` container of the
+same five-fact records: field, alias, concrete target, inherited key member and String key type. An exact finite
+`Field.alternativeCount` detects incomplete rows. The unified Schema version stays authoritative. Inspection checks the
+owning accessor's field/role selection, each target and inherited key, and duplicate aliases/targets without initializing
+Schema code. The owning field/role selection uses the same accessor association as #1021 cut 3; no public creator method
+is selected or invoked. Public creator descriptors, CollectionFactory-scope provenance and whole-creator-set equality
+are unnecessary authority and are removed. Missing, customized or overridden convenience methods do not change Struct's
+internal explicit-type preparation/attachment route; ordinary Groovy retains its method behavior. No additional
+CollectionFactory family, subtype discovery, registry or dispatch policy is admitted. Recompile matched Schema artifacts. Metadata and JSON Schema alias properties use canonical alias order. Runtime
 traverses supplied outer and inner Maps in their own iteration order within one collection scope; this is neither
 metadata execution order nor a portable parser-order guarantee. Ordinary key reuse/type collisions, source paths,
 ownership, lifecycle, Template recipes and partial failure remain authoritative. JSON Schema gives each optional alias

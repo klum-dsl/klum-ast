@@ -124,8 +124,6 @@ public final class GeneratedInput {
         String target();
         String key();
         String keyType();
-        String scope();
-        String creator();
     }
 
     /** Complete finite set of compiler-literal keyed Map associations, in canonical alias order. */

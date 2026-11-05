@@ -275,7 +275,8 @@ construction and managed Jackson keep their independent behavior. File/URL loadi
 
 Finite explicit compiler-literal alternatives on a default owned `Map<String, abstract keyed DSL type>` now accepts
 `elements: {fixed: {primary: {value: configured}}, rolling: {secondary: {}}}` when both aliases are declared.
-The one-alias form remains supported. The outer String key owns construction identity; omit the inner
+The one-alias form remains supported. Public creator/collection-scope convenience methods are not required by Struct;
+customizations retain their ordinary Groovy behavior. The outer String key owns construction identity; omit the inner
 key member even when equal. The existing concrete keyed-Map grammar is unchanged. Recompile matched Schema artifacts
 for the required association/count facts, including inherited artifacts. See
 [the bounded family and its exclusions](Structured-Input.md#literal-collection-alternative)

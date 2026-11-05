@@ -713,9 +713,10 @@ Struct's compatible literal naming annotations.
 
 A default owned `Map<String, Element>` relationship can admit a finite set of explicitly declared literal alternatives
 when `Element` is an abstract keyed DSL type and every selected subtype is concrete and nongeneric. All inherit the same
-String construction key and have exact generated public alias creators. The compiler records every route; structured
-input cannot choose a Class or Factory. A matching custom Factory method or an authored/overridden collection scope
-excludes the relationship from this family.
+String construction key. The compiler records the exact field, aliases and concrete targets; structured input cannot
+choose a Class or Factory. Struct configures that owned relationship directly through the normal internal Builder
+construction route. It does not call public alias creators or the collection closure method, so absent, customized or
+overridden convenience methods do not exclude the relationship. Ordinary Groovy calls keep their own method behavior.
 
 (See: `StructuredMultipleLiteralAlternativeTest#'multiple explicit literal groups preserve supplied group and keyed entry order'`;
 `StructuredLiteralAlternativeTest#'configures a concrete element through its literal collection alias'` retains the one-alias case.)

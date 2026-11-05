@@ -295,7 +295,7 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
     }
 
     @Issue('1030')
-    def 'custom Factory aliases cannot masquerade as generated literal creators'() {
+    def 'custom Factory aliases keep ordinary behavior while Struct uses the declared target'() {
         given:
         loader.parseClass '''
             package literalcollision
@@ -335,14 +335,14 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         then:
         ordinary.elements.primary.value == 'configured'
         trace.events == ['factory:body']
-        !plan.entries().containsKey('elements')
+        plan.entries().get('elements').alternatives().keySet() == (multiple ? ['fixed', 'rolling'] : ['fixed']) as Set
 
         when:
-        catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+        def structured = catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'structured']]]])
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('/elements')
+        structured.elements.primary.class.name == 'literalcollision.ConcreteElement'
+        structured.elements.primary.value == 'structured'
         trace.events == ['factory:body']
 
         where:
@@ -350,7 +350,7 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
     }
 
     @Issue('1030')
-    def 'authored #placement collection scope retains ordinary behavior and rejects structured bypass'() {
+    def 'authored #placement collection scope keeps ordinary behavior while Struct uses the relationship'() {
         given:
         String customScope = "@Builder.Method void elements(Closure body) { Trace.events << 'custom:scope' }"
         String source = '''
@@ -381,14 +381,14 @@ class StructuredLiteralAlternativeTest extends AbstractDSLSpec {
         then:
         ordinary.elements.isEmpty()
         trace.events == ['custom:scope']
-        !plan.entries().containsKey('elements')
+        plan.entries().get('elements').alternatives().keySet() == (multiple ? ['fixed', 'rolling'] : ['fixed']) as Set
 
         when:
-        catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'configured']]]])
+        def structured = catalog.Create.FromStruct([elements: [fixed: [primary: [value: 'structured']]]])
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('/elements')
+        structured.elements.primary.class.name == 'literalscope.ConcreteElement'
+        structured.elements.primary.value == 'structured'
         trace.events == ['custom:scope']
 
         where:

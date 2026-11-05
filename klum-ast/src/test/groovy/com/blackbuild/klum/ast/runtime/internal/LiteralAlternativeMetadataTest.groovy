@@ -77,6 +77,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
 
     def cleanup() { artifacts?.close() }
 
+    @Issue(['952', '1030'])
     def 'reads inert exact compiler-literal association from classfiles without user initialization'() {
         given:
         compile()
@@ -86,7 +87,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         def entry = plan.entries().get('elements')
 
         then:
-        GeneratedInput.LiteralAlternative.declaredMethods*.name as Set == ['field', 'alias', 'target', 'key', 'keyType', 'scope', 'creator'] as Set
+        GeneratedInput.LiteralAlternative.declaredMethods*.name as Set == ['field', 'alias', 'target', 'key', 'keyType'] as Set
         new BuilderContractReader().metadata(plan.contract()).version() == 1
         entry.role().name() == 'LITERAL_ALTERNATIVE_MAP'
         entry.source() == 'literalmetadata.Catalog#elements'
@@ -94,12 +95,13 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         entry.excludedKey() == 'name'
         entry.keyType() == String.name
         entry.alternatives().get('fixed').alias() == 'fixed'
-        entry.alternatives().get('fixed').scope().name == 'literalmetadata.Catalog_DSL$Builder$CollectionFactory_elements'
-        entry.alternatives().get('fixed').creator().name == 'fixed'
-        entry.alternatives().get('fixed').creator().parameterTypes.toList() == [String, Closure]
+        entry.methods().empty
+        entry.dispatch() == null
+        entry.contract().getMethod('getElements').getAnnotation(GeneratedInput.Selection).role() == 'LITERAL_ALTERNATIVE_MAP'
         !entry.contract().methods.any { it.parameterTypes.contains(Consumer) }
     }
 
+    @Issue(['952', '1030'])
     def 'missing or corrupted association rejects before construction even when input omits the relationship: #mutation'() {
         given:
         compile()
@@ -121,8 +123,8 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         !causes(failure).any { it instanceof AssertionError }
 
         where:
-        mutation << ['strip', 'stripAndCount', 'countMissing', 'countZero', 'countTwo', 'removedVersion', 'schemaVersion', 'field', 'alias', 'target', 'key', 'keyType',
-                     'scope', 'creator', 'missing-field', 'missing-alias', 'missing-target', 'missing-key', 'missing-keyType', 'missing-scope', 'missing-creator', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType', 'emptyAlias', 'arrayMember', 'nestedMember', 'enumMember', 'stripSelection', 'stripCreator', 'creatorField', 'creatorRole', 'sequenceRelationship']
+        mutation << ['strip', 'stripAndCount', 'countMissing', 'countZero', 'countTwo', 'removedVersion', 'schemaVersion', 'field', 'target', 'key', 'keyType',
+                     'missing-field', 'missing-alias', 'missing-target', 'missing-key', 'missing-keyType', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType', 'emptyAlias', 'arrayMember', 'nestedMember', 'enumMember', 'stripSelection', 'sequenceRelationship']
     }
 
     def 'field naming and inherited associations retain the literal alias: #options'() {
@@ -184,9 +186,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
         entry.alternatives().keySet().toList() == ['fixed', 'rolling']
         entry.alternatives().values()*.payload()*.type()*.name == ['literalmetadata.ConcreteElement', 'literalmetadata.OtherElement']
         entry.alternatives().values().every { alternative ->
-            alternative.creator().name == alternative.alias() &&
-                alternative.creator().returnType == alternative.payload().builder() &&
-                alternative.creator().parameterTypes.toList() == [String, Closure]
+            alternative.payload().builder().name == alternative.payload().type().name + '_DSL$Builder'
         }
         entry.excludedKey() == 'name'
         entry.source() == 'literalmetadata.Catalog#elements'
@@ -198,7 +198,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
     @Issue('1030')
     def 'corrupt multi-alias associations fail even when the relationship is absent: #mutation'() {
         given:
-        compile('', '', '', mutation == 'missingRowAndCount' ? 3 : 2)
+        compile('', '', '', 2)
         rewrite(mutation)
 
         when:
@@ -211,11 +211,9 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
 
         where:
         mutation << ['strip', 'stripAndCount', 'countMissing', 'countZero', 'countThree', 'removedVersion',
-                     'field', 'alias', 'target', 'key', 'keyType', 'scope', 'creator', 'missing-target',
-                     'missing-creator', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType',
-                     'emptyAlias', 'arrayMember', 'nestedMember', 'enumMember', 'stripSelection', 'stripCreator',
-                     'creatorField', 'creatorRole', 'sequenceRelationship', 'missingRow', 'containerMember',
-                     'containerArray', 'rowDescriptor', 'missingRowAndCount']
+                     'field', 'alias', 'target', 'key', 'keyType', 'missing-target', 'unknownMember', 'duplicateMember', 'invisible', 'wrongMemberType',
+                     'emptyAlias', 'arrayMember', 'nestedMember', 'enumMember', 'stripSelection', 'sequenceRelationship', 'missingRow', 'containerMember',
+                     'containerArray', 'rowDescriptor']
     }
 
     @Issue('1030')
@@ -235,8 +233,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
     }
 
     private void rewrite(String mutation) {
-        File file = new File(compilerConfiguration.targetDirectory, mutation == 'nestedSchemaVersion' ? 'literalmetadata/Nested_DSL$Builder.class' : mutation in ['stripCreator', 'creatorField', 'creatorRole']
-                ? 'literalmetadata/Catalog_DSL$Builder$CollectionFactory_elements.class' : 'literalmetadata/Catalog_DSL$Builder.class')
+        File file = new File(compilerConfiguration.targetDirectory, mutation == 'nestedSchemaVersion' ? 'literalmetadata/Nested_DSL$Builder.class' : 'literalmetadata/Catalog_DSL$Builder.class')
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
@@ -253,16 +250,8 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
-                        if (mutation in ['stripSelection', 'stripCreator'] && annotation.endsWith('GeneratedInput$Selection;')) {
+                        if (mutation == 'stripSelection' && annotation.endsWith('GeneratedInput$Selection;')) {
                             return null
-                        }
-                        if (mutation in ['creatorField', 'creatorRole'] && annotation.endsWith('GeneratedInput$Selection;')) {
-                            def selected = super.visitAnnotation(annotation, visible)
-                            return new AnnotationVisitor(Opcodes.ASM9, selected) {
-                                @Override void visit(String member, Object value) {
-                                    super.visit(member, member == (mutation == 'creatorField' ? 'field' : 'role') ? 'other' : value)
-                                }
-                            }
                         }
                         if (annotation in [ASSOCIATION, ASSOCIATIONS] && mutation in ['strip', 'stripAndCount']) {
                             return null
@@ -289,7 +278,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
                 new AnnotationVisitor(Opcodes.ASM9, array) {
                     private int row
                     @Override AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
-                        if (mutation in ['missingRow', 'missingRowAndCount'] && row++ == 0) {
+                        if (mutation == 'missingRow' && row++ == 0) {
                             return null
                         }
                         def nested = super.visitAnnotation(ignored, mutation == 'rowDescriptor' ? FIELD : descriptor)
@@ -316,7 +305,7 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
                     if (mutation in ['countZero', 'stripAndCount']) {
                         value = 0
                     }
-                    if (mutation in ['countTwo', 'countThree', 'missingRowAndCount']) {
+                    if (mutation in ['countTwo', 'countThree']) {
                         value = mutation == 'countThree' ? 3 : 2
                     }
                 }
@@ -325,8 +314,8 @@ class LiteralAlternativeMetadataTest extends AbstractDSLSpec {
                         return
                     }
                     if (mutation == member) {
-                        value = [field: 'other', alias: 'other', target: 'literalmetadata.OtherElement', key: 'other',
-                                 keyType: 'java.lang.Object', scope: 'literalmetadata.Element_DSL$Builder', creator: 'missing(java.lang.String):void'][member]
+                        value = [field: 'other', alias: 'other', target: 'literalmetadata.Nested', key: 'other',
+                                 keyType: 'java.lang.Object'][member]
                     }
                     if (mutation == 'wrongMemberType' && member == 'alias') {
                         value = 1
