@@ -63,6 +63,7 @@ public class CopyHandler {
     private final Object donor;
     private final Map<Object, InternalKlumBuilder<?>> rehydratedRecipes;
     private final String donorBreadcrumbRoot;
+    private final String inputPath;
 
     /**
      * Copies properties from the donor to the target object. Copying is done according to the annotations on the target object's class and
@@ -71,21 +72,22 @@ public class CopyHandler {
      * @param donor the object to copy from
      */
     public static void copyToFrom(Object target, Object donor) {
-        new CopyHandler(target, donor, new IdentityHashMap<>(), null).doCopy();
+        new CopyHandler(target, donor, new IdentityHashMap<>(), null, null).doCopy();
     }
 
     public CopyHandler(Object target, Object donor) {
-        this(target, donor, new IdentityHashMap<>(), null);
+        this(target, donor, new IdentityHashMap<>(), null, null);
     }
 
     private CopyHandler(Object target, Object donor, Map<Object, InternalKlumBuilder<?>> rehydratedRecipes,
-                        String donorBreadcrumbRoot) {
+                        String donorBreadcrumbRoot, String inputPath) {
         if (!(target instanceof InternalKlumBuilder))
             throw new KlumModelException("Copy targets must be Builders; completed models are immutable");
         if (donor == null)
             throw new KlumModelException("Copy donor must not be null");
         this.target = (InternalKlumBuilder<?>) target;
         this.donor = donor;
+        this.inputPath = inputPath != null ? inputPath : donor instanceof Map ? "" : null;
         this.rehydratedRecipes = rehydratedRecipes;
         this.donorBreadcrumbRoot = donorBreadcrumbRoot != null
                 ? donorBreadcrumbRoot
@@ -142,7 +144,28 @@ public class CopyHandler {
 
     private void handleMissingFieldInTarget(String name) {
         if (getMissingStrategy() == OverwriteStrategy.Missing.FAIL)
-            throw new KlumModelException("Field " + name + " is missing in target object " + target);
+            throw new KlumModelException(inputPath == null
+                    ? "Field " + name + " is missing in target object " + target
+                    : "Field " + name + " is missing" + inputContext(memberPath(name)));
+    }
+
+    // Diagnostic input locations are relative to this Map copy, independent of retained construction paths.
+    private String memberPath(Object token) {
+        return appendInputPath(inputPath, token);
+    }
+
+    private static String appendInputPath(String parent, Object token) {
+        if (parent == null)
+            return null;
+        return parent + "/" + String.valueOf(token).replace("~", "~0").replace("/", "~1");
+    }
+
+    private String inputContext(String location) {
+        if (location == null)
+            return "";
+        Object key = target.getNullableKey();
+        return " in target Schema " + target.getModelType().getName()
+                + (key == null ? "" : " with key '" + key + "'") + " (input member " + location + ")";
     }
 
     @SuppressWarnings("java:S1126")
@@ -214,7 +237,7 @@ public class CopyHandler {
                             || isCompletedLinkMerge(field, currentValue, templateValue))
                         replaceValue(field, templateValue);
                     else
-                        copyNested(currentValue, templateValue);
+                        copyNested(currentValue, templateValue, memberPath(fieldName));
                 }
                 break;
             case INHERIT:
@@ -297,7 +320,7 @@ public class CopyHandler {
             return null;
         Class<?> fieldType = getCopyFieldType(field);
         if (DslHelper.isRelationship(field) || isDslType(fieldType))
-            return copyFieldValue(field, fieldType, templateValue, null);
+            return copyFieldValue(field, fieldType, templateValue, null, memberPath(field.getName()));
         return copyValue(templateValue);
     }
 
@@ -388,7 +411,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-            currentValues.computeIfAbsent(key, k -> copyFieldValue(field, valueType, value, key));
+            currentValues.computeIfAbsent(key, k -> copyFieldValue(field, valueType, value, key, appendInputPath(memberPath(field.getName()), key)));
         }
     }
 
@@ -401,9 +424,9 @@ public class CopyHandler {
             assertCorrectType(field, value, valueType);
             Object currentValue = currentValues.get(key);
             if (currentValue == null)
-                currentValues.put(key, copyFieldValue(field, valueType, value, key));
+                currentValues.put(key, copyFieldValue(field, valueType, value, key, appendInputPath(memberPath(field.getName()), key)));
             else
-                copyNested(currentValue, value);
+                copyNested(currentValue, value, appendInputPath(memberPath(field.getName()), key));
         }
     }
 
@@ -413,7 +436,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-            currentValues.put(key, copyFieldValue(field, valueType, value, key));
+            currentValues.put(key, copyFieldValue(field, valueType, value, key, appendInputPath(memberPath(field.getName()), key)));
         }
     }
 
@@ -481,13 +504,15 @@ public class CopyHandler {
 
     private void addCollectionValues(Field field, Collection<Object> currentValue, Collection<Object> templateValue) {
         Class<?> elementType = DslHelper.getClassFromType(getCopyElementType(field));
+        int index = 0;
         for (Object value : templateValue) {
+            String location = appendInputPath(memberPath(field.getName()), index++);
             assertCorrectType(field, value, elementType);
-            currentValue.add(copyFieldValue(field, elementType, value, null));
+            currentValue.add(copyFieldValue(field, elementType, value, null, location));
         }
     }
 
-    private Object copyFieldValue(Field field, Class<?> declaredType, Object value, Object keyHint) {
+    private Object copyFieldValue(Field field, Class<?> declaredType, Object value, Object keyHint, String location) {
         if (value == null)
             return null;
         if (DslHelper.isLink(field)
@@ -495,11 +520,11 @@ public class CopyHandler {
                 && !TemplateManager.isTemplate(value))
             return value;
         if (DslHelper.isDslType(declaredType))
-            return rehydrateDslRecipe(declaredType, value, keyHint);
+            return rehydrateDslRecipe(declaredType, value, keyHint, location);
         return copyValue(value);
     }
 
-    private Object rehydrateDslRecipe(Class<?> declaredType, Object recipe, Object keyHint) {
+    private Object rehydrateDslRecipe(Class<?> declaredType, Object recipe, Object keyHint, String location) {
         InternalKlumBuilder<?> existing = rehydratedRecipes.get(recipe);
         if (existing != null)
             return existing;
@@ -517,7 +542,8 @@ public class CopyHandler {
                 builder,
                 recipe,
                 rehydratedRecipes,
-                donorBreadcrumbRoot
+                donorBreadcrumbRoot,
+                location
         ).doCopy();
         builder.copyApplyLaterClosuresFrom(recipe);
         if (!target.isTemplate()) {
@@ -527,12 +553,13 @@ public class CopyHandler {
         return builder;
     }
 
-    private void copyNested(Object nestedTarget, Object nestedDonor) {
+    private void copyNested(Object nestedTarget, Object nestedDonor, String location) {
         new CopyHandler(
                 nestedTarget,
                 nestedDonor,
                 rehydratedRecipes,
-                donorBreadcrumbRoot
+                donorBreadcrumbRoot,
+                location
         ).doCopy();
         ((InternalKlumBuilder<?>) nestedTarget).copyApplyLaterClosuresFrom(nestedDonor);
     }
