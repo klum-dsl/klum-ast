@@ -643,10 +643,7 @@ final class BuilderContractReader {
             if (annotation.equals(QUERY)) literal.query = true;
             if (annotation.equals(OPERATION_FACT)) literal.operationFact = true;
             if (annotation.equals(LITERAL_ALTERNATIVE) || annotation.equals(LITERAL_ALTERNATIVES)) {
-                if (seen.contains(LITERAL_ALTERNATIVE) && seen.contains(LITERAL_ALTERNATIVES))
-                    throw invalid("Conflicting literal alternative annotations");
-                return annotation.equals(LITERAL_ALTERNATIVE) ? new AlternativeAnnotationVisitor(literal)
-                        : new AlternativesAnnotationVisitor(literal);
+                return alternativeAnnotation(annotation);
             }
             if (annotation.equals(CONVERTER)) return new ConverterAnnotationVisitor(literal);
             if (annotation.equals(VIRTUAL_SINK)) {
@@ -659,6 +656,14 @@ final class BuilderContractReader {
                 };
             }
             return new MethodAnnotationVisitor(annotation, literal);
+        }
+
+        private AnnotationVisitor alternativeAnnotation(String annotation) {
+            if (seen.contains(LITERAL_ALTERNATIVE) && seen.contains(LITERAL_ALTERNATIVES)) {
+                throw invalid("Conflicting literal alternative annotations");
+            }
+            return annotation.equals(LITERAL_ALTERNATIVE) ? new AlternativeAnnotationVisitor(literal)
+                    : new AlternativesAnnotationVisitor(literal);
         }
     }
 
