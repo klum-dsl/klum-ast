@@ -586,8 +586,12 @@ public class CopyHandler {
     }
 
     private void assertCorrectType(Field field, Object value, Class<?> elementType, String location) {
-        if (value != null && !(value instanceof Map) && !isInstance(elementType, value))
-            throw new KlumModelException("Element " + value + " in " + field + " is not of expected type " + elementType + inputContext(location));
+        if (value == null || value instanceof Map || isInstance(elementType, value))
+            return;
+        Object description = location != null && value instanceof InternalKlumBuilder
+                ? ((InternalKlumBuilder<?>) value).getModelType().getName() : value;
+        throw new KlumModelException("Element " + description + " in " + field + " is not of expected type "
+                + elementType + inputContext(location));
     }
 
     private OverwriteStrategy.Collection getCollectionStrategy(Field field) {

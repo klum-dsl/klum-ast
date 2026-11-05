@@ -33,8 +33,12 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
         createClass '''
             package diagnostics
 
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
+
             @DSL
             class Deployment {
+                @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES)
                 Map<String, Service> services
             }
 
@@ -42,6 +46,7 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
             class Service {
                 @Key String name
                 List<Endpoint> endpoints
+                Endpoint primary
             }
 
             @DSL
@@ -50,6 +55,17 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
                 Integer port
                 List<Integer> retries
                 Map<String, Integer> limits
+                Opaque opaque
+                Converted converted
+            }
+
+            class Opaque {
+                private Opaque() {}
+            }
+
+            class Converted {
+                static final IllegalArgumentException FAILURE = new IllegalArgumentException('converter failed', new IOException('detail'))
+                static Converted fromString(String value) { throw FAILURE }
             }
         '''
     }
@@ -109,6 +125,101 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
         kind         | field     | value                          | location
         'List index' | 'retries' | [1, 'bad']                     | 'retries/1'
         'Map key'    | 'limits'  | ['eu/west~blue': 'bad']         | 'limits/eu~1west~0blue'
+    }
+
+
+    def 'merged existing children retain the relative input location and their keys'() {
+        when:
+        clazz.Create.With {
+            service('eu/west~blue') { primary('edge') { port 80 } }
+            copyFrom([services: ['eu/west~blue': [primary: [port: [443]]]]])
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('diagnostics.Endpoint')
+        failure.message.contains("key 'edge'")
+        failure.message.contains('/services/eu~1west~0blue/primary/port')
+        failure.breadCrumbPath == '$/d.Deployment.With'
+    }
+
+    def 'relative Map member preserves an enclosing relationship construction step'() {
+        when:
+        clazz.Create.With {
+            service('catalog') { copyFrom(['bad/~member': true]) }
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('diagnostics.Service')
+        failure.message.contains("key 'catalog'")
+        failure.message.contains('/bad~1~0member')
+        failure.breadCrumbPath == '$/d.Deployment.With/service(catalog)'
+    }
+
+    def 'FromMap retains its public Factory step and unkeyed target context'() {
+        when:
+        clazz.Create.FromMap(['bad/~member': true])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('diagnostics.Deployment')
+        failure.message.contains('/bad~1~0member')
+        !failure.message.contains("with key '")
+        !(failure.message =~ /Builder@[0-9a-fA-F]+/)
+        failure.breadCrumbPath == '$/d.Deployment.FromMap'
+    }
+
+    def 'a framework String coercion refusal keeps its exception policy and member context'() {
+        when:
+        clazz.Create.With {
+            copyFrom([services: [catalog: [endpoints: [[name: 'edge', opaque: 'unsupported']]]]])
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.cause == null
+        failure.message.contains('diagnostics.Endpoint')
+        failure.message.contains('diagnostics.Opaque')
+        failure.message.contains("key 'edge'")
+        failure.message.contains('/services/catalog/endpoints/0/opaque')
+    }
+
+    def 'user converter exceptions keep their identity and cause chain'() {
+        given:
+        def original = getClass('diagnostics.Converted').FAILURE
+
+        when:
+        clazz.Create.With {
+            copyFrom([services: [catalog: [endpoints: [[name: 'edge', converted: 'bad']]]]])
+        }
+
+        then:
+        def failure = thrown(IllegalArgumentException)
+        failure.is(original)
+        failure.cause.is(original.cause)
+    }
+
+
+    def 'an incompatible Builder item uses its Schema type instead of default identity text'() {
+        given:
+        def serviceType = getClass('diagnostics.Service')
+
+        when:
+        clazz.Create.With {
+            service('catalog') {
+                def wrongItem = serviceType.Create.AsBuilder().With('other') {}
+                copyFrom([endpoints: [wrongItem]])
+            }
+        }
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.cause == null
+        failure.message.contains('diagnostics.Service')
+        failure.message.contains("key 'catalog'")
+        failure.message.contains('/endpoints/0')
+        !(failure.message =~ /Builder@[0-9a-fA-F]+/)
     }
 
 }
