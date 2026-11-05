@@ -83,6 +83,23 @@ Ignored/colliding key admission and corrupt contract metadata remain fail-closed
 See [implementation evidence](../implementation/issue-1026-keyed-sequence-evidence.md); merged and hosted qualification
 are separate from the branch implementation.
 
+## Native derived-key Map sequence extension — #1028
+
+The separately accepted K1 slice admits value sequences for supported String-keyed Maps with concrete native
+scalar/enum values and `@Field.keyMapping`. Exact compiler source-field provenance selects the existing public
+value-only adder; existing `GeneratedInput.Selection(field, PROPERTY)` persists that association. The runtime validates
+one exact native value parameter/return signature against the reflected Map value type and interprets the existing
+LIST payload. Mixed, missing and incompatible selections fail closed. Its existing execution seam selects the effective
+Builder method using that exact signature, checks dispatch agreement and invokes it. Compatible descendant overrides
+therefore retain ordinary Builder behavior; no second operation selection is needed. No carrier member, role, protocol version,
+public callable signature, generic key coercion or second key policy is introduced.
+
+Interpretation calls ordinary Builder population in supplied order. Runtime mapping owns stored keys, replacement,
+null-key/type failures, lifecycle and Template behavior. Projection emits the existing scalar/enum array shape without
+executing mapping code. Converter-backed values (K2), owned DSL values (K3/K4), non-String declared keys,
+CollectionFactory, alternatives and composition remain outside this slice. Recompile matched Schema artifacts.
+See [implementation evidence](../implementation/issue-1028-derived-map-evidence.md).
+
 ## Owned field relationship admission cleanup — #1021 cut 3
 
 Direct concrete owned children and String-keyed owned Maps use the same normal internal preparation/attachment
@@ -399,7 +416,7 @@ required/type facts. Arbitrary Map payloads retain their own typed data semantic
 No multi-argument spreading or invocation redesign follows.
 
 Explicit null, raw Object containers, generic File/URL loading, generic LINK/reference registries, repeated-call grammar,
-non-String Map keys and broad polymorphism remain excluded/deferred. Owned DSL sequence forms outside SEQ-1 and custom key mapping remain
+non-String Map keys and broad polymorphism remain excluded/deferred. Owned DSL sequence forms outside SEQ-1 and custom key mapping beyond the native #1028 slice remain
 conditional/deferred, with a quick-win revisit after higher-tier implementation and Schelm qualification. A bounded 4.2
 CollectionFactory probe may inspect existing generated contracts, literal alternatives and keys; it may not design
 generic subtype selection or composition. Composition remains a separate 4.3-oriented track.

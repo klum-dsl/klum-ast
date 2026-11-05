@@ -1,5 +1,12 @@
 # Unreleased
 
+- Admit native scalar/enum value sequences for String-keyed Struct/YAML Maps with `@Field.keyMapping`. Each item
+  uses its exact ordinary Builder adder, preserving runtime key derivation, replacement, ordering, lifecycle, Templates
+  and indexed partial failures. Compatible descendant adder overrides use ordinary Builder dispatch. JSON Schema
+  describes the sequence without executing the mapping. Recompile matched
+  Schema artifacts. See [derived-key Map values](docs/user/Structured-Input.md#derived-key-map-values)
+  ([#1028](https://github.com/klum-dsl/klum-ast/issues/1028)).
+
 - Admit concrete nongeneric owned keyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML sequences.
   Each item supplies its externally named String construction key before child allocation; normal fresh-child,
   lifecycle, duplicate, collection and Template semantics apply. JSON Schema requires the item key. Recompile matched

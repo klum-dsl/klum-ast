@@ -399,6 +399,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
 | Exact `List<T>` with one admitted String element converter | A List of Strings, each passed to its selected generated element adder |
 | Exact `Map<String, T>` with one admitted String value converter | A Map of literal String keys to Strings, each passed to the generated value adder |
+| Native scalar/enum derived-key Map field | A List of native values passed to its exact value-only adder; stored keys are runtime-derived |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
 | Ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>`, `NavigableSet<T>` | A List of concrete child-body Maps, executed in supplied order |
@@ -629,11 +630,50 @@ child by key. Supplied traversal order, lifecycle, partial failures and Template
 rules above. A key inside a keyed sequence item is required even inside a keyless root Template recipe: the recipe
 supplies those child identities. This does not change keyless Template roots or outer-keyed Map bodies.
 
+## Derived-key Map values
+
+A supported String-keyed `Map`, `SortedMap` or `NavigableMap` with native scalar/enum values and
+`@Field(keyMapping = { ... })` accepts a sequence of values. Each item calls the exact compiler-selected ordinary
+value-only Builder adder; the mapping derives the actual stored key at runtime.
+
+(See: `StructuredDerivedMapCharacterizationTest#'derives Map keys from structured values through the ordinary Builder adder'`.)
+
+```groovy
+@DSL class Palette {
+    @Field(keyMapping = { it.toLowerCase() })
+    Map<String, String> values
+}
+
+def ordinary = Palette.Create.With { value 'BLUE' }
+def structured = Palette.Create.FromStruct([values: ['BLUE']], 'palette.yaml')
+assert structured.values == ordinary.values
+assert structured.values == [blue: 'BLUE']
+```
+
+The equivalent caller-parsed YAML is:
+
+```yaml
+values:
+  - BLUE
+```
+
+Traversal follows supplied sequence order. Repeated derived keys use ordinary Map replacement and destination ordering;
+an empty sequence leaves existing entries intact. Each reached item is validated and added before checking the next.
+A mapping exception or null derived key fails at that item's input index and retains prior work on an active Builder.
+Struct still rejects explicit null values. Normal lifecycle and Template recipe behavior apply: Template definition
+maps its supplied values without lifecycle callbacks; recipients copy the resulting entries before normal configuration.
+
+JSON Schema describes an array of the declared scalar/enum inputs. Generation never evaluates the mapping or predicts
+its runtime keys. A compatible descendant override of the selected public adder follows ordinary Builder dispatch.
+An authored replacement at the field declaration that prevents the generated association remains excluded, as do
+converter-backed values, owned DSL values and non-String declared Map keys. Literal input Maps do not select this value-only route. Recompile matched Schema artifacts to emit the
+exact field/adder selection; no new public signature or metadata annotation member is required.
+
 ## Other relationship boundaries
 
-Keyed owned maps with `@Field.keyMapping` are excluded because derived keys conflict with literal structured instance
+Owned DSL Maps with `@Field.keyMapping` remain excluded because derived keys conflict with literal structured instance
 keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
-explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, keyed relationship
+explicit `@Field.key` and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, derived-key owned Map
 sequences, arbitrary polymorphic selection and other CollectionFactory scopes remain outside the admitted grammar. The
 [single literal alternative](#literal-collection-alternative) below is the bounded exception. Null at any depth,
 arbitrary caller objects, helper/query/lifecycle names and multi-payload authored operations reject.
@@ -654,7 +694,7 @@ make an entry available. In particular:
 | Ordinary Groovy capability | Struct boundary and workaround |
 | --- | --- |
 | Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [single literal keyed Map alternative](#literal-collection-alternative) supplies subtype selection. |
-| `@Field.keyMapping` value-only adders | No derived-key value sequence is admitted for scalar or owned Maps. Use ordinary Groovy or an eligible domain List operation; writing literal outer keys does not enable the derived-key route. |
+| Converter-backed or owned `@Field.keyMapping` Map adders | Only [native scalar/enum values](#derived-key-map-values) have a derived-key sequence. Use Groovy or an eligible domain List operation for other values. |
 | String converters for owned DSL values, converter-backed Sets, or CharSequence-only List/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
 | Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |
 | Repeated or interleaved calls with the same name | A Map cannot retain duplicate member names. Use a domain List operation or Groovy. Normal Map traversal order does not introduce a general event-sequence language. |

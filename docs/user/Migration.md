@@ -92,6 +92,16 @@ failures. Non-String declared/input keys and custom key mapping are excluded fro
 String `additionalProperties` without value-parameter assertions or converter execution. This changes no whole-container
 or owned-DSL Map grammar. See [Map values](Structured-Input.md#converter-backed-map-values).
 
+### Native derived-key Map values
+
+Native scalar/enum values in supported String-keyed Maps with `@Field.keyMapping` now accept Struct/YAML value
+sequences. Recompile the Schema hierarchy with matched compiler/runtime/plugin artifacts to replace its former
+population exclusion with the existing exact field/adder selection. Metadata remains version 1; public callable
+signatures are unchanged. Compatible descendant adder overrides follow ordinary Builder dispatch. Stored keys,
+replacement and failures use ordinary runtime mapping. Converter-backed and
+owned DSL values and non-String declared keys remain excluded. See
+[derived-key Map values](Structured-Input.md#derived-key-map-values).
+
 ### Compiled converter String input
 
 Ordinary non-DSL fields with one eligible separately compiled String converter can now participate in structured input

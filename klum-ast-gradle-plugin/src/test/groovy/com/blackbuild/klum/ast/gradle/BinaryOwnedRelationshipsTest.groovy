@@ -47,7 +47,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
     File repository
     File trap
 
-    @Issue(['957', '954', '952', '1026'])
+    @Issue(['957', '954', '952', '1026', '1028'])
     def 'binary owned relationships support #capability with Groovy #generation'() {
         given:
         fixture(generation)
@@ -87,6 +87,14 @@ class BinaryOwnedRelationshipsTest extends Specification {
             assert !sequenceChild.properties.containsKey('name')
             assert properties.local.'$ref' == '#/$defs/example.LocalFacts_DSL%24Builder'
             assert properties.labels.additionalProperties.type == 'string'
+            assert properties.derivedLabels.type == 'array'
+            assert properties.derivedLabels.items == [type: 'string']
+            def overriddenSchema = new JsonSlurper().parse(new File(consumer, 'build/generated/klum-json-schema/example.OverrideDeployment.schema.json'))
+            def overriddenProperties = overriddenSchema.'$defs'.'example.OverrideDeployment_DSL$Builder'.properties
+            assert overriddenProperties.derivedLabels == properties.derivedLabels
+            assert overriddenProperties.inheritedShades == properties.inheritedShades
+            assert properties.inheritedShades.type == 'array'
+            assert properties.inheritedShades.items == [type: 'string', enum: ['BLUE', 'RED']]
             ['factList', 'factSet', 'sortedFacts', 'navigableFacts', 'inheritedFacts'].each { member ->
                 assert properties[member].type == 'array'
                 assert properties[member].items.'$ref' == properties.facts.'$ref'
@@ -195,7 +203,10 @@ project(':client') { dependencies { implementation 'fixture:schema:1.0' } }
 package example
 import com.blackbuild.klum.ast.*
 import com.fasterxml.jackson.annotation.*
-class Trace { static final List<String> events = [] }
+class Trace {
+    static { new File('${trap.absolutePath}').text = 'initialized' }
+    static final List<String> events = []
+}
 @DSL class Facts {
     static { new File('${trap.absolutePath}').text = 'initialized' }
     @JsonProperty('host-name') String host
@@ -236,7 +247,10 @@ import java.lang.annotation.*
 package example
 import com.blackbuild.klum.ast.*
 import com.fasterxml.jackson.annotation.JsonIgnore
+enum Shade { BLUE, RED }
 @DSL class DeploymentBase extends DeploymentApi {
+    @Field(members="inheritedShade", keyMapping = { Trace.events.add("shade:" + it); it.name().toLowerCase() })
+    Map<String, Shade> inheritedShades
     Facts inherited
     Map<String, Workload> inheritedWorkloads
     List<Facts> inheritedFacts
@@ -254,6 +268,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     @Field(members="setWorkload") Set<Workload> workloadSet
     LocalFacts local
     Map<String, String> labels
+    @Field(members="mappedLabel", keyMapping = { Trace.events.add("label:" + it); it.toLowerCase() })
+    Map<String, String> derivedLabels
     @JsonIgnore Facts ignored
     AbstractFacts abstractFacts
     GenericFacts<String> genericFacts
@@ -261,6 +277,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore
     @Builder.Method void scoped(@DelegatesToBuilder(Facts) Closure body) { facts(body) }
     @Field void virtual(Facts value) {}
     @Field(keyMapping = { it.name }) Map<String, Workload> mapped
+}
+@DSL class OverrideDeployment extends Deployment {
+    @Struct.Ignore @Builder.Method String mappedLabel(String value) {
+        Trace.events.add('override-label:' + value)
+        super.mappedLabel(value)
+    }
+    @Struct.Ignore @Builder.Method Shade inheritedShade(Shade value) {
+        Trace.events.add('override-shade:' + value)
+        super.inheritedShade(value)
+    }
 }
 class FactOrder implements Comparator<Object> {
     int compare(Object first, Object second) { first.host <=> second.host }
@@ -293,7 +319,7 @@ class Consumer {
         def sequenceItems = [['workload-id': 'z', image: 'last'], ['workload-id': 'a', image: 'first'], ['workload-id': 'a', image: 'first']]
         def input = [workloadList: sequenceItems, workloadSet: sequenceItems, inheritedSequence: sequenceItems, facts: ['host-name': 'direct'], inherited: ['host-name': 'base'],
                      workloads: [('a/b~c'): [image: 'one']], inheritedWorkloads: [other: [image: 'two']],
-                     elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], virtual: ['host-name': 'virtual'], inheritedFacts: [['host-name': 'inherited']],
+                     elements: [fixed: [primary: [value: 'configured']]], local: [host: 'local'], labels: [('host-name'): 'literal'], derivedLabels: ['BLUE', 'RED', 'blue'], inheritedShades: ['BLUE', 'RED'], virtual: ['host-name': 'virtual'], inheritedFacts: [['host-name': 'inherited']],
                      factList: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
                      factSet: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
                      sortedFacts: [['host-name': 'z'], ['host-name': 'a'], ['host-name': 'a']],
@@ -310,6 +336,8 @@ class Consumer {
             elements { fixed('primary') { value 'configured' } }
             local { host 'local' }
             labels(['host-name': 'literal'])
+            mappedLabel 'BLUE'; mappedLabel 'RED'; mappedLabel 'blue'
+            inheritedShade Shade.BLUE; inheritedShade Shade.RED
             virtual { host 'virtual' }
             inheritedFact { host 'inherited' }
             ['z', 'a', 'a'].each { value -> listedFact { host value } }
@@ -335,6 +363,11 @@ class Consumer {
         assert model.elements.primary.owner.is(model)
         assert model.local.host == 'local'
         assert model.labels == ['host-name': 'literal']
+        assert model.derivedLabels == [blue: 'blue', red: 'RED']
+        assert model.derivedLabels.keySet().toList() == ['blue', 'red']
+        assert model.derivedLabels == nativeModel.derivedLabels
+        assert model.inheritedShades == [blue: Shade.BLUE, red: Shade.RED]
+        assert model.inheritedShades == nativeModel.inheritedShades
         assert model.workloadList*.name == ['z', 'a', 'a']
         assert model.workloadSet*.name == ['z', 'a']
         assert model.inheritedSequence*.name == ['z', 'a', 'a']
@@ -378,6 +411,17 @@ class Consumer {
             }
         }
         assert Trace.events.empty
+        def ordinaryOverride = OverrideDeployment.Create.With {
+            mappedLabel 'BLUE'
+            inheritedShade Shade.BLUE
+        }
+        def overriddenTrace = Trace.events.toList()
+        Trace.events.clear()
+        def structuredOverride = OverrideDeployment.Create.FromStruct([derivedLabels: ['BLUE'], inheritedShades: ['BLUE']])
+        assert structuredOverride.derivedLabels == ordinaryOverride.derivedLabels
+        assert structuredOverride.inheritedShades == ordinaryOverride.inheritedShades
+        assert Trace.events == overriddenTrace
+        assert Trace.events == ['override-label:BLUE', 'label:BLUE', 'override-shade:BLUE', 'shade:BLUE']
         println 'BINARY-RELATIONSHIPS-OK'
     }
 }
@@ -397,6 +441,7 @@ dependencies {
 }
 klumSchema.jsonSchema {
     rootTypes.add('example.Deployment')
+    rootTypes.add('example.OverrideDeployment')
     classpath.setFrom(configurations.schemaBinary, files($runtime, $groovy))
 }
 tasks.register('interpret', JavaExec) {

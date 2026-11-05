@@ -488,6 +488,14 @@ retains its target; unsupported/redeclared virtual families are not advertised. 
 own authority; no sink-parameter constraints are inferred or projected onto the mapping. Inspection does not invoke
 the creator, sink, defaults or lifecycle. Structural validity cannot guarantee successful runtime configuration.
 
+## Native derived-key Map values
+
+[Native derived-key Maps](Structured-Input.md#derived-key-map-values) project an array of the selected scalar/enum
+inputs, even though the completed destination is a Map. The generator validates the existing exact field/adder
+selection against the declared String-keyed Map value type. It never evaluates `keyMapping`, predicts stored keys or
+adds uniqueness assertions. Supplied order, duplicate replacement, mapping failures and destination ordering remain
+runtime behavior. A structurally valid item can still fail when its ordinary Builder adder derives a key.
+
 ## Compiled converter parameters
 
 For an [admitted generated String or CharSequence converter route](Converters.md#structured-string-input), the field's effective external

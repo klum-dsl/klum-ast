@@ -388,9 +388,9 @@ Foo.Create.With {
 } 
 ```
 
-The value-only `keyMapping` form above has no Struct/YAML equivalent. Struct Maps use literal String entry keys;
-derived-key population is not inferred from a value sequence. Use Groovy or an eligible Schema-authored List operation.
-See [Struct boundaries](Structured-Input.md#groovy-forms-without-a-struct-equivalent).
+The native scalar/enum value-only `keyMapping` form above accepts a Struct/YAML value sequence such as
+`values: [BLUE]`. The exact ordinary Builder adder derives each stored key at runtime. See
+[derived-key Map values](Structured-Input.md#derived-key-map-values) for its executable example and boundaries.
 
 ### Setters and closures for DSL-Object Fields
     

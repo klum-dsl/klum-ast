@@ -473,6 +473,8 @@ final class InputContractResolver {
             throw invalid("Schema child-key authority requires OWNED_OBJECT and agrees with fixed key: " + source);
         Payload payload = converter == null ? fieldPayload(fieldType, role, source)
                 : converterPayload(fieldType, methods.get(0));
+        if (converter == null && role == Role.PROPERTY)
+            payload = nativePopulationPayload(payload, methods, source);
         String key = childKey(payload, role, literal, source);
         boolean relationship = role == Role.OWNED_OBJECT || role == Role.KEYED_OWNED_MAP;
         List<Method> calls = relationship ? List.of() : methods;
@@ -706,6 +708,21 @@ final class InputContractResolver {
         if (selected.size() != 1)
             throw invalid("Missing exact field payload/population signature: " + source);
         return selected.get(0);
+    }
+
+    /** Existing exact field selection carries the value-only native Map route, without a second key policy. */
+    private static Payload nativePopulationPayload(Payload payload, List<Method> methods, String source) {
+        if (payload.kind() != Kind.MAP || methods.stream().noneMatch(method -> method.getParameterCount() == 1))
+            return payload;
+        if (methods.size() != 1)
+            throw invalid("Native value-only Map population requires one exact selection: " + source);
+        Payload item = payload.item();
+        Method method = methods.get(0);
+        if (item.kind() != Kind.SCALAR && item.kind() != Kind.ENUM
+                || method.getGenericParameterTypes()[0] != item.type() || method.getGenericReturnType() != item.type()
+                || method.isSynthetic() || method.isBridge())
+            throw invalid("Native value-only Map population signature mismatch: " + source);
+        return new Payload(Kind.LIST, List.class, null, null, item);
     }
 
     private static void validateVisibility(List<Method> methods, String source) {
