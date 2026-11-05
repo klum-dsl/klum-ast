@@ -87,6 +87,7 @@ class CopyBuilderInputTest extends AbstractDSLSpec {
         modelOnly << ['label', 'category']
     }
 
+    @Issue(['989', '992'])
     def 'unknown Map member #unknown still fails with #policy missing policy'() {
         given:
         createServiceSchema(annotation)
@@ -99,7 +100,8 @@ class CopyBuilderInputTest extends AbstractDSLSpec {
 
         then:
         KlumModelException error = thrown()
-        error.message.contains("Field $unknown is missing in target object")
+        error.message.contains("Field $unknown is missing in target Schema Service")
+        error.message.contains("(input member /$unknown)")
 
         where:
         [unknown, policy, annotation] << ['unknown', 'sealed', 'constructionSession'].collectMany { name ->

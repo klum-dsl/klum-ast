@@ -246,12 +246,18 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
     }
 
 
-    def 'unrenderable Map keys do not replace an incompatible-value exception'() {
+    def 'unrenderable Map keys do not replace an incompatible-value exception (null result: #returnsNull)'() {
         given:
         def key = new Object() {
+            boolean nullResult
+
             @Override
-            String toString() { throw new IllegalStateException('key must not replace failure') }
+            String toString() {
+                if (nullResult) return null
+                throw new IllegalStateException('key must not replace failure')
+            }
         }
+        key.nullResult = returnsNull
 
         when:
         clazz.Create.With {
@@ -264,6 +270,9 @@ class MapCopyDiagnosticsTest extends AbstractDSLSpec {
         failure.message.contains('diagnostics.Endpoint')
         failure.message.contains('/services/catalog/endpoints/0/limits/<')
         failure.message.contains(key.class.name)
+
+        where:
+        returnsNull << [false, true]
     }
 
 }

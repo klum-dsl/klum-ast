@@ -143,10 +143,11 @@ public class CopyHandler {
     }
 
     private void handleMissingFieldInTarget(String name) {
-        if (getMissingStrategy() == OverwriteStrategy.Missing.FAIL)
+        if (getMissingStrategy() == OverwriteStrategy.Missing.FAIL) {
             throw new KlumModelException(inputPath == null
                     ? "Field " + name + " is missing in target object " + target
                     : "Field " + name + " is missing" + inputContext(memberPath(name)));
+        }
     }
 
     // Diagnostic input locations are relative to this Map copy, independent of retained construction paths.
@@ -169,11 +170,13 @@ public class CopyHandler {
 
         private String renderToken() {
             try {
-                return String.valueOf(token);
+                String rendered = String.valueOf(token);
+                if (rendered != null)
+                    return rendered;
             } catch (RuntimeException ignored) {
                 // A diagnostic must not replace the copy failure if a caller's key cannot be rendered.
-                return "<" + token.getClass().getName() + ">";
             }
+            return "<" + (token == null ? "null" : token.getClass().getName()) + ">";
         }
     }
 
