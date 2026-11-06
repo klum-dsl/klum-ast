@@ -1,6 +1,6 @@
 # #829 — root compiled-recipe overlays
 
-Date: 2026-11-06. Status: **RCP-1/RCP-2 implementation plus speculative RCP-3 local consumer qualification; integration pending**.
+Date: 2026-11-06. Status: **RCP-1/RCP-2 merged; RCP-3 local consumer qualification rebased for draft review**.
 
 Category B: extension of [ADR 0004](../adr/0004-asbuilder-composition-protocol.md#root-compiled-recipe-overlays--829-extension-2026-11-06).
 Tracking: [#829](https://github.com/klum-dsl/klum-ast/issues/829). The maintainer selected closure-only overlays and
@@ -107,9 +107,10 @@ input, Jackson and JSON Schema are unchanged. No GitHub issue/label/milestone up
 
 ## RCP-3 consumer qualification record
 
-Speculative base: RCP-2 `adf94215733d6337689011f570a447654b684f4a`. RCP-3 adds test/documentation evidence only;
-it changes no runtime or compiler implementation. RCP-2 integration and the eventual exact-head hosted CI/SonarCloud
-remain delivery gates. No adopter execution, release admission or issue completion is claimed.
+Original speculative base: RCP-2 `adf94215733d6337689011f570a447654b684f4a`. After PR #1041 merged, RCP-3 was
+rebased onto `eca733a7a106a117fe11e34953bd529d83af109a`; that merge has the same file tree as the speculative base.
+RCP-3 adds test/documentation evidence only and changes no runtime or compiler implementation. The eventual exact-head
+hosted CI/SonarCloud remain delivery gates. No adopter execution, release admission or issue completion is claimed.
 
 `RootRecipeConsumerTest` starts real Java 17 compiler/JVM processes. It compiles and packages the Schema before
 compiling separate Java and static/dynamic Groovy clients, then deletes source and loose class trees. Consumers use only
