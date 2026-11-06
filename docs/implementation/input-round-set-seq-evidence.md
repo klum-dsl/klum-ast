@@ -48,22 +48,72 @@ The documentary method `converts every supplied tag and retains ordinary Set equ
 Structured Input, Converters, JSON Schema, Migration, CHANGES and the accepted ADR/plan/inventory are synchronized.
 No page was added/renamed, so sidebar navigation needs no change.
 
-## Validation and review status
+## Final local qualification
 
-Focused Java 17 Groovy 3 Set/List/Map converter regressions pass: **157 cases, zero failures/errors/skips**.
-Initial red runs exposed two fixture errors (native EnumSet was incorrectly treated as unsupported, and comparator
-failure checked the incumbent rather than the inserted value); both were corrected before the successful run.
+Production code revision: `095be6f376629f44cfed4dc819a4f314048b6b54`. Final executable fixture revision:
+`478e129c72a4b69f593fd4157b25ca355db8ac46`. Subsequent evidence-only changes alter no executable inputs.
+Java 17 focused Groovy 3 Set/List/Map regressions first passed 157 cases; adding the retained scalar-origin suite
+passed **184 cases, zero failures/errors/skips**. All **53 Set cases pass in each of Groovy 3/4/5**, without skips.
+
+The complete compiler suites pass 3,247 / 3,249 / 3,249 cases on Groovy 3/4/5. Root validation was completed across
+successive runs, reusing unchanged successful suites rather than rerunning them for test-fixture-only corrections:
+
+| Scope | Cases | Remaining failures / errors | Existing skips |
+| --- | ---: | ---: | ---: |
+| Groovy 3 compiler/runtime/Bean Validation/Jackson | 3,595 | 0 / 0 | 17 |
+| Groovy 4 same modules | 3,595 | 0 / 0 | 16 |
+| Groovy 5 same modules | 3,595 | 0 / 0 | 16 |
+| Plugin baseline (full suite plus corrected class) | 669 | 0 / 0 | 0 |
+| Total | 11,454 | 0 / 0 | 49 |
+
+The first root attempt found a stale scalar-origin negative control still excluding exact Sets; it now uses the
+still-excluded SortedSet declaration. The next full root run passed all compiler lanes and 661/669 plugin cases.
+Its eight converter/schema cases failed because the new fixture's `setLocal` element adder collided with the existing
+`local` JavaBean setter. A standalone compile exposed the exact MethodBuilderException; Groovy's warning formatter had
+masked it with a null-context NPE. Fixture fields now use unambiguous names, and the shared inherited-property inventory
+includes `inheritedSet`. No production repair or compatibility expansion was needed. The corrected entire packaged
+converter/schema class passes **8/8** cases across G3/G4/G5, including source-free generation, exact output, commands and
+binary controls. Other plugin cases have unchanged inputs and retain their passing full-suite evidence.
+The root continuation passes the remaining checks/modules with the already completed compiler suites and plugin tests
+explicitly excluded. This is aggregate local evidence, not a claim of a single uninterrupted green root invocation.
+Binary Java/static Groovy consumers, G4/G5 named modules, direct generated hook bytecode, all module lanes, license,
+static/plugin validation and lane isolation are included. No new callable signature or module descriptor is introduced.
+
+Exactly two independent read-only local children reviewed the implementation: Standards and Specification. Standards
+found a copied issue annotation and redundant documentary markers; both were corrected and independently reverified.
+Specification found zero actionable findings. Both children also reviewed the final packaged-fixture corrections and
+report **zero unresolved findings**. Neither edited files, ran heavy tests or mutated remote state. Their scope was this
+local branch against the recorded base; no other subworkers were used.
+
+The independent actual-output oracle passes **28 JDK + 270 ECMA/Draft C1 + 270 structural String + 198 List +
+207 Map + 213 Set grammar controls**. Duplicate Set inputs are accepted; malformed containers/items and the
+CharSequence-only route reject. All three converter schemas are byte-identical, SHA-256
+`fc8f31445a1dd2a227d7a0f402e98c240753f742ed38146731c3ee052876f93a`.
+
+Documentation rendering and the real rendered-site crawl pass on clean immutable revision `478e129c72a4b69f593fd4157b25ca355db8ac46`.
+The first renderer invocation correctly refused uncommitted fixture changes; after committing them, rendering passed
+in 28 seconds with a fresh 2 GiB daemon. Changed Markdown fences, 284 relative links, new-test issue/documentary
+traceability, suppression checks and `git diff --check` pass. No page/sidebar changes are needed.
+
+Commands (Java 17 via `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`):
 
 ```shell
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew :klum-ast:test --tests '*StructuredSetConverterTest' --tests '*StructuredListConverterTest' --tests '*StructuredMapConverterTest' --no-parallel --max-workers=2 --console=plain
+./gradlew :klum-ast:test --tests '*StructuredSetConverterTest' --tests '*StructuredListConverterTest' --tests '*StructuredMapConverterTest' --tests '*StructuredConverterOriginTest' --no-parallel --max-workers=2 --console=plain
+./gradlew check --no-parallel --max-workers=2 --console=plain
+./gradlew :klum-ast-gradle-plugin:test --tests '*CompiledConverterJsonSchemaTest' --no-parallel --max-workers=2 --console=plain
+./gradlew check -x :klum-ast:test -x :klum-ast:groovy4Tests -x :klum-ast:groovy5Tests -x :klum-ast-gradle-plugin:test --no-parallel --max-workers=2 --console=plain
+./gradlew renderLocalDocumentation --no-daemon '-Dorg.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m' --no-parallel --max-workers=2 --console=plain
+PYTHONPATH=/private/tmp/l1a-jsonschema python3 klum-ast-gradle-plugin/src/test/resources/validate_converter_schema.py klum-ast-gradle-plugin/build/schema-validation /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home/bin/java
+git diff --check
 ```
 
-Root `check` is required by the actual shared compiler/runtime contract change, not a generic pre-push rule. It includes
-affected module suites, compatibility lanes, packaged plugin and binary/JPMS consumers, license and lane-isolation checks.
-Final root-check, actual-output oracle, documentation rendering and exactly two independent Standards/Specification
-reviews are pending at this checkpoint. No local SonarCloud upload; hosted final-head CI/Sonar remains final qualification.
+History review retains one implementation step and additive traceability, regression and packaged-fixture corrections.
+Reviewed commits were preserved; no rewrite was needed. The final evidence-only commit affects no tested or rendered
+user-facing input. Sonar-focused local hygiene passes; no local upload occurred. Hosted final-head CI/SonarCloud remains
+final qualification. GitHub CLI repository delivery capability: **authorized**; no credentials/scopes are recorded.
 
 ## Delivery boundary
 
-Local implementation is not remote delivery. Draft publication requires completed applicable checks, both local review
-axes and commit-history review. No merge, issue closure or self-archive. Hive owns final reconciliation.
+Local implementation is not remote delivery. Draft-publication prerequisites are met: applicable local checks, both
+review axes, synchronized documentation and commit-history review. The change is localized and follows the existing
+List converter pattern without an unresolved maintainer decision. No merge, issue closure or self-archive. Hive owns final reconciliation.
