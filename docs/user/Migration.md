@@ -11,11 +11,13 @@ See [JSON Schema generation](Json-Schema.md).
 
 ### Compiled root recipe overlays
 
-Recompile Schema artifacts with the matched compiler/runtime to expose `Create.From(DelegatingScriptClass) { ... }`.
-Existing no-overlay binary calls remain supported. Audit custom Factory `(Class, Closure)` methods for collisions or
-intentional overrides. The new overload accepts only `DelegatingScript`; regular Script producers keep their existing
-no-overlay operation. See [root recipe overlays](Convenience-Factories.md#compiled-root-recipe-overlays) for timing and
-supported sources. Classpath and other overlay forms remain unavailable.
+Recompile Schema artifacts with the matched compiler/runtime to expose `Create.From(DelegatingScriptClass) { ... }`,
+`Create.FromClasspath { ... }` and `Create.FromClasspath(modelLoader) { ... }`.
+Existing no-overlay binary calls remain supported. Audit custom Factory `(Class, Closure)`, `(Closure)` and
+`(ClassLoader, Closure)` methods for collisions or intentional overrides. An untyped `FromClasspath(null)` may now be
+ambiguous between ClassLoader and Closure; type the argument explicitly. Overlay routes accept only `DelegatingScript`;
+regular Script producers keep their existing no-overlay operation. See [root recipe overlays](Convenience-Factories.md#compiled-root-recipe-overlays) for timing and
+supported sources. Other source overlay forms remain unavailable.
 
 ### Structured Factory and Builder capabilities
 
