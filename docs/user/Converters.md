@@ -210,6 +210,9 @@ null, GString, arbitrary Object and caller-supplied mutable CharSequence payload
 CharSequence converter for one field are competing routes: exclude the unwanted factory as in the closure example above,
 or expose a Schema-authored wrapper selected with `@Struct.Operation`. There is no implicit String preference.
 CharSequence routes supply structural String grammar, without gaining C1 parameter-constraint authority.
+Exact List elements and literal String-keyed Map values also support these routes; see
+[CharSequence container converters](Structured-Input.md#charsequence-container-converters) for the Groovy/YAML example
+and the ordinary-call dispatch compatibility correction.
 
 These routes produce `type: string` and the field's prose/examples in JSON Schema. Conversion runs only during ordinary
 Builder invocation; its failures retain the structured input source/path and original cause. Schema generation never
