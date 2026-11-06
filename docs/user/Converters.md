@@ -207,6 +207,9 @@ def parsed = [timeout: 'PT30S'] // The admitted CharSequence projection receives
 
 For either timeout Schema, the equivalent caller-parsed YAML is:
 
+(See: `StructuredConverterOriginTest#'a field converter accepts the same duration String through ordinary and structured construction'`;
+`StructuredCharSequenceTest#'a projected Duration parser accepts a String through its exact CharSequence signature'`.)
+
 ```yaml
 timeout: PT30S
 ```

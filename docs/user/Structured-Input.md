@@ -29,7 +29,7 @@ The parser is an example choice; KlumAST adds no YAML loader or managed Jackson 
 | A completed root | [Factory roots](#factory-roots): `Create.FromStruct(document)`; keyed roots either carry their actual key or receive an explicit key with a keyless body. |
 | An existing active Builder | [Builder application](#apply-to-an-active-builder): `applyStruct(body)` configures the receiver; it never returns a replacement or completes construction. |
 | Direct children and keyed Maps | [Construction keys](#construction-keys): direct keyed children normally carry their own key; keyed Map entries supply identity outside the child body. |
-| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements), [converter Set elements](#converter-backed-set-elements) and [converter Map values](#converter-backed-map-values), [CharSequence containers](#charsequence-container-converters), and [derived-key Maps](#derived-key-map-values): each has its own declared target and input restrictions. |
+| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements), [converter Set elements](#converter-backed-set-elements), [converter Map values](#converter-backed-map-values), [CharSequence containers](#charsequence-container-converters), and [derived-key Maps](#derived-key-map-values): each has its own declared target and input restrictions. |
 | A domain operation or command | [The endpoint example](#read-a-concrete-root), [String selection](#select-a-string-operation) and [zero-argument commands](#zero-argument-commands): one payload or an empty command mapping, without argument spreading. |
 | A reusable Template | [Structured Templates](Templates.md#structured-input-templates): a keyless root recipe; caller code chooses how to apply it. |
 
@@ -995,6 +995,8 @@ assert structured.timeout == 30
 ```
 
 The corresponding YAML preserves that operation order:
+
+(See: `StructuredCommandTest#'an empty mapping invokes the domain reset command once'`.)
 
 ```yaml
 timeout: 90
