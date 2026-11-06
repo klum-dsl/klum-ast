@@ -198,11 +198,11 @@ public class KlumFactory<T> {
      * Current Templates and root PostCreate precede the recipe; the overlay runs before the single root
      * PostApply, graph phases, materialization and validation. Later ordinary actions retain their authority.
      * For keyed roots the script class's simple name supplies the immutable key.
+     * Regular Script inputs are rejected before construction or execution with actionable guidance.
      *
      * @param recipe compiled DelegatingScript containing Builder configuration
      * @param overlay configuration applied after the recipe; cloned before delegate mutation
      * @return the completed Model after one ordinary root lifecycle
-     * @throws KlumModelException if an erased or dynamic call supplies a regular Script
      */
     public T From(Class<? extends DelegatingScript> recipe, Closure<?> overlay) {
         return FactoryHelper.createFrom(type, recipe, overlay);
