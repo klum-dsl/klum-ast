@@ -13,15 +13,17 @@ Note that the implementation of these factories only differ from their base clas
 
 ## Compiled root recipe overlays
 
-Ordinary generated Factories expose `Model From(Class<? extends DelegatingScript> recipe, Closure<?> overlay)` with the
-exact public `Model_DSL.Builder` closure delegate and `DELEGATE_ONLY`. Both keyed and unkeyed roots use this operation.
+Ordinary generated Factories expose `Model From(Class<? extends DelegatingScript> recipe, Closure<?> overlay)`,
+`Model FromClasspath(Closure<?> overlay)` and `Model FromClasspath(ClassLoader loader, Closure<?> overlay)` with the
+exact public `Model_DSL.Builder` closure delegate and `DELEGATE_ONLY`. Both keyed and unkeyed roots use these operations.
 It runs recipe → cloned overlay → one root `PostApply`, followed by the ordinary graph lifecycle. It is absent from
 `AsBuilder`, relationship/Collection/Cluster factories and Template APIs. See the
 [executable example and ordering limits](Convenience-Factories.md#compiled-root-recipe-overlays).
 
-Existing Schemas require recompilation to gain the generated member. The existing no-overlay descriptors are unchanged.
-Custom Factories retain their existing override authority; audit a custom `(Class, Closure)` overload when adopting the
-new operation. No classpath or other source overlay is provided by this slice.
+Existing Schemas require recompilation to gain the generated members. The existing no-overlay descriptors are unchanged.
+Custom Factories retain their existing override authority; audit custom `(Class, Closure)`, `(Closure)` and
+`(ClassLoader, Closure)` overloads when adopting these operations. An untyped `FromClasspath(null)` may be ambiguous
+between the ClassLoader and Closure overloads; use an explicit argument type. Other source overlays remain unavailable.
 
 ## Custom Creator Classes
 

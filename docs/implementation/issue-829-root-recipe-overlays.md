@@ -1,6 +1,6 @@
 # #829 — root compiled-recipe overlays
 
-Date: 2026-11-06. Status: **RCP-1 direct-class implementation; RCP-2/RCP-3 pending**.
+Date: 2026-11-06. Status: **RCP-1 direct-class and RCP-2 classpath implementation; RCP-3 pending**.
 
 Category B: extension of [ADR 0004](../adr/0004-asbuilder-composition-protocol.md#root-compiled-recipe-overlays--829-extension-2026-11-06).
 Tracking: [#829](https://github.com/klum-dsl/klum-ast/issues/829). The maintainer selected closure-only overlays and
@@ -15,7 +15,8 @@ source-seam inventory, successful local characterization and explicit qualificat
 
 The accepted full design surface is exactly `From(Class<? extends DelegatingScript>, Closure)`, `FromClasspath(Closure)`, and
 `FromClasspath(ClassLoader, Closure)` on ordinary root Factories. Generated signatures return their Model and annotate
-the closure with the exact public Builder delegate and `DELEGATE_ONLY`. RCP-1 implements only the direct-class overload. The classpath forms below remain RCP-2 targets:
+the closure with the exact public Builder delegate and `DELEGATE_ONLY`. RCP-1 implements the direct-class overload;
+RCP-2 adds both classpath forms through the same guarded recipe core:
 
 ```groovy
 OrderApplication.Create.From(OrderApplicationScript) { environment selectedEnvironment }
@@ -24,7 +25,8 @@ OrderApplication.Create.FromClasspath(modelLoader) { environment selectedEnviron
 ```
 
 Existing `KlumFactory.From(Class<? extends Script>)` distinguishes recipes from regular Script completed-root programs.
-Classpath routes resolve the conventional marker and reuse that dispatch. RCP-1 adds the direct-class overlay; the classpath overlay overloads remain pending.
+Classpath routes resolve the conventional marker and reuse that dispatch. Classpath overlay overloads instead select
+RCP-1's guarded recipe-only route; the existing resolver retains discovery, selected-loader and cause behavior.
 `FactoryHelper.doCreate` / `prepareBuilder` already provide one ordinary root configuration Consumer between root
 `PostCreate` and `PostApply`; execute the recipe and overlay there without additional completion operations.
 

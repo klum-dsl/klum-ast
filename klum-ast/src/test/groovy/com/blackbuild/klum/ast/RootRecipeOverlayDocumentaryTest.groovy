@@ -72,4 +72,59 @@ class RootRecipeOverlayDocumentaryTest extends AbstractDSLSpec {
         application.environment.is(selectedEnvironment)
         application.image == 'orders:eu'
     }
+    def 'binds a selected environment to a classpath recipe with explicit loader=#explicitLoader'() {
+        given:
+        createClass '''
+            package orders
+            @DSL class OrderEnvironment { String region }
+            @DSL class OrderApplication {
+                @Key String name
+                @Required @Field(FieldType.LINK) OrderEnvironment environment
+                String service
+                String image
+                @Default void chooseImage() { image ?= "${service}:${environment.region}" }
+                @Validate void valid() { assert image.endsWith(environment.region) }
+            }
+        '''
+        createSecondaryClass('''
+            package orders
+            import groovy.transform.BaseScript
+            import groovy.util.DelegatingScript
+            @BaseScript DelegatingScript base
+            service 'orders'
+        ''', 'OrderApplicationScript.groovy')
+        def root = tempFolder.newFolder()
+        def marker = new File(root, 'META-INF/klum-model/orders.OrderApplication.properties')
+        marker.parentFile.mkdirs()
+        marker.text = 'model-class=orders.OrderApplicationScript'
+        loader.addURL(root.toURI().toURL())
+        def client = createSecondaryClass '''
+            package orders
+            import groovy.transform.CompileStatic
+            @CompileStatic class ClasspathOrderClient {
+                static OrderApplication create(OrderEnvironment selectedEnvironment) {
+                    OrderApplication.Create.FromClasspath {
+                        environment selectedEnvironment
+                    }
+                }
+                static OrderApplication create(ClassLoader modelLoader, OrderEnvironment selectedEnvironment) {
+                    OrderApplication.Create.FromClasspath(modelLoader) {
+                        environment selectedEnvironment
+                    }
+                }
+            }
+        '''
+        def selectedEnvironment = getClass('OrderEnvironment').Create.With(region: 'eu')
+
+        when:
+        def application = explicitLoader ? client.create(loader, selectedEnvironment) : client.create(selectedEnvironment)
+
+        then:
+        application.name == 'OrderApplicationScript'
+        application.environment.is(selectedEnvironment)
+        application.image == 'orders:eu'
+
+        where:
+        explicitLoader << [false, true]
+    }
 }

@@ -68,6 +68,29 @@ assert application.name == 'OrderApplicationScript'
 assert application.image == 'orders:eu'
 ```
 
+The same overlay is available when the [classpath marker](#classpath) selects the compiled recipe. For example,
+`META-INF/klum-model/orders.OrderApplication.properties` contains `model-class=orders.OrderApplicationScript`.
+Both the marker and script class are loaded with the current thread's context class loader, or the explicit loader:
+
+(See: `RootRecipeOverlayDocumentaryTest#'binds a selected environment to a classpath recipe with explicit loader=#explicitLoader'`.)
+
+```groovy
+def selectedEnvironment = OrderEnvironment.Create.With(region: 'eu')
+def application = OrderApplication.Create.FromClasspath {
+    environment selectedEnvironment
+}
+def another = OrderApplication.Create.FromClasspath(modelLoader) {
+    environment selectedEnvironment
+}
+assert application.environment.is(selectedEnvironment)
+assert another.environment.is(selectedEnvironment)
+assert application.name == 'OrderApplicationScript'
+```
+
+Marker lookup uses the Factory's effective Model type, including its default implementation. The script class's simple
+name supplies a keyed root's identity; the marker filename and overlay do not change that authority. Discovery and
+execution failures retain the ordinary classpath diagnostics and original causes.
+
 Current scoped Templates and root initialization/`PostCreate` run before the recipe. The overlay therefore cannot supply
 context to those operations or to recipe-created children's immediate callbacks. Root `PostApply`, graph phases,
 materialization, required validation and verification see the overlay. Ordinary scalar and LINK setters replace earlier
@@ -78,10 +101,12 @@ Each invocation uses a fresh script and a clone of the overlay before changing i
 Captured mutable state remains caller-owned. Failure aborts the ordinary construction session; later invocations remain
 usable. Independent nested roots remain invalid.
 
-Only a direct compiled `DelegatingScript` class plus a closure is supported. Regular Script classes are rejected before
-construction/execution; use their existing no-overlay `Create.From(scriptClass)` route or supply a `DelegatingScript`
-recipe. Classpath, named-map, File/URL/text and `FromStruct` overlays, Template and `AsBuilder` overlays are unavailable.
-Recompile existing Schemas to expose the new generated member; existing no-overlay binary calls remain supported.
+Direct compiled `DelegatingScript` classes and classpath recipes accept closure-only overlays. Regular Script classes
+are rejected before construction/execution; use their existing no-overlay `Create.From(scriptClass)` route or supply a `DelegatingScript`
+recipe. Classpath regular Scripts likewise retain their no-overlay `Create.FromClasspath()` /
+`Create.FromClasspath(loader)` routes.
+Named-map, File/URL/text and `FromStruct` overlays, Template and `AsBuilder` overlays are unavailable.
+Recompile existing Schemas to expose the new generated members; existing no-overlay binary calls remain supported.
 See [Factory contracts](Factory-Classes.md#compiled-root-recipe-overlays) and [migration](Migration.md#compiled-root-recipe-overlays).
 
 ### Optional IntelliJ completion for one script family

@@ -252,6 +252,16 @@ public class FactoryHelper extends GroovyObjectSupport {
         return createFromClasspath(type, loader, scriptType -> createFrom(type, scriptType));
     }
 
+    /** Loads a root recipe and overlay using the ordinary context class loader. */
+    public static <T> T createFromClasspath(Class<T> type, Closure<?> overlay) {
+        return createFromClasspath(type, Thread.currentThread().getContextClassLoader(), overlay);
+    }
+
+    /** Resolves the conventional marker and reuses the guarded root recipe/overlay lifecycle. */
+    public static <T> T createFromClasspath(Class<T> type, ClassLoader loader, Closure<?> overlay) {
+        return createFromClasspath(type, loader, scriptType -> createFrom(type, scriptType, overlay));
+    }
+
     /** Loads the conventional classpath script as a Template recipe or a value-only Model snapshot. */
     public static <T> T createTemplateFromClasspath(Class<T> type, ClassLoader loader) {
         return createFromClasspath(type, loader, scriptType -> createTemplateFromScript(type, scriptType));
