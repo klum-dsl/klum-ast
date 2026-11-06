@@ -32,6 +32,7 @@ import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.lang.Script;
+import groovy.util.DelegatingScript;
 
 import java.io.File;
 import java.net.URL;
@@ -179,7 +180,7 @@ public class KlumFactory<T> {
 
     /**
      * Creates a new instance of the model type by running the given script class. The script must either return an
-     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link groovy.util.DelegatingScript}
+     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link DelegatingScript}
      * whose contents are the same as create/apply closure for this model class.
      * <p>
      * Note that in case of a Keyed object in combination with a DelegatingScript, the simple name of the script class
@@ -190,6 +191,21 @@ public class KlumFactory<T> {
      */
     public T From(Class<? extends Script> configurationScript) {
         return FactoryHelper.createFrom(type, configurationScript);
+    }
+
+    /**
+     * Creates a completed root from a compiled recipe followed by invocation-local Builder configuration.
+     * Current Templates and root PostCreate precede the recipe; the overlay runs before the single root
+     * PostApply, graph phases, materialization and validation. Later ordinary actions retain their authority.
+     * For keyed roots the script class's simple name supplies the immutable key.
+     *
+     * @param recipe compiled DelegatingScript containing Builder configuration
+     * @param overlay configuration applied after the recipe; cloned before delegate mutation
+     * @return the completed Model after one ordinary root lifecycle
+     * @throws KlumModelException if an erased or dynamic call supplies a regular Script
+     */
+    public T From(Class<? extends DelegatingScript> recipe, Closure<?> overlay) {
+        return FactoryHelper.createFrom(type, recipe, overlay);
     }
 
     /**

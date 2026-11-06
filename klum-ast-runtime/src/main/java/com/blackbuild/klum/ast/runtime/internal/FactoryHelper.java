@@ -332,6 +332,20 @@ public class FactoryHelper extends GroovyObjectSupport {
         return (T) result;
     }
 
+    /** Runs a compiled root recipe and cloned overlay in the ordinary configuration-only interval. */
+    public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType, Closure<?> overlay) {
+        BreadcrumbCollector.getInstance().setType(SCRIPT_SOURCE_TYPE).setQualifier(DslHelper.shortNameFor(scriptType));
+        if (!DelegatingScript.class.isAssignableFrom(scriptType)) {
+            throw new KlumModelException("Recipe overlays require a DelegatingScript, but " + scriptType.getName()
+                    + " is not one. Use Create.From(scriptClass) without an overlay, or provide a DelegatingScript recipe.");
+        }
+        String key = DslHelper.isKeyed(type) ? scriptType.getSimpleName() : null;
+        return doCreate(key, () -> createBuilder(type, key), builder -> {
+            BuilderDispatchSupport.run((DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null), builder);
+            builder.applyOnly(null, overlay == null ? null : (Closure<?>) overlay.clone());
+        });
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> T createTemplateFromScript(Class<T> type, Class<? extends Script> scriptType) {
         BreadcrumbCollector.getInstance().setType(SCRIPT_SOURCE_TYPE).setQualifier(DslHelper.shortNameFor(scriptType));
