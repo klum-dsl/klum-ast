@@ -57,8 +57,6 @@ class StructuredSetConverterTest extends AbstractDSLSpec {
 
     def cleanup() { artifacts?.close() }
 
-    @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#converter-backed-set-elements')
     def 'converts duration Set elements independently in supplied order'() {
         given:
         def type = schema('''
@@ -187,7 +185,6 @@ class StructuredSetConverterTest extends AbstractDSLSpec {
         'constructor' | '@Converters(includeConstructors=true)' | "Interval(String raw) { value = 'constructor:' + raw }" | ['constructor:one', 'constructor:two']
     }
 
-    @Issue('1026')
     def 'unsupported container or element shapes remain excluded: #target'() {
         given:
         def type = schema("""
