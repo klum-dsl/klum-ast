@@ -1,5 +1,11 @@
 # Unreleased
 
+- Admit exact generated String converter-backed `Set<T>` elements as ordered Struct/YAML sequences. Convert every
+  supplied item before ordinary Set insertion, preserving equality/comparators, defaults, Template recipes, lifecycle
+  and indexed partial failures. Emit String-array JSON Schema without uniqueness or result-order/cardinality claims.
+  Recompile matched Schema artifacts. See [Set elements](docs/user/Structured-Input.md#converter-backed-set-elements)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), SET-SEQ).
+
 - Identify target Schema types, available keys and escaped relative input members in Map-copy unknown-member and
   framework type-check diagnostics, including nested Map keys and supplied collection indices. Preserve exception
   chains, construction paths and copy strategies. See [Map-copy diagnostics](docs/user/Copy-Strategies.md#map-copy-diagnostics)

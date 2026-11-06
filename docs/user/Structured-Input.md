@@ -29,7 +29,7 @@ The parser is an example choice; KlumAST adds no YAML loader or managed Jackson 
 | A completed root | [Factory roots](#factory-roots): `Create.FromStruct(document)`; keyed roots either carry their actual key or receive an explicit key with a keyless body. |
 | An existing active Builder | [Builder application](#apply-to-an-active-builder): `applyStruct(body)` configures the receiver; it never returns a replacement or completes construction. |
 | Direct children and keyed Maps | [Construction keys](#construction-keys): direct keyed children normally carry their own key; keyed Map entries supply identity outside the child body. |
-| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements) and [converter Map values](#converter-backed-map-values): each has its own declared target and input restrictions. |
+| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements), [converter Set elements](#converter-backed-set-elements) and [converter Map values](#converter-backed-map-values): each has its own declared target and input restrictions. |
 | A domain operation or command | [The endpoint example](#read-a-concrete-root), [String selection](#select-a-string-operation) and [zero-argument commands](#zero-argument-commands): one payload or an empty command mapping, without argument spreading. |
 | A reusable Template | [Structured Templates](Templates.md#structured-input-templates): a keyless root recipe; caller code chooses how to apply it. |
 
@@ -474,7 +474,52 @@ parameter constraints are not projected in this slice; C1 scalar-field assertion
 A String that the converter cannot interpret is still structurally valid. Import does not automatically validate JSON
 Schema. Recompile matched Schema/compiler/runtime/plugin artifacts for the authoritative element association.
 
-CharSequence-only element routes and other converter-backed collection shapes remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
+Exact String [Set elements](#converter-backed-set-elements) have their own bounded support. CharSequence-only element routes and other converter-backed collection shapes remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
+
+### Converter-backed Set elements
+
+An exact `Set<T>` of non-DSL scalar values admits one compiler-selected public generated element adder taking an
+exact String. The input container must be a List, including a caller-parsed YAML sequence. It describes ordered adder
+calls; the destination retains ordinary `Set.add` behavior.
+
+(See: `StructuredSetConverterTest#'converts every supplied tag and retains ordinary Set equality semantics'`.)
+
+```groovy
+class Tag {
+    String name
+    static Tag fromString(String raw) { new Tag(name: raw.toLowerCase()) }
+    boolean equals(Object other) { other instanceof Tag && other.name == name }
+    int hashCode() { name.hashCode() }
+}
+@DSL class Schedule {
+    Set<Tag> tags = [new Tag(name: 'seed')] as LinkedHashSet
+}
+def schedule = Schedule.Create.FromStruct(
+    [tags: ['blue', 'green', 'BLUE', 'seed']], 'tags.yaml')
+assert schedule.tags*.name == ['seed', 'blue', 'green']
+```
+
+Ordinary Groovy uses `tag 'blue'; tag 'green'; tag 'BLUE'; tag 'seed'` inside `Schedule.Create.With`. Caller-owned YAML:
+
+```yaml
+tags: [blue, green, BLUE, seed]
+```
+
+Every supplied String invokes its converter in sequence order, even when the converted value equals an existing entry.
+Defaults survive population, and an equal value retains the destination Set's ordinary equality behavior. An exact Set
+field may use a comparator-backed initializer: its native comparison and final iteration order remain authoritative.
+Empty input makes zero adder/converter calls and preserves defaults; it does not invoke a replacement setter.
+A converter or insertion failure retains earlier effects and its original cause, with source/index diagnostics such as
+`tags.yaml`, `/tags/1`. Later items and operations do not run. Template definition evaluates every supplied converter;
+recipients replay ordinary retained recipe values without evaluating those converters again. Lifecycle remains ordinary.
+
+Only raw String items are accepted: null, numbers, booleans, GString, mutable CharSequence, objects, Maps and nested Lists
+reject. Passing an input Set also rejects. Exact declared `SortedSet`, `NavigableSet`, `EnumSet`, custom collections,
+owned DSL values and CharSequence-only converter routes are outside this converter slice; existing native and owned-body
+grammars retain their separate contracts. Recompile matched Schema/compiler/runtime/plugin artifacts.
+
+JSON Schema emits an array with String items without `uniqueItems`, cardinality, comparator, final-order or replacement
+claims. It does not execute converter code or project element-parameter constraints. Duplicate input strings are valid.
 
 ### Converter-backed Map values
 
@@ -695,7 +740,7 @@ make an entry available. In particular:
 | --- | --- |
 | Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [explicit literal keyed Map alternatives](#literal-collection-alternative) supply subtype selection. |
 | Converter-backed or owned `@Field.keyMapping` Map adders | Only [native scalar/enum values](#derived-key-map-values) have a derived-key sequence. Use Groovy or an eligible domain List operation for other values. |
-| String converters for owned DSL values, converter-backed Sets, or CharSequence-only List/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
+| String converters for owned DSL values or CharSequence-only List/Set/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Set/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
 | Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |
 | Repeated or interleaved calls with the same name | A Map cannot retain duplicate member names. Use a domain List operation or Groovy. Normal Map traversal order does not introduce a general event-sequence language. |
 | Implicit clear/replace and null setters | Null is rejected at every depth; empty containers make no population calls and do not clear a field. An eligible authored `clearRoutes()` command can be called as `clearRoutes: {}`; its body owns the effect. |

@@ -638,7 +638,7 @@ final class StructuredInputAdmissionPlan {
         MethodNode converter = payload == null ? StructuredInputConverter.selected(field) : null;
         if (converter != null) {
             Payload converted = new Payload(PayloadKind.SCALAR, converter.getParameters()[0].getOriginType().getName(), null, null, null);
-            if (StructuredInputConverter.isListField(field)) {
+            if (StructuredInputConverter.isSequenceField(field)) {
                 converted = new Payload(PayloadKind.LIST, List.class.getName(), null, null, converted);
             } else if (StructuredInputConverter.isMapField(field)) {
                 converted = new Payload(PayloadKind.MAP, Map.class.getName(), null, String.class.getName(), converted);

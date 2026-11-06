@@ -507,6 +507,10 @@ never constrain the raw String. No converter or user initialization runs during 
 `items: {type: string}` for the selected exact String element route. This is structural grammar only: no element
 parameter assertions are inferred or projected, including when the element's scalar-field route would qualify for C1.
 The List retains field prose/examples and domain-value constraint attribution.
+[Converter-backed Set elements](Structured-Input.md#converter-backed-set-elements) likewise emit an array of String
+items, without `uniqueItems`, cardinality, comparator, final-order or replacement claims. Every supplied item remains an
+ordered conversion/addition operation, including duplicates. Source-free inspection executes no converters.
+
 [Converter-backed Map values](Structured-Input.md#converter-backed-map-values) similarly emit an object with
 `additionalProperties: {type: string}` for exact `Map<String, T>` value routes. Keys are literal data; root/Builder members
 remain closed. Map values carry no converter parameter assertions, including for C1-qualified domain constructors.

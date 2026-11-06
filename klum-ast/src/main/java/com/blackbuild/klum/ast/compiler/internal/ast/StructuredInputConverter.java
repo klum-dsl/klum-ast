@@ -38,6 +38,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForCollection;
@@ -84,7 +85,7 @@ final class StructuredInputConverter {
                 || !StructuredInputAdmissionPlan.supportsScalarConverterInput(destination)) return null;
         Route route = routes.get(0);
         // Container routes admit exact String values only.
-        if ((isListField(field) || isMapField(field)) && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
+        if ((isSequenceField(field) || isMapField(field)) && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
         if (isMapField(field) && !literalStringKeys(field)) return null;
         if (route.generated() == null) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
@@ -95,8 +96,9 @@ final class StructuredInputConverter {
         return api;
     }
 
-    static boolean isListField(FieldNode field) {
-        return field.getType().redirect().getName().equals(List.class.getName());
+    static boolean isSequenceField(FieldNode field) {
+        String type = field.getType().redirect().getName();
+        return type.equals(List.class.getName()) || type.equals(Set.class.getName());
     }
 
     static boolean isMapField(FieldNode field) {
@@ -118,7 +120,7 @@ final class StructuredInputConverter {
     }
 
     private static ClassNode destination(FieldNode field) {
-        if (isListField(field)) return getElementTypeForCollection(field.getType());
+        if (isSequenceField(field)) return getElementTypeForCollection(field.getType());
         if (isMapField(field)) return getElementTypeForMap(field.getType());
         return field.getType();
     }
@@ -144,7 +146,7 @@ final class StructuredInputConverter {
         fact.setMember("name", constX(source instanceof ConstructorNode ? "<init>" : source.getName()));
         fact.setMember("descriptor", constX(BytecodeHelper.getMethodDescriptor(source)));
         fact.setMember("parameter", constX(0));
-        fact.setMember("parameterFacts", constX(!isListField(field) && !isMapField(field) && hasParameterAuthority(field.getType(), source)));
+        fact.setMember("parameterFacts", constX(!isSequenceField(field) && !isMapField(field) && hasParameterAuthority(field.getType(), source)));
         api.addAnnotation(fact);
     }
 }

@@ -62,11 +62,15 @@ class CompiledConverterJsonSchemaTest extends Specification {
         body == schema
         ['duration', 'natural-duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype', 'sequence'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
-        ['intervals', 'local-values', 'adapted-values', 'inherited-ports', 'generic-values'].every {
+        ['intervals', 'local-values', 'adapted-values', 'inherited-ports', 'generic-values', 'set-intervals', 'set-local', 'set-adapted', 'set-inherited', 'set-generic'].every {
             fields[it].type == 'array' && fields[it].items == [type: 'string']
                     && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
         }
         !fields.containsKey('sequence-values')
+        !fields.containsKey('set-sequence')
+        ['set-intervals', 'set-local', 'set-adapted', 'set-inherited', 'set-generic'].every {
+            !fields[it].containsKey('uniqueItems') && !fields[it].containsKey('minItems') && !fields[it].containsKey('maxItems')
+        }
         ['map-values', 'map-intervals', 'adapted-map', 'inherited-map', 'generic-map'].every {
             fields[it].type == 'object' && fields[it].additionalProperties == [type: 'string']
                     && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
@@ -330,6 +334,7 @@ import com.blackbuild.klum.ast.*
 import java.time.Duration
 @DSL class Base {
     Duration naturalDuration
+    @Converters(includeConstructors=true) Set<PortNumber> setInherited
     @Converters(includeConstructors=true) List<PortNumber> inheritedPorts
     @Converters(includeConstructors=true) Map<String, PortNumber> inheritedMap
     /** Inherited port prose. */
@@ -353,6 +358,12 @@ import java.nio.file.Path
     List<LocalValue> localValues
     @Converters(value=[DurationAdapter], excludeMethods=['parse']) List<Duration> adaptedValues
     List<Duration> sequenceValues
+    @Converters(excludeMethods=['parse'])
+    @Field(converters = [{ String value -> throw new AssertionError('Set closure executed') }]) Set<Duration> setIntervals
+    Set<LocalValue> setLocal
+    @Converters(value=[DurationAdapter], excludeMethods=['parse']) Set<Duration> setAdapted
+    @Converters(includeConstructors=true) Set<GenericValue<String>> setGeneric
+    Set<Duration> setSequence
     Map<String, LocalValue> mapValues
     @Converters(excludeMethods=['parse'])
     @Field(converters = [{ String value -> throw new AssertionError('Map closure executed') }]) Map<String, Duration> mapIntervals

@@ -259,7 +259,9 @@ routes do not gain C1 authority. No new default/varargs expansion or generic inf
 String-array varargs parameter is not an exact String route.
 Exact String element routes for `List<T>` are described under
 [converter-backed List elements](Structured-Input.md#converter-backed-list-elements); exact `Map<String, T>` value routes
-use [converter-backed Map values](Structured-Input.md#converter-backed-map-values). Other collection and DSL-object
+use [converter-backed Map values](Structured-Input.md#converter-backed-map-values). Exact `Set<T>` String routes use
+[ordered Set element calls](Structured-Input.md#converter-backed-set-elements), retaining destination equality and comparator
+behavior after every conversion. Other collection and DSL-object
 conversions remain deferred. An unrelated authored overload
 does not suppress a generated scalar route; competing external String/CharSequence names
 use the [shared selection rules](Structured-Input.md#select-a-string-operation).

@@ -125,6 +125,17 @@ executing mapping code. Converter-backed values (K2), owned DSL values (K3/K4), 
 CollectionFactory, alternatives and composition remain outside this slice. Recompile matched Schema artifacts.
 See [implementation evidence](../implementation/issue-1028-derived-map-evidence.md).
 
+## Exact String converter-backed Set sequences — SET-SEQ
+
+The separately accepted R1 follow-on admits only exact non-DSL `Set<T>` element routes with one compiler-selected
+public generated String adder. It reuses L1's association/count and descriptor controls, direct String collection hook
+and ordered List payload. Every supplied String converts before ordinary Set insertion, including duplicates. Native
+equality/comparators, defaults, final iteration order, partial effects, lifecycle and Template replay remain authoritative.
+Empty input makes zero calls; no whole-property setter is selected. Source/index diagnostics retain original causes.
+Source-free JSON Schema emits String arrays without uniqueness, cardinality, comparator, replacement or final-order
+claims. CharSequence container routes, specialized Set declarations, owned DSL targets and constraint policy stay outside
+this slice. Matched artifacts require recompilation. See [SET-SEQ evidence](../implementation/input-round-set-seq-evidence.md).
+
 ## Owned field relationship admission cleanup — #1021 cut 3
 
 Direct concrete owned children and String-keyed owned Maps use the same normal internal preparation/attachment
