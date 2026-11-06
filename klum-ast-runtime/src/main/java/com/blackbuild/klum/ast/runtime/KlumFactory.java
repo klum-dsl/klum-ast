@@ -179,6 +179,34 @@ public class KlumFactory<T> {
     }
 
     /**
+     * Creates a completed root from the conventional classpath DelegatingScript recipe and an overlay.
+     * Uses the current thread's context class loader for both the marker and recipe class.
+     * The recipe and cloned overlay run before the single root PostApply and ordinary graph lifecycle.
+     * Regular Script inputs are rejected before construction or execution.
+     *
+     * @param overlay Builder configuration applied after the recipe
+     * @return the completed Model after one ordinary root lifecycle
+     * @see #From(Class, Closure)
+     */
+    public T FromClasspath(Closure<?> overlay) {
+        return FactoryHelper.createFromClasspath(type, overlay);
+    }
+
+    /**
+     * Creates a completed root from a classpath DelegatingScript recipe and an overlay.
+     * Uses the selected loader for both the conventional marker and recipe class.
+     * For keyed roots the recipe class's simple name remains the immutable key.
+     *
+     * @param loader class loader for the marker and recipe class
+     * @param overlay Builder configuration cloned and applied after the recipe, before root PostApply
+     * @return the completed Model after one ordinary root lifecycle
+     * @see #FromClasspath(Closure)
+     */
+    public T FromClasspath(ClassLoader loader, Closure<?> overlay) {
+        return FactoryHelper.createFromClasspath(type, loader, overlay);
+    }
+
+    /**
      * Creates a new instance of the model type by running the given script class. The script must either return an
      * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link DelegatingScript}
      * whose contents are the same as create/apply closure for this model class.

@@ -82,10 +82,41 @@ class RootRecipeFactoryContractTest extends AbstractDSLSpec {
         then:
         portfolio.declaredClasses.any { it.simpleName.startsWith('CollectionFactory_') }
         portfolio.declaredClasses.any { it.simpleName.startsWith('ClusterFactory_') }
-        excluded.every { type -> !hasMethod(type, 'From', Class, Closure) }
+        excluded.every { type ->
+            !hasMethod(type, 'From', Class, Closure) &&
+                    !hasMethod(type, 'FromClasspath', Closure) &&
+                    !hasMethod(type, 'FromClasspath', ClassLoader, Closure)
+        }
         !hasMethod(portfolio, 'From', Class, Closure)
-        !hasMethod(getClass('Application_DSL$Factory'), 'FromClasspath', Closure)
         !hasMethod(getClass('Application_DSL$Factory'), 'FromStruct', Map, Closure)
+    }
+
+    def 'classpath signatures expose exact Model return and public Builder delegate for keyed=#keyed'() {
+        given:
+        schema(keyed)
+        def model = getClass('Application')
+        def builder = getClass('Application_DSL$Builder')
+        def factory = getClass('Application_DSL$Factory')
+
+        when:
+        def signatures = [[Closure], [ClassLoader, Closure]]
+        def methods = signatures.collectMany { signature ->
+            [factory.getMethod('FromClasspath', signature as Class[]),
+             model.Create.class.getMethod('FromClasspath', signature as Class[])]
+        }
+
+        then:
+        methods.every {
+            def annotation = it.parameters.last().getAnnotation(DelegatesTo)
+            it.returnType == model && annotation.value() == builder && annotation.strategy() == Closure.DELEGATE_ONLY
+        }
+        factory.getMethod('FromClasspath').returnType == model
+        factory.getMethod('FromClasspath', ClassLoader).returnType == model
+        !hasMethod(factory, 'FromClasspath', Map, Closure)
+        !hasMethod(factory, 'FromClasspath', Map, ClassLoader, Closure)
+
+        where:
+        keyed << [false, true]
     }
 
     def 'static consumer accepts the exact Builder delegate and Model result'() {
