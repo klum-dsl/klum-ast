@@ -13,6 +13,22 @@ at `97a6775e580f3164a5ec18019312bf871512ac65`. A0–A3 have a local implementati
 and the qualification/delivery boundary. No merge or adopter qualification is claimed for that slice. See
 [ADR 0032](../adr/0032-builder-oriented-structured-input.md) for the accepted semantic direction and annotation vocabulary.
 
+## Final documentation reconciliation — 2026-11-06
+
+The dated planning baseline and slice gates below are retained as history. Their local-only, future-tense and
+feasibility-only delivery wording is **superseded** by the source audit at refreshed `origin/master`
+`7cd6043c7089fcc592e130eba6d0eaf5a6fbfcb5` and the
+[final #1015 support inventory](issue-1015-struct-final-inventory.md). In particular, F2/F2-A were probes;
+**F2-B is delivered in merged PR #1017**, and merged #1032 extends that same abstract keyed Map family to finite
+explicit alias groups with creator-independent field admission. F2 is no longer merely a feasibility result.
+
+Current source also includes Factory/Builder A0–A3, Template S6, virtual scope S5, body schemas S7, L1-A/B,
+ordinary owned sequences plus keyed #1026, native derived-key Maps #1028/#1029, exact String converter Sets #1035,
+and CharSequence converter Lists/Maps #1036. These are repository delivery facts, not release or renewed Schelm
+qualification. The inventory links current user examples and documentary evidence and records the retained boundaries.
+Scalar String-to-owned-child F1 is deferred post-4.2 to #1033; L2, generic CollectionFactory grammar and remaining
+#952 shapes stay deferred. No new implementation follows from this reconciliation.
+
 ## Authority and baseline
 
 The maintainer's sixteen accepted INPUT-ROUND-PLAN decisions govern this plan. Earlier issue bodies, ADR checkpoints
@@ -130,7 +146,7 @@ Consumer seams. Factory roots must not be projected into relationships, and `AsB
 
 ## Positive support matrix
 
-This is the proposed documentation content model at the inspected planning base. “Accepted” means planned implementation
+This is the historical proposed documentation content model at the inspected planning base; the final reconciliation above supersedes delivery status in this table. “Accepted” means planned implementation
 at that base; the ordered slice rows and linked evidence below track subsequent implementation.
 
 | Shape / use | Support at inspected planning base | Target and admission boundary |
@@ -193,8 +209,8 @@ grammar should ship while generation still misdescribes it. Cross-cutting change
 D0 and Q0 can proceed independently. S1 → S2 → S3a → S3b is the primary implementation chain. S4 and S5 branch after S2;
 S7 can use the retained grammar after S1. A0 → A1 and A0 → retargeted S6 establish Factory creation; A2 can proceed
 independently after this clarification merges. A3 follows all four public forms. S6/#1007 is rebased and retargeted after Hive assignment; the later forms remain separate. Recheck all
-entry modes against newly admitted S3/S5 forms before Q1. F1/F2
-are probes, not dependencies forcing a broader engine into S1–S7. Do not start follow-ons just because a probe finishes.
+entry modes against newly admitted S3/S5 forms before Q1. The original F1/F2 assignments
+were probes, not dependencies forcing a broader engine into S1–S7. Do not start follow-ons just because a probe finishes.
 
 ### Acceptance details that must not disappear inside a slice
 

@@ -205,6 +205,19 @@ assert direct.timeout == Duration.ofSeconds(30)
 def parsed = [timeout: 'PT30S'] // The admitted CharSequence projection receives this exact String.
 ```
 
+For either timeout Schema, the equivalent caller-parsed YAML is:
+
+(See: `StructuredConverterOriginTest#'a field converter accepts the same duration String through ordinary and structured construction'`;
+`StructuredCharSequenceTest#'a projected Duration parser accepts a String through its exact CharSequence signature'`.)
+
+```yaml
+timeout: PT30S
+```
+
+Pass its Map to `Service.Create.FromStruct(parsed)` or an active Builder's `applyStruct(parsed)`.
+This scalar form targets a non-DSL value. String-to-owned-DSL-child input remains deferred post-4.2 to
+[#1033](https://github.com/klum-dsl/klum-ast/issues/1033); use the admitted nested child body or ordinary Groovy producer.
+
 The original String reaches the exact recorded signature; no mutable CharSequence is constructed. Numeric, boolean,
 null, GString, arbitrary Object and caller-supplied mutable CharSequence payloads reject. A String converter and a
 CharSequence converter for one field are competing routes: exclude the unwanted factory as in the closure example above,

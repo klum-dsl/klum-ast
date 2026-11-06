@@ -29,7 +29,7 @@ The parser is an example choice; KlumAST adds no YAML loader or managed Jackson 
 | A completed root | [Factory roots](#factory-roots): `Create.FromStruct(document)`; keyed roots either carry their actual key or receive an explicit key with a keyless body. |
 | An existing active Builder | [Builder application](#apply-to-an-active-builder): `applyStruct(body)` configures the receiver; it never returns a replacement or completes construction. |
 | Direct children and keyed Maps | [Construction keys](#construction-keys): direct keyed children normally carry their own key; keyed Map entries supply identity outside the child body. |
-| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements), [converter Set elements](#converter-backed-set-elements) and [converter Map values](#converter-backed-map-values): each has its own declared target and input restrictions. |
+| Collections | [Owned child sequences](#owned-child-sequences), [converter List elements](#converter-backed-list-elements), [converter Set elements](#converter-backed-set-elements), [converter Map values](#converter-backed-map-values), [CharSequence containers](#charsequence-container-converters), and [derived-key Maps](#derived-key-map-values): each has its own declared target and input restrictions. |
 | A domain operation or command | [The endpoint example](#read-a-concrete-root), [String selection](#select-a-string-operation) and [zero-argument commands](#zero-argument-commands): one payload or an empty command mapping, without argument spreading. |
 | A reusable Template | [Structured Templates](Templates.md#structured-input-templates): a keyless root recipe; caller code chooses how to apply it. |
 
@@ -397,8 +397,9 @@ Builders reject. Root construction cannot start an independent nested root.
 | Zero-argument `@Builder.Method` command | An empty Map (`operation: {}` in YAML) |
 | Ordinary List/Map operation argument | One List/Map payload, recursively typed; never spread or treated as named arguments |
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
-| Exact `List<T>` with one admitted String element converter | A List of Strings, each passed to its selected generated element adder |
-| Exact `Map<String, T>` with one admitted String value converter | A Map of literal String keys to Strings, each passed to the generated value adder |
+| Exact `List<T>` with one admitted String/CharSequence element converter | A List of Strings, each passed to its selected generated element adder |
+| Exact `Map<String, T>` with one admitted String/CharSequence value converter | A Map of literal String keys to Strings, each passed to the generated value adder |
+| Exact `Set<T>` with one admitted String element converter | A List of Strings, invoking conversion for every item before ordinary Set insertion |
 | Native scalar/enum derived-key Map field | A List of native values passed to its exact value-only adder; stored keys are runtime-derived |
 | Supported scalar/enum/data map field | A Map of literal String keys to declared value payloads |
 | Admitted concrete virtual field | A domain Map configured before the virtual sink consumes the child Builder |
@@ -773,13 +774,17 @@ Jackson codecs, naming strategies, mixins, aliases or mapper coercion.
 ## Groovy forms without a Struct equivalent
 
 Availability belongs to each admitted family. A working Groovy overload or a YAML-compatible value alone does not
-make an entry available. In particular:
+make an entry available. The [final 4.2 inventory](../implementation/issue-1015-struct-final-inventory.md)
+records the evidence and dispositions under [#1015](https://github.com/klum-dsl/klum-ast/issues/1015);
+remaining grammar investigations belong to [#952](https://github.com/klum-dsl/klum-ast/issues/952). In particular:
 
 | Ordinary Groovy capability | Struct boundary and workaround |
 | --- | --- |
 | Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [explicit literal keyed Map alternatives](#literal-collection-alternative) supply subtype selection. |
 | Converter-backed or owned `@Field.keyMapping` Map adders | Only [native scalar/enum values](#derived-key-map-values) have a derived-key sequence. Use Groovy or an eligible domain List operation for other values. |
-| String converters for owned DSL values or CharSequence-only Set converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Set/Map and CharSequence List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
+| String converters for owned DSL values | `child: supplied` is deferred post-4.2 to [#1033](https://github.com/klum-dsl/klum-ast/issues/1033). Use an admitted nested child body, an eligible Schema-authored operation, or ordinary Groovy `child 'supplied'`. |
+| CharSequence-only Set converters and specialized converter containers | Only exact String converter Sets and exact String/CharSequence converter Lists/Maps are admitted. Use an exact String scalar-value converter where applicable, an eligible domain operation, or Groovy. |
+| `@NamedParams`/`@NamedParam` Map operations | No closed named-parameter map grammar or argument spreading is projected. An independently admitted ordinary typed Map remains one payload, without named-parameter required/type guarantees. Use that contract, an eligible wrapper operation, or Groovy; L2 remains deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952). |
 | Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |
 | Repeated or interleaved calls with the same name | A Map cannot retain duplicate member names. Use a domain List operation or Groovy. Normal Map traversal order does not introduce a general event-sequence language. |
 | Implicit clear/replace and null setters | Null is rejected at every depth; empty containers make no population calls and do not clear a field. An eligible authored `clearRoutes()` command can be called as `clearRoutes: {}`; its body owns the effect. |
@@ -982,12 +987,19 @@ import com.blackbuild.klum.ast.DSL
     @Builder.Method void resetTimeout() { timeout = 30 }
 }
 
+def ordinary = Service.Create.With { timeout 90; resetTimeout() }
 def parsed = [timeout: 90, resetTimeout: [:]] // Sets 90, then invokes resetTimeout, yielding 30.
+def structured = Service.Create.FromStruct(parsed)
+assert structured.timeout == ordinary.timeout
+assert structured.timeout == 30
 ```
 
-The corresponding YAML command member is:
+The corresponding YAML preserves that operation order:
+
+(See: `StructuredCommandTest#'an empty mapping invokes the domain reset command once'`.)
 
 ```yaml
+timeout: 90
 resetTimeout: {}
 ```
 

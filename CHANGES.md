@@ -1,5 +1,9 @@
 # Unreleased
 
+- Reconcile Struct/YAML authoring examples, final 4.2 support inventory and intentional Groovy parity boundaries.
+  See [Struct guidance](docs/user/Structured-Input.md#groovy-forms-without-a-struct-equivalent)
+  ([#1015](https://github.com/klum-dsl/klum-ast/issues/1015)).
+
 - Honor recorded CharSequence converter signatures for generated List-element and literal String-keyed Map-value
   calls, preventing runtime String redispatch to unprojected overloads. Admit raw Struct/YAML Strings for these routes;
   emit structural String schema only. Recompile matched Schema artifacts. See

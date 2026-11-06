@@ -2,7 +2,13 @@
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
 
-Status: **Accepted; vocabulary V0, ordered-traversal S1, exact String-selection S2, String-origin parity S3a, CharSequence scalar S3b, zero-argument commands S4, Template Factory S6, body-schema S7 implemented. F2-B's literal CollectionFactory family and #1030's finite explicit alias groups are implemented locally, with integration and hosted qualification separate. Factory/Builder A0–A3 have a local implementation with reserved signatures pending final qualification. SEQ-1 ordinary owned child sequences have a locally qualified implementation; other slices remain planned.**
+Status: **Accepted; repository delivery reconciled on 2026-11-06 at `7cd6043c7089fcc592e130eba6d0eaf5a6fbfcb5`.**
+V0, S1–S7, Factory/Builder A0–A3, L1-A/B, F2-B, owned unkeyed/keyed sequences, native derived-key Maps,
+finite explicit alias groups, exact String converter Sets and CharSequence converter Lists/Maps are present in merged
+source. See the [final #1015 inventory](../implementation/issue-1015-struct-final-inventory.md) for evidence and retained
+boundaries. Earlier local-only and pending-merge wording below records slice-time qualification and is superseded for
+repository delivery status; it does not establish a release or current adopter qualification. Scalar owned-child
+String producers remain deferred post-4.2 under #1033. Other grammar requires its own accepted slice.
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
