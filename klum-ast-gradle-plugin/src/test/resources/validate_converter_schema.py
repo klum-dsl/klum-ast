@@ -128,7 +128,7 @@ for lane in ("3", "4", "5"):
         assert not validator.is_valid({name: []}), (lane, name)
         list_count += 1
     # #952 SET-SEQ: exact String elements, no value-specific or C1 parameter assertions on items.
-    for name in ("set-intervals", "set-local", "set-adapted", "set-inherited", "set-generic"):
+    for name in ("interval-set", "local-set", "adapted-set", "inherited-set", "generic-set"):
         assert properties[name]["type"] == "array"
         assert properties[name]["items"] == {"type": "string"}
         assert not {"uniqueItems", "minItems", "maxItems"}.intersection(properties[name])
@@ -141,7 +141,7 @@ for lane in ("3", "4", "5"):
                                 ([["one"]], False), ([{}], False), (["one", 2, "later"], False)):
             assert validator.is_valid({name: value}) == expected, (lane, name, value)
             set_count += 1
-    for name in ("set-sequence",):
+    for name in ("sequence-set",):
         assert not validator.is_valid({name: []}), (lane, name)
         set_count += 1
     # #952 L1-B: literal data keys, exact String values and a closed root.
