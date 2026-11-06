@@ -504,7 +504,7 @@ they do not gain C1 parameter assertions. CharSequence routes likewise emit Stri
 never constrain the raw String. No converter or user initialization runs during generation.
 
 [Converter-backed List elements](Structured-Input.md#converter-backed-list-elements) emit an array with
-`items: {type: string}` for the selected exact String element route. This is structural grammar only: no element
+`items: {type: string}` for the selected exact String or CharSequence element route. This is structural grammar only: no element
 parameter assertions are inferred or projected, including when the element's scalar-field route would qualify for C1.
 The List retains field prose/examples and domain-value constraint attribution.
 [Converter-backed Set elements](Structured-Input.md#converter-backed-set-elements) likewise emit an array of String

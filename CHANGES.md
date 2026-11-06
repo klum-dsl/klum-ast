@@ -1,5 +1,11 @@
 # Unreleased
 
+- Honor recorded CharSequence converter signatures for generated List-element and literal String-keyed Map-value
+  calls, preventing runtime String redispatch to unprojected overloads. Admit raw Struct/YAML Strings for these routes;
+  emit structural String schema only. Recompile matched Schema artifacts. See
+  [CharSequence containers](docs/user/Structured-Input.md#charsequence-container-converters)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), CHARSEQ-COL).
+
 - Admit exact generated String converter-backed `Set<T>` elements as ordered Struct/YAML sequences. Convert every
   supplied item before ordinary Set insertion, preserving equality/comparators, defaults, Template recipes, lifecycle
   and indexed partial failures. Emit String-array JSON Schema without uniqueness or result-order/cardinality claims.

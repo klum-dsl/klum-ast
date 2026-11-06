@@ -474,7 +474,45 @@ parameter constraints are not projected in this slice; C1 scalar-field assertion
 A String that the converter cannot interpret is still structurally valid. Import does not automatically validate JSON
 Schema. Recompile matched Schema/compiler/runtime/plugin artifacts for the authoritative element association.
 
-Exact String [Set elements](#converter-backed-set-elements) have their own bounded support. CharSequence-only element routes and other converter-backed collection shapes remain deferred under [#952](https://github.com/klum-dsl/klum-ast/issues/952).
+Exact String [Set elements](#converter-backed-set-elements) have their own bounded support. Exact CharSequence List/Map routes are described [below](#charsequence-container-converters); other converter-backed collection shapes remain deferred.
+
+### CharSequence container converters
+
+One existing public generated `CharSequence` converter route also admits raw String List elements and literal
+String-keyed Map values. For example, `Duration.parse(CharSequence)` needs no String adapter.
+
+(See: `StructuredContainerCharSequenceTest#'natural duration strings populate Lists and literal keyed Maps'`.)
+
+```groovy
+@DSL class Schedule {
+    List<Duration> timeouts = [Duration.ofSeconds(1)]
+    Map<String, Duration> delays = [retry: Duration.ofSeconds(9)]
+}
+def schedule = Schedule.Create.With {
+    timeout 'PT5S'
+    delay 'retry', 'PT2S'
+}
+assert schedule.timeouts == [Duration.ofSeconds(1), Duration.ofSeconds(5)]
+assert schedule.delays == [retry: Duration.ofSeconds(2)]
+```
+
+Caller-parsed YAML uses the natural forms:
+
+```yaml
+timeouts: [PT5S]
+delays: { retry: PT2S }
+```
+
+Both paths invoke the recorded `CharSequence` converter signature with the original value. Ordinary generated Groovy
+calls preserve String and GString argument identity through that signature, including when an unprojected protected
+`parse(String)` overload exists. This corrects earlier runtime redispatch to the more-specific String overload; code
+relying on that leak changes behavior. Competing public String/CharSequence routes retain rejection for Struct input;
+there is no new specificity rule. Struct accepts actual Strings only: GString, numbers, null and caller-supplied mutable
+or arbitrary CharSequence values reject. Existing defaults, Map replacement, per-item failure and Template semantics apply.
+
+JSON Schema emits only String array items / String Map values. It makes no converter-success, constraint or coercion
+promise. CharSequence Set converters remain excluded. Recompile the Schema hierarchy with matched compiler, runtime
+and plugin artifacts; existing generated binaries do not acquire these hooks or admission automatically.
 
 ### Converter-backed Set elements
 
@@ -560,7 +598,8 @@ Traversal follows the supplied Map's iteration order. Ordinary entry population 
 replaces an existing key's value according to ordinary Builder behavior, and performs no calls for an empty Map. It
 never calls a whole-container converter or replacement setter. Data keys remain literal even with an external naming
 profile or rename. Non-String keys reject without coercion. Custom `@Field.keyMapping`, non-String declared keys,
-CharSequence-only routes, ambiguous or missing generated routes, descendant overrides and owned DSL values are excluded.
+ambiguous or missing generated routes, descendant overrides and owned DSL values are excluded. See
+[CharSequence container converters](#charsequence-container-converters) for exact CharSequence value routes.
 
 Each reached value must be a String: null, numeric, boolean, GString, mutable CharSequence, arbitrary Object, Map and List
 values reject. A converter failure retains its original cause, source and escaped key-specific pointer, for example
@@ -740,7 +779,7 @@ make an entry available. In particular:
 | --- | --- |
 | Subtype collection creators | Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the [explicit literal keyed Map alternatives](#literal-collection-alternative) supply subtype selection. |
 | Converter-backed or owned `@Field.keyMapping` Map adders | Only [native scalar/enum values](#derived-key-map-values) have a derived-key sequence. Use Groovy or an eligible domain List operation for other values. |
-| String converters for owned DSL values or CharSequence-only List/Set/Map converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Set/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
+| String converters for owned DSL values or CharSequence-only Set converters | These are distinct from admitted [scalar](Converters.md#structured-string-input) and exact String List/Set/Map and CharSequence List/Map converter routes. Use an admitted owned body, an exact String scalar-value converter where applicable, or Groovy. |
 | Multi-argument/default/varargs operation and factory calls | Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy. |
 | Repeated or interleaved calls with the same name | A Map cannot retain duplicate member names. Use a domain List operation or Groovy. Normal Map traversal order does not introduce a general event-sequence language. |
 | Implicit clear/replace and null setters | Null is rejected at every depth; empty containers make no population calls and do not clear a field. An eligible authored `clearRoutes()` command can be called as `clearRoutes: {}`; its body owns the effect. |

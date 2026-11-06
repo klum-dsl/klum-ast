@@ -593,7 +593,7 @@ final class InputContractResolver {
         Class<?> parameter = method.getParameterTypes()[valueIndex];
         if (parameter != String.class && parameter != CharSequence.class) return false;
         if (method.getGenericParameterTypes()[valueIndex] != parameter) return false;
-        if ((isConverterSequence(fieldType) || valueIndex == 1) && parameter != String.class) return false;
+        if (rawType(fieldType) == Set.class && parameter != String.class) return false;
         return !selected.parameterFacts() || fieldType instanceof Class<?> && parameter == String.class;
     }
 

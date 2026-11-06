@@ -62,6 +62,15 @@ Where a String closure and an implicit CharSequence factory now compete, exclude
 one for you. C1 String parameter policies remain unchanged; CharSequence routes emit structural String grammar only.
 See [the executable Duration example](Converters.md#structured-string-input).
 
+### CharSequence container converter dispatch
+
+Exact generated List-element and literal String-keyed Map-value CharSequence routes now accept raw Struct/YAML Strings.
+Ordinary generated Groovy calls also honor the recorded CharSequence signature: a runtime String no longer redispatches
+to a more-specific unprojected protected String factory. Ordinary GString calls retain the original argument through
+that same signature; Struct still rejects GStrings and arbitrary CharSequence values. Competing public converter routes
+retain their existing rejection. Recompile participating Schema hierarchies with matched compiler/runtime/plugin artifacts.
+See [the example and compatibility boundary](Structured-Input.md#charsequence-container-converters).
+
 ### Concrete virtual structured scopes
 
 The bounded `@Field void method(ConcreteType value)` family now accepts nested mapping input when the target is

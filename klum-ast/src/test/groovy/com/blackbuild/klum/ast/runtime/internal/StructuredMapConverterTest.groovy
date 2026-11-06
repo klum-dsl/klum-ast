@@ -367,7 +367,7 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
         thrown(KlumModelException)
     }
 
-    def 'CharSequence-only Map value factories remain outside this exact String slice'() {
+    def 'CharSequence-only Map converters use their projected payload signature'() {
         given:
         def type = schema('@DSL class Schedule { Map<String, Duration> intervals }')
 
@@ -377,31 +377,32 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
 
         then:
         ordinary.intervals == [first: Duration.ofSeconds(2)]
-        !contract.entries().containsKey('intervals')
+        contract.entries().intervals.payload().item().type() == CharSequence
+        type.Create.FromStruct([intervals: [first: 'PT2S']]).intervals == ordinary.intervals
     }
 
     def 'separately compiled inherited value routes retain ordinary dispatch and reject descendant shadowing'() {
         given:
-        schema('''
+        schema("""
             @DSL class Base {
                 @Converters(excludeMethods=['parse'])
-                @Field(converters=[{ String raw -> Duration.parse(raw).plusSeconds(3) }])
+                @Field(converters=[{ $inputType raw -> Duration.parse(raw).plusSeconds(3) }])
                 Map<String, Duration> intervals
             }
             @DSL class SameCompilation extends Base {}
-        ''', 'Base')
+        """, 'Base')
         def binaryCompiler = new GroovyClassLoader(artifacts, compilerConfiguration)
-        binaryCompiler.parseClass('''
+        binaryCompiler.parseClass("""
             package mapconverter
             import com.blackbuild.klum.ast.*
             import java.time.Duration
             @DSL class Inherited extends Base {}
             @DSL class Overridden extends Base {
                 @Struct.Name('replacement') @Struct.Ignore @Builder.Method
-                Duration interval(String key, String raw) { Duration.ofSeconds(99) }
+                Duration interval(String key, $inputType raw) { Duration.ofSeconds(99) }
             }
             @DSL class Leaf extends Overridden {}
-        ''')
+        """)
         def inherited = Class.forName('mapconverter.Inherited', false, artifacts)
         def local = Class.forName('mapconverter.SameCompilation', false, artifacts)
         def leaf = Class.forName('mapconverter.Leaf', false, artifacts)
@@ -433,6 +434,9 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
 
         cleanup:
         binaryCompiler?.close()
+
+        where:
+        inputType << ['String', 'CharSequence']
     }
 
     def 'source-free Map association is inspected without initializing Schema or converter code'() {
@@ -528,8 +532,8 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
 
     def 'incomplete or corrupt Map value metadata fails before Schema initialization: #damage'() {
         given:
-        def type = inertSchema()
-        damageContract(damage)
+        def type = inertSchema(inputType)
+        damageContract(damage, inputType)
 
         when:
         new InputContractResolver().read(type)
@@ -540,27 +544,27 @@ class StructuredMapConverterTest extends AbstractDSLSpec {
         !causes(failure).any { it instanceof AssertionError }
 
         where:
-        damage << ['missing projection', 'missing association', 'missing selection', 'missing authority', 'wrong authority',
-                   'wrong descriptor', 'wrong parameter', 'wrong count', 'wrong value type', 'wrong key type', 'raw Map']
+        [inputType, damage] << [['String', 'CharSequence'], ['missing projection', 'missing association', 'missing selection', 'missing authority', 'wrong authority',
+                   'wrong descriptor', 'wrong parameter', 'wrong count', 'wrong value type', 'wrong key type', 'raw Map']].combinations()
     }
 
-    private Class inertSchema() {
-        schema('''
+    private Class inertSchema(String inputType = 'String') {
+        schema("""
             @DSL class Schedule {
                 static { throw new AssertionError('Schema initialized') }
                 @Converters(excludeMethods=['parse'])
-                @Field(converters=[{ String raw -> throw new AssertionError('converter executed') }])
+                @Field(converters=[{ $inputType raw -> throw new AssertionError('converter executed') }])
                 Map<String, Duration> intervals
             }
-        ''')
+        """)
     }
 
-    private void damageContract(String damage) {
+    private void damageContract(String damage, String inputType = 'String') {
         File file = new File(compilerConfiguration.targetDirectory, 'mapconverter/Schedule_DSL$Builder.class')
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith('(Ljava/lang/String;Ljava/lang/String;)')) {
+                if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith("(Ljava/lang/String;Ljava/lang/$inputType;)")) {
                     return null
                 }
                 if (name == 'getIntervals') {

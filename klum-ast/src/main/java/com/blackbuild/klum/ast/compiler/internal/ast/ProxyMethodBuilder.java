@@ -87,6 +87,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
             case "setSingleFieldViaStringConverter" -> "$setSingleFieldViaStringConverter";
             case "addElementToCollectionViaStringConverter" -> "$addElementToCollectionViaStringConverter";
             case "addElementToMapViaStringConverter" -> "$addElementToMapViaStringConverter";
+            case "addElementToCollectionViaCharSequenceConverter" -> "$addElementToCollectionViaCharSequenceConverter";
+            case "addElementToMapViaCharSequenceConverter" -> "$addElementToMapViaCharSequenceConverter";
             case "setSingleFieldViaCharSequenceConverter" -> "$setSingleFieldViaCharSequenceConverter";
             case "createSingleChild" -> "$createSingleChild";
             case "addNewDslElementToCollection" -> "$addNewDslElementToCollection";
@@ -129,6 +131,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return targetType.equals(KLUM_BUILDER_TYPE) && switch (proxyMethodName) {
             case "$copyFromRecipe", "$setSingleField", "$setSingleFieldViaStringConverter", "$setSingleFieldViaCharSequenceConverter", "$createSingleChild",
                     "$addElementToCollectionViaStringConverter", "$addElementToMapViaStringConverter",
+                    "$addElementToCollectionViaCharSequenceConverter", "$addElementToMapViaCharSequenceConverter",
                     "$addNewDslElementToCollection", "$addNewDslElementToMap", "$scheduleApplyLater" -> true;
             default -> false;
         };

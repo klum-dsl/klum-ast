@@ -348,8 +348,8 @@ the reflected List destination distinguishes an element route from scalar assign
 shape and shares a List-of-String payload with interpretation and schema projection. Ordinary element population owns
 conversion, initializers/defaults, order and failure boundaries. No runtime converter discovery or container replacement
 is introduced. Element parameter assertions remain outside this structural-only slice; scalar C1 authority is unchanged.
-L1-B below separately admits scalar Map values. CharSequence-only element routes and other converter-backed collection
-shapes remain deferred; the owned unkeyed sequence slice above is independent. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
+L1-B below separately admits scalar Map values. CHARSEQ-COL below extends exact List/Map routes to CharSequence;
+other converter-backed collection shapes remain deferred; the owned unkeyed sequence slice above is independent. See [L1-A evidence](../implementation/input-round-l1a-evidence.md) for qualification/delivery status.
 
 L1-B extends that same compiler association/count to exact `Map<String, T>` fields of non-DSL scalar values with one
 existing public `(String key, String value)` adder. The declared key must be String and custom key mapping is excluded;
@@ -358,6 +358,15 @@ Interpretation reuses ordinary per-entry population in supplied Map order, prese
 Projection emits String `additionalProperties` without executing user code or inspecting value-parameter constraints.
 No new metadata carrier/version, general Map reinterpretation, whole-container invocation or owned-DSL admission follows.
 See [L1-B evidence](../implementation/input-round-l1b-evidence.md) for qualification/delivery status.
+
+CHARSEQ-COL is the separately accepted exact-dispatch correction for public generated `CharSequence` List-element
+and literal String-keyed Map-value routes. Ordinary Groovy and Struct use the recorded signature, preserving the original
+argument rather than redispatching a runtime String to an unprojected more-specific String factory. Ordinary GString
+calls retain their original argument through CharSequence; Struct still admits only raw Strings. Public competing
+String/CharSequence routes retain ambiguity/rejection; no specificity or author-selected overload policy is introduced.
+The Map payload comes from parameter 1, independently of its String key at parameter 0. Typed generated hooks follow
+scalar S3b's direct linkage and require matched artifacts/recompiled Schema hierarchies. String item/value schema is
+structural only. CharSequence Sets remain excluded. See [CHARSEQ-COL evidence](../implementation/input-round-charseq-col-evidence.md).
 
 Field-declared String converters are included, using their existing generated Builder operations. Same-compilation
 values and third-party adapters are not excluded merely because they lack C1's separately compiled domain-parameter
