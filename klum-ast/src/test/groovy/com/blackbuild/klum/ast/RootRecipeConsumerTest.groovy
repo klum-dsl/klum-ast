@@ -177,7 +177,9 @@ class RootRecipeConsumerTest extends Specification {
         StringBuilder output = new StringBuilder()
         Thread reader = Thread.start { process.inputStream.withReader { output.append(it.text) } }
         boolean completed = process.waitFor(60, TimeUnit.SECONDS)
-        if (!completed) process.destroyForcibly()
+        if (!completed) {
+            process.destroyForcibly()
+        }
         reader.join(5000)
         assert completed : "Timed out: $command\n$output"
         assert (process.exitValue() == 0) == success : "Failed: $command\n$output"
