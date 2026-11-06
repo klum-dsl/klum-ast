@@ -80,7 +80,9 @@ class RootRecipeOverlayTest extends AbstractDSLSpec {
     private Class recipe(String body = 'name "recipe"') {
         createSecondaryClass('''
             package rootrecipe
-            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            import groovy.transform.BaseScript
+            import groovy.util.DelegatingScript
+            @BaseScript DelegatingScript base
         ''' + body, 'ApplicationRecipe.groovy')
     }
 

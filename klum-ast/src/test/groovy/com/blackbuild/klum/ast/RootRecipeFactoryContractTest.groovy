@@ -93,7 +93,9 @@ class RootRecipeFactoryContractTest extends AbstractDSLSpec {
         schema()
         createSecondaryClass('''
             package recipecontract
-            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            import groovy.transform.BaseScript
+            import groovy.util.DelegatingScript
+            @BaseScript DelegatingScript base
             name 'recipe'
         ''', 'ApplicationRecipe.groovy')
 
