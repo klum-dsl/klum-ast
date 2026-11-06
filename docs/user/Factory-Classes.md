@@ -11,6 +11,18 @@ This factory is by default a subclass of:
 
 Note that the implementation of these factories only differ from their base classes in the setting of the generic and the adding of `@DelegatesTo` annotations to the closure parameters. This is necessary for code completion and static type checking (since Groovy does not allow to use a generic parameter of the class in the `@DelegatesTo` annotation).
 
+## Compiled root recipe overlays
+
+Ordinary generated Factories expose `Model From(Class<? extends DelegatingScript> recipe, Closure<?> overlay)` with the
+exact public `Model_DSL.Builder` closure delegate and `DELEGATE_ONLY`. Both keyed and unkeyed roots use this operation.
+It runs recipe → cloned overlay → one root `PostApply`, followed by the ordinary graph lifecycle. It is absent from
+`AsBuilder`, relationship/Collection/Cluster factories and Template APIs. See the
+[executable example and ordering limits](Convenience-Factories.md#compiled-root-recipe-overlays).
+
+Existing Schemas require recompilation to gain the generated member. The existing no-overlay descriptors are unchanged.
+Custom Factories retain their existing override authority; audit a custom `(Class, Closure)` overload when adopting the
+new operation. No classpath or other source overlay is provided by this slice.
+
 ## Custom Creator Classes
 
 Instead of the default base classes, provide a custom creator class that extends the base class and adds creator methods.

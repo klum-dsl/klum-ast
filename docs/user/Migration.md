@@ -9,6 +9,14 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Compiled root recipe overlays
+
+Recompile Schema artifacts with the matched compiler/runtime to expose `Create.From(DelegatingScriptClass) { ... }`.
+Existing no-overlay binary calls remain supported. Audit custom Factory `(Class, Closure)` methods for collisions or
+intentional overrides. The new overload accepts only `DelegatingScript`; regular Script producers keep their existing
+no-overlay operation. See [root recipe overlays](Convenience-Factories.md#compiled-root-recipe-overlays) for timing and
+supported sources. Classpath and other overlay forms remain unavailable.
+
 ### Structured Factory and Builder capabilities
 
 The unreleased development reader `KlumStructuredInput` has been removed without a forwarding alias. Replace its root

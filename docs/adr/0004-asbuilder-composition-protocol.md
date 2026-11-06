@@ -13,7 +13,7 @@ AB-4 (#431) reconciles the compatibility evidence, migration guidance, and relea
 intentional opaque-producer boundary.
 
 Root recipe overlay extension, 2026-11-06: [#829](https://github.com/klum-dsl/klum-ast/issues/829) has an accepted
-closure-only design with recipe → overlay → one root `PostApply`. Implementation is pending; see the
+closure-only design with recipe → overlay → one root `PostApply`. RCP-1 implements the direct-class slice; classpath and full consumer qualification remain pending. See the
 [bounded implementation plan](../implementation/issue-829-root-recipe-overlays.md).
 
 Parent decisions:
