@@ -39,6 +39,51 @@ editor-only metadata path. Follow [IntelliJ completion for DelegatingScripts](Po
 consumers, refresh tasks, and the qualified IDE boundary. A bare `DelegatingScript` without that opt-in still does not
 identify its concrete Builder to IntelliJ.
 
+### Compiled root recipe overlays
+
+`Create.From(recipeClass) { ... }` configures one ordinary root from a compiled `DelegatingScript`, then applies the
+trailing closure to the same Builder before its single root `PostApply`. The closure uses the exact generated public
+Builder delegate with `DELEGATE_ONLY`. A keyed root keeps the recipe class's simple name as its immutable key.
+
+(See: `RootRecipeOverlayDocumentaryTest#'binds a selected completed environment before application validation'`.)
+
+```groovy
+@DSL class OrderEnvironment { String region }
+@DSL class OrderApplication {
+    @Key String name
+    @Required @Field(FieldType.LINK) OrderEnvironment environment
+    String service
+    String image
+    @Default void chooseImage() { image ?= "${service}:${environment.region}" }
+    @Validate void valid() { assert image.endsWith(environment.region) }
+}
+
+// OrderApplicationScript is a separately compiled DelegatingScript with body: service 'orders'.
+def selectedEnvironment = OrderEnvironment.Create.With(region: 'eu')
+def application = OrderApplication.Create.From(OrderApplicationScript) {
+    environment selectedEnvironment
+}
+assert application.environment.is(selectedEnvironment)
+assert application.name == 'OrderApplicationScript'
+assert application.image == 'orders:eu'
+```
+
+Current scoped Templates and root initialization/`PostCreate` run before the recipe. The overlay therefore cannot supply
+context to those operations or to recipe-created children's immediate callbacks. Root `PostApply`, graph phases,
+materialization, required validation and verification see the overlay. Ordinary scalar and LINK setters replace earlier
+values; collection adders append normally. Deferred actions and later lifecycle callbacks retain their ordinary authority.
+The completed external LINK keeps its exact identity and is excluded from owned lifecycle traversal.
+
+Each invocation uses a fresh script and a clone of the overlay before changing its delegate or resolution strategy.
+Captured mutable state remains caller-owned. Failure aborts the ordinary construction session; later invocations remain
+usable. Independent nested roots remain invalid.
+
+Only a direct compiled `DelegatingScript` class plus a closure is supported. Regular Script classes are rejected before
+construction/execution; use their existing no-overlay `Create.From(scriptClass)` route or supply a `DelegatingScript`
+recipe. Classpath, named-map, File/URL/text and `FromStruct` overlays, Template and `AsBuilder` overlays are unavailable.
+Recompile existing Schemas to expose the new generated member; existing no-overlay binary calls remain supported.
+See [Factory contracts](Factory-Classes.md#compiled-root-recipe-overlays) and [migration](Migration.md#compiled-root-recipe-overlays).
+
 ### Optional IntelliJ completion for one script family
 
 Declare the intentional `.environment.groovy` suffix for `example.Environment` in the Schema's `klumSchema.gdsl`

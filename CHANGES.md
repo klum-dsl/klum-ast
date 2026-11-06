@@ -1,5 +1,10 @@
 # Unreleased
 
+- Add ordinary-root `Create.From(DelegatingScriptClass) { ... }`: recipe, cloned closure overlay and one root
+  `PostApply` in one lifecycle, preserving completed external LINK identity. Recompile Schema artifacts for the generated
+  Factory member. Classpath overlays remain pending. See [root recipe overlays](docs/user/Convenience-Factories.md#compiled-root-recipe-overlays)
+  ([#829](https://github.com/klum-dsl/klum-ast/issues/829), RCP-1).
+
 - Reconcile Struct/YAML authoring examples, final 4.2 support inventory and intentional Groovy parity boundaries.
   See [Struct guidance](docs/user/Structured-Input.md#groovy-forms-without-a-struct-equivalent)
   ([#1015](https://github.com/klum-dsl/klum-ast/issues/1015)).
