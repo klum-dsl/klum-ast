@@ -51,6 +51,8 @@ import static com.blackbuild.klum.ast.runtime.internal.DslHelper.requireKeyed;
 @InlineJavadocs
 public class KlumFactory<T> {
 
+    private static final String STRUCT_SOURCE_SUFFIX = ".Create.FromStruct";
+
     protected final Class<T> type;
 
     protected KlumFactory(Class<T> type) {
@@ -353,7 +355,7 @@ public class KlumFactory<T> {
      * @return the Model after normal lifecycle, materialization and validation
      */
     public T FromStruct(Map<?, ?> document) {
-        return FromStruct(document, type.getName() + ".Create.FromStruct");
+        return FromStruct(document, type.getName() + STRUCT_SOURCE_SUFFIX);
     }
 
     /**
@@ -365,6 +367,30 @@ public class KlumFactory<T> {
      */
     public T FromStruct(Map<?, ?> document, String sourceName) {
         return StructuredInputSupport.readRoot(type, document, sourceName);
+    }
+
+    /**
+     * Creates a completed root from structured input followed by ordinary Builder configuration.
+     * Uses a generated diagnostic label. The cloned overlay runs before the single root PostApply.
+     * @param document structured domain Map, including the actual Schema key for a keyed root
+     * @param overlay Builder configuration applied after successful structured input
+     * @return the completed Model after one ordinary root lifecycle
+     */
+    public T FromStruct(Map<?, ?> document, Closure<?> overlay) {
+        return FromStruct(document, type.getName() + STRUCT_SOURCE_SUFFIX, overlay);
+    }
+
+    /**
+     * Creates a completed root from structured input and a cloned closure overlay in one configuration interval.
+     * Templates and root PostCreate precede both inputs. Operations execute in supplied order; a failure skips
+     * the overlay and returns no Model without undoing earlier effects. The ordinary lifecycle tail runs once.
+     * @param document structured domain Map, including the actual Schema key for a keyed root
+     * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+     * @param overlay ordinary Builder configuration applied after successful input, before root PostApply
+     * @return the Model after normal lifecycle, materialization and validation
+     */
+    public T FromStruct(Map<?, ?> document, String sourceName, Closure<?> overlay) {
+        return StructuredInputSupport.readRoot(type, document, sourceName, overlay);
     }
 
     /**
@@ -386,7 +412,7 @@ public class KlumFactory<T> {
          * @return the completed Model after one ordinary root lifecycle
          */
         public T FromStruct(String rootKey, Map<?, ?> body) {
-            return FromStruct(rootKey, body, type.getName() + ".Create.FromStruct");
+            return FromStruct(rootKey, body, type.getName() + STRUCT_SOURCE_SUFFIX);
         }
 
         /**
@@ -399,6 +425,31 @@ public class KlumFactory<T> {
          */
         public T FromStruct(String rootKey, Map<?, ?> body, String sourceName) {
             return StructuredInputSupport.readRoot(type, rootKey, body, sourceName);
+        }
+
+        /**
+         * Creates a keyed root from a keyless structured body followed by a cloned ordinary Builder overlay.
+         * Uses a generated diagnostic label and one ordinary root lifecycle.
+         * @param rootKey explicit construction identity, available before PostCreate
+         * @param body structured domain Map that must not contain the Schema root key
+         * @param overlay Builder configuration applied after successful structured input
+         * @return the completed Model after one ordinary root lifecycle
+         */
+        public T FromStruct(String rootKey, Map<?, ?> body, Closure<?> overlay) {
+            return FromStruct(rootKey, body, type.getName() + STRUCT_SOURCE_SUFFIX, overlay);
+        }
+
+        /**
+         * Creates a keyed root from a keyless structured body and cloned overlay before one root PostApply.
+         * Templates and root PostCreate precede both inputs; failure skips later work without rollback.
+         * @param rootKey explicit construction identity; the overlay cannot supply or replace it
+         * @param body structured domain Map that must not contain the Schema root key, even an equal value
+         * @param sourceName nonempty opaque diagnostic context, never opened or used to derive identity
+         * @param overlay ordinary Builder configuration applied after successful input, before root PostApply
+         * @return the Model after normal lifecycle, materialization and validation
+         */
+        public T FromStruct(String rootKey, Map<?, ?> body, String sourceName, Closure<?> overlay) {
+            return StructuredInputSupport.readRoot(type, rootKey, body, sourceName, overlay);
         }
 
         @Override

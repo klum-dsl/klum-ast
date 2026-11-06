@@ -151,15 +151,17 @@ reviews are required before the local handoff. Their final results and commit id
 handoff; local success does not substitute for eventual hosted PR gates. Tracker impact is a proposed `Related: #829`
 relationship for Hive reconciliation; no issue-state, label, milestone or curation mutation is part of this slice.
 
-## FromStruct assessment — recommended follow-on, not accepted scope
+## FromStruct assessment — subsequent #1038 extension
 
-Yes: the same **input → overlay → one root PostApply** contract fits structured root construction. Both current
-`StructuredInputSupport.readRoot` routes prepare a Domain with existing key prerequisites, then pass `domain::execute`
-to `FactoryHelper.createWithConfiguration`. A follow-on can execute that Domain and the cloned overlay in the same
-Consumer. Calling public `applyStruct` inside `Create.With` is unsuitable: ADR 0032 intentionally gives it another
+The separately accepted [#1038](https://github.com/klum-dsl/klum-ast/issues/1038) implements the same
+**input → overlay → one root PostApply** contract for structured root construction. The earlier feasibility assessment
+below records the owning seam; see [root Builder overlays](../user/Structured-Input.md#root-builder-overlays) for the
+implemented user contract. At the assessment base both `StructuredInputSupport.readRoot` routes prepared a Domain
+with existing key prerequisites and passed `domain::execute` to `FactoryHelper.createWithConfiguration`. #1038 executes
+that Domain and the cloned overlay in the same Consumer. Calling public `applyStruct` inside `Create.With` is unsuitable: ADR 0032 intentionally gives it another
 PostApply. Do not round-trip through an intermediate completed Model.
 
-Illustrative future syntax, unavailable today:
+The separately implemented root syntax is:
 
 ```groovy
 OrderApplication.Create.FromStruct([name: 'orders', image: 'orders:stable']) {
@@ -170,10 +172,10 @@ OrderApplication.Create.FromStruct('orders', [image: 'orders:stable'], 'orders.y
 }
 ```
 
-If separately accepted, append a Closure to each existing ordinary-root signature: `(Map, Closure)`,
+#1038 appends a Closure to each existing ordinary-root signature: `(Map, Closure)`,
 `(Map, String sourceName, Closure)`, keyed `(String rootKey, Map, Closure)` and
 `(String rootKey, Map, String sourceName, Closure)`. Keep generated delegate/return metadata consistent with #829.
-This would be a bounded root Factory extension, not a new structured grammar or composition coordinator.
+This is a bounded root Factory extension, not a new structured grammar or composition coordinator.
 
 Preserve all existing document/body key authority, exact concrete type checks, ordered partial-failure behavior,
 sourceName diagnostics and malformed-input rejection. The overlay cannot supply a missing construction key, repair an
@@ -182,5 +184,5 @@ their addition does not make LINK objects or references valid structured payload
 Root PostCreate and structured-created child callback timing have the same limits as the recipe overlay. Do not project
 these overloads to Template factories, AsBuilder or inherited Builder `applyStruct` without a separate decision.
 
-The source seam establishes design feasibility. No new FromStruct behavior, API, executable probe or adopter result was
-implemented/qualified here. Acceptance would need a separate explicit scope decision and its owning tracker relationship.
+The source seam established feasibility only during #829. #1038 separately owns the implementation and qualification;
+no adopter result or release qualification follows from #829's evidence.

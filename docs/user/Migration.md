@@ -38,6 +38,16 @@ and Schema artifacts. No released 4.1 reader compatibility is affected. `Create.
 unchanged. See [structured Factory roots](Structured-Input.md#factory-roots),
 [active Builders](Structured-Input.md#apply-to-an-active-builder), and [Factory navigation](Convenience-Factories.md#structured-documents-and-bodies).
 
+### Structured root Builder overlays
+
+Ordinary root `FromStruct` signatures now accept a trailing closure, running Struct input then a cloned Builder overlay
+before one root PostApply. Existing no-overlay descriptors and ordered partial-failure semantics remain unchanged.
+Recompile Schema artifacts to expose the generated Factory members and refresh consumers/mirrors. Audit custom
+`FromStruct` overloads for collisions; their existing override authority remains. Untyped null in the source-name position
+may now be ambiguous with a Closure: cast to `String` for an explicit diagnostic label (null still rejects), or `Closure<?>`
+for no overlay. This applies to both document and explicit-key body forms. No Template/AsBuilder/Builder overlay variant
+is added. See [root Builder overlays](Structured-Input.md#root-builder-overlays).
+
 ### Structured input Template bodies
 
 The additive `Create.Template.FromStruct` entry point accepts a parsed keyless root body and returns a reusable Template. Supply

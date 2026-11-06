@@ -32,6 +32,7 @@ import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Kind;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Role;
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
+import groovy.lang.Closure;
 import groovy.lang.MetaMethod;
 import groovyjarjarasm.asm.ClassReader;
 import groovyjarjarasm.asm.ClassVisitor;
@@ -63,10 +64,14 @@ public final class StructuredInputSupport {
     private StructuredInputSupport() { }
 
     public static <T> T readRoot(Class<T> type, Object parsed, String sourceName) {
+        return readRoot(type, parsed, sourceName, null);
+    }
+
+    public static <T> T readRoot(Class<T> type, Object parsed, String sourceName, Closure<?> overlay) {
         requireSource(sourceName);
         requireConcrete(type, sourceName);
         Domain domain = new Traversal(sourceName).domain(type, parsed, "", Position.ROOT);
-        return FactoryHelper.createWithConfiguration(type, domain.key(), domain::execute);
+        return createRoot(type, domain.key(), domain, overlay);
     }
 
     public static <T> T readTemplate(Class<T> type, Object parsed, String sourceName) {
@@ -83,13 +88,25 @@ public final class StructuredInputSupport {
     }
 
     public static <T> T readRoot(Class<T> type, String rootKey, Object parsed, String sourceName) {
+        return readRoot(type, rootKey, parsed, sourceName, null);
+    }
+
+    public static <T> T readRoot(Class<T> type, String rootKey, Object parsed, String sourceName, Closure<?> overlay) {
         requireSource(sourceName);
         requireConcrete(type, sourceName);
         Traversal traversal = new Traversal(sourceName);
         Domain domain = traversal.domain(type, parsed, "", Position.EXPLICIT_ROOT);
         if (DslHelper.isKeyed(type) != (rootKey != null))
             throw new KlumModelException(sourceName + ": supply an explicit rootKey for a keyed Schema and null for an unkeyed Schema");
-        return FactoryHelper.createWithConfiguration(type, rootKey, domain::execute);
+        return createRoot(type, rootKey, domain, overlay);
+    }
+
+    private static <T> T createRoot(Class<T> type, String rootKey, Domain domain, Closure<?> overlay) {
+        return FactoryHelper.createWithConfiguration(type, rootKey, builder -> {
+            domain.execute(builder);
+            if (overlay != null)
+                builder.applyOnly(null, (Closure<?>) overlay.clone());
+        });
     }
 
     public static <B extends KlumBuilder<?>> B applyToBuilder(B target, Object parsed, String sourceName) {

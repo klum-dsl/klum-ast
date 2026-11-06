@@ -1,5 +1,12 @@
 # Unreleased
 
+- Add trailing ordinary Builder closure overlays to root `Create.FromStruct` document and explicit-key body forms,
+  with optional diagnostic source names: Struct operations, cloned overlay, then one root PostApply and ordinary
+  lifecycle tail. Preserve construction-key checks, ordered failures and completed external LINK identity. Recompile
+  Schema artifacts and type ambiguous null source/overlay arguments explicitly. See
+  [root Builder overlays](docs/user/Structured-Input.md#root-builder-overlays)
+  ([#1038](https://github.com/klum-dsl/klum-ast/issues/1038)).
+
 - Add ordinary-root `Create.From(DelegatingScriptClass) { ... }`, `Create.FromClasspath { ... }` and
   `Create.FromClasspath(modelLoader) { ... }`: recipe, cloned closure overlay and one root
   `PostApply` in one lifecycle, preserving completed external LINK identity. Recompile Schema artifacts for the generated
