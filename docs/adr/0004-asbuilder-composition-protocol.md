@@ -12,6 +12,10 @@ AB-4 (#431) reconciles the compatibility evidence, migration guidance, and relea
 [implementation context](../implementation/adr-0004-asbuilder-composition.md) records the executable coverage and the
 intentional opaque-producer boundary.
 
+Root recipe overlay extension, 2026-11-06: [#829](https://github.com/klum-dsl/klum-ast/issues/829) has an accepted
+closure-only design with recipe → overlay → one root `PostApply`. Implementation is pending; see the
+[bounded implementation plan](../implementation/issue-829-root-recipe-overlays.md).
+
 Parent decisions:
 
 - [ADR 0003 — Builder-first materialization of DSL Objects](0003-builder-first-materialization.md)
@@ -49,6 +53,57 @@ object and becomes invalid after the lifecycle. It is deliberately narrower than
 as composition at one relationship entry, while an already claimed Builder or completed model is an aggregation entry.
 Aggregation-only `LINK` rejects fresh Builders. The distinction is per single value, collection element, or map value;
 an optional collection or map may therefore mix owned and aggregation targets.
+
+### Root compiled-recipe overlays — #829 extension, 2026-11-06
+
+The maintainer selected closure-only overlays and the order **recipe, overlay, one root `PostApply`**. Add these ordinary
+root Factory overloads; this is an extension of the root input contract, not of active-session composition:
+
+```java
+T From(Class<? extends DelegatingScript> recipe, Closure<?> overlay);
+T FromClasspath(Closure<?> overlay);
+T FromClasspath(ClassLoader loader, Closure<?> overlay);
+```
+
+Generated Factories return the exact Model type and expose their public generated Builder as the closure delegate with
+`DELEGATE_ONLY`. The closure performs ordinary Builder calls:
+
+```groovy
+OrderApplication.Create.From(OrderApplicationScript) {
+    environment selectedEnvironment
+}
+OrderApplication.Create.FromClasspath {
+    environment selectedEnvironment
+}
+```
+
+Create one ordinary root Builder, apply current scoped Templates and root `PostCreate` normally, execute a fresh compiled
+DelegatingScript instance, execute an invocation-local clone of the overlay, and then run the root's `PostApply` once.
+The ordinary graph phases, materialization, validation and verification follow. Never apply the overlay through an
+operation that adds another `PostApply`. The context is available from root `PostApply` through the graph phases; it is
+not available in root initializers/`PostCreate`, earlier recipe code, or recipe-created children's immediate callbacks.
+
+Later ordinary scalar/LINK setters replace earlier values. Collection operations, custom Builder methods, deferred
+actions and later lifecycle callbacks retain their established semantics; the overlay has no permanent priority. A
+completed ordinary LINK target retains its identity through the existing sealed-wrapper protocol, without copying,
+ownership, lifecycle replay, or a new registry. Templates remain invalid relationship values.
+
+For keyed roots, preserve the script class's simple name as identity; unkeyed roots remain unkeyed. Preserve marker
+resolution, loader selection, diagnostic context and causes. Existing no-overlay overloads stay unchanged. A regular
+Script remains an opaque completed-root producer: overlay overloads reject it before construction/execution with
+guidance to use the ordinary no-overlay route or provide a DelegatingScript. Static direct-class calls additionally
+benefit from the narrower generic bound; dynamic/erased and classpath calls require the runtime check.
+
+Fresh Script instances and cloned overlay delegates isolate invocations; captured mutable state remains caller-owned.
+Failure invalidates the normal Construction session without promising rollback of user side effects. Preserve nested
+independent-root rejection and concurrent ordinary-root isolation. Add no global or ThreadLocal context.
+
+No named-map overlays, File/URL/text extensions, ordered source composition (#304), Builder materialization operation,
+synthetic Script-as-closure executor, `Create.AsBuilder`/relationship projection, Template overlay, Spring API, or
+structured-input/Jackson/JSON Schema change is accepted here. Adding the same completion interval to `FromStruct` is a
+compatible follow-on recommendation recorded in the implementation plan, not an implemented or accepted API expansion.
+Ownership, serialization and Model/Builder state boundaries remain unchanged. Implementation must qualify generated
+Factory signatures, mirrors, Java/static/dynamic Groovy 3/4/5 and applicable binary/JPMS consumers.
 
 ### Give Template definition a separate composition scope
 
