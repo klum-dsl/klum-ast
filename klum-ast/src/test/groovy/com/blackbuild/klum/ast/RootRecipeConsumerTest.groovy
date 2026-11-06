@@ -151,7 +151,7 @@ class RootRecipeConsumerTest extends Specification {
         assert mirror.contains('FromClasspath(ClassLoader')
         assert mirror.contains('@DelegatesTo(strategy = 3, value = Builder.class) Closure<?>')
         assert mirror.contains('strategy = 3') // Closure.DELEGATE_ONLY in the Java source mirror.
-        assert mirror.contains('Application FromStruct(Map<?, ?> document, @DelegatesTo')
+        assert (mirror =~ /Application FromStruct\(Map<\?, \?> \w+,\s+@DelegatesTo\(strategy = 3, value = Builder\.class\) Closure<\?> \w+\)/).find()
         mirrors.toFile().deleteDir()
     }
 
