@@ -119,6 +119,81 @@ class RootRecipeFactoryContractTest extends AbstractDSLSpec {
         keyed << [false, true]
     }
 
+    def 'custom Factory overlay signatures retain override authority'() {
+        given:
+        createClass '''
+            package customrecipe
+            import groovy.util.DelegatingScript
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+            @DSL class Application {
+                String name
+                static class Factory extends KlumFactory.Unkeyed<Application> {
+                    Factory() { super(Application) }
+                    @Override Application From(Class<? extends DelegatingScript> recipe, Closure<?> overlay) {
+                        With(name: 'custom-direct')
+                    }
+                    @Override Application FromClasspath(Closure<?> overlay) { With(name: 'custom-default') }
+                    @Override Application FromClasspath(ClassLoader loader, Closure<?> overlay) { With(name: 'custom-loader') }
+                }
+            }
+        '''
+        def client = createSecondaryClass '''
+            package customrecipe
+            import groovy.transform.CompileStatic
+            import groovy.util.DelegatingScript
+            @CompileStatic class Client {
+                static List<String> names() {
+                    [Application.Create.From(DelegatingScript) {}.name,
+                     Application.Create.FromClasspath {}.name,
+                     Application.Create.FromClasspath(Application.classLoader) {}.name]
+                }
+            }
+        '''
+
+        when:
+        def names = client.names()
+
+        then:
+        names == ['custom-direct', 'custom-default', 'custom-loader']
+    }
+
+    def 'typed null classpath arguments select their intended overloads'() {
+        given:
+        schema()
+
+        when:
+        createSecondaryClass '''
+            package recipecontract
+            import groovy.transform.CompileStatic
+            @CompileStatic class TypedNullClient {
+                static Application loader() { Application.Create.FromClasspath((ClassLoader) null) }
+                static Application overlay() { Application.Create.FromClasspath((Closure<?>) null) }
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def 'untyped null classpath argument exposes the additive source ambiguity'() {
+        given:
+        schema()
+
+        when:
+        createSecondaryClass '''
+            package recipecontract
+            import groovy.transform.CompileStatic
+            @CompileStatic class AmbiguousClient {
+                static Application create() { Application.Create.FromClasspath(null) }
+            }
+        '''
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains('ambiguous')
+        error.message.contains('FromClasspath')
+    }
+
     def 'static consumer accepts the exact Builder delegate and Model result'() {
         given:
         schema()
