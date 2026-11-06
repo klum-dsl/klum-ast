@@ -302,7 +302,7 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         thrown(KlumModelException)
     }
 
-    def 'CharSequence-only List element factories remain outside this exact String slice'() {
+    def 'CharSequence-only List converters use their projected payload signature'() {
         given:
         def type = schema('@DSL class Schedule { List<Duration> intervals }')
 
@@ -312,31 +312,32 @@ class StructuredListConverterTest extends AbstractDSLSpec {
 
         then:
         ordinary.intervals == [Duration.ofSeconds(2)]
-        !contract.entries().containsKey('intervals')
+        contract.entries().intervals.payload().item().type() == CharSequence
+        type.Create.FromStruct([intervals: ['PT2S']]).intervals == ordinary.intervals
     }
 
     def 'separately compiled inherited element routes retain ordinary dispatch and reject descendant shadowing'() {
         given:
-        schema('''
+        schema("""
             @DSL class Base {
                 @Converters(excludeMethods=['parse'])
-                @Field(converters=[{ String raw -> Duration.parse(raw).plusSeconds(3) }])
+                @Field(converters=[{ $inputType raw -> Duration.parse(raw).plusSeconds(3) }])
                 List<Duration> intervals
             }
             @DSL class SameCompilation extends Base {}
-        ''', 'Base')
+        """, 'Base')
         def binaryCompiler = new GroovyClassLoader(artifacts, compilerConfiguration)
-        binaryCompiler.parseClass('''
+        binaryCompiler.parseClass("""
             package listconverter
             import com.blackbuild.klum.ast.*
             import java.time.Duration
             @DSL class Inherited extends Base {}
             @DSL class Overridden extends Base {
                 @Struct.Name('replacement') @Struct.Ignore @Builder.Method
-                Duration interval(String raw) { Duration.ofSeconds(99) }
+                Duration interval($inputType raw) { Duration.ofSeconds(99) }
             }
             @DSL class Leaf extends Overridden {}
-        ''')
+        """)
         def inherited = Class.forName('listconverter.Inherited', false, artifacts)
         def local = Class.forName('listconverter.SameCompilation', false, artifacts)
         def leaf = Class.forName('listconverter.Leaf', false, artifacts)
@@ -368,6 +369,9 @@ class StructuredListConverterTest extends AbstractDSLSpec {
 
         cleanup:
         binaryCompiler?.close()
+
+        where:
+        inputType << ['String', 'CharSequence']
     }
 
     def 'source-free List association is inspected without initializing Schema or converter code'() {
@@ -463,8 +467,8 @@ class StructuredListConverterTest extends AbstractDSLSpec {
 
     def 'incomplete or corrupt List element metadata fails before Schema initialization: #damage'() {
         given:
-        def type = inertSchema()
-        damageContract(damage)
+        def type = inertSchema(inputType)
+        damageContract(damage, inputType)
 
         when:
         new InputContractResolver().read(type)
@@ -475,27 +479,27 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         !causes(failure).any { it instanceof AssertionError }
 
         where:
-        damage << ['missing projection', 'missing association', 'missing selection', 'missing authority', 'wrong authority',
-                   'wrong descriptor', 'wrong parameter', 'wrong count', 'wrong element type', 'raw List']
+        [inputType, damage] << [['String', 'CharSequence'], ['missing projection', 'missing association', 'missing selection', 'missing authority', 'wrong authority',
+                   'wrong descriptor', 'wrong parameter', 'wrong count', 'wrong element type', 'raw List']].combinations()
     }
 
-    private Class inertSchema() {
-        schema('''
+    private Class inertSchema(String inputType = 'String') {
+        schema("""
             @DSL class Schedule {
                 static { throw new AssertionError('Schema initialized') }
                 @Converters(excludeMethods=['parse'])
-                @Field(converters=[{ String raw -> throw new AssertionError('converter executed') }])
+                @Field(converters=[{ $inputType raw -> throw new AssertionError('converter executed') }])
                 List<Duration> intervals
             }
-        ''')
+        """)
     }
 
-    private void damageContract(String damage) {
+    private void damageContract(String damage, String inputType = 'String') {
         File file = new File(compilerConfiguration.targetDirectory, 'listconverter/Schedule_DSL$Builder.class')
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith('(Ljava/lang/String;)')) return null
+                if (damage == 'missing projection' && name == 'interval' && descriptor.startsWith("(Ljava/lang/$inputType;)")) return null
                 if (name == 'getIntervals') {
                     if (damage == 'wrong element type') {
                         signature = '()Ljava/util/List<Ljava/lang/Object;>;'

@@ -270,6 +270,13 @@ class ConverterBuilder {
                     && STRING_TYPE.equals(sourceParameters[0].getOriginType())) {
                 return createProxyMethod(methodName, "addElementToMapViaStringConverter");
             }
+            if (sourceParameters.length == 1
+                    && sourceParameters[0].getOriginType().getName().equals(CharSequence.class.getName())) {
+                if (fieldNode.getType().redirect().getName().equals(List.class.getName()))
+                    return createProxyMethod(methodName, "addElementToCollectionViaCharSequenceConverter");
+                if (StructuredInputConverter.isMapField(fieldNode) && withKey)
+                    return createProxyMethod(methodName, "addElementToMapViaCharSequenceConverter");
+            }
             if (!isCollection(fieldNode.getType()) && !isMap(fieldNode.getType()) && sourceParameters.length == 1
                     && StructuredInputConverter.isStringInput(sourceParameters[0].getOriginType())) {
                 String hook = STRING_TYPE.equals(sourceParameters[0].getOriginType())

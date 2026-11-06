@@ -62,20 +62,18 @@ class CompiledConverterJsonSchemaTest extends Specification {
         body == schema
         ['duration', 'natural-duration', 'local', 'adapted', 'overloaded', 'path', 'generic', 'subtype', 'sequence'].every { fields[it].type == 'string' && !fields[it].containsKey('allOf')
                 && !fields[it].containsKey('x-klum-converter-constraint-source') }
-        ['intervals', 'local-values', 'adapted-values', 'inherited-ports', 'generic-values', 'interval-set', 'local-set', 'adapted-set', 'inherited-set', 'generic-set'].every {
+        ['sequence-values', 'intervals', 'local-values', 'adapted-values', 'inherited-ports', 'generic-values', 'interval-set', 'local-set', 'adapted-set', 'inherited-set', 'generic-set'].every {
             fields[it].type == 'array' && fields[it].items == [type: 'string']
                     && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
         }
-        !fields.containsKey('sequence-values')
         !fields.containsKey('sequence-set')
         ['interval-set', 'local-set', 'adapted-set', 'inherited-set', 'generic-set'].every {
             !fields[it].containsKey('uniqueItems') && !fields[it].containsKey('minItems') && !fields[it].containsKey('maxItems')
         }
-        ['map-values', 'map-intervals', 'adapted-map', 'inherited-map', 'generic-map'].every {
+        ['sequence-map', 'map-values', 'map-intervals', 'adapted-map', 'inherited-map', 'generic-map'].every {
             fields[it].type == 'object' && fields[it].additionalProperties == [type: 'string']
                     && !fields[it].containsKey('allOf') && !fields[it].containsKey('x-klum-converter-constraint-source')
         }
-        !fields.containsKey('sequence-map')
         !fields.containsKey('integer-key-map')
         !fields.containsKey('mapped-values')
         fields.duration.description.contains('ISO-8601 duration.')

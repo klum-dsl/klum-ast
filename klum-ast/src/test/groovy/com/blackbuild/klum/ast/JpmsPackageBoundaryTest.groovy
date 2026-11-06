@@ -265,7 +265,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         @Override
                         void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
                                                     Object... bootstrapMethodArguments) {
-                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter', '$addElementToCollectionViaStringConverter', '$addElementToMapViaStringConverter'] })
+                            if (bootstrapMethodArguments.any { it in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter', '$addElementToCollectionViaStringConverter', '$addElementToMapViaStringConverter', '$addElementToCollectionViaCharSequenceConverter', '$addElementToMapViaCharSequenceConverter'] })
                                 unresolvedSetters << "$name$descriptor"
                         }
 
@@ -273,7 +273,7 @@ class JpmsPackageBoundaryTest extends Specification {
                         void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
                                              boolean isInterface) {
                             if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
-                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter', '$addElementToCollectionViaStringConverter', '$addElementToMapViaStringConverter'])
+                                    methodName in ['$setSingleField', '$setSingleFieldViaStringConverter', '$setSingleFieldViaCharSequenceConverter', '$addElementToCollectionViaStringConverter', '$addElementToMapViaStringConverter', '$addElementToCollectionViaCharSequenceConverter', '$addElementToMapViaCharSequenceConverter'])
                                 directlyLinkedSetters << "$name$descriptor"
                         }
                     }
@@ -287,9 +287,9 @@ class JpmsPackageBoundaryTest extends Specification {
                 "Generated Set-element converter must directly link its runtime hook: $directlyLinkedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'interval(Ljava/lang/CharSequence;)Ljava/time/Duration;' }:
                 "Generated CharSequence converter must directly link its runtime hook: $directlyLinkedSetters"
-        assert directlyLinkedSetters.any { it.toString() == 'delay(Ljava/lang/String;)Ljava/time/Duration;' }:
+        assert directlyLinkedSetters.any { it.toString() == 'delay(Ljava/lang/CharSequence;)Ljava/time/Duration;' }:
                 "Generated List-element converter must directly link its runtime hook: $directlyLinkedSetters"
-        assert directlyLinkedSetters.any { it.toString() == 'duration(Ljava/lang/String;Ljava/lang/String;)Ljava/time/Duration;' }:
+        assert directlyLinkedSetters.any { it.toString() == 'duration(Ljava/lang/String;Ljava/lang/CharSequence;)Ljava/time/Duration;' }:
                 "Generated Map-value converter must directly link its runtime hook: $directlyLinkedSetters"
         assert unresolvedSetters.empty: "Generated setters must not use invokedynamic for \$setSingleField: $unresolvedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'name(Ljava/lang/String;)Ljava/lang/String;' }:
@@ -838,12 +838,10 @@ class JpmsPackageBoundaryTest extends Specification {
                 @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Duration timeout
                 Duration interval
-                @Converters(excludeMethods=['parse'])
-                @Field(converters = [{ String value -> Duration.parse(value) }]) List<Duration> delays
+                List<Duration> delays
                 @Converters(excludeMethods = ['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Set<Duration> pauses
-                @Converters(excludeMethods=['parse'])
-                @Field(converters = [{ String value -> Duration.parse(value) }]) Map<String, Duration> durations
+                Map<String, Duration> durations
                 List<VirtualEndpoint> routeSequence
                 Set<VirtualEndpoint> routeSet
                 String virtualHost

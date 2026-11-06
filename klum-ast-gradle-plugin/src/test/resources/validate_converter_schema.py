@@ -112,7 +112,7 @@ for lane in ("3", "4", "5"):
                           text=True, capture_output=True, check=True)
     count += len(rows) * 3 + 6
     # #952 L1-A: exact String elements, no value-specific or C1 parameter assertions on items.
-    for name in ("intervals", "local-values", "adapted-values", "inherited-ports", "generic-values"):
+    for name in ("sequence-values", "intervals", "local-values", "adapted-values", "inherited-ports", "generic-values"):
         assert properties[name]["type"] == "array"
         assert properties[name]["items"] == {"type": "string"}
         assert "allOf" not in properties[name]
@@ -124,9 +124,6 @@ for lane in ("3", "4", "5"):
                                 ([["one"]], False), ([{}], False), (["one", 2, "later"], False)):
             assert validator.is_valid({name: value}) == expected, (lane, name, value)
             list_count += 1
-    for name in ("sequence-values",):
-        assert not validator.is_valid({name: []}), (lane, name)
-        list_count += 1
     # #952 SET-SEQ: exact String elements, no value-specific or C1 parameter assertions on items.
     for name in ("interval-set", "local-set", "adapted-set", "inherited-set", "generic-set"):
         assert properties[name]["type"] == "array"
@@ -145,7 +142,7 @@ for lane in ("3", "4", "5"):
         assert not validator.is_valid({name: []}), (lane, name)
         set_count += 1
     # #952 L1-B: literal data keys, exact String values and a closed root.
-    for name in ("map-values", "map-intervals", "adapted-map", "inherited-map", "generic-map"):
+    for name in ("sequence-map", "map-values", "map-intervals", "adapted-map", "inherited-map", "generic-map"):
         assert properties[name]["type"] == "object"
         assert properties[name]["additionalProperties"] == {"type": "string"}
         assert "allOf" not in properties[name]
@@ -158,7 +155,7 @@ for lane in ("3", "4", "5"):
                                 ({"first": "one", "second": 2, "later": "three"}, False)):
             assert validator.is_valid({name: value}) == expected, (lane, name, value)
             map_count += 1
-    for name in ("sequence-map", "integer-key-map", "mapped-values", "unknown"):
+    for name in ("integer-key-map", "mapped-values", "unknown"):
         assert not validator.is_valid({name: {}}), (lane, name)
         map_count += 1
 print(f"C1 actual-output oracle: {len(rows)} JDK checks and {count} ECMA/Draft checks passed across G3/G4/G5; node={node.stdout.strip()}")

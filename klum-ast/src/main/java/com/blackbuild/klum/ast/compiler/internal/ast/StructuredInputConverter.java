@@ -84,8 +84,9 @@ final class StructuredInputConverter {
         if (routes == null || routes.size() != 1 || getFieldType(field) != FieldType.DEFAULT
                 || !StructuredInputAdmissionPlan.supportsScalarConverterInput(destination)) return null;
         Route route = routes.get(0);
-        // Container routes admit exact String values only.
-        if ((isSequenceField(field) || isMapField(field)) && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
+        // Set routes retain exact String input; CharSequence containers are bounded to List and Map.
+        if (field.getType().redirect().getName().equals(Set.class.getName())
+                && !ClassHelper.STRING_TYPE.equals(route.source().getParameters()[0].getOriginType())) return null;
         if (isMapField(field) && !literalStringKeys(field)) return null;
         if (route.generated() == null) return null;
         MethodNode api = GeneratedDslSupport.publicProjectionOf(route.generated());
