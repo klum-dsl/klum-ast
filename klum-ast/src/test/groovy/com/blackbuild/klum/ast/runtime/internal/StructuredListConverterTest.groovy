@@ -213,7 +213,7 @@ class StructuredListConverterTest extends AbstractDSLSpec {
         thrown(KlumModelException)
 
         where:
-        target << ['List<Object>', 'List<List<Interval>>', 'Set<Interval>',
+        target << ['List<Object>', 'List<List<Interval>>', 'SortedSet<Interval>',
                    'Interval[]']
     }
 

@@ -85,6 +85,7 @@ count = 0
 structural_count = 0
 list_count = 0
 map_count = 0
+set_count = 0
 for lane in ("3", "4", "5"):
     schema = json.loads((root / ("converter-" + lane) / "converter.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
@@ -126,6 +127,23 @@ for lane in ("3", "4", "5"):
     for name in ("sequence-values",):
         assert not validator.is_valid({name: []}), (lane, name)
         list_count += 1
+    # #952 SET-SEQ: exact String elements, no value-specific or C1 parameter assertions on items.
+    for name in ("interval-set", "local-set", "adapted-set", "inherited-set", "generic-set"):
+        assert properties[name]["type"] == "array"
+        assert properties[name]["items"] == {"type": "string"}
+        assert not {"uniqueItems", "minItems", "maxItems"}.intersection(properties[name])
+        assert "allOf" not in properties[name]
+        assert "x-klum-converter-constraint-source" not in properties[name]
+        for value, expected in (([], True), ([""], True), (["one", "two"], True), (["one", "one"], True),
+                                (["bad", "unicode-✓", "\\n"], True),
+                                (None, False), ("one", False), ({}, False),
+                                ([None], False), ([1], False), ([True], False),
+                                ([["one"]], False), ([{}], False), (["one", 2, "later"], False)):
+            assert validator.is_valid({name: value}) == expected, (lane, name, value)
+            set_count += 1
+    for name in ("sequence-set",):
+        assert not validator.is_valid({name: []}), (lane, name)
+        set_count += 1
     # #952 L1-B: literal data keys, exact String values and a closed root.
     for name in ("map-values", "map-intervals", "adapted-map", "inherited-map", "generic-map"):
         assert properties[name]["type"] == "object"
@@ -149,3 +167,5 @@ print(f"S3a/S3b actual-output oracle: {structural_count} structural String check
 print(f"L1-A actual-output oracle: {list_count} List grammar checks passed across G3/G4/G5")
 
 print(f"L1-B actual-output oracle: {map_count} Map grammar checks passed across G3/G4/G5")
+
+print(f"SET-SEQ actual-output oracle: {set_count} ordered Set input grammar checks passed across G3/G4/G5")

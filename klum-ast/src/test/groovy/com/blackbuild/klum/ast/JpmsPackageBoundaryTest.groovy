@@ -283,6 +283,8 @@ class JpmsPackageBoundaryTest extends Specification {
 
         assert directlyLinkedSetters.any { it.toString() == 'timeout(Ljava/lang/String;)Ljava/time/Duration;' }:
                 "Generated String converter must directly link its runtime hook: $directlyLinkedSetters"
+        assert directlyLinkedSetters.any { it.toString() == 'pause(Ljava/lang/String;)Ljava/time/Duration;' }:
+                "Generated Set-element converter must directly link its runtime hook: $directlyLinkedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'interval(Ljava/lang/CharSequence;)Ljava/time/Duration;' }:
                 "Generated CharSequence converter must directly link its runtime hook: $directlyLinkedSetters"
         assert directlyLinkedSetters.any { it.toString() == 'delay(Ljava/lang/String;)Ljava/time/Duration;' }:
@@ -810,6 +812,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import java.lang.annotation.RetentionPolicy
             import java.lang.annotation.Target
             import java.util.List
+            import java.util.Set
             import java.time.Duration
 
             @Retention(RetentionPolicy.RUNTIME)
@@ -837,6 +840,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 Duration interval
                 @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) List<Duration> delays
+                @Converters(excludeMethods = ['parse'])
+                @Field(converters = [{ String value -> Duration.parse(value) }]) Set<Duration> pauses
                 @Converters(excludeMethods=['parse'])
                 @Field(converters = [{ String value -> Duration.parse(value) }]) Map<String, Duration> durations
                 List<VirtualEndpoint> routeSequence
@@ -1070,6 +1075,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import java.lang.annotation.Annotation;
             import java.lang.reflect.Field;
             import java.util.List;
+            import java.util.Set;
             import java.util.Map;
             import java.time.Duration;
             import java.util.ServiceLoader;
@@ -1108,11 +1114,13 @@ class JpmsPackageBoundaryTest extends Specification {
                     });
                     if (!selected.getName().equals("selected:Java") || !selected.getName().equals(directSelected.getName()))
                         throw new AssertionError("Selected public String operation differs from direct Java dispatch");
-                    Station converted = Station.Create.FromStruct(Map.of("timeout", "PT30S", "interval", "PT45S", "delays", List.of("PT5S", "PT2S"), "durations", Map.of("primary", "PT7S")), "converter.json");
+                    Station converted = Station.Create.FromStruct(Map.of("timeout", "PT30S", "interval", "PT45S", "delays", List.of("PT5S", "PT2S"), "pauses", List.of("PT5S", "PT2S", "PT5S"), "durations", Map.of("primary", "PT7S")), "converter.json");
                     if (converted.getTimeout().getSeconds() != 30 || converted.getInterval().getSeconds() != 45)
                         throw new AssertionError("Field converter failed through the public named-module contract");
                     if (converted.getDelays().size() != 2 || converted.getDelays().get(0).getSeconds() != 5 || converted.getDelays().get(1).getSeconds() != 2)
                         throw new AssertionError("List-element converter lost supplied order");
+                    if (!converted.getPauses().equals(Set.of(Duration.ofSeconds(5), Duration.ofSeconds(2))))
+                        throw new AssertionError("Set-element converter lost ordinary equality semantics");
                     if (!converted.getDurations().equals(Map.of("primary", Duration.ofSeconds(7))))
                         throw new AssertionError("Map-value converter lost literal key or value");
                     Station commanded = Station.Create.FromStruct(Map.of("resetTimeout", Map.of()), "command.json");
@@ -1278,10 +1286,12 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station directSelected = Station.Create.With { endpoint 'static' }
                     assert selected.name == 'selected:static'
                     assert selected.name == directSelected.name
-                    Station converted = Station.Create.FromStruct([timeout: 'PT30S', interval: 'PT45S', delays: ['PT5S', 'PT2S'], durations: [primary: 'PT7S']], 'converter.json')
-                    Station directConverted = Station.Create.With { timeout 'PT30S'; interval 'PT45S'; delay 'PT5S'; delay 'PT2S'; duration 'primary', 'PT7S' }
+                    Station converted = Station.Create.FromStruct([timeout: 'PT30S', interval: 'PT45S', delays: ['PT5S', 'PT2S'], pauses: ['PT5S', 'PT2S', 'PT5S'], durations: [primary: 'PT7S']], 'converter.json')
+                    Station directConverted = Station.Create.With { timeout 'PT30S'; interval 'PT45S'; delay 'PT5S'; delay 'PT2S'; pause 'PT5S'; pause 'PT2S'; pause 'PT5S'; duration 'primary', 'PT7S' }
                     assert converted.timeout.seconds == 30
                     assert converted.timeout == directConverted.timeout
+                    assert converted.pauses == directConverted.pauses
+                    assert converted.pauses*.seconds == [5L, 2L]
                     assert converted.interval == directConverted.interval
                     assert converted.interval.seconds == 45
                     assert converted.delays == directConverted.delays

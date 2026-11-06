@@ -230,7 +230,7 @@ class StructuredConverterOriginTest extends AbstractDSLSpec {
         thrown(KlumModelException)
 
         where:
-        target << ['Object', 'Set<Timeout>', 'Map<Integer, Timeout>', 'Timeout[]']
+        target << ['Object', 'SortedSet<Timeout>', 'Map<Integer, Timeout>', 'Timeout[]']
     }
 
     def 'field converter rejects typed payloads without coercion: #value'() {

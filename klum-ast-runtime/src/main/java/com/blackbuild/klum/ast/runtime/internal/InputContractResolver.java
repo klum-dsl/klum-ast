@@ -572,13 +572,13 @@ final class InputContractResolver {
 
     private static Payload converterPayload(Type fieldType, Method method) {
         Payload scalar = new Payload(Kind.SCALAR, converterParameter(fieldType, method), null, null, null);
-        if (rawType(fieldType) == List.class) return new Payload(Kind.LIST, List.class, null, null, scalar);
+        if (isConverterSequence(fieldType)) return new Payload(Kind.LIST, List.class, null, null, scalar);
         if (rawType(fieldType) == Map.class) return new Payload(Kind.MAP, Map.class, null, String.class.getName(), scalar);
         return scalar;
     }
 
     private static Class<?> converterDomain(String field, Type fieldType, Method method, ConverterSelection selected) {
-        boolean container = rawType(fieldType) == List.class || rawType(fieldType) == Map.class;
+        boolean container = isConverterSequence(fieldType) || rawType(fieldType) == Map.class;
         Class<?> domain = container ? containerConverterDomain(fieldType) : rawType(fieldType);
         if (domain == null || method.getReturnType() != domain || method.isSynthetic() || method.isBridge()
                 || !container && !method.getName().equals(field) || !validConverterParameter(fieldType, method, selected))
@@ -593,7 +593,7 @@ final class InputContractResolver {
         Class<?> parameter = method.getParameterTypes()[valueIndex];
         if (parameter != String.class && parameter != CharSequence.class) return false;
         if (method.getGenericParameterTypes()[valueIndex] != parameter) return false;
-        if ((rawType(fieldType) == List.class || valueIndex == 1) && parameter != String.class) return false;
+        if ((isConverterSequence(fieldType) || valueIndex == 1) && parameter != String.class) return false;
         return !selected.parameterFacts() || fieldType instanceof Class<?> && parameter == String.class;
     }
 
@@ -601,7 +601,11 @@ final class InputContractResolver {
         return method.getParameterTypes()[rawType(fieldType) == Map.class ? 1 : 0];
     }
 
-    /** Exact List elements and String-keyed Map values share the non-native scalar destination boundary. */
+    private static boolean isConverterSequence(Type fieldType) {
+        return rawType(fieldType) == List.class || rawType(fieldType) == Set.class;
+    }
+
+    /** Exact List/Set elements and String-keyed Map values share the non-native scalar destination boundary. */
     private static Class<?> containerConverterDomain(Type fieldType) {
         if (rawType(fieldType) == Map.class && (!(fieldType instanceof ParameterizedType map)
                 || map.getActualTypeArguments()[0] != String.class)) return null;

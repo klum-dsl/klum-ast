@@ -82,6 +82,15 @@ Each element uses ordinary population, preserving defaults, order, indexed cause
 JSON Schema emits structural String items without element-parameter constraint projection. Existing scalar C1
 projection is unchanged. See [the executable example](Structured-Input.md#converter-backed-list-elements).
 
+### Converter-backed Set elements
+
+Exact `Set<T>` String element routes now accept ordered Struct/YAML sequences through the ordinary generated adder.
+Recompile matched Schema/compiler/runtime/plugin artifacts for the exact association. Each source element converts,
+including duplicates, before native Set insertion; defaults, equality/comparator behavior, Template recipes, lifecycle
+and earlier effects on indexed failure remain ordinary. Empty input makes zero calls. JSON Schema emits String arrays
+without uniqueness or result-order/cardinality promises. CharSequence-only routes and specialized Set declarations remain
+outside this slice. See [Set elements](Structured-Input.md#converter-backed-set-elements).
+
 ### String Map-value converters
 
 Exact `Map<String, T>` fields with one compiler-proven generated String value adder now accept Maps of literal String
