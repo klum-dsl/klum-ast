@@ -217,6 +217,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
 
         runDelayedActions(annotatedClass);
+        diagnoseCopyFromOverrides();
         diagnoseStructuredApplicationOverrides();
         OmittedProjectionCatalog.complete(builderClass);
         GeneratedDslSupport.complete(annotatedClass);
@@ -244,6 +245,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileError(sourceUnit, e.getMessage(), annotatedClass);
             return false;
         }
+    }
+
+    private void diagnoseCopyFromOverrides() {
+        builderClass.getMethods(TemplateMethods.COPY_FROM).stream()
+                .filter(method -> !method.getDeclaringClass().redirect().equals(KLUM_BUILDER))
+                .filter(DSLASTTransformation::hasReservedCopyFromSignature)
+                .forEach(method -> addError("Schema operation " + method.getDeclaringClass().getName() + "#"
+                        + method.getTypeDescriptor() + " has effective signature copyFrom(java.lang.Object), which "
+                        + "shadows a framework Builder copy route; rename the conflicting Schema operation and recompile.",
+                        method.getLineNumber() > 0 ? method : annotatedClass));
+    }
+
+    private static boolean hasReservedCopyFromSignature(MethodNode method) {
+        List<Parameter> parameters = new ArrayList<>(Arrays.asList(method.getParameters()));
+        if (isObjectCopySignature(parameters)) return true;
+        // Groovy emits overloads by omitting default-valued parameters from right to left.
+        for (int index = parameters.size() - 1; index >= 0; index--) {
+            if (!parameters.get(index).hasInitialExpression()) continue;
+            parameters.remove(index);
+            if (isObjectCopySignature(parameters)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isObjectCopySignature(List<Parameter> parameters) {
+        // redirect() resolves generic placeholders to their JVM erasure, including unbounded T -> Object.
+        return parameters.size() == 1 && parameters.get(0).getType().redirect().equals(OBJECT_TYPE);
     }
 
     private void diagnoseStructuredApplicationOverrides() {
