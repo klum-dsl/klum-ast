@@ -35,6 +35,9 @@ import spock.lang.Issue
 
 @Issue('1011')
 class CopyFromCollisionTest extends AbstractDSLSpec {
+    private static final String RESERVED_SIGNATURE = 'copyFrom(java.lang.Object)'
+    private static final String SHADOWED_ROUTE_DIAGNOSTIC = 'shadows a framework Builder copy route'
+
     def 'reject effective Object copy signatures: #declaration'() {
         when:
         createClass """
@@ -46,8 +49,8 @@ class CopyFromCollisionTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)
-        failure.message.contains('copyFrom(java.lang.Object)')
-        failure.message.contains('shadows a framework Builder copy route')
+        failure.message.contains(RESERVED_SIGNATURE)
+        failure.message.contains(SHADOWED_ROUTE_DIAGNOSTIC)
         failure.message.contains('rename the conflicting Schema operation')
 
         where:
@@ -74,8 +77,8 @@ class CopyFromCollisionTest extends AbstractDSLSpec {
 
         then:
         def failure = thrown(MultipleCompilationErrorsException)
-        failure.message.contains('copyFrom(java.lang.Object)')
-        failure.message.contains('shadows a framework Builder copy route')
+        failure.message.contains(RESERVED_SIGNATURE)
+        failure.message.contains(SHADOWED_ROUTE_DIAGNOSTIC)
 
         where:
         childFirst << [false, true]
@@ -112,8 +115,8 @@ class CopyFromCollisionTest extends AbstractDSLSpec {
         then:
         def failure = thrown(MultipleCompilationErrorsException)
         failure.message.contains('inheritedcopy.Base$Builder')
-        failure.message.contains('copyFrom(java.lang.Object)')
-        failure.message.contains('shadows a framework Builder copy route')
+        failure.message.contains(RESERVED_SIGNATURE)
+        failure.message.contains(SHADOWED_ROUTE_DIAGNOSTIC)
 
         cleanup:
         childLoader?.close()
