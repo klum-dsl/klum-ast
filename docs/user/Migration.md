@@ -9,6 +9,19 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Reserved Builder copy signature
+
+Schema-authored Builder methods with effective signature `copyFrom(Object)` are now rejected at compilation: they
+shadow a framework Builder copy route and can skip its Construction-session and sealed-state checks. This includes
+untyped parameters, generic parameters erased to `Object`, inherited methods and overloads produced by default
+arguments. Rename the conflicting operation and recompile affected Schemas, including the declaring parent when the
+conflict is inherited. Distinct overloads such as `copyFrom(String)` remain allowed, and ordinary Map/Model copying
+keeps its existing behavior.
+
+This is source prevention only ([#1011](https://github.com/klum-dsl/klum-ast/issues/1011)). Upgrading the compiler or
+runtime does not repair an already compiled conflicting Schema. Runtime hardening for those binaries is separate
+follow-up work. See [Template copying](Templates.md#copyfrom).
+
 ### Generated compiler provenance (4.2)
 
 Recompile Schema artifacts to record the exact emitting compiler version on each abstract and concrete Schema class.

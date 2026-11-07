@@ -3,6 +3,13 @@
 - Use the controlled Season 4.2 shared-portal artwork for the current documentation and README,
   with responsive Struct/YAML and Groovy lockups and the retained Season 4 favicon.
 
+- Reject Schema-authored Builder methods whose effective signature is `copyFrom(Object)`, including inherited,
+  erased generic and default-argument-generated forms, because they shadow a framework Builder copy route.
+  Rename conflicting operations and recompile affected Schemas. Distinct overloads such as `copyFrom(String)` remain
+  allowed; existing conflicting binaries retain their old runtime behavior. See
+  [copy-route migration](docs/user/Migration.md#reserved-builder-copy-signature)
+  ([#1011](https://github.com/klum-dsl/klum-ast/issues/1011)).
+
 - Add a keyed-service Groovy/YAML adoption recipe connecting caller-owned parsing, Struct construction and generated
   JSON Schema editor association. Reconcile delivered/deferred documentation and the Maven release inventory.
   See [YAML adoption](docs/user/Structured-Input.md#adopt-yaml-for-a-schema).
