@@ -443,7 +443,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(localRenderDependencies.containsAll(expectedDependencies),
                 'local documentation rendering must include every allowed module Javadoc task')
         Map<String, String> localSettings = localRenderSettings.get()
-        assertTrue(localSettings['version'] == '4.0.0-tracer', 'local documentation version must default to 4.0.0-tracer')
+        assertTrue(localSettings['version'] == '4.2.0-tracer', 'local documentation version must default to 4.2.0-tracer')
         assertTrue(localSettings['status'] == 'tracer', 'local documentation status must default to tracer')
         assertTrue(localSettings['brandingManifest'] == 'docs/branding/season-4.2-klumast.json',
                 'local documentation must default to the Season 4.2 branding manifest')
