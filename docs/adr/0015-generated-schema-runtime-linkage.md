@@ -90,35 +90,35 @@ The schema module continues to require the existing runtime module and open
 its DSL packages to it. No schema adds a `requires` clause for an internal
 KlumAST package, and the schema plugin never writes a module descriptor.
 
-### Proposed extension: generated Schema provenance and runtime floor (#896)
+### Proposed extension: generated Schema provenance for 4.2 (#896)
 
-The 2026-11-07 design supplement proposes one runtime-retained, non-inherited
-annotation on each transformed Schema class, including abstract classes. It
-belongs to the existing exported `runtime.generated` package and records the
-actual emitting compiler version separately from an explicitly assigned,
-conservative minimum runtime. The minimum can be unknown; compiler version is
-not itself a measured feature floor. No independent ABI revision or
-feature-negotiation protocol is introduced.
+The maintainer's 2026-11-07 decision makes generated compiler provenance the
+primary 4.2 objective. Emit one runtime-retained, non-inherited annotation on
+each transformed Schema class, including abstract classes, in the existing
+exported `runtime.generated` package. Select the minimal marker: explicit
+`format = 1` and the actual emitting `klum-ast` artifact's `compilerVersion`.
+Independently compiled Java and Groovy consumers can read that objective fact.
+Do not derive it from a consuming project, plugin, BOM, or resolved runtime.
 
-The runtime checks declared markers across the actual Schema superclass chain
-before resolving/constructing a generated Builder, with a constructor check for
-direct generated construction. Java-only consumers reach this runtime boundary
-without a Klum plugin or compiler. Generated classes do not call a new check
-helper, and existing generated descriptors remain unchanged. Runtimes predating
-the check remain unprotected; class loading and passive completed-Model use are
-not universal check points.
+RF-1 preserves generated public/protected descriptors and construction behavior.
+It adds no minimum-runtime field, version comparison, Builder guard,
+ancestor-floor aggregation, runtime identity lookup, or compatibility cache.
+Compiler provenance must never be reinterpreted as a minimum runtime claim.
 
-[#896's design and implementation plan](../implementation/issue-896-generated-schema-runtime-floor.md)
-defines marker ownership, unknown/legacy handling, diagnostics, release
-qualification, and the deliberate pre-release limit. A passed floor check does
-not prove all behavior or user dependencies. Newer Schema on older Domain API
-is a separate qualification axis. Exact equality, dependency substitution, and
-compatibility adaptation remain excluded.
+[#896's implementation plan](../implementation/issue-896-generated-schema-runtime-floor.md)
+separates RF-1 from optional floor metadata and post-4.2 candidate comparison/
+diagnostics. A future optional floor member can default to unknown for older
+markers while retaining the format and compiler-version meanings. Historical
+binary/Catwalk qualification and broader release-facing adoption are separately
+scheduled and are not RF-1 prerequisites. Older runtimes cannot acquire a new
+check from metadata; provenance alone proves no runtime compatibility. Newer
+Schema on older Domain API remains a separate qualification axis. Exact
+equality, substitution, and compatibility adaptation remain excluded.
 
-This supplement preserves this ADR's Proposed status and does not approve an
-implementation or admit a release gate. #896 is a 4.2 candidate, not a hard 4.2
-release blocker. The generated-runtime extension is one inert metadata
-annotation; its reader and checker remain runtime implementation.
+This supplement preserves this ADR's Proposed status. The current PR changes
+design only; it does not implement RF-1 or admit a release gate. #896 remains
+open. The generated-runtime extension planned for 4.2 is one inert provenance
+annotation, without runtime compatibility enforcement.
 
 ### Freeze the public generated contracts honestly
 
