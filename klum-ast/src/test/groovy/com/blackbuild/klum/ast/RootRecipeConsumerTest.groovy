@@ -26,6 +26,11 @@ package com.blackbuild.klum.ast
 import com.blackbuild.annodocimal.generator.ProjectionPolicy
 import com.blackbuild.annodocimal.generator.SourceProjector
 import groovy.lang.GroovySystem
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.ClassWriter
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.Opcodes
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
@@ -34,18 +39,21 @@ import spock.lang.Specification
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import java.util.jar.JarEntry
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
 
 /** Qualifies JAR-only clients in independent compiler/JVM processes, including supported named modules. */
 @Issue(['829', '1038'])
 class RootRecipeConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
-    def 'JAR-only Java and static and dynamic Groovy clients consume recipe overlays with named modules=#named'() {
+    def 'JAR-only Java and static and dynamic Groovy clients consume recipe and Struct overlays with named modules=#named'() {
         when:
         String output = qualify(named)
 
         then:
-        output.trim() == 'recipe-consumers=true'
+        output.trim() == 'recipe-and-struct-consumers=true'
 
         where:
         // ADR 0014 keeps Groovy 3 classpath-only; JpmsGroovyModuleIdentityTest covers its negative module boundary.
@@ -64,7 +72,7 @@ class RootRecipeConsumerTest extends Specification {
             }
         ''')
         Path consumer = buildArtifact(root, 'consumer', dependencies + [schema], named,
-                ['GroovyClients.groovy'], ['Main.java'], '''
+                ['GroovyClients.groovy', 'StructClients.groovy'], ['Main.java'], '''
             module fixture.consumer {
                 requires com.blackbuild.klum.ast.runtime;
                 requires fixture.recipe;
@@ -72,6 +80,15 @@ class RootRecipeConsumerTest extends Specification {
             }
         ''')
         assertJavaRejections(root, dependencies + [schema])
+        Path preAdditionSchema = preAdditionContract(root, schema)
+        Path legacyConsumer = buildArtifact(root, 'legacy-consumer', dependencies + [preAdditionSchema], named,
+                ['LegacyClients.groovy'], ['LegacyMain.java'], '''
+            module fixture.legacyconsumer {
+                requires com.blackbuild.klum.ast.runtime;
+                requires fixture.recipe;
+                opens fixture.legacyconsumer to org.apache.groovy;
+            }
+        ''')
         List<Path> runtime = (dependencies + [schema, consumer]).findAll { path ->
             path != Path.of(System.getProperty('klumCompilerJar')) &&
                     !path.fileName.toString().startsWith('anno-docimal-ast-') &&
@@ -79,6 +96,10 @@ class RootRecipeConsumerTest extends Specification {
                     !path.fileName.toString().startsWith('klum-cast-compile-')
         }
         assert runtime.every { it.fileName.toString().endsWith('.jar') }
+        assert execute(named ? [javaTool('java'), '--module-path', paths(runtime + [legacyConsumer]),
+                                '-m', 'fixture.legacyconsumer/fixture.legacyconsumer.LegacyMain'] :
+                [javaTool('java'), '--class-path', paths(runtime + [legacyConsumer]), 'fixture.legacyconsumer.LegacyMain'])
+                .trim() == 'pre-addition-binary-calls=true'
         execute(named ? [javaTool('java'), '--module-path', paths(runtime), '-m', 'fixture.consumer/fixture.consumer.Main'] :
                 [javaTool('java'), '--class-path', paths(runtime), 'fixture.consumer.Main'])
     }
@@ -121,17 +142,64 @@ class RootRecipeConsumerTest extends Specification {
         jar
     }
 
+    /** Reconstruct only the pre-addition public Factory surface, not a historical toolchain/runtime. */
+    private static Path preAdditionContract(Path root, Path schema) {
+        Path output = root.resolve('pre-addition-schema.jar')
+        int removed = 0
+        new JarFile(schema.toFile()).withCloseable { input ->
+            new JarOutputStream(Files.newOutputStream(output)).withCloseable { jar ->
+                input.entries().each { entry ->
+                    byte[] bytes = input.getInputStream(entry).withCloseable { it.readAllBytes() }
+                    if (entry.name.endsWith('_DSL$Factory.class')) {
+                        ClassWriter writer = new ClassWriter(0)
+                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                            @Override
+                            MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                if (name == 'FromStruct' && descriptor.contains('Lgroovy/lang/Closure;')) {
+                                    removed++
+                                    return null
+                                }
+                                super.visitMethod(access, name, descriptor, signature, exceptions)
+                            }
+                        }, 0)
+                        bytes = writer.toByteArray()
+                    }
+                    jar.putNextEntry(new JarEntry(entry.name))
+                    jar.write(bytes)
+                    jar.closeEntry()
+                }
+            }
+        }
+        assert removed == 12 // Four keyed and two unkeyed overloads on each of two Model pairs.
+        Path source = root.resolve('UnavailableOverlay.java')
+        Files.writeString(source, '''
+            import fixture.recipe.LegacyApplication;
+            import groovy.lang.Closure;
+            import java.util.Map;
+            class UnavailableOverlay {
+                Object create() { return LegacyApplication.Create.FromStruct(Map.of(), (Closure<?>) null); }
+            }
+        '''.stripIndent())
+        String rejection = execute([javaTool('javac'), '--class-path', paths(compilerJars() + [output]),
+                                    '-d', root.toString(), source.toString()], false)
+        assert rejection.contains('no suitable method') || rejection.contains('incompatible types') : rejection
+        Files.delete(source)
+        output
+    }
+
     private static void assertJavaRejections(Path root, List<Path> inputs) {
         Path source = root.resolve('Invalid.java')
         Map<String, String> rejected = [
                 'ambiguous': 'Application.Create.FromClasspath(null)',
-                'DelegatingScript': 'Application.Create.From(Script.class, (Closure<?>) null)'
+                'DelegatingScript': 'Application.Create.From(Script.class, (Closure<?>) null)',
+                'reference to FromStruct is ambiguous': 'Application.Create.FromStruct(Map.of(), null)'
         ]
         rejected.each { diagnostic, call ->
             Files.writeString(source, """
                 import fixture.recipe.Application;
                 import groovy.lang.Closure;
                 import groovy.lang.Script;
+                import java.util.Map;
                 class Invalid { Object create() { return $call; } }
             """.stripIndent())
             String output = execute([javaTool('javac'), '-Xdiags:verbose', '--class-path', paths(inputs),

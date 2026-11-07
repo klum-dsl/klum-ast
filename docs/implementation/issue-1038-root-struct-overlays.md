@@ -57,7 +57,36 @@ require root `check` (including generator/plugin/binary/JPMS regressions) and `r
 committed source/renderer revision. Final command results, two independent Standards/Specification local reviews and
 commit identities belong in the handoff and eventual draft PR. No manual Sonar upload is performed.
 
-A subsequent #1038 slice can independently qualify the new methods through JAR-only Java/static/dynamic Groovy clients
-and supported Groovy 4/5 named modules, plus existing pre-addition binary calls. RCO-1 does not claim that dedicated
-new-entry-point artifact matrix or production Schelm qualification. Tracker relationship remains `Related: #1038` for
-Hive reconciliation; this slice does not select issue closure, release admission or a general composition design.
+## RCO-2 artifact and binary qualification
+
+RCO-2 starts from the assigned RCO-1 commit `0266b9ae724dff4ad8e873e749654cf428d51ac3`. Its qualification
+adds no production behavior, public signatures, metadata or module directives. It extends the existing
+`RootRecipeConsumerTest` infrastructure rather than creating another compiler/process harness.
+
+The fixture compiles the Schema, Java client and static/dynamic Groovy clients in separate Java 17 processes. Each
+artifact is packaged into a JAR and its source/class directories are removed before downstream consumption. Runtime
+omits the Klum compiler and transformation-only dependencies. Every client exercises all six forms: common keyed and
+unkeyed roots, optional source names, and the keyed explicit-key pair. Struct assigns the initial value, the overlay
+replaces it and supplies a completed external LINK, and root PostApply/validation require exactly one lifecycle tail.
+Two independently selected LINK instances retain identity; caller Closure delegate/strategy remain unchanged. The existing
+recipe-overlay cases remain in the same harness as regression coverage.
+
+Groovy 3 qualifies classpath consumers. Groovy 4 and 5 each qualify both classpath and named-module consumers. Named
+execution uses actual descriptors, exported Schema packages and the supported runtime opening, with no add-reads,
+add-exports, add-opens or patched modules. Source mirrors remain absent from consumer inputs.
+
+For bounded pre-addition binary-call evidence, the test reconstructs the old **public Factory surface** from the fixture
+Schema JAR by removing exactly the twelve new Struct/Closure declarations across its two keyed and two unkeyed Factory
+interfaces. A negative javac control proves the new overlay call is unavailable. Java and static Groovy clients then
+compile all six existing no-overlay call shapes against that restricted surface. Their resulting JAR executes unchanged
+against the complete current Schema and runtime, including both named-module lanes. The restricted Schema JAR is never a
+runtime input. This proves callable-descriptor compatibility for those existing client shapes; it does not reproduce a
+historical compiler/runtime pair or establish arbitrary mixed-version support.
+
+RCO-1's documentary test and user guidance remain the behavior authority. RCO-2 introduces no additional user-visible
+feature, so no new documentary example, migration rule or changelog entry is needed. Validation results and exact final
+base/head belong in the PR/handoff; full hosted CI and SonarCloud remain separate gates.
+
+Production Schelm qualification is still separate. Template/AsBuilder/Builder overlays, additional input sources,
+context-before-Struct hooks and general composition remain outside #1038's accepted root slice. Tracker relationship
+remains `Related: #1038`; the Hive owns issue/release reconciliation and no issue closure is selected here.
