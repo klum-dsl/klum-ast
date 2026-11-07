@@ -145,32 +145,15 @@ class RootRecipeConsumerTest extends Specification {
     /** Reconstruct only the pre-addition public Factory surface, not a historical toolchain/runtime. */
     private static Path preAdditionContract(Path root, Path schema) {
         Path output = root.resolve('pre-addition-schema.jar')
-        int removed = 0
+        List<String> removed = []
         new JarFile(schema.toFile()).withCloseable { input ->
             new JarOutputStream(Files.newOutputStream(output)).withCloseable { jar ->
                 input.entries().each { entry ->
-                    byte[] bytes = input.getInputStream(entry).withCloseable { it.readAllBytes() }
-                    if (entry.name.endsWith('_DSL$Factory.class')) {
-                        ClassWriter writer = new ClassWriter(0)
-                        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
-                            @Override
-                            MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                                if (name == 'FromStruct' && descriptor.contains('Lgroovy/lang/Closure;')) {
-                                    removed++
-                                    return null
-                                }
-                                super.visitMethod(access, name, descriptor, signature, exceptions)
-                            }
-                        }, 0)
-                        bytes = writer.toByteArray()
-                    }
-                    jar.putNextEntry(new JarEntry(entry.name))
-                    jar.write(bytes)
-                    jar.closeEntry()
+                    writePreAdditionEntry(input, jar, entry, removed)
                 }
             }
         }
-        assert removed == 12 // Four keyed and two unkeyed overloads on each of two Model pairs.
+        assert removed.size() == 12 // Four keyed and two unkeyed overloads on each of two Model pairs.
         Path source = root.resolve('UnavailableOverlay.java')
         Files.writeString(source, '''
             import fixture.recipe.LegacyApplication;
@@ -185,6 +168,31 @@ class RootRecipeConsumerTest extends Specification {
         assert rejection.contains('no suitable method') || rejection.contains('incompatible types') : rejection
         Files.delete(source)
         output
+    }
+
+    private static void writePreAdditionEntry(JarFile input, JarOutputStream output, JarEntry entry, List<String> removed) {
+        byte[] bytes = input.getInputStream(entry).withCloseable { it.readAllBytes() }
+        if (entry.name.endsWith('_DSL$Factory.class')) {
+            bytes = withoutStructOverlays(bytes, removed)
+        }
+        output.putNextEntry(new JarEntry(entry.name))
+        output.write(bytes)
+        output.closeEntry()
+    }
+
+    private static byte[] withoutStructOverlays(byte[] bytes, List<String> removed) {
+        ClassWriter writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                if (name == 'FromStruct' && descriptor.contains('Lgroovy/lang/Closure;')) {
+                    removed.add(name + descriptor)
+                    return null
+                }
+                super.visitMethod(access, name, descriptor, signature, exceptions)
+            }
+        }, 0)
+        writer.toByteArray()
     }
 
     private static void assertJavaRejections(Path root, List<Path> inputs) {
