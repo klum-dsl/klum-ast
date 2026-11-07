@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KlumAST 4.2 responsive artwork surface</title>
+<style>
+body { margin: 0; background: #041321; color: #f9f6f1; font: 14px system-ui; }
+picture, picture img { display: block; width: 100%; }
+p { padding: 0 16px; }
+.sizes { padding: 16px; display: flex; flex-wrap: wrap; align-items: start; gap: 16px; }
+.sizes img { flex-shrink: 0; }
+</style>
+<picture>
+<source media="(max-width: 1000px)" srcset="exports/klumast-4.2-documentation-compact.svg">
+<img src="exports/klumast-4.2-documentation.svg" alt="Equal peers at one portal: ivory square-mosaic Struct and YAML on the left, flowing Groovy on the right; shadows follow the catwalk toward the lower right.">
+</picture>
+<p id="loaded">Loading selected asset…</p>
+<div class="sizes">
+<img src="exports/klumast-4.2-art-optical.svg" width="256" height="256" alt="Optical treatment at 256 pixels">
+<img src="exports/klumast-4.2-art-optical.svg" width="64" height="64" alt="Optical treatment at 64 pixels">
+<img src="exports/klumast-4.2-art-optical.svg" width="32" height="32" alt="Optical treatment at 32 pixels">
+</div>
+<script>
+const art = document.querySelector('picture img');
+function report() {
+  document.querySelector('#loaded').textContent = `${innerWidth} px viewport · ${art.currentSrc.split('/').pop()} · ${art.naturalWidth > 0 ? 'loaded' : 'failed'}`;
+}
+art.addEventListener('load', report);
+if (art.complete) report();
+</script>
+</html>

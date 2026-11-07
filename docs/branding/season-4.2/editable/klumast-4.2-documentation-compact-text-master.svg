@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 945" role="img" aria-labelledby="title desc">
+  <title id="title">KlumAST 4.2 compact documentation lockup</title>
+  <desc id="desc">The paired portal mark uses broader YAML contours. KlumAST sits above the compact combined Groovy/YAML tagline and a prominent 4.2 version cue.</desc>
+  <g id="artwork" />
+  <g font-family="Avenir Next, Helvetica Neue, Helvetica, Arial, sans-serif">
+    <text x="1504" y="310" text-anchor="end" font-size="210" font-weight="300" letter-spacing="3" fill="#f9f6f1">KlumAST</text>
+    <text x="1257.49062" y="430.00000" text-anchor="end" font-size="70" font-weight="300" letter-spacing=".546875" fill="#f9f6f1">Make Your Models</text>
+    <text x="1497.00000" y="430.00000" text-anchor="end" font-size="70" font-weight="300" letter-spacing=".546875" fill="#d2b05f">Groovy</text>
+    <g stroke="#041321" stroke-width="4.375" paint-order="stroke fill" stroke-linejoin="round">
+      <text x="1497.00000" y="413.59375" text-anchor="end" font-size="70" font-weight="400" letter-spacing=".546875" fill="#f9f6f1">YAML</text>
+    </g>
+    <text x="1536" y="585" text-anchor="end" fill="#f9f6f1" font-size="132" font-weight="300" letter-spacing="1">4.2</text>
+  </g>
+</svg>
