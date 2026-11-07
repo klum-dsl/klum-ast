@@ -9,6 +9,14 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Generated compiler provenance (4.2)
+
+Recompile Schema artifacts to record the exact emitting compiler version on each abstract and concrete Schema class.
+Existing unmarked binaries remain usable; reflection returns no provenance for them. The runtime-retained
+`GeneratedSchema` marker is generated automatically and requires no handwritten annotation or Model changes.
+It adds no runtime compatibility check or minimum-runtime requirement. See
+[Schema Compiler Provenance](Schema-Provenance.md#generated-compiler-provenance).
+
 ### Compiled root recipe overlays
 
 Recompile Schema artifacts with the matched compiler/runtime to expose `Create.From(DelegatingScriptClass) { ... }`,

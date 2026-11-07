@@ -7,6 +7,24 @@ plugins {
 
 description = "compileOnly part of KlumAST"
 
+// The exploded compiler's CodeSource is compileJava's class directory, not build/resources/main.
+// Keep one owned copy there: normal processResources would split identity from its bound metadata.
+// Sharing output directories or searching a sibling/classpath resource would weaken this contract.
+def compilerVersionMarker = tasks.register('generateCompilerVersionMarker', WriteProperties) {
+    destinationFile = layout.buildDirectory.file('compilerVersionMarker/compiler.properties')
+    property('compilerVersion', provider { project.version.toString() })
+}
+
+tasks.named('compileJava', JavaCompile) {
+    inputs.files(files(compilerVersionMarker)).withPropertyName('compilerVersionMarker')
+    doLast {
+        copy {
+            from files(compilerVersionMarker)
+            into destinationDirectory.dir('META-INF/klum-ast')
+        }
+    }
+}
+
 test {
     inputs.dir file("src/test/scenarios")
     outputs.dir layout.buildDirectory.dir("test-classes")
@@ -37,6 +55,7 @@ gradle.projectsEvaluated {
         systemProperty('klumRuntimePom', klumRuntimePom.get().asFile)
         systemProperty('klumBomPom', klumBomPom.get().asFile)
         systemProperty('klumVersion', project.version.toString())
+        systemProperty('klumCompilerClasses', tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile)
         systemProperty('klumJacksonJar', project(':klum-ast-jackson').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumBeanValidationJar', project(':klum-ast-bean-validation').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('jpmsAdapterModulePath', files(

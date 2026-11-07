@@ -14,6 +14,7 @@
   * [JSON Schema generation](Json-Schema.md)
   * [Gradle Onboarding](Gradle-Onboarding.md)
   * [Schema Style Guide](Schema-Style-Guide.md)
+  * [Schema Compiler Provenance](Schema-Provenance.md)
   * [IntelliJ completion for DelegatingScripts](Portable-GDSL.md)
   * [Testing Models and Schemas](Testing-Models-and-Schemas.md)
   * [Standalone Model scripts with `@Grab`](Grab-Model-Scripts.md)

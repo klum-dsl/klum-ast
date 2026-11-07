@@ -115,8 +115,9 @@ check from metadata; provenance alone proves no runtime compatibility. Newer
 Schema on older Domain API remains a separate qualification axis. Exact
 equality, substitution, and compatibility adaptation remain excluded.
 
-This supplement preserves this ADR's Proposed status. The current PR changes
-design only; it does not implement RF-1 or admit a release gate. #896 remains
+This supplement preserves this ADR's Proposed status. PR #1047 changed
+design only; it did not implement RF-1 or admit a release gate. The linked plan
+records the separate RF-1 implementation. #896 remains
 open. The generated-runtime extension planned for 4.2 is one inert provenance
 annotation, without runtime compatibility enforcement.
 

@@ -1,5 +1,11 @@
 # Unreleased
 
+- Record per-class compiler provenance on transformed abstract and concrete Schemas using runtime-retained
+  `GeneratedSchema(format = 1, compilerVersion = "...")` metadata. Independently compiled Java/Groovy consumers can read
+  the exact emitter version from Schema JARs. Unmarked binaries remain usable; no minimum-runtime metadata or
+  compatibility enforcement is added. See [Schema Compiler Provenance](docs/user/Schema-Provenance.md)
+  ([#896](https://github.com/klum-dsl/klum-ast/issues/896), RF-1).
+
 - Add trailing ordinary Builder closure overlays to root `Create.FromStruct` document and explicit-key body forms,
   with optional diagnostic source names: Struct operations, cloned overlay, then one root PostApply and ordinary
   lifecycle tail. Preserve construction-key checks, ordered failures and completed external LINK identity. Recompile

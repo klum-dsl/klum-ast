@@ -1,6 +1,6 @@
 # #896: generated Schema provenance for 4.2
 
-Date: 2026-11-07. Status: design correction following the maintainer's provenance-first decision; no implementation.
+Date: 2026-11-07. Status: provenance-first design from PR #1047; RF-1 implementation record below.
 
 Tracking issue: [#896](https://github.com/klum-dsl/klum-ast/issues/896).
 Design PR: [#1047](https://github.com/klum-dsl/klum-ast/pull/1047).
@@ -28,7 +28,7 @@ RF-1. RF-1 does not add runtime comparisons/enforcement, Builder guards, ancesto
 lookup, a compatibility cache, dependency substitution, or version-equality policy. No ABI feature level, capability
 bitset, or separate metadata protocol is proposed. Both ADRs retain Proposed status.
 
-This PR corrects the design only. It introduces no production annotation, emitted metadata, runtime code, or tests.
+Design PR #1047 corrects the design only. It introduces no production annotation, emitted metadata, runtime code, or tests.
 Updating the design does not complete #896 or admit a new release gate.
 
 ## Selected marker: Option A
@@ -120,7 +120,7 @@ emission. Keep marker generation with its focused acceptance coverage in one rea
 user/release note required by normal repository policy accompanies that delivery; it does not wait for broad RF-4
 compatibility guidance.
 
-Acceptance for that future implementation:
+RF-1 acceptance:
 
 - Every transformed concrete and abstract Schema has its own runtime-visible marker with format 1 and the exact
   emitting compiler artifact version. Include inheritance and development/RC version preservation.
@@ -132,7 +132,52 @@ Acceptance for that future implementation:
 
 Use the existing compiler/artifact consumer seams and repository risk-based validation for a generated-contract change;
 new tests carry `@Issue("896")`. RF-1 does not need a cross-version compatibility matrix to establish provenance, nor
-does its acceptance include implementing any RF-2 check or compatibility scaffold. This PR adds none of those tests.
+does its acceptance include implementing any RF-2 check or compatibility scaffold. Design PR #1047 adds none of those tests.
+
+## RF-1 implementation record
+
+The implementation adds `GeneratedSchema` in the existing exported runtime package and emits both required values once
+on every transformed abstract/concrete Schema. Handwritten markers are rejected; default-only annotation propagation
+cannot fabricate either required member. Interfaces and generated support types remain unmarked.
+
+`generateCompilerVersionMarker` binds the exact compiler project artifact version, including development/RC text, to a
+build-owned properties file. `compileJava` tracks that file as an input and copies it into its class output. This keeps
+provenance in the same code-source directory or JAR as the executing compiler, including local build/test layouts and
+cached compiler output. The compiler reads only that location, never a classloader-wide resource, consuming-project
+version, plugin, BOM, or runtime identity. Missing, blank, or duplicate version facts cause a Schema compilation error.
+
+Resource-lifecycle review tested ordinary `processResources` with an explicit dependency on the version-marker task.
+That packages the resource correctly in the JAR, but places it in `build/resources/main`, separate from the exploded
+compiler's `build/classes/java/main` code source. An explicit built-exploded-artifact regression fails with a missing
+bound resource. The implementation retains the existing single copy into the compiler class output: sharing task output
+directories, adding a redundant copy, or searching sibling/classpath resources would add ownership or identity problems.
+No resource-packaging plugin or broader provenance lookup is introduced.
+
+Acceptance coverage:
+
+- `CompilerProvenanceTest` reads the actual packaged compiler JAR and actual exploded Java class output through isolated
+  loaders, including a preceding unrelated resource. It also exercises positive development/RC identity and missing,
+  blank, missing-version, duplicate, extra-property and malformed metadata in both JAR and directory code sources.
+  These checks run in the test JVM so baseline JaCoCo observes failure paths as well as successful JAR lookup;
+  independent-process acceptance below remains separate consumer evidence.
+
+- `GeneratedSchemaProvenanceTest` starts with a failing marker-absence test and then checks exact local emitter values,
+  abstract/concrete inheritance, a collection Schema, unmarked interface/plain/support controls, ordinary construction,
+  handwritten-marker rejection, and propagation rejection. Its happy path is documentary and links to
+  [Schema Compiler Provenance](../user/Schema-Provenance.md#generated-compiler-provenance).
+- `GeneratedSchemaProvenanceConsumerTest` compiles parent and child JARs in separate processes using controlled compiler
+  artifact copies carrying distinct development/RC provenance. Independent Java and static Groovy clients read the two
+  origins with no compiler/plugin at runtime; source projection retains the marker. Classpath cases run in Groovy 3/4/5;
+  named modules run in Groovy 4/5 through the existing runtime export. Negative metadata cases include a decoy resource
+  that must not supply the executing compiler's identity.
+- Removing only the marker reconstructs an unmarked binary control and leaves ordinary construction usable. This is a
+  local absence/consumption control, not retained historical producer or mixed-release compatibility qualification.
+
+The production change adds no runtime reader, comparison, floor, construction guard, ancestor aggregation, or release
+policy. Existing generated member descriptors and construction paths remain unchanged. User guidance, migration
+navigation, and `CHANGES.md` cover basic provenance availability only. RF-2/RF-3/RF-4 remain separate; #896 stays open
+with a non-closing `Related` relationship. Curation and release-gate placement have no impact from this localized slice.
+The original design validation below describes PR #1047; current implementation validation belongs to its draft PR.
 
 ## Future compatibility constraints and independently scheduled work
 
