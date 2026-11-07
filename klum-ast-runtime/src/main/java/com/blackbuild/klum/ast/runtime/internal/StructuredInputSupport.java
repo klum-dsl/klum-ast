@@ -104,8 +104,9 @@ public final class StructuredInputSupport {
     private static <T> T createRoot(Class<T> type, String rootKey, Domain domain, Closure<?> overlay) {
         return FactoryHelper.createWithConfiguration(type, rootKey, builder -> {
             domain.execute(builder);
-            if (overlay != null)
+            if (overlay != null) {
                 builder.applyOnly(null, (Closure<?>) overlay.clone());
+            }
         });
     }
 
