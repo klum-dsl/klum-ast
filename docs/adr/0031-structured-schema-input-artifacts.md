@@ -1,11 +1,23 @@
 # Structured-input interpretation and Gradle-driven JSON Schema generation
 
-Current reconciliation, 2026-10-31: #529, #932 and #954 are closed delivered work; C1/#991 and the S1/S2 separation
-are present on master. Dated checkpoints below retain their original delivery wording and evidence. Historical Schelm
-Dev.114 acceptance does not qualify a newer matched build. [ADR 0032](0032-builder-oriented-structured-input.md) and its
-[implementation plan](../implementation/input-round-plan-4-2.md) record the accepted 4.2 successor direction, including
-per-operation execution instead of whole-input preflight. That direction is not implemented by these documentation
-changes; current runtime/user guidance still describes the delivered preflight behavior. The `Struct.*` annotation vocabulary and direct internal rename are accepted but not implemented. ADR 0031's generated-contract, no-execution, key, naming and qualified projection principles remain in force.
+Current reconciliation, 2026-11-07: #529, #932 and #954 are closed delivered work.
+[ADR 0032](0032-builder-oriented-structured-input.md) and its
+[final 4.2 inventory](../implementation/issue-1015-struct-final-inventory.md) supersede the historical whole-document
+payload preflight and narrow grammar below. Current execution validates and invokes reached operations in supplied
+Map/List order, stops at the first failure and retains earlier effects; there is no payload preflight or rollback.
+Static contract integrity and required construction identity remain checked before use. The `Struct.*` vocabulary,
+direct internal rename, common/keyed Factory creation, active-Builder application and keyless Template input are delivered.
+
+S1/S2 contract/projection separation, bounded first-level constraint composition and C1/#991 selected compiled converter
+parameter projection are delivered. C2, runtime parameter enforcement (#971), Size and broader projection remain deferred;
+see the [current JSON Schema guide](../user/Json-Schema.md). ADR 0031's generated-contract, no-execution, key, naming and
+qualified projection principles remain in force. Historical Schelm acceptance does not qualify a newer matched build;
+consumer-specific root/output qualification remains consumer-owned, not an outstanding #529 implementation claim.
+
+The dated sections below preserve design and delivery history. Their preflight, pending-work and old annotation/API
+wording describe those checkpoints; use ADR 0032 and current `docs/user/` pages for the delivered contract.
+
+## Historical design and delivery checkpoints
 
 Date: 2026-10-20. Architecture revised: 2026-10-23 (reflective generator decision). Delivery status reconciled: 2026-10-23.
 
@@ -38,8 +50,9 @@ Parent decisions: [Builder-first construction](0003-builder-first-materializatio
 [multi-Groovy compatibility](0011-shared-multi-groovy-compatibility-contract.md),
 [named-map dispatch](0022-conservative-named-map-safety.md).
 
-Review-only extension, 2026-10-30: [#981 compiled converter parameters](#compiled-converter-parameter-extension--981)
-records the confirmed authority boundary and a proposed two-slice implementation. It changes no current admission or output.
+Historical review checkpoint, 2026-10-30: [#981 compiled converter parameters](#compiled-converter-parameter-extension--981)
+recorded the confirmed authority boundary and a proposed two-slice implementation. C1 is now delivered; C2 remains deferred,
+as recorded in that section and the current reconciliation above.
 
 
 ## SCHEMA-GRADLE delivery — 2026-10-23

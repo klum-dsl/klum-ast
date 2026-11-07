@@ -4,6 +4,11 @@ The Schema Gradle plugin provides opt-in Draft 2020-12 JSON Schema generation fo
 subset. Generation reflects compiled public Builder/Factory contracts and retained documentation without initializing
 or executing Schema code. Use matching plugin, compiler and runtime versions with generated input enrichment.
 
+Start with the [Groovy/YAML adoption recipe](Structured-Input.md#adopt-yaml-for-a-schema): caller code parses YAML,
+then `Service.Create.FromStruct(document)` constructs the Model through its ordinary lifecycle. Generate a schema from
+that same compiled Schema for editor feedback or an explicitly invoked validator. Neither generation nor `FromStruct`
+selects a parser, opens input files or automatically runs JSON Schema validation.
+
 ## Generating files
 
 Apply `com.blackbuild.klum-ast-schema` as described in [Gradle Plugins](Gradle-Plugins.md). Select roots by fully qualified DSL Model binary name,
@@ -17,16 +22,18 @@ to use the corresponding Model name.
 
 ```groovy
 klumSchema.jsonSchema {
-    rootTypes.add('example.Deployment')
     rootTypes.add('example.Service')
 }
 ```
 
 Run `./gradlew generateKlumJsonSchema` explicitly. The task compiles local classes as needed and writes one file per selected root purpose
-below `build/generated/klum-json-schema`, for example `example.Deployment.schema.json`. The ordinary
+below `build/generated/klum-json-schema`, for example `example.Service.schema.json`. The ordinary
 `assemble`, `check` and publication lifecycles do not select generation. Filenames retain the fully qualified Model
 name, so Models with identical simple names in different packages produce distinct files; no package directories are
-created. Copying, packaging, publishing and editor association belong to the consumer; generation adds no artifact variant, classifier or automatic embedding.
+created. For the adoption example, associate `example.Service.schema.json` with `service.yaml` in your YAML editor. This
+self-contained document schema requires the external `service-id` key. If caller code supplies the root key separately,
+select the [Builder-body schema](#caller-pre-keyed-builder-bodies) for that keyless input instead. Copying, packaging,
+publishing and editor association belong to the consumer; generation adds no artifact variant, classifier or automatic embedding.
 
 The classpath defaults to the main runtime classpath plus the convention's selected Groovy configuration. It includes
 local compiled classes, declared API/Schema dependencies, Klum runtime/annotation libraries and embedded documentation.
@@ -590,11 +597,12 @@ lifecycle, materialization or completed validation. Integral primitives/wrappers
 `number` as a structural approximation, while BigInteger/BigDecimal retain mathematical numeric semantics. Completed
 `@Required` is not translated into raw-input `required`; defaults and arbitrary Groovy validation are not evaluated.
 Schema key providers, state-dependent existing-child key mismatches and duplicate raw parser members are runtime/parser
-concerns that structural validation cannot settle. There is no ordering, layering, merge/patch, polymorphic alias or round-trip promise. Runtime interpretation is a separate
-optional [structured-input feature](Structured-Input.md), tracked under #932.
+concerns that structural validation cannot settle. There is no ordering, layering, merge/patch, polymorphic alias or round-trip promise. Runtime interpretation is delivered as the separate optional
+[structured-input feature](Structured-Input.md), including public Factory/Builder entry points.
 
-Real ScHelm root/output qualification remains a consumer-owned acceptance gate for overall
-[#529](https://github.com/klum-dsl/klum-ast/issues/529). This Gradle slice selects no ScHelm roots, packaging or publication policy.
+[#529](https://github.com/klum-dsl/klum-ast/issues/529) is closed delivered work. Qualification of a particular ScHelm
+root/output against a newer matched build remains consumer-owned; historical acceptance does not qualify that build.
+Generation selects no ScHelm roots, packaging or publication policy.
 
 
 ## Literal collection alternative
@@ -656,9 +664,10 @@ implementation details and are not root-selection values or a public body-schema
 admission, including a property whose external spelling overlaps a suppressed construction key.
 
 The body variant describes the admitted structural grammar for caller-pre-keyed roots. Public construction belongs on
-the accepted Factory/Builder capabilities; the interpreter is internal. Common/keyed Factory and Builder application
-delivery remains separate under [#953](../adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953). It adds no runtime entry point, Factory/file/URL loading, key derivation or Template
-mode. It does not qualify every independently keyed consumer format or prescribe editor/file discovery. Schema validity
+the accepted Factory/Builder capabilities; the interpreter is internal. Common/keyed Factory creation and active-Builder application are delivered under
+[#953](../adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953);
+[structured Templates](Templates.md#structured-input-templates) are also delivered. Selecting a body artifact only changes
+schema output; it adds no runtime entry point, parser/file/URL loading, key derivation or Template mode. It does not qualify every independently keyed consumer format or prescribe editor/file discovery. Schema validity
 still does not guarantee construction, lifecycle or completed validation success.
 
 Both purposes use the same isolated compiled-contract inspection and no-user-code boundary. Build/configuration caches,

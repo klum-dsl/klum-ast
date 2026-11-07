@@ -7,6 +7,10 @@
   [copy-route migration](docs/user/Migration.md#reserved-builder-copy-signature)
   ([#1011](https://github.com/klum-dsl/klum-ast/issues/1011)).
 
+- Add a keyed-service Groovy/YAML adoption recipe connecting caller-owned parsing, Struct construction and generated
+  JSON Schema editor association. Reconcile delivered/deferred documentation and the Maven release inventory.
+  See [YAML adoption](docs/user/Structured-Input.md#adopt-yaml-for-a-schema).
+
 - Record per-class compiler provenance on transformed abstract and concrete Schemas using runtime-retained
   `GeneratedSchema(format = 1, compilerVersion = "...")` metadata. Independently compiled Java/Groovy consumers can read
   the exact emitter version from Schema JARs. Unmarked binaries remain usable; no minimum-runtime metadata or
