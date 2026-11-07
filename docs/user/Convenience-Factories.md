@@ -107,7 +107,9 @@ recipe. Classpath regular Scripts likewise retain their no-overlay `Create.FromC
 `Create.FromClasspath(loader)` routes.
 Named-map, File/URL/text and `FromStruct` overlays, Template and `AsBuilder` overlays are unavailable.
 Recompile existing Schemas to expose the new generated members; existing no-overlay binary calls remain supported.
-See [Factory contracts](Factory-Classes.md#compiled-root-recipe-overlays) and [migration](Migration.md#compiled-root-recipe-overlays).
+Java and static/dynamic Groovy clients consume the same generated Factory contract from compiled Schema artifacts.
+See [Factory contracts and packaging](Factory-Classes.md#compiled-root-recipe-overlays) and
+[migration](Migration.md#compiled-root-recipe-overlays).
 
 ### Optional IntelliJ completion for one script family
 

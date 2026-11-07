@@ -4,8 +4,10 @@
   `Create.FromClasspath(modelLoader) { ... }`: recipe, cloned closure overlay and one root
   `PostApply` in one lifecycle, preserving completed external LINK identity. Recompile Schema artifacts for the generated
   Factory members; audit custom overloads and type untyped null classpath arguments explicitly.
-  See [root recipe overlays](docs/user/Convenience-Factories.md#compiled-root-recipe-overlays)
-  ([#829](https://github.com/klum-dsl/klum-ast/issues/829), RCP-1/RCP-2; broader RCP-3 qualification remains pending).
+  See [root recipe overlays](docs/user/Convenience-Factories.md#compiled-root-recipe-overlays).
+  Java and static/dynamic Groovy clients use the generated public Factory contract from compiled Schema JARs; Groovy 3
+  remains classpath-only and Groovy 4/5 also support the ordinary named-module boundary
+  ([#829](https://github.com/klum-dsl/klum-ast/issues/829)).
 
 - Reconcile Struct/YAML authoring examples, final 4.2 support inventory and intentional Groovy parity boundaries.
   See [Struct guidance](docs/user/Structured-Input.md#groovy-forms-without-a-struct-equivalent)

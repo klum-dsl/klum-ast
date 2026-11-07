@@ -1,15 +1,17 @@
 # Factory classes
 
-Creator methods are encapsulated in a generated static inner class of the DSL Object class (named `_Factory`). A single
-instance is placed on the DSL Object class as the static `Create` field, enabling the convenient creation syntax.
+The Model's static `Create` field exposes the public generated `Model_DSL.Factory` interface. Its hidden
+implementation specializes the runtime Factory base class; clients can name the public interface and the
+`Model_DSL.Builder` delegate without depending on generated implementation classes.
 
-This factory is by default a subclass of:
+The default implementation extends:
 
 - `KlumFactory` for abstract classes
 - `KlumFactory.Keyed` for keyed classes
 - `KlumFactory.Unkeyed` for unkeyed classes
 
-Note that the implementation of these factories only differ from their base classes in the setting of the generic and the adding of `@DelegatesTo` annotations to the closure parameters. This is necessary for code completion and static type checking (since Groovy does not allow to use a generic parameter of the class in the `@DelegatesTo` annotation).
+Generated methods specialize the Model return type and add exact `@DelegatesTo` metadata to closure parameters for
+completion and static type checking. Groovy cannot use a generic type parameter as the delegate annotation value.
 
 ## Compiled root recipe overlays
 
@@ -24,6 +26,16 @@ Existing Schemas require recompilation to gain the generated members. The existi
 Custom Factories retain their existing override authority; audit custom `(Class, Closure)`, `(Closure)` and
 `(ClassLoader, Closure)` overloads when adopting these operations. An untyped `FromClasspath(null)` may be ambiguous
 between the ClassLoader and Closure overloads; use an explicit argument type. Other source overlays remain unavailable.
+
+Java clients pass an explicit `Closure<?>` to the same operations; inside its `doCall`, `getDelegate()` is the public
+`Model_DSL.Builder`. Static and dynamic Groovy clients can use trailing closures. The compiled Schema JAR carries the
+Factory signatures and delegate annotations; IDE source mirrors are completion aids and must not be downstream compiler
+inputs. The KlumAST compiler is needed to compile the Schema, not to execute these Factory operations.
+
+Groovy 3 supports classpath consumers. Groovy 4 and 5 also support named modules with the normal Schema exports/opens;
+recipe overlays require no additional internal-package exports or JVM access flags. Portable GDSL keeps its existing
+recipe-file-to-public-Builder mapping; a root overlay does not add another IDE mapping or make an unsupported source kind
+available. See [portable GDSL](Portable-GDSL.md) and [module guidance](Gradle-Plugins.md#named-schema-modules).
 
 ## Custom Creator Classes
 

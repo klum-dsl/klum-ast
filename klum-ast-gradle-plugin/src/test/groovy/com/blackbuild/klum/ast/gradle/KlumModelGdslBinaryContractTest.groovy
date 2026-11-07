@@ -32,6 +32,7 @@ import spock.lang.TempDir
 class KlumModelGdslBinaryContractTest extends Specification {
     @TempDir File directory
 
+    @Issue(['805', '829'])
     def "binary GDSL targets the real public generated Builder with Groovy #generation"() {
         given:
         File producer = new File(directory, 'schema')
@@ -131,6 +132,7 @@ class Verify {
         """, 'catalog.environment.groovy')
         def model = Environment.Create.From(recipe)
         assert model.region == 'eu'
+        assert Environment.Create.From(recipe) { region 'us' }.region == 'us'
         File recipeFile = new File('catalog.environment.groovy')
         recipeFile.text = "region 'eu'"
         assert Environment.Create.From(recipeFile).region == 'eu'

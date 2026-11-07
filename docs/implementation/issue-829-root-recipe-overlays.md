@@ -1,6 +1,6 @@
 # #829 — root compiled-recipe overlays
 
-Date: 2026-11-06. Status: **RCP-1 direct-class and RCP-2 classpath implementation; RCP-3 pending**.
+Date: 2026-11-06. Status: **RCP-1/RCP-2 merged; RCP-3 local consumer qualification rebased for draft review**.
 
 Category B: extension of [ADR 0004](../adr/0004-asbuilder-composition-protocol.md#root-compiled-recipe-overlays--829-extension-2026-11-06).
 Tracking: [#829](https://github.com/klum-dsl/klum-ast/issues/829). The maintainer selected closure-only overlays and
@@ -93,7 +93,9 @@ can make an untyped null ambiguous with the existing ClassLoader overload. Do no
 
 Preserve Factory-selected concrete/default type, existing key authority, Template application/replay, LINK wrappers and
 serialization. No public Builder/session extraction or general registry is required. The split dynamic-loader NPE noted
-in the brief leaves binary artifact qualification open; reproduce with a real artifact before treating it as a #829 defect.
+in the brief was a characterization gap. RCP-3 now exercises separate Schema/consumer compilation and JAR-only runtime
+processes, including dynamic Groovy, without reproducing it. This qualifies those artifact boundaries; it does not
+establish the cause of the original ad-hoc loader failure.
 
 Stop and return for a decision if the consumer needs context before root PostCreate or during recipe execution, permanent
 caller priority, additional source types, map overlays, nested independent roots, Template/AsBuilder overlay forms,
@@ -102,6 +104,52 @@ regular Script adaptation or generalized #304 composition. Those requirements mu
 Issue-to-slice mapping: #829's direct recipe and lifecycle/context criteria → RCP-1; marker/loader parity → RCP-2;
 Groovy/generated API/documentary and compatibility evidence → RCP-3. #304 remains separate. #953/ADR 0032 structured
 input, Jackson and JSON Schema are unchanged. No GitHub issue/label/milestone update is part of this design execution.
+
+## RCP-3 consumer qualification record
+
+Original speculative base: RCP-2 `adf94215733d6337689011f570a447654b684f4a`. After PR #1041 merged, RCP-3 was
+rebased onto `eca733a7a106a117fe11e34953bd529d83af109a`; that merge has the same file tree as the speculative base.
+RCP-3 adds test/documentation evidence only and changes no runtime or compiler implementation. The eventual exact-head
+hosted CI/SonarCloud remain delivery gates. No adopter execution, release admission or issue completion is claimed.
+
+`RootRecipeConsumerTest` starts real Java 17 compiler/JVM processes. It compiles and packages the Schema before
+compiling separate Java and static/dynamic Groovy clients, then deletes source and loose class trees. Consumers use only
+JAR inputs; execution also removes the KlumAST compiler and compile-time transformations. The matched-generation matrix
+covers Groovy 3/4/5 classpaths and Groovy 4/5 named modules with ordinary Schema exports/opens, no access-workaround flags
+and no new internal exports. This is not a historical-version or arbitrary cross-generation artifact matrix.
+
+For each route and client language, two completed environments retain exact LINK identity, the script supplies the root
+key, and root PostApply/validation see one completed application. Java also checks that its reusable closure's delegate
+and resolution strategy remain unchanged, and executes all three pre-existing no-overlay method descriptors against an
+unkeyed Schema. Negative javac probes reject regular Script class overlays and untyped null ambiguity. The separately
+projected source mirror retains the recipe bound, Model return and public Builder delegate; mirrors never enter consumer
+compiler/runtime paths.
+
+`RootRecipeFactoryContractTest` additionally checks custom overrides for all three overlay signatures and static Groovy
+typed/untyped null selection. Existing keyed/unkeyed metadata and excluded-surface checks remain in place.
+`KlumModelGdslBinaryContractTest` runs its published-Schema fixture on Groovy 3/4/5 and exercises a direct overlay after
+resolving the real public Builder through portable GDSL. This establishes generated payload/runtime parity, not interactive
+IntelliJ acceptance or a new IDE mapping.
+
+The RCP-1/RCP-2 documentary examples remain in `RootRecipeOverlayDocumentaryTest`, linked from
+[compiled root recipe overlays](../user/Convenience-Factories.md#compiled-root-recipe-overlays). No new DSL syntax needs a
+second documentary example. Factory, migration and changelog guidance now describes artifact consumers; the existing
+Sidebar and Migration links already expose all changed pages.
+
+Focused qualification command (Java 17):
+
+```shell
+./gradlew :klum-ast:test --tests '*Root*Recipe*' \
+  :klum-ast:groovy4Tests --tests '*Root*Recipe*' \
+  :klum-ast:groovy5Tests --tests '*Root*Recipe*' \
+  :klum-ast-gradle-plugin:test --tests '*KlumModelGdslBinaryContractTest' \
+  --no-daemon -Dorg.gradle.jvmargs=-Xmx1g
+```
+
+Full root `check`, standalone exact-revision documentation render/crawl and independent local Standards/Specification
+reviews are required before the local handoff. Their final results and commit identities are recorded in the RCP-3
+handoff; local success does not substitute for eventual hosted PR gates. Tracker impact is a proposed `Related: #829`
+relationship for Hive reconciliation; no issue-state, label, milestone or curation mutation is part of this slice.
 
 ## FromStruct assessment — recommended follow-on, not accepted scope
 

@@ -17,7 +17,9 @@ Existing no-overlay binary calls remain supported. Audit custom Factory `(Class,
 `(ClassLoader, Closure)` methods for collisions or intentional overrides. An untyped `FromClasspath(null)` may now be
 ambiguous between ClassLoader and Closure; type the argument explicitly. Overlay routes accept only `DelegatingScript`;
 regular Script producers keep their existing no-overlay operation. See [root recipe overlays](Convenience-Factories.md#compiled-root-recipe-overlays) for timing and
-supported sources. Other source overlay forms remain unavailable.
+supported sources. Keep generated IDE mirrors out of downstream compilation; the compiled Schema JAR supplies the
+public Factory contract. Groovy 3 remains classpath-only; Groovy 4/5 retain the ordinary named-module boundary. See
+[Factory consumer guidance](Factory-Classes.md#compiled-root-recipe-overlays). Other source overlay forms remain unavailable.
 
 ### Structured Factory and Builder capabilities
 
