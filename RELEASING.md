@@ -11,7 +11,7 @@ Only an explicitly authorized maintainer may approve the protected `release-cand
 The release is one product at one exact version. Its public Maven coordinates are:
 
 - `klum-ast-annotations`, `klum-ast`, `klum-ast-runtime`, `klum-ast-jackson`,
-  `klum-ast-bean-validation`, `klum-ast-bom`, and `klum-ast-gradle-plugin`, all in
+  `klum-ast-bean-validation`, `klum-ast-test-support`, `klum-ast-bom`, and `klum-ast-gradle-plugin`, all in
   `com.blackbuild.klum.ast`.
 
 The Gradle Plugin Portal exposes three declared public plugin IDs:
