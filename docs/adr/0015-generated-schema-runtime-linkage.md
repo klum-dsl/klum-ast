@@ -46,8 +46,11 @@ com.blackbuild.klum.ast.runtime.generated
 ```
 
 It is the only runtime package whose purpose is compiler-emitted linkage in a
-Schema Developer's module. It is a stable 4.x binary contract after the
-intentional 3.x-to-4.0 recompilation break, but is neither a general client API
+Schema Developer's module. Its intended stable 4.x binary contract is directional:
+a newer runtime qualifies retained binaries from supported older 4.x producers.
+Additive helpers do not make newer generated callers executable on runtimes that
+lack those helpers. The intentional 3.x-to-4.0 recompilation break remains outside
+this commitment. This package is neither a general client API
 nor a third-party extension SPI. Its types and members use generated-only
 Javadoc and reserved `$klum$` operation names where a generated class must call
 an operation directly.
@@ -86,6 +89,36 @@ limited to their own checked implementation linkage.
 The schema module continues to require the existing runtime module and open
 its DSL packages to it. No schema adds a `requires` clause for an internal
 KlumAST package, and the schema plugin never writes a module descriptor.
+
+### Proposed extension: generated Schema provenance for 4.2 (#896)
+
+The maintainer's 2026-11-07 decision makes generated compiler provenance the
+primary 4.2 objective. Emit one runtime-retained, non-inherited annotation on
+each transformed Schema class, including abstract classes, in the existing
+exported `runtime.generated` package. Select the minimal marker: explicit
+`format = 1` and the actual emitting `klum-ast` artifact's `compilerVersion`.
+Independently compiled Java and Groovy consumers can read that objective fact.
+Do not derive it from a consuming project, plugin, BOM, or resolved runtime.
+
+RF-1 preserves generated public/protected descriptors and construction behavior.
+It adds no minimum-runtime field, version comparison, Builder guard,
+ancestor-floor aggregation, runtime identity lookup, or compatibility cache.
+Compiler provenance must never be reinterpreted as a minimum runtime claim.
+
+[#896's implementation plan](../implementation/issue-896-generated-schema-runtime-floor.md)
+separates RF-1 from optional floor metadata and post-4.2 candidate comparison/
+diagnostics. A future optional floor member can default to unknown for older
+markers while retaining the format and compiler-version meanings. Historical
+binary/Catwalk qualification and broader release-facing adoption are separately
+scheduled and are not RF-1 prerequisites. Older runtimes cannot acquire a new
+check from metadata; provenance alone proves no runtime compatibility. Newer
+Schema on older Domain API remains a separate qualification axis. Exact
+equality, substitution, and compatibility adaptation remain excluded.
+
+This supplement preserves this ADR's Proposed status. The current PR changes
+design only; it does not implement RF-1 or admit a release gate. #896 remains
+open. The generated-runtime extension planned for 4.2 is one inert provenance
+annotation, without runtime compatibility enforcement.
 
 ### Freeze the public generated contracts honestly
 

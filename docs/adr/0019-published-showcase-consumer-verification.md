@@ -156,6 +156,33 @@ public and candidate runs, and retained evidence. Before using it as release evi
 must not be hidden by a composite, a local artifact, or an invented 4.0.x coordinate. The admission must not add Layer 3,
 new published APIs, a shared convention, or a normal KlumAST PR requirement to the first maintenance delivery.
 
+### Proposed #896 binary-runtime qualification supplement
+
+The [2026-11-07 #896 plan](../implementation/issue-896-generated-schema-runtime-floor.md)
+prioritizes generated compiler provenance (RF-1) for 4.2. Independent Catwalk
+compatibility qualification (RF-3) and broader release-facing adoption (RF-4)
+are separately scheduled follow-ups, not prerequisites for RF-1. Runtime-floor
+metadata is optional and independently decided; comparison and actionable
+diagnostics are post-4.2 candidates. RF-1 introduces no release-gate enforcement.
+
+The separate qualification direction retains predecessor API/Schema producer
+binaries and their publication metadata, then consumes those exact binaries on
+the selected newer runtime. Rebinding a baseline contract must not rebuild its
+historical producer. Qualify newer Schema against older Domain API separately,
+with a retained API binary and API-only Java client.
+
+Keep aligned candidate-product proof separate from deliberately mixed-version
+experiments and any future below-floor negative controls. Historical compiler
+provenance is historical input, never a candidate module silently substituted into the
+candidate set. Preserve this ADR's complete marker/implementation/BOM/product
+manifest and isolated repository requirements. A locally passing source/JAR
+test or file-only showcase handoff does not establish this coordinate boundary.
+
+This is design material, not a claim that Catwalk already provides the matrix
+or complete candidate mode. It neither changes this ADR's Proposed status nor
+promotes a baseline or creates a hard 4.2 release blocker. Maintainers explicitly
+select supported predecessor lines and admit the release evidence requirement.
+
 ### Branch and version policy
 
 The catwalk has current-development `main` and explicit compatibility branches such as `release/4.0.x` when support is
