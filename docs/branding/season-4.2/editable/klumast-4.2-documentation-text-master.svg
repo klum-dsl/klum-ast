@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 945" role="img" aria-labelledby="title desc">
+  <title id="title">KlumAST 4.2 documentation lockup</title>
+  <desc id="desc">Equal Struct/YAML and original Groovy peers share an ivory portal and diagonal catwalk. The KlumAST wordmark sits above Make Your Models, with ivory YAML raised over gold Groovy, and Season 4.2 below.</desc>
+  <g id="artwork" />
+  <g font-family="Avenir Next, Helvetica Neue, Helvetica, Arial, sans-serif">
+    <text x="1504" y="291" text-anchor="end" font-size="186.1" font-weight="300" letter-spacing="3" fill="#f9f6f1">KlumAST</text>
+    <text x="1285.02" y="391" text-anchor="end" font-size="64" font-weight="300" letter-spacing=".5" fill="#f9f6f1">Make Your Models</text>
+    <text x="1504" y="391" text-anchor="end" font-size="64" font-weight="300" letter-spacing=".5" fill="#d2b05f">Groovy</text>
+    <text x="1504" y="505" text-anchor="end" font-size="40" font-weight="300" letter-spacing=".5" fill="#f9f6f1">Season 4.2</text>
+    <g stroke="#041321" stroke-width="4" paint-order="stroke fill" stroke-linejoin="round">
+      <text x="1504" y="376" text-anchor="end" font-size="64" font-weight="400" letter-spacing=".5" fill="#f9f6f1">YAML</text>
+    </g>
+  </g>
+</svg>

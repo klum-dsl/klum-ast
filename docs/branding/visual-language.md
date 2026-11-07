@@ -38,6 +38,7 @@ This should read as a coherent fashion collection, not a new product identity.
 | Direction | Intended cue | Status |
 | --- | --- | --- |
 | Season 4.0: The Makeover | The neutral stylised model steps from the portal onto the catwalk. The full lockup includes `Builders first`; the compact lockup prioritises `4.0`. | Approved Season 4.0 direction |
+| 4.2 shared portal | Equal Struct/YAML mosaic peer on the left and flowing Groovy peer on the right, retaining the established lower-right catwalk. | Selected direction; [controlled draft assets](season-4.2/README.md), not activated |
 | 4.1 Spring Break | A distinct catwalk-facing pose and a clearly readable spring dress. This can cue Spring-Boot integration without turning that integration into a logo claim. | Future candidate |
 | Security-focused sandbox | A different pose with a restrained style-noire accessory, such as a hat. Avoid literal security iconography or a technical promise in the artwork. | Future candidate |
 | Hair | The Season 4.0 figure deliberately has no hair treatment. One or two stylised wavy strokes remain available as a later, release-specific cue. | Future candidate |

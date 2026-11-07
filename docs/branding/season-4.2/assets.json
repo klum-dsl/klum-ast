@@ -1,0 +1,38 @@
+{
+  "status": "selected-direction; controlled draft assets; not activated",
+  "license": "MIT; repository LICENSE",
+  "approvedModel": {
+    "source": "docs/branding/season-4/editable/klumast-season-4-documentation-text-master.svg",
+    "sourceSha256": "08a8872aba470302b275435478e75388a94627d1813f665b18bb7547e9739e2f",
+    "embeddedPngSha256": "1ecb2e32661de940f302849b69839a02cddba96ed06c9bf5e7df4c73cf9f8b0a",
+    "reuse": "Exact embedded PNG and image geometry; model and approved shadow translated together by (54,0)"
+  },
+  "sources": {
+    "editable/klumast-4.2-art.svg": "1f4a67b13a54fd73f3ea3f9cdb99d9dfdc7c268184cb5a05eb728957a3a152a7",
+    "editable/klumast-4.2-documentation-compact-text-master.svg": "358f3e07e16e90699c1228855991bf7130255262a5549d57417ccbc915db3f29",
+    "editable/klumast-4.2-documentation-text-master.svg": "5a81113272be49084ebc2ed9f02fb85af57223b0ffad53444ac1d3a2d15c6219",
+    "editable/klumast-4.2-header-text-master.svg": "d8ea692b30c74771e0d7fed0c52f34ba71ee6476ce24b5042fd5929766883e61"
+  },
+  "exports": {
+    "art-optical-128.png": "62cc6e237465eb668f66d988bc5edb2e1866c92acb87f04ad76e948098d8cc6e",
+    "art-optical-256.png": "e0342459b624381fca15ff5061d484fe8deeda969282fb54c4c2a3453baeec7c",
+    "art-optical-32.png": "5d496dcd60bf35ffd9301cac4e7f9ae9d93e4e7e7e7a6be03012e8f708b2ceea",
+    "art-optical-64.png": "e62727442aa87cf0b5da03f83dcdecc7b5cf26ce145fa7db9aa97cda6d7cbd06",
+    "documentation-1680.png": "78d3f2e957a2496d6187fd865a1702b0109e610009c0a39a7ed24aeac9dc36e3",
+    "documentation-640.png": "022d59be8916e9234dc02255cd592c2e33bd89a71b0e4137a574d253973e6ab6",
+    "documentation-compact-320.png": "2dfe9f6dc6c4d8d7b68d9c822bdf60bce2f658ece5a831e793ef366ed882c011",
+    "documentation-compact-430.png": "7503dadc04c008f60a27acd39fcfe44664950b3fc32d8c16113a19ac33fbab5e",
+    "groovy-4.0-foot-reference.png": "4f79db365915556b49517142c5e91ea2c8ddd28868b2bedde9631d38ac90c175",
+    "groovy-4.2-foot-detail.png": "4f7d646c40440c01f3b1b3176c9d93298324fb9547f15c6089cb0d45e28073e0",
+    "header-990.png": "9692c4aa6b5baf515ffd807c07b3b30b2b6c5636142d8fbca85d95d2b3bf762a",
+    "header-optical-330.png": "9b55d6af9d4be9eef6e08e66504cb364b8ab1e552a4e2d43766d0deab52d3f47",
+    "header-optical-660.png": "5db11183c0798dd62dd84139f609dc4dd415f11cd19be6a8315fe8b395ef8d6f",
+    "klumast-4.2-art-optical.svg": "f0650aeb7e2b1ad17f158ae81fdd537e128a93c4a1ceb2d3722c7528b6166fd4",
+    "klumast-4.2-art.svg": "21f5998331486e44e0749fea0828fd4901f89b90412642785372bc7e6a3e8c6a",
+    "klumast-4.2-documentation-compact.svg": "fbd7ae3afe70d93ceb5808af48340a09982994d56253d0d84a1588b52f3c66b9",
+    "klumast-4.2-documentation.svg": "ccc64aea4c95f6ee79e207faba4fdd92203721998665b0679ba9c3b6b56f4a3b",
+    "klumast-4.2-foot-detail.svg": "c3c2c64f477472261d53d3d8b56459df2fd23e247d278e2ef49d39decb0aeec4",
+    "klumast-4.2-header-optical.svg": "6de1cd4fe7b5c979d6e047e4251c11a34b595adfac1b6e6173633067a480b627",
+    "klumast-4.2-header.svg": "73e61d47dd79038951981db895fb99114a1260ff5b2a42831f71b393aa2e24e5"
+  }
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KlumAST 4.2 controlled artwork review</title>
+<style>
+body { margin: 24px; background: #e9e4db; color: #102637; font: 16px system-ui; }
+a { color: #193f5d; margin-right: 14px; }
+iframe { display: block; border: 0; margin-top: 16px; height: 850px; }
+</style>
+<h1>KlumAST 4.2 artwork review</h1>
+<p>Controlled draft assets. This page uses an iframe viewport to exercise the existing 1000 px picture boundary.</p>
+<nav aria-label="Review viewport widths">
+<a href="?w=390">390</a><a href="?w=430">430</a>
+<a href="?w=759">759</a><a href="?w=760">760</a><a href="?w=761">761</a>
+<a href="?w=999">999</a><a href="?w=1000">1000</a><a href="?w=1001">1001</a><a href="?w=1440">1440</a>
+</nav>
+<p id="status"></p>
+<iframe title="Responsive artwork at the selected viewport" src="review-frame.html"></iframe>
+<script>
+const allowed = [390, 430, 759, 760, 761, 999, 1000, 1001, 1440];
+const requested = Number(new URLSearchParams(location.search).get('w'));
+const width = allowed.includes(requested) ? requested : 1001;
+document.querySelector('iframe').style.width = `${width}px`;
+document.querySelector('#status').textContent = `Art viewport: ${width} px; expected source: ${width <= 1000 ? 'compact / optical' : 'full / detailed'}.`;
+</script>
+</html>
