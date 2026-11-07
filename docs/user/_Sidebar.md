@@ -4,6 +4,7 @@
   * [Terms](Terms.md)
 * Fundamentals
   * [Basics](Basics.md)
+  * [YAML adoption](Structured-Input.md#adopt-yaml-for-a-schema)
   * [Model Phases](Model-Phases.md)
   * [Exception Handling](Exception-Handling.md)
   * [Static Models](Static-Models.md)

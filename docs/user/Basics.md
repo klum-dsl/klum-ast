@@ -218,6 +218,7 @@ def deployment = Deployment.Create.With('catalog') {
 
 (See: `FactoryConstructionTest#'builds a completed deployment configuration with Create.With'`.)
 
+For a first YAML configuration, follow the [Groovy/YAML adoption recipe](Structured-Input.md#adopt-yaml-for-a-schema).
 For caller-parsed YAML/JSON data, use [Struct Factory creation](Structured-Input.md#factory-roots) or
 [active-Builder application](Structured-Input.md#apply-to-an-active-builder). The
 [Groovy/YAML guide](Structured-Input.md#relate-groovy-and-yaml) links the admitted nested, keyed, operation and collection

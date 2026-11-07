@@ -8,6 +8,67 @@ and [`Create.Template.FromStruct`](Templates.md#structured-input-templates) for 
 Parsing remains caller-owned. No JSON/YAML parser, file or URL loading is added. An optional source name is opaque
 nonempty diagnostic text, never a locator or a model key.
 
+## Adopt YAML for a Schema
+
+Use the same Schema for Groovy authoring and a data-only YAML configuration. For a small keyed service, let
+`yamlText` contain this document, read by caller code:
+
+```yaml
+service-id: catalog
+host: api
+```
+
+The caller chooses a parser dependency and parses the document into a String-keyed Map. For example, using Groovy's
+`YamlSlurper`, ordinary Groovy construction and `FromStruct` produce the same completed Model:
+
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'`.)
+
+```groovy
+package example
+
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Struct
+import groovy.yaml.YamlSlurper
+
+@DSL class Service {
+    @Key @Struct.Name('service-id') String name
+    String host
+}
+
+def ordinary = Service.Create.With('catalog') {
+    host 'api'
+}
+Map document = new YamlSlurper().parseText(yamlText)
+def configured = Service.Create.FromStruct(document, 'service.yaml')
+assert configured.name == ordinary.name
+assert configured.host == ordinary.host
+```
+
+KlumAST receives the parsed data; it never opens `service.yaml`. The optional source name is only diagnostic text.
+A caller that already supplies `'catalog'` can instead parse the keyless body `host: api` and use
+`Service.Create.FromStruct('catalog', body)` or [apply it to an active Builder](#apply-to-an-active-builder).
+
+For editor feedback, apply the [Schema Gradle plugin](Gradle-Plugins.md), select the Model binary name (for example,
+`example.Service`) in `klumSchema.jsonSchema.rootTypes`, and run `./gradlew generateKlumJsonSchema`. Associate the
+resulting `build/generated/klum-json-schema/example.Service.schema.json` with `service.yaml` in your editor's YAML
+schema configuration. The [JSON Schema recipe](Json-Schema.md#generating-files) explains generation and consumer-owned
+packaging/association; select a [Builder-body artifact](Json-Schema.md#caller-pre-keyed-builder-bodies) instead when
+caller code supplies root identity. The self-contained artifact requires `service-id`; the body artifact forbids it.
+
+Keep three boundaries explicit:
+
+- **Parsing:** choose and configure the parser, including rejection of duplicate mapping members before they collapse
+  into a Map. A later Struct or JSON Schema check cannot recover lost duplicate keys. The example parser choice alone
+  is not a duplicate-key rejection policy.
+- **Execution:** preserve Map/List traversal order when it matters. Struct validates and invokes each reached operation
+  in that order, stops at the first failure and retains earlier effects. There is no whole-document payload preflight
+  or rollback; see [order and failures](#order-and-failures).
+- **Validation:** editor or explicit JSON Schema validation checks the admitted input structure and qualified projected
+  constraints. It does not run automatically in `FromStruct` or guarantee successful construction. `FromStruct` runs
+  ordinary Builder lifecycle, materialization and completed-Model validation; defaults, callbacks, converters and
+  model-level rules can still change or reject the result. See [validation responsibility](Json-Schema.md#runtime-order-and-failure).
+
 ## Relate Groovy and YAML
 
 Struct is a data language for the Schema's admitted construction operations. A YAML mapping member names an input

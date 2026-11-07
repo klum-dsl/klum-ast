@@ -48,6 +48,12 @@ These capabilities make KlumAST especially useful for GitOps and other *\*aC* (a
 configuration's structure, but a checked-in structure is not necessarily a verified model. Read
 [why *\*aC* needs model-level tests](Why-aC-is-not-enough.md) before treating configuration in Git as the end of the story.
 
+## Author YAML with the same Schema
+
+Model Writers can also use caller-parsed YAML or JSON for admitted Schema operations. Start with the
+[keyed-service Groovy/YAML example](Structured-Input.md#adopt-yaml-for-a-schema), then generate a JSON Schema for
+editor feedback. The guide explains caller-owned parsing, Factory construction and the validation boundaries.
+
 ## Example
 
 Given the following config classes:

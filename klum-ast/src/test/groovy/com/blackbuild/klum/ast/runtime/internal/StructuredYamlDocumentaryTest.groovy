@@ -36,7 +36,8 @@ class StructuredYamlDocumentaryTest extends AbstractDSLSpec {
 
     def cleanup() { artifacts?.close() }
 
-    @See(['https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#factory-roots',
+    @See(['https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#adopt-yaml-for-a-schema',
+          'https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#factory-roots',
           'https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#apply-to-an-active-builder'])
     def 'caller parsed YAML creates keyed roots and configures an active Builder body'() {
         given:
@@ -60,6 +61,9 @@ host: api
 '''
 
         when:
+        def ordinary = service.Create.With('catalog') {
+            host 'api'
+        }
         def root = service.Create.FromStruct(document, 'service.yaml')
         def explicit = service.Create.FromStruct('catalog', body, 'body.yaml')
         def active = service.Create.With('catalog') {
@@ -69,6 +73,8 @@ host: api
         then:
         root.name == 'catalog'
         root.host == 'api'
+        root.name == ordinary.name
+        root.host == ordinary.host
         explicit.name == root.name
         explicit.host == root.host
         active.name == root.name
