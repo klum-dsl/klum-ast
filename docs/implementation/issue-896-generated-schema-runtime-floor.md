@@ -146,7 +146,20 @@ provenance in the same code-source directory or JAR as the executing compiler, i
 cached compiler output. The compiler reads only that location, never a classloader-wide resource, consuming-project
 version, plugin, BOM, or runtime identity. Missing, blank, or duplicate version facts cause a Schema compilation error.
 
+Resource-lifecycle review tested ordinary `processResources` with an explicit dependency on the version-marker task.
+That packages the resource correctly in the JAR, but places it in `build/resources/main`, separate from the exploded
+compiler's `build/classes/java/main` code source. An explicit built-exploded-artifact regression fails with a missing
+bound resource. The implementation retains the existing single copy into the compiler class output: sharing task output
+directories, adding a redundant copy, or searching sibling/classpath resources would add ownership or identity problems.
+No resource-packaging plugin or broader provenance lookup is introduced.
+
 Acceptance coverage:
+
+- `CompilerProvenanceTest` reads the actual packaged compiler JAR and actual exploded Java class output through isolated
+  loaders, including a preceding unrelated resource. It also exercises positive development/RC identity and missing,
+  blank, missing-version, duplicate, extra-property and malformed metadata in both JAR and directory code sources.
+  These checks run in the test JVM so baseline JaCoCo observes failure paths as well as successful JAR lookup;
+  independent-process acceptance below remains separate consumer evidence.
 
 - `GeneratedSchemaProvenanceTest` starts with a failing marker-absence test and then checks exact local emitter values,
   abstract/concrete inheritance, a collection Schema, unmarked interface/plain/support controls, ordinary construction,

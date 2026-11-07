@@ -234,32 +234,39 @@ class GeneratedSchemaProvenanceConsumerTest extends Specification {
     /** Remove only the inert annotation; this reconstructs an unmarked binary, not a historical release. */
     private static Path withoutMarkers(Path root, Path source) {
         rewriteJar(source, root.resolve('unmarked-' + source.fileName)) { entry, bytes ->
-            if (!entry.endsWith('.class')) return bytes
-            ClassWriter writer = new ClassWriter(0)
-            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
-                @Override
-                AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                    descriptor == GeneratedSchemaProvenanceConsumerTest.MARKER_DESCRIPTOR ? null : super.visitAnnotation(descriptor, visible)
-                }
-            }, 0)
-            writer.toByteArray()
+            entry.endsWith('.class') ? withoutProvenance(bytes) : bytes
         }
+    }
+
+    private static byte[] withoutProvenance(byte[] bytes) {
+        String markerDescriptor = MARKER_DESCRIPTOR
+        ClassWriter writer = new ClassWriter(0)
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                descriptor == markerDescriptor ? null : super.visitAnnotation(descriptor, visible)
+            }
+        }, 0)
+        writer.toByteArray()
     }
 
     private static Path rewriteJar(Path input, Path output, Closure<byte[]> transform) {
         new JarFile(input.toFile()).withCloseable { jar ->
             new JarOutputStream(Files.newOutputStream(output)).withCloseable { target ->
-                jar.entries().each { entry ->
-                    byte[] bytes = transform(entry.name, jar.getInputStream(entry).withCloseable { it.readAllBytes() })
-                    if (bytes != null) {
-                        target.putNextEntry(new JarEntry(entry.name))
-                        target.write(bytes)
-                        target.closeEntry()
-                    }
-                }
+                jar.entries().each { entry -> writeEntry(jar, target, entry, transform) }
             }
         }
         output
+    }
+
+    private static void writeEntry(JarFile jar, JarOutputStream target, JarEntry entry, Closure<byte[]> transform) {
+        byte[] bytes = transform(entry.name, jar.getInputStream(entry).withCloseable { it.readAllBytes() })
+        if (bytes == null) {
+            return
+        }
+        target.putNextEntry(new JarEntry(entry.name))
+        target.write(bytes)
+        target.closeEntry()
     }
 
     private static List<Path> withCompiler(List<Path> inputs, Path compiler) {
@@ -297,7 +304,9 @@ class GeneratedSchemaProvenanceConsumerTest extends Specification {
         StringBuilder output = new StringBuilder()
         Thread reader = Thread.start { process.inputStream.withReader { output.append(it.text) } }
         boolean completed = process.waitFor(60, TimeUnit.SECONDS)
-        if (!completed) process.destroyForcibly()
+        if (!completed) {
+            process.destroyForcibly()
+        }
         reader.join(5000)
         assert completed : "Timed out: $command\n$output"
         assert (process.exitValue() == 0) == success : "Failed: $command\n$output"
