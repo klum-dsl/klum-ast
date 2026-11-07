@@ -1,0 +1,9 @@
+{
+  "season": "Season 4.2",
+  "logo": "docs/user/img/season-4.2/klumast-4.2-header-optical.svg",
+  "altText": "KlumAST Season 4.2 \u2014 Struct/YAML and Groovy peers at a shared portal",
+  "sha256": "6de1cd4fe7b5c979d6e047e4251c11a34b595adfac1b6e6173633067a480b627",
+  "favicon": "docs/user/img/season-4/klumast-season-4-favicon.svg",
+  "faviconSha256": "093fd09874a229ac285401b36b95f0da25001c827f8000844de529cc943a6fbd",
+  "approval": "candidate"
+}

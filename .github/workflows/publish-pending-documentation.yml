@@ -175,6 +175,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          branding_manifest=docs/branding/season-4-klumast.json
+          # Preserve older release lines; 4.2 uses its own controlled branding.
+          if [[ "$RELEASE_VERSION" == 4.2.* ]]; then
+            branding_manifest=docs/branding/season-4.2-klumast.json
+          fi
           arguments=(
             "-PdocumentationReleaseStage=$RELEASE_STAGE"
             "-PdocumentationExpectedVersion=$RELEASE_VERSION"
@@ -184,13 +189,17 @@ jobs:
             "-PdocumentationRendererRevision=$EXPECTED_COMMIT"
             "-PdocumentationVersion=$RELEASE_VERSION"
             '-PdocumentationStatus=pending'
-            '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json'
+            "-PdocumentationBrandingManifest=$branding_manifest"
             '-PdocumentationObjectDirectory=.'
             '-PdocumentationOutputDirectory=build/pending-documentation'
             '-PdocumentationHandoffFile=build/pending-documentation-handoff.json'
           )
           if [[ "$RELEASE_STAGE" == final ]]; then
-            arguments+=('-PdocumentationFinalBrandingApproval=docs/branding/final-approval.json')
+            branding_approval=docs/branding/final-approval.json
+            if [[ "$RELEASE_VERSION" == 4.2.* ]]; then
+              branding_approval=docs/branding/season-4.2-final-approval.json
+            fi
+            arguments+=("-PdocumentationFinalBrandingApproval=$branding_approval")
           fi
           ./gradlew preparePendingDocumentationStage "${arguments[@]}" \
             "-Prelease.stage=$RELEASE_STAGE" \

@@ -179,7 +179,7 @@ def renderLocalDocumentationFiles = tasks.register('renderLocalDocumentationFile
     rendererRevision.set(providers.gradleProperty('documentationRendererRevision').orElse(localDocumentationRevision))
     documentationVersion.set(providers.gradleProperty('documentationVersion').orElse('4.0.0-tracer'))
     status.set(providers.gradleProperty('documentationStatus').orElse('tracer'))
-    brandingManifestPath.set(providers.gradleProperty('documentationBrandingManifest').orElse('docs/branding/season-4-klumast.json'))
+    brandingManifestPath.set(providers.gradleProperty('documentationBrandingManifest').orElse('docs/branding/season-4.2-klumast.json'))
     releaseStage.set(providers.gradleProperty('documentationReleaseStage'))
     finalBrandingApprovalPath.set(providers.gradleProperty('documentationFinalBrandingApproval'))
     archivedVersions.set(splitDocumentationProperty('documentationArchivedVersions'))

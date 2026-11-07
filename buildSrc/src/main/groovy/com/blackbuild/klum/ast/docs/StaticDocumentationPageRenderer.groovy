@@ -111,8 +111,8 @@ img { max-width: 100%; height: auto; }
 
     private static final List<Extension> EXTENSIONS = [TablesExtension.create()].asImmutable()
     private static final Pattern WIKI_LINK = Pattern.compile(/\[\[([^\]]+)]]/)
-    private static final Pattern SEASON_LOCKUP_IMAGE = Pattern.compile(/<p><img src="([^"]*klumast-season-4-documentation\.svg)" alt="([^"]*)" title="season-lockup" \/><\/p>/)
-    private static final Pattern SEASON_LOCKUP_MARKDOWN = Pattern.compile(/!\[[^\]]*]\(([^\s)]+klumast-season-4-documentation\.svg)\s+"season-lockup"\)/)
+    private static final Pattern SEASON_LOCKUP_IMAGE = Pattern.compile(/<p><img src="([^"]*klumast-(?:season-4|4\.2)-documentation\.svg)" alt="([^"]*)" title="season-lockup" \/><\/p>/)
+    private static final Pattern SEASON_LOCKUP_MARKDOWN = Pattern.compile(/!\[[^\]]*]\(([^\s)]+klumast-(?:season-4|4\.2)-documentation\.svg)\s+"season-lockup"\)/)
     private static final String WIKI_ROOT = '.klum-wiki-root/'
     private static final Set<String> IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'] as Set
 

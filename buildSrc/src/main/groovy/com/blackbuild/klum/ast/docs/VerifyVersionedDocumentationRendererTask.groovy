@@ -145,6 +145,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'season lockup must select the compact asset before the desktop content column becomes too narrow')
         assertContains(exactLanding.text, '<img src="img/klumast-season-4-documentation.svg" alt="Season lockup">',
                 'season lockup must retain its authored alternate text')
+        assertContains(exactLanding.text, 'media="(max-width: 1000px)" srcset="img/season-4.2/klumast-4.2-documentation-compact.svg"',
+                'the 4.2 lockup must select its own compact asset')
+        assertContains(exactLanding.text, '<img src="img/season-4.2/klumast-4.2-documentation.svg" alt="Struct/YAML and Groovy">',
+                'the 4.2 lockup must preserve accessible text')
+        assertTrue(new File(currentOne, '4.0.0-rc.1/img/season-4.2/klumast-4.2-documentation-compact.svg').file,
+                'the implicit 4.2 compact source must be copied into the exact tree')
         assertContains(exactLanding.text, '&lt;dependencies&gt;', 'XML code examples must remain escaped code')
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Home').exists(), 'the landing source must not produce a second public page')
         File migrationPage = new File(currentOne, '4.0.0-rc.1/Builder-First-Migration/index.html')
@@ -439,8 +445,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         Map<String, String> localSettings = localRenderSettings.get()
         assertTrue(localSettings['version'] == '4.0.0-tracer', 'local documentation version must default to 4.0.0-tracer')
         assertTrue(localSettings['status'] == 'tracer', 'local documentation status must default to tracer')
-        assertTrue(localSettings['brandingManifest'] == 'docs/branding/season-4-klumast.json',
-                'local documentation must default to the Season 4 branding manifest')
+        assertTrue(localSettings['brandingManifest'] == 'docs/branding/season-4.2-klumast.json',
+                'local documentation must default to the Season 4.2 branding manifest')
         assertTrue(localSettings['objectDirectory'] == repositoryDirectory.get().asFile.canonicalPath,
                 'local documentation must default to the repository object directory')
         assertTrue(localSettings['outputDirectory'] == localSettings['expectedOutputDirectory'],
@@ -809,6 +815,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 
 ![Season lockup](img/klumast-season-4-documentation.svg "season-lockup")
 
+![Struct/YAML and Groovy](img/season-4.2/klumast-4.2-documentation.svg "season-lockup")
+
 | Name | Value |
 | --- | --- |
 | Renderer | static |
@@ -859,6 +867,9 @@ dependencies {
         }
         new File(repository, 'docs/user/img/klumast-season-4-documentation.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'docs/user/img/klumast-season-4-documentation-compact.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
+        new File(repository, 'docs/user/img/season-4.2').mkdirs()
+        new File(repository, 'docs/user/img/season-4.2/klumast-4.2-documentation.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
+        new File(repository, 'docs/user/img/season-4.2/klumast-4.2-documentation-compact.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'wiki/Home.md').text = '# Historical home\n\nHistorical landing content.\n'
         new File(repository, 'wiki/Legacy.md').text = '# Legacy documentation\n\nHistorical content for <klum-version>.\n'
         new File(repository, 'wiki/_Sidebar.md').text = '* [[Home]]\n* [[Legacy]]\n* [[Changelog]]\n'

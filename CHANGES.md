@@ -1,5 +1,8 @@
 # Unreleased
 
+- Use the controlled Season 4.2 shared-portal artwork for the current documentation and README,
+  with responsive Struct/YAML and Groovy lockups and the retained Season 4 favicon.
+
 - Record per-class compiler provenance on transformed abstract and concrete Schemas using runtime-retained
   `GeneratedSchema(format = 1, compilerVersion = "...")` metadata. Independently compiled Java/Groovy consumers can read
   the exact emitter version from Schema JARs. Unmarked binaries remain usable; no minimum-runtime metadata or

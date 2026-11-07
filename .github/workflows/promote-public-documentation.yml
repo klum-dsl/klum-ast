@@ -209,6 +209,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          branding_manifest=docs/branding/season-4-klumast.json
+          # Preserve older release lines; 4.2 uses its own controlled branding.
+          if [[ "$RELEASE_VERSION" == 4.2.* ]]; then
+            branding_manifest=docs/branding/season-4.2-klumast.json
+          fi
           public_status=current
           if [[ "$RELEASE_STAGE" == candidate ]]; then
             public_status=public-rc
@@ -218,7 +223,7 @@ jobs:
             "-PdocumentationRendererRevision=$EXPECTED_COMMIT" \
             "-PdocumentationVersion=$RELEASE_VERSION" \
             "-PdocumentationStatus=$public_status" \
-            '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json' \
+            "-PdocumentationBrandingManifest=$branding_manifest" \
             '-PdocumentationObjectDirectory=.' \
             '-PdocumentationOutputDirectory=build/public-documentation'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

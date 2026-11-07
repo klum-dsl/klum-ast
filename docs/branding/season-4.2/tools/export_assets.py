@@ -13,6 +13,7 @@ import json
 import math
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
@@ -194,8 +195,15 @@ def main():
         reference_path = Path(folder) / 'reference.svg'
         write_svg(reference, reference_path)
         render(reference_path, 640, 'groovy-4.0-foot-reference.png')
+    production = ROOT / 'docs/user/img/season-4.2'
+    production.mkdir(exist_ok=True)
+    for name in ['documentation', 'documentation-compact', 'header-optical']:
+        filename = f'klumast-4.2-{name}.svg'
+        shutil.copyfile(OUT / filename, production / filename)
     manifest = {
-        'status': 'selected-direction; controlled draft assets; not activated',
+        'status': 'selected-direction; activated for current documentation; final release approval separate',
+        'production': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                       for path in sorted(production.glob('*.svg'))},
         'license': 'MIT; repository LICENSE',
         'approvedModel': {
             'source': str(APPROVED_MASTER.relative_to(ROOT)),
