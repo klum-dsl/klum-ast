@@ -8,9 +8,9 @@ ivory portal, with clearance from the right edge. This avoids the navy/frame
 showing through the approved artwork. The palette follows the existing navy,
 ivory, graphite and blue-grey language, with small muted-gold accents.
 
-These are controlled draft assets and reproducible review exports. The maintainer
-selected the existing 4.0 favicon unchanged; no replacement favicon is included.
-Current release activation, avatars and final branding approval remain separate.
+These controlled assets are activated for current documentation and the README.
+The maintainer selected the existing 4.0 favicon unchanged; no replacement favicon
+is included. Avatars and final release branding approval remain separate.
 
 ## Controlled sources
 
@@ -98,7 +98,7 @@ navigation behavior belongs to the unchanged documentation renderer.
 The exporter rejects duplicate IDs, missing internal references, external assets,
 runtime lettering/fonts and all raster images **except the exact approved 4.0
 model**. An altered image payload or image geometry fails validation. Repeat runs
-must leave both hash inventories and the generated assets unchanged.
+must leave both hash inventories, generated assets and production copies unchanged.
 
 ## Licensing and provenance
 
@@ -125,12 +125,22 @@ luminous portal, with shadows extending down the diagonal ivory catwalk on navy.
 
 ## Production boundary and tracker impact
 
-[VALIDATION.md](VALIDATION.md) records checks, render evidence and the remaining
-browser gap. Current `docs/user/` imagery, branding manifests, final approval and
-the renderer are unchanged. The renderer specifically recognises the existing
-Season 4 filenames. Adoption needs an explicit integration and branding-approval
-change, plus full-site browser review. The higher-YAML E preview is the current
-review direction; the full/compact controlled text masters now carry that selected treatment.
+[ACTIVATION.md](ACTIVATION.md) records integration and actual-site browser evidence.
+[VALIDATION.md](VALIDATION.md) retains the source-artwork qualification history.
+The exporter copies the full, compact and optical-header SVGs byte-for-byte into
+`docs/user/img/season-4.2/` and records their hashes in `assets.json`. Do not edit
+these production copies directly. Current `Home.md` and the repository README
+select the 4.2 full lockup; the renderer selects its compact counterpart through
+1000 px and uses the optical header from
+[`season-4.2-klumast.json`](../season-4.2-klumast.json).
+
+Local rendering defaults to that manifest. Pending/public documentation workflows
+select it for `4.2.*` versions and retain the 4.0 manifest for older release lines.
+The 4.0 production assets, manifest, favicon and final-approval record are unchanged.
+The new manifest remains `candidate`: documentation activation does not approve a
+final release. A future final 4.2 stage requires a separate owner-approved
+`docs/branding/season-4.2-final-approval.json` bound to the exact new manifest hash;
+that record is intentionally absent, so final staging remains fail-closed.
 
 Tracker impact: no issue reference or issue-state change. No feature,
 compatibility, migration or release-readiness claim is made.

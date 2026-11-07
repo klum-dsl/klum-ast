@@ -1,5 +1,8 @@
 # Unreleased
 
+- Use the controlled Season 4.2 shared-portal artwork for the current documentation and README,
+  with responsive Struct/YAML and Groovy lockups and the retained Season 4 favicon.
+
 - Reject Schema-authored Builder methods whose effective signature is `copyFrom(Object)`, including inherited,
   erased generic and default-argument-generated forms, because they shadow a framework Builder copy route.
   Rename conflicting operations and recompile affected Schemas. Distinct overloads such as `copyFrom(String)` remain

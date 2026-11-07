@@ -1,5 +1,10 @@
 {
-  "status": "selected-direction; controlled draft assets; not activated",
+  "status": "selected-direction; activated for current documentation; final release approval separate",
+  "production": {
+    "docs/user/img/season-4.2/klumast-4.2-documentation-compact.svg": "fbd7ae3afe70d93ceb5808af48340a09982994d56253d0d84a1588b52f3c66b9",
+    "docs/user/img/season-4.2/klumast-4.2-documentation.svg": "ccc64aea4c95f6ee79e207faba4fdd92203721998665b0679ba9c3b6b56f4a3b",
+    "docs/user/img/season-4.2/klumast-4.2-header-optical.svg": "6de1cd4fe7b5c979d6e047e4251c11a34b595adfac1b6e6173633067a480b627"
+  },
   "license": "MIT; repository LICENSE",
   "approvedModel": {
     "source": "docs/branding/season-4/editable/klumast-season-4-documentation-text-master.svg",

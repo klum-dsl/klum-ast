@@ -1,0 +1,56 @@
+[
+  {
+    "width": 390,
+    "widthControl": "390",
+    "compactNavigation": true,
+    "consoleEmpty": true
+  },
+  {
+    "width": 430,
+    "widthControl": "430",
+    "compactNavigation": true,
+    "consoleEmpty": true
+  },
+  {
+    "width": 759,
+    "widthControl": "759",
+    "compactNavigation": true,
+    "consoleEmpty": true
+  },
+  {
+    "width": 760,
+    "widthControl": "760",
+    "compactNavigation": true,
+    "consoleEmpty": true
+  },
+  {
+    "width": 761,
+    "widthControl": "761",
+    "compactNavigation": false,
+    "consoleEmpty": true
+  },
+  {
+    "width": 999,
+    "widthControl": "999",
+    "compactNavigation": false,
+    "consoleEmpty": true
+  },
+  {
+    "width": 1000,
+    "widthControl": "1000",
+    "compactNavigation": false,
+    "consoleEmpty": true
+  },
+  {
+    "width": 1001,
+    "widthControl": "1001",
+    "compactNavigation": false,
+    "consoleEmpty": true
+  },
+  {
+    "width": 1440,
+    "widthControl": "1440",
+    "compactNavigation": false,
+    "consoleEmpty": true
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "renderedRevision": "8545fa706",
+  "url": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/",
+  "localNativeCaptureDirectory": "/Users/stephan/.codex/visualizations/2026/11/07/01a1b738-10b8-7790-b623-d4fc0b48045c",
+  "nativeCaptureSha256": {
+    "edge-1000.png": "42566b9718356b872a5bd17239ba200e5701cd42336c4dbfd466e440e6d61b61",
+    "edge-1001.png": "fde6fe0d271e438cb428c7bcb8a61831992b3fd82c5f21220ec95ed62b2a162e",
+    "edge-1440.png": "3bcc13f51b6c4ff7c173ab2423eedd574db8d9c6f73289b24e0c103e5e887870",
+    "edge-390.png": "bad25999edf05630b2ec4fc4ae49adddb00de4f1744f9b26f39397002a6d0d69",
+    "edge-430.png": "c8c14f602313169ae97738eff5ad5ab53aa3ac76dd69c788e5653e96ef95d6c2",
+    "edge-759.png": "da552909e9c4a997cda89f964487b1f011f5a9998adbd11235d72f8c398b655b",
+    "edge-760.png": "92b8301ca6914a61d8c84194bac6f12673259cd0acbdd7577efde62f1f8d8f0b",
+    "edge-761.png": "f365aec5be45504181577efad665a7ebc35ddc27122b9d7b10accdfa2c37e60f",
+    "edge-999.png": "deaa85f54a83846398acc2d39e025984381a7f54c1507f13fb66d739144838de",
+    "safari-1000.png": "3ef11fb00e5bda78f9f2922c0b481c3cccb116e5db2fb7f65c7c31b215c6107c",
+    "safari-1001.png": "10c109c7f5ed4dfe497da88ba25d82bed7a8567cd6628e0d854e517a8cec3768",
+    "safari-1440.png": "633ced29c3063c7a5c91e1824c3064f0298d9ad84dba39114e651cecedc9f66d",
+    "safari-320.png": "59377d11b3571883e6ff1353fe2795af28a5523e7f9e1fea47fd16cb8771bb98",
+    "safari-390.png": "f0f8b0ff33555f9db97e11e0ae488f253b3f3b5a63541705ce3796d5ae590e00",
+    "safari-430.png": "4e64a7aa67721c656d8d75820cfd9d0c9666a37ee270c704b199b6278e3d2803",
+    "safari-759.png": "9d76fb79222ed57f7ea55a9ab26400b004a2e686820e9a7e4d18a78bdfcf625e",
+    "safari-760.png": "fa71d2327f8d70af0afbd0d6a5a89cf5481c18634aab9d5eff8985044794a51c",
+    "safari-761.png": "d7bb0161cc912e4ff8d32b66c114d0d819a613b44bf1c789f541b962092bf29d",
+    "safari-999.png": "a01376f85dbf319b2db828e917c5e4c2e79c8abe34c2e39d30514b703a727e5e",
+    "safari-desktop.png": "6c90d6360ae179b25bcff3ec8caa1d1ea18e5282442b91303221958033b7e1b8"
+  },
+  "committedCaptures": {
+    "browser-1440.jpg": "5e40e1a25b8d66a9e8aa9c2f338689da559fbde4e68409c3e3bb3a716423f9e2",
+    "browser-390.jpg": "df16292f5c72c0e80bc45f9754a3b8075e0b24515a466af18b8cc73051c6ccb8",
+    "browser-430.jpg": "f7570b0e8b984b0d15b7d79923e27208c3accdbd1987a80cfabfc41a550bcfbe"
+  }
+}
