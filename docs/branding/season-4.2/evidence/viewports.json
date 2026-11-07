@@ -1,0 +1,142 @@
+[
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      283,
+      159.1875
+    ],
+    "compactNavigation": "block",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "none",
+    "width": 320
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      353,
+      198.5625
+    ],
+    "compactNavigation": "block",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "none",
+    "width": 390
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      381,
+      214.3125
+    ],
+    "compactNavigation": "block",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "none",
+    "width": 430
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      710,
+      399.375
+    ],
+    "compactNavigation": "block",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "none",
+    "width": 759
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      711,
+      399.9375
+    ],
+    "compactNavigation": "block",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "none",
+    "width": 760
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      409.5625,
+      230.375
+    ],
+    "compactNavigation": "none",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "block",
+    "width": 761
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      638.046875,
+      358.8984375
+    ],
+    "compactNavigation": "none",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "block",
+    "width": 999
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      639,
+      359.4375
+    ],
+    "compactNavigation": "none",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation-compact.svg",
+    "wideNavigation": "block",
+    "width": 1000
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      639.9609375,
+      359.9765625
+    ],
+    "compactNavigation": "none",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation.svg",
+    "wideNavigation": "block",
+    "width": 1001
+  },
+  {
+    "allImagesLoaded": true,
+    "artwork": [
+      766,
+      430.875
+    ],
+    "compactNavigation": "none",
+    "height": 1000,
+    "loaded": true,
+    "overflow": false,
+    "source": "http://127.0.0.1:59767/klum-ast/4.2.0-tracer/img/season-4.2/klumast-4.2-documentation.svg",
+    "wideNavigation": "block",
+    "width": 1440
+  }
+]
