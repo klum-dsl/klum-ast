@@ -1,5 +1,8 @@
 # Unreleased
 
+- Use the controlled Season 4.2 shared-portal artwork for the current documentation and README,
+  with responsive Struct/YAML and Groovy lockups and the retained Season 4 favicon.
+
 - Add a keyed-service Groovy/YAML adoption recipe connecting caller-owned parsing, Struct construction and generated
   JSON Schema editor association. Reconcile delivered/deferred documentation and the Maven release inventory.
   See [YAML adoption](docs/user/Structured-Input.md#adopt-yaml-for-a-schema).

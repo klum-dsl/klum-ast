@@ -1,7 +1,7 @@
 KlumAST
 =======
 
-![KlumAST visual lockup: a stylised fashion figure steps through a luminous portal onto a diagonal catwalk, beside the KlumAST wordmark and 4.0 release identity.](img/season-4/klumast-season-4-documentation.svg "season-lockup")
+![KlumAST Season 4.2. Make Your Models Groovy / YAML. An ivory mosaic Struct/YAML figure on the left and a flowing Groovy figure on the right share a luminous portal and diagonal catwalk.](img/season-4.2/klumast-4.2-documentation.svg "season-lockup")
 
 ## What is KlumAST?
 

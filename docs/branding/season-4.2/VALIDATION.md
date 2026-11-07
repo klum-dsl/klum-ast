@@ -1,5 +1,9 @@
 # 4.2 artwork validation — 2026-11-07
 
+This is the source-asset qualification record from PR #1049. Its unintegrated-site
+and pending-browser statements below describe that revision;
+[ACTIVATION.md](ACTIVATION.md) supersedes them for the subsequent integration.
+
 Scope: controlled artwork, approved original-model reuse and local review/export
 tooling. Existing release branding is preserved; the new assets are not integrated
 into the production documentation renderer.
