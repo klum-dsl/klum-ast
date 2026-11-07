@@ -7,6 +7,22 @@ plugins {
 
 description = "compileOnly part of KlumAST"
 
+// Colocate build-owned provenance with the compiler classes so code-source lookup also works locally.
+def compilerVersionMarker = tasks.register('generateCompilerVersionMarker', WriteProperties) {
+    destinationFile = layout.buildDirectory.file('compilerVersionMarker/compiler.properties')
+    property('compilerVersion', provider { project.version.toString() })
+}
+
+tasks.named('compileJava', JavaCompile) {
+    inputs.files(files(compilerVersionMarker)).withPropertyName('compilerVersionMarker')
+    doLast {
+        copy {
+            from files(compilerVersionMarker)
+            into destinationDirectory.dir('META-INF/klum-ast')
+        }
+    }
+}
+
 test {
     inputs.dir file("src/test/scenarios")
     outputs.dir layout.buildDirectory.dir("test-classes")

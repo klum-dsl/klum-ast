@@ -35,6 +35,7 @@ import com.blackbuild.klum.ast.compiler.internal.doc.DocUtil;
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedSchema;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState;
@@ -173,6 +174,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         dslAnnotation = (AnnotationNode) nodes[0];
 
         if (annotatedClass.isInterface()) return;
+        if (!addCompilerProvenance()) return;
 
         keyField = getKeyField(annotatedClass);
         ownerFields = getOwnerFields(annotatedClass);
@@ -224,6 +226,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
         new VariableScopeVisitor(sourceUnit, true).visitClass(builderClass);
+    }
+
+    private boolean addCompilerProvenance() {
+        ClassNode markerType = make(GeneratedSchema.class);
+        if (!annotatedClass.getAnnotations(markerType).isEmpty()) {
+            addCompileError(sourceUnit, "GeneratedSchema is compiler-owned metadata; remove the handwritten marker.", annotatedClass);
+            return false;
+        }
+        try {
+            AnnotationNode marker = new AnnotationNode(markerType);
+            marker.setMember("format", constX(1));
+            marker.setMember("compilerVersion", constX(CompilerProvenance.version()));
+            annotatedClass.addAnnotation(marker);
+            return true;
+        } catch (IllegalStateException e) {
+            addCompileError(sourceUnit, e.getMessage(), annotatedClass);
+            return false;
+        }
     }
 
     private void diagnoseStructuredApplicationOverrides() {
