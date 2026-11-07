@@ -41,3 +41,5 @@ import com.blackbuild.klum.ast.Validate
     @Validate void valid() { assert applications == 1; assert service == 'orders' }
 }
 @DSL class LegacyApplication { String service }
+
+@DSL class KeyedLegacyApplication { @Key String name; String service }

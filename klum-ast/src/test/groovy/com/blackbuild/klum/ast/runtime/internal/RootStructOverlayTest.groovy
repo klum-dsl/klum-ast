@@ -93,7 +93,9 @@ class RootStructOverlayTest extends AbstractDSLSpec {
         schema(keyed)
         def selected = environmentType.Create.With(name: 'selected')
         def input = [configure: 'structured']
-        if (keyed && !explicit) input['application-id'] = 'orders'
+        if (keyed && !explicit) {
+            input['application-id'] = 'orders'
+        }
         def captured
         def overlay = {
             captured = delegate
@@ -267,7 +269,9 @@ class RootStructOverlayTest extends AbstractDSLSpec {
         when:
         application.Create.FromStruct('orders', [configure: 'structured']) {
             captured = delegate
-            if (stage == 'overlay') throw original
+            if (stage == 'overlay') {
+                throw original
+            }
         }
 
         then:
