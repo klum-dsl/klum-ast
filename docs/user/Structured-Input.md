@@ -183,6 +183,33 @@ file/URL/text, parser or context-channel variant. Recompile existing Schemas to 
 `FromStruct(document, null)` and keyed `FromStruct(rootKey, body, null)` can become ambiguous between String and Closure;
 use an explicit type. See [migration](Migration.md#structured-root-builder-overlays).
 
+### Consumer-owned Environment setup
+
+The caller may construct its Environment from a separate parsed YAML mapping before loading the consuming root. The
+same ordinary overlay then supplies the completed Environment as a LINK; parsing and Environment selection remain
+caller responsibilities:
+
+(See: `RootRecipeConsumerTest#'JAR-only clients consume recipe and Struct overlays and consumer-owned lifecycle context with named modules=#named'`.)
+
+```groovy
+def selectedEnvironment = Environment.Create.FromStruct(environmentDocument, 'environment.yaml')
+def orders = Application.Create.FromStruct(applicationDocument, 'orders.yaml') {
+    environment selectedEnvironment
+    image 'overlay:v2'
+}
+assert orders.environment.is(selectedEnvironment)
+```
+
+The JAR-only documentary qualification uses an Application with owned Services. Each Service's immediate
+PostCreate/PostApply runs without that Environment;
+its AutoLink callback then obtains the root's Environment through its Owner, and Default derives its endpoint and image.
+Validation checks completed root/child identity and one lifecycle tail. Repeated roots share the exact completed
+Environment without owning it or revisiting its lifecycle. The fixture starts at already-parsed mappings and does not
+qualify a YAML parser or a specific adopter.
+
+If a Schema needs dependencies during earlier callbacks, its own factory/setup must provide them before those callbacks
+run. A root overlay does not change their timing or provide context while Struct operations execute.
+
 ## Metadata protocol
 
 Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.

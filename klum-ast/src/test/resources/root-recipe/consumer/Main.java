@@ -94,7 +94,8 @@ public class Main {
                 !LegacyApplication.Create.FromClasspath().getService().equals("legacy") ||
                 !LegacyApplication.Create.FromClasspath(LegacyApplication.class.getClassLoader()).getService().equals("legacy"))
             throw new AssertionError("No-overlay Factory calls changed");
-        System.out.println("recipe-and-struct-consumers=true");
+        LifecycleClient.qualify();
+        System.out.println("recipe-struct-and-lifecycle-consumers=true");
     }
 
     private static void checkStruct(Application app, Environment selected) {
