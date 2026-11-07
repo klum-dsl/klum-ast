@@ -275,6 +275,12 @@ def template = Config.Create.Template.With {
  
 ## `copyFrom()`
 
+The effective Builder signature `copyFrom(Object)` is reserved for framework copying. Schema-authored Builder
+operations that collide with it, including inherited, erased generic and default-argument-generated forms, fail
+compilation. Rename the operation and recompile the affected Schemas. Distinct overloads such as `copyFrom(String)`
+remain allowed. Already compiled conflicting Schemas retain their old behavior; this compiler check provides no runtime
+repair. See the [migration boundary](Migration.md#reserved-builder-copy-signature).
+
 Using `copyFrom`, one can explicitly apply a template to a single Object to be created:
 
 (See: `TemplatesDocumentaryTest#'copies a template into one completed service configuration'`.)

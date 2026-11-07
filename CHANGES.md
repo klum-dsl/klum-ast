@@ -1,5 +1,12 @@
 # Unreleased
 
+- Reject Schema-authored Builder methods whose effective signature is `copyFrom(Object)`, including inherited,
+  erased generic and default-argument-generated forms, because they shadow a framework Builder copy route.
+  Rename conflicting operations and recompile affected Schemas. Distinct overloads such as `copyFrom(String)` remain
+  allowed; existing conflicting binaries retain their old runtime behavior. See
+  [copy-route migration](docs/user/Migration.md#reserved-builder-copy-signature)
+  ([#1011](https://github.com/klum-dsl/klum-ast/issues/1011)).
+
 - Record per-class compiler provenance on transformed abstract and concrete Schemas using runtime-retained
   `GeneratedSchema(format = 1, compilerVersion = "...")` metadata. Independently compiled Java/Groovy consumers can read
   the exact emitter version from Schema JARs. Unmarked binaries remain usable; no minimum-runtime metadata or
