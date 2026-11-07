@@ -2064,13 +2064,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
         closureParam.addAnnotation(delegatesTo);
 
+        ArgumentListExpression forwardedArguments = args(parameters);
+        // Preserve the selected Closure overload when null also matches another reference parameter type.
+        forwardedArguments.getExpressions().set(parameters.length - 1, castX(CLOSURE_TYPE, varX(closureParam)));
         MethodNode newMethod = new MethodNode(
                 methodNode.getName(),
                 methodNode.getModifiers(),
                 newClass(defaultImpl),
                 parameters,
                 methodNode.getExceptions(),
-                returnS(callSuperX(methodNode.getName(), args(parameters)))
+                returnS(callSuperX(methodNode.getName(), forwardedArguments))
         );
         AstDocumentation.extractExact(methodNode).ifPresent(documentation -> AstDocumentation.attach(newMethod, documentation));
         MethodNode twin = methodNode.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);

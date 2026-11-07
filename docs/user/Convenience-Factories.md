@@ -105,7 +105,8 @@ Direct compiled `DelegatingScript` classes and classpath recipes accept closure-
 are rejected before construction/execution; use their existing no-overlay `Create.From(scriptClass)` route or supply a `DelegatingScript`
 recipe. Classpath regular Scripts likewise retain their no-overlay `Create.FromClasspath()` /
 `Create.FromClasspath(loader)` routes.
-Named-map, File/URL/text and `FromStruct` overlays, Template and `AsBuilder` overlays are unavailable.
+Named-map, File/URL/text, Template and `AsBuilder` overlays are unavailable.
+Structured roots separately accept [ordinary Builder overlays](Structured-Input.md#root-builder-overlays).
 Recompile existing Schemas to expose the new generated members; existing no-overlay binary calls remain supported.
 Java and static/dynamic Groovy clients consume the same generated Factory contract from compiled Schema artifacts.
 See [Factory contracts and packaging](Factory-Classes.md#compiled-root-recipe-overlays) and
@@ -382,7 +383,9 @@ For String values, some simple transformations are applied:
 ## Structured documents and bodies
 
 `Create.FromStruct(document[, sourceName])` constructs a completed root from a caller-parsed Map. Keyed Factories also
-accept `Create.FromStruct(rootKey, body[, sourceName])`; this body excludes the root key. The optional source name is
+accept `Create.FromStruct(rootKey, body[, sourceName])`; this body excludes the root key.
+Append a closure to either form to run [ordinary Builder configuration](Structured-Input.md#root-builder-overlays)
+after successful Struct input, before the single root PostApply and lifecycle tail. The optional source name is
 nonempty diagnostic text, never a filename-derived identity or resource to load. See [Factory roots](Structured-Input.md#factory-roots)
 for Java/Groovy examples and lifecycle, and [active Builders](Structured-Input.md#apply-to-an-active-builder) for inherited
 void `applyStruct`. Reusable keyless recipes use [Template FromStruct](Templates.md#structured-input-templates).

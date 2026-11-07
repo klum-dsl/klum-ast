@@ -69,7 +69,8 @@ class RootRecipeFactoryContractTest extends AbstractDSLSpec {
         keyed << [false, true]
     }
 
-    def 'overlay is absent from AsBuilder relationship Cluster Template and other source operations'() {
+    @Issue('1038')
+    def 'recipe overlay is absent from AsBuilder relationship Cluster Template and other source operations'() {
         given:
         schema()
         def app = getClass('Application')
@@ -88,7 +89,6 @@ class RootRecipeFactoryContractTest extends AbstractDSLSpec {
                     !hasMethod(type, 'FromClasspath', ClassLoader, Closure)
         }
         !hasMethod(portfolio, 'From', Class, Closure)
-        !hasMethod(getClass('Application_DSL$Factory'), 'FromStruct', Map, Closure)
     }
 
     def 'classpath signatures expose exact Model return and public Builder delegate for keyed=#keyed'() {

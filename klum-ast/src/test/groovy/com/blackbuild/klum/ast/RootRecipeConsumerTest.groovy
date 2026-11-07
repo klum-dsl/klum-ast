@@ -36,7 +36,7 @@ import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
 /** Qualifies JAR-only clients in independent compiler/JVM processes, including supported named modules. */
-@Issue('829')
+@Issue(['829', '1038'])
 class RootRecipeConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
@@ -151,7 +151,7 @@ class RootRecipeConsumerTest extends Specification {
         assert mirror.contains('FromClasspath(ClassLoader')
         assert mirror.contains('@DelegatesTo(strategy = 3, value = Builder.class) Closure<?>')
         assert mirror.contains('strategy = 3') // Closure.DELEGATE_ONLY in the Java source mirror.
-        assert !mirror.contains('FromStruct(Map<?, ?> body, Closure')
+        assert (mirror =~ /Application FromStruct\(Map<\?, \?> \w+,\s+@DelegatesTo\(strategy = 3, value = Builder\.class\) Closure<\?> \w+\)/).find()
         mirrors.toFile().deleteDir()
     }
 

@@ -25,7 +25,7 @@ It runs recipe → cloned overlay → one root `PostApply`, followed by the ordi
 Existing Schemas require recompilation to gain the generated members. The existing no-overlay descriptors are unchanged.
 Custom Factories retain their existing override authority; audit custom `(Class, Closure)`, `(Closure)` and
 `(ClassLoader, Closure)` overloads when adopting these operations. An untyped `FromClasspath(null)` may be ambiguous
-between the ClassLoader and Closure overloads; use an explicit argument type. Other source overlays remain unavailable.
+between the ClassLoader and Closure overloads; use an explicit argument type. Named-map and File/URL/text overlays remain unavailable; structured roots have their own [Builder overlay](Structured-Input.md#root-builder-overlays).
 
 Java clients pass an explicit `Closure<?>` to the same operations; inside its `doCall`, `getDelegate()` is the public
 `Model_DSL.Builder`. Static and dynamic Groovy clients can use trailing closures. The compiled Schema JAR carries the
@@ -239,5 +239,9 @@ behavior are preserved.
 ## Structured Factory creation
 
 The generated Factory exposes `FromStruct` for caller-parsed self-contained Maps, and keyed Factories add explicit-key
-body overloads. These reuse normal Factory construction and the internal structured interpreter. See
+body overloads. Each ordinary-root signature also accepts a trailing `Closure<?>` overlay with the exact public
+`Model_DSL.Builder` delegate and `DELEGATE_ONLY`. Struct operations run first, then a cloned overlay, before one root
+PostApply and ordinary completion. Custom Factories retain override authority; audit custom `FromStruct` signatures
+when recompiling. Untyped null source/overlay arguments may become ambiguous; select String or Closure explicitly.
+These reuse normal Factory construction and the internal structured interpreter. See
 [structured Factory roots](Structured-Input.md#factory-roots) and the [convenience API](Convenience-Factories.md#structured-documents-and-bodies).

@@ -138,6 +138,51 @@ normal class initialization when accessing a Factory.
 `FromStruct` does not appear on `AsBuilder()` or relationship factories. `Create.FromMap` remains the separate
 copy/type-hint/conversion/custom-Factory route; [managed Jackson](Jackson-Integration.md) retains its independent contract.
 
+## Root Builder overlays
+
+Append an ordinary Builder closure to any existing root `FromStruct` form:
+
+- `FromStruct(document, overlay)` or `FromStruct(document, sourceName, overlay)`;
+- keyed `FromStruct(rootKey, body, overlay)` or `FromStruct(rootKey, body, sourceName, overlay)`.
+
+The generated Factory returns the exact Model type and delegates the closure to its public Builder with
+`DELEGATE_ONLY`. The overlay runs after successful Struct execution in the same root configuration, before one root
+PostApply and the ordinary graph lifecycle, materialization and validation. It can supply completed external LINK
+values needed by later lifecycle handling.
+
+(See: `RootStructOverlayTest#'supplies a completed environment after Struct input before the root lifecycle tail'`.)
+
+```groovy
+@DSL class Environment { String name }
+@DSL class Application {
+    String title
+    @Field(FieldType.LINK) Environment environment
+}
+def selectedEnvironment = Environment.Create.With(name: 'production')
+def document = [title: 'orders']
+def orders = Application.Create.FromStruct(document, 'orders.yaml') {
+    environment selectedEnvironment
+}
+assert orders.title == 'orders'
+assert orders.environment.is(selectedEnvironment)
+```
+
+Templates and root PostCreate precede Struct input and the overlay. Struct operations and immediate child callbacks
+cannot see overlay-supplied state. Ordinary setters, collection operations, deferred actions and later callbacks retain
+their usual behavior; the overlay has no permanent priority. External completed LINK targets retain identity and are
+excluded from owned lifecycle traversal.
+
+Source/type/root-shape/static-contract and construction-key checks retain their existing allocation boundaries.
+[Ordered payload failures](#order-and-failures) retain earlier effects and skip the overlay. The overlay cannot repair a
+missing construction key or a failed operation. Overlay and lifecycle failures return no completed root and use normal
+session cleanup. Each invocation clones the overlay before changing its delegate; captured mutable state remains
+caller-owned. A typed null Closure acts as no overlay.
+
+These overloads belong only to ordinary root Factories. They add no Template, AsBuilder, Builder application,
+file/URL/text, parser or context-channel variant. Recompile existing Schemas to expose the generated members.
+`FromStruct(document, null)` and keyed `FromStruct(rootKey, body, null)` can become ambiguous between String and Closure;
+use an explicit type. See [migration](Migration.md#structured-root-builder-overlays).
+
 ## Metadata protocol
 
 Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.
