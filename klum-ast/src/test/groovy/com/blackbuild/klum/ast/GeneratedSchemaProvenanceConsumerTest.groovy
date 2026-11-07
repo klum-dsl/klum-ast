@@ -115,7 +115,7 @@ class GeneratedSchemaProvenanceConsumerTest extends Specification {
                         }
                     }
                 '''
-        ], 'module fixture.consumer { requires com.blackbuild.klum.ast.runtime; requires fixture.parent; requires fixture.child; }')
+        ], 'module fixture.consumer { requires com.blackbuild.klum.ast.runtime; requires fixture.parent; requires fixture.child; opens fixture.consumer to org.apache.groovy; }')
 
         when:
         String output = launch(clients + [consumer], named, 'fixture.consumer/fixture.consumer.Main')
@@ -141,7 +141,7 @@ class GeneratedSchemaProvenanceConsumerTest extends Specification {
                         }
                     }
                 '''
-        ], 'module fixture.legacy { requires com.blackbuild.klum.ast.runtime; requires fixture.parent; requires fixture.child; }')
+        ], 'module fixture.legacy { requires com.blackbuild.klum.ast.runtime; requires fixture.parent; requires fixture.child; opens fixture.legacy to org.apache.groovy; }')
 
         then:
         launch(unmarked + [legacy], named, 'fixture.legacy/fixture.legacy.Legacy').trim() == 'unmarked-consumers=true'
@@ -239,7 +239,7 @@ class GeneratedSchemaProvenanceConsumerTest extends Specification {
             new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
                 @Override
                 AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                    descriptor == MARKER_DESCRIPTOR ? null : super.visitAnnotation(descriptor, visible)
+                    descriptor == GeneratedSchemaProvenanceConsumerTest.MARKER_DESCRIPTOR ? null : super.visitAnnotation(descriptor, visible)
                 }
             }, 0)
             writer.toByteArray()
