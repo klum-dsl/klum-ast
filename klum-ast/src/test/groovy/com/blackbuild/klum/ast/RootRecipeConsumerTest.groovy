@@ -34,7 +34,9 @@ import groovyjarjarasm.asm.Opcodes
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
+import spock.lang.See
 import spock.lang.Specification
+import spock.lang.Tag
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -48,12 +50,14 @@ import java.util.jar.JarOutputStream
 class RootRecipeConsumerTest extends Specification {
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
-    def 'JAR-only Java and static and dynamic Groovy clients consume recipe and Struct overlays with named modules=#named'() {
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#consumer-owned-environment-setup')
+    def 'JAR-only clients consume recipe and Struct overlays and consumer-owned lifecycle context with named modules=#named'() {
         when:
         String output = qualify(named)
 
         then:
-        output.trim() == 'recipe-and-struct-consumers=true'
+        output.trim() == 'recipe-struct-and-lifecycle-consumers=true'
 
         where:
         // ADR 0014 keeps Groovy 3 classpath-only; JpmsGroovyModuleIdentityTest covers its negative module boundary.
@@ -71,11 +75,20 @@ class RootRecipeConsumerTest extends Specification {
                 opens fixture.recipe to com.blackbuild.klum.ast.runtime;
             }
         ''')
-        Path consumer = buildArtifact(root, 'consumer', dependencies + [schema], named,
-                ['GroovyClients.groovy', 'StructClients.groovy'], ['Main.java'], '''
+        Path lifecycleSchema = buildArtifact(root, 'lifecycle-schema', dependencies, named,
+                ['LifecycleModels.groovy'], [], '''
+            module fixture.lifecycle {
+                requires com.blackbuild.klum.ast.runtime;
+                exports fixture.lifecycle;
+                opens fixture.lifecycle to com.blackbuild.klum.ast.runtime;
+            }
+        ''')
+        Path consumer = buildArtifact(root, 'consumer', dependencies + [schema, lifecycleSchema], named,
+                ['GroovyClients.groovy', 'StructClients.groovy', 'LifecycleClient.groovy'], ['Main.java'], '''
             module fixture.consumer {
                 requires com.blackbuild.klum.ast.runtime;
                 requires fixture.recipe;
+                requires fixture.lifecycle;
                 opens fixture.consumer to org.apache.groovy;
             }
         ''')
@@ -89,7 +102,7 @@ class RootRecipeConsumerTest extends Specification {
                 opens fixture.legacyconsumer to org.apache.groovy;
             }
         ''')
-        List<Path> runtime = (dependencies + [schema, consumer]).findAll { path ->
+        List<Path> runtime = (dependencies + [schema, lifecycleSchema, consumer]).findAll { path ->
             path != Path.of(System.getProperty('klumCompilerJar')) &&
                     !path.fileName.toString().startsWith('anno-docimal-ast-') &&
                     !path.fileName.toString().startsWith('anno-docimal-global-ast-') &&

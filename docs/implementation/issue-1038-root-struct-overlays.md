@@ -90,3 +90,31 @@ base/head belong in the PR/handoff; full hosted CI and SonarCloud remain separat
 Production Schelm qualification is still separate. Template/AsBuilder/Builder overlays, additional input sources,
 context-before-Struct hooks and general composition remain outside #1038's accepted root slice. Tracker relationship
 remains `Related: #1038`; the Hive owns issue/release reconciliation and no issue closure is selected here.
+
+## RCO-3 consumer-owned lifecycle qualification
+
+RCO-3 starts from exact RCO-2 head `16a2e6c6c3c0a09befc941595825f2ae6183f7ae`. It extends the same JAR-only
+`RootRecipeConsumerTest` harness with a separate consumer-owned `fixture.lifecycle` Schema artifact and static Groovy
+client. Compiler, annotations and runtime JARs are built together from the current stack checkout; no published Dev
+version or mixed producer/runtime version is used. Schema and client sources/classes are removed after JAR creation,
+and runtime retains the existing compiler-free classpath/named-module boundary. RCO-2's binary-call controls remain intact.
+
+The documentary fixture takes already-parsed Environment and Application YAML mappings. Consumer setup completes two
+Environments via ordinary `Environment.Create.FromStruct` before constructing any Application. An ordinary application
+root overlay then assigns the selected completed Environment to a required LINK and replaces the input image. Owned
+Services have already run PostCreate/PostApply without context; their AutoLink callbacks read their Owner's Environment,
+then Default derives endpoint and image. They do not read context during Struct execution or reorder its operations.
+Completed validation verifies the root/child owner and LINK identities. Captured public root Builders reject subsequent ordinary mutation;
+the returned Models retain their configured state. Phase sequences and validation counts require one ordinary lifecycle tail.
+
+A missing-overlay control fails at root PostApply after Struct configuration and before graph completion/validation.
+Successful loads afterward exercise failure cleanup. Two roots reuse one Environment and a third uses the other; the
+external objects retain exact identity, their original lifecycle sequences and validation count, and absent composition
+ownership. The input mapping retains its original image and contains no Environment context entry.
+
+This is a general contract qualification at the parsed-Struct boundary, not production Schelm execution or parser,
+selection-policy, artifact-publication or release qualification. No production code/API, context mechanism, generated
+contract, lifecycle ordering or grammar changes are introduced. User guidance links this documentary scenario under
+[consumer-owned Environment setup](../user/Structured-Input.md#consumer-owned-environment-setup). Existing RCO-1 release
+and migration entries remain accurate; this evidence-only extension needs no additional changelog or migration rule.
+Final parent/head identities, commands, two-axis reviews and hosted CI/Sonar status belong in the PR/handoff.
