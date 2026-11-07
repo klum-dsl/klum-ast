@@ -125,9 +125,11 @@ annotation, without runtime compatibility enforcement.
 
 `Foo_DSL.Factory`, `Foo_DSL.Builder`, and their collection/cluster factory
 interfaces remain the supported build-time interfaces from ADR 0005. Clients
-may name but not implement or subclass them. `KlumBuilder<T>` remains the
-zero-operation public capability; the generated Builder base is not a mutable
-client Builder API.
+may name but not implement or subclass them. `KlumBuilder<T>` now provides inherited void `applyStruct(Map<?, ?> body)` and
+`applyStruct(Map<?, ?> body, String sourceName)` for active, same-thread, unsealed ordinary Builders, as delivered under
+[#953 / ADR 0032](0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application--953).
+These configure the existing Builder without completing it or returning a replacement. The generated Builder base
+remains generated-only linkage, distinct from these supported public capabilities.
 
 The current public `Foo.Template` field must no longer expose an internal
 handler descriptor. It is retargeted to the generated Template facade, which
