@@ -283,6 +283,9 @@ Older or incomplete Builder contracts are rejected; recompile the participating 
 
 The current compiler explicitly emits `GeneratedInput.Schema.version=1` on every declaring public Builder. Both consumers
 require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key, literal-alternative association/count and inert example-array facts.
+The optional field-presence member `rawInputRequired` is true for marked fields; omission and explicit false both mean
+false. Its absence is not a fallback for other required facts. Malformed/duplicate/contradictory supplied presence facts
+fail before initialization, input mutation or schema output replacement.
 `Schema.version` is the sole protocol version; `LiteralAlternative` has no separate version member. Recompile participating
 Schemas with matching compiler/runtime/plugin artifacts; removed or unknown members have no compatibility decoder.
 The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
@@ -387,6 +390,24 @@ identity; it cannot make an otherwise self-contained key position valid. Data/in
 Managed Jackson import remains independently configured: use the Jackson literal too when both routes need one spelling.
 There is no automatic mapper adapter. Recompile Schemas and align compiler/runtime/plugin versions; see
 [migration](Migration.md#literal-names-and-exclusion).
+
+## Raw-input presence
+
+`@Struct.Required` marks an admitted field for the containing object's generated JSON Schema `required` array.
+Direct use and effective domain annotations (including transitive composition) have the same meaning. Inherited fields,
+explicit names and type naming profiles retain their normal effective identity. It neither admits excluded fields nor
+marks Builder operations; `Struct.Ignore` plus the marker is a compile/contract error.
+
+This policy is separate from construction-key identity, completed-Model `@Required` and Jakarta validation. Ordinary
+`Create.FromStruct([:])`, `Create.With { }` and active Builder `applyStruct([:])` still accept omission, subject to the
+Schema's existing construction and validation behavior. Defaults, initializers, Templates, lifecycle, null admission and
+ordered failures are unchanged. Only an editor or explicitly invoked external JSON Schema validator reports a missing
+marked input member. Presence does not test Groovy truth or imply non-nullness, and is independent of constraint
+projection policy. An owned child requirement does not require its optional parent relationship.
+
+See [raw-input field presence](Json-Schema.md#raw-input-field-presence) for the direct/domain Schema example, resolved
+names, required-key positions and documentary test plus external Draft 2020-12 oracle. Recompile participating Schemas
+with matching tools and regenerate schema output as described in [Migration](Migration.md#raw-input-presence-and-the-42-contract).
 
 ## Construction keys
 

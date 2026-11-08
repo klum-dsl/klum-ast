@@ -109,6 +109,77 @@ parsed input before importing it if it wants that gate. Structural validation do
 completed Model validation: structured import still invokes the admitted Builder language and normal construction
 lifecycle. See [runtime order and failure](#runtime-order-and-failure) for limits that a schema cannot predict.
 
+## Raw-input field presence
+
+Use `@Struct.Required` on an already admitted Schema field to require its resolved member name in generated JSON
+Schema. This is an explicit **input member presence policy** ([#1055](https://github.com/klum-dsl/klum-ast/issues/1055)).
+It is independent of completed-Model `@Required` and Jakarta Bean Validation. Neither those constraints nor a default,
+initializer, Template or lifecycle callback implies raw-input presence.
+
+A domain annotation may carry the marker, including through another domain annotation. Direct and effective domain
+markers contribute the same field fact through Schema annotation composition; they add no runtime validator.
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+@Struct.Required
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+@interface AuthorValue {}
+
+@DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+class AuthoringService {
+    @Struct.Required @Struct.Name('service-name') String serviceName = 'local'
+    @AuthorValue boolean publicAccess
+}
+
+// Both ordinary construction paths still accept omission:
+assert AuthoringService.Create.FromStruct([:]).serviceName == 'local'
+assert !AuthoringService.Create.With { }.publicAccess
+// Empty String and false are present values:
+assert AuthoringService.Create.FromStruct(['service-name': '', 'public-access': false]).serviceName == ''
+```
+
+The containing definition has `required: ['public-access', 'service-name']`. An external Draft 2020-12 validator rejects
+`{}` and accepts `{"service-name": "", "public-access": false}`. `FromStruct` and active Builder `applyStruct` do not run
+that validator or enforce this presence policy. A consumer may explicitly validate parsed input before construction;
+its editor can report omission during authoring. Supplying null satisfies presence alone, but each unchanged property
+schema still determines whether null is allowed. This example's String and boolean properties reject null externally;
+normal Struct null admission and ordered execution remain unchanged.
+
+Inherited fields retain the declaring field's policy, including across compiled parent JARs. A descendant naming profile
+resolves native inherited names, while a nonempty `@Struct.Name` or compatible Jackson literal name wins. Only the final
+external token enters `required`; native aliases do not. Field shadowing remains rejected; there is no clear/override
+policy. Domain markers on Builder methods do not make operations required, and direct `@Struct.Required` cannot target
+a method, parameter or type. It does not admit a new field or operation grammar.
+
+`@Struct.Ignore` and this marker conflict. Effective Jackson exclusion, Owner/key/transient/internal fields and other
+non-admitted declarations cannot produce phantom required properties. Compilation rejects invalid declarations;
+malformed or contradictory binary facts fail contract verification, including when an authored operation displaces the
+required field. Recompile the participating Schema artifacts rather than relying on an ignored declaration.
+
+Construction keys keep their separate identity rules. Self-contained roots, direct keyed children and keyed sequence
+items retain their required key; caller-pre-keyed Builder bodies and outer-keyed Map/fixed/derived child bodies omit that
+key. Field-presence requirements remain in either position. The containing object's array is the sorted, deduplicated
+union of its construction key (where applicable) and marked field tokens; an empty array is omitted.
+
+A marker on an owned relationship requires that member in its containing object. A marker inside the child requires only
+the child's field when that child body is supplied. It does not require an optional parent relationship. Requirements
+stay in each child's definition, including shared definitions; they add no collection cardinality, literal-alternative
+alias or Map data-key requirements. `ConstraintProjection.PROJECT`, `TEXT_ONLY` and `OMIT` do not suppress presence or
+alter its meaning. Defaults, lifecycle, Jackson mapping and runtime/Jakarta validation retain their existing behavior.
+
+Executable documentary coverage:
+`KlumJsonSchemaGenerationTest#'documents raw-input presence without enforcing import with Groovy #generation'`
+and its external Draft 2020-12 counterpart `validate_required_schema.py` cover the exact generated example with
+Groovy 3/4/5, omitted import/DSL/active Builder input, and external omission rejection. The Schema example uses an
+independently compiled domain annotation. See [recompilation guidance](Migration.md#raw-input-presence-and-the-42-contract).
+
 ## Zero-argument commands
 
 Admitted [zero-argument Builder commands](Structured-Input.md#zero-argument-commands) project as closed empty objects:
@@ -617,7 +688,7 @@ An optional absent property remains allowed; supplied null and non-String values
 The default root artifact describes a self-contained structured document, independently of runtime entry-point delivery.
 A keyed root and each supplied direct caller-key child require their actual external key member with `type: string`.
 This `required` comes from construction identity, independently of completed `@Required`. Optional relationship
-properties remain optional; a supplied child must provide its own identity.
+properties remain optional unless explicitly marked `@Struct.Required`; a supplied child must provide its own identity.
 
 (See: `KlumJsonSchemaGenerationTest#'generate structural input schemas from explicit DSL Model roots with Groovy #generation'`
 and `StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'`.)
@@ -678,7 +749,8 @@ alias is a String-keyed object whose values reference that concrete subtype's ke
 }
 ```
 
-Neither relationship nor any alias is required. One or several groups may be present. Empty mappings are valid; a child
+Without an explicit `@Struct.Required` on the relationship field, neither the relationship nor any alias is required.
+Marking the relationship requires only that member, not any alias. One or several groups may be present. Empty mappings are valid; a child
 body cannot supply its construction key, owner, unknown member or type selector. This shape promises only structural admission. Ordering, partial effects,
 existing-child reuse, lifecycle and completed validation remain runtime behavior. Unsupported alternative families remain
 omitted with diagnostics. Source-free producer/plugin/binary coverage lives in `BinaryOwnedRelationshipsTest`; the

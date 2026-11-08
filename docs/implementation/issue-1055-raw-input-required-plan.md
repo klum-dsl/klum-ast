@@ -1,11 +1,12 @@
 # #1055: raw-input field presence before 4.2 RC
 
-Date: 2026-11-08. Status: **Implementation plan; S1 evidence linked below, S2/S3 remain pending**.
+Date: 2026-11-08. Status: **Accepted plan; S1/S2 implemented in drafts, S3 qualification recorded separately; integration and public candidate remain pending**.
 Category B extension of [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#raw-input-field-presence--1055).
 Authority: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055) and the maintainer's explicit reopening of 4.2 RC
 preparation for this bounded feature. Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
 Source inspection base: `85acbb45b` (master). Slice definitions below are the plan; the linked S1 evidence records
-implementation separately from pending projection and release qualification.
+implementation separately from the [cumulative S3 evidence](issue-1055-s3-evidence.md). The source observations and
+proposed slice wording below retain their planning-time chronology; the evidence ledger records what was executed.
 
 ## Contract and syntax
 
@@ -222,7 +223,8 @@ requiredness, null semantics, importer enforcement or operation grammar as impli
 The principal risk is a marked field's bit lost during compiler emission or inherited/profile entry copying.
 Source-to-byte assertions, current-contract validity controls and the source-free binary matrix address it. A second risk is losing the
 existing required construction key or leaking parent requirements into reused definitions; A4 guards both.
-Full matched-candidate qualification remains an implementation evidence obligation, not a claimed result.
+Branch-local matched-contract qualification is recorded in [S3 evidence](issue-1055-s3-evidence.md). Exact public-candidate
+qualification, pre-RC recompilation and the final v1 freeze remain release obligations, not claimed results.
 
 Tracker impact: `Related: #1055`; issue completion, labels/milestone and broader #959 work remain unchanged. This feature
 is explicitly admitted to pre-RC preparation, but the plan does not qualify/freeze/publish a candidate. The Hive owns

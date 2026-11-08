@@ -14,10 +14,11 @@ see the [current JSON Schema guide](../user/Json-Schema.md). ADR 0031's generate
 qualified projection principles remain in force. Historical Schelm acceptance does not qualify a newer matched build;
 consumer-specific root/output qualification remains consumer-owned, not an outstanding #529 implementation claim.
 
-Planning extension, 2026-11-08: [#1055 raw-input presence](#raw-input-field-presence--1055) reopens only the
-pre-RC preparation boundary for explicit field presence in generated JSON Schema. It is not implemented by this ADR
-update. The recommendation retains development protocol v1 with an optional field-presence fact and coordinated
-Schema recompilation before the final freeze; runtime input and completed-model validation semantics remain unchanged.
+Accepted extension, 2026-11-08: [#1055 raw-input presence](#raw-input-field-presence--1055) reopens only the
+pre-RC preparation boundary for explicit field presence in generated JSON Schema. The speculative S1–S3 draft chain
+implements this contract; [current-contract evidence](../implementation/issue-1055-s3-evidence.md) remains separate from
+merge and exact public-candidate qualification. The decision retains development protocol v1 with an optional field-presence
+fact and coordinated Schema recompilation before the final freeze; runtime input and completed-model validation remain unchanged.
 
 The dated sections below preserve design and delivery history. Their preflight, pending-work and old annotation/API
 wording describe those checkpoints; use ADR 0032 and current `docs/user/` pages for the delivered contract.
@@ -866,11 +867,11 @@ initialization safety and output atomicity are preserved. See
 
 ## Raw-input field presence — #1055
 
-Date: 2026-11-08. Status: **Maintainer-authorized scope; proposed implementation design, not production delivery**.
+Date: 2026-11-08. Status: **Accepted contract; implemented in the speculative S1–S3 draft chain, pending merge and exact public-candidate qualification**.
 Related: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055),
 [implementation plan and source evidence](../implementation/issue-1055-raw-input-required-plan.md).
 
-The maintainer deliberately reopens 4.2 RC preparation for one raw-input field-presence policy, provisionally named
+The maintainer deliberately reopens 4.2 RC preparation for one raw-input field-presence policy, named
 `@Struct.Required`. Use a documented, runtime-retained FIELD/ANNOTATION_TYPE marker in the existing `Struct` namespace.
 The [maintainer clarification of 2026-11-08](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506)
 supersedes the initial FIELD-only source target: a Schema/domain annotation carrying this marker contributes the same
@@ -896,7 +897,7 @@ malformed, duplicate or contradictory supplied facts before normalization. Prese
 `CompiledBuilderSchema.Entry`, including renamed/inherited copies; operations do not acquire field presence semantics.
 This is internal generated linkage, with no new consumer API, metadata framework or generator setting.
 
-**Protocol recommendation: retain `GeneratedInput.Schema.version=1` before the reopened freeze.** Maintainer
+**Protocol decision: retain `GeneratedInput.Schema.version=1` before the reopened freeze.** Maintainer
 clarification, 2026-11-08: v1 has never been released; earlier development-v1 artifacts/readers are outside the supported
 contract. Do not add compatibility handling, mandatory false facts or reverse-reader qualification for them. Extend the
 single current contract directly and qualify matching producers/readers. Absence of this optional member means false;
@@ -918,6 +919,15 @@ earlier effects on failure, defaults, Templates, ownership, lifecycle, normal Gr
 `@Required` and Bean Validation behavior. No serialized Model/Template state or module boundary changes. The deliberate
 recompilation refusal for incomplete required metadata is separate from unchanged valid-input execution. Editors/clients own
 schema validation. The implementation plan requires Groovy 3/4/5, binary and Groovy 4/5 JPMS evidence before RC acceptance.
+
+Implementation/qualification reconciliation: [S1 evidence](../implementation/issue-1055-s1-evidence.md) records capture,
+byte validation and immutable transport; [S3 evidence](../implementation/issue-1055-s3-evidence.md) records S2's required
+union and the cumulative current-contract documentary, source-free binary and named-module qualification. These draft
+branch results do not freeze v1 or establish release/publication. Before RC acceptance the Hive must record the final
+contract, rebuild the complete Schema/API/base/derived/owned closure with the exact candidate annotations/compiler/
+runtime/BOM/plugin coordinates, regenerate schemas and qualify that exact public candidate. Compare integrated trees
+and relevant CI inputs after predecessor merges/rebases before reusing any earlier result. No historical development-v1
+or general cross-version binary promise is introduced.
 
 Rejected alternatives: inferring requiredness from final-model constraints/defaults, importer-side enforcement,
 method/operation requirements, a general presence framework, mandatory false facts for unreleased-artifact detection,

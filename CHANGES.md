@@ -1,5 +1,12 @@
 # Unreleased
 
+- Add `@Struct.Required` for explicit field presence in generated JSON Schema, directly or through transitive domain
+  annotations, including inherited and renamed fields. External editors/validators report omission; ordinary Struct
+  import, DSL construction, null/default/lifecycle behavior and `@Required`/Jakarta validation are unchanged. Recompile
+  participating Schemas with matching 4.2 tools and regenerate schemas. See
+  [raw-input presence](docs/user/Json-Schema.md#raw-input-field-presence)
+  ([#1055](https://github.com/klum-dsl/klum-ast/issues/1055)).
+
 - Use the controlled Season 4.2 shared-portal artwork for the current documentation and README,
   with responsive Struct/YAML and Groovy lockups and the retained Season 4 favicon.
 

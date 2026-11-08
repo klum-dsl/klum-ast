@@ -140,6 +140,76 @@ klumSchema.jsonSchema {
         '5'        | 'domain'
     }
 
+    @Issue('1055')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#raw-input-field-presence')
+    def 'documents raw-input presence without enforcing import with Groovy #generation'() {
+        given:
+        fixture(generation, false, false, false, false, false, false, false, false, false, false, 'domain')
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.AuthoringService'])
+tasks.register('documentPresence', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.PresenceDocumentaryControl'
+}
+""")
+
+        when:
+        run('generateKlumJsonSchema')
+        def schema = document('example.AuthoringService')
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'documentary-presence-' + generation)
+        validation.mkdirs()
+        new File(validation, 'AuthoringService.schema.json').bytes = output('example.AuthoringService').bytes
+        def imported = run('documentPresence')
+
+        then:
+        schema.'$defs'.'example.AuthoringService_DSL$Builder'.required == ['public-access', 'service-name']
+        imported.output.contains('OMITTED-INPUT-ACCEPTED')
+        // validate_required_schema.py checks these exact exported documents with the external Draft 2020-12 oracle.
+        // It rejects {}, accepts empty String/false, and distinguishes required failures from null/type failures.
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('1055')
+    def 'malformed presence fails before import or output replacement: #target #kind'() {
+        given:
+        fixture(generation, false, false, false, false, false, false, false, false, false, false, 'domain')
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.$root'])
+tasks.register('rejectPresence', JavaExec) {
+    classpath = klumSchema.jsonSchema.classpath
+    mainClass = 'example.PresenceFailureControl'
+    args('$root')
+}
+""")
+        run('generateKlumJsonSchema')
+        byte[] previous = output('example.' + root).bytes
+        File manifest = new File(output('example.' + root).parentFile, '.klum-json-schema-outputs')
+        byte[] previousManifest = manifest.bytes
+        stripConstraintFacts(target, kind, field)
+
+        when:
+        def failed = runner(consumer, 'generateKlumJsonSchema').buildAndFail()
+        def imported = run('rejectPresence')
+
+        then:
+        failed.output.contains('rawInputRequired')
+        failed.output.contains('example.' + target)
+        failed.output.contains('recompile')
+        imported.output.contains('PRESENCE-REJECTED-BEFORE-EXECUTION')
+        output('example.' + root).bytes == previous
+        manifest.bytes == previousManifest
+        !trap.exists()
+
+        where:
+        generation | root               | target         | field         | kind
+        '3'        | 'Presence'         | 'Presence'     | 'count'       | 'presence-type'
+        '4'        | 'Presence'         | 'PresenceBase' | 'displayName' | 'presence-duplicate'
+        '5'        | 'PresenceOptional' | 'PresenceChild'| 'childCode'   | 'presence-excluded'
+    }
+
     @Issue('953')
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#caller-pre-keyed-builder-bodies')
@@ -2649,8 +2719,57 @@ import jakarta.validation.constraints.*
     @Field(key=Field.FieldName) PresenceChild fixed
     @Field(key={ 'derived' }) PresenceChild derived
 }
-@DSL class PresenceOptional { PresenceChild optional }
+@DSL class PresenceOptional { String first; PresenceChild optional }
 """)
+        writeSource('schema/src/main/groovy/example/AuthoringService.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+@DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+class AuthoringService {
+    @Struct.Required @Struct.Name('service-name') String serviceName = 'local'
+    @AuthorValue boolean publicAccess
+}
+class PresenceDocumentaryControl {
+    static void main(String[] args) {
+        def imported = AuthoringService.Create.FromStruct([:])
+        def ordinary = AuthoringService.Create.With { }
+        def applied = AuthoringService.Create.With { applyStruct([:]) }
+        assert [imported, ordinary, applied].every { it.serviceName == 'local' && !it.publicAccess }
+        def supplied = AuthoringService.Create.FromStruct(['service-name': '', 'public-access': false])
+        assert supplied.serviceName == '' && !supplied.publicAccess
+        println 'OMITTED-INPUT-ACCEPTED'
+    }
+}
+''')
+        writeSource('schema/src/main/groovy/example/PresenceFailureControl.groovy', '''
+package example
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport
+class PresenceFailureControl {
+    static void main(String[] args) {
+        def type = Class.forName('example.' + args[0], false, PresenceFailureControl.classLoader)
+        try {
+            StructuredInputSupport.readRoot(type, [:], 'omitted.yaml')
+            throw new AssertionError('invalid presence accepted')
+        } catch (KlumModelException expected) {
+            assert expected.message.contains('rawInputRequired')
+        }
+        if (args[0] == 'PresenceOptional') {
+            def result = PresenceOptional.Create.With {
+                try {
+                    applyStruct([first: 'must not mutate'])
+                    throw new AssertionError('invalid owned presence accepted')
+                } catch (KlumModelException expected) {
+                    assert expected.message.contains('rawInputRequired')
+                    assert first == null
+                }
+            }
+            assert result.first == null && result.optional == null
+        }
+        println 'PRESENCE-REJECTED-BEFORE-EXECUTION'
+    }
+}
+''')
     }
 
     private void exampleSources() {
@@ -3371,6 +3490,16 @@ class InitializationControl {
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                                             @Override void visit(String member, Object value) {
                                                 if (kind == 'presence' && member == 'rawInputRequired') {
+                                                    return
+                                                }
+                                                if (member == 'rawInputRequired' && kind == 'presence-type') {
+                                                    super.visit(member, 'true')
+                                                    return
+                                                }
+                                                if (member == 'rawInputRequired') {
+                                                    super.visit(member, value)
+                                                    if (kind == 'presence-duplicate') super.visit(member, false)
+                                                    if (kind == 'presence-excluded') super.visit('exclusion', 'NO_PAYLOAD')
                                                     return
                                                 }
                                                 if (kind == 'count' && member == 'constraintCount') {

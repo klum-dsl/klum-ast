@@ -392,7 +392,7 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     @Issue(["529", "620", "622", "626", "693", "729", "799", "925", "932"])
-    @Issue(["391", "658", "954", "959", "952", "953", "1015", "1030"])
+    @Issue(["391", "658", "954", "959", "952", "953", "1015", "1030", "1055"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -521,6 +521,11 @@ class JpmsPackageBoundaryTest extends Specification {
             assertGeneratedRelationshipHooksDirectlyInvokeRuntimeHooks(schemaClasses)
 
         Path schemaArtifact = named ? compileAndPackageNamedSchema(schemaSources, schemaClasses) : schemaClasses
+        if (named) {
+            assert schemaSources.toFile().deleteDir()
+            assert schemaClasses.toFile().deleteDir()
+            assert !Files.exists(schemaSources) && !Files.exists(schemaClasses)
+        }
 
         if (named)
             assertRuntimeModuleCanReadCompiledInput(schemaArtifact, fixture)
@@ -685,6 +690,13 @@ class JpmsPackageBoundaryTest extends Specification {
                     Object plan = read.invoke(constructor.newInstance(), model);
                     Map<?, ?> facts = (Map<?, ?>) entries.invoke(plan);
                     Object slot = facts.get("slot");
+                    Method rawInputRequired = slot.getClass().getDeclaredMethod("rawInputRequired");
+                    if (!rawInputRequired.trySetAccessible())
+                        throw new IllegalStateException("Cannot read presence from the runtime module");
+                    if (!Boolean.TRUE.equals(rawInputRequired.invoke(facts.get("station-name")))
+                            || !Boolean.TRUE.equals(rawInputRequired.invoke(facts.get("publicAccess")))
+                            || !Boolean.FALSE.equals(rawInputRequired.invoke(slot)))
+                        throw new AssertionError("Direct/domain presence facts were lost");
                     Method fixedKey = slot.getClass().getDeclaredMethod("fixedChildKey");
                     if (!fixedKey.trySetAccessible())
                         throw new IllegalStateException("Cannot read the private fixed child key fact");
@@ -707,7 +719,8 @@ class JpmsPackageBoundaryTest extends Specification {
                     }
                     return "RUNTIME_READER:" + facts.keySet()
                             + "\\nFIXED_CHILD_KEY:" + fixedKey.invoke(slot)
-                            + "\\nCONSTRAINT_POLICY:" + policy;
+                            + "\\nCONSTRAINT_POLICY:" + policy
+                            + "\\nRAW_INPUT_REQUIRED:direct,domain";
                 }
             }
         '''.stripIndent())
@@ -768,6 +781,7 @@ class JpmsPackageBoundaryTest extends Specification {
         assert extraction.output.contains('RUNTIME_READER:')
         assert extraction.output.contains('FIXED_CHILD_KEY:slot')
         assert extraction.output.contains('CONSTRAINT_POLICY:TEXT_ONLY')
+        assert extraction.output.contains('RAW_INPUT_REQUIRED:direct,domain')
     }
 
     private static ProcessResult execute(List<String> command, Path output) {
@@ -829,6 +843,11 @@ class JpmsPackageBoundaryTest extends Specification {
             @Target(ElementType.FIELD)
             public @interface EndpointBounds { int minimum() }
 
+            @Struct.Required
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+            public @interface AuthorValue {}
+
             @DSL class VirtualEndpoint { String host }
 
             @DSL
@@ -846,7 +865,8 @@ class JpmsPackageBoundaryTest extends Specification {
                 Set<VirtualEndpoint> routeSet
                 String virtualHost
                 @Field void route(VirtualEndpoint config) { virtualHost = config.host }
-                @Struct.Name('station-name') String name = 'North'
+                @Struct.Required @Struct.Name('station-name') String name = 'North'
+                @AuthorValue boolean publicAccess
                 @Struct.Operation @Builder.Method
                 void endpoint(String value) { name = 'selected:' + value }
                 @Builder.Method void resetTimeout() { capacity = 30 }
