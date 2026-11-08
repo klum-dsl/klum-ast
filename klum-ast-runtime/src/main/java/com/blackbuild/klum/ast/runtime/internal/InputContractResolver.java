@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import groovy.lang.Closure;
+import org.apache.groovy.util.BeanUtils;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -114,11 +115,30 @@ final class InputContractResolver {
             } else {
                 entries.putAll(admitted(facts.entries(), rejected, false));
             }
+            validateRequiredFields(builder, entries);
             return new CompiledBuilderSchema(builder, model, entries, rejected.stream().distinct()
                     .sorted(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason)).toList(),
                     key, reader.metadata(builder).key(), keyCollisions(key, entries, rejected), constraintProfiles(builder));
         } catch (ReflectiveOperationException | LinkageError | IOException | RuntimeException failure) {
             throw failure(builder.getName(), failure);
+        }
+    }
+
+    /** Every true declaration must survive as that exact field, after naming, overrides and operation selection. */
+    private void validateRequiredFields(Class<?> builder, Map<String, Entry> entries) throws IOException, ClassNotFoundException {
+        Map<Class<?>, Metadata> hierarchy = new LinkedHashMap<>();
+        namingHierarchy(builder, hierarchy);
+        for (Map.Entry<Class<?>, Metadata> declaration : hierarchy.entrySet()) {
+            for (Literals literal : declaration.getValue().methods().values()) {
+                if (!literal.rawInputRequired()) continue;
+                String source = schemaName(declaration.getKey()) + "#" + literal.field();
+                boolean selected = entries.values().stream().anyMatch(entry -> entry.rawInputRequired()
+                        && entry.contract() == declaration.getKey() && entry.source().equals(source));
+                if (!selected) {
+                    throw invalid("rawInputRequired lacks its exact selected field " + source
+                            + " on " + namingOrigin(declaration.getKey()));
+                }
+            }
         }
     }
 
@@ -327,7 +347,7 @@ final class InputContractResolver {
         String name = InputNamingProfiles.kebab(entry.externalName(), entry.source());
         return new Entry(name, entry.role(), entry.source(), entry.contract(), entry.operation(), entry.methods(), entry.dispatch(),
                 entry.payload(), entry.keyType(), entry.excludedKey(), entry.fixedChildKey(),
-                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternatives());
+                KEBAB_NAME, entry.documentation(), entry.schemaKey(), entry.sourceDeprecated(), entry.examples(), entry.alternatives(), entry.rawInputRequired());
     }
 
     private Key profileKey(Key key) throws IOException, ClassNotFoundException {
@@ -388,6 +408,7 @@ final class InputContractResolver {
             Literals literal = metadata.methods().get(signature(method));
             if (literal == null) throw invalid("Missing exact public declaration " + method);
             validateDeclaration(method, literal);
+            validateRequiredFieldAccessor(context, method, literal);
             if (literal.field() != null && (!fieldAccessor(method, literal.field())
                     || accessors.putIfAbsent(literal.field(), method) != null))
                 throw invalid("Duplicate or invalid field accessor association " + literal.field());
@@ -432,6 +453,17 @@ final class InputContractResolver {
     private static boolean fieldAccessor(Method method, String field) {
         return method.getParameterCount() == 0 || method.getParameterCount() == 1
                 && method.getName().equals("set" + Character.toUpperCase(field.charAt(0)) + field.substring(1));
+    }
+
+    private static void validateRequiredFieldAccessor(BuilderContext context, Method method, Literals literal) {
+        if (!literal.rawInputRequired()) return;
+        String suffix = BeanUtils.capitalize(literal.field());
+        boolean exact = method.getParameterCount() == 0 ? method.getName().equals("get" + suffix)
+                : method.getParameterCount() == 1 && method.getName().equals("set" + suffix);
+        if (!exact) {
+            throw invalid("rawInputRequired lacks exact field accessor association " + context.model().getName()
+                    + "#" + literal.field() + " on " + namingOrigin(context.builder()));
+        }
     }
 
     private void collectField(BuilderContext context, String field, Method accessor,
@@ -481,7 +513,7 @@ final class InputContractResolver {
         };
         entries.add(new Entry(name, role, source, context.builder(), operation, calls, dispatch, payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
-                literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples()));
+                literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples(), literal.rawInputRequired()));
     }
 
     /** Resolve only compiler-recorded field/target associations; construction uses the internal owned Map route. */
@@ -506,7 +538,7 @@ final class InputContractResolver {
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
         entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, List.of(), null,
                 first.payload(), String.class.getName(), literal.alternatives().get(0).key(), null,
-                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(), alternatives));
+                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(), alternatives, literal.rawInputRequired()));
     }
 
     private LiteralAlternative resolveAlternative(BuilderContext context, String field, Type fieldType, Literals literal,
@@ -748,7 +780,7 @@ final class InputContractResolver {
         if (names.ignored()) { rejections.add(new Rejection(source, ignoreReason(names))); return; }
         String name = names.rename().isEmpty() ? sink.getName() : names.rename();
         entries.add(new Entry(name, Role.VIRTUAL_OBJECT, source, sink.getDeclaringClass(), sink.getName(), List.of(sink, creator), sink,
-                nested, null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
+                nested, null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples(), false));
     }
 
     private static void operation(Method method, Literals literal, Class<?> model, List<Entry> entries, List<Rejection> rejections) {
@@ -761,7 +793,7 @@ final class InputContractResolver {
             String name = names.rename().isEmpty() ? method.getName() : names.rename();
             entries.add(new Entry(name, Role.COMMAND, source, method.getDeclaringClass(), method.getName(), List.of(method), method,
                     new Payload(Kind.EMPTY_OBJECT, Map.class, null, null, null), null, null, null, names.origin(),
-                    literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
+                    literal.doc(), false, literal.operationDeprecated(), literal.operationExamples(), false));
             return;
         } else if (method.getParameterCount() != 1) reason = "@Builder.Method must declare zero arguments or exactly one payload";
         Payload payload = reason == null ? payload(method.getGenericParameterTypes()[0], false) : null;
@@ -773,7 +805,7 @@ final class InputContractResolver {
         if (reason != null) { rejections.add(new Rejection(source, reason)); return; }
         String name = names.rename().isEmpty() ? method.getName() : names.rename();
         entries.add(new Entry(name, Role.OPERATION, source, method.getDeclaringClass(), method.getName(), List.of(method), method, payload,
-                null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples()));
+                null, null, null, names.origin(), literal.doc(), false, literal.operationDeprecated(), literal.operationExamples(), false));
     }
 
     private static String fieldReason(Type type, Literals literal) {

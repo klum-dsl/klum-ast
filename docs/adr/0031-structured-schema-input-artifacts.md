@@ -871,7 +871,12 @@ Related: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055),
 [implementation plan and source evidence](../implementation/issue-1055-raw-input-required-plan.md).
 
 The maintainer deliberately reopens 4.2 RC preparation for one raw-input field-presence policy, provisionally named
-`@Struct.Required`. Recommend a documented, runtime-retained, FIELD-only marker in the existing `Struct` namespace.
+`@Struct.Required`. Use a documented, runtime-retained FIELD/ANNOTATION_TYPE marker in the existing `Struct` namespace.
+The [maintainer clarification of 2026-11-08](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506)
+supersedes the initial FIELD-only source target: a Schema/domain annotation carrying this marker contributes the same
+field-presence fact, including transitive composition. Resolve it through the existing inert compiler Schema-projection
+capture alongside domain annotation facts, without adding a propagation transform or copying annotations onto fields.
+Existing `PropagateAnnotation` and annotation-collector semantics remain independent and unchanged.
 It applies only to an already admitted field: it neither admits a field nor marks an authored Builder operation.
 The exact source field association survives inheritance and effective external-name resolution. Generation adds that
 name to its containing object's `required` array, in deterministic unique order alongside any existing construction key.

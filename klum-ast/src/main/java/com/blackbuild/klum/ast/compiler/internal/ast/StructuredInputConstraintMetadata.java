@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 import com.blackbuild.klum.ast.Struct.ConstraintDescription;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.Struct.Required;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -46,7 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Freezes direct and first-level composing field facts at their original source; never copies Bean constraints onto executable sites. */
+/** Freezes field projection facts at their original source; never copies Bean constraints onto executable sites. */
 final class StructuredInputConstraintMetadata {
     private static final String ICD = ConstraintDescription.class.getName();
     private static final String JAKARTA_CONSTRAINT = "jakarta.validation.Constraint";
@@ -65,7 +66,22 @@ final class StructuredInputConstraintMetadata {
         schema.setMember("groupRedefined", new ConstantExpression(groupRedefined(model, new HashSet<>())));
     }
 
+    /** Presence is an inert effective projection fact, including domain annotation composition. */
+    static boolean rawInputRequired(FieldNode field) {
+        Set<String> visited = new HashSet<>();
+        return field.getAnnotations().stream().map(AnnotationNode::getClassNode)
+                .anyMatch(type -> carriesMarker(type, Required.class.getName(), visited));
+    }
+
+    private static boolean carriesMarker(ClassNode type, String marker, Set<String> visited) {
+        if (type.getName().equals(marker)) return true;
+        if (!visited.add(type.getName())) return false;
+        return type.getAnnotations().stream().map(AnnotationNode::getClassNode)
+                .anyMatch(meta -> carriesMarker(meta, marker, visited));
+    }
+
     static void enrichField(FieldNode field, AnnotationNode fact) {
+        if (rawInputRequired(field)) fact.setMember("rawInputRequired", ConstantExpression.TRUE);
         List<AnnotationNode> policies = field.getAnnotations(ClassHelper.make(ConstraintProjection.class));
         Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
         // Let the ordinary annotation compiler fold enum constants, including static imports.

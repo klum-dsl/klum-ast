@@ -87,6 +87,8 @@ public final class GeneratedInput {
         boolean sourceDeprecated() default false;
         /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
         String[] examples() default {};
+        /** Raw-input presence policy; omission is canonically false in protocol version 1. */
+        boolean rawInputRequired() default false;
         /** Inert original field declarations, never executable-validation annotations on this getter. */
         Constraint[] constraints() default {};
         /** Explicit cardinality detects stripped declaration or composing rows, including documentary-only rows. */

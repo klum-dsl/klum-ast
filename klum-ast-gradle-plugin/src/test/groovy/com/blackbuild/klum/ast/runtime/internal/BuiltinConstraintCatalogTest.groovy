@@ -94,7 +94,7 @@ class BuiltinConstraintCatalogTest extends Specification {
         def payload = fact('Payload', [choice('Kind', site.kind ?: 'SCALAR'), type, null, null, null])
         fact('Entry', ['renamed-capacity', choice('Role', site.role ?: 'PROPERTY'), 'example.Model#capacity',
                        BuiltinConstraintCatalogTest, 'capacity', [], null, payload, null, null, null, 'native', null,
-                       site.schemaKey ?: false, false, []])
+                       site.schemaKey ?: false, false, [], false])
     }
 
     private static Object rule(String annotation, Map facts = [:]) {
