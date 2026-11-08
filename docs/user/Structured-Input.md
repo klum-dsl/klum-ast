@@ -97,6 +97,11 @@ The parser is an example choice; KlumAST adds no YAML loader or managed Jackson 
 Ordinary Groovy remains available for forms outside this language. See [other relationship boundaries](#other-relationship-boundaries)
 and [Groovy forms without a Struct equivalent](#groovy-forms-without-a-struct-equivalent) before assuming parity.
 
+For completion and structural diagnostics while authoring YAML, see the
+[JSON Schema editor-association recipe](Json-Schema.md#authoring-structured-yaml-in-an-editor).
+The generated schema is editor/validator input: `FromStruct` / `applyStruct` do not automatically validate against it.
+Validation remains editor/consumer-owned; consumers may explicitly validate parsed input before import.
+
 ## Read a concrete root
 
 A Schema can expose domain operations that configure several properties:
