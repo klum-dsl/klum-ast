@@ -279,3 +279,22 @@ invalidated fixture omission, not an independent S2 defect. The new pushed S3 he
 are recorded in #1060's current body/follow-up and the Hive handoff. Base branch remains
 `codex/issue-1055-s2-schema-required`; native stack #1059 must remain intact. No merge, issue closure, release or
 self-archive is performed. Public-candidate/final-freeze/recompilation obligations above remain open.
+
+## S1 merge and native-stack transition — 2026-11-08
+
+S1 #1057 merged at `d42c6a653c879e1511ea62834f3da2b87d47cfda`. GitHub retargeted S2 #1058 to master and
+restacked it as `016201119d89a14a8649c16cc536777dabc99399`. Its complete tree is identical to prior S2
+`95088b6b5`; all three S2 patches compare equal. The Hive explicitly requested S3's corresponding rebase.
+
+S3 preserved `4a0e7f2bf37bf359dc4e44ed671408ea4bd23fdc` at
+`refs/codex/issue-1055-s3-before-s1-merge`, then rebased onto exact S2 `016201119`. All five S3 commits replayed
+without conflicts and compare equal in range-diff. Replayed tip `cd3a95ef8d7ce096b3d0792b17547f65bc4bc303`
+has the identical complete tree `9fa2106794cbd25a3af2791972918f991c4175e3`, including both S3 brace repairs.
+This follow-up changes only this evidence record. Production, tests, fixtures, user documentation and all build/CI
+inputs remain unchanged, so the preceding 344-case/five-oracle local integration evidence remains source-applicable.
+No additional local suite repeat is needed for this ancestry-only transition; exact-head hosted qualification is fresh.
+
+The final pushed head, new run, terminal checks and direct Sonar finding dispositions are recorded in #1060's current
+body/follow-up and the normal Hive callback. Runs on replaced heads, including `4a0e7f2bf` if scheduled, are historical
+and are not reused as the final gate. S3 remains based on the S2 branch in native stack #1059; this worker performs no
+predecessor, readiness, merge, issue closure, release or archive action. The open public-candidate obligations remain.
