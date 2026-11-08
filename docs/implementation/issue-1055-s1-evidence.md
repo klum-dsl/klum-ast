@@ -117,3 +117,19 @@ about the new head. Full module/root, long TestKit and full binary/JPMS/schema-v
 under the same bounded assignment. No unfiltered suite was scheduled for this follow-up.
 S2 JSON Schema output and S3 release qualification remain separate. The follow-up adds no runtime, reader, protocol
 or generated callable change. Shipped user documentation and CHANGES remain deferred as assigned.
+
+## Hosted CI fixture follow-up
+
+The first completed hosted run on `14454d4fe0ee4b3825b362121771d26aefb1eded`
+([run 42471547886](https://github.com/klum-dsl/klum-ast/actions/runs/42471547886)) reported 12,038 test cases:
+11,968 passed, 49 skipped, 21 failed. All 21 failures were in `BuiltinConstraintCatalogTest` and shared one cause:
+its inert reflected Entry fixture still supplied the pre-S1 constructor arguments, omitting `rawInputRequired`.
+The changed runtime contract itself was consistent; the plugin catalog fixture needed an explicit false argument.
+No production API, projection behavior or compatibility fallback is added for this test-data correction.
+
+`./gradlew :klum-ast-gradle-plugin:test --tests '*BuiltinConstraintCatalogTest' --console=plain`
+reproduced all 21 failures before the correction (7 seconds) and passed all 21 afterward (6 seconds).
+The affected test license check and `git diff --check` passed. This plugin test seam has one Groovy 3 test lane;
+no compiler/runtime code or multi-Groovy test input changes, so the previous G3/G4/G5 production-tree evidence remains
+applicable. Long plugin/full-root suites are left to the next hosted CI run. Sonar had not run before this CI failure;
+no Sonar cleanliness is inferred. The correction is an additive commit preserving both published S1 commits.
