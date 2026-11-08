@@ -1,14 +1,14 @@
 # #1055 S3: raw-input presence qualification and release boundary
 
-Date: 2026-11-08. Status: **S3 local qualification complete; speculative chain unmerged, no public-candidate claim**.
+Date: 2026-11-08. Status: **S3 rebased onto fixed S2; prior local qualification retained for unchanged inputs, new-head hosted qualification pending; no public-candidate claim**.
 Authority: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055), including its
 [transitive domain clarification](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506),
 [accepted plan](issue-1055-raw-input-required-plan.md) and
 [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#raw-input-field-presence--1055).
 
-## Exact chain and scope
+## Original exact chain and scope
 
-S3 starts at exact S2 `ca38933c9ac5b1b9535a743ba9a17b1d8ccce4d8`, tree
+S3 originally started at exact S2 `ca38933c9ac5b1b9535a743ba9a17b1d8ccce4d8`, tree
 `4fa838f6a4ea580b9c43e583bf86898abadcbaa9`, on dedicated branch
 `codex/issue-1055-s3-docs-qualification`, worktree `/private/tmp/klum-ast-1055-s3`.
 S2 is draft [#1058](https://github.com/klum-dsl/klum-ast/pull/1058), based on amended S1
@@ -142,3 +142,41 @@ Before RC acceptance the Hive/maintainer must:
 Tracker impact: `Related: #1055`. The issue remains open; no label/milestone/curation or issue-closure mutation is made.
 Draft stack delivery does not mark ready, merge or authorize self-archive. Request Hive delivery/archive reconciliation
 with exact-head CI status after publication; public-candidate/recompilation/freeze obligations remain explicitly open.
+
+
+## Ordered rebase onto fixed S2 — 2026-11-08
+
+Hive explicitly authorized rebasing the reviewed/published S3 history once the replacement S2 head was published,
+then updating #1060 with an exact force-with-lease. S1/S2 remain externally owned; this action neither edits nor merges them.
+
+- Preserved S3: `7d5ffdccb571ed57bb50730cd1911fa3c7fd8994`, tree
+  `a3a2c489d80afe3dd19b939f9049deaead6790e8`; backup ref
+  `refs/codex/issue-1055-s3-before-s2-rebase`.
+- New published S2: `806fdc9c0c0734e720adb2a3ff3798544a091287`, including fixed S1
+  `d7a840dceedb66294917cf930cdc619210c529c0`. S2 is still based on `codex/1055-s1-required-fact`, not merged master.
+- `git rebase --onto 806fdc9c0c0734e720adb2a3ff3798544a091287 ca38933c9ac5b1b9535a743ba9a17b1d8ccce4d8
+  codex/issue-1055-s3-docs-qualification` completed without conflicts. The duplicate S3 catalog-fixture commit
+  `d5f686200` dropped because its exact patch is already upstream. No conflict resolution or production change was needed.
+- Replayed pre-evidence S3: `6140bd3e1758e5c40899083f0cb52ee80b1573e4`, tree
+  `36a7f526e31565a8fd3feddd7404dabeb21ee935`. Range-diff maps `071632a4f` to `a1f585582` and `7d5ffdccb` to
+  `6140bd3e1` unchanged; only the upstream duplicate is removed.
+- Whole-tree comparison from preserved S3 to rebased S3 changes only 16 added lines in
+  `docs/implementation/issue-1055-s1-evidence.md`. All production/compiler/runtime/annotation/plugin code, executable tests
+  and fixtures, user documentation, build/dependency/toolchain configuration, workflow/scripts and other tracked inputs
+  are byte-identical. The current evidence reconciliation is documentation only. Git ancestry/head and inferred artifact
+  version/provenance identity do change, so final-head hosted CI/SonarCloud must run afresh.
+- `git diff --check` and changed Markdown fence/relative-target checks pass. No functional change invalidates the prior
+  complete local 12,062-case run, documentary/external-validator results or named-module/source-free controls as dated
+  evidence for those unchanged code inputs. They are not presented as a fresh root check or hosted pass on the rebased head.
+  Local Groovy/TestKit reruns are omitted for this integration-only replay; the new cumulative hosted run supplies the
+  exact new-head full build, coverage and shipping qualification.
+
+Older hosted evidence is invalidated for current delivery: S2 run `42472986126` failed on the known catalog-fixture
+omission and does not identify an independent S2 defect; pre-rebase S3 run `42477002757` targets the replaced
+`7d5ffdccb` head and is not the current gate, whatever its eventual result. No earlier S1 run is reused for fixed S1.
+The new S3 head/base, force-with-lease result and its own cumulative CI/SonarCloud run are recorded in #1060's current
+body/follow-up and task handoff after publication. Native stack #1059 and S3's base branch
+`codex/issue-1055-s2-schema-required` must remain intact. No readiness/merge/issue closure is authorized.
+
+After predecessor merges, any further rebase onto current master still requires a fresh tree/CI-input comparison and
+appropriate requalification. Pre-RC recompilation, final v1 freeze and exact public-candidate obligations above remain open.
