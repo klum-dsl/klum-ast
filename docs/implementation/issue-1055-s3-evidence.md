@@ -1,6 +1,6 @@
 # #1055 S3: raw-input presence qualification and release boundary
 
-Date: 2026-11-08. Status: **S3 rebased onto fixed S2; prior local qualification retained for unchanged inputs, new-head hosted qualification pending; no public-candidate claim**.
+Date: 2026-11-08. Status: **S3 rebased onto fixed S2; additive Sonar follow-up validated locally; final-head hosted status is recorded in #1060; no public-candidate claim**.
 Authority: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055), including its
 [transitive domain clarification](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506),
 [accepted plan](issue-1055-raw-input-required-plan.md) and
@@ -180,3 +180,42 @@ body/follow-up and task handoff after publication. Native stack #1059 and S3's b
 
 After predecessor merges, any further rebase onto current master still requires a fresh tree/CI-input comparison and
 appropriate requalification. Pre-RC recompilation, final v1 freeze and exact public-candidate obligations above remain open.
+
+
+## Additive SonarCloud follow-up — 2026-11-08
+
+Rebased-head run [42477833340](https://github.com/klum-dsl/klum-ast/actions/runs/42477833340) on
+`15e3e28798fd2d3d3d4d7f55c83554c26db106db` completed **SUCCESS**, with build job duration **1h 16m 8s**.
+The main full build, separate G3/G4/G5 annotation-propagation artifact qualification, JUnit report and compatibility
+artifact publication passed. Both SonarCloud check runs completed SUCCESS; direct quality-gate API status was OK,
+with zero security hotspots. This is a new-head hosted result, not reused older S2/S3 evidence.
+
+Direct inspection of unresolved PR issues nevertheless found two `groovydre:S8306` maintainability findings:
+`AaG7OSvF_mnc5PvfRl7l` and `AaG7OSvF_mnc5PvfRl7m`, on the duplicate/excluded presence mutation branches in
+`KlumJsonSchemaGenerationTest`. The additive repair puts braces around those two existing single-statement if bodies.
+Conditions, emitted values, call ordering, return behavior and assertions remain identical. No suppression, analyzer
+exclusion, global style-policy change or production/API/protocol change is introduced.
+
+Validation of the repair:
+
+- `:klum-ast-gradle-plugin:test --tests '*KlumJsonSchemaGenerationTest*malformed presence*'`: 3 cases, no failures/errors/skips.
+- Full `:klum-ast-gradle-plugin:test`: **684 cases, no failures/errors/skips; 12m 28s**.
+- All seven external Draft 2020-12 required/structural/body/owned-sequence/literal-alternative/virtual-scope/composed-constraint
+  oracles pass on the regenerated local corpus, using the same pinned `jsonschema==4.23.0` environment and commands above.
+- Independent Standards and Specification follow-up reviews: **0 actionable findings each**. Both confirm the repair is
+  mechanically equivalent and preserves the current-contract failure controls. No test is added, ignored or weakened.
+- `git diff --check` and evidence Markdown target/fence checks pass. The source diff is six added/two removed lines,
+  wrapping the two if bodies; the accompanying evidence update is documentation only.
+
+Compiler/runtime/annotation code, producer fixture strings, user documentation, dependency/build/CI inputs and operation
+semantics remain unchanged by this repair. The affected plugin suite, including G3/G4/G5 producer cases, was rerun locally;
+local compiler/runtime lane and full-root repeats are omitted for this test-only formatting change. A fresh exact-head
+hosted full build, SonarCloud and artifact qualification is required after the additive push; `15e3e2879`'s positive run
+is dated pre-repair evidence, not the final follow-up gate. The final pushed head/run and all finding dispositions are
+recorded in #1060's current body and one consolidated follow-up, avoiding a self-invalidating CI-result-only commit.
+
+Logs: `/private/tmp/1055-s3-sonar-braces-focused.log`, `/private/tmp/1055-s3-sonar-braces-plugin-full.log`,
+`/private/tmp/1055-s3-sonar-braces-validation.json` and `/private/tmp/1055-s3-sonar-braces-validate_*_schema.py.log`.
+Sonar/hosted snapshot files are `/private/tmp/1055-s3-sonar-1060-issues.json`,
+`/private/tmp/1055-s3-sonar-1060-qualitygate.json`, `/private/tmp/1055-s3-sonar-1060-hotspots.json` and
+`/private/tmp/1055-s3-ci-42477833340-terminal.json`. No predecessor, readiness, merge, issue-state or release action is taken.

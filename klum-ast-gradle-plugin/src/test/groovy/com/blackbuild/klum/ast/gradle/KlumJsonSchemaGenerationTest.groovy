@@ -3498,8 +3498,12 @@ class InitializationControl {
                                                 }
                                                 if (member == 'rawInputRequired') {
                                                     super.visit(member, value)
-                                                    if (kind == 'presence-duplicate') super.visit(member, false)
-                                                    if (kind == 'presence-excluded') super.visit('exclusion', 'NO_PAYLOAD')
+                                                    if (kind == 'presence-duplicate') {
+                                                        super.visit(member, false)
+                                                    }
+                                                    if (kind == 'presence-excluded') {
+                                                        super.visit('exclusion', 'NO_PAYLOAD')
+                                                    }
                                                     return
                                                 }
                                                 if (kind == 'count' && member == 'constraintCount') {
