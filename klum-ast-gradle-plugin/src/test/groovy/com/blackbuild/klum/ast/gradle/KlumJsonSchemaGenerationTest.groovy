@@ -2279,7 +2279,9 @@ class Misdirected_DSL {
     interface Factory { Service One() }
 }
 """)
-        if (presence) presenceSources(presence)
+        if (presence) {
+            presenceSources(presence)
+        }
         if (constraints) {
             new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
             writeSource('schema/src/main/groovy/example/Capacity.groovy', """
@@ -2539,7 +2541,9 @@ import java.lang.annotation.*
             runner(producer, ':owned:jar').build()
             publish('owned', 'owned/build/libs/owned.jar', '')
         }
-        if (!presence) publishApi('Inherited region documentation.')
+        if (!presence) {
+            publishApi('Inherited region documentation.')
+        }
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency>' +
                 (naming || patterns || presence ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')
@@ -3366,7 +3370,9 @@ class InitializationControl {
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                                             @Override void visit(String member, Object value) {
-                                                if (kind == 'presence' && member == 'rawInputRequired') return
+                                                if (kind == 'presence' && member == 'rawInputRequired') {
+                                                    return
+                                                }
                                                 if (kind == 'count' && member == 'constraintCount') {
                                                     return
                                                 }
