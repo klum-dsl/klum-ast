@@ -14,6 +14,11 @@ see the [current JSON Schema guide](../user/Json-Schema.md). ADR 0031's generate
 qualified projection principles remain in force. Historical Schelm acceptance does not qualify a newer matched build;
 consumer-specific root/output qualification remains consumer-owned, not an outstanding #529 implementation claim.
 
+Planning extension, 2026-11-08: [#1055 raw-input presence](#raw-input-field-presence--1055) reopens only the
+pre-RC preparation boundary for explicit field presence in generated JSON Schema. It is not implemented by this ADR
+update. The recommendation retains development protocol v1 with an optional field-presence fact and coordinated
+Schema recompilation before the final freeze; runtime input and completed-model validation semantics remain unchanged.
+
 The dated sections below preserve design and delivery history. Their preflight, pending-work and old annotation/API
 wording describe those checkpoints; use ADR 0032 and current `docs/user/` pages for the delivered contract.
 
@@ -858,6 +863,60 @@ or new authoring API. Supported naming, key positions, admission, numeric assert
 initialization safety and output atomicity are preserved. See
 [implementation and qualification](../implementation/issue-959-unified-metadata-protocol.md).
 
+
+## Raw-input field presence — #1055
+
+Date: 2026-11-08. Status: **Maintainer-authorized scope; proposed implementation design, not production delivery**.
+Related: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055),
+[implementation plan and source evidence](../implementation/issue-1055-raw-input-required-plan.md).
+
+The maintainer deliberately reopens 4.2 RC preparation for one raw-input field-presence policy, provisionally named
+`@Struct.Required`. Recommend a documented, runtime-retained, FIELD-only marker in the existing `Struct` namespace.
+It applies only to an already admitted field: it neither admits a field nor marks an authored Builder operation.
+The exact source field association survives inheritance and effective external-name resolution. Generation adds that
+name to its containing object's `required` array, in deterministic unique order alongside any existing construction key.
+Owned child requirements stay in that child's definition; they do not require its optional parent relationship.
+Presence is independent of `ConstraintProjection.PROJECT`, `TEXT_ONLY` and `OMIT`.
+
+`required` asserts member presence, not non-nullness, Groovy truth, nonemptiness or completed-model validity.
+The existing property schema continues to decide which supplied values, including null, it describes. Neither
+`@Required`, Jakarta constraints, source initializers, defaults nor lifecycle code imply this explicit policy.
+An excluded/non-admitted declaration cannot supply a required property: reject `Struct.Ignore` plus this marker at
+compilation and reject contradictory carried facts before use. Keep existing exclusion, collision and key rules;
+do not introduce a new key annotation policy or required operations.
+
+Transport `GeneratedInput.Field.rawInputRequired` with canonical default false; the compiler emits true for marked
+fields and may omit the member otherwise. The exact-byte reader treats absence as false by definition and rejects
+malformed, duplicate or contradictory supplied facts before normalization. Preserve the validated bit on the selected field's
+`CompiledBuilderSchema.Entry`, including renamed/inherited copies; operations do not acquire field presence semantics.
+This is internal generated linkage, with no new consumer API, metadata framework or generator setting.
+
+**Protocol recommendation: retain `GeneratedInput.Schema.version=1` before the reopened freeze.** Maintainer
+clarification, 2026-11-08: v1 has never been released; earlier development-v1 artifacts/readers are outside the supported
+contract. Do not add compatibility handling, mandatory false facts or reverse-reader qualification for them. Extend the
+single current contract directly and qualify matching producers/readers. Absence of this optional member means false;
+it is not a fallback for missing required metadata. Existing version and required-fact checks remain fail-closed.
+
+The [2026-11-08 v1 RC disposition](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6718811463)
+remains historical authority for retaining v1, complete required facts, coordinated recompilation, fail-closed readers and exact
+candidate qualification. Supersede its preparation boundary and development-artifact accommodation only as clarified
+above: include #1055's field fact before recording the final
+v1 freeze and qualifying the candidate. Recompile every participating Schema artifact, including binary parents and
+owned contracts, with matched compiler/runtime/Schema-plugin inputs; then regenerate schemas. Rebuilding only an
+application is insufficient. Add no producer-release discrimination, feature version,
+fallback, negotiation or legacy decoder. A later incompatible change after that final freeze needs a new decision and
+a further RC.
+
+Both consumers validate metadata integrity, but neither `FromStruct` nor `applyStruct` checks whether input supplies
+these fields or runs JSON Schema validation. Valid complete metadata retains existing null admission, ordered execution,
+earlier effects on failure, defaults, Templates, ownership, lifecycle, normal Groovy DSL, Jackson interoperability,
+`@Required` and Bean Validation behavior. No serialized Model/Template state or module boundary changes. The deliberate
+recompilation refusal for incomplete required metadata is separate from unchanged valid-input execution. Editors/clients own
+schema validation. The implementation plan requires Groovy 3/4/5, binary and Groovy 4/5 JPMS evidence before RC acceptance.
+
+Rejected alternatives: inferring requiredness from final-model constraints/defaults, importer-side enforcement,
+method/operation requirements, a general presence framework, mandatory false facts for unreleased-artifact detection,
+and a protocol bump solely to label an unreleased additive fact. None is needed for the accepted use case.
 
 ## D7 documentary string examples — #959
 
