@@ -1,6 +1,6 @@
 # #1055 S3: raw-input presence qualification and release boundary
 
-Date: 2026-11-08. Status: **S3 rebased onto fixed S2; additive Sonar follow-up validated locally; final-head hosted status is recorded in #1060; no public-candidate claim**.
+Date: 2026-11-08. Status: **S3 rebased onto latest S2 with both S3 brace repairs preserved; local integration checks pass; exact final-head hosted status is recorded in #1060; no public-candidate claim**.
 Authority: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055), including its
 [transitive domain clarification](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506),
 [accepted plan](issue-1055-raw-input-required-plan.md) and
@@ -219,3 +219,63 @@ Logs: `/private/tmp/1055-s3-sonar-braces-focused.log`, `/private/tmp/1055-s3-son
 Sonar/hosted snapshot files are `/private/tmp/1055-s3-sonar-1060-issues.json`,
 `/private/tmp/1055-s3-sonar-1060-qualitygate.json`, `/private/tmp/1055-s3-sonar-1060-hotspots.json` and
 `/private/tmp/1055-s3-ci-42477833340-terminal.json`. No predecessor, readiness, merge, issue-state or release action is taken.
+
+
+## Latest S2/S1 integration — 2026-11-08
+
+The user-authorized S2 handoff requested an immediate rebase onto published S2
+`95088b6b5fcfe0ce75e73eef0e0d11a1206f024e`, based on S1
+`a8eea8a68dba35e0bd12015aaa3da37b219ffef3`. S3 preserved its prior
+`536c8de4446fd76dc1330dab3ccca3395f767087` at `refs/codex/issue-1055-s3-before-latest-s2` and ran
+`git rebase --onto 95088b6b5fcfe0ce75e73eef0e0d11a1206f024e 806fdc9c0c0734e720adb2a3ff3798544a091287
+codex/issue-1055-s3-docs-qualification`.
+
+One conflict in the generator's annotation visitor was resolved narrowly: retain S2's braced presence-removal guard,
+then retain every S3 wrong-type/duplicate/excluded mutation and both S3 brace repairs. Replay tip before this evidence
+update is `2d7fcc43e854e1799e208914acab262796a5fefa`, tree
+`0582e0518fa2e70d695103807e457f8b022cf9c9`. The remaining S3 patches replay unchanged; range-diff records only that
+expected first-patch integration adjustment. No S1/S2 branch or readiness/merge state is changed by this worker.
+
+Whole-tree delta from preserved S3 exactly equals the upstream delta from S2 `806fdc9c` to `95088b6b`, verified by
+comparing added/removed lines with hunk offsets removed in all four changed files:
+
+- 21 added lines of S1 evidence.
+- `InputContractResolver`: extract the existing raw-required accessor predicate/diagnostic into an early-return private
+  validator. The unmarked short-circuit, getter/setter predicate, exception message and position before general accessor
+  association checks remain identical. This production source is changed upstream; it is not claimed byte-identical.
+- `StructRequiredTest`: upstream brace-only formatting.
+- `KlumJsonSchemaGenerationTest`: S2's three brace additions. The resolved S3 file retains its own two brace repairs.
+
+No further production, test/fixture, user-documentation, dependency/toolchain, build or workflow/script change is present.
+Thus build/CI configuration is unchanged, but the cumulative source tree, ancestry and artifact/provenance identity have
+changed and require a new exact-head hosted gate. The prior `806fdc9c`-based hosted result is not qualification here.
+
+Fresh local integration evidence on replayed `2d7fcc43e` (Java 17, matching branch-built artifacts):
+
+- Full runtime `test`, `groovy4Tests`, `groovy5Tests`: 73 cases per lane, zero failures/errors, one existing skip per lane.
+- Focused compiler `test`, `groovy4Tests`, `groovy5Tests`, each filtered independently to `StructRequiredTest` and
+  `JpmsPackageBoundaryTest`: 32 cases per lane, zero failures/errors/skips. Includes required-accessor guards and the
+  G4/G5 named-module/source-deletion controls.
+- Source-free generator/presence plus `BinaryOwnedRelationshipsTest`: 26 cases, zero failures/errors/skips.
+- Additional unmarked structural generation controls: 3 cases, zero failures/errors/skips. These exercise the newly braced
+  presence setup/API publication guards as well as ordinary metadata paths.
+- Total across these runs: 344 cases, zero failures/errors, three existing runtime skips. No new test/ignore is added.
+- Five external `jsonschema==4.23.0` oracles passed on the freshly regenerated required/structural/owned-sequence/
+  literal-alternative/virtual-scope schemas. The broader Builder-body/composed corpus is retained only as dated prior
+  evidence, not presented as freshly generated in this integration run.
+- Runtime/compiler/plugin licenses, plugin `validatePlugins`, diff and evidence Markdown checks pass.
+- Independent Standards and Specification integration reviews: 0 actionable findings each. Both confirm preservation of
+  the guard's short-circuit/diagnostic order and of every S3 qualification control; no scope expansion.
+
+Commands/results: `/private/tmp/1055-s3-rebase950-tests.json`, `1055-s3-rebase950-counts.json`,
+`1055-s3-rebase950-oracles.json`, `1055-s3-rebase950-delta-proof.json`, `1055-s3-rebase950-range-diff.txt` and matching
+`1055-s3-rebase950-*.log` files. Full local compiler/plugin/root repeats and dedicated propagation shipping are omitted
+for this integration replay; current exact-head hosted CI performs the full cumulative build, SonarCloud and shipping.
+
+Old watcher reconciliation: the local watcher for run `42485215109` (head `536c8de44`) was stopped; its remote run was
+not cancelled. That run, run `42477833340` on `15e3e2879`, and the earlier `7d5ffdccb`/`ca38933c9` runs are historical or
+superseded for current delivery, regardless of their eventual outcomes. The old S2 catalog failure remains a known
+invalidated fixture omission, not an independent S2 defect. The new pushed S3 head/run and terminal findings disposition
+are recorded in #1060's current body/follow-up and the Hive handoff. Base branch remains
+`codex/issue-1055-s2-schema-required`; native stack #1059 must remain intact. No merge, issue closure, release or
+self-archive is performed. Public-candidate/final-freeze/recompilation obligations above remain open.
