@@ -79,3 +79,22 @@ presence_only = Draft202012Validator({"type": "object", "required": ["value"]})
 assert not presence_only.is_valid({})
 for present in [None, "", False, 0, [], {}]:
     assert presence_only.is_valid({"value": present}), present
+
+# Documentary counterpart: the Spock feature demonstrates import/DSL/applyStruct acceptance
+# using the same two fields and exports the generated schema, without adding a validator to import.
+for generation in ('3', '4', '5'):
+    path = root / f'documentary-presence-{generation}' / 'AuthoringService.schema.json'
+    schema = json.loads(path.read_text())
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    errors = list(validator.iter_errors({}))
+    assert len(errors) == 2 and all(error.validator == 'required' for error in errors), errors
+    assert validator.is_valid({'service-name': '', 'public-access': False})
+    for missing in ('service-name', 'public-access'):
+        value = {'service-name': '', 'public-access': False}
+        del value[missing]
+        errors = list(validator.iter_errors(value))
+        assert len(errors) == 1 and errors[0].validator == 'required', errors
+    errors = list(validator.iter_errors({'service-name': None, 'public-access': False}))
+    assert len(errors) == 1 and errors[0].validator == 'type', errors
+    print(f'{path.parent.name}: documentary omission rejected externally; present empty/false accepted')

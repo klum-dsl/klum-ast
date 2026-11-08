@@ -9,6 +9,29 @@ See [JSON Schema generation](Json-Schema.md).
 
 ## Unreleased
 
+### Raw-input presence and the 4.2 contract
+
+For `@Struct.Required`, recompile every participating Schema/API, binary parent, derived and owned artifact with matching
+4.2 annotations/compiler/runtime/Schema-plugin inputs, then regenerate JSON Schema and distribute it to editors/clients.
+Rebuilding only the final application does not regenerate its dependencies' Builder metadata. Direct and transitive
+domain-annotation markers need the same matched compilation path.
+
+Development protocol v1 remains unreleased. Its current contract adds optional field presence: marked fields emit true;
+omission and explicit false mean false. Earlier development-v1 producers/readers are outside the supported contract;
+there is no historical compatibility matrix or partial-metadata fallback. All other required facts and participating
+contracts must be complete. Missing/incompatible versions or malformed facts fail closed; this adds no stale-artifact
+or release-provenance detector.
+
+This feature changes generated JSON Schema presence only. It does not enforce omission in `FromStruct`/`applyStruct`,
+change null/default/lifecycle behavior or reinterpret `@Required`/Jakarta validation. See
+[the Schema example and documentary coverage](Json-Schema.md#raw-input-field-presence) and
+[Struct import guidance](Structured-Input.md#raw-input-presence).
+
+Before a public 4.2 RC, maintainers must record the final v1 freeze, recompile the entire participating Schema closure,
+and qualify the **exact public candidate** with its matching published coordinates and regenerated schemas. Branch-local
+G3/G4/G5, binary and G4/G5 JPMS evidence does not complete those release obligations. An incompatible post-freeze change
+requires a new decision and a further RC ([#1055](https://github.com/klum-dsl/klum-ast/issues/1055)).
+
 ### Reserved Builder copy signature
 
 Schema-authored Builder methods with effective signature `copyFrom(Object)` are now rejected at compilation: they

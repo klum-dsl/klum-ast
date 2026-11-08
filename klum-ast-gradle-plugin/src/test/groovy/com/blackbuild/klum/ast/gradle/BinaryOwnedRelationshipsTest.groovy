@@ -139,6 +139,35 @@ class BinaryOwnedRelationshipsTest extends Specification {
         [generation, capability] << [['3', '4', '5'], ['projection', 'interpret']].combinations()
     }
 
+    @Issue('1055')
+    def 'binary parent and owned consumers retain field presence with Groovy #generation'() {
+        given:
+        fixture(generation, true)
+
+        when:
+        runner(consumer, 'generateKlumJsonSchema').build()
+        def schema = new JsonSlurper().parse(new File(consumer, 'build/generated/klum-json-schema/example.Deployment.schema.json'))
+
+        then:
+        schema.'$defs'.'example.Deployment_DSL$Builder'.required == ['apiLocal', 'facts', 'inherited']
+        schema.'$defs'.'example.Facts_DSL$Builder'.required == ['host-name']
+        schema.'$defs'.'example.Workload_DSL$Builder::keyless'.required == ['image']
+        schema.'$defs'.'example.Workload_DSL$Builder'.required == ['image', 'workload-id']
+        !trap.exists()
+
+        when: 'ordinary import remains independent of the generated presence requirements'
+        def result = runner(consumer, 'interpret').build()
+
+        then:
+        result.output.contains('BINARY-RELATIONSHIPS-OK')
+        trap.exists()
+        ['api', 'schema', 'client'].every { !new File(producer, "$it/src").exists() }
+        !new File(consumer, 'src').exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
     private static byte[] stripLiteralAssociation(String name, byte[] bytes, boolean multiple) {
         if (name != 'example/Deployment_DSL$Builder.class') {
             return bytes
@@ -238,7 +267,7 @@ class BinaryOwnedRelationshipsTest extends Specification {
         artifact.bytes = changed.bytes
     }
 
-    private void fixture(String generation) {
+    private void fixture(String generation, boolean presence = false) {
         producer = new File(directory, 'producer')
         consumer = new File(directory, 'consumer')
         repository = new File(directory, 'repository')
@@ -263,13 +292,17 @@ project(':client') { dependencies { implementation 'fixture:schema:1.0' } }
 package example
 import com.blackbuild.klum.ast.*
 import com.fasterxml.jackson.annotation.*
+import java.lang.annotation.*
+@Struct.Required
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+@interface AuthorValue {}
 class Trace {
     static { new File('${trap.absolutePath}').text = 'initialized' }
     static final List<String> events = []
 }
 @DSL class Facts {
     static { new File('${trap.absolutePath}').text = 'initialized' }
-    @JsonProperty('host-name') String host
+    ${presence ? '@AuthorValue ' : ''}@JsonProperty('host-name') String host
     @Owner Object owner
     @PostCreate void created() { Trace.events.add('facts:create') }
     @PostApply void applied() { Trace.events.add('facts:apply') }
@@ -277,7 +310,7 @@ class Trace {
 }
 @DSL class Workload {
     @Key @Struct.Name("workload-id") String name
-    String image
+    ${presence ? '@Struct.Required ' : ''}String image
     @Owner Object owner
     @PostCreate void created() { Trace.events.add('workload:create') }
     @PostApply void applied() { Trace.events.add('workload:apply') }
@@ -285,7 +318,7 @@ class Trace {
 }
 @DSL class GenericFacts<T> { T value }
 @DSL abstract class AbstractFacts { String host }
-@DSL abstract class DeploymentApi { Facts apiLocal }
+@DSL abstract class DeploymentApi { ${presence ? '@AuthorValue ' : ''}Facts apiLocal }
 """)
         writeSource('api', 'JsonProperty.groovy', '''
 package com.fasterxml.jackson.annotation
@@ -360,7 +393,8 @@ class FactOrder implements Comparator<Object> {
 }
 @DSL class ConcreteElement extends Element {}
 @DSL class RollingElement extends Element { String rollingValue }
-''')
+'''.replace('Facts inherited', presence ? '@AuthorValue Facts inherited' : 'Facts inherited')
+                .replace('Facts facts', presence ? '@Struct.Required Facts facts' : 'Facts facts'))
         runner(producer, ':schema:jar').build()
         publish('schema', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency></dependencies>')
         new File(producer, 'schema').deleteDir()
