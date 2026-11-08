@@ -11,8 +11,7 @@ Make Your Models Groovy!
 
 **4.2 (in preparation)** adds Structured Import and JSON Schema Support. Use the same Schema for Groovy DSL and
 caller-parsed YAML/JSON through public Factory/Builder APIs, and generate matching JSON Schema for editor feedback or
-explicit validation. See [Structured Input](docs/user/Structured-Input.md), [JSON Schema](docs/user/Json-Schema.md),
-and the [4.2 changelog and migration notes](CHANGES.md#420-unreleased).
+explicit validation. See the [4.2 changelog and migration notes](CHANGES.md#420-unreleased).
 
 **4.1 (released)** extends Builder-first construction with explicit `@Builder.Method`, `@Builder.Query`,
 `@Builder.Input` and `@Builder.Result` capabilities, annotation-driven lifecycle participants, owning-relationship
