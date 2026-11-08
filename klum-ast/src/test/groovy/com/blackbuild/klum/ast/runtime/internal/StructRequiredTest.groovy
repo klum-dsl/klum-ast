@@ -45,12 +45,12 @@ import java.lang.annotation.Target
 
 @Issue('1055')
 class StructRequiredTest extends AbstractDSLSpec {
-    def 'marker has only field target and runtime documentary retention'() {
+    def 'marker supports fields and domain annotations with runtime documentary retention'() {
         when:
         def marker = Class.forName(Struct.name + '$Required')
 
         then:
-        marker.getAnnotation(Target).value().toList() == [ElementType.FIELD]
+        marker.getAnnotation(Target).value().toList() == [ElementType.FIELD, ElementType.ANNOTATION_TYPE]
         marker.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME
         marker.isAnnotationPresent(Documented)
         marker.declaredMethods.length == 0
@@ -100,6 +100,78 @@ class StructRequiredTest extends AbstractDSLSpec {
         binaries?.close()
     }
 
+    def 'direct and domain-contributed markers capture the same presence fact without runtime enforcement'() {
+        given:
+        createClass '''
+            package contributedpresence
+            import java.lang.annotation.*
+            @DSL class Service {
+                @Struct.Required String directName = 'fallback'
+                @AuthorValue String domainName
+                @NestedValue @Struct.Name('external-name') String nestedName
+                @PropagatedValue String propagatedName
+                @CycleA String optionalName
+                @AuthorValue @Builder.Method void configure(String value) {}
+            }
+            @Struct.Required
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE, ElementType.METHOD])
+            @interface AuthorValue {}
+            @AuthorValue
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface NestedValue {}
+            @PropagateAnnotation(Struct.Required)
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface PropagatedValue {}
+            @CycleB
+            @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+            @interface CycleA {}
+            @CycleA
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @interface CycleB {}
+        '''
+        def binaries = binaries()
+        def type = Class.forName('contributedpresence.Service', false, binaries)
+        def builder = Class.forName('contributedpresence.Service_DSL$Builder', false, binaries)
+
+        when:
+        def facts = new BuilderContractReader().metadata(builder)
+        def schema = new InputContractResolver().read(type)
+        def imported = type.Create.FromStruct([:])
+        def configured = type.Create.With {}
+
+        then:
+        facts.methods().values().findAll { it.rawInputRequired() }*.field().toSet() ==
+                ['directName', 'domainName', 'nestedName', 'propagatedName'] as Set
+        schema.entries().findAll { name, entry -> entry.rawInputRequired() }.keySet() ==
+                ['directName', 'domainName', 'external-name', 'propagatedName'] as Set
+        schema.entries().get('external-name').source() == 'contributedpresence.Service#nestedName'
+        !schema.entries().configure.rawInputRequired()
+        !schema.entries().optionalName.rawInputRequired()
+        imported.directName == configured.directName
+        imported.directName == 'fallback'
+        imported.domainName == null
+
+        cleanup:
+        binaries?.close()
+    }
+
+    def 'domain-contributed presence cannot override field exclusion'() {
+        when:
+        createClass '''
+            import java.lang.annotation.*
+            @DSL class Service { @AuthorValue @Struct.Ignore String value }
+            @Struct.Required
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface AuthorValue {}
+        '''
+
+        then:
+        def failure = thrown(MultipleCompilationErrorsException)
+        failure.message.contains('Struct.Required')
+        failure.message.contains('Service#value')
+    }
+
     def 'separately compiled inherited presence survives descendant naming profiles'() {
         given:
         def parentDirectory = tempFolder.newFolder('parent')
@@ -110,10 +182,17 @@ class StructRequiredTest extends AbstractDSLSpec {
         parent.addSource('Base.groovy', '''
             package inheritedpresence
             import com.blackbuild.klum.ast.*
+            import java.lang.annotation.*
+            @Struct.Required
+            @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+            @interface AuthorValue {}
+            @AuthorValue
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface NestedValue {}
             @DSL abstract class Base {
                 static { throw new AssertionError('parent initialization') }
-                @Struct.Required String displayName
-                @Struct.Required @Struct.Name('exact-name') String explicitName
+                @AuthorValue String displayName
+                @NestedValue @Struct.Name('exact-name') String explicitName
                 String optionalName
             }
         ''')
@@ -124,7 +203,7 @@ class StructRequiredTest extends AbstractDSLSpec {
             package inheritedpresence
             import com.blackbuild.klum.ast.*
             @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
-            class Service extends Base { @Struct.Required boolean publicAccess }
+            class Service extends Base { @NestedValue boolean publicAccess }
         ''')
         child.compile()
         def binaries = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL(),

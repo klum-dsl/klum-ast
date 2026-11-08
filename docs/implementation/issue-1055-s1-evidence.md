@@ -9,7 +9,11 @@ Work is isolated on `codex/1055-s1-required-fact`; the original user checkout is
 
 ## Delivered S1 boundary
 
-`Struct.Required` is a FIELD-only, documented, runtime-retained marker with no members or transform.
+`Struct.Required` is a FIELD/ANNOTATION_TYPE, documented, runtime-retained marker with no members or transform.
+The [maintainer clarification](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506) supersedes the
+initial FIELD-only target. The established `StructuredInputConstraintMetadata` compiler projection-capture seam resolves
+direct and transitively domain-contributed markers, with cycle detection, into the same boolean fact. It neither copies
+annotations onto fields nor changes the existing `PropagateAnnotation`/annotation-collector mechanisms.
 Compiler admission rejects the marker on ignored, effectively Jackson-excluded, key, Owner, transient,
 static and unsupported fields, including declarations without public accessors. It emits `rawInputRequired=true`
 only on the exact existing `GeneratedInput.Field` accessor association, including setter fallback.
@@ -28,13 +32,13 @@ lifecycle/default/Template behavior, runtime validation, Jackson mapping or cons
 This preparatory matched-toolchain slice is not a releasable feature alone. Shipped user documentation,
 CHANGES and documentary coverage remain deferred with S2/S3 as explicitly assigned.
 
-## Focused verification
+## Focused verification — initial S1 checkpoint
 
-The new `StructRequiredTest` carries class-level `@Issue('1055')` and covers annotation target/retention,
+At the initial checkpoint, `StructRequiredTest` carried class-level `@Issue('1055')` and covered annotation target/retention,
 marked/unmarked fields, getter/setter source association, shared field/operation accessors, Groovy `eMail`
 capitalization, separately compiled inheritance and descendant KEBAB_CASE, invalid source declarations,
 absent/false normalization, wrong-type/duplicate facts, true-plus-exclusion and operation displacement.
-Byte mutations use the existing ASM fixture pattern; initialization traps remain silent during contract reads.
+Byte mutations used the existing ASM fixture pattern; initialization traps remained silent during contract reads.
 
 The focused filter set is:
 
@@ -79,7 +83,8 @@ CI/Sonar remain required before release acceptance. No local Sonar upload or wor
 Independent Standards review initially reported two multiline guards lacking braces; both are corrected.
 Independent Specification review reported the capitalization mismatch; the regression and implementation correction
 address it. Both reviewers rechecked the follow-up and reported zero remaining actionable findings.
-Commit-history review keeps S1 as one coherent producer/reader/resolver change with its passing tests and evidence.
+Initial commit-history review kept S1 as one coherent producer/reader/resolver change with its passing tests and evidence.
+The subsequent clarification is an additive follow-up; the reviewed original is preserved.
 The final branch contains no unrelated changes.
 
 Delivery authorization audit: gh CLI/API authorized; SSH git push authorized by a successful branch dry-run.
@@ -89,3 +94,26 @@ Tracker impact: `Related: #1055`; the parent issue remains open. No labels, mile
 Draft PR delivery is requested; merging, final v1 freeze and release qualification remain Hive-owned.
 S2 depends on this optional fact to build the sorted containing-object `required` union while preserving construction
 keys and unchanged property fragments. S3 owns final binary/JPMS/candidate qualification and shipped documentation.
+
+## Maintainer clarification follow-up — domain annotation composition
+
+The original published commit `ba89ea38f2289088fb9aba560ddcdac069e34dd9` is preserved.
+An additive follow-up implements the canonical issue clarification at the existing compiler projection seam.
+`StructRequiredTest` now verifies direct, one-hop and transitive domain contributions, existing explicit propagation,
+cycle termination and fields inherited/renamed from a separately compiled parent. The child also consumes a separately
+compiled domain annotation. A contributed marker does not bypass field exclusion, create an operation requirement,
+change defaults or enforce missing values during ordinary DSL/FromStruct construction.
+
+Test-first result: 24 focused presence cases ran against the prior implementation; four failed for the new target,
+domain, exclusion and binary-inheritance controls. All 24 passed after the change.
+Revised validation uses the eight original filters above plus `InputConstraintDescriptionTest`,
+`ConstraintProjectionTest` and `AnnotationPropagationTest`. Each lane runs separately with those eleven filters.
+G3 `test`, G4 `groovy4Tests` and G5 `groovy5Tests` each passed **254 cases** (762 total), with no failures, errors or skips.
+Affected annotation/compiler license checks, lane isolation with full test prerequisites excluded, Markdown
+relative-target/fence checks and `git diff --check` passed. Independent Standards and Specification reviews each have
+zero remaining actionable findings after correcting the distinction between the original and follow-up evidence.
+The earlier 239-per-lane checkpoint above remains dated evidence for the original published commit, not a claim
+about the new head. Full module/root, long TestKit and full binary/JPMS/schema-validator qualification remain omitted
+under the same bounded assignment. No unfiltered suite was scheduled for this follow-up.
+S2 JSON Schema output and S3 release qualification remain separate. The follow-up adds no runtime, reader, protocol
+or generated callable change. Shipped user documentation and CHANGES remain deferred as assigned.

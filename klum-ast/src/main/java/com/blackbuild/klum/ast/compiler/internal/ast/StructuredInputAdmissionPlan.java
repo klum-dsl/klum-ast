@@ -149,7 +149,7 @@ final class StructuredInputAdmissionPlan {
         Set<FieldNode> fields = new LinkedHashSet<>(model.getFields());
         fields.addAll(transformation.builderFields.keySet());
         for (FieldNode field : fields) {
-            if (annotation(field, Struct.Required.class.getName()) == null) continue;
+            if (!StructuredInputConstraintMetadata.rawInputRequired(field)) continue;
             boolean admitted = transformation.builderFields.containsKey(field) && !excludedField(field)
                     && entries.stream().anyMatch(entry -> entry.source().equals(source(field)));
             if (!admitted || fieldAccessor(builder, field) == null) {
@@ -382,8 +382,6 @@ final class StructuredInputAdmissionPlan {
         }
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
         fact.setMember(VALUE, new ConstantExpression(field.getName()));
-        if (annotation(field, Struct.Required.class.getName()) != null)
-            fact.setMember("rawInputRequired", ConstantExpression.TRUE);
         enrichDeprecation(field, fact);
         StructuredInputExamples.enrich(field, field.getOwner(), fact, source(field));
         Name name = externalName(field);

@@ -1,15 +1,21 @@
 # #1055: raw-input field presence before 4.2 RC
 
-Date: 2026-11-08. Status: **Design and implementation plan only; no production change or feature qualification**.
+Date: 2026-11-08. Status: **Implementation plan; S1 evidence linked below, S2/S3 remain pending**.
 Category B extension of [ADR 0031](../adr/0031-structured-schema-input-artifacts.md#raw-input-field-presence--1055).
 Authority: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055) and the maintainer's explicit reopening of 4.2 RC
 preparation for this bounded feature. Related: [#959](https://github.com/klum-dsl/klum-ast/issues/959).
-Source inspection base: `85acbb45b` (master). Implementation below is proposed, not evidence of delivered behavior.
+Source inspection base: `85acbb45b` (master). Slice definitions below are the plan; the linked S1 evidence records
+implementation separately from pending projection and release qualification.
 
 ## Contract and syntax
 
-Recommend adopting the provisional spelling `@Struct.Required` as a FIELD-only, `@Documented`, RUNTIME-retained marker
-in `com.blackbuild.klum.ast.Struct`. No members, propagation machinery, validation transform or annotation collector.
+Adopt `@Struct.Required` as a FIELD/ANNOTATION_TYPE, `@Documented`, RUNTIME-retained marker in
+`com.blackbuild.klum.ast.Struct`. No members, validation transform or annotation collector.
+The [maintainer clarification](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506)
+supersedes the initial FIELD-only wording: a domain annotation carrying the marker contributes the same effective
+field-presence fact, including transitive annotation composition. Capture this at the established compiler Schema
+projection seam, without copying annotations or adding a Struct-specific propagation layer. Existing annotation
+collectors and `PropagateAnnotation` contributions retain their established behavior.
 One already admitted field opts into raw-input presence in generated JSON Schema. Example for the future documentary test:
 
 ```groovy
@@ -45,7 +51,7 @@ S1's [contract separation](issue-959-schema-s1-contract.md) identifies today's r
 | Stage | Current exact representation and failure path | Smallest planned change |
 | --- | --- | --- |
 | Source vocabulary | [Struct.java][struct] has Name/Ignore/Operation/Naming/Examples/ConstraintProjection/ConstraintDescription; no raw presence marker. Existing `@Required` is a separate completed-model concern. | Add only the marker above, without a runtime validator. |
-| Compiler classification | [StructuredInputAdmissionPlan][compiler] `classifyField` resolves effective exclusion and current field roles; `excludedField` skips key/Owner/transient/internal fields. `enrichPublicContract` emits explicit `Schema.version=1`; `enrichField` attaches Field to the exact getter or setter fallback, not a Model field scan by consumers. | Capture source presence before excluded-field early returns; diagnose a marker on a non-admitted declaration. Emit true for marked fields; omission means false. |
+| Compiler classification | [StructuredInputAdmissionPlan][compiler] `classifyField` resolves effective exclusion and current field roles; `excludedField` skips key/Owner/transient/internal fields. `enrichPublicContract` emits explicit `Schema.version=1`; `enrichField` attaches Field to the exact getter or setter fallback, not a Model field scan by consumers. | Capture effective direct/domain-contributed presence before excluded-field early returns; diagnose a marker on a non-admitted declaration. Emit true for marked fields; omission means false. |
 | Existing field bytes | [GeneratedInput.Field][generated] carries `value`, name origin/rename/ignored, sourceDeprecated, examples, constraints/count/policy, converter and literal-alternative counts, optional relationship/key/exclusion facts. Public types and signatures remain reflected. Key and authored Operation are separate facts, including when an operation shares an accessor. | Add `boolean rawInputRequired() default false` as internal linkage. No mandatory explicit false value or Key/Operation member is added. |
 | Exact byte gate | [BuilderContractReader][reader] `Metadata`/`Literals`, mutable decode state and freeze; `validateMetadata` requires exactly version 1 plus current facts, `validateFieldFacts` checks field completeness. `MethodAnnotationVisitor.fieldFact` rejects unknown field members. Annotation reflection defaults do not repair absent required bytes. | Decode an optional boolean with canonical default false; reject wrong-type/duplicate supplied values. Check true against exclusion and source association before any exclusion/policy filtering. Use the existing visitor's seen-state pattern for duplicate detection, without an absent-fact rejection branch. |
 | Normalization | [InputContractResolver][resolver] `collectField`/`literalAlternative` select actual admitted field uses; `admitted` resolves name groups; `profileEntry` reconstructs entries after KEBAB_CASE. [CompiledBuilderSchema.Entry][schema] is immutable and distinguishes source from externalName. | Preserve validated presence on field entries in both constructors, inheritance and profile copies. Operations always have false through their explicit constructor paths. Check that every true fact survives as its exact selected field property, rather than attaching it to a same-named authored operation. |
@@ -113,7 +119,8 @@ which the matched runtime cannot read. The names below describe proposed commits
 
 ### S1 — Capture and validate one complete field-presence fact
 
-One commit: `Capture raw-input field presence in the shared Builder contract`.
+Initial commit: `Capture raw-input field presence in the shared Builder contract`.
+The maintainer's later domain-composition clarification is an additive follow-up preserving the reviewed history.
 Add Struct.Required, source admission/conflict diagnostics, true emission for marked fields, optional boolean decoding,
 immutable Entry transport and exact selected-field validation. Existing unmarked handwritten/canonical field fixtures
 need no explicit false fact. Preserve all existing required-metadata checks. No importer enforcement.
@@ -173,7 +180,7 @@ the object lists each required name; property assertions remain independent of t
 
 | ID / slice | Setup and decisive assertions |
 | --- | --- |
-| A1 / S1 | Direct admitted String field with/without marker: marked source emits true; omission and explicit false both normalize to false. Annotation retention/target are correct. Getter and suppressed-getter setter fallback retain the same source association. No new public Builder/Factory signatures or Operation/Key facts. Method/parameter/type placement rejects. |
+| A1 / S1 | Direct and domain-annotation-contributed admitted fields (including transitive composition), with/without marker: marked source emits true; omission and explicit false both normalize to false. Annotation retention/target are correct. Getter and suppressed-getter setter fallback retain the same source association. No new public Builder/Factory signatures or Operation/Key facts. Method/parameter/type placement rejects. |
 | A2 / S1–S2 | Non-overridden inherited field in a separate parent JAR, native name, Struct.Name literal and descendant KEBAB_CASE. Required uses only final tokens, once each; explicit literal wins and parent source identity is retained. An unmarked binary parent field with omitted presence remains optional. |
 | A3 / S1 | Struct.Ignore + Required rejects at the declaration, including inherited binary contradiction under the reader. Effective JsonIgnore(true), excluded Owner/transient/unsupported field, missing accessor and an operation displacing the required field cannot yield phantom required names. Existing collisions still reject, and ordinary excluded unmarked fields remain excluded. |
 | A4 / S2 | Root has a key plus multiple required fields: sorted unique union preserves the key. Paired bodyRootTypes excludes only the key. Direct/keyed-sequence versus externally keyed/fixed child bodies retain existing key rules. An optional owned child has required inner fields only in its own definition. A required collection/map member adds no minItems/minProperties or required aliases/data keys. |
