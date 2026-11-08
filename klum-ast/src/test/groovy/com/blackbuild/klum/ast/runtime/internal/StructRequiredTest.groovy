@@ -45,6 +45,71 @@ import java.lang.annotation.Target
 
 @Issue('1055')
 class StructRequiredTest extends AbstractDSLSpec {
+    def 'presence marker leaves omitted construction defaults Templates and lifecycle unchanged: #marked'() {
+        given:
+        createClass """
+            package presencecontrol
+            @DSL class Service {
+                static List<String> events = []
+                ${marked ? '@Struct.Required' : ''} String initialized = 'local'
+                ${marked ? '@Struct.Required' : ''} @Default(code={ 'computed' }) String defaulted
+                ${marked ? '@Struct.Required' : ''} String recipe
+                ${marked ? '@Struct.Required' : ''} boolean enabled
+                ${marked ? '@Struct.Required' : ''} int count
+                @Builder.Method void touch(String value) { events << value }
+                @PostCreate void created() { events << 'create' }
+                @PostApply void applied() { events << 'apply' }
+                @PostTree void tree() { events << 'tree' }
+            }
+        """
+        def binaries = binaries()
+        def service = binaries.loadClass('presencecontrol.Service')
+
+        when:
+        def imported = service.Create.FromStruct([:])
+        def importEvents = service.events.toList()
+        service.events.clear()
+        def ordinary = service.Create.With { }
+        def ordinaryEvents = service.events.toList()
+        service.events.clear()
+        def applied = service.Create.With { applyStruct([:]) }
+        def applyEvents = service.events.toList()
+        service.events.clear()
+        def template = service.Create.Template.FromStruct([recipe: 'template'])
+        def templateEvents = service.events.toList()
+        def recipient
+        service.Template.With(template) { recipient = service.Create.FromStruct([:]) }
+
+        then:
+        [imported, ordinary, applied, recipient].every { it.initialized == 'local' && it.defaulted == 'computed' && !it.enabled && it.count == 0 }
+        recipient.recipe == 'template'
+        importEvents == ['create', 'apply', 'tree']
+        ordinaryEvents == importEvents
+        applyEvents == ['create', 'apply', 'apply', 'tree']
+        templateEvents.empty
+        service.events == importEvents
+
+        when:
+        def supplied = service.Create.FromStruct([initialized: '', enabled: false, count: 0])
+        service.events.clear()
+        service.Create.FromStruct([touch: 'before-null', initialized: null, recipe: 'unreached'], 'presence.yaml')
+
+        then:
+        supplied.initialized == ''
+        !supplied.enabled
+        supplied.count == 0
+        def failure = thrown(KlumModelException)
+        failure.message.contains('presence.yaml')
+        failure.message.contains('/initialized')
+        service.events == ['create', 'before-null']
+
+        cleanup:
+        binaries?.close()
+
+        where:
+        marked << [false, true]
+    }
+
     def 'marker supports fields and domain annotations with runtime documentary retention'() {
         when:
         def marker = Class.forName(Struct.name + '$Required')
