@@ -95,6 +95,7 @@ final class BuilderContractReader {
     private static final String LITERAL_ALTERNATIVE = PREFIX + "LiteralAlternative;";
     private static final String VIRTUAL_SCOPE = PREFIX + "VirtualScope;";
     private static final String OPERATION_FACT = PREFIX + "Operation;";
+    private static final String RAW_INPUT_REQUIRED = "rawInputRequired";
     private static final String SOURCE_DEPRECATED = "sourceDeprecated";
     private static final String CONSTRAINT = PREFIX + "Constraint;";
     private static final String CONVERTER = PREFIX + "Converter;";
@@ -121,7 +122,7 @@ final class BuilderContractReader {
     /** Field/key and authored-operation names remain separate even on a shared accessor. */
     record Literals(String location, String key, String field, String selection, String role, String doc,
                     NameFacts names, NameFacts operationNames, boolean operationFact, boolean fixed,
-                    Boolean schemaKey, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
+                    Boolean schemaKey, boolean rawInputRequired, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
                     List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, List<AlternativeFacts> alternatives, String sequenceElement) {
@@ -150,7 +151,7 @@ final class BuilderContractReader {
     private static Literals freeze(MutableLiterals value) {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
-                value.schemaKey, value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
+                value.schemaKey, Boolean.TRUE.equals(value.rawInputRequired), value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
                 value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternatives, value.sequenceElement);
     }
 
@@ -288,6 +289,7 @@ final class BuilderContractReader {
         boolean operationFact;
         boolean fixed;
         Boolean schemaKey;
+        Boolean rawInputRequired;
         Boolean sourceDeprecated;
         Boolean operationDeprecated;
         Boolean authoritative;
@@ -431,6 +433,8 @@ final class BuilderContractReader {
     }
 
     private static void validateFieldFacts(MutableLiterals literal, String source) {
+        if (Boolean.TRUE.equals(literal.rawInputRequired) && (literal.names.ignored || !literal.exclusion.isEmpty()))
+            throw invalid("rawInputRequired conflicts with excluded field " + source + " on " + literal.location);
         if (literal.constraints == null) throw invalidConstraint(literal, "Missing constraint facts on " + source);
         if (literal.constraintProjection == null) throw invalid("Missing constraint projection policy on " + source);
         try {
@@ -913,6 +917,11 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case RAW_INPUT_REQUIRED -> {
+                    if (!(value instanceof Boolean) || literal.rawInputRequired != null)
+                        throw invalid("Duplicate or invalid rawInputRequired fact on " + literal.location);
+                    literal.rawInputRequired = (Boolean) value;
+                }
                 case "sequenceElement" -> literal.sequenceElement = (String) value;
                 case "alternativeCount" -> {
                     if (!(value instanceof Integer) || literal.alternativeCount != null)

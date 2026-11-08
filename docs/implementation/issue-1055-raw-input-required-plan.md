@@ -118,6 +118,8 @@ Add Struct.Required, source admission/conflict diagnostics, true emission for ma
 immutable Entry transport and exact selected-field validation. Existing unmarked handwritten/canonical field fixtures
 need no explicit false fact. Preserve all existing required-metadata checks. No importer enforcement.
 This is a preparatory matched-toolchain commit; schema projection follows in S2, so it is not a releasable feature alone.
+S1 implementation and focused qualification are recorded in [the S1 evidence](issue-1055-s1-evidence.md);
+that record does not claim S2 projection or S3 release qualification.
 
 Acceptance: A1–A3 and A7 below. Extend [StructuredInputAdmissionPlanTest][compiler-test],
 [CompiledBuilderSchemaTest][schema-test] and [CompiledBuilderSchemaReaderTest][reader-test] at their existing compiler,

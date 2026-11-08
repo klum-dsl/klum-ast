@@ -133,12 +133,30 @@ final class StructuredInputAdmissionPlan {
                 .filter(method -> !method.getAnnotations(BUILDER_METHOD).isEmpty())
                 .forEach(method -> classifyOperation(method, entries, rejections));
 
+        validateRequiredFields(transformation, entries);
         enrichPublicContract(transformation, entries, rejections);
         rejectCollisions(entries, rejections);
         entries.sort(Comparator.comparing(Entry::externalName).thenComparing(Entry::source));
         rejections.sort(Comparator.comparing(Rejection::source).thenComparing(Rejection::reason));
         model.setNodeMetaData(METADATA_KEY, new StructuredInputAdmissionPlan(
                 model.getName(), GeneratedDslSupport.of(model).getBuilderInterface().redirect().getName(), entries, rejections));
+    }
+
+    /** Presence cannot widen admission or survive without an exact public field declaration. */
+    private static void validateRequiredFields(DSLASTTransformation transformation, List<Entry> entries) {
+        ClassNode model = transformation.annotatedClass.redirect();
+        ClassNode builder = GeneratedDslSupport.of(model).getBuilderInterface().redirect();
+        Set<FieldNode> fields = new LinkedHashSet<>(model.getFields());
+        fields.addAll(transformation.builderFields.keySet());
+        for (FieldNode field : fields) {
+            if (annotation(field, Struct.Required.class.getName()) == null) continue;
+            boolean admitted = transformation.builderFields.containsKey(field) && !excludedField(field)
+                    && entries.stream().anyMatch(entry -> entry.source().equals(source(field)));
+            if (!admitted || fieldAccessor(builder, field) == null) {
+                throw new IllegalArgumentException("@Struct.Required requires an admitted field with an exact public Builder accessor: "
+                        + source(field));
+            }
+        }
     }
 
     private static boolean overriddenInputCandidate(DSLASTTransformation transformation, Entry entry) {
@@ -364,6 +382,8 @@ final class StructuredInputAdmissionPlan {
         }
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
         fact.setMember(VALUE, new ConstantExpression(field.getName()));
+        if (annotation(field, Struct.Required.class.getName()) != null)
+            fact.setMember("rawInputRequired", ConstantExpression.TRUE);
         enrichDeprecation(field, fact);
         StructuredInputExamples.enrich(field, field.getOwner(), fact, source(field));
         Name name = externalName(field);

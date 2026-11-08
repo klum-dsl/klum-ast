@@ -55,6 +55,16 @@ public final class Struct {
     }
 
     /**
+     * Marks an already admitted field as requiring presence in raw structured input.
+     * This is a schema presence fact, independent of nullness, defaults and runtime validation.
+     */
+    @Documented
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface Required {
+    }
+
+    /**
      * Selects this exact String-payload Builder operation for its effective external input name.
      * Exactly one eligible marked operation wins; multiple marks reject. Without a mark the candidate must be unique.
      * Requires an existing public Builder projection and cannot override exclusion or unsupported operation roles.
