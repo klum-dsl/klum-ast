@@ -55,8 +55,9 @@ documents = {
     "PresenceOptional": ([{}, {"optional": child}], [{"optional": {}}, {"optional": None}]),
 }
 for document, (accepted, rejected) in documents.items():
-    paths = sorted(root.glob(f"presence-*/{document}.schema.json"))
-    assert len(paths) == 3, f"Run the presence generator test for all Groovy generations: {document}"
+    paths = [root / f"presence-{form}-{generation}" / f"{document}.schema.json"
+             for form in ("direct", "domain") for generation in ("3", "4", "5")]
+    assert all(path.is_file() for path in paths), f"Run direct/domain presence fixtures for Groovy 3/4/5: {document}"
     for path in paths:
         schema = json.loads(path.read_text())
         Draft202012Validator.check_schema(schema)
@@ -71,7 +72,7 @@ for document, (accepted, rejected) in documents.items():
             errors = list(validator.iter_errors({**member, "a-label": None}))
             assert len(errors) == 1 and errors[0].validator == "type", errors
         print(f"{path.parent.name}/{document}: metaschema, {len(accepted)} accepted / {len(rejected)} rejected")
-    assert len({path.read_bytes() for path in paths}) == 1, "Groovy generations must emit identical JSON"
+    assert len({path.read_bytes() for path in paths}) == 1, "Direct/domain markers and Groovy generations must emit identical JSON"
 
 # Presence alone accepts null; the unchanged property assertion owns null admission.
 presence_only = Draft202012Validator({"type": "object", "required": ["value"]})

@@ -59,9 +59,9 @@ class KlumJsonSchemaGenerationTest extends Specification {
     boolean packagedPlugin
 
     @Issue('1055')
-    def 'project raw-input presence only in effective containing objects with Groovy #generation'() {
+    def 'project raw-input presence only in effective containing objects with #presenceForm markers and Groovy #generation'() {
         given:
-        fixture(generation, false, false, false, false, false, false, false, false, false, false, true)
+        fixture(generation, false, false, false, false, false, false, false, false, false, false, presenceForm)
         new File(consumer, 'build.gradle').append("""
 klumSchema.jsonSchema {
     rootTypes.set(['example.Presence', 'example.PresenceOwner', 'example.PresenceOptional'])
@@ -78,7 +78,7 @@ klumSchema.jsonSchema {
         def owner = owned.'$defs'.'example.PresenceOwner_DSL$Builder'
         def child = owned.'$defs'.'example.PresenceChild_DSL$Builder'
         def keylessChild = owned.'$defs'.'example.PresenceChild_DSL$Builder::keyless'
-        File validation = new File(System.getProperty('schemaValidationDirectory'), 'presence-' + generation)
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'presence-' + presenceForm + '-' + generation)
         validation.mkdirs()
         ['Presence', 'Presence.builder-body', 'PresenceOwner', 'PresenceOptional'].each { model ->
             new File(validation, model + '.schema.json').bytes = output('example.' + model).bytes
@@ -131,7 +131,13 @@ klumSchema.jsonSchema {
         !trap.exists()
 
         where:
-        generation << ['3', '4', '5']
+        generation | presenceForm
+        '3'        | 'direct'
+        '3'        | 'domain'
+        '4'        | 'direct'
+        '4'        | 'domain'
+        '5'        | 'direct'
+        '5'        | 'domain'
     }
 
     @Issue('953')
@@ -2180,7 +2186,7 @@ import com.blackbuild.klum.ast.Key
         consumer.mkdirs()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false, boolean presence = false) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false, String presence = null) {
         packagedPlugin = generation == '5'
         initializeFixtureDirectories()
         String groovy = notation(System.getProperty("gdslGroovy$generation"))
@@ -2273,7 +2279,7 @@ class Misdirected_DSL {
     interface Factory { Service One() }
 }
 """)
-        if (presence) presenceSources()
+        if (presence) presenceSources(presence)
         if (constraints) {
             new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
             writeSource('schema/src/main/groovy/example/Capacity.groovy', """
@@ -2521,6 +2527,10 @@ import java.lang.annotation.*
             }
         }
         if (projection) projectionSources()
+        if (presence) {
+            publishApi('Inherited region documentation.')
+            new File(producer, 'build.gradle').append("\nproject(':owned') { dependencies { implementation project(':api') } }\n")
+        }
         if (naming || patterns || presence) {
             if (naming) { namingSources() }
             if (literals) { literalSources() }
@@ -2529,7 +2539,7 @@ import java.lang.annotation.*
             runner(producer, ':owned:jar').build()
             publish('owned', 'owned/build/libs/owned.jar', '')
         }
-        publishApi('Inherited region documentation.')
+        if (!presence) publishApi('Inherited region documentation.')
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency>' +
                 (naming || patterns || presence ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')
@@ -2580,25 +2590,34 @@ tasks.register('initializeControl', JavaExec) {
 """
     }
 
-    private void presenceSources() {
+    private void presenceSources(String presenceForm) {
+        String marker = presenceForm == 'domain' ? '@AuthorValue' : '@Struct.Required'
+        String nestedMarker = presenceForm == 'domain' ? '@NestedValue' : '@Struct.Required'
         new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
-        writeSource('api/src/main/groovy/example/PresenceBase.groovy', '''
+        writeSource('api/src/main/groovy/example/PresenceBase.groovy', """
 package example
 import com.blackbuild.klum.ast.*
+import java.lang.annotation.*
+@Struct.Required
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE, ElementType.METHOD])
+@interface AuthorValue {}
+@AuthorValue
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface NestedValue {}
 @DSL abstract class PresenceBase {
     @Key @Struct.Name('z-id') String id
-    @Struct.Required String displayName
-    @Struct.Required @Struct.Name('Exact/Name') String explicitName
+    $marker String displayName
+    $nestedMarker @Struct.Name('Exact/Name') String explicitName
     String optionalName
 }
-''')
+""")
         writeSource('owned/src/main/groovy/example/PresenceChild.groovy', """
 package example
 import com.blackbuild.klum.ast.*
 @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class PresenceChild {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Presence child initialized') }
     @Key String childId
-    @Struct.Required String childCode = 'local'
+    $nestedMarker String childCode = 'local'
 }
 """)
         writeSource('schema/src/main/groovy/example/Presence.groovy', """
@@ -2608,20 +2627,21 @@ import jakarta.validation.constraints.*
 @DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) class Presence extends PresenceBase {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Presence Schema initialized') }
     /** Author label. */
-    @Struct.Required @Deprecated @Struct.Examples(['outside']) String aLabel = 'local'
-    @Struct.Required boolean enabled
-    @Struct.Required @Min(0L) int count
-    @Struct.Required @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) @Pattern(regexp='a') String textOnly
-    @Struct.Required @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Pattern(regexp='a') String omitted
+    $marker @Deprecated @Struct.Examples(['outside']) String aLabel = 'local'
+    $marker boolean enabled
+    $marker @Min(0L) int count
+    $marker @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) @Pattern(regexp='a') String textOnly
+    $marker @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Pattern(regexp='a') String omitted
     @Required String runtimeOnly = 'valid'
     @NotNull String jakartaOnly = 'valid'
+    @AuthorValue @Builder.Method void configure(String value) { throw new AssertionError('operation executed') }
 }
 @DSL class PresenceOwner {
     PresenceChild optional
     PresenceChild second
-    @Struct.Required PresenceChild mandatory
-    @Struct.Required List<PresenceChild> sequence
-    @Struct.Required Map<String, PresenceChild> children
+    $marker PresenceChild mandatory
+    $marker List<PresenceChild> sequence
+    $marker Map<String, PresenceChild> children
     @Field(key=Field.FieldName) PresenceChild fixed
     @Field(key={ 'derived' }) PresenceChild derived
 }

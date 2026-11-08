@@ -45,22 +45,29 @@ import java.lang.annotation.Target
 
 @Issue('1055')
 class StructRequiredTest extends AbstractDSLSpec {
-    def 'presence marker leaves omitted construction defaults Templates and lifecycle unchanged: #marked'() {
+    def 'presence marker leaves omitted construction defaults Templates and lifecycle unchanged: #marker'() {
         given:
         createClass """
             package presencecontrol
+            import java.lang.annotation.*
             @DSL class Service {
                 static List<String> events = []
-                ${marked ? '@Struct.Required' : ''} String initialized = 'local'
-                ${marked ? '@Struct.Required' : ''} @Default(code={ 'computed' }) String defaulted
-                ${marked ? '@Struct.Required' : ''} String recipe
-                ${marked ? '@Struct.Required' : ''} boolean enabled
-                ${marked ? '@Struct.Required' : ''} int count
+                ${marker} String initialized = 'local'
+                ${marker} @Default(code={ 'computed' }) String defaulted
+                ${marker} String recipe
+                ${marker} boolean enabled
+                ${marker} int count
                 @Builder.Method void touch(String value) { events << value }
                 @PostCreate void created() { events << 'create' }
                 @PostApply void applied() { events << 'apply' }
                 @PostTree void tree() { events << 'tree' }
             }
+            @Struct.Required
+            @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+            @interface AuthorValue {}
+            @AuthorValue
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+            @interface NestedValue {}
         """
         def binaries = binaries()
         def service = binaries.loadClass('presencecontrol.Service')
@@ -107,7 +114,7 @@ class StructRequiredTest extends AbstractDSLSpec {
         binaries?.close()
 
         where:
-        marked << [false, true]
+        marker << ['', '@Struct.Required', '@NestedValue']
     }
 
     def 'marker supports fields and domain annotations with runtime documentary retention'() {
