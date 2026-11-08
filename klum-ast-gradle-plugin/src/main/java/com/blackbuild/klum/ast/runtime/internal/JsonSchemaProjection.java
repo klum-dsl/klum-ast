@@ -37,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -123,15 +124,19 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         object.put("type", OBJECT_TYPE);
         object.put(PROPERTIES, properties);
         object.put(ADDITIONAL_PROPERTIES, false);
+        TreeSet<String> required = new TreeSet<>();
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
             deprecate(key, schema.key().sourceDeprecated());
             examples(key, schema.key().examples());
             properties.put(schema.key().externalName(), key);
-            object.put("required", List.of(schema.key().externalName()));
+            required.add(schema.key().externalName());
         }
-        for (CompiledBuilderSchema.Entry entry : schema.entries().values())
+        for (CompiledBuilderSchema.Entry entry : schema.entries().values()) {
             properties.put(entry.externalName(), property(entry, groupRedefined));
+            if (entry.rawInputRequired()) required.add(entry.externalName());
+        }
+        if (!required.isEmpty()) object.put("required", List.copyOf(required));
         for (CompiledBuilderSchema.Rejection rejection : schema.rejections())
             diagnostics.put(rejection.source(), rejection.reason());
         return identity;
