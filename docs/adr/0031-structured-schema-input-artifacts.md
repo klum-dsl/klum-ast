@@ -16,7 +16,7 @@ consumer-specific root/output qualification remains consumer-owned, not an outst
 
 Planning extension, 2026-11-08: [#1055 raw-input presence](#raw-input-field-presence--1055) reopens only the
 pre-RC preparation boundary for explicit field presence in generated JSON Schema. It is not implemented by this ADR
-update. The recommendation retains development protocol v1 with a new mandatory explicit field fact and coordinated
+update. The recommendation retains development protocol v1 with an optional field-presence fact and coordinated
 Schema recompilation before the final freeze; runtime input and completed-model validation semantics remain unchanged.
 
 The dated sections below preserve design and delivery history. Their preflight, pending-work and old annotation/API
@@ -885,24 +885,25 @@ An excluded/non-admitted declaration cannot supply a required property: reject `
 compilation and reject contradictory carried facts before use. Keep existing exclusion, collision and key rules;
 do not introduce a new key annotation policy or required operations.
 
-Transport one explicit boolean `GeneratedInput.Field.rawInputRequired` on every existing field fact, including false
-and excluded field facts. The shared exact-byte reader must distinguish missing from false and reject missing,
-malformed, duplicate or contradictory facts before normalization. Preserve the validated bit on the selected field's
+Transport `GeneratedInput.Field.rawInputRequired` with canonical default false; the compiler emits true for marked
+fields and may omit the member otherwise. The exact-byte reader treats absence as false by definition and rejects
+malformed, duplicate or contradictory supplied facts before normalization. Preserve the validated bit on the selected field's
 `CompiledBuilderSchema.Entry`, including renamed/inherited copies; operations do not acquire field presence semantics.
 This is internal generated linkage, with no new consumer API, metadata framework or generator setting.
 
-**Protocol recommendation: retain `GeneratedInput.Schema.version=1` before the reopened freeze.** The existing reader
-rejects unknown field members; the updated reader must reject missing new members even when an annotation default is
-false. Thus old readers reject extended field bytes and new readers reject incomplete old field bytes. A numeric
-transition adds no needed decoding behavior for this bounded pre-freeze change. This is not a historical/mixed-toolchain
-compatibility promise; source-free binary qualification must verify both directions.
+**Protocol recommendation: retain `GeneratedInput.Schema.version=1` before the reopened freeze.** Maintainer
+clarification, 2026-11-08: v1 has never been released; earlier development-v1 artifacts/readers are outside the supported
+contract. Do not add compatibility handling, mandatory false facts or reverse-reader qualification for them. Extend the
+single current contract directly and qualify matching producers/readers. Absence of this optional member means false;
+it is not a fallback for missing required metadata. Existing version and required-fact checks remain fail-closed.
 
 The [2026-11-08 v1 RC disposition](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6718811463)
-remains historical authority for retaining v1, complete facts, coordinated recompilation, fail-closed readers and exact
-candidate qualification. Supersede only its preparation boundary: include #1055's field fact before recording the final
+remains historical authority for retaining v1, complete required facts, coordinated recompilation, fail-closed readers and exact
+candidate qualification. Supersede its preparation boundary and development-artifact accommodation only as clarified
+above: include #1055's field fact before recording the final
 v1 freeze and qualifying the candidate. Recompile every participating Schema artifact, including binary parents and
 owned contracts, with matched compiler/runtime/Schema-plugin inputs; then regenerate schemas. Rebuilding only an
-application is insufficient. Acceptance remains fact-based, with no producer-release discrimination, feature version,
+application is insufficient. Add no producer-release discrimination, feature version,
 fallback, negotiation or legacy decoder. A later incompatible change after that final freeze needs a new decision and
 a further RC.
 
@@ -910,12 +911,12 @@ Both consumers validate metadata integrity, but neither `FromStruct` nor `applyS
 these fields or runs JSON Schema validation. Valid complete metadata retains existing null admission, ordered execution,
 earlier effects on failure, defaults, Templates, ownership, lifecycle, normal Groovy DSL, Jackson interoperability,
 `@Required` and Bean Validation behavior. No serialized Model/Template state or module boundary changes. The deliberate
-recompilation refusal for incomplete metadata is separate from unchanged valid-input execution. Editors/clients own
+recompilation refusal for incomplete required metadata is separate from unchanged valid-input execution. Editors/clients own
 schema validation. The implementation plan requires Groovy 3/4/5, binary and Groovy 4/5 JPMS evidence before RC acceptance.
 
 Rejected alternatives: inferring requiredness from final-model constraints/defaults, importer-side enforcement,
-method/operation requirements, a general presence framework, optional new facts defaulting to false, and a protocol
-bump solely to label an unreleased additive fact. None is needed for the accepted use case.
+method/operation requirements, a general presence framework, mandatory false facts for unreleased-artifact detection,
+and a protocol bump solely to label an unreleased additive fact. None is needed for the accepted use case.
 
 ## D7 documentary string examples — #959
 

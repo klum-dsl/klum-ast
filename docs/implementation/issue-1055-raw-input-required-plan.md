@@ -45,11 +45,11 @@ S1's [contract separation](issue-959-schema-s1-contract.md) identifies today's r
 | Stage | Current exact representation and failure path | Smallest planned change |
 | --- | --- | --- |
 | Source vocabulary | [Struct.java][struct] has Name/Ignore/Operation/Naming/Examples/ConstraintProjection/ConstraintDescription; no raw presence marker. Existing `@Required` is a separate completed-model concern. | Add only the marker above, without a runtime validator. |
-| Compiler classification | [StructuredInputAdmissionPlan][compiler] `classifyField` resolves effective exclusion and current field roles; `excludedField` skips key/Owner/transient/internal fields. `enrichPublicContract` emits explicit `Schema.version=1`; `enrichField` attaches Field to the exact getter or setter fallback, not a Model field scan by consumers. | Capture source presence before excluded-field early returns; diagnose a marker on a non-admitted declaration. Emit a boolean on every surviving Field fact. |
-| Existing field bytes | [GeneratedInput.Field][generated] carries `value`, name origin/rename/ignored, sourceDeprecated, examples, constraints/count/policy, converter and literal-alternative counts, optional relationship/key/exclusion facts. Public types and signatures remain reflected. Key and authored Operation are separate facts, including when an operation shares an accessor. | Add `boolean rawInputRequired() default false` as internal linkage. Compiler always explicitly writes true or false; the default is never reader authority. No Key/Operation member is added. |
-| Exact byte gate | [BuilderContractReader][reader] `Metadata`/`Literals`, mutable decode state and freeze; `validateMetadata` requires exactly version 1 plus current facts, `validateFieldFacts` checks field completeness. `MethodAnnotationVisitor.fieldFact` rejects unknown field members. Annotation reflection defaults do not repair absent bytes. | Decode into nullable Boolean state, reject absent/wrong-type/duplicate values, then freeze validated state. Check true against exclusion and source association before any exclusion/policy filtering. |
+| Compiler classification | [StructuredInputAdmissionPlan][compiler] `classifyField` resolves effective exclusion and current field roles; `excludedField` skips key/Owner/transient/internal fields. `enrichPublicContract` emits explicit `Schema.version=1`; `enrichField` attaches Field to the exact getter or setter fallback, not a Model field scan by consumers. | Capture source presence before excluded-field early returns; diagnose a marker on a non-admitted declaration. Emit true for marked fields; omission means false. |
+| Existing field bytes | [GeneratedInput.Field][generated] carries `value`, name origin/rename/ignored, sourceDeprecated, examples, constraints/count/policy, converter and literal-alternative counts, optional relationship/key/exclusion facts. Public types and signatures remain reflected. Key and authored Operation are separate facts, including when an operation shares an accessor. | Add `boolean rawInputRequired() default false` as internal linkage. No mandatory explicit false value or Key/Operation member is added. |
+| Exact byte gate | [BuilderContractReader][reader] `Metadata`/`Literals`, mutable decode state and freeze; `validateMetadata` requires exactly version 1 plus current facts, `validateFieldFacts` checks field completeness. `MethodAnnotationVisitor.fieldFact` rejects unknown field members. Annotation reflection defaults do not repair absent required bytes. | Decode an optional boolean with canonical default false; reject wrong-type/duplicate supplied values. Check true against exclusion and source association before any exclusion/policy filtering. Use the existing visitor's seen-state pattern for duplicate detection, without an absent-fact rejection branch. |
 | Normalization | [InputContractResolver][resolver] `collectField`/`literalAlternative` select actual admitted field uses; `admitted` resolves name groups; `profileEntry` reconstructs entries after KEBAB_CASE. [CompiledBuilderSchema.Entry][schema] is immutable and distinguishes source from externalName. | Preserve validated presence on field entries in both constructors, inheritance and profile copies. Operations always have false through their explicit constructor paths. Check that every true fact survives as its exact selected field property, rather than attaching it to a same-named authored operation. |
-| Runtime consumer | [StructuredInputSupport][runtime] prepares static contract/owned closure before allocation/mutation; reached values then execute in supplied order. Omission is not field validation. | Consume the stricter shared contract, including omitted owned contracts; never branch execution on the presence bit or scan supplied Maps for it. |
+| Runtime consumer | [StructuredInputSupport][runtime] prepares static contract/owned closure before allocation/mutation; reached values then execute in supplied order. Omission is not field validation. | Consume the shared contract, including omitted owned contracts; never branch execution on the presence bit or scan supplied Maps for it. |
 | Generator | [JsonSchemaProjection][projector] `definition` creates a closed object, inserts a required member-position construction key, then puts effective entry names in properties. `property` owns payload/constraint rendering. Definitions are keyed by Builder and key position. | In `definition`, union existing key requirement with selected true field names, sort/deduplicate, omit the keyword when empty. Keep property generation unchanged. |
 | Gradle boundary | [GenerateKlumJsonSchema][task] resolves explicit roots in an isolated loader; projects all documents before replacing outputs and its manifest. Classpath/tool bytes are inputs. | Retain existing configuration, classpath isolation, cache inputs and failure-before-output-replacement behavior; no new option or dependency. |
 
@@ -77,30 +77,28 @@ positions. Do not overwrite the key requirement, mutate a shared child definitio
 
 ## Protocol recommendation and RC boundary
 
-**Retain development `GeneratedInput.Schema.version=1`; extend its mandatory field facts before the final freeze.**
+**Retain development `GeneratedInput.Schema.version=1`; add optional field presence before the final freeze.**
 
 The [maintained v1 disposition of 2026-11-08](https://github.com/klum-dsl/klum-ast/issues/959#issuecomment-6718811463)
-already requires coordinated Schema recompilation, final complete facts and matched candidate qualification. It permits
-a complete development-era v1 artifact when it satisfies the final facts, without producer-release discrimination.
-Keep those decisions. Supersede only the preparation timing by including #1055 before recording the final v1 contract
-and qualifying the first public candidate. Preserve the dated disposition and earlier evidence rather than rewriting
-them to imply this new fact had already been qualified.
+already requires coordinated Schema recompilation, final complete required facts and matched candidate qualification.
+Maintainer clarification, 2026-11-08: v1 has never been released, so previous development-v1 artifacts/readers do not
+need support, migration handling or a compatibility qualification matrix. This supersedes this plan's initial mandatory
+true/false proposal and the earlier disposition's development-artifact accommodation. Preserve those dated records as
+history; include #1055 before recording the final v1 contract and qualifying the first public candidate.
 
-| Producer/reader combination | Required result and reason |
+| Current-contract case | Required result and reason |
 | --- | --- |
-| Updated producer + updated reader | Complete true and false facts validate. Presence affects only schema required output. |
-| Earlier producer + updated reader | Any existing Field lacking rawInputRequired rejects, even unannotated, ignored or output-suppressed fields; absence is not false. |
-| Updated producer + earlier reader | The existing fieldFact default rejects unknown `rawInputRequired`, including explicitly emitted false. This safety argument must gain a retained-old-reader binary control in implementation. |
-| Same-version damaged producer + updated reader | Missing/nonboolean/duplicate/contradictory facts reject, regardless of profile or constraint policy; exact version is necessary, never sufficient. |
-| Empty contract without Field facts | No invented per-feature header is needed; accept only if every actually required current fact and participating parent/owned contract is complete. This is not a categorical historical-artifact guarantee. |
-| Missing, older, future or malformed Schema version | Existing rejection remains unchanged; no negotiation, feature markers or annotation-default fallback. |
+| Matching producer + reader | Marked fields carry true. Unmarked fields may omit the member; omission and explicit false normalize identically. Presence affects only schema required output. |
+| Malformed or contradictory supplied presence fact | Nonboolean, duplicate, true-plus-excluded or inconsistent source facts reject regardless of profile or constraint policy. |
+| Missing required metadata elsewhere | Existing required facts, source associations and participating parent/owned contracts must still be complete. Optional presence adds no fallback for them. |
+| Missing, older, future or malformed Schema version | Existing rejection remains unchanged; no negotiation or feature markers. |
 
-One exact version and one required explicit field boolean are sufficient: old/new field contracts reject in both
-directions, without supporting two decoders. A version transition solely to label this unreleased addition would add
-coordination work without improving those rejection rules. There is no general 4.x binary compatibility promise.
-The old-reader rejection statement is a source-backed inference from fieldFact's unknown-member branch, not a completed
-binary test. If implementation exposes a path that silently accepts extended bytes, stop and reassess the protocol
-recommendation before freezing; do not introduce a permissive route.
+One exact version and one optional boolean are sufficient. Define omission as false in the current byte contract;
+the reader does not need annotation proxies/default reflection, historical producer detection or a new completeness
+marker. An omitted true fact cannot be distinguished from an unmarked field using generated bytes alone; compiler
+emission tests verify that marked source produces true. Do not add redundant metadata solely to detect that mutation.
+A numerical transition or mandatory false facts would serve an unreleased-artifact distinction outside the supported
+contract. There is no general 4.x binary compatibility promise.
 
 Rebuild every participating Schema/API/base/derived/owned artifact with the matching 4.2 compiler, annotations, runtime
 and Schema-plugin inputs, then regenerate JSON Schema. Rebuilding only the final application leaves old field bytes.
@@ -116,10 +114,10 @@ which the matched runtime cannot read. The names below describe proposed commits
 ### S1 — Capture and validate one complete field-presence fact
 
 One commit: `Capture raw-input field presence in the shared Builder contract`.
-Add Struct.Required, source admission/conflict diagnostics, explicit true/false emission, strict shared decoding,
-immutable Entry transport and exact selected-field validation. Update handwritten/canonical expected-contract fixtures
-to emit the newly required false fact; do not make readers tolerant to keep them green. No importer enforcement.
-This is a preparatory matched-toolchain commit; schema projection follows in S2, so it is not a releaseable feature alone.
+Add Struct.Required, source admission/conflict diagnostics, true emission for marked fields, optional boolean decoding,
+immutable Entry transport and exact selected-field validation. Existing unmarked handwritten/canonical field fixtures
+need no explicit false fact. Preserve all existing required-metadata checks. No importer enforcement.
+This is a preparatory matched-toolchain commit; schema projection follows in S2, so it is not a releasable feature alone.
 
 Acceptance: A1–A3 and A7 below. Extend [StructuredInputAdmissionPlanTest][compiler-test],
 [CompiledBuilderSchemaTest][schema-test] and [CompiledBuilderSchemaReaderTest][reader-test] at their existing compiler,
@@ -139,7 +137,7 @@ failure controls; [StructuredFactoryTest][factory-test] covers public Factory/Bu
 ### S3 — Qualify the matched contract and document the release boundary
 
 One commit: `Qualify and document raw-input presence for the 4.2 candidate`.
-Add retained-old-reader and incomplete-v1 binary controls, G3/G4/G5 producers/readers, and G4/G5 named-module consumers
+Add malformed/contradictory current-contract binary controls, G3/G4/G5 producers/readers, and G4/G5 named-module consumers
 without extra access flags. Reuse [BinaryOwnedRelationshipsTest][binary-test] and the packaged schema matrix, preserving
 source deletion and independently compiled parent/owned artifacts. Capture exact coordinates/heads and results.
 Acceptance: A7–A9. Add the documentary feature `documents raw-input presence without enforcing import` to
@@ -160,15 +158,15 @@ the object lists each required name; property assertions remain independent of t
 
 | ID / slice | Setup and decisive assertions |
 | --- | --- |
-| A1 / S1 | Direct admitted String field with/without marker: exact Field bytes contain true/false explicitly; annotation retention/target are correct. Getter and suppressed-getter setter fallback retain the same source association. No new public Builder/Factory signatures or Operation/Key facts. Method/parameter/type placement rejects. |
-| A2 / S1–S2 | Non-overridden inherited field in a separate parent JAR, native name, Struct.Name literal and descendant KEBAB_CASE. Required uses only final tokens, once each; explicit literal wins and parent source identity is retained. Missing binary parent presence fact rejects. |
+| A1 / S1 | Direct admitted String field with/without marker: marked source emits true; omission and explicit false both normalize to false. Annotation retention/target are correct. Getter and suppressed-getter setter fallback retain the same source association. No new public Builder/Factory signatures or Operation/Key facts. Method/parameter/type placement rejects. |
+| A2 / S1–S2 | Non-overridden inherited field in a separate parent JAR, native name, Struct.Name literal and descendant KEBAB_CASE. Required uses only final tokens, once each; explicit literal wins and parent source identity is retained. An unmarked binary parent field with omitted presence remains optional. |
 | A3 / S1 | Struct.Ignore + Required rejects at the declaration, including inherited binary contradiction under the reader. Effective JsonIgnore(true), excluded Owner/transient/unsupported field, missing accessor and an operation displacing the required field cannot yield phantom required names. Existing collisions still reject, and ordinary excluded unmarked fields remain excluded. |
 | A4 / S2 | Root has a key plus multiple required fields: sorted unique union preserves the key. Paired bodyRootTypes excludes only the key. Direct/keyed-sequence versus externally keyed/fixed child bodies retain existing key rules. An optional owned child has required inner fields only in its own definition. A required collection/map member adds no minItems/minProperties or required aliases/data keys. |
 | A5 / S2 | Validate an emitted required String property with an explicit external Draft 2020-12 validator: absent fails required; empty String succeeds absent other constraints; supplied null satisfies presence but fails the unchanged String type. Compare annotated/unannotated property fragments byte-for-byte. A required-only object fragment with no property assertion accepts a present null, proving presence independently. Boolean false and integer zero pass appropriately typed required properties. |
 | A6 / S2 | Paired marked/unmarked schemas: FromStruct with omitted fields still uses normal initializer/default behavior; active applyStruct may omit the field; ordinary DSL omission behaves identically. Explicit Struct null still rejects at the same reached path with the same earlier effects. Exactly one normal lifecycle completion, unchanged callback order/default/Template recipe and Jackson import behavior. Plain @Required/@NotNull without the new marker never creates a raw field requirement; their existing final validation still runs normally. |
-| A7 / S1, S3 | Mutate rawInputRequired to absent, wrong type, duplicate, true+ignored or wrong selected source at the same valid version on root, binary base and omitted/transitive owned contracts. Reject before root initialization and active Builder mutation; previous schema files and output manifest stay intact. Include false, IDENTITY, TEXT_ONLY and OMIT controls so suppression cannot hide incomplete metadata. |
+| A7 / S1, S3 | Mutate rawInputRequired to wrong type, duplicate, true+ignored or wrong selected source at the same valid version on root, binary base and omitted/transitive owned contracts. Reject before root initialization and active Builder mutation; previous schema files and output manifest stay intact. Omitted/explicit-false controls pass; IDENTITY, TEXT_ONLY and OMIT cannot hide malformed supplied facts or missing existing required metadata. |
 | A8 / S2 | PROJECT/TEXT_ONLY/OMIT affect only constraint-derived content, never the independent presence requirement. Property type/bounds/null rules, examples, descriptions and deprecation stay unchanged. Repeat generation is deterministic; changing only marker metadata in a dependency JAR invalidates task/cache output. |
-| A9 / S3 | Source-free matched producer/reader and generator/import consumers for G3/G4/G5; binary parent/derived/owned closure, recursive ownership and excluded unrelated targets. Positive initialization traps prove inspection stays inert. Retained earlier runtime/plugin rejects new true and explicit-false field bytes; updated consumers reject pre-feature/incomplete v1 bytes. G4/G5 named-module consumers pass without add-opens/add-exports; exported annotation addition and descriptor inventory are checked. |
+| A9 / S3 | Source-free matched producer/reader and generator/import consumers for G3/G4/G5; binary parent/derived/owned closure, recursive ownership and excluded unrelated targets. Positive initialization traps prove inspection stays inert. Qualify only the complete current contract; no previous-development-v1 reader/artifact matrix. G4/G5 named-module consumers pass without add-opens/add-exports; exported annotation addition and descriptor inventory are checked. |
 
 Do not add pending/ignored tests for this plan. At implementation, newly introduced executable classes use the Test
 suffix; documentary examples carry the tag and an absolute user-doc `@See` URL. Spock compile-success controls use
@@ -196,10 +194,10 @@ as proposed and retaining v1 for the reopened pre-freeze contract; the draft PR 
 If the maintainer changes the spelling, adjust the single marker before implementation. Do not reopen completed-model
 requiredness, null semantics, importer enforcement or operation grammar as implied follow-up questions.
 
-The principal risk is incomplete cross-artifact recompilation or a bit lost during inherited/profile entry copying.
-Explicit false bytes, fail-closed controls and the source-free binary matrix address it. A second risk is losing the
+The principal risk is a marked field's bit lost during compiler emission or inherited/profile entry copying.
+Source-to-byte assertions, current-contract validity controls and the source-free binary matrix address it. A second risk is losing the
 existing required construction key or leaking parent requirements into reused definitions; A4 guards both.
-The old-reader inference and full candidate qualification remain implementation evidence obligations, not claimed results.
+Full matched-candidate qualification remains an implementation evidence obligation, not a claimed result.
 
 Tracker impact: `Related: #1055`; issue completion, labels/milestone and broader #959 work remain unchanged. This feature
 is explicitly admitted to pre-RC preparation, but the plan does not qualify/freeze/publish a candidate. The Hive owns
