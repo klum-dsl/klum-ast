@@ -1,274 +1,79 @@
-# Unreleased
+# 4.2.0 (unreleased)
 
-- Add `@Struct.Required` for explicit field presence in generated JSON Schema, directly or through transitive domain
-  annotations, including inherited and renamed fields. External editors/validators report omission; ordinary Struct
-  import, DSL construction, null/default/lifecycle behavior and `@Required`/Jakarta validation are unchanged. Recompile
-  participating Schemas with matching 4.2 tools and regenerate schemas. See
-  [raw-input presence](docs/user/Json-Schema.md#raw-input-field-presence)
-  ([#1055](https://github.com/klum-dsl/klum-ast/issues/1055)).
+## Structured Import
 
-- Use the controlled Season 4.2 shared-portal artwork for the current documentation and README,
-  with responsive Struct/YAML and Groovy lockups and the retained Season 4 favicon.
+- Construct Models from caller-parsed mappings containing Lists and scalars through generated `Create.FromStruct` factories,
+  configure active Builders with `applyStruct`, and define reusable keyless Templates with `Create.Template.FromStruct`.
+  Root factories also accept a trailing Builder closure for caller context and overrides before one normal lifecycle
+  completion. Parsing YAML/JSON remains caller-owned; managed Jackson import is a separate path.
+  See [Structured Input](docs/user/Structured-Input.md) and [Templates](docs/user/Templates.md#structured-input-templates)
+  ([#932](https://github.com/klum-dsl/klum-ast/issues/932), [#953](https://github.com/klum-dsl/klum-ast/issues/953),
+  [#1038](https://github.com/klum-dsl/klum-ast/issues/1038)).
+- Support nested concrete owned children, keyed roots and children, owned child sequences, literal String-keyed Maps,
+  native scalar/enum derived-key Maps, and explicit alternatives for the abstract keyed owned Map family, including
+  separately compiled Schema dependencies. Selected String converters cover scalars and supported List/Set/Map values;
+  CharSequence routes cover scalars and List/Map values. Authored operations accept one admitted payload or an empty
+  mapping for a zero-argument command.
+  `@Struct.Operation` resolves eligible String-operation selection. These are bounded input forms, not general Groovy
+  grammar parity. See [supported forms and boundaries](docs/user/Structured-Input.md#groovy-forms-without-a-struct-equivalent)
+  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), [#954](https://github.com/klum-dsl/klum-ast/issues/954),
+  [#957](https://github.com/klum-dsl/klum-ast/issues/957), [#1026](https://github.com/klum-dsl/klum-ast/issues/1026),
+  [#1028](https://github.com/klum-dsl/klum-ast/issues/1028), [#1030](https://github.com/klum-dsl/klum-ast/issues/1030)).
+- Share external naming and exclusion with JSON Schema through `@Struct.Name`, `@Struct.Ignore`, and type-level
+  `@Struct.Naming` profiles, including KEBAB_CASE. Construction keys retain their position-specific authority.
+  Input operations execute in supplied iteration order; a later failure preserves earlier effects on an active Builder,
+  while a failed root factory returns no Model. See [naming](docs/user/Structured-Input.md#literal-names-and-exclusion)
+  and [ordered failures](docs/user/Migration.md#ordered-structured-input-failures).
 
-- Reject Schema-authored Builder methods whose effective signature is `copyFrom(Object)`, including inherited,
-  erased generic and default-argument-generated forms, because they shadow a framework Builder copy route.
-  Rename conflicting operations and recompile affected Schemas. Distinct overloads such as `copyFrom(String)` remain
-  allowed; existing conflicting binaries retain their old runtime behavior. See
-  [copy-route migration](docs/user/Migration.md#reserved-builder-copy-signature)
-  ([#1011](https://github.com/klum-dsl/klum-ast/issues/1011)).
+## JSON Schema Support
 
-- Add a keyed-service Groovy/YAML adoption recipe connecting caller-owned parsing, Struct construction and generated
-  JSON Schema editor association. Reconcile delivered/deferred documentation and the Maven release inventory.
-  See [YAML adoption](docs/user/Structured-Input.md#adopt-yaml-for-a-schema).
+- Generate Draft 2020-12 JSON Schema from compiled public Builder contracts with the opt-in Schema-plugin task
+  `generateKlumJsonSchema`. Explicit root selection supports both self-contained documents and caller-pre-keyed
+  Builder bodies. Generation follows the admitted Struct shapes, names and construction-key positions, including binary
+  dependencies, without initializing or executing Schema code. See [JSON Schema generation](docs/user/Json-Schema.md)
+  ([#529](https://github.com/klum-dsl/klum-ast/issues/529), [#953](https://github.com/klum-dsl/klum-ast/issues/953)).
+- Project supported Jakarta numeric bounds, conservative String Pattern assertions and first-level AND compositions,
+  including constraints on qualified String-converter parameters. `@Struct.ConstraintProjection` selects assertion,
+  description-only or omitted constraint output; unsupported forms remain descriptive where policy permits. Add
+  documentary String examples, constraint descriptions and advisory deprecation without changing runtime validation or defaults.
+  See [constraint projection](docs/user/Json-Schema.md#field-constraint-projection) and
+  [converter parameters](docs/user/Json-Schema.md#compiled-converter-parameters)
+  ([#959](https://github.com/klum-dsl/klum-ast/issues/959), [#981](https://github.com/klum-dsl/klum-ast/issues/981)).
+- Declare raw-input field presence with `@Struct.Required`, directly or through transitive domain annotations,
+  including inherited and renamed fields. JSON Schema `required` means presence, not non-nullness or runtime
+  `@Required`/Jakarta validation. Import, defaults and lifecycle behavior are unchanged. Editors and explicitly invoked
+  validators consume the generated schema; `FromStruct` and `applyStruct` do not validate against it automatically.
+  See [raw-input presence](docs/user/Json-Schema.md#raw-input-field-presence) and the
+  [Groovy/YAML adoption recipe](docs/user/Structured-Input.md#adopt-yaml-for-a-schema)
+  ([#1055](https://github.com/klum-dsl/klum-ast/issues/1055), [#1053](https://github.com/klum-dsl/klum-ast/issues/1053),
+  [#1015](https://github.com/klum-dsl/klum-ast/issues/1015)).
 
-- Record per-class compiler provenance on transformed abstract and concrete Schemas using runtime-retained
-  `GeneratedSchema(format = 1, compilerVersion = "...")` metadata. Independently compiled Java/Groovy consumers can read
-  the exact emitter version from Schema JARs. Unmarked binaries remain usable; no minimum-runtime metadata or
-  compatibility enforcement is added. See [Schema Compiler Provenance](docs/user/Schema-Provenance.md)
-  ([#896](https://github.com/klum-dsl/klum-ast/issues/896), RF-1).
+## Other improvements and fixes
 
-- Add trailing ordinary Builder closure overlays to root `Create.FromStruct` document and explicit-key body forms,
-  with optional diagnostic source names: Struct operations, cloned overlay, then one root PostApply and ordinary
-  lifecycle tail. Preserve construction-key checks, ordered failures and completed external LINK identity. Recompile
-  Schema artifacts and type ambiguous null source/overlay arguments explicitly. See
-  [root Builder overlays](docs/user/Structured-Input.md#root-builder-overlays)
-  ([#1038](https://github.com/klum-dsl/klum-ast/issues/1038)).
-
-- Add ordinary-root `Create.From(DelegatingScriptClass) { ... }`, `Create.FromClasspath { ... }` and
-  `Create.FromClasspath(modelLoader) { ... }`: recipe, cloned closure overlay and one root
-  `PostApply` in one lifecycle, preserving completed external LINK identity. Recompile Schema artifacts for the generated
-  Factory members; audit custom overloads and type untyped null classpath arguments explicitly.
-  See [root recipe overlays](docs/user/Convenience-Factories.md#compiled-root-recipe-overlays).
-  Java and static/dynamic Groovy clients use the generated public Factory contract from compiled Schema JARs; Groovy 3
-  remains classpath-only and Groovy 4/5 also support the ordinary named-module boundary
+- Add caller Builder closure overlays to ordinary-root compiled `DelegatingScript` and classpath recipe factories:
+  recipe, then overlay, then one normal lifecycle completion, preserving completed external LINK identity.
+  See [root recipe overlays](docs/user/Convenience-Factories.md#compiled-root-recipe-overlays)
   ([#829](https://github.com/klum-dsl/klum-ast/issues/829)).
+- Record the emitting compiler version on transformed Schemas through runtime-retained `GeneratedSchema` metadata.
+  Existing unmarked binaries remain usable; this adds no minimum-runtime check or compatibility enforcement.
+  See [Schema Compiler Provenance](docs/user/Schema-Provenance.md)
+  ([#896](https://github.com/klum-dsl/klum-ast/issues/896)).
+- Improve Map-copy diagnostics with Schema/key and relative input-member context, and allow `copyFrom(Map)` to configure
+  construction-only Builder fields. Reject Schema-authored effective `copyFrom(Object)` signatures that shadow framework
+  lifecycle guards; distinct overloads remain allowed, and already compiled conflicting binaries retain their behavior.
+  See [copy strategies](docs/user/Copy-Strategies.md) and
+  [reserved-signature migration](docs/user/Migration.md#reserved-builder-copy-signature)
+  ([#992](https://github.com/klum-dsl/klum-ast/issues/992), [#989](https://github.com/klum-dsl/klum-ast/issues/989),
+  [#1011](https://github.com/klum-dsl/klum-ast/issues/1011)).
 
-- Reconcile Struct/YAML authoring examples, final 4.2 support inventory and intentional Groovy parity boundaries.
-  See [Struct guidance](docs/user/Structured-Input.md#groovy-forms-without-a-struct-equivalent)
-  ([#1015](https://github.com/klum-dsl/klum-ast/issues/1015)).
+## Migration
 
-- Honor recorded CharSequence converter signatures for generated List-element and literal String-keyed Map-value
-  calls, preventing runtime String redispatch to unprojected overloads. Admit raw Struct/YAML Strings for these routes;
-  emit structural String schema only. Recompile matched Schema artifacts. See
-  [CharSequence containers](docs/user/Structured-Input.md#charsequence-container-converters)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), CHARSEQ-COL).
-
-- Admit exact generated String converter-backed `Set<T>` elements as ordered Struct/YAML sequences. Convert every
-  supplied item before ordinary Set insertion, preserving equality/comparators, defaults, Template recipes, lifecycle
-  and indexed partial failures. Emit String-array JSON Schema without uniqueness or result-order/cardinality claims.
-  Recompile matched Schema artifacts. See [Set elements](docs/user/Structured-Input.md#converter-backed-set-elements)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), SET-SEQ).
-
-- Identify target Schema types, available keys and escaped relative input members in Map-copy unknown-member and
-  framework type-check diagnostics, including nested Map keys and supplied collection indices. Preserve exception
-  chains, construction paths and copy strategies. See [Map-copy diagnostics](docs/user/Copy-Strategies.md#map-copy-diagnostics)
-  ([#992](https://github.com/klum-dsl/klum-ast/issues/992)).
-
-- Support multiple explicit literal alternative groups for the qualified abstract keyed owned Map family. Traverse alias
-  groups and keyed entries in supplied Map order, retaining exact subtype/key selection, ordinary lifecycle, Templates
-  and partial failure. Struct uses the recorded field/target directly, independently of absent or customized public
-  creator methods. Emit every declared alias with its concrete keyless JSON Schema body; other alternative families
-  remain excluded. See [structured alternatives](docs/user/Structured-Input.md#literal-collection-alternative)
-  ([#1030](https://github.com/klum-dsl/klum-ast/issues/1030)).
-
-- Admit native scalar/enum value sequences for String-keyed Struct/YAML Maps with `@Field.keyMapping`. Each item
-  uses its exact ordinary Builder adder, preserving runtime key derivation, replacement, ordering, lifecycle, Templates
-  and indexed partial failures. Compatible descendant adder overrides use ordinary Builder dispatch. JSON Schema
-  describes the sequence without executing the mapping. Recompile matched
-  Schema artifacts. See [derived-key Map values](docs/user/Structured-Input.md#derived-key-map-values)
-  ([#1028](https://github.com/klum-dsl/klum-ast/issues/1028)).
-
-- Admit concrete nongeneric owned keyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML sequences.
-  Each item supplies its externally named String construction key before child allocation; normal fresh-child,
-  lifecycle, duplicate, collection and Template semantics apply. JSON Schema requires the item key. Recompile matched
-  Schema artifacts. See [keyed child sequences](docs/user/Structured-Input.md#keyed-child-sequences)
-  ([#1026](https://github.com/klum-dsl/klum-ast/issues/1026)).
-
-- Admit ordinary owned unkeyed DSL children in List, Set, SortedSet and NavigableSet Struct/YAML body sequences.
-  Configure each supplied mapping before ordinary attachment, retaining collection equality/comparator behavior,
-  Template semantics and indexed first-failure diagnostics. Emit array-of-body JSON Schema without uniqueness or
-  completed-order/cardinality promises. Recompile matched Schema artifacts. See
-  [owned child sequences](docs/user/Structured-Input.md#owned-child-sequences)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), SEQ-1).
-
-- Admit exact compiler-selected String converter routes for scalar `Map<String, T>` values in structured input. Preserve
-  literal String keys, supplied traversal order, ordinary entry population/defaults and keyed partial failures; emit
-  structural String JSON Schema values without running user code or projecting value-parameter assertions. Recompile
-  matched Schema artifacts. See [Map values](docs/user/Structured-Input.md#converter-backed-map-values)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), L1-B).
-
-- Admit exact compiler-selected String converter routes for scalar `List<T>` elements in structured input. Convert
-  each element through ordinary Builder population, preserving order, defaults and indexed partial failures; emit
-  structural String JSON Schema items without element-parameter constraint projection. Recompile matched Schema
-  artifacts. See
-  [List elements](docs/user/Structured-Input.md#converter-backed-list-elements)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), L1-A).
-
-- Admit the single compiler-literal CollectionFactory alternative for an abstract keyed owned Map as
-  `elements: {fixed: {primary: {value: configured}}}`. Preserve outer-key authority, ordinary child lifecycle,
-  ownership, reuse and ordered partial failures; emit the closed alias schema with concrete keyless child bodies.
-  Recompile matched Schema artifacts for complete inert metadata. See
-  [structured alternatives](docs/user/Structured-Input.md#literal-collection-alternative)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), F2-B).
-
-- Correct generated CollectionFactory literal-alternative contracts to return and delegate to the selected subtype's
-  public Builder, including callable overloads that omit the configuration closure. Recompile Schema artifacts and consumers,
-  then refresh IDE mirrors; ordinary Groovy DSL behavior is preserved. See
-  [alternative contracts](docs/user/Alternatives-Syntax.md#public-collection-factory-contract)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), CF-CONTRACT prerequisite).
-
-- Admit nested mappings for one concrete virtual-field family: bare public `@Field void method(ConcreteType value)`
-  with an unkeyed, nongeneric target and exact generated creator. Preserve same-session child configuration, callback
-  order and virtual sink behavior; emit closed JSON Schema. Recompile matched artifacts. See
-  [virtual scopes](docs/user/Structured-Input.md#concrete-virtual-builder-scopes)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S5).
-
-- Add explicit `klumSchema.jsonSchema.bodyRootTypes` selection for caller-pre-keyed Builder-body schemas, emitted as
-  `<Model>.builder-body.schema.json` alongside unchanged default self-contained root artifacts. Root identity is omitted;
-  positional child keys and compiled-contract inspection remain unchanged. See
-  [schema selection](docs/user/Json-Schema.md#caller-pre-keyed-builder-bodies)
-  ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S7).
-
-- Admit deterministic public CharSequence scalar Builder routes for String input, including projected `Duration.parse`.
-  Preserve exact signatures, strict payloads and C1 String parameter facts; JSON Schema emits String grammar.
-  Competing String/CharSequence routes need explicit selection or converter exclusion. Recompile matched artifacts.
-  See [migration](docs/user/Migration.md#charsequence-scalar-routes)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S3b).
-
-- Admit exact generated String Builder routes for field converter closures, same-compilation non-DSL values and external
-  adapters. Preserve C1 parameter constraints on qualified routes; other origins emit String structure and field prose.
-  Conversion remains invocation-only, with no coercion or new discovery. Recompile matched artifacts. See
-  [converters](docs/user/Converters.md#structured-string-input) ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S3a).
-
-- Admit zero-argument domain Builder commands in structured input using an empty mapping (`resetTimeout: {}`) only.
-  Null, nonempty mappings, Lists and scalars reject; ordered partial-failure behavior remains. JSON Schema emits a closed
-  empty object without executing the command. Recompile matched Schema artifacts for required command-role facts.
-  See [commands](docs/user/Structured-Input.md#zero-argument-commands)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S4).
-
-- Add generated Factory `Create.FromStruct` for self-contained documents and keyed Factory bodies, plus inherited void
-  `KlumBuilder.applyStruct` for active Builders. All accept optional opaque diagnostic labels; explicit-key roots retain
-  one PostApply. Reserve both exact Builder application signatures with compiler collision diagnostics and final runtime
-  guards; colliding Schema declarations must be renamed and recompiled. Remove the unreleased public reader facade and migrate development callers. `FromMap` and managed Jackson
-  remain unchanged. See [Structured Input](docs/user/Structured-Input.md) and [Migration](docs/user/Migration.md).
-- Add parser-free `Create.Template.FromStruct` for keyless Template bodies, preserving ordinary Template recipe
-  and lifecycle behavior. See [Templates](docs/user/Templates.md#structured-input-templates)
-  ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S6).
-
-- Add `@Struct.Operation` to select one exact public String Builder operation for structured input and JSON Schema.
-  Unmarked candidates require uniqueness; multiple eligible marks reject. Inherited authored overrides own their names
-  and selection intent; C1 converter override safeguards remain. Recompile matched Schema artifacts for required
-  completeness facts. See [selection](docs/user/Structured-Input.md#select-a-string-operation)
-  ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S2).
-
-- Structured input now checks and executes each operation in supplied Map/List iteration order. A later payload failure
-  leaves earlier effects in place; active Builders can remain partially configured, while failed root reads return no
-  Model. Static contract verification and construction-key prerequisites remain before use. See
-  [migration](docs/user/Migration.md#ordered-structured-input-failures) ([#952](https://github.com/klum-dsl/klum-ast/issues/952), S1).
-
-- `copyFrom(Map)` now configures construction-only `FieldType.BUILDER` input for later Builder/lifecycle work, including
-  inherited fields. Model-only members without Builder storage are ignored, while genuinely unknown names retain the
-  configured missing-field policy. Builder-only state remains absent from completed Models. See
-  [copy strategies](docs/user/Copy-Strategies.md#builder-input)
-  ([#989](https://github.com/klum-dsl/klum-ast/issues/989)).
-
-- Admit one exact compiled String converter for ordinary non-DSL structured-input fields and project its singleton Jakarta
-  Pattern through the existing bounded ASCII mapping. Add parameter `@Struct.ConstraintProjection`, independently of field
-  policy, with paired-artifact validation before execution/output replacement. No numeric coercion or runtime parameter
-  enforcement is added. Reject inherited converter inputs overridden by descendant Builder methods. Recompile matched
-  domain/Schema artifacts; the memory-regex extension remains deferred.
-  See [converters](docs/user/Converters.md#structured-string-input) ([#981](https://github.com/klum-dsl/klum-ast/issues/981), C1).
-
-- Project first-level AND Bean composing constraints through the existing numeric and bounded Pattern mappings, keeping
-  independent assertions and contradictions. Add literal annotation-type `@Struct.ConstraintDescription` prose under
-  `PROJECT`/`TEXT_ONLY`, suppressed under `OMIT`. Unsupported composition remains descriptive; runtime validation and
-  explicit examples stay independent. Align tools and recompile Schema artifacts. See
-  [composition and documentary meta-annotations](docs/user/Json-Schema.md#composed-constraints-and-documentary-meta-annotations)
-  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Added `@Struct.Examples` for documentary strings on exact field/key/operation payloads and parent relationship uses.
-  Values are emitted as JSON Schema strings without parsing or validation against property types or runtime constraints.
-  Defaults, requiredness, runtime input and lifecycle are unchanged; the unified metadata version stays 1.
-  See [examples](docs/user/Json-Schema.md#advisory-input-examples) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-
-- Project direct singleton Jakarta Pattern constraints for bounded ASCII String identifiers with anchored Draft 2020-12
-  assertions and a typed printable-ASCII guard. Unsupported forms remain runtime descriptions; field policies, null/omission
-  and runtime validation remain independent. Recompile participating Schema artifacts with matching tools. See
-  [Pattern projection](docs/user/Json-Schema.md#conservative-pattern-projection) and
-  [migration](docs/user/Migration.md#conservative-pattern-projection) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Unified structured-input/JSON Schema metadata under one required protocol version. Older or incomplete Builder
-  contracts are rejected; recompile participating Schema hierarchies and owned artifacts with matching tools.
-  Removed legacy identity/operation reconstruction and feature-specific version markers; valid-Schema behavior is
-  unchanged. See [migration](docs/user/Migration.md#structured-input-metadata-protocol) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Added `@Struct.Name('literal')` and marker `@Struct.Ignore` for shared structured-input and JSON Schema member shaping.
-  Exact literals override type profiles; exclusion removes eligible fields and authored Builder operations from both
-  consumers. Equal Jackson equivalents coalesce; contradictory names fail even when excluded. Construction identity,
-  ordinary Groovy configuration and runtime validation retain their semantics. Align tools and recompile Schemas.
-  See [literals](docs/user/Structured-Input.md#literal-names-and-exclusion) and
-  [migration](docs/user/Migration.md#literal-names-and-exclusion) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Added type-level `@Struct.Naming(Struct.Naming.Profile.IDENTITY/KEBAB_CASE)` for shared structured-input and JSON Schema
-  member names. Explicit profiles bind descendants; a first profiled child also names inherited entries. Owned types,
-  literal Jackson overrides/exclusions and data/instance keys keep their own semantics. Nonidentity collisions and
-  conflicting profiles reject before execution/publication. Align tools and recompile selected Schema hierarchies.
-  See [profiles](docs/user/Structured-Input.md#type-naming-profiles)
-  and [migration](docs/user/Migration.md#type-naming-profiles) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Added field-level `@Struct.ConstraintProjection` with nested `Policy.PROJECT` (default), `TEXT_ONLY` and `OMIT` for
-  generated JSON Schema constraint output. Direct and approved propagated facts share the policy; ordinary prose,
-  deprecation, structural bounds, admission and runtime validation stay independent. Recompile declaring/inherited/owned
-  Schemas with matching versions for required public Builder policy facts. See [field policy](docs/user/Json-Schema.md#field-constraint-projection)
-  and [migration](docs/user/Migration.md#field-constraint-projection) ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Generated JSON Schema automatically projects supported direct Jakarta Min/Max on integral properties and exact
-  DecimalMin/DecimalMax on BigDecimal/integral properties, including inclusive/exclusive endpoints. The unreleased
-  `integralConstraints` and `decimalConstraints` global properties are removed without aliases or a replacement selector.
-  Independent assertions and structural machine bounds remain conjunctive; contradictory bounds generate valid schemas
-  without numeric satisfiability analysis. Complete supported public Builder constraint facts are always required, with
-  source/artifact and recompile guidance for malformed/incompatible/incomplete metadata. Omission/null/keys and runtime
-  validation are unchanged. See [integral constraints](docs/user/Json-Schema.md#integral-constraints),
-  [decimal constraints](docs/user/Json-Schema.md#decimal-constraints) and [migration](docs/user/Migration.md#integral-json-schema-bounds)
-  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Generated JSON Schema now emits advisory `deprecated: true` for admitted Schema-deprecated fields, construction keys
-  and authored operations by default, including inherited/renamed members. Relationship uses retain local placement;
-  framework aliases do not supply source deprecation. Missing advisory metadata remains optional when required numeric metadata is complete. Input admission and runtime validation are unchanged. See
-  [deprecation](docs/user/Json-Schema.md#deprecation) and [migration](docs/user/Migration.md#advisory-json-schema-deprecation)
-  ([#959](https://github.com/klum-dsl/klum-ast/issues/959)).
-
-- Added self-contained structured-input keys for keyed roots and supplied direct caller-key children, using the actual
-  Schema key's external name. Fixed/derived/Cluster keys, keyed Map values, explicit rootKey and active Builder targets
-  retain their existing authority and reject inner keys. Generated JSON Schema now requires self-contained keys and
-  reuses separate closed keyless definitions; ignored/colliding required keys fail generation without replacing prior
-  output. Supplied direct children require identity before that child's allocation.
-  Recompile Schemas and align compiler/runtime/plugin versions. See [construction keys](docs/user/Structured-Input.md#construction-keys)
-  and [migration](docs/user/Migration.md#explicit-structured-construction-keys)
-  ([#954](https://github.com/klum-dsl/klum-ast/issues/954)).
-
-- Restored nested structured input and JSON Schema properties for concrete owned DSL relationships supplied by compatible
-  binary dependencies, including inherited fields and keyed Map values. Abstract/polymorphic and raw generic targets
-  retain their existing limits ([#957](https://github.com/klum-dsl/klum-ast/issues/957)).
-
-- Restored admitted structured input and generated Draft 2020-12 JSON Schema for ordinary scalar Schema properties,
-  including an unkeyed property literally named `key`, when the generated Builder exposes its normal setter. Direct and
-  inherited properties follow the same contract; actual `@Key` members follow the position-specific construction-key rules above
-  ([#950](https://github.com/klum-dsl/klum-ast/issues/950)).
-
-- Added opt-in Schema-plugin `generateKlumJsonSchema` with explicit DSL Model root names, an isolated binary classpath, Draft 2020-12
-  output in fully qualified Model-named files, tracked dependency/documentation inputs and cache/stale-output handling.
-  Generation executes no Schema code;
-  output use and publication remain consumer-owned. See [JSON Schema generation](docs/user/Json-Schema.md)
-  ([#529](https://github.com/klum-dsl/klum-ast/issues/529)); real ScHelm root/output qualification remains pending.
-
-- Added opt-in parser-free structured input for caller-parsed Map/List/scalar data; now exposed through generated
-  `Create.FromStruct` and inherited `applyStruct` (the development reader facade has been removed).
-  Static contract checks precede ordered, per-operation Builder execution; concrete ownership, literal keyed maps and admitted one-payload
-  operations preserve ordinary construction/lifecycle semantics. Numeric/container/keyMapping admission is bounded;
-  named parameters and Jackson retain their existing behavior. Recompile Schemas and ship generated metadata. See
-  [structured input](docs/user/Structured-Input.md) ([#932](https://github.com/klum-dsl/klum-ast/issues/932)).
+Recompile the complete participating Schema/API, parent, derived and owned artifact set with matching 4.2
+annotations/compiler/runtime/BOM/Schema-plugin versions, then regenerate JSON Schemas and refresh IDE mirrors.
+The shared generated-input v1 contract requires complete matching metadata; it provides no mixed-toolchain or historical
+development-artifact compatibility fallback. Recompile consumers of changed generated Factory/CollectionFactory signatures,
+and rename Schema methods colliding with reserved Builder input/copy signatures. Development callers of the removed reader facade use
+`Create.FromStruct`/`applyStruct` instead. See [Migration](docs/user/Migration.md) for overload, naming and copy-route details.
 
 # 4.1.0 (2026-10-20)
 

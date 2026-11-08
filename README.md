@@ -9,18 +9,25 @@ Make Your Models Groovy!
 
 # Breaking changes and version overview
 
-KlumAST 4.0.0 is the released Builder-first version. Generated factories configure Builders, materialize structurally
-immutable completed DSL Objects, then validate them. Start with the stable
-[4.0.0 documentation](https://klum-dsl.github.io/klum-ast/4.0.0/) and the
+**4.2 (in preparation)** adds Structured Import and JSON Schema Support. Use the same Schema for Groovy DSL and
+caller-parsed YAML/JSON through public Factory/Builder APIs, and generate matching JSON Schema for editor feedback or
+explicit validation. See [Structured Input](docs/user/Structured-Input.md), [JSON Schema](docs/user/Json-Schema.md),
+and the [4.2 changelog and migration notes](CHANGES.md#420-unreleased).
+
+**4.1 (released)** extends Builder-first construction with explicit `@Builder.Method`, `@Builder.Query`,
+`@Builder.Input` and `@Builder.Result` capabilities, annotation-driven lifecycle participants, owning-relationship
+metadata and improved Model authoring tools. See the [4.1 documentation](https://klum-dsl.github.io/klum-ast/4.1.1/)
+and [migration guidance](https://klum-dsl.github.io/klum-ast/4.1.1/Migration/).
+
+**4.0 (released)** introduced Builder-first construction: generated factories configure mutable Builders, materialize
+structurally immutable completed DSL Object graphs, then validate them. Start with the
 [Builder First Migration guide](https://klum-dsl.github.io/klum-ast/4.0.0/Builder-First-Migration/) when upgrading an
-existing Schema, client, or extension.
+existing Schema, client, or extension from 3.x. The [4.0 documentation](https://klum-dsl.github.io/klum-ast/4.0.0/)
+remains available for that release.
 
-KlumAST requires Java 17 and supports Groovy 3, 4, and 5.
-
-For 4.0 Schema projects, Groovy 4/5 support named Java modules while Groovy 3
-remains classpath-only. The Gradle Schema plugin validates a user-owned
-`module-info.java`; see the [canonical KlumAST documentation](https://klum-dsl.github.io/klum-ast/)
-for the Gradle plugin guide and migration guidance.
+KlumAST requires Java 17 and supports Groovy 3, 4, and 5. For 4.x Schema projects, Groovy 4/5 support named Java modules
+while Groovy 3 remains classpath-only. The Gradle Schema plugin validates a user-owned `module-info.java`; see the
+[canonical KlumAST documentation](https://klum-dsl.github.io/klum-ast/) for the Gradle plugin guide.
 
 Users of 1.2.0 (or lower) should take a look at the historical [Migration](https://klum-dsl.github.io/klum-ast/3.0.1/Migration/) guidance.
 
