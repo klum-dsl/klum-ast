@@ -4,6 +4,11 @@
 It belongs to `klum-ast-runtime` and adds no JSON/YAML parser dependency. Parse the format with your chosen library,
 then pass the resulting data together with an opaque source name for diagnostics.
 
+For completion and structural diagnostics while authoring YAML, see the
+[JSON Schema editor-association recipe](Json-Schema.md#authoring-structured-yaml-in-an-editor).
+The generated schema is editor/validator input: `FromStruct` / `applyStruct` do not automatically validate against it.
+Validation remains editor/consumer-owned; consumers may explicitly validate parsed input before import.
+
 ## Read a concrete root
 
 A Schema can expose domain operations that configure several properties:

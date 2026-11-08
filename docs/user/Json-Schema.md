@@ -52,6 +52,56 @@ unrelated files. It also removes earlier Builder-named files recorded in that ma
 untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
 previous successful output; it must not be mistaken for a successful fresh generation. Empty root selection fails explicitly.
 
+## Authoring structured YAML in an editor
+
+For a Model Writer authoring [structured input](Structured-Input.md), the generated Draft 2020-12 JSON Schema is
+editor/validator input for completion and structural diagnostics. After configuring `example.Deployment` as a root
+[above](#generating-files), run:
+
+```shell
+./gradlew generateKlumJsonSchema
+```
+
+The default output is `build/generated/klum-json-schema/example.Deployment.schema.json`. Normally regenerate it after
+Schema changes; generation, output distribution and editor association are consumer-managed.
+
+With [YAML Language Server](https://github.com/redhat-developer/yaml-language-server#using-a-modeline), including VS Code
+with the [YAML extension](https://github.com/redhat-developer/vscode-yaml#associating-schemas), add this comment at the top
+of `config/deployment.yaml`:
+
+```yaml
+# yaml-language-server: $schema=../build/generated/klum-json-schema/example.Deployment.schema.json
+```
+
+Relative modeline paths resolve from the YAML document. Here `config/` and `build/` are siblings under the project root.
+The comment is parser-inert: it does not enter the parsed Map. A literal top-level `$schema:` mapping entry is **not a
+KlumAST input convention**: it becomes input data seen by structured import and can be rejected as an unknown operation.
+
+Alternatively, configure the Language Server's `yaml.schemas` workspace setting. In a single-folder VS Code workspace
+opened at the project root, put this in `.vscode/settings.json` (merge it with existing settings):
+
+```json
+{
+  "yaml.schemas": {
+    "./build/generated/klum-json-schema/example.Deployment.schema.json": ["config/deployment.yaml"]
+  }
+}
+```
+
+This mapping leaves the YAML document untouched. Its relative schema path resolves from the workspace root; adapt the
+file patterns to your inputs. See [workspace schema mappings](https://github.com/redhat-developer/vscode-yaml#using-yamlschemas).
+
+In [IntelliJ IDEA](https://www.jetbrains.com/help/idea/json.html#ws_json_schema_add_custom), open **Settings | Languages &
+Frameworks | Schemas and DTDs | JSON Schema Mappings**, add a mapping, select the generated schema file and Draft 2020-12,
+then associate the target YAML file or file pattern. The [YAML editor](https://www.jetbrains.com/help/idea/yaml.html)
+uses that mapping for completion and inspections.
+
+JSON Schema validation is deliberately editor/consumer-owned. KlumAST `FromStruct` / `applyStruct` do **not** automatically
+validate against the generated schema and must remain independent of that validation. A consumer may explicitly validate
+parsed input before importing it if it wants that gate. Structural validation does not replace KlumAST construction or
+completed Model validation: structured import still invokes the admitted Builder language and normal construction
+lifecycle. See [runtime order and failure](#runtime-order-and-failure) for limits that a schema cannot predict.
+
 ## Zero-argument commands
 
 Admitted [zero-argument Builder commands](Structured-Input.md#zero-argument-commands) project as closed empty objects:
