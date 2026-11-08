@@ -363,18 +363,28 @@ class StructRequiredTest extends AbstractDSLSpec {
                 new MethodVisitor(Opcodes.ASM9, target) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         def delegate = super.visitAnnotation(annotation, visible)
-                        if (!annotation.endsWith('GeneratedInput$Field;')) return delegate
+                        if (!annotation.endsWith('GeneratedInput$Field;')) {
+                            return delegate
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, delegate) {
                             boolean selected
                             @Override void visit(String member, Object value) {
-                                if (member == 'value') selected = value == field
-                                if (selected && member == 'rawInputRequired') return
+                                if (member == 'value') {
+                                    selected = value == field
+                                }
+                                if (selected && member == 'rawInputRequired') {
+                                    return
+                                }
                                 super.visit(member, value)
                             }
                             @Override void visitEnd() {
                                 if (selected) {
-                                    for (Object supplied : values) super.visit('rawInputRequired', supplied)
-                                    if (damage == 'excluded') super.visit('exclusion', 'NO_PAYLOAD')
+                                    for (Object supplied : values) {
+                                        super.visit('rawInputRequired', supplied)
+                                    }
+                                    if (damage == 'excluded') {
+                                        super.visit('exclusion', 'NO_PAYLOAD')
+                                    }
                                 }
                                 super.visitEnd()
                             }

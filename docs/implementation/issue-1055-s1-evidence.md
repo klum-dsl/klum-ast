@@ -133,3 +133,24 @@ The affected test license check and `git diff --check` passed. This plugin test 
 no compiler/runtime code or multi-Groovy test input changes, so the previous G3/G4/G5 production-tree evidence remains
 applicable. Long plugin/full-root suites are left to the next hosted CI run. Sonar had not run before this CI failure;
 no Sonar cleanliness is inferred. The correction is an additive commit preserving both published S1 commits.
+
+## SonarCloud maintainability follow-up
+
+The completed SonarCloud PR analysis on `d7a840dceedb66294917cf930cdc619210c529c0`
+([PR dashboard](https://sonarcloud.io/dashboard?id=klum-dsl_klum-ast&pullRequest=1057)) had an OK quality gate,
+97.3% new-code coverage, zero duplicated new lines and no bugs, vulnerabilities or security hotspots. It nevertheless
+reported six open maintainability findings: `java:S3776` on `collectDeclarations` (complexity 16, limit 15) and five
+`groovydre:S8306` findings on the new test's ASM visitor branches/loop. A passing gate was not treated as zero findings.
+
+The additive correction extracts the existing required-accessor guard into a focused validation method, preserving
+its predicate, diagnostics and position before accessor/selection collection. Only the five reported test-helper
+branches/loop receive braces. No protocol, generated API, marker interpretation, admission, import execution, schema
+projection or Sonar rule/profile changes are introduced, and no suppressions are added.
+Independent Standards and Specification reviews each report zero remaining actionable findings.
+Focused `StructRequiredTest`, `CompiledBuilderSchemaReaderTest`, `CompiledBuilderSchemaTest`,
+`StructuredInputRuntimeTest` and `InputNamingProfileTest` passed 197 cases in each of G3/G4/G5 (591 total),
+with zero failures/errors/skips. `BuiltinConstraintCatalogTest` passed all 21 cases separately.
+Affected licenses, lane isolation with full test prerequisites excluded, Markdown checks and `git diff --check` passed.
+The subsequent exact-head hosted reanalysis remains separate evidence; no local Sonar upload. Long local root/plugin
+suites remain omitted under the bounded assignment. The previous broader implementation checkpoint stays dated
+evidence; this focused repair does not substitute for the final hosted qualification.

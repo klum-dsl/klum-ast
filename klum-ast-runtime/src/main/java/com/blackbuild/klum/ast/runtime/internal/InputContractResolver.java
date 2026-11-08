@@ -408,10 +408,7 @@ final class InputContractResolver {
             Literals literal = metadata.methods().get(signature(method));
             if (literal == null) throw invalid("Missing exact public declaration " + method);
             validateDeclaration(method, literal);
-            if (literal.rawInputRequired() && !requiredFieldAccessor(method, literal.field())) {
-                throw invalid("rawInputRequired lacks exact field accessor association " + context.model().getName()
-                        + "#" + literal.field() + " on " + namingOrigin(context.builder()));
-            }
+            validateRequiredFieldAccessor(context, method, literal);
             if (literal.field() != null && (!fieldAccessor(method, literal.field())
                     || accessors.putIfAbsent(literal.field(), method) != null))
                 throw invalid("Duplicate or invalid field accessor association " + literal.field());
@@ -458,10 +455,15 @@ final class InputContractResolver {
                 && method.getName().equals("set" + Character.toUpperCase(field.charAt(0)) + field.substring(1));
     }
 
-    private static boolean requiredFieldAccessor(Method method, String field) {
-        String suffix = BeanUtils.capitalize(field);
-        return method.getParameterCount() == 0 ? method.getName().equals("get" + suffix)
+    private static void validateRequiredFieldAccessor(BuilderContext context, Method method, Literals literal) {
+        if (!literal.rawInputRequired()) return;
+        String suffix = BeanUtils.capitalize(literal.field());
+        boolean exact = method.getParameterCount() == 0 ? method.getName().equals("get" + suffix)
                 : method.getParameterCount() == 1 && method.getName().equals("set" + suffix);
+        if (!exact) {
+            throw invalid("rawInputRequired lacks exact field accessor association " + context.model().getName()
+                    + "#" + literal.field() + " on " + namingOrigin(context.builder()));
+        }
     }
 
     private void collectField(BuilderContext context, String field, Method accessor,
