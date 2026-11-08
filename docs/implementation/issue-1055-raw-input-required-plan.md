@@ -128,7 +128,8 @@ package may own new behavior; mark every new test `@Issue('1055')`. Keep origina
 
 One commit: `Project explicit raw-input presence into containing JSON Schema objects`.
 Implement the deterministic required union in definition, retaining all field-role payloads and key positions.
-Add source-free plugin fixtures plus paired import/DSL behavior controls and an independent Draft 2020-12 oracle.
+Extend existing source-free plugin fixtures, paired import/DSL controls and the independent Draft 2020-12 oracle
+only where needed to establish the new presence behavior.
 Acceptance: A2–A6 and A8 below. Extend [KlumJsonSchemaGenerationTest][generator-test], reusing its independently
 compiled API/schema/owned artifacts, positive initialization traps and old-output preservation assertions.
 Use [InputNamingProfileTest][naming-test] and [StructuredInputRuntimeTest][runtime-test] for existing naming/ordered
@@ -137,9 +138,10 @@ failure controls; [StructuredFactoryTest][factory-test] covers public Factory/Bu
 ### S3 — Qualify the matched contract and document the release boundary
 
 One commit: `Qualify and document raw-input presence for the 4.2 candidate`.
-Add malformed/contradictory current-contract binary controls, G3/G4/G5 producers/readers, and G4/G5 named-module consumers
-without extra access flags. Reuse [BinaryOwnedRelationshipsTest][binary-test] and the packaged schema matrix, preserving
-source deletion and independently compiled parent/owned artifacts. Capture exact coordinates/heads and results.
+Qualify focused malformed/contradictory current-contract controls through the existing G3/G4/G5 producer/reader and
+G4/G5 named-module consumer harnesses without extra access flags. Reuse [BinaryOwnedRelationshipsTest][binary-test]
+and the packaged schema matrix, preserving source deletion and independently compiled parent/owned artifacts.
+Capture exact coordinates/heads and results.
 Acceptance: A7–A9. Add the documentary feature `documents raw-input presence without enforcing import` to
 `StructRequiredTest`, or use a dedicated `StructRequiredDocumentaryTest` if extraction improves readability.
 Use `@Issue('1055')`, `@Tag('documentary')` and `@See` to the implemented user example, not this plan.
@@ -153,6 +155,17 @@ This plan-only PR does not add shipped-feature prose to user pages or the change
 
 ## Focused executable acceptance matrix
 
+The acceptance matrix defines behavioral guarantees, not mandatory test counts. Each listed scenario need not have
+a separate test method or fixture, and one focused case may establish several guarantees. Reuse existing compiler,
+metadata-reader, JSON Schema, binary-consumer and lifecycle tests as evidence for unchanged behavior. Add focused cases
+only where the new presence bit crosses a genuinely distinct compiler, reader, normalization or projection boundary.
+
+Avoid combinatorial negative testing: exercise each distinct malformed-metadata failure mechanism once. Use representative
+root, inherited or owned-field cases only where those boundaries introduce different behavior; do not cross-product
+malformed facts with every Schema shape, naming profile or relationship configuration. Preserve Groovy 3/4/5,
+independently compiled Schema consumers and supported Groovy 4/5 JPMS qualification through established harnesses,
+without creating parallel consumer matrices.
+
 The independent oracle uses [Draft 2020-12 required semantics](https://json-schema.org/draft/2020-12/json-schema-validation#section-6.5.3):
 the object lists each required name; property assertions remain independent of that presence check.
 
@@ -164,7 +177,7 @@ the object lists each required name; property assertions remain independent of t
 | A4 / S2 | Root has a key plus multiple required fields: sorted unique union preserves the key. Paired bodyRootTypes excludes only the key. Direct/keyed-sequence versus externally keyed/fixed child bodies retain existing key rules. An optional owned child has required inner fields only in its own definition. A required collection/map member adds no minItems/minProperties or required aliases/data keys. |
 | A5 / S2 | Validate an emitted required String property with an explicit external Draft 2020-12 validator: absent fails required; empty String succeeds absent other constraints; supplied null satisfies presence but fails the unchanged String type. Compare annotated/unannotated property fragments byte-for-byte. A required-only object fragment with no property assertion accepts a present null, proving presence independently. Boolean false and integer zero pass appropriately typed required properties. |
 | A6 / S2 | Paired marked/unmarked schemas: FromStruct with omitted fields still uses normal initializer/default behavior; active applyStruct may omit the field; ordinary DSL omission behaves identically. Explicit Struct null still rejects at the same reached path with the same earlier effects. Exactly one normal lifecycle completion, unchanged callback order/default/Template recipe and Jackson import behavior. Plain @Required/@NotNull without the new marker never creates a raw field requirement; their existing final validation still runs normally. |
-| A7 / S1, S3 | Mutate rawInputRequired to wrong type, duplicate, true+ignored or wrong selected source at the same valid version on root, binary base and omitted/transitive owned contracts. Reject before root initialization and active Builder mutation; previous schema files and output manifest stay intact. Omitted/explicit-false controls pass; IDENTITY, TEXT_ONLY and OMIT cannot hide malformed supplied facts or missing existing required metadata. |
+| A7 / S1, S3 | Exercise each distinct rawInputRequired failure mechanism (wrong type, duplicate, true+ignored or wrong selected source) once at the same valid version, using representative root, binary base or omitted/transitive owned cases where behavior differs. Reject before root initialization and active Builder mutation; previous schema files and output manifest stay intact. Omitted/explicit-false controls pass; IDENTITY, TEXT_ONLY and OMIT cannot hide malformed supplied facts or missing existing required metadata. These guarantees do not require every mutation in every contract position or profile. |
 | A8 / S2 | PROJECT/TEXT_ONLY/OMIT affect only constraint-derived content, never the independent presence requirement. Property type/bounds/null rules, examples, descriptions and deprecation stay unchanged. Repeat generation is deterministic; changing only marker metadata in a dependency JAR invalidates task/cache output. |
 | A9 / S3 | Source-free matched producer/reader and generator/import consumers for G3/G4/G5; binary parent/derived/owned closure, recursive ownership and excluded unrelated targets. Positive initialization traps prove inspection stays inert. Qualify only the complete current contract; no previous-development-v1 reader/artifact matrix. G4/G5 named-module consumers pass without add-opens/add-exports; exported annotation addition and descriptor inventory are checked. |
 
@@ -183,6 +196,9 @@ Planning reviews are independent Standards and Specification subagents; neither 
 For implementation, the shared generated contract is the highest risk tier: focused G3 compiler/reader/runtime tests,
 affected suites and G4/G5 lanes for affected multi-Groovy modules, then root `./gradlew check`, TestKit/plugin consumers,
 binary/JPMS checks and the independent schema corpus above. Include relevant Jackson/Bean Validation behavior controls.
+Select validation by the shared generated-contract risk, using existing affected suites and qualification evidence
+where their inputs remain valid. Full root qualification remains required; it does not require redundant fixtures,
+repeated equivalent permutations or unrelated validation machinery.
 No local result substitutes for exact-head PR CI/SonarCloud. Record all failures/omissions rather than reclassifying a
 focused pass as full qualification. Before RC acceptance, qualify the exact public candidate with aligned marker/BOM/
 compiler/runtime coordinates and regenerated schemas; repository tests alone do not establish publication or adoption.
