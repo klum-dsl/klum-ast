@@ -1,6 +1,6 @@
 # #1055 S3: raw-input presence qualification and release boundary
 
-Date: 2026-11-08. Status: **Speculative S3; local qualification in progress, no merge or public-candidate claim**.
+Date: 2026-11-08. Status: **S3 local qualification complete; speculative chain unmerged, no public-candidate claim**.
 Authority: [#1055](https://github.com/klum-dsl/klum-ast/issues/1055), including its
 [transitive domain clarification](https://github.com/klum-dsl/klum-ast/issues/1055#issuecomment-6720271506),
 [accepted plan](issue-1055-raw-input-required-plan.md) and
@@ -62,7 +62,8 @@ Initial local qualification (Java 17, matching branch-built artifacts; no publis
 - G3 focused compiler/presence/package checks: 32 cases, no failures/errors/skips.
 - `:klum-ast:groovy4Tests :klum-ast:groovy5Tests --tests '*StructRequiredTest' --tests '*JpmsPackageBoundaryTest'`:
   G4 ran the full compiler suite (the filters apply to the last task): 3,434 cases, no failures/errors, 15 existing skips;
-  G5 focused: 32 cases, no failures/errors/skips. The final root check will requalify the G4 source-deletion addition.
+  G5 focused: 32 cases, no failures/errors/skips. The final sequential root check below requalifies source deletion
+  in both named-module lanes.
 - `:klum-ast-gradle-plugin:test --tests '*KlumJsonSchemaGenerationTest*presence*' --tests '*BinaryOwnedRelationshipsTest'`:
   26 cases, no failures/errors/skips; includes all three documentary cases, six direct/domain cases, three malformed
   presence cases, three dedicated binary-presence cases and the existing 11-case binary-owned suite.
@@ -72,7 +73,49 @@ Initial local qualification (Java 17, matching branch-built artifacts; no publis
   and independent presence-only controls. Direct/domain G3/G4/G5 schemas are byte-identical.
 - Changed Markdown relative targets/fences and `git diff --check`: passed.
 
-Affected full suites/root check, exact committed documentation rendering, and independent review results remain in progress.
+Final sequential qualification at `d5f686200941a32d9196d4a5389da32d27822beb`, tree
+`d469c33869fd5a3c5e62154a354b91fc63331329`:
+
+- `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew check --console=plain`:
+  **12,062 cases, zero failures/errors, 49 existing skips; 18m 5s**. Full affected compiler/runtime/adapter suites,
+  all three isolated Groovy lanes, the complete 684-case plugin/TestKit suite, package/JPMS checks, license,
+  lane-isolation, renderer contract and aggregate coverage tasks pass. The compiler reports 3,430 G3 cases (16 existing skips),
+  and 3,434 G4/G5 cases each (15 existing skips each), with zero failures/errors. No new ignored/pending tests were introduced.
+- Exact matching local artifact version: `4.2.0-dev.503+codex.issue.1055.s3.docs.qualification.d5f6862`; Java Zulu 17.0.3, Gradle 8.14.4,
+  Groovy 3.0.25 / 4.0.32 / 5.0.6, Spock 2.4 Groovy-specific lanes, KlumCast 0.5.0. These are branch-built artifacts,
+  not published candidate coordinates.
+- `renderLocalDocumentation --no-daemon -Dorg.gradle.jvmargs=-Xmx2g --max-workers=2 --console=plain`:
+  exact source/renderer `071632a4fe95a8accac565e56d27821cc47957d7`, tracer `4.2.0-tracer`, Season 4.2 manifest,
+  fresh local render and full site crawl pass. User-doc/renderer/build inputs are unchanged by the subsequent
+  one-line catalog fixture repair; no release/deployment was performed.
+- Independent Standards and Specification reviews: **0 actionable findings each**, including the catalog repair follow-up.
+  Final history retains the reviewed implementation, mechanical matched-contract fixture repair and evidence-only
+  reconciliation as separate reasoned commits. The evidence follow-up changes no qualified code/test/user-doc/build/CI input.
+- Final external Draft 2020-12 required, structural, Builder-body, owned-sequence, literal-alternative, virtual-scope and
+  composed-constraint oracles pass against the current emitted corpus. Commands are the corresponding
+  `klum-ast-gradle-plugin/src/test/resources/validate_*_schema.py` scripts with
+  `klum-ast-gradle-plugin/build/schema-validation`, using `/private/tmp/1026-schema-venv/bin/python` (`jsonschema==4.23.0`).
+  The required oracle retains the 24+3 document counts above; body oracle: 30 schemas, 75 accepted/114 rejected;
+  composed constraints: 234 controls and byte-identical G3/G4/G5 output.
+
+The first full run found 21 catalog fixture failures at constructor selection: its synthetic Entry still used the
+pre-S1 16-argument shape. S3 appends false for unmarked presence, without changing assertions or production behavior;
+all 21 focused cases then pass. The concurrent repair build also changed compiler version markers while that first run
+was active, invalidating a provenance assertion. That run was stopped and is not a successful qualification claim.
+The final full run above is sequential on the committed repair and supersedes both failures. Initial pre-commit root
+startup was also stopped/restarted at the first committed revision; it is not counted as qualification.
+
+Logs/evidence: `/private/tmp/1055-s3-root-final.log`, `/private/tmp/1055-s3-root-counts.json`,
+`/private/tmp/1055-s3-doc-render.log`, `/private/tmp/1055-s3-external-results.json`, and the corresponding
+`/private/tmp/1055-s3-validate_*_schema.py.log` files. Dedicated annotation-propagation artifact shipping tasks are
+not part of root check and are omitted locally; hosted CI runs its separate shipping matrix. No local SonarCloud upload,
+manual workflow dispatch, historical development-v1 matrix, publication/adopter or exact public-candidate qualification
+is claimed. The final cumulative PR's hosted CI/SonarCloud state remains a separate live acceptance gate.
+
+Delivery authorization audit: gh CLI/API authorized; SSH git push authorized by dedicated-branch dry run. No GitHub App
+write authority is inferred or used. Delivery target is a draft PR based on `codex/issue-1055-s2-schema-required`, appended
+to native stack #1059. Exact PR head/base, draft state, native registration and initial hosted-CI result are recorded in
+that PR's delivery body and the task handoff; no merge/readiness/issue closure is part of S3.
 
 Initial G3 focused run:
 `:klum-ast:test --tests '*StructRequiredTest' --tests '*JpmsPackageBoundaryTest'`: 32 passed, zero failures/errors/skips.
