@@ -134,7 +134,8 @@ public final class KlumObjectSupport<T> {
         }
 
         /**
-         * Returns stored validation results for this object and its owned composition subtree.
+         * Returns every stored validation result for this object and its owned composition subtree,
+         * including clean results with no issues. Objects without a stored result are omitted.
          * Owner and {@code LINK} fields are not followed.
          */
         public List<KlumValidationResult> getSubtreeResults() {

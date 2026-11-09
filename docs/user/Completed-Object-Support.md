@@ -313,7 +313,8 @@ assert validation.subtreeResults == [
 ```
 
 `getValidation().getResult()` returns the result already stored for the target object.
-`getValidation().getSubtreeResults()` reads all stored results for that target and its owned composition subtree.
+`getValidation().getSubtreeResults()` returns every stored validation result for the target and its owned composition
+subtree, including clean results with no issues. Objects without a stored result are omitted.
 `verify()` uses the configured failure level, while `verify(level)` uses the supplied level. These operations only inspect
 lifecycle results: they do not execute `InstanceValidator`s, create results, or mutate recorded issues.
 

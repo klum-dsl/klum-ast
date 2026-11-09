@@ -409,8 +409,8 @@ stored validation; do not build integrations on companion classes or raw metadat
 getter is `getConstructionPath()`; see [#390](https://github.com/klum-dsl/klum-ast/issues/390) and
 [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md).
 
-`getValidation().getSubtreeResults()` returns the target's result and every stored result in its owned subtree, including
-clean results without issues.
+`getValidation().getSubtreeResults()` returns every stored validation result for the target and its owned composition
+subtree, including clean results with no issues. Objects without a stored result are omitted.
 Use `KlumObjectSupport.getValidation()` directly; the preliminary `Validator` result readers are removed in 4.0 rather
 than retained as deprecated adapters.
 
