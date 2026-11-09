@@ -33,6 +33,7 @@ import com.blackbuild.klum.ast.Struct.Ignore;
 import com.blackbuild.klum.ast.Struct.Naming;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
+import com.blackbuild.klum.ast.runtime.internal.EnumInputNames;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -66,11 +67,13 @@ import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyF
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getModelClassFor;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForMap;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getKeyTypeForMap;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isMap;
+import static groovyjarjarasm.asm.Opcodes.ACC_ENUM;
 
 /**
  * Compiler-only classification and minimal public-contract enrichment for structured input.
@@ -674,10 +677,11 @@ final class StructuredInputAdmissionPlan {
         }
         PublicOperation operation = isCollection(type) || isMap(type)
                 ? populationOperation(field, rejections) : publicOperation(field, rejections);
+        if (operation == null) return;
+        validateEnumNames(type, payload, field);
         if (nativeDerivedMap(field))
             payload = new Payload(PayloadKind.LIST, List.class.getName(), null, null, payload.item());
-        if (operation != null)
-            entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null, false));
+        entries.add(new Entry(name.value(), Role.PROPERTY, source, operation, payload, name.origin(), null, null, null, false));
     }
 
     /** Existing scalar exclusions apply before considering an already-generated String projection. */
@@ -740,6 +744,7 @@ final class StructuredInputAdmissionPlan {
         }
         PublicOperation operation = publicOperation(method, rejections);
         if (operation == null) return;
+        validateEnumNames(parameters[0].getOriginType(), payload, method);
         entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null,
                 StructuredInputConverter.isStringInput(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
     }
@@ -810,6 +815,27 @@ final class StructuredInputAdmissionPlan {
                     : new Payload(PayloadKind.MAP, type.redirect().getName(), null, ClassHelper.STRING_TYPE.getName(), nested);
         }
         return null;
+    }
+
+    private static void validateEnumNames(ClassNode type, Payload payload, AnnotatedNode origin) {
+        if (payload.item() != null) {
+            ClassNode item = payload.kind() == PayloadKind.LIST ? getElementTypeForCollection(type) : getElementTypeForMap(type);
+            validateEnumNames(item, payload.item(), origin);
+        }
+        if (payload.kind() != PayloadKind.ENUM) return;
+
+        try {
+            Map<String, String> declarations = new LinkedHashMap<>();
+            for (FieldNode constant : type.redirect().getFields()) {
+                if ((constant.getModifiers() & ACC_ENUM) == 0) continue;
+                String explicit = inputName(constant);
+                declarations.put(constant.getName(), explicit == null ? constant.getName() : explicit);
+            }
+            EnumInputNames.resolve(type.getName(), declarations);
+        } catch (IllegalArgumentException failure) {
+            ClassNode owner = origin instanceof FieldNode field ? field.getOwner() : ((MethodNode) origin).getDeclaringClass();
+            addCompileError(failure.getMessage(), owner, origin);
+        }
     }
 
     private static boolean isLeaf(ClassNode type) {

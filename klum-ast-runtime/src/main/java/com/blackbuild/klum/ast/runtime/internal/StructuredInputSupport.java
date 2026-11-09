@@ -34,15 +34,9 @@ import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.MetaMethod;
-import groovyjarjarasm.asm.ClassReader;
-import groovyjarjarasm.asm.ClassVisitor;
-import groovyjarjarasm.asm.FieldVisitor;
-import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.InvokerInvocationException;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -52,7 +46,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -498,11 +491,7 @@ public final class StructuredInputSupport {
                 throw bad(entry, path, ACYCLIC_INPUT, input, null);
             return switch (payload.kind()) {
                 case SCALAR -> scalar(entry, payload.type(), input, path);
-                case ENUM -> {
-                    if (!(input instanceof String name) || !enumNames(entry, payload.type(), path).contains(name))
-                        throw bad(entry, path, "exact declared enum constant of " + payload.type().getName(), input, null);
-                    yield new EnumValue(payload.type(), name);
-                }
+                case ENUM -> enumValue(entry, payload.type(), input, path);
                 case LIST -> {
                     if (!(input instanceof List<?> list)) throw bad(entry, path, "List", input, null);
                     enter(input, path, entry.contract(), entry.externalName());
@@ -569,20 +558,18 @@ public final class StructuredInputSupport {
             return result;
         }
 
-        private Set<String> enumNames(Entry entry, Class<?> type, String path) {
-            try (InputStream bytes = type.getModule().getResourceAsStream(type.getName().replace('.', '/') + ".class")) {
-                if (bytes == null) throw new IOException("Missing packaged enum class");
-                Set<String> names = new LinkedHashSet<>();
-                new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9) {
-                    @Override public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-                        if ((access & Opcodes.ACC_ENUM) != 0) names.add(name);
-                        return null;
-                    }
-                }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-                return names;
-            } catch (IOException | RuntimeException failure) {
-                throw bad(entry, path, "packaged enum declarations for " + type.getName(), null, failure);
+        private Value enumValue(Entry entry, Class<?> type, Object input, String path) {
+            String constant = null;
+            if (input instanceof String token) {
+                try {
+                    constant = EnumInputNames.tokens(type).get(token);
+                } catch (RuntimeException failure) {
+                    throw bad(entry, path, "valid packaged enum declarations for " + type.getName(), input, failure);
+                }
             }
+            if (constant == null)
+                throw bad(entry, path, "exact structured enum token of " + type.getName(), input, null);
+            return new EnumValue(type, constant);
         }
 
         private void enter(Object container, String path, Class<?> contract, String name) {

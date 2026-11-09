@@ -34,7 +34,8 @@ public final class Struct {
     private Struct() {}
 
     /**
-     * Defines one exact external token for structured input and generated JSON Schema.
+     * Defines one exact external token for a Schema member or enum constant in structured input and generated JSON Schema.
+     * On an enum constant, replaces its declared name as an input value.
      * Does not rename the Groovy DSL or configure Jackson. The value must be nonempty.
      */
     @Documented

@@ -574,8 +574,10 @@ multi-argument operations, LINK input and unresolved payloads, are omitted with 
 `x-klum-unsupported` annotation. Unknown properties are rejected, rather than represented by permissive placeholders.
 An abstract root, an empty enum or malformed/missing required enrichment fails generation.
 An admitted relationship whose required key cannot be represented also fails, even when the relationship is optional;
-it is not silently omitted as unsupported. Enum names are read without invoking
-`values()` or initializing the enum. No Schema constructors, factories, initializers, defaults, callbacks, converters or
+it is not silently omitted as unsupported. Native enum values use `type: string` and an `enum` assertion listing their
+[effective Structured Input tokens](Structured-Input.md#enum-value-names). An annotated constant contributes only its
+`@Struct.Name` token, while an unannotated constant contributes its declared name. Projection reads the same mapping as
+Structured Input without invoking `values()` or initializing the enum. No Schema constructors, factories, initializers, defaults, callbacks, converters or
 annotation closures execute, including while diagnosing unsupported declarations.
 
 An ordinary unannotated property named `key` is a normal generated property. Actual `@Key` members follow their construction position, as described below.

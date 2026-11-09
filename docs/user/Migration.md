@@ -265,6 +265,13 @@ retain required effective name/exclusion/origin facts, including authored operat
 An ignored key does not remove construction identity obligations. See
 [structured input](Structured-Input.md#literal-names-and-exclusion) and [JSON Schema](Json-Schema.md#literal-names-and-exclusion).
 
+### Enum value names
+
+Adding `@Struct.Name` to an enum constant replaces the constant's spelling in Structured Input. Update existing
+Struct/YAML documents that use its declared name and regenerate the associated JSON Schema. The token applies
+wherever the enum is admitted as a native input value. Ordinary Groovy continues to use its existing enum
+constants and converters. See [enum value names](Structured-Input.md#enum-value-names).
+
 ### Type naming profiles
 
 `@Struct.Naming` now selects type-owned `IDENTITY` or bounded ASCII `KEBAB_CASE` for structured input and JSON Schema.
