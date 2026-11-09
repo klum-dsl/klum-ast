@@ -63,7 +63,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.StringJoiner;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
@@ -363,21 +362,9 @@ final class StructuredInputAdmissionPlan {
     }
 
     private static void enrichFieldDocumentation(FieldNode field, AnnotationNode fact) {
-        AstDocumentation.extractExact(field).map(StructuredInputAdmissionPlan::fieldDescription)
+        AstDocumentation.extractExact(field).map(Documentation::render)
                 .filter(text -> !text.isBlank())
                 .ifPresent(text -> fact.setMember("sourceDocumentation", new ConstantExpression(text)));
-    }
-
-    private static String fieldDescription(Documentation documentation) {
-        List<Documentation.Tag> tags = documentation.getTags();
-        String prose = documentation.toBuilder()
-                .replaceTags(tags.stream().filter(tag -> !tag.getName().equals("deprecated")).toList())
-                .build().render();
-        StringJoiner description = new StringJoiner("\n");
-        if (!prose.isBlank()) description.add(prose);
-        tags.stream().filter(tag -> tag.getName().equals("deprecated") && !tag.getValue().isBlank())
-                .forEach(tag -> description.add("Deprecated: " + tag.getValue()));
-        return description.toString();
     }
 
     private static void enrichKey(ClassNode builder, FieldNode key, AnnotationNode schema) {

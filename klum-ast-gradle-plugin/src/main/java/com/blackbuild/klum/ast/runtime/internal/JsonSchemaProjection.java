@@ -53,11 +53,13 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     private static final String PROPERTIES = "properties";
     private static final String ADDITIONAL_PROPERTIES = "additionalProperties";
     private static final String DESCRIPTION = "description";
+    private static final String DEPRECATED_TAG = "@deprecated";
     private static final String MINIMUM = "minimum";
     private static final String MAXIMUM = "maximum";
     // Skip quoted member values when shortening annotation names or recognizing a compiler closure marker.
     private static final Pattern DECLARATION_TOKEN = Pattern.compile(
-            "\"(?:[^\"\\\\]++|\\\\.)*+\"|@([\\p{javaJavaIdentifierPart}.]+)|(value=<runtime expression: ClosureExpression>)");
+            "\"(?:[^\"\\\\]++|\\\\.)*+\"|@(?<annotation>[\\p{javaJavaIdentifierPart}.]+)"
+                    + "|(?<closure>value=<runtime expression: ClosureExpression>)");
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
     private InputContractResolver resolver;
@@ -133,7 +135,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         TreeSet<String> required = new TreeSet<>();
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
-            appendDescription(key, schema.key().documentation());
+            appendDescription(key, renderAuthoredDescription(schema.key().documentation()));
             deprecate(key, schema.key().sourceDeprecated());
             examples(key, schema.key().examples());
             properties.put(schema.key().externalName(), key);
@@ -167,11 +169,28 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
             value = map(value);
         if (entry.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE)
             value = new LinkedHashMap<>(Map.of("type", "array", "items", value));
-        appendDescription(value, entry.documentation());
+        boolean authoredOperation = entry.role() == CompiledBuilderSchema.Role.OPERATION
+                || entry.role() == CompiledBuilderSchema.Role.COMMAND || entry.role() == CompiledBuilderSchema.Role.VIRTUAL_OBJECT;
+        appendDescription(value, renderAuthoredDescription(authoredOperation ? entry.documentation() : entry.fieldDocumentation()));
         deprecate(value, entry.sourceDeprecated());
         examples(value, entry.examples());
-        constrain(entry, value, groupRedefined);
+        if (!authoredOperation) constrain(entry, value, groupRedefined);
         return value;
+    }
+
+    private static String renderAuthoredDescription(String documentation) {
+        if (documentation == null || !documentation.contains(DEPRECATED_TAG)) return documentation;
+        List<String> lines = new ArrayList<>(documentation.lines().toList());
+        // Normalized Javadoc ends with one line per block tag. Leave occurrences in the body and code blocks alone.
+        for (int i = lines.size() - 1; i >= 0 && lines.get(i).startsWith("@"); i--) {
+            String line = lines.get(i);
+            if (line.equals(DEPRECATED_TAG)) {
+                lines.remove(i);
+            } else if (line.startsWith(DEPRECATED_TAG + " ")) {
+                lines.set(i, "Deprecated: " + line.substring(DEPRECATED_TAG.length() + 1));
+            }
+        }
+        return String.join("\n", lines).stripTrailing();
     }
 
     private static void examples(Map<String, Object> target, List<String> values) {
@@ -188,8 +207,6 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     private void constrain(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined) {
-        if (entry.role() == CompiledBuilderSchema.Role.OPERATION || entry.role() == CompiledBuilderSchema.Role.COMMAND
-                || entry.role() == CompiledBuilderSchema.Role.VIRTUAL_OBJECT) return;
         CompiledBuilderSchema.ConstraintProfile profile = constraintProfiles.get(entry.contract());
         String field = entry.source().substring(entry.source().lastIndexOf('#') + 1);
         CompiledBuilderSchema.FieldConstraints constraints = profile.fields().get(field);
@@ -247,22 +264,31 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
 
     private static String runtimeConstraintDescription(Policy policy, CompiledBuilderSchema.ConstraintRule rule,
                                                        BuiltinConstraintCatalog.Result contribution) {
-        if (rule.annotation().equals(Validate.class.getName())
-                && DECLARATION_TOKEN.matcher(rule.declaration()).results().anyMatch(token -> token.group(2) != null)) {
-            return "custom validation";
-        }
+        if (closureBackedValidation(rule)) return "custom validation";
         String reason = policy == Policy.TEXT_ONLY ? "field projection policy TEXT_ONLY" : contribution.reason();
         String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.owner() + " composing " + rule.declaration();
         return withReason(shortenAnnotations(declaration), reason);
     }
 
+    private static boolean closureBackedValidation(CompiledBuilderSchema.ConstraintRule rule) {
+        if (!rule.annotation().equals(Validate.class.getName())) return false;
+        Matcher token = DECLARATION_TOKEN.matcher(rule.declaration());
+        while (token.find()) {
+            if (token.group("closure") != null) return true;
+        }
+        return false;
+    }
+
     private static String shortenAnnotations(String declaration) {
-        return DECLARATION_TOKEN.matcher(declaration).replaceAll(token -> {
-            String annotation = token.group(1);
-            if (annotation == null) return Matcher.quoteReplacement(token.group());
+        Matcher token = DECLARATION_TOKEN.matcher(declaration);
+        StringBuilder result = new StringBuilder();
+        while (token.find()) {
+            String annotation = token.group("annotation");
+            if (annotation == null) continue;
             String simpleName = annotation.substring(annotation.lastIndexOf('.') + 1).replace('$', '.');
-            return Matcher.quoteReplacement("@" + simpleName);
-        });
+            token.appendReplacement(result, Matcher.quoteReplacement("@" + simpleName));
+        }
+        return token.appendTail(result).toString();
     }
 
     private static String withReason(String declaration, String reason) {

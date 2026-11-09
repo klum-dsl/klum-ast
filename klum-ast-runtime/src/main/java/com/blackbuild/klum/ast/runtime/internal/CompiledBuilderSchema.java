@@ -62,15 +62,19 @@ final class CompiledBuilderSchema {
      */
     record LiteralAlternative(String alias, Payload payload) { }
 
-    /** A selected input use; source identity stays distinct from its effective external name and dispatch handle. */
+    /**
+     * A selected input use; source identity stays distinct from its effective external name and dispatch handle.
+     * Authored field documentation is separate from documentation on the public declaration.
+     */
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
-                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, Map<String, LiteralAlternative> alternatives, boolean rawInputRequired) {
+                 String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples,
+                 Map<String, LiteralAlternative> alternatives, boolean rawInputRequired, String fieldDocumentation) {
         Entry(String externalName, Role role, String source, Class<?> contract, String operation,
               List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
               String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, boolean rawInputRequired) {
             this(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey, fixedChildKey,
-                    nameOrigin, documentation, schemaKey, sourceDeprecated, examples, Map.of(), rawInputRequired);
+                    nameOrigin, documentation, schemaKey, sourceDeprecated, examples, Map.of(), rawInputRequired, null);
         }
         Entry {
             alternatives = Collections.unmodifiableMap(new LinkedHashMap<>(alternatives));

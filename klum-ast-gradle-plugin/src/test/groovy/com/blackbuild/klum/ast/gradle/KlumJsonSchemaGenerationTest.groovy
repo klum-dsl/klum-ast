@@ -388,7 +388,7 @@ klumSchema.jsonSchema {
         'Service'                 | true    | 'Missing constraint count'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     def 'project independent first-level composing constraints without domain classes with Groovy #generation'() {
         given:
         compositionFixture(generation)
@@ -441,7 +441,7 @@ project(':api') {
         properties.'propagation-only'.description.contains('Must be present.')
         properties.'explicit-and'.allOf == [[maximum: 10], [minimum: 1]]
         ['or', 'all-false', 'overridden', 'nested', 'grouped', 'payload', 'repeated', 'size-only'].every {
-            !properties[it].containsKey('allOf') && properties[it].description.contains('Runtime constraint')
+            !properties[it].containsKey('allOf') && properties[it].description.contains('Unenforced constraints:')
         }
         properties.'independent-pattern'.allOf[0].pattern == '^[A-Z]{2}$'
         properties.'independent-pattern'.description.contains('Either')
@@ -629,7 +629,7 @@ tasks.register('exampleControl', JavaExec) {
         'ExampleChild'   | 'owned'  | 'missing'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#conservative-pattern-projection')
     def 'project bounded release identifiers from source-free artifacts with Groovy #generation'() {
@@ -1346,7 +1346,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         }
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#field-constraint-projection')
     def 'choose field constraint projection without changing structural facts with Groovy #generation'() {
@@ -1383,7 +1383,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         schema.get('$defs').get('example.ProjectionChild_DSL$Builder').properties.amount == [type: 'number', description: 'Amount.']
         schema.get('$defs').get('example.ProjectionChild_DSL$Builder').properties.quantity.allOf == [[minimum: 2]]
         !properties.child.containsKey('x-klum-constraint-source')
-        !properties.child.description.contains('Size')
+        !properties.child.containsKey('description')
         !properties.containsKey('hidden')
         !properties.containsKey('collision')
         !root.containsKey('required')
@@ -1422,7 +1422,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         'ProjectionChild' | 'bad-decimal'        | 'Invalid decimal bound'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     def 'project supported numeric bounds and retain unsupported P2 descriptions and source deprecation from binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
@@ -1504,7 +1504,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         properties.oldEndpoint == [type: 'string', deprecated: true]
         properties.legacyEndpoint == [
                 type: 'string',
-                description: 'Previous deployment endpoint.\nDeprecated: Use endpoint instead.',
+                description: 'Previous deployment endpoint.\n\nDeprecated: Use endpoint instead.',
                 deprecated: true
         ]
         properties.bareTag == [type: 'string', deprecated: true]
@@ -1522,7 +1522,7 @@ Unenforced constraints:
         ['oldCount', 'oldTags', 'oldLabels', 'oldMode', 'oldEnabled', 'oldTagsOperation'].every { properties[it].deprecated == true }
         properties.oldTagsOperation.type == 'array'
         !properties.oldTagsOperation.get('items').containsKey('deprecated')
-        properties['old-operation'].deprecated == true
+        properties['old-operation'] == [type: 'string', description: 'Deprecated: Set endpoint directly.', deprecated: true]
         properties['old-child'].subMap(['$ref', 'deprecated']) == ['$ref': '#/$defs/example.P2Child_DSL%24Builder', deprecated: true]
         properties.child.subMap(['$ref', 'deprecated']) == ['$ref': '#/$defs/example.P2Child_DSL%24Builder']
         properties.children.deprecated == true
@@ -1623,7 +1623,7 @@ Unenforced constraints:
         sites
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#decimal-constraints')
     def 'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'() {
@@ -1793,7 +1793,7 @@ Unenforced constraints:
         'Capacity'      | 'field'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     def 'unsupported complete field constraints retain runtime descriptions and effective group context'() {
         given:
         fixture('3', false, true)
@@ -2481,7 +2481,7 @@ import java.lang.annotation.*
     @Deprecated String bareTag
     /** Path to the deployment module. */
     @Validate({ it != 'reserved' })
-    @jakarta.validation.constraints.Size(min=1, message='Use @example.Rule.')
+    @Size(min=1, message='Use @example.Rule.')
     @Pattern(regexp='[a-z]{1,8}') String modulePath
     @Validate(message='Value must be present.') String checked
     @Deprecated int oldCount
@@ -2500,7 +2500,9 @@ import java.lang.annotation.*
     @Builder.Method @JsonProperty('mixed-collision') void mixedOperation(String value) { }
     @Deprecated @Builder.Method @JsonIgnore void hiddenOperation(String value) { }
     @Deprecated @Builder.Method void unsupportedOperation(String first, String second) { }
+    /** @deprecated */
     @Deprecated @Builder.Method void directOperation(String value) { throw new AssertionError('operation executed') }
+    /** @deprecated Set endpoint directly. */
     @Deprecated @Builder.Method @JsonProperty('old-operation') void oldOperation(String text) {
         throw new AssertionError('P2 operation executed')
     }
