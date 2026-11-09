@@ -304,6 +304,13 @@ or a deterministic CharSequence parameter that accepts that same String may serv
 GStrings, arbitrary objects or mutable CharSequence instances into Strings, construct StringBuilder arguments, or treat
 Object/Serializable as a new generic scalar route. Preserve existing exact numeric, boolean and enum input support.
 
+For [#1064](https://github.com/klum-dsl/klum-ast/issues/1064), a direct `@Struct.Name` on an enum constant replaces its
+declared name in the native enum payload grammar. Unannotated constants retain their exact names. The Schema compiler
+rejects empty or duplicate effective tokens when it admits the enum. Import and JSON Schema read the same token mapping
+from enum class declarations without initialization. The selected operation still receives the corresponding enum value.
+Ordinary Groovy dispatch continues to follow its existing typed and converter routes. Alias support and enum converter
+precedence are deferred. [#1065](https://github.com/klum-dsl/klum-ast/issues/1065)
+
 Selection is fixed from the compiled contract, never from runtime value guessing, method enumeration order, method-name
 preferences or “try each converter.” String and CharSequence candidates competing for one external input do not acquire
 an implicit specificity preference. One authoritative mark wins among otherwise eligible operations; more than one mark

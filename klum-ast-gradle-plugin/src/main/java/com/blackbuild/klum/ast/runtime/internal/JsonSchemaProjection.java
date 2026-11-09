@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Validate;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.math.BigDecimal;
@@ -372,8 +371,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     private static Map<String, Object> enumeration(Class<?> type) {
-        List<String> names = Arrays.stream(type.getDeclaredFields()).filter(Field::isEnumConstant)
-                .map(Field::getName).sorted().toList();
+        List<String> names = EnumInputNames.tokens(type).keySet().stream().sorted().toList();
         if (names.isEmpty()) throw new IllegalArgumentException("Empty enum has no representable input values: " + type.getName());
         return new LinkedHashMap<>(Map.of("type", STRING_TYPE, "enum", names));
     }

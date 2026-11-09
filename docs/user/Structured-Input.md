@@ -333,7 +333,7 @@ unchanged: `already_snake` stays as written and `ÅngströmURL` becomes `Ångstr
 transliteration or locale rule. Malformed UTF-16 in transformed native metadata is rejected.
 
 Profiles affect only eligible field, construction-key and admitted authored-operation member names. They add no native-name
-alias. Data Map keys, keyed-instance keys, fixed identity values, enum values and operation Map-payload keys remain literal.
+alias. Data Map keys, keyed-instance keys, fixed identity values, [enum value tokens](#enum-value-names) and operation Map-payload keys remain literal.
 Existing supported nonempty `@JsonProperty` names remain exact; they are never transformed. Empty `@JsonProperty` falls
 back to native/profile spelling. `@JsonIgnore`/`@JsonIgnore(true)` excludes before naming, and `@JsonIgnore(false)` is neutral.
 Naming does not admit otherwise unsupported declarations. Use [literal names and exclusion](#literal-names-and-exclusion)
@@ -552,7 +552,7 @@ Builders reject. Root construction cannot start an independent nested root.
 | --- | --- |
 | String or boolean property/one-payload operation | String or Boolean of the matching kind |
 | Numeric property/one-payload operation | A supported standard Number; integral targets require exact range and no fraction |
-| Enum | An exact declared constant name as a String |
+| Enum | An exact [enum value token](#enum-value-names) as a String |
 | Zero-argument `@Builder.Method` command | An empty Map (`operation: {}` in YAML) |
 | Ordinary List/Map operation argument | One List/Map payload, recursively typed; never spread or treated as named arguments |
 | Supported scalar/enum/data collection field | A List of declared element payloads, added through ordinary generated population |
@@ -590,6 +590,35 @@ Numeric targets are primitive/boxed byte, short, int, long, float and double, pl
 Floating targets reject non-finite/overflow values. Standard numeric input values are Byte, Short, Integer, Long,
 Float, Double, BigInteger and BigDecimal; custom Number subclasses reject. Numeric/boolean strings are not coerced.
 An authored operation can interpret its own admitted String payload, as `endpoint` does above.
+
+### Enum value names
+
+Put `@Struct.Name` on an enum constant to choose its exact token in Structured Input and JSON Schema.
+Unannotated constants use their declared names. The Schema naming profile does not transform enum value tokens.
+
+(See: `StructuredEnumNameTest#'renames an enum value for parsed YAML and keeps ordinary Groovy enum calls'`.)
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class Delivery {
+    ShippingTier tier
+}
+
+enum ShippingTier {
+    @Struct.Name('next-day') NEXT_DAY,
+    ECONOMY
+}
+
+// A YAML parser supplies the Map for `tier: next-day`.
+assert Delivery.Create.FromStruct([tier: 'next-day']).tier == ShippingTier.NEXT_DAY
+assert Delivery.Create.With { tier ShippingTier.NEXT_DAY }.tier == ShippingTier.NEXT_DAY
+```
+
+Structured Input accepts `next-day` and `ECONOMY` for this enum. It rejects `NEXT_DAY`. Empty tokens and collisions
+among effective tokens fail when compiling a Schema that admits the enum, including one supplied by a dependency.
+Ordinary Groovy configuration retains its existing typed enum and converter calls. [#1064](https://github.com/klum-dsl/klum-ast/issues/1064)
 
 ### Converter-backed List elements
 

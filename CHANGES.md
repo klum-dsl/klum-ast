@@ -24,6 +24,9 @@
   Input operations execute in supplied iteration order; a later failure preserves earlier effects on an active Builder,
   while a failed root factory returns no Model. See [naming](docs/user/Structured-Input.md#literal-names-and-exclusion)
   and [ordered failures](docs/user/Migration.md#ordered-structured-input-failures).
+- Use `@Struct.Name` on an enum constant to replace its declared name in Structured Input and generated JSON Schema.
+  Unannotated constants retain their declared names. See [enum value names](docs/user/Structured-Input.md#enum-value-names)
+  ([#1064](https://github.com/klum-dsl/klum-ast/issues/1064)).
 
 ## JSON Schema Support
 
