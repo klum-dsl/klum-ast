@@ -97,6 +97,7 @@ final class BuilderContractReader {
     private static final String OPERATION_FACT = PREFIX + "Operation;";
     private static final String RAW_INPUT_REQUIRED = "rawInputRequired";
     private static final String SOURCE_DEPRECATED = "sourceDeprecated";
+    private static final String SOURCE_DOCUMENTATION = "sourceDocumentation";
     private static final String CONSTRAINT = PREFIX + "Constraint;";
     private static final String CONVERTER = PREFIX + "Converter;";
     private static final String SELECTION = PREFIX + "Selection;";
@@ -120,7 +121,7 @@ final class BuilderContractReader {
     }
 
     /** Field/key and authored-operation names remain separate even on a shared accessor. */
-    record Literals(String location, String key, String field, String selection, String role, String doc,
+    record Literals(String location, String key, String field, String selection, String role, String doc, String sourceDocumentation,
                     NameFacts names, NameFacts operationNames, boolean operationFact, boolean fixed,
                     Boolean schemaKey, boolean rawInputRequired, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
@@ -149,7 +150,7 @@ final class BuilderContractReader {
     }
 
     private static Literals freeze(MutableLiterals value) {
-        return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc,
+        return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc, value.sourceDocumentation,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, Boolean.TRUE.equals(value.rawInputRequired), value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
                 value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternatives, value.sequenceElement);
@@ -284,6 +285,7 @@ final class BuilderContractReader {
         String sequenceElement;
         String role;
         String doc;
+        String sourceDocumentation;
         final MutableNameFacts names = new MutableNameFacts();
         final MutableNameFacts operationNames = new MutableNameFacts();
         boolean operationFact;
@@ -909,6 +911,7 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.key = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case SOURCE_DOCUMENTATION -> sourceDocumentation(value);
                 default -> { if (!nameFact(literal.names, member, value)) throw invalid("Unknown construction key fact " + member); }
             }
         }
@@ -917,6 +920,7 @@ final class BuilderContractReader {
             switch (member) {
                 case VALUE -> literal.field = (String) value;
                 case SOURCE_DEPRECATED -> literal.sourceDeprecated = (Boolean) value;
+                case SOURCE_DOCUMENTATION -> sourceDocumentation(value);
                 case RAW_INPUT_REQUIRED -> {
                     if (!(value instanceof Boolean) || literal.rawInputRequired != null)
                         throw invalid("Duplicate or invalid rawInputRequired fact on " + literal.location);
@@ -946,6 +950,12 @@ final class BuilderContractReader {
                 case "detail" -> literal.detail = (String) value;
                 default -> { if (!nameFact(literal.names, member, value)) throw invalid("Unknown field fact " + member); }
             }
+        }
+
+        private void sourceDocumentation(Object value) {
+            if (!(value instanceof String text) || literal.sourceDocumentation != null)
+                throw invalid("Duplicate or invalid source documentation on " + literal.location);
+            literal.sourceDocumentation = text;
         }
 
         private void selectionFact(String member, Object value) {

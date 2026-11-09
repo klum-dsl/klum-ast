@@ -64,6 +64,8 @@ public final class GeneratedInput {
         boolean ignored() default false;
         /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
+        /** Authored field documentation. Absence carries no description. */
+        String sourceDocumentation() default "";
         /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
         String[] examples() default {};
     }
@@ -85,6 +87,8 @@ public final class GeneratedInput {
         boolean ignored() default false;
         /** Required explicit source declaration fact, never inferred from generated annotations. */
         boolean sourceDeprecated() default false;
+        /** Authored field documentation. Absence carries no description. */
+        String sourceDocumentation() default "";
         /** Ordered documentary strings; explicitly emitted even when the source has no examples. */
         String[] examples() default {};
         /** Raw-input presence policy; omission is canonically false in protocol version 1. */

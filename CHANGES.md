@@ -39,6 +39,9 @@
   See [constraint projection](docs/user/Json-Schema.md#field-constraint-projection) and
   [converter parameters](docs/user/Json-Schema.md#compiled-converter-parameters)
   ([#959](https://github.com/klum-dsl/klum-ast/issues/959), [#981](https://github.com/klum-dsl/klum-ast/issues/981)).
+- Use authored field documentation for generated property descriptions. Keep deprecation advice and runtime-only
+  constraints concise and separate from JSON Schema assertions
+  ([#1063](https://github.com/klum-dsl/klum-ast/issues/1063)).
 - Declare raw-input field presence with `@Struct.Required`, directly or through transitive domain annotations,
   including inherited and renamed fields. JSON Schema `required` means presence, not non-nullness or runtime
   `@Required`/Jakarta validation. Import, defaults and lifecycle behavior are unchanged. Editors and explicitly invoked

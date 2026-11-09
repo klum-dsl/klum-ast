@@ -109,7 +109,7 @@ final class CompiledBuilderSchema {
     }
 
     record Key(String nativeName, String externalName, boolean ignored, String source, Class<?> contract,
-               boolean sourceDeprecated, String ignoreReason, List<String> examples) {
+               boolean sourceDeprecated, String ignoreReason, List<String> examples, String documentation) {
         Key { examples = List.copyOf(examples); }
     }
     record Rejection(String source, String reason, String collisionName) {

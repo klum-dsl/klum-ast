@@ -358,7 +358,7 @@ final class InputContractResolver {
         }
         if (!literal.names().rename().isEmpty() || key.ignored()) return key;
         return new Key(key.nativeName(), InputNamingProfiles.kebab(key.nativeName(), key.source()), key.ignored(),
-                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason(), key.examples());
+                key.source(), key.contract(), key.sourceDeprecated(), key.ignoreReason(), key.examples(), key.documentation());
     }
 
     private static Key inheritKey(Key key, Key inherited) {
@@ -397,7 +397,8 @@ final class InputContractResolver {
 
     private static Key constructionKey(BuilderContext context, Literals literal) {
         return new Key(literal.key(), literal.names().rename().isEmpty() ? literal.key() : literal.names().rename(),
-                literal.names().ignored(), context.model().getName() + "#" + literal.key(), context.builder(), literal.sourceDeprecated(), ignoreReason(literal.names()), literal.examples());
+                literal.names().ignored(), context.model().getName() + "#" + literal.key(), context.builder(), literal.sourceDeprecated(),
+                ignoreReason(literal.names()), literal.examples(), literal.sourceDocumentation());
     }
 
     private void collectDeclarations(BuilderContext context,
@@ -513,7 +514,8 @@ final class InputContractResolver {
         };
         entries.add(new Entry(name, role, source, context.builder(), operation, calls, dispatch, payload,
                 role == Role.KEYED_OWNED_MAP ? String.class.getName() : null, key, literal.fixed() ? field : null,
-                literal.names().origin(), literal.doc(), Boolean.TRUE.equals(literal.schemaKey()), literal.sourceDeprecated(), literal.examples(), literal.rawInputRequired()));
+                literal.names().origin(), literal.sourceDocumentation(), Boolean.TRUE.equals(literal.schemaKey()),
+                literal.sourceDeprecated(), literal.examples(), literal.rawInputRequired()));
     }
 
     /** Resolve only compiler-recorded field/target associations; construction uses the internal owned Map route. */
@@ -538,7 +540,8 @@ final class InputContractResolver {
         String name = literal.names().rename().isEmpty() ? field : literal.names().rename();
         entries.add(new Entry(name, Role.LITERAL_ALTERNATIVE_MAP, source, context.builder(), field, List.of(), null,
                 first.payload(), String.class.getName(), literal.alternatives().get(0).key(), null,
-                literal.names().origin(), literal.doc(), false, literal.sourceDeprecated(), literal.examples(), alternatives, literal.rawInputRequired()));
+                literal.names().origin(), literal.sourceDocumentation(), false, literal.sourceDeprecated(),
+                literal.examples(), alternatives, literal.rawInputRequired()));
     }
 
     private LiteralAlternative resolveAlternative(BuilderContext context, String field, Type fieldType, Literals literal,

@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
+import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.klum.ast.Builder;
 import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
@@ -61,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getFieldType;
@@ -177,7 +180,7 @@ final class StructuredInputAdmissionPlan {
         return descriptor.substring(0, descriptor.indexOf(':'));
     }
 
-    /** Only irreducible source/group facts; signatures, payloads, names of methods and docs stay on declarations. */
+    /** Only irreducible source/group facts; signatures, payloads and method names stay on declarations. */
     private static void enrichPublicContract(DSLASTTransformation transformation, List<Entry> entries, List<Rejection> rejections) {
         ClassNode model = transformation.annotatedClass.redirect();
         ClassNode builder = GeneratedDslSupport.of(model).getBuilderInterface().redirect();
@@ -359,11 +362,30 @@ final class StructuredInputAdmissionPlan {
         fact.setMember("sourceDeprecated", new ConstantExpression(annotation(source, Deprecated.class.getName()) != null));
     }
 
+    private static void enrichFieldDocumentation(FieldNode field, AnnotationNode fact) {
+        AstDocumentation.extractExact(field).map(StructuredInputAdmissionPlan::fieldDescription)
+                .filter(text -> !text.isBlank())
+                .ifPresent(text -> fact.setMember("sourceDocumentation", new ConstantExpression(text)));
+    }
+
+    private static String fieldDescription(Documentation documentation) {
+        List<Documentation.Tag> tags = documentation.getTags();
+        String prose = documentation.toBuilder()
+                .replaceTags(tags.stream().filter(tag -> !tag.getName().equals("deprecated")).toList())
+                .build().render();
+        StringJoiner description = new StringJoiner("\n");
+        if (!prose.isBlank()) description.add(prose);
+        tags.stream().filter(tag -> tag.getName().equals("deprecated") && !tag.getValue().isBlank())
+                .forEach(tag -> description.add("Deprecated: " + tag.getValue()));
+        return description.toString();
+    }
+
     private static void enrichKey(ClassNode builder, FieldNode key, AnnotationNode schema) {
         MethodNode getter = builder.getDeclaredMethod(DslAstHelper.getGetterName(key.getName()), Parameter.EMPTY_ARRAY);
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Key.class));
         fact.setMember(VALUE, new ConstantExpression(key.getName()));
         enrichDeprecation(key, fact);
+        enrichFieldDocumentation(key, fact);
         StructuredInputExamples.enrich(key, key.getOwner(), fact, source(key));
         Name name = externalName(key);
         enrichName(name, fact);
@@ -383,6 +405,7 @@ final class StructuredInputAdmissionPlan {
         AnnotationNode fact = new AnnotationNode(ClassHelper.make(GeneratedInput.Field.class));
         fact.setMember(VALUE, new ConstantExpression(field.getName()));
         enrichDeprecation(field, fact);
+        enrichFieldDocumentation(field, fact);
         StructuredInputExamples.enrich(field, field.getOwner(), fact, source(field));
         Name name = externalName(field);
         enrichName(name, fact);

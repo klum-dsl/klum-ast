@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.Validate;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -39,6 +40,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Private plugin implementation, loaded beside the facade in one isolated unnamed module. */
@@ -52,6 +55,9 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     private static final String DESCRIPTION = "description";
     private static final String MINIMUM = "minimum";
     private static final String MAXIMUM = "maximum";
+    // Skip quoted member values when shortening annotation names or recognizing a compiler closure marker.
+    private static final Pattern DECLARATION_TOKEN = Pattern.compile(
+            "\"(?:[^\"\\\\]++|\\\\.)*+\"|@([\\p{javaJavaIdentifierPart}.]+)|(value=<runtime expression: ClosureExpression>)");
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
     private InputContractResolver resolver;
@@ -127,6 +133,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         TreeSet<String> required = new TreeSet<>();
         if (!keyless && schema.key() != null) {
             Map<String, Object> key = new LinkedHashMap<>(Map.of("type", STRING_TYPE));
+            appendDescription(key, schema.key().documentation());
             deprecate(key, schema.key().sourceDeprecated());
             examples(key, schema.key().examples());
             properties.put(schema.key().externalName(), key);
@@ -160,8 +167,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
             value = map(value);
         if (entry.role() == CompiledBuilderSchema.Role.OWNED_SEQUENCE)
             value = new LinkedHashMap<>(Map.of("type", "array", "items", value));
-        if (entry.documentation() != null && !entry.documentation().isBlank())
-            value.put(DESCRIPTION, entry.documentation());
+        appendDescription(value, entry.documentation());
         deprecate(value, entry.sourceDeprecated());
         examples(value, entry.examples());
         constrain(entry, value, groupRedefined);
@@ -199,6 +205,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                                        CompiledBuilderSchema.FieldConstraints constraints, boolean domainValue) {
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
+        List<String> unenforced = new ArrayList<>();
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
             if (constraints.policy() != Policy.OMIT && !rule.description().isEmpty()) {
                 appendDescription(value, rule.description());
@@ -209,8 +216,11 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                     : BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
             bounds.addAll(contribution.bounds());
             patterns.addAll(contribution.patterns());
-            appendRuntimeConstraintDescription(value, constraints.policy(), rule, contribution);
+            if (!suppressConstraintDescription(constraints.policy(), contribution.projected())) {
+                unenforced.add(runtimeConstraintDescription(constraints.policy(), rule, contribution));
+            }
         }
+        if (!unenforced.isEmpty()) appendDescription(value, "Unenforced constraints:\n- " + String.join("\n- ", unenforced));
         if (constraints.policy() == Policy.PROJECT) {
             conjoinBounds(value, bounds);
             appendConjunction(value, patterns);
@@ -227,20 +237,36 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
             if (converter.policy() == Policy.PROJECT) patterns.addAll(contribution.patterns());
             if (converter.policy() == Policy.TEXT_ONLY || !contribution.projected()) {
                 String reason = converter.policy() == Policy.TEXT_ONLY ? "parameter projection policy TEXT_ONLY" : contribution.reason();
-                appendDescription(value, "Converter parameter constraint (no runtime parameter enforcement; " + reason + "): " + rule.declaration());
+                appendDescription(value, "Converter parameter constraint (no runtime parameter enforcement): "
+                        + withReason(shortenAnnotations(rule.declaration()), reason));
             }
         }
         appendConjunction(value, patterns);
         if (!converter.rules().isEmpty()) value.put("x-klum-converter-constraint-source", converter.source());
     }
 
-    private static void appendRuntimeConstraintDescription(Map<String, Object> value, Policy policy,
-                                                           CompiledBuilderSchema.ConstraintRule rule,
-                                                           BuiltinConstraintCatalog.Result contribution) {
-        if (suppressConstraintDescription(policy, contribution.projected())) return;
+    private static String runtimeConstraintDescription(Policy policy, CompiledBuilderSchema.ConstraintRule rule,
+                                                       BuiltinConstraintCatalog.Result contribution) {
+        if (rule.annotation().equals(Validate.class.getName())
+                && DECLARATION_TOKEN.matcher(rule.declaration()).results().anyMatch(token -> token.group(2) != null)) {
+            return "custom validation";
+        }
         String reason = policy == Policy.TEXT_ONLY ? "field projection policy TEXT_ONLY" : contribution.reason();
         String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.owner() + " composing " + rule.declaration();
-        appendDescription(value, "Runtime constraint (not enforced by this schema; " + reason + "): " + declaration);
+        return withReason(shortenAnnotations(declaration), reason);
+    }
+
+    private static String shortenAnnotations(String declaration) {
+        return DECLARATION_TOKEN.matcher(declaration).replaceAll(token -> {
+            String annotation = token.group(1);
+            if (annotation == null) return Matcher.quoteReplacement(token.group());
+            String simpleName = annotation.substring(annotation.lastIndexOf('.') + 1).replace('$', '.');
+            return Matcher.quoteReplacement("@" + simpleName);
+        });
+    }
+
+    private static String withReason(String declaration, String reason) {
+        return reason == null ? declaration : declaration + " (" + reason + ")";
     }
 
     private static boolean suppressConstraintDescription(Policy policy, boolean projected) {
@@ -267,6 +293,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     private static void appendDescription(Map<String, Object> value, String description) {
+        if (description == null || description.isBlank()) return;
         Object existing = value.get(DESCRIPTION);
         value.put(DESCRIPTION, existing == null || existing.toString().isBlank() ? description : existing + "\n" + description);
     }

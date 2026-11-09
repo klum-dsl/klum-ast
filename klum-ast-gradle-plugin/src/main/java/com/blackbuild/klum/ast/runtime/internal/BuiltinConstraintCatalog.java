@@ -62,7 +62,7 @@ final class BuiltinConstraintCatalog {
                  "jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax" ->
                     projectBound(entry, rule, groupRedefined);
             case "jakarta.validation.constraints.Pattern" -> projectPattern(entry, rule, groupRedefined);
-            default -> unsupported(numericReason(groupRedefined));
+            default -> unsupported(groupRedefined ? "group redefinition/sequence" : null);
         };
     }
 
