@@ -782,6 +782,46 @@ tasks.register('exampleControl', JavaExec) {
         'Release' | 'textOnly' | 'unknown-pattern' | 'Unknown constraint member futurePatternFact'
     }
 
+    @Issue('1068')
+    def 'generate readable nested JSON Schema with stable bytes'() {
+        given:
+        fixture('3')
+        File schemaFile = output('example.Service')
+
+        when:
+        run('generateKlumJsonSchema', '--no-build-cache')
+        byte[] first = schemaFile.bytes
+        String rendered = schemaFile.getText('UTF-8')
+        def schema = document('example.Service')
+        def service = schema.'$defs'.'example.Service_DSL$Builder'
+
+        then:
+        rendered.startsWith('{\n    "$comment": ')
+        rendered.contains('''\
+                "mode": {
+                    "enum": [
+                        "FAST",
+                        "SAFE"
+                    ],
+                    "type": "string"
+                },
+''')
+        rendered.endsWith('    "x-klum-unsupported": {}\n}\n')
+        schema.'$schema' == 'https://json-schema.org/draft/2020-12/schema'
+        schema.'$ref' == '#/$defs/example.Service_DSL%24Builder'
+        service.properties.mode == [enum: ['FAST', 'SAFE'], type: 'string']
+        service.required == ['service/id~']
+        service.additionalProperties == false
+
+        when:
+        assert schemaFile.delete()
+        def regenerated = run('generateKlumJsonSchema', '--no-build-cache')
+
+        then:
+        regenerated.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
+        schemaFile.bytes == first
+    }
+
     @Issue(['529', '950', '954'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')

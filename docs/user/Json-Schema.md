@@ -27,7 +27,8 @@ klumSchema.jsonSchema {
 ```
 
 Run `./gradlew generateKlumJsonSchema` explicitly. The task compiles local classes as needed and writes one file per selected root purpose
-below `build/generated/klum-json-schema`, for example `example.Service.schema.json`. The ordinary
+below `build/generated/klum-json-schema`, for example `example.Service.schema.json`. The generated files use human-readable
+indentation for nested objects and arrays. The ordinary
 `assemble`, `check` and publication lifecycles do not select generation. Filenames retain the fully qualified Model
 name, so Models with identical simple names in different packages produce distinct files; no package directories are
 created. For the adoption example, associate `example.Service.schema.json` with `service.yaml` in your YAML editor. This

@@ -36,12 +36,13 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Private plugin implementation, loaded beside the facade in one isolated unnamed module. */
 final class JsonSchemaProjection implements BiFunction<List<String>, List<String>, Map<String, String>> {
@@ -55,6 +56,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     private static final String DEPRECATED_TAG = "@deprecated";
     private static final String MINIMUM = "minimum";
     private static final String MAXIMUM = "maximum";
+    private static final String JSON_INDENT = "    ";
     // Skip quoted member values when shortening annotation names or recognizing a compiler closure marker.
     private static final Pattern DECLARATION_TOKEN = Pattern.compile(
             "\"(?:[^\"\\\\]++|\\\\.)*+\"|@(?<annotation>[\\p{javaJavaIdentifierPart}.]+)"
@@ -91,7 +93,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                 document.put("$comment", "Raw-input authoring bounds only; "
                         + "defaults, lifecycle, conversion and completed validation are not evaluated.");
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
-                result.put(root + suffix, json(document) + "\n");
+                result.put(root + suffix, json(document, 0) + "\n");
             } catch (ClassNotFoundException | LinkageError | RuntimeException failure) {
                 throw new IllegalArgumentException("Cannot generate JSON Schema for root '" + root
                         + "', key position " + position + "; supply the complete resolved Schema/API/runtime/annotation classpath and recompile with generated input enrichment: "
@@ -406,15 +408,28 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     /** Deterministic JSON with exact numeric values and no rendering dependency in runtime or the plugin. */
-    private static String json(Object value) {
+    private static String json(Object value, int depth) {
         if (value instanceof String string) return quote(string);
-        if (value instanceof Map<?, ?> map)
-            return map.entrySet().stream().sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
-                    .map(entry -> quote(entry.getKey().toString()) + ":" + json(entry.getValue()))
-                    .collect(Collectors.joining(",", "{", "}"));
-        if (value instanceof List<?> list) return list.stream().map(JsonSchemaProjection::json).collect(Collectors.joining(",", "[", "]"));
+        if (value instanceof Map<?, ?> map) {
+            Stream<String> members = map.entrySet().stream()
+                    .sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
+                    .map(entry -> quote(entry.getKey().toString()) + ": " + json(entry.getValue(), depth + 1));
+            return jsonContainer("{", "}", members, depth);
+        }
+        if (value instanceof List<?> list) {
+            return jsonContainer("[", "]", list.stream().map(item -> json(item, depth + 1)), depth);
+        }
         if (value instanceof Boolean || value instanceof BigInteger || value instanceof BigDecimal) return value.toString();
         throw new IllegalArgumentException("Unexpected private JSON value: " + value);
+    }
+
+    private static String jsonContainer(String opening, String closing, Stream<String> entries, int depth) {
+        String closingIndent = "\n" + JSON_INDENT.repeat(depth);
+        String entryIndent = closingIndent + JSON_INDENT;
+        StringJoiner result = new StringJoiner("," + entryIndent, opening + entryIndent, closingIndent + closing)
+                .setEmptyValue(opening + closing);
+        entries.forEachOrdered(result::add);
+        return result.toString();
     }
 
     private static String quote(String value) {
