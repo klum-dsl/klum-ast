@@ -1,0 +1,8 @@
+{
+    "schemaVersion": 1,
+    "stage": "candidate",
+    "version": "4.2.0-rc.2",
+    "sha": "dec5fe7edff82707cd1242381c1b8f776eadb152",
+    "exactPath": "pending/4.2.0-rc.2/dec5fe7edff82707cd1242381c1b8f776eadb152/",
+    "manifestSha256": "fa99e73723277c118961f0988e0dfafe4f54ccd4057d1eb6a6578710a899a5b9"
+}
