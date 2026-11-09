@@ -60,7 +60,8 @@ class BuiltinConstraintCatalogTest extends Specification {
         result.reason() == null
     }
 
-    def 'return a reasoned unsupported result for #annotation: #reason'() {
+    @Issue(['959', '1063'])
+    def 'return unsupported without assertions for #annotation: #reason'() {
         when:
         def result = BuiltinConstraintCatalog.project(entry(type, site), rule(annotation, facts), groupRedefined)
 
@@ -72,7 +73,7 @@ class BuiltinConstraintCatalogTest extends Specification {
 
         where:
         annotation   | type       | site                    | facts                      | groupRedefined | reason
-        'Size'       | String     | [:]                     | [:]                        | false          | 'outside the supported direct numeric, empty groups/payload subset'
+        'Size'       | String     | [:]                     | [:]                        | false          | null
         'Min'        | BigDecimal | [:]                     | [:]                        | false          | 'outside the supported direct numeric, empty groups/payload subset'
         'DecimalMin' | Double     | [:]                     | [:]                        | false          | 'outside the supported direct numeric, empty groups/payload subset'
         'Max'        | Integer    | [role: 'OPERATION']     | [:]                        | false          | 'outside the supported direct numeric, empty groups/payload subset'

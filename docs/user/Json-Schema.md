@@ -275,7 +275,10 @@ Inherited and explicitly renamed members retain their original source associatio
 members follow the existing admission rules. A deprecated relationship marks its property use beside `$ref`, or the
 outer keyed Map property; ordinary sibling uses and shared child definitions receive no inherited deprecation.
 A deprecated construction key is marked only where its actual key property is present; keyless bodies gain no key.
-Existing JavaDoc descriptions are preserved.
+Field and key descriptions use Javadoc from the Schema field declaration. An authored `@deprecated` rationale is
+included as prose. A bare deprecation marker is represented by `deprecated: true`. Binaries compiled before
+the compiler retained field documentation can still generate schemas when their required metadata is complete.
+Recompile them to include authored field descriptions.
 
 The keyword does not reject old input, require a replacement, change requiredness/null admission or invoke runtime
 validation. It changes no defaults, converters, lifecycle or migration behavior. Type-level deprecation and deprecated
@@ -295,7 +298,7 @@ Its nested `Struct.ConstraintProjection.Policy` enum has three values:
 | Policy | Supported hard assertions | Constraint descriptions and source attribution |
 | --- | --- | --- |
 | `PROJECT` (default, also when the annotation is absent) | Project faithfully | Keep fallback descriptions for unsupported forms |
-| `TEXT_ONLY` | Omit | Describe every captured constraint as a runtime constraint not enforced by this schema |
+| `TEXT_ONLY` | Omit | List every captured runtime constraint under `Unenforced constraints:` |
 | `OMIT` | Omit | Omit |
 
 (See: `KlumJsonSchemaGenerationTest#'choose field constraint projection without changing structural facts with Groovy #generation'`.)
@@ -495,10 +498,11 @@ successful files and manifest. Supported numeric constraints are projected faith
 bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
 Root selection, binary inputs and output ownership retain the existing tracked Gradle task contract.
 
-Complete unsupported direct field declarations retain labelled `Runtime constraint (not enforced by this schema)`
-descriptions appended to existing prose. Descriptions identify the annotation and its explicitly authored attributes;
-they do not evaluate annotation defaults or interpret constraint code. Explicit groups/payload (including explicit
-Default groups), unsupported composed/repeatable declarations, Size and unsupported Pattern forms, quantity grammars and relationship closures
+Complete unsupported direct field declarations appear under `Unenforced constraints:` after the authored prose.
+Entries use unqualified annotation names and show explicitly authored attributes when available. A closure-backed
+`@Validate` appears as `custom validation`. Generation does not evaluate annotation defaults or constraint code.
+Explicit groups/payload (including explicit Default groups), unsupported composed/repeatable declarations, Size and
+unsupported Pattern forms, quantity grammars and relationship closures
 receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
 relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
 Issue [#959](https://github.com/klum-dsl/klum-ast/issues/959) remains open for these broader decisions.

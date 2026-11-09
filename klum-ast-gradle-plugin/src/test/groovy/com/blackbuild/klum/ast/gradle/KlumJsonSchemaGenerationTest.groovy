@@ -58,7 +58,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
     File trap
     boolean packagedPlugin
 
-    @Issue('1055')
+    @Issue(['1055', '1063'])
     def 'project raw-input presence only in effective containing objects with #presenceForm markers and Groovy #generation'() {
         given:
         fixture(generation, false, false, false, false, false, false, false, false, false, false, presenceForm)
@@ -91,7 +91,7 @@ klumSchema.jsonSchema {
         !root.properties.containsKey('displayName')
         !root.properties.containsKey('explicitName')
         root.properties.'a-label' == [type: 'string', description: 'Author label.', deprecated: true, examples: ['outside']]
-        root.properties.omitted == [type: 'string', description: 'Returns the omitted.']
+        root.properties.omitted == [type: 'string']
         root.properties.'text-only'.description.contains('field projection policy TEXT_ONLY')
         owner.required == ['children', 'mandatory', 'sequence']
         child.required == ['child-code', 'child-id']
@@ -388,7 +388,7 @@ klumSchema.jsonSchema {
         'Service'                 | true    | 'Missing constraint count'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     def 'project independent first-level composing constraints without domain classes with Groovy #generation'() {
         given:
         compositionFixture(generation)
@@ -441,7 +441,7 @@ project(':api') {
         properties.'propagation-only'.description.contains('Must be present.')
         properties.'explicit-and'.allOf == [[maximum: 10], [minimum: 1]]
         ['or', 'all-false', 'overridden', 'nested', 'grouped', 'payload', 'repeated', 'size-only'].every {
-            !properties[it].containsKey('allOf') && properties[it].description.contains('Runtime constraint')
+            !properties[it].containsKey('allOf') && properties[it].description.contains('Unenforced constraints:')
         }
         properties.'independent-pattern'.allOf[0].pattern == '^[A-Z]{2}$'
         properties.'independent-pattern'.description.contains('Either')
@@ -629,7 +629,7 @@ tasks.register('exampleControl', JavaExec) {
         'ExampleChild'   | 'owned'  | 'missing'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#conservative-pattern-projection')
     def 'project bounded release identifiers from source-free artifacts with Groovy #generation'() {
@@ -660,19 +660,19 @@ tasks.register('exampleControl', JavaExec) {
         ['flagged', 'unix', 'multiline', 'dotall', 'unicode-case', 'canonical'].every { properties[it].description.contains('nonempty Pattern flags') && !properties[it].containsKey('allOf') }
         properties.'constant-fallback'.description.contains('regexp="[a-z][a-z0-9-]{0,62}"')
         properties.payload.description.contains('groups/payload')
-        properties.composed.description.contains('@example.ComposedPattern()')
+        properties.composed.description.contains('@ComposedPattern()')
         properties.composed.allOf[0].pattern == '^a$'
-        properties.alias.description.contains('@example.AliasedPattern()')
+        properties.alias.description.contains('@AliasedPattern()')
         !properties.alias.containsKey('allOf')
         properties.controls.description.contains('regexp="a\\u000a"')
         properties.grouped.description.contains('groups/payload')
         properties.unbounded.description.contains('unsupported Pattern source syntax')
         properties.malformed.description.contains('regexp="["')
-        properties.repeated.description.contains('Pattern$List')
-        properties.'singleton-list'.description.contains('Pattern$List')
+        properties.repeated.description.contains('Pattern.List')
+        properties.'singleton-list'.description.contains('Pattern.List')
         !properties.'singleton-list'.containsKey('allOf')
         !properties.'mixed-list'.containsKey('allOf')
-        properties.'mixed-list'.description.contains('Pattern$List')
+        properties.'mixed-list'.description.contains('Pattern.List')
         properties.'text-only'.description.contains('field projection policy TEXT_ONLY')
         properties.omitted == [type: 'string', description: 'Retained prose.', deprecated: true, examples: ['outside']]
         !properties.containsKey('excluded')
@@ -1346,7 +1346,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         }
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#field-constraint-projection')
     def 'choose field constraint projection without changing structural facts with Groovy #generation'() {
@@ -1368,13 +1368,13 @@ tasks.register('rejectedNamingControl', JavaExec) {
         properties.'replica-count'.maximum == 2147483647
         !properties.'replica-count'.containsKey('allOf')
         properties.'replica-count'.description.startsWith('Desired replica count.')
-        properties.'replica-count'.description.contains('Runtime constraint (not enforced by this schema; field projection policy TEXT_ONLY): @jakarta.validation.constraints.Min(value=1)')
+        properties.'replica-count'.description.contains('@Min(value=1) (field projection policy TEXT_ONLY)')
         properties.'replica-count'.deprecated == true
         properties.omitted == [type: 'integer', minimum: -2147483648, maximum: 2147483647, description: 'Private capacity rule.', deprecated: true]
         properties.decimalText.type == 'number'
         !properties.decimalText.containsKey('exclusiveMinimum')
         properties.decimalText.description.contains('DecimalMin(inclusive=false, value="0.10")')
-        properties.propagatedText.description.contains('@jakarta.validation.constraints.NotNull()')
+        properties.propagatedText.description.contains('@NotNull()')
         properties.propagatedOmit == [type: 'string', description: 'Required label.']
         properties.directText.description == properties.propagatedText.description
         properties.directOmit == properties.propagatedOmit
@@ -1383,7 +1383,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         schema.get('$defs').get('example.ProjectionChild_DSL$Builder').properties.amount == [type: 'number', description: 'Amount.']
         schema.get('$defs').get('example.ProjectionChild_DSL$Builder').properties.quantity.allOf == [[minimum: 2]]
         !properties.child.containsKey('x-klum-constraint-source')
-        !properties.child.description.contains('Size')
+        !properties.child.containsKey('description')
         !properties.containsKey('hidden')
         !properties.containsKey('collision')
         !root.containsKey('required')
@@ -1422,7 +1422,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         'ProjectionChild' | 'bad-decimal'        | 'Invalid decimal bound'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     def 'project supported numeric bounds and retain unsupported P2 descriptions and source deprecation from binaries with Groovy #generation'() {
         given:
         fixture(generation, false, true, true)
@@ -1446,10 +1446,10 @@ tasks.register('rejectedNamingControl', JavaExec) {
         properties.code.description.contains('CASE_INSENSITIVE')
         !properties.code.containsKey('pattern')
         properties.groupedDecimal.description.contains('groups=example.Later')
-        properties.repeatedDecimal.description.contains('DecimalMin$List(value=[')
+        properties.repeatedDecimal.description.contains('DecimalMin.List(value=[')
         properties.warningSize.description.contains('payload=example.Warning')
-        properties.repeatedPattern.description.contains('Pattern$List(value=[')
-        properties.composedPattern.description.contains('@example.P2Pattern()')
+        properties.repeatedPattern.description.contains('@Pattern.List(value=[@Pattern(regexp="a"), @Pattern(regexp="b")])')
+        properties.composedPattern.description.contains('@P2Pattern()')
         !properties.composedPattern.containsKey('pattern')
         properties['inherited-size'].description.contains('Size(min=1)')
         properties['inherited-size']['x-klum-constraint-source'] == 'example.CapacityBase#inheritedWords'
@@ -1477,7 +1477,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         generation << ['3', '4', '5']
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#deprecation')
     def 'deprecated Schema members remain admitted with advisory metadata by default with Groovy #generation'() {
@@ -1501,18 +1501,28 @@ tasks.register('rejectedNamingControl', JavaExec) {
 
         then:
         result.task(':generateKlumJsonSchema').outcome == TaskOutcome.SUCCESS
-        properties.oldEndpoint.type == 'string'
-        properties.oldEndpoint.deprecated == true
-        properties.oldEndpoint.description.startsWith('Returns the oldEndpoint.')
-        properties.endpoint.type == 'string'
-        !properties.endpoint.containsKey('deprecated')
+        properties.oldEndpoint == [type: 'string', deprecated: true]
+        properties.legacyEndpoint == [
+                type: 'string',
+                description: 'Previous deployment endpoint.\n\nDeprecated: Use endpoint instead.',
+                deprecated: true
+        ]
+        properties.bareTag == [type: 'string', deprecated: true]
+        properties.endpoint == [type: 'string']
+        properties.modulePath.description == '''Path to the deployment module.
+Unenforced constraints:
+- custom validation
+- @Size(message="Use @example.Rule.", min=1)'''
+        properties.modulePath.allOf*.pattern.findAll() == ['^[a-z]{1,8}$']
+        !properties.modulePath.containsKey('minLength')
+        properties.checked.description == 'Unenforced constraints:\n- @Validate(message="Value must be present.")'
         properties['old-inherited'].deprecated == true
         properties['old-inherited-operation'].deprecated == true
         properties.directOperation == [type: 'string', deprecated: true]
         ['oldCount', 'oldTags', 'oldLabels', 'oldMode', 'oldEnabled', 'oldTagsOperation'].every { properties[it].deprecated == true }
         properties.oldTagsOperation.type == 'array'
         !properties.oldTagsOperation.get('items').containsKey('deprecated')
-        properties['old-operation'].deprecated == true
+        properties['old-operation'] == [type: 'string', description: 'Deprecated: Set endpoint directly.', deprecated: true]
         properties['old-child'].subMap(['$ref', 'deprecated']) == ['$ref': '#/$defs/example.P2Child_DSL%24Builder', deprecated: true]
         properties.child.subMap(['$ref', 'deprecated']) == ['$ref': '#/$defs/example.P2Child_DSL%24Builder']
         properties.children.deprecated == true
@@ -1525,7 +1535,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         !child.properties.value.containsKey('deprecated')
         !keylessChild.properties.containsKey('name')
         !keylessChild.containsKey('deprecated')
-        fallback.properties['legacy-id'] == [type: 'string', deprecated: true]
+        fallback.properties['legacy-id'] == [type: 'string', description: 'Legacy service identity.', deprecated: true]
         fallback.required == ['legacy-id']
         document('example.DeprecatedFieldOverlap').get('$defs').get('example.DeprecatedFieldOverlap_DSL$Builder').properties.key.deprecated == true
         !document('example.DeprecatedFieldOverlap').get('$defs').get('example.DeprecatedFieldOverlap_DSL$Builder').properties.setKey.containsKey('deprecated')
@@ -1540,6 +1550,15 @@ tasks.register('rejectedNamingControl', JavaExec) {
         !new File(consumer, 'src').exists()
         !new File(producer, 'api/src').exists()
         !new File(producer, 'schema/src').exists()
+
+        when: 'a prior binary has accessor Javadoc but no field documentation fact'
+        stripConstraintFacts('P2', 'source-documentation', 'modulePath')
+        run('generateKlumJsonSchema')
+        def olderProperty = document('example.P2').'$defs'.'example.P2_DSL$Builder'.properties.modulePath
+
+        then:
+        olderProperty.description == properties.modulePath.description.readLines().drop(1).join('\n')
+        olderProperty.allOf == properties.modulePath.allOf
 
         where:
         generation << ['3', '4', '5']
@@ -1604,7 +1623,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         sites
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#decimal-constraints')
     def 'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'() {
@@ -1646,7 +1665,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         properties.composed.minimum == 1G
         ['text', 'floating', 'doubleValue', 'grouped', 'payloadBound', 'repeated'].every {
             !properties[it].containsKey('exclusiveMinimum') && !properties[it].containsKey('minimum')
-                    && properties[it].description.contains('Runtime constraint (not enforced by this schema')
+                    && properties[it].description.contains('Unenforced constraints:')
         }
         properties.operation.type == 'number' && !properties.operation.containsKey('minimum')
         !root.containsKey('required')
@@ -1774,7 +1793,7 @@ tasks.register('rejectedNamingControl', JavaExec) {
         'Capacity'      | 'field'
     }
 
-    @Issue('959')
+    @Issue(['959', '1063'])
     def 'unsupported complete field constraints retain runtime descriptions and effective group context'() {
         given:
         fixture('3', false, true)
@@ -1802,12 +1821,12 @@ klumSchema.jsonSchema {
         !root.properties.numericText.containsKey('minimum')
         root.properties.grouped.description.contains('groups=')
         root.properties.warning.description.contains('payload=')
-        root.properties.composed.description.contains('example.Percentage')
-        root.properties.repeated.description.contains('Min$List')
-        root.properties.customRepeated.description.contains('example.Rules')
+        root.properties.composed.description.contains('@Percentage()')
+        root.properties.repeated.description.contains('Min.List')
+        root.properties.customRepeated.description.contains('@Rules(')
         root.properties.numericText.description.contains('Numeric text documentation.')
         ['grouped', 'explicitDefault', 'warning', 'composed', 'repeated', 'customRepeated', 'decimal', 'numericText', 'needed', 'requiredText'].every {
-            root.properties[it].description.contains('Runtime constraint (not enforced by this schema')
+            root.properties[it].description.contains('Unenforced constraints:')
         }
         !root.containsKey('required')
         sequenced.properties.'inherited-percent'.minimum == -2147483648
@@ -2453,6 +2472,18 @@ import java.lang.annotation.*
     P2Child child
     P2InheritedKey inheritedChild
     @Deprecated String oldEndpoint
+    /**
+     * Previous deployment endpoint.
+     * @deprecated Use endpoint instead.
+     */
+    @Deprecated String legacyEndpoint
+    /** @deprecated */
+    @Deprecated String bareTag
+    /** Path to the deployment module. */
+    @Validate({ it != 'reserved' })
+    @Size(min=1, message='Use @example.Rule.')
+    @Pattern(regexp='[a-z]{1,8}') String modulePath
+    @Validate(message='Value must be present.') String checked
     @Deprecated int oldCount
     @Deprecated List<String> oldTags
     @Deprecated Map<String, String> oldLabels
@@ -2469,7 +2500,9 @@ import java.lang.annotation.*
     @Builder.Method @JsonProperty('mixed-collision') void mixedOperation(String value) { }
     @Deprecated @Builder.Method @JsonIgnore void hiddenOperation(String value) { }
     @Deprecated @Builder.Method void unsupportedOperation(String first, String second) { }
+    /** @deprecated */
     @Deprecated @Builder.Method void directOperation(String value) { throw new AssertionError('operation executed') }
+    /** @deprecated Set endpoint directly. */
     @Deprecated @Builder.Method @JsonProperty('old-operation') void oldOperation(String text) {
         throw new AssertionError('P2 operation executed')
     }
@@ -2484,7 +2517,11 @@ import java.lang.annotation.*
     String key
     @Deprecated @Builder.Method void setKey(String value) { this.key = value }
 }
-@DSL class DeprecatedFallbackKey { @Deprecated @Key @JsonProperty('legacy-id') String key; String value }
+@DSL class DeprecatedFallbackKey {
+    /** Legacy service identity. */
+    @Deprecated @Key @JsonProperty('legacy-id') String key
+    String value
+}
 @Constraint(validatedBy=[]) @Pattern(regexp='a')
 @Retention(RetentionPolicy.RUNTIME)
 @Target([ElementType.FIELD])
@@ -3489,6 +3526,9 @@ class InitializationControl {
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                                             @Override void visit(String member, Object value) {
+                                                if (kind == 'source-documentation' && member == 'sourceDocumentation') {
+                                                    return
+                                                }
                                                 if (kind == 'presence' && member == 'rawInputRequired') {
                                                     return
                                                 }
