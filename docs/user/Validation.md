@@ -517,8 +517,9 @@ There are different levels for validation problems: INFO, WARNING, DEPRECATION, 
 Usually, validation problems are considered errors, but you can use the `level` parameter of the `@Validate` (or `@Required`) annotation to change this. 
 
 In the normal case, only errors lead to a `KlumValidationException` being thrown, but all validation problems are collected
-in `KlumValidationResult` objects. Use `KlumObjectSupport.of(object).getValidation().getResult()` for one object or
-`getSubtreeResults()` for that object and its owned subtree.
+in `KlumValidationResult` objects. Use `KlumObjectSupport.of(object).getValidation().getResult()` for one object.
+`getSubtreeResults()` returns every stored validation result for that object and its owned composition subtree,
+including clean results with no issues. Objects without a stored result are omitted.
 
 (See: `ValidationPolicyDocumentaryTest#'records a warning-level validation result without failing construction'`.)
 

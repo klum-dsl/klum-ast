@@ -141,7 +141,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         ''', 'cannot find symbol')
     }
 
-    @Issue(["549", "657"])
+    @Issue(["549", "657", "1070"])
     def "validation support distinguishes its result from subtree results without rerunning validation"() {
         given:
         createClass '''
@@ -187,9 +187,10 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         }
         def support = KlumObjectSupport.of(instance)
         def childSupport = KlumObjectSupport.of(instance.child)
+        def cleanSupport = KlumObjectSupport.of(instance.clean)
         def storedRootResult = support.validation.result
         def storedChildResult = childSupport.validation.result
-        def storedCleanResult = KlumObjectSupport.of(instance.clean).validation.result
+        def storedCleanResult = cleanSupport.validation.result
         def rootIssues = storedRootResult.issues.toList()
         def childIssues = storedChildResult.issues.toList()
 
@@ -197,6 +198,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         def result = support.validation.result
         def subtreeResults = support.validation.subtreeResults
         def childSubtreeResults = childSupport.validation.subtreeResults
+        def cleanSubtreeResults = cleanSupport.validation.subtreeResults
         def verified = support.validation.verify()
         compileJavaConsumer('''
             import com.blackbuild.klum.ast.Validate;
@@ -230,9 +232,12 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         Root.validationCalls == 1
         Child.validationCalls == 1
         CleanChild.validationCalls == 1
-        storedCleanResult.issues.empty
         storedRootResult.issues.toList() == rootIssues
         storedChildResult.issues.toList() == childIssues
+
+        and: 'a subtree with no issues still returns its stored result'
+        storedCleanResult.issues.empty
+        cleanSubtreeResults == [storedCleanResult]
 
         when:
         support.validation.verify(Validate.Level.WARNING)
