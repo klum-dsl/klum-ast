@@ -364,11 +364,11 @@ class Topic {
 // name: type string, allOf [{pattern: '\\S'}]
 ```
 
-This is a pragmatic editor-facing approximation. JSON Schema regex and Bean Validation need not classify every unusual
-Unicode whitespace character identically; completed-Model Bean Validation remains authoritative. Direct singleton
-constraints with empty groups/payload qualify. A first-level AND-composed `NotBlank` participates only through the
-existing supported composition path. Grouped, payload-bearing, repeated, uncertain-origin, non-String and unsupported-site
-forms retain the normal descriptive fallback.
+The pattern gives editors pragmatic feedback. JSON Schema and Bean Validation can differ in how they handle Unicode
+whitespace and regex escaping. Bean Validation remains authoritative for the completed Model. Direct singleton constraints
+with empty groups/payload and [eligible first-level AND compositions](#composed-constraints-and-documentary-meta-annotations)
+can project the pattern. Grouped, payload-bearing, repeated, uncertain-origin, non-String and unsupported-site forms retain
+the normal descriptive fallback.
 
 `TEXT_ONLY` keeps the constraint as descriptive text without the pattern; `OMIT` removes constraint-derived output.
 Neither `NotBlank` nor its pattern adds JSON Schema `required`. Omission remains allowed unless the field independently
@@ -434,10 +434,15 @@ annotation a **composed constraint** and its hosted constraints **composing cons
 converts supported facts into JSON Schema output. **Propagated annotation** refers specifically to
 [`@PropagateAnnotation`](Annotation-Propagation.md); Bean Validation composition does not copy annotations onto Schema fields.
 
-On ordinary supported Schema fields, first-level composing Jakarta `Min`, `Max`, `DecimalMin`, `DecimalMax` and bounded
-`Pattern` use the existing built-in mappings and all their type, numeric precision, group, regex and structural safeguards.
-Default Bean Validation AND composition and explicit Hibernate `ConstraintComposition(AND)` are supported. Each supported
-constituent is independent: two minima remain two assertions, and `Min(10)` plus `Max(5)` remains a valid schema rejecting
+On ordinary supported Schema fields, first-level composing Jakarta `Min`, `Max`, `DecimalMin`, `DecimalMax`,
+`NotBlank` and bounded `Pattern` use the existing built-in mappings and all their type, numeric precision, group,
+regex and structural safeguards. Default Bean Validation AND composition and explicit Hibernate
+`ConstraintComposition(AND)` are supported. For example, if a domain constraint `@MandatoryInput` carries
+`@NotBlank` and `@ReportAsSingleViolation`, applying it to an admitted ordinary `String` field projects the same
+[non-blank pattern](#non-blank-string-constraints) as direct `@NotBlank` when the composition qualifies under `PROJECT`.
+`@ReportAsSingleViolation` controls how Bean Validation reports violations.
+
+Each supported constituent is independent: two minima remain two assertions, and `Min(10)` plus `Max(5)` remains a valid schema rejecting
 every supplied value. Generation does not reduce constraints or solve satisfiability. An independent direct constraint
 keeps its assertion even beside an unsupported composed branch. Unsupported constituents such as Email and Size retain
 runtime descriptions; Pattern-plus-Email has no inferred `format` assertion.
