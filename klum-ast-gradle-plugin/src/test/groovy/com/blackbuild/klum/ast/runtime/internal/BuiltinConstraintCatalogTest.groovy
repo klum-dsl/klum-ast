@@ -101,6 +101,8 @@ class BuiltinConstraintCatalogTest extends Specification {
         'Pattern'    | String     | [:]                     | [regexp: 'a{256}']         | false          | 'Pattern admission ceiling'
         'NotBlank'   | Integer    | [:]                     | [:]                        | false          | 'unsupported NotBlank site/type'
         'NotBlank'   | String     | [role: 'OPERATION']     | [:]                        | false          | 'unsupported NotBlank site/type'
+        'NotBlank'   | String     | [kind: 'LIST']          | [:]                        | false          | 'unsupported NotBlank site/type'
+        'NotBlank'   | String     | [schemaKey: true]       | [:]                        | false          | 'unsupported NotBlank site/type'
         'NotBlank'   | String     | [:]                     | [plain: false]             | false          | 'NotBlank not a direct singleton, nonempty groups/payload or group redefinition/sequence'
         'NotBlank'   | String     | [:]                     | [:]                        | true           | 'NotBlank not a direct singleton, nonempty groups/payload or group redefinition/sequence'
     }

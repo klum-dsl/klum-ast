@@ -40,6 +40,7 @@ import java.util.Set;
 final class BuiltinConstraintCatalog {
     private static final String MINIMUM = "minimum";
     private static final String MAXIMUM = "maximum";
+    private static final String PATTERN = "pattern";
     private static final Set<Class<?>> INTEGRAL_TYPES = Set.of(byte.class, Byte.class, short.class, Short.class,
             int.class, Integer.class, long.class, Long.class, BigInteger.class);
 
@@ -76,7 +77,7 @@ final class BuiltinConstraintCatalog {
         if (!rule.eligible() || groupRedefined) {
             return unsupported("NotBlank not a direct singleton, nonempty groups/payload or group redefinition/sequence");
         }
-        return new Result(List.of(), List.of(Map.of("pattern", "\\S")), null);
+        return new Result(List.of(), List.of(Map.of(PATTERN, "\\S")), null);
     }
 
     private static Result projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
@@ -113,8 +114,8 @@ final class BuiltinConstraintCatalog {
         if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return unsupported("nonempty Pattern flags");
         BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
         if (result.reason() != null) return unsupported(result.reason());
-        return new Result(List.of(), List.of(Map.of("pattern", result.assertion()),
-                Map.of("not", Map.of("type", "string", "pattern", "[^ -~]"))), null);
+        return new Result(List.of(), List.of(Map.of(PATTERN, result.assertion()),
+                Map.of("not", Map.of("type", "string", PATTERN, "[^ -~]"))), null);
     }
 
     private static Result bound(String keyword, BigDecimal value) {
