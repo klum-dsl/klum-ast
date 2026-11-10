@@ -33,10 +33,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.List;
+import java.util.Set;
 
 /** Transient compiler-only fact contributed through KlumCast before annotation collector rewriting. */
 final class StructuredInputSourceOrigins {
     private static final String ORIGINALS = StructuredInputSourceOrigins.class.getName();
+    private static final String NOT_BLANK = "jakarta.validation.constraints.NotBlank";
 
     private StructuredInputSourceOrigins() { }
 
@@ -46,7 +48,8 @@ final class StructuredInputSourceOrigins {
     @interface OriginalDeclarations { }
 
     static boolean needed(List<AnnotationNode> annotations) {
-        return annotations.stream().anyMatch(annotation -> annotation.getClassNode().getName().equals("jakarta.validation.constraints.Pattern")
+        return annotations.stream().anyMatch(annotation -> Set.of(NOT_BLANK, "jakarta.validation.constraints.Pattern")
+                .contains(annotation.getClassNode().getName())
                 || !annotation.getClassNode().getAnnotations(ClassHelper.make(AnnotationCollector.class)).isEmpty()
                 || composedConstraint(annotation));
     }

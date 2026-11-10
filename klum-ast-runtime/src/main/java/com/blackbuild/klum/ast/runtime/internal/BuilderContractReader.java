@@ -850,7 +850,8 @@ final class BuilderContractReader {
                 throw invalidConstraint(field, "Missing direct Pattern facts (regexp/patternFlagsEmpty)");
             if (!pattern && (regexp != null || patternFlagsEmpty != null))
                 throw invalidConstraint(field, "Pattern facts on a non-Pattern declaration");
-            if (plain && !pattern && !decimalRule(annotation) && (!integral
+            boolean notBlank = annotation.equals("jakarta.validation.constraints.NotBlank");
+            if (plain && !pattern && !notBlank && !decimalRule(annotation) && (!integral
                     || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
             validateOrigin();
             field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty,

@@ -35,13 +35,15 @@
   Builder bodies. Generation follows the admitted Struct shapes, names and construction-key positions, including binary
   dependencies, without initializing or executing Schema code. See [JSON Schema generation](docs/user/Json-Schema.md)
   ([#529](https://github.com/klum-dsl/klum-ast/issues/529), [#953](https://github.com/klum-dsl/klum-ast/issues/953)).
-- Project supported Jakarta numeric bounds, conservative String Pattern assertions and first-level AND compositions,
+- Project supported Jakarta numeric bounds, pragmatic `@NotBlank`, conservative String Pattern assertions and first-level AND compositions,
   including constraints on qualified String-converter parameters. `@Struct.ConstraintProjection` selects assertion,
   description-only or omitted constraint output; unsupported forms remain descriptive where policy permits. Add
   documentary String examples, constraint descriptions and advisory deprecation without changing runtime validation or defaults.
-  See [constraint projection](docs/user/Json-Schema.md#field-constraint-projection) and
+  See [constraint projection](docs/user/Json-Schema.md#field-constraint-projection),
+  [non-blank Strings](docs/user/Json-Schema.md#non-blank-string-constraints) and
   [converter parameters](docs/user/Json-Schema.md#compiled-converter-parameters)
-  ([#959](https://github.com/klum-dsl/klum-ast/issues/959), [#981](https://github.com/klum-dsl/klum-ast/issues/981)).
+  ([#959](https://github.com/klum-dsl/klum-ast/issues/959), [#981](https://github.com/klum-dsl/klum-ast/issues/981),
+  [#1074](https://github.com/klum-dsl/klum-ast/issues/1074)).
 - Use authored field documentation for generated property descriptions. Keep deprecation advice and runtime-only
   constraints concise and separate from JSON Schema assertions. Render retained constraints as annotation lines with commas
   on every line except the last, omit empty parentheses, order composing provenance as inner via outer, and suppress only

@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Closed, stateless plugin catalog for already-qualified numeric and ASCII-BOUNDED-1 Pattern mappings.
+ * Closed, stateless plugin catalog for already-qualified numeric, NotBlank and ASCII-BOUNDED-1 Pattern mappings.
  * Consumes validated inert facts at one effective field use; never reads bytes, reflects annotations or executes
  * Schema/validator code. The compiler, contract reader and interpreter have no dependency on this catalog.
  * Results own immutable assertion data or the existing descriptive unsupported reason. The renderer alone applies
@@ -40,6 +40,7 @@ import java.util.Set;
 final class BuiltinConstraintCatalog {
     private static final String MINIMUM = "minimum";
     private static final String MAXIMUM = "maximum";
+    private static final String PATTERN = "pattern";
     private static final Set<Class<?>> INTEGRAL_TYPES = Set.of(byte.class, Byte.class, short.class, Short.class,
             int.class, Integer.class, long.class, Long.class, BigInteger.class);
 
@@ -62,8 +63,21 @@ final class BuiltinConstraintCatalog {
                  "jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax" ->
                     projectBound(entry, rule, groupRedefined);
             case "jakarta.validation.constraints.Pattern" -> projectPattern(entry, rule, groupRedefined);
+            case "jakarta.validation.constraints.NotBlank" -> projectNotBlank(entry, rule, groupRedefined);
             default -> unsupported(groupRedefined ? "group redefinition/sequence" : null);
         };
+    }
+
+    private static Result projectNotBlank(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
+                                          boolean groupRedefined) {
+        if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
+                || entry.payload().type() != String.class || entry.schemaKey()) {
+            return unsupported("unsupported NotBlank site/type");
+        }
+        if (!rule.eligible() || groupRedefined) {
+            return unsupported("NotBlank not a direct singleton, nonempty groups/payload or group redefinition/sequence");
+        }
+        return new Result(List.of(), List.of(Map.of(PATTERN, "\\S")), null);
     }
 
     private static Result projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
@@ -100,8 +114,8 @@ final class BuiltinConstraintCatalog {
         if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return unsupported("nonempty Pattern flags");
         BoundedAsciiPattern.Result result = BoundedAsciiPattern.recognize(rule.regexp());
         if (result.reason() != null) return unsupported(result.reason());
-        return new Result(List.of(), List.of(Map.of("pattern", result.assertion()),
-                Map.of("not", Map.of("type", "string", "pattern", "[^ -~]"))), null);
+        return new Result(List.of(), List.of(Map.of(PATTERN, result.assertion()),
+                Map.of("not", Map.of("type", "string", PATTERN, "[^ -~]"))), null);
     }
 
     private static Result bound(String keyword, BigDecimal value) {

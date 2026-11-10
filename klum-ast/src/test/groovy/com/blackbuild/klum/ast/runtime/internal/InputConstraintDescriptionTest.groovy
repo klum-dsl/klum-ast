@@ -72,6 +72,52 @@ class InputConstraintDescriptionTest extends AbstractDSLSpec {
 
     }
 
+    @Issue('1074')
+    def 'retains direct and grouped NotBlank eligibility in compiled constraint facts'() {
+        given:
+        createSecondaryClass('''
+            package jakarta.validation
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.ANNOTATION_TYPE)
+            @interface Constraint { Class[] validatedBy() default [] }
+        ''')
+        createSecondaryClass('''
+            package jakarta.validation.constraints
+            import jakarta.validation.Constraint
+            import java.lang.annotation.*
+            @Constraint @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.FIELD, ElementType.METHOD, ElementType.ANNOTATION_TYPE])
+            @interface NotBlank {
+                Class[] groups() default []
+                Class[] payload() default []
+            }
+        ''')
+
+        when:
+        def fields = facts('''
+            import jakarta.validation.constraints.NotBlank
+            @DSL class Service {
+                @NotBlank String name
+                @NotBlank(groups=Later) String grouped
+            }
+            interface Later {}
+        ''')
+
+        then:
+        fields.name.rules().with {
+            size() == 1
+            first().annotation() == 'jakarta.validation.constraints.NotBlank'
+            first().eligible()
+            first().origin() == 'DIRECT'
+        }
+        fields.grouped.rules().with {
+            size() == 1
+            first().annotation() == 'jakarta.validation.constraints.NotBlank'
+            !first().eligible()
+            first().origin() == 'DIRECT'
+        }
+    }
+
     def 'ICD is restricted to annotation types and constant String text: #declaration'() {
         when:
         createClass("""

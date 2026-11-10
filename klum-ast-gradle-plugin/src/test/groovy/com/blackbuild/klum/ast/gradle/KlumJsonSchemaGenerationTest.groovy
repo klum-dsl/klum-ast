@@ -471,6 +471,44 @@ tasks.register('compositionInitializationControl', JavaExec) {
         generation << ['3', '4', '5']
     }
 
+    @Issue('1074')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#non-blank-string-constraints')
+    def 'project non-blank authoring feedback without changing input presence with Groovy #generation'() {
+        given:
+        compositionFixture(generation)
+        removeCompositionTypes()
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.NotBlankService'])\n")
+
+        when:
+        run('generateKlumJsonSchema')
+        def root = document('example.NotBlankService').'$defs'.'example.NotBlankService_DSL$Builder'
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'notblank-' + generation)
+        validation.mkdirs()
+        new File(validation, 'notblank.schema.json').bytes = output('example.NotBlankService').bytes
+
+        then:
+        root.properties.'topic-name'.allOf == [[pattern: '\\S']]
+        root.properties.'display-name'.allOf == [[pattern: '\\S']]
+        root.properties.'required-name'.allOf == [[pattern: '\\S']]
+        root.required == ['required-name']
+        !root.required.contains('topic-name')
+        !root.required.contains('display-name')
+        root.properties.'text-only-name'.description.contains('field projection policy TEXT_ONLY')
+        !root.properties.'text-only-name'.containsKey('allOf')
+        root.properties.'omitted-name' == [type: 'string']
+        ['grouped-name', 'payload-name'].every {
+            !root.properties[it].containsKey('allOf') && root.properties[it].description.contains('groups/payload')
+        }
+        !root.properties.'wrong-blank-type'.containsKey('allOf')
+        root.properties.'wrong-blank-type'.description.contains('unsupported NotBlank site/type')
+        !root.properties.'repeated-blank'.containsKey('allOf')
+        root.properties.'repeated-blank'.description.contains('NonBlankLabels')
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
     @Issue('959')
     def 'reject corrupt composition and documentary facts before suppression: #kind #selectedField'() {
         given:
@@ -3148,6 +3186,11 @@ import com.blackbuild.klum.ast.runtime.internal.StructuredInputSupport
     Class[] groups() default []
     Class[] payload() default []
 }
+@Constraint(validatedBy=[]) @NotBlank
+@Retention(RetentionPolicy.RUNTIME) @Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+@interface NonBlankLabel { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+@interface NonBlankLabels { NonBlankLabel[] value() }
 @Constraint(validatedBy=[]) @Min(10L)
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 @interface AtLeastTen { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
@@ -3267,6 +3310,17 @@ import jakarta.validation.constraints.*
     @Code Integer wrongType
     @Code List<String> container
 }
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class NotBlankService {
+    @NotBlank String topicName
+    @NonBlankLabel String displayName
+    @Struct.Required @NotBlank String requiredName
+    @NotBlank @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) String textOnlyName
+    @NotBlank @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) String omittedName
+    @NotBlank(groups=Later) String groupedName
+    @NotBlank(payload=Warning) String payloadName
+    @NotBlank Integer wrongBlankType
+    @NonBlankLabels([@NonBlankLabel, @NonBlankLabel]) String repeatedBlank
+}
 """)
     }
 
@@ -3285,7 +3339,7 @@ import jakarta.validation.constraints.*
 
     private static void copyNonCompositionEntry(JarFile input, JarOutputStream output, JarEntry entry) {
         String simple = entry.name.tokenize('/').last().tokenize('$').first().replace('.class', '')
-        boolean domain = ['TrafficPercentage', 'AtLeastTen', 'Contradiction', 'PriceRange', 'Code', 'Unbounded',
+        boolean domain = ['TrafficPercentage', 'NonBlankLabel', 'NonBlankLabels', 'AtLeastTen', 'Contradiction', 'PriceRange', 'Code', 'Unbounded',
             'EmailOnly', 'FlaggedCode', 'RepeatedCode', 'Either', 'Neither', 'Both', 'OverrideRange', 'Nested', 'Repeated', 'SizeOnly', 'ScriptText',
             'PresentText', 'CompositionValidator', 'CompositionTexts', 'Later', 'Warning'].contains(simple)
         if (domain || entry.name.startsWith('org/hibernate/')) {
