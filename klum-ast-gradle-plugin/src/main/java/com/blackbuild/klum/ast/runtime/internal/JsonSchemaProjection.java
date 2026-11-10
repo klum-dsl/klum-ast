@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import com.blackbuild.klum.ast.Required;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Validate;
 
@@ -59,7 +60,7 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     private static final String JSON_INDENT = "    ";
     // Skip quoted member values when shortening annotation names or recognizing a compiler closure marker.
     private static final Pattern DECLARATION_TOKEN = Pattern.compile(
-            "\"(?:[^\"\\\\]++|\\\\.)*+\"|@(?<annotation>[\\p{javaJavaIdentifierPart}.]+)"
+            "\"(?:[^\"\\\\]++|\\\\.)*+\"|@(?<annotation>[\\p{javaJavaIdentifierPart}.]+)(?:\\(\\))?"
                     + "|(?<closure>value=<runtime expression: ClosureExpression>)");
     private final Map<String, Object> definitions = new TreeMap<>();
     private final Map<String, String> diagnostics = new TreeMap<>();
@@ -224,6 +225,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
         List<String> unenforced = new ArrayList<>();
+        boolean requiredLowering = constraints.rules().stream().anyMatch(rule -> defaultRule(rule, Required.class))
+                && constraints.rules().stream().anyMatch(rule -> defaultRule(rule, Validate.class));
         for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
             if (constraints.policy() != Policy.OMIT && !rule.description().isEmpty()) {
                 appendDescription(value, rule.description());
@@ -234,11 +237,12 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                     : BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
             bounds.addAll(contribution.bounds());
             patterns.addAll(contribution.patterns());
-            if (!suppressConstraintDescription(constraints.policy(), contribution.projected())) {
+            if (!suppressConstraintDescription(constraints.policy(), contribution.projected())
+                    && !(requiredLowering && defaultRule(rule, Validate.class))) {
                 unenforced.add(runtimeConstraintDescription(constraints.policy(), rule, contribution));
             }
         }
-        if (!unenforced.isEmpty()) appendDescription(value, "Unenforced constraints:\n- " + String.join("\n- ", unenforced));
+        if (!unenforced.isEmpty()) appendDescription(value, String.join(",\n", unenforced));
         if (constraints.policy() == Policy.PROJECT) {
             conjoinBounds(value, bounds);
             appendConjunction(value, patterns);
@@ -267,8 +271,13 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                                                        BuiltinConstraintCatalog.Result contribution) {
         if (closureBackedValidation(rule)) return "custom validation";
         String reason = policy == Policy.TEXT_ONLY ? "field projection policy TEXT_ONLY" : contribution.reason();
-        String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.owner() + " composing " + rule.declaration();
+        String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.declaration() + " via " + rule.owner();
         return withReason(shortenAnnotations(declaration), reason);
+    }
+
+    private static boolean defaultRule(CompiledBuilderSchema.ConstraintRule rule, Class<?> annotation) {
+        return rule.origin().equals("DIRECT") && rule.owner().isEmpty() && rule.annotation().equals(annotation.getName())
+                && rule.declaration().equals("@" + annotation.getName() + "()");
     }
 
     private static boolean closureBackedValidation(CompiledBuilderSchema.ConstraintRule rule) {
