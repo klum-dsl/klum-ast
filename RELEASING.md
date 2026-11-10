@@ -349,15 +349,17 @@ only the exact `candidate`/`final` stage, version, and full source SHA. It first
 lightweight, or wrongly targeted tag and any mismatched/draft/wrong-stage GitHub release. Only then does
 its credential-free `resolve` job re-prove the complete product from clean caches and retain an immutable
 proof artifact. The parent passes that proof internally to the protected #456 documentation-promotion
-job, which validates the matching immutable pending-stage manifest, creates the public exact tree, and
-exposes only `/preview/` for an RC or `/stable/` and its maintained line for a final. Its Pages writer and
-deployment authority contains no Maven, Plugin Portal, signing, or release-record credentials.
+job, which validates the matching immutable pending-stage manifest and creates the public exact tree.
+Promotion writes the mutable root and preview selector for both stages. Candidate promotion renders the stable
+selector when a stable target already exists. Final promotion sets the stable and maintained-line targets.
+The Pages writer and deployment authority contains no Maven, Plugin Portal, signing, or release-record credentials.
 
-The canonical Pages root is a mutable landing page, not an immutable release tree. Promotion writes it and
-each eligible alias with the selected exact version's verified local CSS and branding logo: the root selects
-`/preview/` while an RC is current, and `/stable/` after a final. The one-time historical landing repair was
-completed for RC.14; future promotions establish this contract directly and must not alter an existing exact
-version tree.
+Promotion styles the mutable Pages root and each eligible alias with the selected exact version's verified
+local CSS and branding logo. The root links directly to the current public RC's exact documentation and
+offers `/stable/` when available. The labelled `/stable/` and `/preview/` selectors list their exact
+versions. Promoting the matching final removes that RC from the root and leaves `/preview/` with an empty
+state. An identical promotion retry redeploys the existing ledger. The landing writer runs only when
+creating a new promotion, and published exact version trees remain immutable.
 
 For a transient documentation failure, use **Re-run failed jobs** on the same parent run only when GitHub
 retains the already successful `resolve` job and its proof artifact. GitHub pins a failed-job retry's
