@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Converters — KlumAST 4.2.0-rc.5</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-4.2-header-optical.svg" alt="KlumAST Season 4.2 — Struct/YAML and Groovy peers at a shared portal"></a>
+    <span class="version-badge">4.2.0-rc.5 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="./">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="./">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="converters">Converters</h1>
+<p>Converters make a Model more compact by accepting a convenient input and turning it into the field's declared value.</p>
+<h2 id="field-based-converters">Field-Based Converters</h2>
+<p>Field-based converters are closures that create additional setter/adder methods.</p>
+<p>Converter methods have the same name as regular setters/adders, but
+different parameters. A converter is a closure with zero or more explicit
+parameters that is called to create the target type (or the element type
+for collections/maps). For maps of simple types, a key parameter
+is added to the adder as well.</p>
+<p>Examples:</p>
+<p>(See: <code>ConvertersDocumentaryTest#'converts timestamp input for a simple field and map entry'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Foo {
+  @Field(converters = [
+    {long value -&gt; new Date(value)},
+    {int date, int month, int year -&gt; new Date(year, month, date)}
+  ])
+  Date birthday
+
+  @Field(converters = [
+    {long value -&gt; new Date(value)},
+    {int date, int month, int year -&gt; new Date(year, month, date)}
+  ])
+  Map&lt;String, Date&gt; payDays
+}
+</code></pre>
+<p>Creates additional methods:</p>
+<pre><code class="language-groovy">Date birthday(long $value) {
+    birthday({long value -&gt; new Date(value)}.call($value))
+}
+Date birthday(int $date, int $month, int $year) {
+    birthday({int date, int month, int year -&gt; new Date(year, month, date)}.call($date, $month, $year))
+}
+
+Date payDay(String $key, long $value) {
+    payDay($key, {long value -&gt; new Date(value)}.call($value))
+}
+Date payDay(String $key, int $date, int $month, int $year) {
+    payDay($key, {int date, int month, int year -&gt; new Date(year, month, date)}.call($date, $month, $year))
+}
+
+</code></pre>
+<p>The closures must return an instance of the field (or element) type.</p>
+<p>For a DSL Object result, a source-visible converter participates in the active Builder construction. Field converters for
+Simple Values are unaffected. See <a rel="nofollow" href="../Behind-the-Curtain/#builder-projection-for-custom-producers">Behind the Curtain#builder-projection-for-custom-producers</a> when the distinction
+matters to an integration.</p>
+<h2 id="factory-method-converters">Factory Method Converters</h2>
+<p>For non-DSL values, factory-method converters continue to return the converted value and pass it to the Builder setter or
+adder.</p>
+<p>For a DSL Object relationship, a recognized static factory method can be used inside the owning Model just like a normal
+child creator. The same method still returns a completed object when called as a root factory:</p>
+<p>(See: <code>ConvertersDocumentaryTest#'uses a named factory method as an owned DSL relationship creator'</code>.)</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Server {
+    Endpoint endpoint
+}
+
+@DSL
+class Endpoint {
+    int port
+
+    static Endpoint fromPort(int port) {
+        Endpoint.Create.With(port: port)
+    }
+}
+
+when: // Model
+def server = Server.Create.With {
+    endpoint 8443
+}
+
+then: // Assertions
+assert server.endpoint.port == 8443
+</code></pre>
+<p>For the Builder-projection rules, source-visibility boundary, and diagnostics for opaque producers, see
+<a rel="nofollow" href="../Behind-the-Curtain/#builder-projection-for-custom-producers">Behind the Curtain#builder-projection-for-custom-producers</a>.</p>
+<p>Source-visible same-compilation converters also work in Builder lifecycle methods and in nested converter bodies. For
+example, <code>storage('uri://bla/blub', 'uri://bli/blu')</code> can select <code>Storage.fromStrings</code>, whose implementation calls
+qualified <code>Registry.fromString(...)</code> converters for its owned children. Builder-phase calls use active-session Builder
+twins; the same <code>Registry.fromString(...)</code> call outside Builder construction remains a completed-model factory.</p>
+<p>(See: <code>ConvertersDocumentaryTest#'uses fluent scalar converter syntax for an owned relationship'</code>.)</p>
+<p>A factory method is named <code>from*</code>, <code>of*</code>, or <code>parse*</code>; a non-DSL factory may also be named <code>create*</code>. Alternatively,
+annotate the method with <code>@Converter</code>.</p>
+<p>Avoid multiple factory methods with the same parameter signature; selection can otherwise be ambiguous.</p>
+<h2 id="factory-classes">Factory Classes</h2>
+<p>Declare additional factory classes with <code>@Converters</code>, either for a complete DSL class or one field.</p>
+<p>By default, KlumAST uses public static factory methods that return the expected type or a subtype, have a recognized
+prefix, or carry <code>@Converter</code>.</p>
+<p>(See: <code>ConvertersDocumentaryTest#'uses a converter factory class for convention and annotation-based inputs'</code>.)</p>
+<pre><code class="language-groovy">import java.text.SimpleDateFormat
+
+@Converters(BarUtil)
+@DSL class Foo {
+    Bar bar
+}
+
+class Bar {
+    // Regular POGO/POJO, not a DSL Object.
+    Date birthday
+}
+
+class BarUtil {
+    static Bar fromLong(long value) {
+        return new Bar(birthday: new Date(value))
+    }
+
+    @Converter
+    static Bar readFromString(String string) {
+        return new Bar(birthday: SimpleDateFormat.dateInstance.parse(string))
+    }
+}
+</code></pre>
+<p>For a Map of simple elements, KlumAST prepends the key parameter to the converter parameters.</p>
+<h2 id="customization">Customization</h2>
+<p><code>@Converters</code> can customize factory discovery for third-party types: <code>includeMethods</code>, <code>excludeMethods</code>, and
+<code>excludeDefaultPrefixes</code> change method selection, while <code>includeConstructors</code> exposes constructors as converters. See the
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/Converters.java"><code>@Converters</code> API source and Javadoc</a>
+for every option and its default.</p>
+<p>For example, opt into constructors when a value type has a useful multi-argument constructor.</p>
+<p>(See: <code>ConvertersDocumentaryTest#'uses an opt-in URI constructor as a converter'</code>.)</p>
+<pre><code class="language-groovy">@Converters(includeConstructors = true)
+@DSL
+class RemoteService {
+    URI endpoint
+}
+
+def service = RemoteService.Create.With {
+    endpoint 'https', 'config.example.test', '/v1', 'stable'
+}
+
+assert service.endpoint == new URI('https', 'config.example.test', '/v1', 'stable')
+</code></pre>
+<h2 id="structured-string-input">Structured String input</h2>
+<p>An ordinary non-key, non-DSL scalar field can accept a String through its exact, unambiguous public Builder projection.
+This includes field converter closures, same-compilation domain values and separately compiled external adapters.
+Existing converter discovery and generation rules still apply: a factory without a generated projection is not callable,
+and competing converters that collide during generation reject. The ordinary domain-value setter remains available.</p>
+<p>(See: <code>StructuredConverterOriginTest#'a field converter accepts the same duration String through ordinary and structured construction'</code>.)</p>
+<pre><code class="language-groovy">import java.time.Duration
+
+@DSL class Service {
+    @Converters(excludeMethods = ['parse'])
+    @Field(converters = [{ String value -&gt; Duration.parse(value) }])
+    Duration timeout
+}
+
+def direct = Service.Create.With { timeout 'PT30S' }
+assert direct.timeout == Duration.ofSeconds(30)
+def parsed = [timeout: 'PT30S'] // The admitted converter receives this exact String.
+</code></pre>
+<p>An exact public <code>CharSequence</code> projection accepts the same String payload. For example, the generated
+<code>timeout(CharSequence)</code> operation can invoke <code>Duration.parse</code> directly:</p>
+<p>(See: <code>StructuredCharSequenceTest#'a projected Duration parser accepts a String through its exact CharSequence signature'</code>.)</p>
+<pre><code class="language-groovy">import java.time.Duration
+
+@DSL class Service { Duration timeout }
+
+def direct = Service.Create.With { timeout 'PT30S' }
+assert direct.timeout == Duration.ofSeconds(30)
+def parsed = [timeout: 'PT30S'] // The admitted CharSequence projection receives this exact String.
+</code></pre>
+<p>For either timeout Schema, the equivalent caller-parsed YAML is:</p>
+<p>(See: <code>StructuredConverterOriginTest#'a field converter accepts the same duration String through ordinary and structured construction'</code>;
+<code>StructuredCharSequenceTest#'a projected Duration parser accepts a String through its exact CharSequence signature'</code>.)</p>
+<pre><code class="language-yaml">timeout: PT30S
+</code></pre>
+<p>Pass its Map to <code>Service.Create.FromStruct(parsed)</code> or an active Builder's <code>applyStruct(parsed)</code>.
+This scalar form targets a non-DSL value. String-to-owned-DSL-child input remains deferred post-4.2 to
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/1033">#1033</a>; use the admitted nested child body or ordinary Groovy producer.</p>
+<p>The original String reaches the exact recorded signature; no mutable CharSequence is constructed. Numeric, boolean,
+null, GString, arbitrary Object and caller-supplied mutable CharSequence payloads reject. A String converter and a
+CharSequence converter for one field are competing routes: exclude the unwanted factory as in the closure example above,
+or expose a Schema-authored wrapper selected with <code>@Struct.Operation</code>. There is no implicit String preference.
+CharSequence routes supply structural String grammar, without gaining C1 parameter-constraint authority.
+Exact List elements and literal String-keyed Map values also support these routes; see
+<a rel="nofollow" href="../Structured-Input/#charsequence-container-converters">CharSequence container converters</a> for the Groovy/YAML example
+and the ordinary-call dispatch compatibility correction.</p>
+<p>These routes produce <code>type: string</code> and the field's prose/examples in JSON Schema. Conversion runs only during ordinary
+Builder invocation; its failures retain the structured input source/path and original cause. Schema generation never
+executes converters to infer constraints. Domain-value field constraints remain descriptive and do not become assertions
+on the raw String.</p>
+<p>C1's existing parameter-constraint authority remains narrower: a separately compiled public, non-generic domain with
+one supported declared public String constructor (enabled by <code>@Converters(includeConstructors=true)</code>) or static factory
+returning exactly that domain. Only those qualified routes inspect the selected compiled parameter's facts.</p>
+<p>(See: <code>CompiledConverterInputTest#'reads a separately compiled port converter without coercion or runtime Pattern enforcement'</code>.)</p>
+<pre><code class="language-groovy">// Compile and package this non-DSL domain before compiling Service.
+import jakarta.validation.constraints.Pattern
+
+class PortNumber {
+    final String raw
+    PortNumber(@Pattern(regexp = '[0-9]{1,8}') String raw) { this.raw = raw }
+}
+
+// In the separately compiled Schema:
+@DSL class Service {
+    @Struct.Name('port-number')
+    @Converters(includeConstructors = true)
+    PortNumber port
+}
+
+// The Model Writer supplies a String scalar, not a nested parameter object.
+def parsed = ['port-number': '1234'] // Structured input selects the compiled String converter.
+// The converter receives '1234' through Create.FromStruct(parsed) or active-Builder applyStruct(parsed).
+</code></pre>
+<p>Quote numeric YAML values: <code>port-number: &quot;1234&quot;</code>. Numbers, null and other non-String values reject structurally; an
+absent optional field is allowed. The selected generated public Builder overload performs conversion during ordinary
+construction. Reading contracts and generating JSON Schema never execute the converter or initialize the domain.</p>
+<p>The selected compiled parameter owns its Jakarta Pattern facts and optional <code>@Struct.ConstraintProjection</code> policy. PROJECT
+is the default; TEXT_ONLY describes complete constraints; OMIT suppresses their constraint-derived output. Field policy
+cannot suppress or override parameter facts. The field retains names, exclusion, prose, examples, deprecation and its
+own domain-value constraints. See <a rel="nofollow" href="../Json-Schema/#compiled-converter-parameters">converter Pattern projection</a>.</p>
+<p>An unrelated constructor/factory overload does not remove an existing exact String projection. Such source families
+remain outside C1 parameter inspection. An existing exact String projection can also target a non-DSL interface or
+parameterized domain, or call a factory returning a subtype. Already-generated generic/default/bridge/synthetic source
+routes do not gain C1 authority. No new default/varargs expansion or generic inference is performed; a source with a
+String-array varargs parameter is not an exact String route.
+Exact String element routes for <code>List&lt;T&gt;</code> are described under
+<a rel="nofollow" href="../Structured-Input/#converter-backed-list-elements">converter-backed List elements</a>; exact <code>Map&lt;String, T&gt;</code> value routes
+use <a rel="nofollow" href="../Structured-Input/#converter-backed-map-values">converter-backed Map values</a>. Exact <code>Set&lt;T&gt;</code> String routes use
+<a rel="nofollow" href="../Structured-Input/#converter-backed-set-elements">ordered Set element calls</a>, retaining destination equality and comparator
+behavior after every conversion. Other collection and DSL-object
+conversions remain deferred. An unrelated authored overload
+does not suppress a generated scalar route; competing external String/CharSequence names
+use the <a rel="nofollow" href="../Structured-Input/#select-a-string-operation">shared selection rules</a>.
+Non-overridden binary Schema inheritance preserves the original declaring Builder and converter association;
+replacement fields are classified afresh.
+A descendant declaration of the same Builder method signature excludes the inherited converter input, even when the
+override is renamed or ignored for structured input. Ordinary Builder override dispatch remains unchanged.</p>
+<p>Keep compiler/runtime/plugin, domain and Schema artifacts matched. Recompile the Schema hierarchy after changing a
+participating domain contract. Missing or corrupt selection/parameter facts or incomplete API classpaths fail before
+interpretation or replacing generated output, including suppressed or excluded members. Artifact locations identify the
+paired declarations; they are not integrity checks or stale-JAR detection.</p>
+<p>Parameter annotations do <strong>not</strong> add runtime validation. For example, <code>'not digits'</code> still reaches this constructor:
+automatic parameter enforcement remains separate in <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/971">#971</a>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Structured Input — KlumAST 4.2.0-rc.5</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-4.2-header-optical.svg" alt="KlumAST Season 4.2 — Struct/YAML and Groovy peers at a shared portal"></a>
+    <span class="version-badge">4.2.0-rc.5 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="./#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="./">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="./#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="./">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="structured-input">Structured Input</h1>
+<p>Structured input applies caller-parsed Maps, Lists and scalars through a Schema's admitted Builder operations.
+The supported public boundary is generated Factory creation and Builder application; the interpreter is framework
+internal. Use <code>Create.FromStruct</code> for completed roots, inherited <code>KlumBuilder.applyStruct</code> for an active Builder,
+and <a rel="nofollow" href="../Templates/#structured-input-templates"><code>Create.Template.FromStruct</code></a> for reusable keyless Template bodies.</p>
+<p>Parsing remains caller-owned. No JSON/YAML parser, file or URL loading is added. An optional source name is opaque
+nonempty diagnostic text, never a locator or a model key.</p>
+<h2 id="adopt-yaml-for-a-schema">Adopt YAML for a Schema</h2>
+<p>Use the same Schema for Groovy authoring and a data-only YAML configuration. For a small keyed service, let
+<code>yamlText</code> contain this document, read by caller code:</p>
+<pre><code class="language-yaml">service-id: catalog
+host: api
+</code></pre>
+<p>The caller chooses a parser dependency and parses the document into a String-keyed Map. For example, using Groovy's
+<code>YamlSlurper</code>, ordinary Groovy construction and <code>FromStruct</code> produce the same completed Model:</p>
+<p>(See: <code>StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'</code>.)</p>
+<pre><code class="language-groovy">package example
+
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Struct
+import groovy.yaml.YamlSlurper
+
+@DSL class Service {
+    @Key @Struct.Name('service-id') String name
+    String host
+}
+
+def ordinary = Service.Create.With('catalog') {
+    host 'api'
+}
+Map document = new YamlSlurper().parseText(yamlText)
+def configured = Service.Create.FromStruct(document, 'service.yaml')
+assert configured.name == ordinary.name
+assert configured.host == ordinary.host
+</code></pre>
+<p>KlumAST receives the parsed data; it never opens <code>service.yaml</code>. The optional source name is only diagnostic text.
+A caller that already supplies <code>'catalog'</code> can instead parse the keyless body <code>host: api</code> and use
+<code>Service.Create.FromStruct('catalog', body)</code> or <a rel="nofollow" href="#apply-to-an-active-builder">apply it to an active Builder</a>.</p>
+<p>For editor feedback, apply the <a rel="nofollow" href="../Gradle-Plugins/">Schema Gradle plugin</a>, select the Model binary name (for example,
+<code>example.Service</code>) in <code>klumSchema.jsonSchema.rootTypes</code>, and run <code>./gradlew generateKlumJsonSchema</code>. Associate the
+resulting <code>build/generated/klum-json-schema/example.Service.schema.json</code> with <code>service.yaml</code> in your editor's YAML
+schema configuration. The <a rel="nofollow" href="../Json-Schema/#generating-files">JSON Schema recipe</a> explains generation and consumer-owned
+packaging/association; select a <a rel="nofollow" href="../Json-Schema/#caller-pre-keyed-builder-bodies">Builder-body artifact</a> instead when
+caller code supplies root identity. The self-contained artifact requires <code>service-id</code>; the body artifact forbids it.</p>
+<p>Keep three boundaries explicit:</p>
+<ul>
+<li><strong>Parsing:</strong> choose and configure the parser, including rejection of duplicate mapping members before they collapse
+into a Map. A later Struct or JSON Schema check cannot recover lost duplicate keys. The example parser choice alone
+is not a duplicate-key rejection policy.</li>
+<li><strong>Execution:</strong> preserve Map/List traversal order when it matters. Struct validates and invokes each reached operation
+in that order, stops at the first failure and retains earlier effects. There is no whole-document payload preflight
+or rollback; see <a rel="nofollow" href="#order-and-failures">order and failures</a>.</li>
+<li><strong>Validation:</strong> editor or explicit JSON Schema validation checks the admitted input structure and qualified projected
+constraints. It does not run automatically in <code>FromStruct</code> or guarantee successful construction. <code>FromStruct</code> runs
+ordinary Builder lifecycle, materialization and completed-Model validation; defaults, callbacks, converters and
+model-level rules can still change or reject the result. See <a rel="nofollow" href="../Json-Schema/#runtime-order-and-failure">validation responsibility</a>.</li>
+</ul>
+<h2 id="relate-groovy-and-yaml">Relate Groovy and YAML</h2>
+<p>Struct is a data language for the Schema's admitted construction operations. A YAML mapping member names an input
+entry; its value supplies that entry's payload. A nested owned body configures a child, while an ordinary typed Map
+operation receives one Map argument. A sequence populates an admitted collection. These shapes follow the Schema;
+they are not a serialization of arbitrary Groovy calls.</p>
+<p>The examples on this page start after parsing. For each YAML block, supply the equivalent String-keyed Map to the
+chosen Factory or active Builder. The caller chooses the parser, preserves any required order and rejects duplicate
+member names before they collapse into a Map. KlumAST neither reads the YAML nor automatically validates JSON Schema.</p>
+<p>Representative YAML examples are executable in
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/07cd974558d009463db4ef62539634d22e4b4dc2/klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredYamlDocumentaryTest.groovy"><code>StructuredYamlDocumentaryTest</code></a>.
+They parse YAML with caller-owned <code>YamlSlurper</code> before calling public Struct entry points.
+The parser is an example choice; KlumAST adds no YAML loader or managed Jackson binding to this path.</p>
+<table>
+<thead>
+<tr>
+<th>What you want to configure</th>
+<th>Groovy/Struct examples and identity rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A completed root</td>
+<td><a rel="nofollow" href="#factory-roots">Factory roots</a>: <code>Create.FromStruct(document)</code>; keyed roots either carry their actual key or receive an explicit key with a keyless body.</td>
+</tr>
+<tr>
+<td>An existing active Builder</td>
+<td><a rel="nofollow" href="#apply-to-an-active-builder">Builder application</a>: <code>applyStruct(body)</code> configures the receiver; it never returns a replacement or completes construction.</td>
+</tr>
+<tr>
+<td>Direct children and keyed Maps</td>
+<td><a rel="nofollow" href="#construction-keys">Construction keys</a>: direct keyed children normally carry their own key; keyed Map entries supply identity outside the child body.</td>
+</tr>
+<tr>
+<td>Collections</td>
+<td><a rel="nofollow" href="#owned-child-sequences">Owned child sequences</a>, <a rel="nofollow" href="#converter-backed-list-elements">converter List elements</a>, <a rel="nofollow" href="#converter-backed-set-elements">converter Set elements</a>, <a rel="nofollow" href="#converter-backed-map-values">converter Map values</a>, <a rel="nofollow" href="#charsequence-container-converters">CharSequence containers</a>, and <a rel="nofollow" href="#derived-key-map-values">derived-key Maps</a>: each has its own declared target and input restrictions.</td>
+</tr>
+<tr>
+<td>A domain operation or command</td>
+<td><a rel="nofollow" href="#read-a-concrete-root">The endpoint example</a>, <a rel="nofollow" href="#select-a-string-operation">String selection</a> and <a rel="nofollow" href="#zero-argument-commands">zero-argument commands</a>: one payload or an empty command mapping, without argument spreading.</td>
+</tr>
+<tr>
+<td>A reusable Template</td>
+<td><a rel="nofollow" href="../Templates/#structured-input-templates">Structured Templates</a>: a keyless root recipe; caller code chooses how to apply it.</td>
+</tr>
+</tbody>
+</table>
+<p>Ordinary Groovy remains available for forms outside this language. See <a rel="nofollow" href="#other-relationship-boundaries">other relationship boundaries</a>
+and <a rel="nofollow" href="#groovy-forms-without-a-struct-equivalent">Groovy forms without a Struct equivalent</a> before assuming parity.</p>
+<p>For completion and structural diagnostics while authoring YAML, see the
+<a rel="nofollow" href="../Json-Schema/#authoring-structured-yaml-in-an-editor">JSON Schema editor-association recipe</a>.
+The generated schema is editor/validator input: <code>FromStruct</code> / <code>applyStruct</code> do not automatically validate against it.
+Validation remains editor/consumer-owned; consumers may explicitly validate parsed input before import.</p>
+<h2 id="read-a-concrete-root">Read a concrete root</h2>
+<p>A Schema can expose domain operations that configure several properties:</p>
+<p>(See: <code>StructuredInputDocumentaryTest#'one structured operation configures several root properties'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+
+@DSL class Application {
+    String host
+    int port
+
+    @Builder.Method
+    void endpoint(Map&lt;String, String&gt; settings) {
+        host = settings.host
+        port = Integer.parseInt(settings.port)
+    }
+}
+</code></pre>
+<p>For that Schema, the parsed configuration is a Map such as:</p>
+<pre><code class="language-groovy">def ordinary = Application.Create.With {
+    endpoint(host: 'api', port: '8080')
+}
+def parsed = [endpoint: [host: 'api', port: '8080']]
+def application = Application.Create.FromStruct(parsed, 'application.yaml')
+assert application.host == 'api'
+assert application.port == 8080
+</code></pre>
+<p>The corresponding YAML supplies one Map payload to <code>endpoint</code>; <code>port</code> is quoted because the operation declares
+<code>Map&lt;String, String&gt;</code>, even though its body produces an integer property:</p>
+<p>(See: <code>StructuredYamlDocumentaryTest#'caller parsed YAML supplies one nested Map payload to an authored operation'</code>.)</p>
+<pre><code class="language-yaml">endpoint:
+  host: api
+  port: &quot;8080&quot;
+</code></pre>
+<p>The admitted <code>endpoint</code> operation sets <code>host</code> to <code>api</code> and <code>port</code> to 8080. Use a Factory selecting a concrete Schema; its ordinary default-implementation selection still applies. Root input must be a Map with String keys. A self-contained
+keyed document supplies its actual key member; a caller-pre-keyed body omits it. Supplied direct children retain their
+own positional key rules in either form.</p>
+<p>Compile Schemas successfully with the current KlumAST compiler and distribute their generated classes together.
+Missing or inconsistent generated structured-input metadata reports recompile/package guidance. An in-memory-only
+Schema without packaged generated metadata cannot use this route.</p>
+<h2 id="factory-roots">Factory roots</h2>
+<p>The common Factory signatures are <code>T FromStruct(Map&lt;?, ?&gt; document)</code> and
+<code>T FromStruct(Map&lt;?, ?&gt; document, String sourceName)</code>. Keyed Factories additionally expose
+<code>T FromStruct(String rootKey, Map&lt;?, ?&gt; body)</code> and the trailing <code>String sourceName</code> overload.
+All return completed Models after ordinary lifecycle, materialization and validation.</p>
+<p>Java callers use the generated Factory directly (for the <code>Service</code> Schema below):</p>
+<pre><code class="language-java">Service document = Service.Create.FromStruct(Map.of(&quot;service-id&quot;, &quot;catalog&quot;, &quot;host&quot;, &quot;api&quot;));
+Service explicit = Service.Create.FromStruct(&quot;catalog&quot;, Map.of(&quot;host&quot;, &quot;api&quot;), &quot;request&quot;);
+</code></pre>
+<p>(See: <code>StructuredFactoryTest#'Factory documents carry their own root identity'</code> and
+<code>StructuredFactoryTest#'explicit root keys configure one ordinary lifecycle'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Identity {
+    @Key @Struct.Name('service-id') String name
+}
+@DSL class Service extends Identity { String host }
+
+def document = Service.Create.FromStruct(['service-id': 'catalog', host: 'api'])
+def explicit = Service.Create.FromStruct('catalog', [host: 'api'], 'request')
+assert document.name == explicit.name
+</code></pre>
+<p>For the self-contained document, YAML includes <code>service-id: catalog</code> alongside <code>host: api</code>. For the explicit-key
+Factory call, YAML contains only <code>host: api</code>; caller code supplies <code>'catalog'</code>. The same keyless host body can be
+applied inside <code>Service.Create.With('catalog')</code> using <code>applyStruct([host: 'api'])</code>.</p>
+<p>(See: <code>StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'</code>.)</p>
+<pre><code class="language-yaml">service-id: catalog
+host: api
+</code></pre>
+<p>The explicit-key body forbids <code>service-id</code>, even if its value equals the argument. Both root forms run exactly one
+root PostApply, with identity available before PostCreate. <code>sourceName</code> is optional, opaque diagnostic text only;
+null and empty explicit labels reject. Ordinary calls generate a label identifying the Factory capability.
+File-like and URL-like labels are never opened, normalized or used as identity. Factory access initializes its ordinary
+<code>Create</code> field; the internal contract inspector's no-user-code guarantee is a tooling property, not a promise to suppress
+normal class initialization when accessing a Factory.</p>
+<p><code>FromStruct</code> does not appear on <code>AsBuilder()</code> or relationship factories. <code>Create.FromMap</code> remains the separate
+copy/type-hint/conversion/custom-Factory route; <a rel="nofollow" href="../Jackson-Integration/">managed Jackson</a> retains its independent contract.</p>
+<h2 id="root-builder-overlays">Root Builder overlays</h2>
+<p>Append an ordinary Builder closure to any existing root <code>FromStruct</code> form:</p>
+<ul>
+<li><code>FromStruct(document, overlay)</code> or <code>FromStruct(document, sourceName, overlay)</code>;</li>
+<li>keyed <code>FromStruct(rootKey, body, overlay)</code> or <code>FromStruct(rootKey, body, sourceName, overlay)</code>.</li>
+</ul>
+<p>The generated Factory returns the exact Model type and delegates the closure to its public Builder with
+<code>DELEGATE_ONLY</code>. The overlay runs after successful Struct execution in the same root configuration, before one root
+PostApply and the ordinary graph lifecycle, materialization and validation. It can supply completed external LINK
+values needed by later lifecycle handling.</p>
+<p>(See: <code>RootStructOverlayTest#'supplies a completed environment after Struct input before the root lifecycle tail'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Environment { String name }
+@DSL class Application {
+    String title
+    @Field(FieldType.LINK) Environment environment
+}
+def selectedEnvironment = Environment.Create.With(name: 'production')
+def document = [title: 'orders']
+def orders = Application.Create.FromStruct(document, 'orders.yaml') {
+    environment selectedEnvironment
+}
+assert orders.title == 'orders'
+assert orders.environment.is(selectedEnvironment)
+</code></pre>
+<p>Templates and root PostCreate precede Struct input and the overlay. Struct operations and immediate child callbacks
+cannot see overlay-supplied state. Ordinary setters, collection operations, deferred actions and later callbacks retain
+their usual behavior; the overlay has no permanent priority. External completed LINK targets retain identity and are
+excluded from owned lifecycle traversal.</p>
+<p>Source/type/root-shape/static-contract and construction-key checks retain their existing allocation boundaries.
+<a rel="nofollow" href="#order-and-failures">Ordered payload failures</a> retain earlier effects and skip the overlay. The overlay cannot repair a
+missing construction key or a failed operation. Overlay and lifecycle failures return no completed root and use normal
+session cleanup. Each invocation clones the overlay before changing its delegate; captured mutable state remains
+caller-owned. A typed null Closure acts as no overlay.</p>
+<p>These overloads belong only to ordinary root Factories. They add no Template, AsBuilder, Builder application,
+file/URL/text, parser or context-channel variant. Recompile existing Schemas to expose the generated members.
+<code>FromStruct(document, null)</code> and keyed <code>FromStruct(rootKey, body, null)</code> can become ambiguous between String and Closure;
+use an explicit type. See <a rel="nofollow" href="../Migration/#structured-root-builder-overlays">migration</a>.</p>
+<h3 id="consumer-owned-environment-setup">Consumer-owned Environment setup</h3>
+<p>The caller may construct its Environment from a separate parsed YAML mapping before loading the consuming root. The
+same ordinary overlay then supplies the completed Environment as a LINK; parsing and Environment selection remain
+caller responsibilities:</p>
+<p>(See: <code>RootRecipeConsumerTest#'JAR-only clients consume recipe and Struct overlays and consumer-owned lifecycle context with named modules=#named'</code>.)</p>
+<pre><code class="language-groovy">def selectedEnvironment = Environment.Create.FromStruct(environmentDocument, 'environment.yaml')
+def orders = Application.Create.FromStruct(applicationDocument, 'orders.yaml') {
+    environment selectedEnvironment
+    image 'overlay:v2'
+}
+assert orders.environment.is(selectedEnvironment)
+</code></pre>
+<p>The JAR-only documentary qualification uses an Application with owned Services. Each Service's immediate
+PostCreate/PostApply runs without that Environment;
+its AutoLink callback then obtains the root's Environment through its Owner, and Default derives its endpoint and image.
+Validation checks completed root/child identity and one lifecycle tail. Repeated roots share the exact completed
+Environment without owning it or revisiting its lifecycle. The fixture starts at already-parsed mappings and does not
+qualify a YAML parser or a specific adopter.</p>
+<p>If a Schema needs dependencies during earlier callbacks, its own factory/setup must provide them before those callbacks
+run. A root overlay does not change their timing or provide context while Struct operations execute.</p>
+<h2 id="metadata-protocol">Metadata protocol</h2>
+<p>Structured input and JSON Schema generation require Schemas compiled with a matching supported metadata protocol.
+Older or incomplete Builder contracts are rejected; recompile the participating Schema artifacts.</p>
+<p>The current compiler explicitly emits <code>GeneratedInput.Schema.version=1</code> on every declaring public Builder. Both consumers
+require exactly that version and complete naming, exclusion, constraint, projection, source-provenance, key, literal-alternative association/count and inert example-array facts.
+The optional field-presence member <code>rawInputRequired</code> is true for marked fields; omission and explicit false both mean
+false. Its absence is not a fallback for other required facts. Malformed/duplicate/contradictory supplied presence facts
+fail before initialization, input mutation or schema output replacement.
+<code>Schema.version</code> is the sole protocol version; <code>LiteralAlternative</code> has no separate version member. Recompile participating
+Schemas with matching compiler/runtime/plugin artifacts; removed or unknown members have no compatibility decoder.
+The rule also applies to inherited and participating owned contracts across project/JAR boundaries. Missing, older,
+future, malformed or incomplete metadata fails before input execution; a version marker alone does not establish
+completeness. There is no identity-only mode, annotation reconstruction or partial legacy support. The admitted ownership closure is checked
+before execution, including omitted owned inputs; the per-read cache terminates recursive contracts. Excluded targets
+and unrelated classpath classes are not scanned.</p>
+<h2 id="type-naming-profiles">Type naming profiles</h2>
+<p>Select <code>@Struct.Naming</code> on a Schema type to use the same exact member tokens in structured input and generated
+<a rel="nofollow" href="../Json-Schema/#type-naming-profiles">JSON Schema</a>. Its required value is <code>Struct.Naming.Profile.IDENTITY</code> or
+<code>Struct.Naming.Profile.KEBAB_CASE</code>; there is no default value or caller/plugin selector.</p>
+<p>(See: <code>InputNamingProfileTest#'choose kebab member names while keeping owned values and data keys independent'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class ServiceBase { String displayName }
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+@DSL class Service extends ServiceBase {
+    String serviceName
+    Map&lt;String, String&gt; labels
+    Details serviceDetails
+}
+@DSL class Details { String nativeName }
+
+def parsed = ['display-name': 'Catalog', 'service-name': 'catalog', labels: ['Team/Blue': 'ops'],
+              'service-details': [nativeName: 'own policy']]
+// Configures serviceName as 'catalog'; the data key 'Team/Blue' stays literal.
+</code></pre>
+<p>An unannotated child inherits an explicit ancestor profile. Repeating that profile is permitted; a different explicit
+choice rejects the subtype with both declaring types/artifacts in the diagnostic. An explicit <code>IDENTITY</code> also binds
+descendants. When every ancestor is unannotated, the first annotated child chooses its complete effective grammar,
+including inherited members; the standalone ancestor keeps native spelling. Owned values resolve their own type hierarchy,
+as <code>Details</code> does above. Ownership does not cascade the owner's profile.</p>
+<p><code>KEBAB_CASE</code> inserts a hyphen before ASCII uppercase after ASCII lowercase/digits, and at an uppercase acronym-to-word
+boundary, then lowercases only ASCII A-Z. It uses original adjacency: <code>URLValue</code> becomes <code>url-value</code>, <code>XML2Parser</code>
+becomes <code>xml2-parser</code>, and <code>version2URL</code> becomes <code>version2-url</code>. Existing separators and non-ASCII characters remain
+unchanged: <code>already_snake</code> stays as written and <code>ÅngströmURL</code> becomes <code>Ångström-url</code>. There is no Unicode normalization,
+transliteration or locale rule. Malformed UTF-16 in transformed native metadata is rejected.</p>
+<p>Profiles affect only eligible field, construction-key and admitted authored-operation member names. They add no native-name
+alias. Data Map keys, keyed-instance keys, fixed identity values, <a rel="nofollow" href="#enum-value-names">enum value tokens</a> and operation Map-payload keys remain literal.
+Existing supported nonempty <code>@JsonProperty</code> names remain exact; they are never transformed. Empty <code>@JsonProperty</code> falls
+back to native/profile spelling. <code>@JsonIgnore</code>/<code>@JsonIgnore(true)</code> excludes before naming, and <code>@JsonIgnore(false)</code> is neutral.
+Naming does not admit otherwise unsupported declarations. Use <a rel="nofollow" href="#literal-names-and-exclusion">literal names and exclusion</a>
+for Klum-owned overrides without a Jackson dependency.</p>
+<p>Under a nonidentity profile, collisions between eligible member tokens reject the type with both source declarations,
+before input executes. A literal rename can remove the collision. Construction-key collisions still depend on whether the
+input position supplies the key as a member; outer instance keys and explicit root keys retain authority. No-profile and
+identity collision behavior is unchanged. Match compiler/runtime/plugin versions and recompile a selected type hierarchy;
+missing, unknown or malformed required naming facts fail with recompile/package guidance. See
+<a rel="nofollow" href="../Migration/#type-naming-profiles">migration</a>.</p>
+<h2 id="literal-names-and-exclusion">Literal names and exclusion</h2>
+<p>Use <code>com.blackbuild.klum.ast.Struct.Name</code> and <code>Struct.Ignore</code> on source fields (including construction keys) or already
+admitted authored <code>@Builder.Method</code> operations. <code>@Struct.Name</code> requires a nonempty exact String; spaces, punctuation and
+case are preserved. <code>@Struct.Ignore</code> is a marker. Both have runtime retention and FIELD/METHOD targets.</p>
+<p>(See: <code>InputLiteralTest#'choose exact external names and exclude internal configuration'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.*
+
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+@DSL class Service {
+    @Struct.Name('service.id') String serviceName
+    @Struct.Ignore String internalNote
+    @Builder.Method @Struct.Name('configure/URL')
+    void configureEndpoint(String value) { serviceName = value }
+    @Builder.Method @Struct.Ignore
+    void configureInternally(String value) { internalNote = value }
+}
+
+def parsed = ['service.id': 'catalog'] // Configures serviceName as 'catalog'.
+// Ordinary Groovy configuration keeps its authored names, including ignored members.
+def configured = Service.Create.With { serviceName 'groovy'; configureInternally 'private' }
+assert configured.internalNote == 'private'
+</code></pre>
+<p>Eligibility and exclusion come first, then a compatible explicit literal, then the inherited/local type profile, then
+identity. Naming cannot admit unsupported types or operations. A literal adds no native/profile alias and can separate
+entries that would collide under a nonidentity profile. Unresolved nonidentity collisions fail with both source declarations;
+existing identity collision rejection is unchanged.</p>
+<p>Supported <code>@JsonProperty</code>/<code>@JsonIgnore</code> bridging remains available. Equal nonempty <code>Struct.Name</code> and <code>JsonProperty</code> names
+coalesce; different names fail deterministically with both annotation origins, <strong>even when excluded</strong>. Empty <code>JsonProperty</code>
+falls back; empty <code>Struct.Name</code> is invalid. <code>Struct.Ignore</code> or true/absent-value <code>JsonIgnore</code> excludes; false <code>JsonIgnore</code> cannot
+undo exclusion. Exclusion and a compatible rename can coexist.</p>
+<p>Both consumers use compiler-folded facts on the exact public Builder declarations. Exclusion removes members from
+structured input and generated JSON Schema; it changes no ordinary Groovy configuration, runtime validation, defaults or
+completed Model API. An ignored required construction key still needs an external root key, Schema derivation or keyed-Map
+identity; it cannot make an otherwise self-contained key position valid. Data/instance keys remain literal.
+Managed Jackson import remains independently configured: use the Jackson literal too when both routes need one spelling.
+There is no automatic mapper adapter. Recompile Schemas and align compiler/runtime/plugin versions; see
+<a rel="nofollow" href="../Migration/#literal-names-and-exclusion">migration</a>.</p>
+<h2 id="raw-input-presence">Raw-input presence</h2>
+<p><code>@Struct.Required</code> marks an admitted field for the containing object's generated JSON Schema <code>required</code> array.
+Direct use and effective domain annotations (including transitive composition) have the same meaning. Inherited fields,
+explicit names and type naming profiles retain their normal effective identity. It neither admits excluded fields nor
+marks Builder operations; <code>Struct.Ignore</code> plus the marker is a compile/contract error.</p>
+<p>This policy is separate from construction-key identity, completed-Model <code>@Required</code> and Jakarta validation. Ordinary
+<code>Create.FromStruct([:])</code>, <code>Create.With { }</code> and active Builder <code>applyStruct([:])</code> still accept omission, subject to the
+Schema's existing construction and validation behavior. Defaults, initializers, Templates, lifecycle, null admission and
+ordered failures are unchanged. Only an editor or explicitly invoked external JSON Schema validator reports a missing
+marked input member. Presence does not test Groovy truth or imply non-nullness, and is independent of constraint
+projection policy. An owned child requirement does not require its optional parent relationship.</p>
+<p>See <a rel="nofollow" href="../Json-Schema/#raw-input-field-presence">raw-input field presence</a> for the direct/domain Schema example, resolved
+names, required-key positions and documentary test plus external Draft 2020-12 oracle. Recompile participating Schemas
+with matching tools and regenerate schema output as described in <a rel="nofollow" href="../Migration/#raw-input-presence-and-the-42-contract">Migration</a>.</p>
+<h2 id="construction-keys">Construction keys</h2>
+<p>Self-contained keyed documents require the actual Schema <code>@Key String</code> member. A supplied direct owned keyed child requires its key too, at any depth, unless its
+relationship supplies identity through <code>@Field.key</code> or a fixed Cluster key. An absent optional child remains absent.
+Unkeyed roots have no synthetic identity property.</p>
+<p>(See: <code>StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.fasterxml.jackson.annotation.JsonProperty
+
+@DSL class Deployment {
+    @Key String name
+    Service service
+    Map&lt;String, Service&gt; services
+}
+@DSL class Service {
+    @Key @JsonProperty('service-id') String name
+    String image
+}
+</code></pre>
+<p>The self-contained parsed document includes root and direct-child identity:</p>
+<pre><code class="language-groovy">def parsed = [name: 'production',
+              service: ['service-id': 'catalog', image: 'catalog:1.0'],
+              services: [worker: [image: 'worker:1.0']]]
+def deployment = Deployment.Create.FromStruct(parsed)
+</code></pre>
+<p>Root identity is <code>production</code>, direct-child identity is <code>catalog</code>, and the literal Map entry supplies <code>worker</code>.</p>
+<p>This Map could come from YAML such as the following. The caller owns parsing; the source name is only diagnostic text.</p>
+<p>(See: <code>StructuredYamlDocumentaryTest#'caller parsed YAML supplies direct child identity and literal Map entry identity'</code>.)</p>
+<pre><code class="language-yaml">name: production
+service:
+  service-id: catalog
+  image: catalog:1.0
+services:
+  worker:
+    image: worker:1.0
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Object position</th>
+<th>Identity authority</th>
+<th>Actual key member in that object's payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Self-contained keyed root</td>
+<td>Input</td>
+<td>Required String</td>
+</tr>
+<tr>
+<td>Caller-pre-keyed root body</td>
+<td>Explicit <code>rootKey</code></td>
+<td>Forbidden, even if equal</td>
+</tr>
+<tr>
+<td>Active Builder body</td>
+<td>Allocated Builder</td>
+<td>Forbidden, even if equal</td>
+</tr>
+<tr>
+<td>Supplied direct keyed child</td>
+<td>Input, unless Schema supplies identity</td>
+<td>Required String</td>
+</tr>
+<tr>
+<td>Fixed/derived-key direct child, including fixed Cluster fields</td>
+<td>Schema relationship</td>
+<td>Forbidden, even if equal</td>
+</tr>
+<tr>
+<td>Keyed owned Map value</td>
+<td>Outer literal Map entry</td>
+<td>Forbidden, even if equal</td>
+</tr>
+</tbody>
+</table>
+<p>Thus <code>services.worker</code> must omit <code>service-id</code>: <code>worker</code> already supplies its identity. A nested direct child inside
+that body still requires its own key when its relationship has no provider. Key names are resolved on the actual
+compiler-selected declaration, including binary inherited keys: <code>@Struct.Ignore</code> or <code>@JsonIgnore(true)</code> excludes it, a compatible nonempty literal
+<code>@Struct.Name</code> or <code>@JsonProperty</code> renames it, then the effective type profile/native name applies. Empty <code>@JsonProperty</code> uses that fallback;
+<code>@JsonIgnore(false)</code> leaves the declaration admitted under its otherwise resolved name. Renames add no alias.
+An ordinary unannotated <code>key</code> property remains normal input; an independently
+admitted operation with an old/native spelling keeps its meaning.</p>
+<p>Key values must be exact Strings. Empty Strings are accepted; null, numbers, booleans, GStrings and containers reject
+without coercion. An ignored key cannot support a self-contained root or an input-key direct child. An external-name
+collision between that required key and an admitted operation rejects before allocation, naming both declarations.
+Keyless positions retain their ordinary operation admission. Use an explicit root key, a Schema key provider or a keyed
+Map where appropriate for an ignored key. A provider is never evaluated to compare an inner key.</p>
+<p>A caller-pre-keyed root body leaves out the root key while retaining the supplied direct child's identity:</p>
+<pre><code class="language-groovy">def body = [service: ['service-id': 'catalog', image: 'catalog:1.0']]
+</code></pre>
+<p>The caller supplies root identity separately through the keyed Factory argument or an already prepared Builder.</p>
+<p>Compile and ship matching compiler/runtime/plugin versions with current generated key facts. Missing facts produce
+recompile/package guidance; the interpreter does not guess key names or derive identity from a filename or URL.
+<code>Create.FromMap</code> retains its separate copy/type-hint behavior. Schema generation adds no runtime entry point or file/URL loading API.</p>
+<p>For editor/validator tooling of caller-pre-keyed bodies, explicitly select the
+<a rel="nofollow" href="../Json-Schema/#caller-pre-keyed-builder-bodies">Builder-body schema artifact</a>. Default root schemas continue to describe
+self-contained input; generation never derives identity from source names.</p>
+<h2 id="apply-to-an-active-builder">Apply to an active Builder</h2>
+<p>The public capability is void <code>applyStruct(Map&lt;?, ?&gt; body[, String sourceName])</code> on <code>KlumBuilder</code>, inherited
+by generated Builder contracts. It configures the existing receiver and does not replace or complete it. The interpreter remains internal. See
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/07cd974558d009463db4ef62539634d22e4b4dc2/docs/adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application-953">the accepted signature and migration contract</a>.</p>
+<p>A caller prepares the Builder through ordinary construction before applying a parsed body. The documentary
+fixture qualifies the grammar and lifecycle through the public Builder capability:
+<code>StructuredInputDocumentaryTest#'Holder supplies completed LINK context for later phases after applying an already-prepared Builder'</code>.</p>
+<h3 id="active-builders">Active Builders</h3>
+<p>Java helpers can preserve their exact Builder type while calling the void capability:</p>
+<pre><code class="language-java">static &lt;B extends KlumBuilder&lt;?&gt;&gt; B configure(B target, Map&lt;?, ?&gt; body, String sourceName) {
+    target.applyStruct(body, sourceName);
+    return target;
+}
+</code></pre>
+<p>(See: <code>StructuredFactoryTest#'active Builders apply structured bodies without completing construction'</code>.)</p>
+<pre><code class="language-groovy">def service = Service.Create.With('catalog') {
+    applyStruct([host: 'first'])
+    applyStruct([host: 'api'], 'request')
+}
+assert service.host == 'api'
+</code></pre>
+<p>Each successful <code>applyStruct</code> adds one PostApply; the enclosing <code>With</code> performs its own PostApply afterward.
+The common Map signatures are framework capabilities, excluded from structured operations and absent from completed Models.
+<code>applyStruct(Map)</code> and <code>applyStruct(Map, String)</code> are reserved: a colliding Schema method, field configurator or
+default-argument overload fails compilation. Rename the conflicting declaration; distinct overloads remain legal.</p>
+<p>That fixture uses an owned <code>application</code> field and a completed <code>environment</code> LINK needed only by later phases.
+<code>AsBuilder().One()</code> has already run PostCreate and PostApply. Dependencies needed by those early callbacks must be
+provided by an appropriate Schema-specific construction path before they run; assigning a LINK afterward cannot supply
+an earlier callback. Structured input does not inject context or change lifecycle timing.</p>
+<p>The target payload cannot carry its actual construction key; the target already owns identity.
+Nested direct children continue to follow <a rel="nofollow" href="#construction-keys">construction keys</a>.</p>
+<p>Application requires an active same-thread Construction session and an unsealed ordinary generated Builder.
+It adds one PostApply for this application, without replaying PostCreate or completing the Builder. The enclosing
+construction still performs its own ordinary application/completion work. Completed, stale, wrong-thread and Template
+Builders reject. Root construction cannot start an independent nested root.</p>
+<h2 id="admitted-input">Admitted input</h2>
+<table>
+<thead>
+<tr>
+<th>Schema entry</th>
+<th>Parsed payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>String or boolean property/one-payload operation</td>
+<td>String or Boolean of the matching kind</td>
+</tr>
+<tr>
+<td>Numeric property/one-payload operation</td>
+<td>A supported standard Number; integral targets require exact range and no fraction</td>
+</tr>
+<tr>
+<td>Enum</td>
+<td>An exact <a rel="nofollow" href="#enum-value-names">enum value token</a> as a String</td>
+</tr>
+<tr>
+<td>Zero-argument <code>@Builder.Method</code> command</td>
+<td>An empty Map (<code>operation: {}</code> in YAML)</td>
+</tr>
+<tr>
+<td>Ordinary List/Map operation argument</td>
+<td>One List/Map payload, recursively typed; never spread or treated as named arguments</td>
+</tr>
+<tr>
+<td>Supported scalar/enum/data collection field</td>
+<td>A List of declared element payloads, added through ordinary generated population</td>
+</tr>
+<tr>
+<td>Exact <code>List&lt;T&gt;</code> with one admitted String/CharSequence element converter</td>
+<td>A List of Strings, each passed to its selected generated element adder</td>
+</tr>
+<tr>
+<td>Exact <code>Map&lt;String, T&gt;</code> with one admitted String/CharSequence value converter</td>
+<td>A Map of literal String keys to Strings, each passed to the generated value adder</td>
+</tr>
+<tr>
+<td>Exact <code>Set&lt;T&gt;</code> with one admitted String element converter</td>
+<td>A List of Strings, invoking conversion for every item before ordinary Set insertion</td>
+</tr>
+<tr>
+<td>Native scalar/enum derived-key Map field</td>
+<td>A List of native values passed to its exact value-only adder; stored keys are runtime-derived</td>
+</tr>
+<tr>
+<td>Supported scalar/enum/data map field</td>
+<td>A Map of literal String keys to declared value payloads</td>
+</tr>
+<tr>
+<td>Admitted concrete virtual field</td>
+<td>A domain Map configured before the virtual sink consumes the child Builder</td>
+</tr>
+<tr>
+<td>Ordinary owned <code>List&lt;T&gt;</code>, <code>Set&lt;T&gt;</code>, <code>SortedSet&lt;T&gt;</code>, <code>NavigableSet&lt;T&gt;</code></td>
+<td>A List of concrete child-body Maps, executed in supplied order</td>
+</tr>
+<tr>
+<td>Concrete owned object</td>
+<td>A domain Map interpreted against the child's Builder</td>
+</tr>
+<tr>
+<td>Map of concrete keyed owned objects</td>
+<td>A Map whose literal String keys select children, each configured by a domain Map</td>
+</tr>
+<tr>
+<td>Finite explicit literal CollectionFactory alternatives for an abstract keyed Map value</td>
+<td>A closed literal alias mapping, then outer String instance keys, then concrete child bodies</td>
+</tr>
+</tbody>
+</table>
+<p>Concrete owned relationships follow the same rules when their generated Builder contracts come from compatible binary
+API/Schema dependencies. Interpretation needs no Schema sources, IDE source mirrors or Javadocs.</p>
+<p>Supported field containers are List, Set, SortedSet, NavigableSet, EnumSet, Map, SortedMap and NavigableMap.
+Normal Builder mechanics manage the declared container, including set deduplication and sorted storage. Operation
+arguments and nested ordinary data containers use List/Map; there is no construction of concrete/custom container
+arguments or broad Collection/Iterable arguments. An ordinary non-DSL scalar field also admits an exact, unambiguous
+<a rel="nofollow" href="../Converters/#structured-string-input">generated String converter route</a>, including field closures, same-compilation
+values and separately compiled external adapters. This uses an already-generated public Builder projection; it does not
+add converter discovery or make omitted/colliding projections callable.</p>
+<p>Converter input is a String scalar at the field's effective external name. Quote numeric YAML values; neither numeric
+coercion nor null admission is added. An absent optional field remains allowed. C1-qualified separately compiled domain
+routes retain their selected-parameter facts and policies. Other origins describe a String plus field prose/examples,
+without inferring a grammar by executing conversion or copying destination-field assertions onto the raw String.
+Missing/malformed required associations or C1 facts fail during static contract verification, even behind naming exclusion
+or OMIT. Recompile participating Schemas after domain contract changes. Pattern projection is an authoring aid;
+structured import does not enforce parameter constraints or automatically validate input against JSON Schema (#971).</p>
+<p>Numeric targets are primitive/boxed byte, short, int, long, float and double, plus BigInteger and BigDecimal.
+Floating targets reject non-finite/overflow values. Standard numeric input values are Byte, Short, Integer, Long,
+Float, Double, BigInteger and BigDecimal; custom Number subclasses reject. Numeric/boolean strings are not coerced.
+An authored operation can interpret its own admitted String payload, as <code>endpoint</code> does above.</p>
+<h3 id="enum-value-names">Enum value names</h3>
+<p>Put <code>@Struct.Name</code> on an enum constant to choose its exact token in Structured Input and JSON Schema.
+Unannotated constants use their declared names. The Schema naming profile does not transform enum value tokens.</p>
+<p>(See: <code>StructuredEnumNameTest#'renames an enum value for parsed YAML and keeps ordinary Groovy enum calls'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class Delivery {
+    ShippingTier tier
+}
+
+enum ShippingTier {
+    @Struct.Name('next-day') NEXT_DAY,
+    ECONOMY
+}
+
+// A YAML parser supplies the Map for `tier: next-day`.
+assert Delivery.Create.FromStruct([tier: 'next-day']).tier == ShippingTier.NEXT_DAY
+assert Delivery.Create.With { tier ShippingTier.NEXT_DAY }.tier == ShippingTier.NEXT_DAY
+</code></pre>
+<p>Structured Input accepts <code>next-day</code> and <code>ECONOMY</code> for this enum. It rejects <code>NEXT_DAY</code>. Empty tokens and collisions
+among effective tokens fail when compiling a Schema that admits the enum, including one supplied by a dependency.
+Ordinary Groovy configuration retains its existing typed enum and converter calls. <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/1064">#1064</a></p>
+<h3 id="converter-backed-list-elements">Converter-backed List elements</h3>
+<p>An exact <code>List&lt;T&gt;</code> of non-DSL scalar values admits one compiler-selected, public element converter taking an exact
+String. Field closures, ordinary factories, enabled constructors and adapters use their existing generated element
+adder. Native scalar Lists retain their declared element grammar. Competing String or String/CharSequence routes,
+missing generated methods and descendant overrides reject; converter discovery and overload preferences are unchanged.</p>
+<p>(See: <code>StructuredListConverterTest#'converts duration List elements independently in supplied order'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Converters
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Field
+import java.time.Duration
+
+@DSL class Schedule {
+    @Converters(excludeMethods = ['parse'])
+    @Field(converters = [{ String text -&gt; Duration.parse(text) }])
+    List&lt;Duration&gt; intervals
+}
+
+def schedule = Schedule.Create.FromStruct(
+    [intervals: ['PT5S', 'PT2S']], 'schedule.yaml')
+assert schedule.intervals == [Duration.ofSeconds(5), Duration.ofSeconds(2)]
+</code></pre>
+<p>Ordinary Groovy uses <code>Schedule.Create.With { interval 'PT5S'; interval 'PT2S' }</code>. The corresponding YAML is:</p>
+<pre><code class="language-yaml">intervals: [PT5S, PT2S]
+</code></pre>
+<p>Each String converts independently in supplied List order and uses ordinary element population. Initializer/default
+entries remain, and an empty List performs no element calls. On the first malformed element or converter failure,
+earlier work remains and later elements/operations are never invoked. Diagnostics retain the source, indexed pointer
+(for example <code>/intervals/1</code>) and original converter cause. Null, numeric, boolean, GString, mutable CharSequence,
+objects, Maps and nested Lists reject as elements; the container itself must be a List.</p>
+<p>Generated JSON Schema emits <code>type: array</code> with <code>items: {type: string}</code> without running user code. Element converter
+parameter constraints are not projected in this slice; C1 scalar-field assertions retain their existing behavior.
+A String that the converter cannot interpret is still structurally valid. Import does not automatically validate JSON
+Schema. Recompile matched Schema/compiler/runtime/plugin artifacts for the authoritative element association.</p>
+<p>Exact String <a rel="nofollow" href="#converter-backed-set-elements">Set elements</a> have their own bounded support. Exact CharSequence List/Map routes are described <a rel="nofollow" href="#charsequence-container-converters">below</a>; other converter-backed collection shapes remain deferred.</p>
+<h3 id="charsequence-container-converters">CharSequence container converters</h3>
+<p>One existing public generated <code>CharSequence</code> converter route also admits raw String List elements and literal
+String-keyed Map values. For example, <code>Duration.parse(CharSequence)</code> needs no String adapter.</p>
+<p>(See: <code>StructuredContainerCharSequenceTest#'natural duration strings populate Lists and literal keyed Maps'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Schedule {
+    List&lt;Duration&gt; timeouts = [Duration.ofSeconds(1)]
+    Map&lt;String, Duration&gt; delays = [retry: Duration.ofSeconds(9)]
+}
+def schedule = Schedule.Create.With {
+    timeout 'PT5S'
+    delay 'retry', 'PT2S'
+}
+assert schedule.timeouts == [Duration.ofSeconds(1), Duration.ofSeconds(5)]
+assert schedule.delays == [retry: Duration.ofSeconds(2)]
+</code></pre>
+<p>Caller-parsed YAML uses the natural forms:</p>
+<pre><code class="language-yaml">timeouts: [PT5S]
+delays: { retry: PT2S }
+</code></pre>
+<p>Both paths invoke the recorded <code>CharSequence</code> converter signature with the original value. Ordinary generated Groovy
+calls preserve String and GString argument identity through that signature, including when an unprojected protected
+<code>parse(String)</code> overload exists. This corrects earlier runtime redispatch to the more-specific String overload; code
+relying on that leak changes behavior. Competing public String/CharSequence routes retain rejection for Struct input;
+there is no new specificity rule. Struct accepts actual Strings only: GString, numbers, null and caller-supplied mutable
+or arbitrary CharSequence values reject. Existing defaults, Map replacement, per-item failure and Template semantics apply.</p>
+<p>JSON Schema emits only String array items / String Map values. It makes no converter-success, constraint or coercion
+promise. CharSequence Set converters remain excluded. Recompile the Schema hierarchy with matched compiler, runtime
+and plugin artifacts; existing generated binaries do not acquire these hooks or admission automatically.</p>
+<h3 id="converter-backed-set-elements">Converter-backed Set elements</h3>
+<p>An exact <code>Set&lt;T&gt;</code> of non-DSL scalar values admits one compiler-selected public generated element adder taking an
+exact String. The input container must be a List, including a caller-parsed YAML sequence. It describes ordered adder
+calls; the destination retains ordinary <code>Set.add</code> behavior.</p>
+<p>(See: <code>StructuredSetConverterTest#'converts every supplied tag and retains ordinary Set equality semantics'</code>.)</p>
+<pre><code class="language-groovy">class Tag {
+    String name
+    static Tag fromString(String raw) { new Tag(name: raw.toLowerCase()) }
+    boolean equals(Object other) { other instanceof Tag &amp;&amp; other.name == name }
+    int hashCode() { name.hashCode() }
+}
+@DSL class Schedule {
+    Set&lt;Tag&gt; tags = [new Tag(name: 'seed')] as LinkedHashSet
+}
+def schedule = Schedule.Create.FromStruct(
+    [tags: ['blue', 'green', 'BLUE', 'seed']], 'tags.yaml')
+assert schedule.tags*.name == ['seed', 'blue', 'green']
+</code></pre>
+<p>Ordinary Groovy uses <code>tag 'blue'; tag 'green'; tag 'BLUE'; tag 'seed'</code> inside <code>Schedule.Create.With</code>. Caller-owned YAML:</p>
+<pre><code class="language-yaml">tags: [blue, green, BLUE, seed]
+</code></pre>
+<p>Every supplied String invokes its converter in sequence order, even when the converted value equals an existing entry.
+Defaults survive population, and an equal value retains the destination Set's ordinary equality behavior. An exact Set
+field may use a comparator-backed initializer: its native comparison and final iteration order remain authoritative.
+Empty input makes zero adder/converter calls and preserves defaults; it does not invoke a replacement setter.
+A converter or insertion failure retains earlier effects and its original cause, with source/index diagnostics such as
+<code>tags.yaml</code>, <code>/tags/1</code>. Later items and operations do not run. Template definition evaluates every supplied converter;
+recipients replay ordinary retained recipe values without evaluating those converters again. Lifecycle remains ordinary.</p>
+<p>Only raw String items are accepted: null, numbers, booleans, GString, mutable CharSequence, objects, Maps and nested Lists
+reject. Passing an input Set also rejects. Exact declared <code>SortedSet</code>, <code>NavigableSet</code>, <code>EnumSet</code>, custom collections,
+owned DSL values and CharSequence-only converter routes are outside this converter slice; existing native and owned-body
+grammars retain their separate contracts. Recompile matched Schema/compiler/runtime/plugin artifacts.</p>
+<p>JSON Schema emits an array with String items without <code>uniqueItems</code>, cardinality, comparator, final-order or replacement
+claims. It does not execute converter code or project element-parameter constraints. Duplicate input strings are valid.</p>
+<h3 id="converter-backed-map-values">Converter-backed Map values</h3>
+<p>An exact <code>Map&lt;String, T&gt;</code> of non-DSL scalar values admits one compiler-selected public value converter taking an exact
+String. Each raw String value calls the existing generated adder with its literal String data key. Field closures,
+ordinary factories, enabled constructors and adapters follow the same selection rules as
+<a rel="nofollow" href="#converter-backed-list-elements">List elements</a>. Native scalar Maps retain their declared value grammar.</p>
+<p>(See: <code>StructuredMapConverterTest#'converts duration Map values independently under literal String keys'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Converters
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Field
+import java.time.Duration
+
+@DSL class Schedule {
+    @Converters(excludeMethods = ['parse'])
+    @Field(converters = [{ String text -&gt; Duration.parse(text) }])
+    Map&lt;String, Duration&gt; intervals
+}
+
+def schedule = Schedule.Create.FromStruct(
+    [intervals: [primary: 'PT5S', retry: 'PT2S']], 'schedule.yaml')
+assert schedule.intervals == [primary: Duration.ofSeconds(5), retry: Duration.ofSeconds(2)]
+</code></pre>
+<p>Ordinary Groovy uses <code>Schedule.Create.With { interval 'primary', 'PT5S'; interval 'retry', 'PT2S' }</code>.
+The corresponding YAML keeps those literal data keys:</p>
+<pre><code class="language-yaml">intervals:
+  primary: PT5S
+  retry: PT2S
+</code></pre>
+<p>Traversal follows the supplied Map's iteration order. Ordinary entry population preserves initializer/default entries,
+replaces an existing key's value according to ordinary Builder behavior, and performs no calls for an empty Map. It
+never calls a whole-container converter or replacement setter. Data keys remain literal even with an external naming
+profile or rename. Non-String keys reject without coercion. Custom <code>@Field.keyMapping</code>, non-String declared keys,
+ambiguous or missing generated routes, descendant overrides and owned DSL values are excluded. See
+<a rel="nofollow" href="#charsequence-container-converters">CharSequence container converters</a> for exact CharSequence value routes.</p>
+<p>Each reached value must be a String: null, numeric, boolean, GString, mutable CharSequence, arbitrary Object, Map and List
+values reject. A converter failure retains its original cause, source and escaped key-specific pointer, for example
+<code>/intervals/bad~1~0key</code> for key <code>bad/~key</code>. Earlier entries and operations remain applied; later work is never invoked.</p>
+<p>JSON Schema emits <code>type: object</code> with <code>additionalProperties: {type: string}</code> without initializing the Schema or running
+converters. This describes String structure, including arbitrary String contents; successful conversion is a runtime
+concern. Value converter parameter assertions are not projected; scalar C1 behavior remains unchanged. Recompile the
+Schema hierarchy with matched compiler/runtime/plugin artifacts for authoritative route/completeness metadata.</p>
+<h2 id="owned-child-sequences">Owned child sequences</h2>
+<p>Ordinary owned relationship fields declared as <code>List&lt;T&gt;</code>, <code>Set&lt;T&gt;</code>, <code>SortedSet&lt;T&gt;</code> or <code>NavigableSet&lt;T&gt;</code> admit a supplied
+List of child-body Maps when <code>T</code> is a concrete, nongeneric DSL type, either unkeyed or keyed. The compiler records the owned field
+relationship. Struct uses its normal preparation and attachment path directly, so customized or absent public creator
+overloads do not exclude the relationship. Their authored behavior remains available through ordinary Builder calls.
+Each mapping creates a fresh child in the parent's Construction session. Normal preparation applies initializers and
+child Templates, runs PostCreate, interprets the body, runs PostApply, then attaches through the ordinary collection path.
+An empty sequence makes no child calls; existing/default entries remain.</p>
+<p>(See: <code>StructuredOwnedSequenceTest#'creates ordinary owned children from supplied body sequences'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Service { List&lt;Route&gt; routes }
+@DSL class Route { String path }
+
+def ordinary = Service.Create.With {
+    routes {
+        route { path '/health' }
+        route { path '/metrics' }
+        route { path '/health' }
+    }
+}
+def service = Service.Create.FromStruct([
+    routes: [[path: '/health'], [path: '/metrics'], [path: '/health']]
+])
+assert service.routes*.path == ['/health', '/metrics', '/health']
+</code></pre>
+<p>The corresponding caller-parsed YAML form is:</p>
+<p>(See: <code>StructuredYamlDocumentaryTest#'caller parsed YAML preserves owned sequence order and duplicate child bodies'</code>.)</p>
+<pre><code class="language-yaml">routes:
+  - path: /health
+  - path: /metrics
+  - path: /health
+</code></pre>
+<p>The supplied sequence is an operation stream. Every reached mapping runs in supplied order, including equal mappings.
+The destination collection owns insertion, equality, comparator behavior, final cardinality and iteration order. For
+example, a Set can collapse equal completed children; a sorted Set can reject a comparator-equivalent Builder after its
+PostApply, so only retained children receive later graph lifecycle work. No deduplication, sorting or comparator
+preflight is performed by Struct. Ordinary natural-order insertion can fail because generated Builders do not inherit
+Model Comparable behavior. A comparator must already work with the ordinary Builder and completed Model stages;
+Struct does not repair initializer typing or infer comparator eligibility.</p>
+<p>The first reached body, lifecycle or insertion failure stops later entries and operations, retaining earlier effects.
+Diagnostics identify the zero-based <strong>supplied input index</strong>, even if a Set has collapsed earlier entries or changes
+iteration order. Existing Builder placement paths keep their ordinary size-based behavior and are not input indices.
+No rollback occurs: an insertion failure can leave the failed Builder claimed without a placement path, exactly as in
+ordinary Groovy. Materialization failures keep their normal lifecycle attribution.</p>
+<p><code>Create.Template.FromStruct</code> can define these sequences through ordinary Template construction. Applying a Template
+copies its retained recipe into fresh recipients; it does not replay the original supplied sequence or entries already
+collapsed while defining that Template. Initial/default/template semantics and recipient ownership remain ordinary.
+See <code>StructuredOwnedSequenceTest#'Template definition and fresh recipients preserve ordinary recipe semantics for #declaration'</code>.</p>
+<p>This route excludes abstract/subtype alternatives, CollectionFactory creators, custom/specialized
+collection declarations, EnumSet, LINK/OPTIONAL_LINK and scalar converter elements. Unknown child members, invented keys,
+null, scalar and sequence child bodies reject. Nested child members can use their independently admitted grammar; this
+adds no arbitrary recursive collection language. The <a rel="nofollow" href="../Json-Schema/#owned-child-sequences">JSON Schema</a> describes the
+Struct body grammar rather than every expression available in Groovy or the destination collection's final semantics.</p>
+<h3 id="keyed-child-sequences">Keyed child sequences</h3>
+<p>For a keyed child, each item supplies its actual externally named construction key. Struct uses the same key rules as
+<a rel="nofollow" href="#construction-keys">self-contained roots and direct children</a>: <code>@Struct.Name</code>, inherited key declarations and the
+selected naming profile apply. The key is required as a String before that child is allocated or configured, so
+PostCreate sees its identity. Empty Strings are valid; absent, null and non-String keys reject without coercion.
+An ignored or externally ambiguous key cannot establish item identity. Renaming does not admit the native spelling.</p>
+<p>(See: <code>StructuredKeyedSequenceTest#'creates keyed routes from structured sequence items'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Service { List&lt;Route&gt; routes }
+@DSL class Route {
+    @Key String routeName
+    String path
+}
+
+def service = Service.Create.FromStruct([
+    routes: [[routeName: 'health', path: '/health'], [routeName: 'metrics', path: '/metrics']]
+], 'routes.yaml')
+assert service.routes*.routeName == ['health', 'metrics']
+</code></pre>
+<p>The equivalent caller-parsed YAML is:</p>
+<pre><code class="language-yaml">routes:
+  - routeName: health
+    path: /health
+  - routeName: metrics
+    path: /metrics
+</code></pre>
+<p>Repeated keys still create fresh children, just as repeated ordinary <code>route('health') { ... }</code> calls do. A List keeps
+them; Set equality and sorted comparators determine the destination result. Keyed sequences never reuse an earlier
+child by key. Supplied traversal order, lifecycle, partial failures and Template recipe behavior follow the sequence
+rules above. A key inside a keyed sequence item is required even inside a keyless root Template recipe: the recipe
+supplies those child identities. This does not change keyless Template roots or outer-keyed Map bodies.</p>
+<h2 id="derived-key-map-values">Derived-key Map values</h2>
+<p>A supported String-keyed <code>Map</code>, <code>SortedMap</code> or <code>NavigableMap</code> with native scalar/enum values and
+<code>@Field(keyMapping = { ... })</code> accepts a sequence of values. Each item calls the exact compiler-selected ordinary
+value-only Builder adder; the mapping derives the actual stored key at runtime.</p>
+<p>(See: <code>StructuredDerivedMapCharacterizationTest#'derives Map keys from structured values through the ordinary Builder adder'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Palette {
+    @Field(keyMapping = { it.toLowerCase() })
+    Map&lt;String, String&gt; values
+}
+
+def ordinary = Palette.Create.With { value 'BLUE' }
+def structured = Palette.Create.FromStruct([values: ['BLUE']], 'palette.yaml')
+assert structured.values == ordinary.values
+assert structured.values == [blue: 'BLUE']
+</code></pre>
+<p>The equivalent caller-parsed YAML is:</p>
+<pre><code class="language-yaml">values:
+  - BLUE
+</code></pre>
+<p>Traversal follows supplied sequence order. Repeated derived keys use ordinary Map replacement and destination ordering;
+an empty sequence leaves existing entries intact. Each reached item is validated and added before checking the next.
+A mapping exception or null derived key fails at that item's input index and retains prior work on an active Builder.
+Struct still rejects explicit null values. Normal lifecycle and Template recipe behavior apply: Template definition
+maps its supplied values without lifecycle callbacks; recipients copy the resulting entries before normal configuration.</p>
+<p>JSON Schema describes an array of the declared scalar/enum inputs. Generation never evaluates the mapping or predicts
+its runtime keys. A compatible descendant override of the selected public adder follows ordinary Builder dispatch.
+An authored replacement at the field declaration that prevents the generated association remains excluded, as do
+converter-backed values, owned DSL values and non-String declared Map keys. Literal input Maps do not select this value-only route. Recompile matched Schema artifacts to emit the
+exact field/adder selection; no new public signature or metadata annotation member is required.</p>
+<h2 id="other-relationship-boundaries">Other relationship boundaries</h2>
+<p>Owned DSL Maps with <code>@Field.keyMapping</code> remain excluded because derived keys conflict with literal structured instance
+keys. Ordinary Builder DSL key mapping keeps its existing behavior. A direct keyed child uses its actual key member when the relationship has no Schema provider;
+explicit <code>@Field.key</code> and compiler-known fixedKeys Cluster keys keep Schema authority and reject inner identity. LINK/reference lookup, derived-key owned Map
+sequences, arbitrary polymorphic selection and other CollectionFactory scopes remain outside the admitted grammar. The
+<a rel="nofollow" href="#literal-collection-alternative">explicit literal alternatives</a> below is the bounded exception. Null at any depth,
+arbitrary caller objects, helper/query/lifecycle names and multi-payload authored operations reject.
+Zero-argument domain commands have only their explicitly authored behavior; there is no implicit reset/clear operation.
+An ordinary unannotated property named <code>key</code> is normal domain input; actual <code>@Key</code> members follow the position-specific rules above.</p>
+<p>Names follow compiler decisions: exclusion, compatible <code>@Struct.Name</code>/<code>@JsonProperty</code> literal, effective type profile,
+then identity. See <a rel="nofollow" href="#literal-names-and-exclusion">literal names and exclusion</a>. String candidates follow
+<a rel="nofollow" href="#select-a-string-operation">operation selection</a>; unresolved collisions reject without choosing a winner.
+An unsupported Schema member can coexist with unrelated admitted entries. These naming annotations do not enable
+Jackson codecs, naming strategies, mixins, aliases or mapper coercion.</p>
+<h2 id="groovy-forms-without-a-struct-equivalent">Groovy forms without a Struct equivalent</h2>
+<p>Availability belongs to each admitted family. A working Groovy overload or a YAML-compatible value alone does not
+make an entry available. The <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/07cd974558d009463db4ef62539634d22e4b4dc2/docs/implementation/issue-1015-struct-final-inventory.md">final 4.2 inventory</a>
+records the evidence and dispositions under <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/1015">#1015</a>;
+remaining grammar investigations belong to <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/952">#952</a>. In particular:</p>
+<table>
+<thead>
+<tr>
+<th>Ordinary Groovy capability</th>
+<th>Struct boundary and workaround</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Subtype collection creators</td>
+<td>Owned sequences require concrete nongeneric children, keyed or unkeyed. Only the <a rel="nofollow" href="#literal-collection-alternative">explicit literal keyed Map alternatives</a> supply subtype selection.</td>
+</tr>
+<tr>
+<td>Converter-backed or owned <code>@Field.keyMapping</code> Map adders</td>
+<td>Only <a rel="nofollow" href="#derived-key-map-values">native scalar/enum values</a> have a derived-key sequence. Use Groovy or an eligible domain List operation for other values.</td>
+</tr>
+<tr>
+<td>String converters for owned DSL values</td>
+<td><code>child: supplied</code> is deferred post-4.2 to <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/1033">#1033</a>. Use an admitted nested child body, an eligible Schema-authored operation, or ordinary Groovy <code>child 'supplied'</code>.</td>
+</tr>
+<tr>
+<td>CharSequence-only Set converters and specialized converter containers</td>
+<td>Only exact String converter Sets and exact String/CharSequence converter Lists/Maps are admitted. Use an exact String scalar-value converter where applicable, an eligible domain operation, or Groovy.</td>
+</tr>
+<tr>
+<td><code>@NamedParams</code>/<code>@NamedParam</code> Map operations</td>
+<td>No closed named-parameter map grammar or argument spreading is projected. An independently admitted ordinary typed Map remains one payload, without named-parameter required/type guarantees. Use that contract, an eligible wrapper operation, or Groovy; L2 remains deferred under <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/952">#952</a>.</td>
+</tr>
+<tr>
+<td>Multi-argument/default/varargs operation and factory calls</td>
+<td>Struct supplies one admitted payload or invokes a zero-argument command. A typed Map/List argument is not named/positional argument spreading. Expose an eligible one-payload domain operation or use Groovy.</td>
+</tr>
+<tr>
+<td>Repeated or interleaved calls with the same name</td>
+<td>A Map cannot retain duplicate member names. Use a domain List operation or Groovy. Normal Map traversal order does not introduce a general event-sequence language.</td>
+</tr>
+<tr>
+<td>Implicit clear/replace and null setters</td>
+<td>Null is rejected at every depth; empty containers make no population calls and do not clear a field. An eligible authored <code>clearRoutes()</code> command can be called as <code>clearRoutes: {}</code>; its body owns the effect.</td>
+</tr>
+<tr>
+<td>Caller Class/Factory tokens, existing LINK targets and reference lookup</td>
+<td>No type name, <code>$ref</code> or object token is interpreted. Caller-established context and ordinary Schema linking phases can still be used. Managed Jackson has its <a rel="nofollow" href="../Jackson-Integration/">own binding contract</a>.</td>
+</tr>
+<tr>
+<td>Arbitrary closure/SAM scopes, Builder queries/results and Cluster grouping</td>
+<td>No generic closure adaptation, query invocation or result chaining. Use admitted fields/operations directly; fixed Cluster keys retain <a rel="nofollow" href="#construction-keys">Schema authority</a>. The concrete virtual family below is a bounded exception.</td>
+</tr>
+<tr>
+<td>Template selection, <code>copyFrom</code>, <code>applyLater</code> and multi-source composition</td>
+<td>Caller code owns Template scopes, donors and scheduling. A <a rel="nofollow" href="../Templates/#structured-input-templates">Struct Template</a> is a recipe definition, not a YAML selector. Applying bodies does not define merge/reset/precedence policy.</td>
+</tr>
+</tbody>
+</table>
+<p>Schema-defined <a rel="nofollow" href="../Default-Values/">defaults</a>, <a rel="nofollow" href="../Model-Phases/">phases</a>, <a rel="nofollow" href="../Validation/">validation</a> and inheritance retain
+their ordinary behavior without extra YAML directives. Struct population is separate from <a rel="nofollow" href="../Copy-Strategies/">copy strategies</a>.
+Generated <a rel="nofollow" href="../Json-Schema/">JSON Schema</a> describes the admitted input shapes; it neither promises every Groovy expression
+nor exports a completed Model. Jackson codecs, aliases, mapper coercion and import/export behavior do not follow from
+Struct's compatible literal naming annotations.</p>
+<h2 id="literal-collection-alternative">Literal collection alternative</h2>
+<p>A default owned <code>Map&lt;String, Element&gt;</code> relationship can admit a finite set of explicitly declared literal alternatives
+when <code>Element</code> is an abstract keyed DSL type and every selected subtype is concrete and nongeneric. All inherit the same
+String construction key. The compiler records the exact field, aliases and concrete targets; structured input cannot
+choose a Class or Factory. Struct configures that owned relationship directly through the normal internal Builder
+construction route. It does not call public alias creators or the collection closure method, so absent, customized or
+overridden convenience methods do not exclude the relationship. Ordinary Groovy calls keep their own method behavior.</p>
+<p>(See: <code>StructuredMultipleLiteralAlternativeTest#'multiple explicit literal groups preserve supplied group and keyed entry order'</code>;
+<code>StructuredLiteralAlternativeTest#'configures a concrete element through its literal collection alias'</code> retains the one-alias case.)</p>
+<pre><code class="language-groovy">@DSL class Catalog {
+    @Field(alternatives = { [fixed: FixedElement, rolling: RollingElement] }) Map&lt;String, Element&gt; elements
+}
+@DSL abstract class Element {
+    @Key String name
+    @Owner Catalog owner
+    String value
+}
+@DSL class FixedElement extends Element { String fixedValue }
+@DSL class RollingElement extends Element { String rollingValue }
+
+// Ordinary Model authoring:
+Catalog.Create.With {
+    elements {
+        rolling('b') { rollingValue 'rolling' }
+        rolling('c') {}
+        fixed('a') { fixedValue 'fixed' }
+    }
+}
+// The corresponding caller-parsed input:
+def catalog = Catalog.Create.FromStruct([elements: [
+    rolling: [b: [rollingValue: 'rolling'], c: [:]],
+    fixed: [a: [fixedValue: 'fixed']]
+]])
+assert catalog.elements.keySet().toList() == ['b', 'c', 'a']
+assert catalog.elements.b instanceof RollingElement
+assert catalog.elements.a instanceof FixedElement
+assert catalog.elements.b.owner.is(catalog)
+</code></pre>
+<p>A YAML parser can supply that Map for:</p>
+<pre><code class="language-yaml">elements:
+  rolling:
+    b:
+      rollingValue: rolling
+    c: {}
+  fixed:
+    a:
+      fixedValue: fixed
+</code></pre>
+<p>Each alias may appear once in the supplied Map and may be omitted. A Schema declaring just one explicit alias remains
+supported. Group order and each group's keyed-entry order follow the supplied Maps' iteration order. This is input
+traversal, independent of canonical metadata order; it makes no portable parser-order promise. There is no syntax for
+repeated or interleaved alias events.</p>
+<p><code>fixed</code> and <code>rolling</code> are exact literal aliases. Each outer instance key (<code>a</code>, <code>b</code> or <code>c</code>) is the authoritative String
+construction key and is available before child PostCreate. Omit the child's actual key member from the body: both equal and conflicting inner identities reject
+when reached. Empty relationship or alias mappings create no children; <code>fixed: {primary: {}}</code> creates a child with an
+empty body. Every actual instance key must be a String; no key is inferred from a body member.</p>
+<p>The relationship field follows ordinary external naming, exclusion and collision rules. Alias and instance keys remain
+literal. Child member names follow the concrete subtype's own input contract. Caller iteration order is preserved across
+aliases, instance entries and child members. A reached failure retains earlier effects, skips later operations and does
+not attach a failing fresh child. Reconfiguration of an existing compatible Builder retains its identity and prior
+attachment; an incompatible existing type fails through the ordinary explicit-type route. Each successful child call runs
+one PostApply inside the existing Construction session. Active Builder input shares this grammar; Template Factory
+input retains the ordinary deferred recipe lifecycle.</p>
+<p>Unknown aliases, class-name selectors, key-first wrappers, scalar/List/null envelopes and non-mapping child bodies reject.
+Alternatives on List/Set, concrete-base bodies alongside alias groups, auto-discovered names, generic targets,
+unkeyed collections, LINK relationships and custom key mapping are outside this family. Existing concrete keyed-Map syntax is unchanged. YAML duplicate-key rejection belongs
+to the parser. Recompile participating Schema artifacts to obtain complete association metadata; corruption fails during
+contract verification even when the relationship is omitted. <a rel="nofollow" href="../Json-Schema/#literal-collection-alternative">JSON Schema</a>
+projects the same closed structural shape.</p>
+<h2 id="concrete-virtual-builder-scopes">Concrete virtual Builder scopes</h2>
+<p>A public <code>@Field void method(ConcreteType value)</code> can accept a nested mapping when its target is an unkeyed,
+nongeneric concrete DSL type and the compiler can associate it with one ordinary generated creator. The <code>@Field</code>
+annotation must have no explicit options. The interpreter enters the existing Construction session, configures the
+child Builder, runs its ordinary <code>PostApply</code>, then invokes the virtual sink. It does not create a completed child Model
+independently. Each invocation creates a fresh virtual child, as ordinary virtual-field creation does.</p>
+<p>(See: <code>StructuredVirtualScopeDocumentaryTest#'a repository mapping configures its Builder before the virtual field consumes it'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Registry {
+    List&lt;String&gt; urls
+    @Field void repository(Repository config) {
+        urls &lt;&lt; config.url
+    }
+}
+@DSL class Repository { String url }
+
+def ordinary = Registry.Create.With {
+    repository { url 'https://packages.example' }
+}
+def mapped = Registry.Create.FromStruct([repository: [url: 'https://packages.example']])
+assert mapped.urls == ordinary.urls
+assert mapped.urls == ['https://packages.example']
+</code></pre>
+<p>Literal names, naming profiles, exclusions and external-name collision rules still apply. An unchanged inherited scope
+retains its association. Redeclared virtual sinks are excluded where ordinary virtual-setter selection is not unique.
+Keyed, generic, abstract, customized, overloaded or missing/generated-creator replacements are outside this family.
+An authored closure method does not become a mapping scope merely because it has <code>@DelegatesToBuilder</code> metadata.
+Other CollectionFactory families, polymorphic selectors and arbitrary closure adaptation remain unsupported.</p>
+<p>Earlier siblings can already have run when a virtual child fails. A child-body failure prevents that sink and later
+operations; a sink failure keeps its original cause and identifies the source label and scope path. Lifecycle failures
+retain ordinary attribution. Calling a no-argument creator and then <code>applyStruct</code> on its result is not equivalent:
+the creator has already run <code>PostApply</code> and the sink before returning.</p>
+<p>Recompile Schemas with matched compiler/runtime/plugin artifacts for the required exact association facts. The
+<a rel="nofollow" href="../Json-Schema/#concrete-virtual-scopes">JSON Schema</a> describes the closed child body, without running the sink or
+promising that construction will succeed. Existing Factory, active-Builder and Template entry modes retain their
+ordinary lifecycle rules.</p>
+<h2 id="select-a-string-operation">Select a String operation</h2>
+<p><code>@Struct.Operation</code> marks one Schema-authored method with an existing public Builder projection. For each effective
+external name, one eligible marked String operation wins; multiple eligible marks fail. Without a mark, there must be
+exactly one candidate. Selection is fixed while reading the compiled contract, before seeing any input value.</p>
+<p>(See: <code>StructuredOperationSelectionTest#'select the public endpoint operation before interpreting its String payload'</code>,
+related to <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/952">#952</a>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class Service {
+    @Struct.Ignore String host
+
+    @Struct.Operation @Builder.Method
+    void endpoint(String value) { host = 'primary:' + value }
+
+    @Struct.Name('endpoint') @Builder.Method
+    void backupEndpoint(String value) { host = 'backup:' + value }
+}
+
+def parsed = [endpoint: 'api.internal'] // Selects endpoint; host becomes 'primary:api.internal'.
+</code></pre>
+<p>Only <code>endpoint</code> is an external input name here. Ordinary Groovy/Java calls keep their normal callable methods. Exclusion,
+unsupported roles and missing public projections cannot be repaired with a mark. Place the marker on a method, never a
+field: it cannot choose among several generated converters. An authored marked wrapper can expose an exact String or CharSequence route.</p>
+<p>Inherited String operations retain their declaring contract. A String override replaces the parent operation's name and selection
+intent, including when the override is renamed or ignored. Overriding an inherited String field's String input signature
+also excludes the parent's external field route; overriding an unrelated overload leaves that String route intact.
+Existing C1 converter routes remain excluded when a descendant
+overrides their signature; the parent's converter constraints cannot describe different code.</p>
+<p>A selected String route rejects numeric, null, GString and mutable CharSequence payloads without trying another overload.
+Competing String/CharSequence projections have no implicit specificity preference: mark one eligible operation.
+An exact selected CharSequence signature receives the original String; caller-supplied CharSequence objects are not input
+Strings. Generated String and CharSequence converter origins follow the field rules above. The generated JSON Schema describes only the
+selected operation's String grammar, prose and examples; constraints from a superseded field/converter do not transfer.</p>
+<p>Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts
+and selection facts are required even for unmarked or excluded operations; missing or inconsistent facts fail closed.
+The development metadata protocol remains version 1. See <a rel="nofollow" href="../Migration/#structured-string-operation-selection">migration</a>.</p>
+<h2 id="zero-argument-commands">Zero-argument commands</h2>
+<p>A public Schema-authored <code>@Builder.Method</code> with no arguments is a command. Supply an empty mapping to invoke its exact
+public Builder operation once. Omission makes no call. Its return value, if any, is ignored. The method body defines its
+behavior: KlumAST adds no reset, clear, scheduling or repeated-call semantics.</p>
+<p>(See: <code>StructuredCommandTest#'an empty mapping invokes the domain reset command once'</code>,
+related to <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/952">#952</a>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+
+@DSL class Service {
+    int timeout = 30
+    @Builder.Method void resetTimeout() { timeout = 30 }
+}
+
+def ordinary = Service.Create.With { timeout 90; resetTimeout() }
+def parsed = [timeout: 90, resetTimeout: [:]] // Sets 90, then invokes resetTimeout, yielding 30.
+def structured = Service.Create.FromStruct(parsed)
+assert structured.timeout == ordinary.timeout
+assert structured.timeout == 30
+</code></pre>
+<p>The corresponding YAML preserves that operation order:</p>
+<p>(See: <code>StructuredCommandTest#'an empty mapping invokes the domain reset command once'</code>.)</p>
+<pre><code class="language-yaml">timeout: 90
+resetTimeout: {}
+</code></pre>
+<p>A blank YAML value (<code>resetTimeout:</code>) and explicit null are not call markers. Null, nonempty Maps, Lists and scalars reject;
+<code>resetTimeout!</code> is an unknown name. Parsing stays caller-owned. The command follows the same literal/profile naming,
+exclusion, exact inherited override and collision rules as other admitted entries; payload shape never chooses an overload.
+<code>@Struct.Operation</code> retains its String-selection role and is not needed on a command. Query, lifecycle and framework helpers
+are not commands. Inherited overrides own their names and exclusions, so an old parent spelling cannot call renamed code.</p>
+<p><a rel="nofollow" href="#order-and-failures">Order and failures</a> apply: a command reached before a later invalid member may execute; no later
+operation runs after failure. Generated <a rel="nofollow" href="../Json-Schema/#zero-argument-commands">JSON Schema</a> describes a closed empty object.
+Recompile participating Schema hierarchies with matching compiler/runtime/plugin artifacts for the required command-role
+facts; see <a rel="nofollow" href="../Migration/#structured-zero-argument-commands">migration</a>.</p>
+<h2 id="order-and-failures">Order and failures</h2>
+<p>Input is checked one operation at a time and execution stops at the first encountered invalid name, payload, type,
+child or invocation. Earlier operations and their ordinary side effects remain; later operations are not reached.
+There is no whole-document payload preflight or rollback. A failed root construction returns no completed Model.
+A failed Builder application can leave the caller's Builder partially configured; it does not reset or complete it,
+and does not run PostApply for the failed application.</p>
+<p>Source, root Map, active same-thread unsealed target and complete static contract checks precede traversal. The full
+admitted ownership contract graph is verified even for omitted children, without executing user code. A newly allocated
+keyed root or direct child reads its required construction key before allocation and PostCreate, wherever that key occurs
+in its Map. Its remaining body is not checked ahead. A missing or invalid required key prevents that object's allocation;
+earlier siblings may already have run. Externally supplied identity remains authoritative and inner keys reject when reached.</p>
+<p>A typed List/Map passed as one authored operation argument is validated as one payload before that invocation. Generated
+population routes instead check and invoke each element or Map entry in supplied order. Cyclic containers reject when
+reached; repeated acyclic shared values remain allowed. The interpreter does not take a whole-input snapshot.</p>
+<p>(See: <code>StructuredInputRuntimeTest#'supplied operation order configures the Builder until the first invalid member'</code>.)</p>
+<pre><code class="language-groovy">def parsed = [host: 'api', unknown: true, port: 8080]
+// host is applied first; unknown then fails; port is not reached.
+</code></pre>
+<p>A caller that catches the failure must explicitly choose whether to abandon construction or retain the partial state.
+The internal grammar test qualifies this behavior; no public reader or new construction API is introduced here.</p>
+<p>Execution follows each supplied Map's iteration order recursively and each List's element order. An insertion-ordered
+Map preserves the caller's chosen order; an unordered Map exposes its own iteration order. There is no portable parser
+source-order guarantee or sorting imposed by the interpreter. Reversing order-sensitive operations can change the result.
+Normal lifecycle, ownership, defaults, AutoLink, LinkTo, materialization and validation remain in their usual phases.</p>
+<p>Local input/dispatch failures use <code>KlumModelException</code>, naming the source, escaped JSON Pointer, external name, public
+Builder contract and expected/actual shape or type. Pointer tokens escape <code>/</code> as <code>~1</code> and <code>~</code> as <code>~0</code>; List indices are
+included. Original operation causes are retained. Late lifecycle/validation failures keep their normal framework behavior
+and are not attributed to an invented last input leaf. No input provenance is retained on the completed Model.
+A Template or earlier operation may already have populated a child. Ordinary same-key reuse and different-key
+rejection still apply during execution.
+A parser must reject repeated raw JSON/YAML member names before collapsing them into a Map; neither this API nor JSON
+Schema can recover discarded duplicates.</p>
+<p><a rel="nofollow" href="../Jackson-Integration/">Jackson integration</a> remains an independent foreign-data binding route with its existing
+callback and codec behavior. Structured input is opt-in and does not change named-parameter configuration or Jackson.</p>
+<p>The internal grammar qualification fixtures live in
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/07cd974558d009463db4ef62539634d22e4b4dc2/klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputDocumentaryTest.groovy"><code>StructuredInputDocumentaryTest</code></a>:
+“one structured operation configures several root properties” and
+“Holder supplies completed LINK context for later phases after applying an already-prepared Builder”.
+The key examples live in
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/07cd974558d009463db4ef62539634d22e4b4dc2/klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredInputKeyDocumentaryTest.groovy"><code>StructuredInputKeyDocumentaryTest</code></a>,
+linked to <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/954">#954</a>.
+Related language work: <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/932">#932</a>; optional matching JSON Schema generation
+remains <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/529">#529</a>.</p>
+<h2 id="advisory-input-examples">Advisory input examples</h2>
+<p><code>@Struct.Examples</code> provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints. See <a rel="nofollow" href="../Json-Schema/#advisory-input-examples">generated JSON Schema</a>.</p>
+<p>(See: <code>InputExamplesTest#'document example values without supplying defaults or changing input admission'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Service {
+    @Struct.Examples(['Catalog', 'catalog.internal']) String displayName
+}
+
+def configured = [displayName: 'Configured']
+def omitted = [:]
+// The explicit value configures displayName; omission does not supply an example as a default.
+</code></pre>
+<p>Documentation strings do not supply values or change input admission, naming/exclusion, defaults, validation or lifecycle.
+The shared byte reader checks required string-array metadata without interpreting its contents. Compiler constant capture
+never reads a static field reflectively to obtain a value. Owned/inherited public Builder declarations remain the authority;
+no Model-byte fallback, Javadoc transport, provider or callback participates.</p>
+<h2 id="documentary-constraint-meta-annotations">Documentary constraint meta-annotations</h2>
+<p><code>@Struct.ConstraintDescription('literal text')</code> belongs on an annotation type. It adds documentary text for Schema fields
+using that annotation; it supplies no validation, default, example or input-admission rule. Bean composed constraints may
+host first-level composing constraints for the built-in JSON Schema mappings. These facts do not enforce constraints at
+Java/Groovy call boundaries or change structured-input interpretation. Projection policies and the exact composition
+boundary are described in <a rel="nofollow" href="../Json-Schema/#composed-constraints-and-documentary-meta-annotations">JSON Schema</a>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
