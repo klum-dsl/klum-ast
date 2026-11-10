@@ -4,6 +4,8 @@ Date: 2026-07-21
 
 Amended: 2026-07-22 (static-HTML presentation and Pages rehearsal contract)
 
+Amended: 2026-11-10 (public RC and stable discovery from the root, [#1072](https://github.com/klum-dsl/klum-ast/issues/1072))
+
 Status: Accepted
 
 Tracking issue: [#456 — Introduce versioned user documentation and Javadocs](https://github.com/klum-dsl/klum-ast/issues/456)
@@ -43,14 +45,25 @@ Local assets are copied within the exact version tree and manifest-covered. Diag
 | Exact user documentation | /<version>/ | immutable |
 | Exact API landing | /<version>/api/ | immutable |
 | Exact module API | /<version>/api/<module>/ | immutable |
-| Current stable final | /stable/ | labelled alias |
+| Current stable final | /stable/ | labelled selector |
 | Current maintained line, for example 4.0 | /4.0/ | labelled alias |
-| Exact public RC under evaluation | /preview/ | labelled alias |
+| Eligible public RC, when available | /preview/ | labelled selector |
 | Archived-version discovery | /archive/ | labelled index |
 
-The root landing page points to /stable/ and identifies the selected version. A manifest-driven selector distinguishes exact immutable versions, stable, maintained lines, and the one preview. /archive/ groups 2.x and 3.0.1 as Archived (legacy), but their exact content remains at the same /<version>/ shape. It retains a same-path deep link where possible; otherwise it goes to the target version root and says the page is unavailable there.
+The root links directly to the eligible public RC's immutable exact documentation and offers /stable/ when that selector
+exists. /stable/ lists the exact current stable final. /preview/ lists at most one exact eligible public RC, and remains
+a labelled inbound page with an empty state when there is no eligible RC. Maintained-line aliases remain labelled inbound
+routes to their exact finals.
 
-/preview/ may point only to one exact publicly resolvable RC. There is no public moving development tree. A failed, superseded, or not-yet-public candidate stays unlisted. Stable and line aliases advance only after #488's public artifact proof; preview advances only when its exact RC is public and eligible for that proof.
+Normal promotion selects the public candidate for preview or retains the existing eligible preview when promoting an
+unrelated final. A higher public RC number for the same `X.Y.Z` makes lower candidates ineligible for discovery even if
+their promotions finish out of order. The matching final retires that version's RCs from both root and preview discovery.
+Earlier finals leave a later patch candidate eligible. A candidate promotion may render the stable selector for its
+existing target. Stable and maintained-line targets advance only after #488's public artifact proof of a final.
+Failed, superseded, and pending candidates stay out of discovery.
+
+/archive/ groups 2.x and 3.0.1 as Archived (legacy), but their exact content remains at the same /<version>/ shape.
+It retains a same-path deep link where possible. Otherwise it goes to the target version root and says the page is unavailable there.
 
 ### Version-status chrome
 

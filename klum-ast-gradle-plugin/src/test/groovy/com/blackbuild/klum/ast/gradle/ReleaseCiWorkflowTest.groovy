@@ -90,6 +90,7 @@ class ReleaseCiWorkflowTest extends Specification {
         steps[2].with.ref == '${{ inputs.commit }}'
     }
 
+    @Issue('1072')
     def 'reviewed CI execution contract preserves the single job commands actions and worker limits'() {
         given:
         Map ci = readWorkflow('ci.yml')
@@ -101,7 +102,8 @@ class ReleaseCiWorkflowTest extends Specification {
         ci.jobs.build.'runs-on' == 'ubuntu-latest'
         steps.collect { it.name ?: it.uses } == ['actions/checkout@v7', 'Set up JDK 17', 'Setup Gradle',
                 'Cache SonarCloud packages', 'Build with Gradle', 'Qualify annotation propagation artifacts',
-                'Publish Test Report', 'Archive compatibility-lane evidence', 'Archive test classes']
+                'Publish Test Report', 'Archive compatibility-lane evidence',
+                'Verify published documentation landing routes', 'Archive test classes']
         steps[1].with.'java-version'.trim() == '17'
         steps[1].uses == 'actions/setup-java@v5'
         steps[2].uses == 'gradle/actions/setup-gradle@v6'
@@ -112,7 +114,8 @@ class ReleaseCiWorkflowTest extends Specification {
         steps[6].uses == 'mikepenz/action-junit-report@v6'
         steps[7].uses == 'actions/upload-artifact@v7'
         steps[7].with.'if-no-files-found' == 'error'
-        steps[8].if == 'failure()'
+        steps[8].run == 'bash .github/scripts/test-write-documentation-landing.sh'
+        steps[9].if == 'failure()'
         !release.toString().contains('annotationPropagationArtifacts')
         !release.toString().contains('./gradlew check')
     }

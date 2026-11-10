@@ -758,9 +758,15 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(publicRenderStart >= 0 && pagesCheckout > publicRenderStart && pendingEvidenceStart > pagesCheckout,
                 'promotion must render the clean source worktree before checking out and validating the gh-pages ledger')
         assertContains(promotionWorkflow, 'aliases=\'["preview"]\'',
-                'candidate promotion must advance only the preview alias')
-        assertContains(promotionWorkflow, 'aliases="[\\"stable\\",\\"$line\\"]"',
-                'final promotion must advance stable and its maintained-line alias')
+                'candidate promotion without a stable selector must record only the preview selector')
+        assertContains(promotionWorkflow, 'aliases=\'["preview","stable"]\'',
+                'candidate promotion must record the stable selector when it is present')
+        assertContains(promotionWorkflow, 'aliases="[\\"stable\\",\\"$line\\",\\"preview\\"]"',
+                'final promotion must record its stable, maintained-line and preview selector updates')
+        assertContains(promotionWorkflow, 'git add -- "$RELEASE_VERSION" promotions index.html preview/index.html',
+                'both stages must stage the root and preview selector produced by the landing writer')
+        assertContains(promotionWorkflow, 'git add -- stable/index.html',
+                'both stages must stage the stable selector when it is present')
         assertContains(promotionWorkflow, 'path: landing-writer',
                 'promotion must retain the reviewed landing writer even while it renders an older exact source')
         assertContains(promotionWorkflow, 'bash landing-writer/.github/scripts/write-documentation-landing.sh pages',

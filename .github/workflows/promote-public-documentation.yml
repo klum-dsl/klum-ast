@@ -332,15 +332,16 @@ jobs:
           pending_manifest="pages/pending/$RELEASE_VERSION/$EXPECTED_COMMIT/site-manifest.json"
           pending_manifest_sha256="$(sha256sum "$pending_manifest" | awk '{print $1}')"
           public_manifest_sha256="$(sha256sum "$public_manifest" | awk '{print $1}')"
-          aliases='["preview"]'
-          line=''
-          if [[ "$RELEASE_STAGE" == final ]]; then
-            line="${RELEASE_VERSION%.*}"
-            aliases="[\"stable\",\"$line\"]"
-          fi
           mkdir -p "pages/$RELEASE_VERSION" "pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT"
           cp -a "build/public-documentation/$RELEASE_VERSION/." "pages/$RELEASE_VERSION/"
           bash landing-writer/.github/scripts/write-documentation-landing.sh pages "$RELEASE_VERSION" "$RELEASE_STAGE"
+          aliases='["preview"]'
+          if [[ "$RELEASE_STAGE" == final ]]; then
+            line="${RELEASE_VERSION%.*}"
+            aliases="[\"stable\",\"$line\",\"preview\"]"
+          elif [[ -f pages/stable/index.html ]]; then
+            aliases='["preview","stable"]'
+          fi
           jq -n \
             --arg stage "$RELEASE_STAGE" \
             --arg version "$RELEASE_VERSION" \
@@ -354,11 +355,12 @@ jobs:
               aliases: $aliases, outcome: "promoted-public-documentation"}' \
             > "pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json"
           cd pages
-          git add -- "$RELEASE_VERSION" promotions index.html
-          if [[ "$RELEASE_STAGE" == candidate ]]; then
-            git add -- preview/index.html
-          else
-            git add -- stable/index.html "$line/index.html"
+          git add -- "$RELEASE_VERSION" promotions index.html preview/index.html
+          if [[ -f stable/index.html ]]; then
+            git add -- stable/index.html
+          fi
+          if [[ "$RELEASE_STAGE" == final ]]; then
+            git add -- "$line/index.html"
           fi
           git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
             commit -m "Promote proven documentation for $RELEASE_VERSION"
