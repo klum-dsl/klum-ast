@@ -55,6 +55,7 @@ final class StructuredInputConstraintMetadata {
     private static final String VALUE = "value";
     private static final String PLAIN = "plain";
     private static final String PATTERN = "jakarta.validation.constraints.Pattern";
+    private static final String NOT_BLANK = "jakarta.validation.constraints.NotBlank";
     private static final String MIN = "jakarta.validation.constraints.Min";
     private static final String MAX = "jakarta.validation.constraints.Max";
     private static final Set<String> MARKERS = Set.of(JAKARTA_CONSTRAINT, "javax.validation.Constraint",
@@ -117,6 +118,10 @@ final class StructuredInputConstraintMetadata {
         rule.setMember(PLAIN, ConstantExpression.FALSE);
         boolean decimal = name.equals("jakarta.validation.constraints.DecimalMin") || name.equals("jakarta.validation.constraints.DecimalMax");
         if (name.equals(MIN) || name.equals(MAX) || decimal) captureBound(annotation, declarations, rule, decimal);
+        if (name.equals(NOT_BLANK)) {
+            rule.setMember(PLAIN, new ConstantExpression(StructuredInputSourceOrigins.direct(field, annotation)
+                    && plain(annotation, declarations)));
+        }
         if (name.equals(PATTERN)) {
             rule.setMember("regexp", annotation.getMember("regexp"));
             rule.setMember("patternFlagsEmpty", new ConstantExpression(empty(annotation.getMember("flags"))));

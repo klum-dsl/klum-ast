@@ -60,7 +60,19 @@ class BuiltinConstraintCatalogTest extends Specification {
         result.reason() == null
     }
 
-    @Issue(['959', '1063'])
+    @Issue('1074')
+    def 'select NotBlank as one portable non-whitespace search assertion'() {
+        when:
+        def result = BuiltinConstraintCatalog.project(entry(String), rule('NotBlank'), false)
+
+        then:
+        result.projected()
+        result.bounds().empty
+        result.patterns() == [[pattern: '\\S']]
+        result.reason() == null
+    }
+
+    @Issue(['959', '1063', '1074'])
     def 'return unsupported without assertions for #annotation: #reason'() {
         when:
         def result = BuiltinConstraintCatalog.project(entry(type, site), rule(annotation, facts), groupRedefined)
@@ -87,6 +99,10 @@ class BuiltinConstraintCatalogTest extends Specification {
         'Pattern'    | String     | [:]                     | [patternFlagsEmpty: false] | false          | 'nonempty Pattern flags'
         'Pattern'    | String     | [:]                     | [regexp: 'a+']             | false          | 'unsupported Pattern source syntax'
         'Pattern'    | String     | [:]                     | [regexp: 'a{256}']         | false          | 'Pattern admission ceiling'
+        'NotBlank'   | Integer    | [:]                     | [:]                        | false          | 'unsupported NotBlank site/type'
+        'NotBlank'   | String     | [role: 'OPERATION']     | [:]                        | false          | 'unsupported NotBlank site/type'
+        'NotBlank'   | String     | [:]                     | [plain: false]             | false          | 'NotBlank not a direct singleton, nonempty groups/payload or group redefinition/sequence'
+        'NotBlank'   | String     | [:]                     | [:]                        | true           | 'NotBlank not a direct singleton, nonempty groups/payload or group redefinition/sequence'
     }
 
     // Runtime is intentionally testRuntimeOnly in this plugin. Build inert internal facts dynamically rather than
