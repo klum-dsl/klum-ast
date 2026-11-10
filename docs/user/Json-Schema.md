@@ -298,8 +298,8 @@ Its nested `Struct.ConstraintProjection.Policy` enum has three values:
 
 | Policy | Supported hard assertions | Constraint descriptions and source attribution |
 | --- | --- | --- |
-| `PROJECT` (default, also when the annotation is absent) | Project faithfully | Keep fallback descriptions for unsupported forms |
-| `TEXT_ONLY` | Omit | List every captured runtime constraint under `Unenforced constraints:` |
+| `PROJECT` (default, also when the annotation is absent) | Project faithfully | Keep compact fallback annotation prose for unsupported forms |
+| `TEXT_ONLY` | Omit | Keep every captured runtime constraint as compact annotation prose |
 | `OMIT` | Omit | Omit |
 
 (See: `KlumJsonSchemaGenerationTest#'choose field constraint projection without changing structural facts with Groovy #generation'`.)
@@ -442,7 +442,9 @@ generation never initializes or invokes it. The packaged `KlumJsonSchemaGenerati
 `project independent first-level composing constraints without domain classes with Groovy #generation` qualifies that
 variant, policies, inheritance/renaming, independent contributors and descriptive fallbacks on Groovy 3/4/5.
 
-The compiler freezes each outer declaration, composing origin and literal description into public Builder facts. Generation
+The compiler freezes each outer declaration, composing origin and literal description into public Builder facts. Retained
+first-level composing prose reads as the inner constraint carried by the outer annotation, for example
+`@NotBlank via @MandatoryInput`. Generation
 needs neither domain annotations nor Bean Validation on its classpath. Both consumers validate complete facts before
 policy suppression, including `OMIT`; malformed or stripped facts fail before replacing output. Recompile participating
 Schema hierarchies with matching compiler/runtime/plugin versions. The shared development protocol marker remains 1;
@@ -499,9 +501,13 @@ successful files and manifest. Supported numeric constraints are projected faith
 bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
 Root selection, binary inputs and output ownership retain the existing tracked Gradle task contract.
 
-Complete unsupported direct field declarations appear under `Unenforced constraints:` after the authored prose.
-Entries use unqualified annotation names and show explicitly authored attributes when available. A closure-backed
-`@Validate` appears as `custom validation`. Generation does not evaluate annotation defaults or constraint code.
+Complete unsupported direct field declarations appear one per line after the authored prose, without a heading or
+Markdown list. Every annotation line except the last ends in a comma, so the result remains comma-separated in editors
+that flatten line breaks. Entries use unqualified annotation names, omit empty parentheses and show explicitly authored
+attributes when available. A closure-backed `@Validate` appears as
+`custom validation`. When the same field has default `@Required` and the exact compiler-lowered default `@Validate()`
+fact, only the duplicate `@Validate()` prose is suppressed; distinct authored validation semantics remain visible.
+Generation does not evaluate annotation defaults or constraint code.
 Explicit groups/payload (including explicit Default groups), unsupported composed/repeatable declarations, Size and
 unsupported Pattern forms, quantity grammars and relationship closures
 receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
