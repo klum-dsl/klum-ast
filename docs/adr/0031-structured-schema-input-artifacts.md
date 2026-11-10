@@ -1209,6 +1209,22 @@ suppression or execution/output replacement. The shared development marker remai
 are required. [Implementation and qualification](../implementation/issue-959-composed-constraints.md) record the evidence.
 Related: #959; no closure, milestone change or new release gate.
 
+## Pragmatic non-blank String projection — #1074
+
+Date: 2026-11-10. Status: **Accepted narrow mapping; broader constraint support remains unchanged**.
+
+Extend the closed built-in catalog with `jakarta.validation.constraints.NotBlank` for an eligible effective constraint on
+an admitted ordinary `String` field. Under `Struct.ConstraintProjection.Policy.PROJECT`, emit the Draft 2020-12 pattern
+`\\S`, relying on JSON Schema's substring-oriented pattern semantics to require at least one non-whitespace character.
+This is an editor-facing approximation, not byte-for-byte equivalence with Bean Validation's Unicode whitespace rules;
+completed-Model Bean Validation remains authoritative.
+
+Preserve direct singleton, empty-groups/payload, source-origin and group-context qualification. Existing first-level AND
+composition may reuse the mapping without a composition extension. Unsupported sites/types and grouped, payload-bearing,
+repeated or uncertain forms remain descriptive. `TEXT_ONLY` and `OMIT` retain their existing meanings. The mapping adds
+no JSON Schema `required`, default, lifecycle, import, null-admission or runtime-validation behavior and introduces no new
+annotation, public API, protocol field, regex translator, validator execution or other constraint mapping. Related: #1074.
+
 ## Compiled converter parameter extension — #981
 
 Date: 2026-10-30. Status: **Confirmed authority boundary; C1 approved and implemented; C2 deferred**.

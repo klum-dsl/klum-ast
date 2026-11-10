@@ -344,6 +344,38 @@ fail before replacing outputs. Suppression does not waive validation of supporte
 Schema execution, required Jackson/Bean Validation adapter or global projection switch is introduced. See
 [migration](Migration.md#field-constraint-projection) and [issue #959](https://github.com/klum-dsl/klum-ast/issues/959).
 
+## Non-blank String constraints
+
+An eligible effective `jakarta.validation.constraints.NotBlank` on an admitted ordinary `String` field contributes the
+Draft 2020-12 pattern `\\S` under `Struct.ConstraintProjection.Policy.PROJECT`. JSON Schema pattern matching searches for
+a match, so this requires at least one non-whitespace character while retaining the existing structural String type.
+Empty and ordinary whitespace-only Strings reject; surrounding whitespace remains allowed when the value contains text.
+
+(See: `KlumJsonSchemaGenerationTest#'project non-blank authoring feedback without changing input presence with Groovy #generation'`.)
+
+```groovy
+import com.blackbuild.klum.ast.DSL
+import jakarta.validation.constraints.NotBlank
+
+@DSL
+class Topic {
+    @NotBlank String name
+}
+// name: type string, allOf [{pattern: '\\S'}]
+```
+
+This is a pragmatic editor-facing approximation. JSON Schema regex and Bean Validation need not classify every unusual
+Unicode whitespace character identically; completed-Model Bean Validation remains authoritative. Direct singleton
+constraints with empty groups/payload qualify. A first-level AND-composed `NotBlank` participates only through the
+existing supported composition path. Grouped, payload-bearing, repeated, uncertain-origin, non-String and unsupported-site
+forms retain the normal descriptive fallback.
+
+`TEXT_ONLY` keeps the constraint as descriptive text without the pattern; `OMIT` removes constraint-derived output.
+Neither `NotBlank` nor its pattern adds JSON Schema `required`. Omission remains allowed unless the field independently
+uses `@Struct.Required`; supplied null still fails the unchanged structural String assertion. Defaults, lifecycle,
+structured import and runtime validation behavior do not change, and KlumAST does not automatically validate input
+against the generated schema.
+
 ## Conservative Pattern projection
 
 A direct singleton `jakarta.validation.constraints.Pattern` on an admitted ordinary `String` field projects automatically
