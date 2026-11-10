@@ -631,7 +631,7 @@ tasks.register('exampleControl', JavaExec) {
         'ExampleChild'   | 'owned'  | 'missing'
     }
 
-    @Issue(['959', '1063'])
+    @Issue(['959', '1063', '1075'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#conservative-pattern-projection')
     def 'project bounded release identifiers from source-free artifacts with Groovy #generation'() {
@@ -1668,7 +1668,7 @@ custom validation,
         sites
     }
 
-    @Issue(['959', '1063'])
+    @Issue(['959', '1063', '1075'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#decimal-constraints')
     def 'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'() {
@@ -1838,7 +1838,7 @@ custom validation,
         'Capacity'      | 'field'
     }
 
-    @Issue(['959', '1063'])
+    @Issue(['959', '1063', '1075'])
     def 'unsupported complete field constraints retain runtime descriptions and effective group context'() {
         given:
         fixture('3', false, true)
